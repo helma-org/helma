@@ -20,15 +20,15 @@ public class RedirectException extends EcmaScriptException {
     }
     
     public String getMessage () {
-    	return url;
+	return url;
     }
     
-    public void printStackTrace(java.io.PrintStream s) { 
-
+    public void printStackTrace(java.io.PrintStream s) {
+	// do nothing
     }
 
     public void printStackTrace(java.io.PrintWriter w) {
-    
+	// do nothing
     }
 
 }
