@@ -823,6 +823,10 @@ public final class NodeManager {
 	                groupbySubnodes = new HashMap();
 	            }
 
+	            String accessProp = null;
+	            if (rel.accessor != null && !rel.usesPrimaryKey ())
+	                accessProp = dbm.columnNameToProperty (rel.accessor);
+
 	            for (int i=0; i<tds.size (); i++) {
 	                // create new Nodes.
 	                Record rec = tds.getRecord (i);
@@ -831,14 +835,21 @@ public final class NodeManager {
 
 	                // for grouped nodes, collect subnode lists for the intermediary
 	                // group nodes.
+	                String groupName = null;
 	                if (groupbyProp != null) {
-	                    String groupbyName = node.getString (groupbyProp, false);
-	                    List sn = (List) groupbySubnodes.get (groupbyName);
+	                    groupName = node.getString (groupbyProp, false);
+	                    List sn = (List) groupbySubnodes.get (groupName);
 	                    if (sn == null) {
 	                        sn = new ExternalizableVector ();
-	                        groupbySubnodes.put (groupbyName, sn);
+	                        groupbySubnodes.put (groupName, sn);
 	                    }
 	                    sn.add (new NodeHandle (primKey));
+	                }
+
+	                // if relation doesn't use primary key as accessor, get accessor value
+	                String accessName = null;
+	                if (accessProp != null) {
+	                    accessName = node.getString (accessProp, false);
 	                }
 
 	                // register new nodes with the cache. If an up-to-date copy
@@ -846,7 +857,14 @@ public final class NodeManager {
 	                synchronized (cache) {
 	                    Node oldnode = (Node) cache.put (primKey, node);
 	                    if (oldnode != null && oldnode.getState() != INode.INVALID) {
+	                        // found an ok version in the cache, use it.
 	                        cache.put (primKey, oldnode);
+	                    } else if (accessName != null) {
+	                        // put the node into cache with its secondary key
+	                        if (groupName != null)
+	                            cache.put (new SyntheticKey (new SyntheticKey (home.getKey(), groupName), accessName), node);
+	                        else
+	                            cache.put (new SyntheticKey (home.getKey(), accessName), node);
 	                    }
 	                }
 	            }
