@@ -178,6 +178,21 @@ public class ESNode extends ObjectPrototype {
     }
 
    /**
+    *  Invalidate the node itself or a subnode
+    */
+    public boolean invalidate (ESValue args[]) {
+        if (node instanceof helma.objectmodel.db.Node) {
+            if (args.length == 0) {
+                ((helma.objectmodel.db.Node) node).invalidate ();
+            } else {
+                ((helma.objectmodel.db.Node) node).invalidateNode (args[0].toString ());
+            }
+        }
+        return true;
+    }
+
+
+   /**
     *  Check if node is contained in subnodes
     */
     public int contains (ESValue args[]) {

@@ -437,6 +437,24 @@ public final class Node implements INode, Serializable {
 	nmgr.evictNode (this);
     }
 
+    /**
+     *  Check for a child mapping and evict the object specified by key from the cache
+     */
+    public void invalidateNode (String key) {
+	// This doesn't make sense for transient nodes
+	if (state == TRANSIENT || state == NEW)
+	    return;
+    checkWriteLock ();  // ?? necessary ??
+    Relation rel = getDbMapping ().getSubnodeRelation ();
+    if (rel != null) {
+        if (rel.usesPrimaryKey()) {
+            nmgr.evictKey (new DbKey (getDbMapping().getSubnodeMapping(), key));
+        } else {
+            nmgr.evictKey (new SyntheticKey (getKey(), key));
+        }
+    }
+    }
+
 
     /** 
      *  Get the ID of this Node. This is the primary database key and used as part of the

@@ -236,12 +236,7 @@ public final class HopExtension {
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
             ESNode esn = (ESNode) thisObject;
-            INode node = esn.getNode ();
-            if (node instanceof helma.objectmodel.db.Node) {
-                ((helma.objectmodel.db.Node) node).invalidate ();
-                esn.checkNode ();
-            }
-            return ESBoolean.makeBoolean (true);
+            return ESBoolean.makeBoolean (esn.invalidate (arguments));
         }
     }
 
