@@ -249,17 +249,15 @@ public final class FesiEvaluator implements ScriptingEngine {
 	}
     }
 
-
-    /**
-     *  This method is called when an execution context for a request
-     *  evaluation is entered. The globals parameter contains the global values
-     *  to be applied during this executino context.
+    /** 
+     *  This method is called before an execution context is entered to let the 
+     *  engine know it should update its prototype information.
      */
-    public void enterContext (HashMap globals) throws ScriptingException {
+    public void updatePrototypes () {
 	// first loop through existing prototypes and update them if necessary
 	for (Enumeration e=prototypes.elements(); e.hasMoreElements(); ) {
 	    TypeInfo info = (TypeInfo) e.nextElement ();
-	    // only update prototype if it has already been initialized. 
+	    // only update prototype if it has already been initialized.
 	    // otherwise, this will be done on demand
 	    if (info.lastUpdate > 0) {
 	        Prototype p = app.typemgr.getPrototype (info.protoName);
@@ -272,6 +270,14 @@ public final class FesiEvaluator implements ScriptingEngine {
 	        }
 	    }
 	}
+    }
+
+    /**
+     *  This method is called when an execution context for a request
+     *  evaluation is entered. The globals parameter contains the global values
+     *  to be applied during this execution context.
+     */
+    public void enterContext (HashMap globals) throws ScriptingException {
 	// set globals on the global object
 	if (globals != null && globals != lastGlobals) {
 	    // loop through global vars and set them

@@ -16,9 +16,16 @@ import java.io.File;
 public interface ScriptingEngine {
 
     /**
+     *  This method is called before an execution context for a request
+     *  evaluation is entered to let the Engine know it should update 
+     *  its prototype information
+     */
+    public void updatePrototypes ();
+
+    /**
      *  This method is called when an execution context for a request
      *  evaluation is entered. The globals parameter contains the global values
-     *  to be applied during this executino context.
+     *  to be applied during this execution context.
      */
     public void enterContext (HashMap globals) throws ScriptingException;
 

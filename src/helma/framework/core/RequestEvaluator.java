@@ -92,6 +92,9 @@ public final class RequestEvaluator implements Runnable {
 	        int tries = 0;
 	        boolean done = false;
 	        String error = null;
+
+	        scriptingEngine.updatePrototypes ();
+
 	        while (!done) {
 
 	            currentElement = null;
@@ -184,7 +187,6 @@ public final class RequestEvaluator implements Runnable {
 	                                if (currentElement != null) {
 	                                    // add to requestPath array
 	                                    requestPath.add (currentElement);
-	                                    String pt = app.getPrototypeName (currentElement);
 	                                }
 	                            }
 	                        }
@@ -325,6 +327,8 @@ public final class RequestEvaluator implements Runnable {
 	            globals.put ("res", res);
 	            globals.put ("app", app);
 
+	            scriptingEngine.updatePrototypes ();
+
 	            scriptingEngine.enterContext (globals);
 
 	            currentElement = root;
@@ -370,12 +374,14 @@ public final class RequestEvaluator implements Runnable {
 	        // if thisObject is an instance of NodeHandle, get the node object itself.
 	        if (thisObject != null && thisObject instanceof NodeHandle) {
 	            thisObject = ((NodeHandle) thisObject).getNode (app.nmgr.safe);
-	            // see if a valid node was returned 
+	            // see if a valid node was returned
 	            if (thisObject == null) {
 	                reqtype = NONE;
 	                break;
 	            }
 	        }
+
+	        scriptingEngine.updatePrototypes ();
 
 	        // avoid going into transaction if called function doesn't exist
 	        boolean functionexists = true;
