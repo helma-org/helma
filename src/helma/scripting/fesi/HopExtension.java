@@ -31,6 +31,12 @@ public final class HopExtension {
 
     protected Application app;
     protected FesiEvaluator fesi;
+    
+    // mode constants for renderSkin() variants
+    final static int RENDER_TO_RESPONSE = 0;
+    final static int RENDER_TO_STRING = 1;
+    final static int RENDER_TO_BUFFER = 2;
+
 
     public HopExtension (Application app) {
         this.app = app;
@@ -87,15 +93,17 @@ public final class HopExtension {
         esNodePrototype.putHiddenProperty ("setParent", new NodeSetParent ("setParent", evaluator, fp));
         esNodePrototype.putHiddenProperty ("invalidate", new NodeInvalidate ("invalidate", evaluator, fp));
         esNodePrototype.putHiddenProperty ("prefetchChildren", new NodePrefetch ("prefetchChildren", evaluator, fp));
-        esNodePrototype.putHiddenProperty ("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, false, false));
-        esNodePrototype.putHiddenProperty ("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, true));
+        esNodePrototype.putHiddenProperty ("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, false, RENDER_TO_RESPONSE));
+        esNodePrototype.putHiddenProperty ("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, RENDER_TO_STRING));
+        esNodePrototype.putHiddenProperty ("renderSkinAsBuffer", new RenderSkin ("renderSkinAsBuffer", evaluator, fp, false, RENDER_TO_BUFFER));
         esNodePrototype.putHiddenProperty ("clearCache", new NodeClearCache ("clearCache", evaluator, fp));
 
         // default methods for generic Java wrapper object prototype.
         // This is a small subset of the methods in esNodePrototype.
         esObjectPrototype.putHiddenProperty ("href", new NodeHref ("href", evaluator, fp));
-        esObjectPrototype.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, false, false));
-        esObjectPrototype.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, true));
+        esObjectPrototype.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, false, RENDER_TO_RESPONSE));
+        esObjectPrototype.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, RENDER_TO_STRING));
+        esObjectPrototype.putHiddenProperty("renderSkinAsBuffer", new RenderSkin ("renderSkinAsBuffer", evaluator, fp, false, RENDER_TO_BUFFER));
 
         // methods that give access to properties and global user lists
         go.putHiddenProperty("Node", node); // register the constructor for a plain Node object.
@@ -114,8 +122,9 @@ public final class HopExtension {
         go.putHiddenProperty("jdomize", new GlobalJDOM ("jdomize", evaluator, fp));
         go.putHiddenProperty("getSkin", new GlobalCreateSkin ("getSkin", evaluator, fp));
         go.putHiddenProperty("createSkin", new GlobalCreateSkin ("createSkin", evaluator, fp));
-        go.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, true, false));
-        go.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, true, true));
+        go.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, true, RENDER_TO_RESPONSE));
+        go.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, true, RENDER_TO_STRING));
+        go.putHiddenProperty("renderSkinAsBuffer", new RenderSkin ("renderSkinAsBuffer", evaluator, fp, true, RENDER_TO_BUFFER));
         go.putHiddenProperty("authenticate", new GlobalAuthenticate ("authenticate", evaluator, fp));
         go.deleteProperty("exit", "exit".hashCode());
 
@@ -464,11 +473,11 @@ public final class HopExtension {
      */
     class RenderSkin extends BuiltinFunctionObject {
         boolean global;
-        boolean asString;
-        RenderSkin (String name, Evaluator evaluator, FunctionPrototype fp, boolean global, boolean asString) {
+        int mode;
+        RenderSkin (String name, Evaluator evaluator, FunctionPrototype fp, boolean global, int mode) {
             super (fp, evaluator, name, 1);
             this.global = global;
-            this.asString = asString;
+            this.mode = mode;
         }
         public ESValue callFunction (ESObject thisObj, ESValue[] arguments) throws EcmaScriptException {
             if (arguments.length < 1 || arguments.length > 2 || arguments[0] ==null || arguments[0] == ESNull.theNull)
@@ -509,14 +518,16 @@ public final class HopExtension {
                         res.cacheSkin (skinid, skin);
                     }
                 }
-                if (asString)
-                    res.pushStringBuffer ();
+                if (mode != RENDER_TO_RESPONSE)
+                    res.pushBuffer ();
                 if (skin != null)
                     skin.render (fesi.getRequestEvaluator(), javaObject, params);
                 else
                     res.write ("[Skin not found: "+arguments[0]+"]");
-                if (asString)
-                    return  new ESString (res.popStringBuffer ());
+                if (mode == RENDER_TO_STRING)
+                    return  new ESString (res.popBuffer().toString());
+                else if (mode == RENDER_TO_BUFFER)
+                    return new ESWrapper (res.popBuffer(), evaluator);
             } catch (RedirectException redir) {
                 // let redirect pass through
                 throw redir;
@@ -792,11 +803,11 @@ public final class HopExtension {
             return new ESString (basicHref);
         }
         private ESString renderSkin (Skin skin, String path, Object skinElem) throws EcmaScriptException {
-            fesi.getResponse().pushStringBuffer ();
+            fesi.getResponse().pushBuffer ();
             HashMap param = new HashMap ();
             param.put ("path", path);
             skin.render (fesi.getRequestEvaluator(), skinElem, param);
-            return new ESString (fesi.getResponse().popStringBuffer ().trim ());
+            return new ESString (fesi.getResponse().popBuffer().toString().trim ());
         }
     }
 

@@ -481,6 +481,8 @@ public final class Application implements IPathElement, Runnable {
 	            res.close (charset);
 	        } catch (UnsupportedEncodingException uee) {
 	            logEvent ("Unsupported response encoding: "+uee.getMessage());
+	        } catch (IOException ioe) {
+	            logEvent ("IOException while closing response: "+ioe);
 	        }
 	    } else {
 	        res.waitForClose ();

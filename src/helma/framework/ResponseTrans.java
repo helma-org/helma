@@ -65,7 +65,7 @@ public final class ResponseTrans implements Externalizable {
     int nCookies = 0;
 
     // the buffer used to build the response
-    private transient StringBuffer buffer = null;
+    private transient ResponseBuffer buffer = null;
     // these are used to implement the _as_string variants for Hop templates.
     private transient Stack buffers;
 
@@ -141,13 +141,20 @@ public final class ResponseTrans implements Externalizable {
 	return handlers;
     }
 
+    /**
+     * Get a macro handler by name.
+     */
+    public Object getMacroHandler (String name) {
+	return handlers.get (name);
+    }
+
 
     /**
      * Reset the response object to its initial empty state.
      */
     public void reset () {
 	if (buffer != null)
-	    buffer.setLength (0);
+	    buffer.clear ();
 	buffers = null;
 	response = null;
 	redir = null;
@@ -166,36 +173,45 @@ public final class ResponseTrans implements Externalizable {
      * This is called before a skin is rendered as string (renderSkinAsString) to redirect the output
      * to a new string buffer.
      */
-    public void pushStringBuffer () {
+    public void pushBuffer () {
 	if (buffers == null)
 	    buffers = new Stack();
 	if (buffer != null)
 	    buffers.push (buffer);
-	buffer = new StringBuffer (64);
+	buffer = new ResponseBuffer();
     }
 
     /**
      * Returns the content of the current string buffer and switches back to the previos one.
      */
-    public String popStringBuffer () {
-	StringBuffer b = buffer;
-	buffer = buffers.empty() ? null : (StringBuffer) buffers.pop ();
-	return b.toString ();
+    public ResponseBuffer popBuffer () {
+	ResponseBuffer b = buffer;
+	buffer = buffers.empty() ? null : (ResponseBuffer) buffers.pop ();
+	return b;
+    }
+
+    /**
+     * Return the current response buffer of this response.
+     */
+    public ResponseBuffer getBuffer () {
+	if (buffer == null)
+	    buffer = new ResponseBuffer ();
+	return buffer;
     }
 
     /**
      * Returns the number of characters written to the response buffer so far.
      */
-    public int getBufferLength() {
+    /* public int getBufferLength() {
 	if (buffer == null)
 	    return 0;
 	return buffer.length ();
     }
-    
+
     public void setBufferLength(int l) {
 	if (buffer != null)
 	    buffer.setLength (l);
-    }
+    } */
 
     /**
      * Append a string to the response unchanged. This is often called 
@@ -204,10 +220,13 @@ public final class ResponseTrans implements Externalizable {
      */
     public void write (Object what) {
 	if (what != null) {
-	    String str = what.toString ();
 	    if (buffer == null)
-	        buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
-	    buffer.append (what.toString ());
+	        // buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
+	        buffer = new ResponseBuffer ();
+	    if (what instanceof ResponsePart)
+	        buffer.add ((ResponsePart) what);
+	    else
+	        buffer.add (what.toString ());
 	}
     }
 
@@ -216,19 +235,21 @@ public final class ResponseTrans implements Externalizable {
      */
     public void writeln (Object what) {
 	if (buffer == null)
-	    buffer = new StringBuffer (INITIAL_BUFFER_SIZE);
+	    // buffer = new StringBuffer (INITIAL_BUFFER_SIZE);
+	    buffer = new ResponseBuffer ();
 	if (what != null)
-	    buffer.append (what.toString ());
-	buffer.append ("<br />\r\n");
+	    buffer.add (what.toString ());
+	buffer.add ("<br />\r\n");
     }
 
     /**
      *  Append a part from a char array to the response buffer.
      */
-    public void writeCharArray (char[] c, int start, int length) {
+    public void writePart (ResponsePart part) {
 	if (buffer == null)
-	    buffer = new StringBuffer (Math.max (length, INITIAL_BUFFER_SIZE));
-	buffer.append (c, start, length);
+	    // buffer = new StringBuffer (Math.max (length, INITIAL_BUFFER_SIZE));
+	    buffer = new ResponseBuffer ();
+	buffer.add (part);
     }
 
     /**
@@ -250,8 +271,9 @@ public final class ResponseTrans implements Externalizable {
 	if (what != null) {
 	    String str = what.toString ();
 	    if (buffer == null)
-	        buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
-	    HtmlEncoder.encodeAll (str, buffer);
+	        // buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
+	        buffer = new ResponseBuffer ();
+	    buffer.add (HtmlEncoder.encodeAll (str));
 	}
     }
 
@@ -263,8 +285,9 @@ public final class ResponseTrans implements Externalizable {
 	if (what != null) {
 	    String str = what.toString ();
 	    if (buffer == null)
-	        buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
-	    HtmlEncoder.encode (str, buffer);
+	        // buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
+	        buffer = new ResponseBuffer ();
+	    buffer.add (HtmlEncoder.encode (str));
 	}
     }
 
@@ -277,8 +300,9 @@ public final class ResponseTrans implements Externalizable {
 	if (what != null) {
 	    String str = what.toString ();
 	    if (buffer == null)
-	        buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
-	    HtmlEncoder.encodeXml (str, buffer);
+	        // buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
+	        buffer = new ResponseBuffer ();
+	    buffer.add (HtmlEncoder.encodeXml (str));
 	}
     }
 
@@ -290,8 +314,9 @@ public final class ResponseTrans implements Externalizable {
 	if (what != null) {
 	    String str = what.toString ();
 	    if (buffer == null)
-	        buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
-	    HtmlEncoder.encodeAll (str, buffer, false);
+	        // buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
+	        buffer = new ResponseBuffer ();
+	    buffer.add (HtmlEncoder.encodeFormValue (str));
 	}
     }
 
@@ -299,8 +324,9 @@ public final class ResponseTrans implements Externalizable {
     public void append (String str) {
 	if (str != null) {
 	    if (buffer == null)
-	        buffer = new StringBuffer (Math.max (str.length(), INITIAL_BUFFER_SIZE));
-	    buffer.append (str);
+	        // buffer = new StringBuffer (Math.max (str.length(), INITIAL_BUFFER_SIZE));
+	        buffer = new ResponseBuffer ();
+	    buffer.add (str);
 	}
     }
 
@@ -327,7 +353,8 @@ public final class ResponseTrans implements Externalizable {
      * This has to be called after writing to this response has finished and before it is shipped back to the
      * web server. Transforms the string buffer into a char array to minimize size.
      */
-    public synchronized void close (String cset) throws UnsupportedEncodingException {
+    public synchronized void close (String cset) 
+            throws UnsupportedEncodingException, IOException {
 	// only use default charset if not explicitly set for this response.
 	if (charset == null)
 	    charset = cset;
@@ -338,13 +365,21 @@ public final class ResponseTrans implements Externalizable {
 	if (response == null) {
 	    if (buffer != null) {
 	        if (debugBuffer != null)
-	            buffer.append (debugBuffer);
+	            buffer.add (debugBuffer.toString());
+	        ByteArrayOutputStream bout = new ByteArrayOutputStream (buffer.length());
+	// long start = System.currentTimeMillis();
 	        try {
-	            response = buffer.toString ().getBytes (charset);
+	            Writer writer = new OutputStreamWriter (bout, charset);
+	            buffer.writeTo (writer);
+	            writer.flush();
 	        } catch (UnsupportedEncodingException uee) {
 	            encodingError = true;
-	            response = buffer.toString ().getBytes ();
+	            Writer writer = new OutputStreamWriter (bout);
+	            buffer.writeTo (writer);
+	            writer.flush();
 	        }
+	        response = bout.toByteArray ();
+	// System.err.println ("ENCODING TOOK "+(System.currentTimeMillis()-start)+" MILLIS");
 	        // if etag is not set, calc MD5 digest and check it
 	        if (etag == null && lastModified == -1 &&
 	            redir == null && error == null) try {

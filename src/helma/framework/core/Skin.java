@@ -20,10 +20,10 @@ import java.util.*;
 
 public final class Skin {
 
-    private Macro[] parts;
+    private Object[] parts;
     private Application app;
-    private char[] source;
-    private int sourceLength;
+    private final char[] source;
+    private final int sourceLength;
     private HashSet sandbox;
 
 
@@ -72,20 +72,23 @@ public final class Skin {
 	    if (source[i] == '<' && source[i+1] == '%') {
 	        // found macro start tag
 	        int j = i+2;
-	        // search macr end tag
+	        // search macro end tag
 	        while (j < sourceLength-1 && (source[j] != '%' || source[j+1] != '>')) {
 	            j++;
 	        }
 	        if (j > i+2) {
+	            if (i - start > 0)
+	                partBuffer.add (new StaticPart (start, i - start));
 	            partBuffer.add (new Macro (i, j+2));
 	            start = j+2;
 	        }
 	        i = j+1;
 	    }
 	}
-
-	parts = new Macro[partBuffer.size()];
-	partBuffer.toArray (parts);
+	if (start < sourceLength)
+	    partBuffer.add (new StaticPart (start, sourceLength - start));
+	
+	parts = partBuffer.toArray ();
     }
 
     /**
@@ -104,26 +107,18 @@ public final class Skin {
 	if (++reval.skinDepth > 50)
 	    throw new RuntimeException ("Recursive skin invocation suspected");
 
-	if (parts == null) {
-	    reval.res.writeCharArray (source, 0, sourceLength);
-	    reval.skinDepth--;
-	    return;
-	}
-
 	try {
 	    int written = 0;
 	    Map handlerCache = null;
-	    if (parts.length > 3) {
+	    if (parts.length > 6) {
 	        handlerCache = new HashMap();
 	    }
 	    for (int i=0; i<parts.length; i++) {
-	        if (parts[i].start > written)
-	            reval.res.writeCharArray (source, written, parts[i].start-written);
-	        parts[i].render (reval, thisObject, paramObject, handlerCache);
-	        written = parts[i].end;
+	        if (parts[i] instanceof StaticPart)
+	            reval.res.writePart ((ResponsePart) parts[i]);
+	        else
+	            ((Macro) parts[i]).render (reval, thisObject, paramObject, handlerCache);
 	    }
-	    if (written < sourceLength)
-	        reval.res.writeCharArray (source, written, sourceLength-written);
 	} finally {
 	    reval.skinDepth--;
 	}
@@ -166,8 +161,8 @@ public final class Skin {
 	String fullName;
 	String prefix;
 	String suffix;
-	String encoding;
 	String defaultValue;
+	String encoding;
 	Map parameters = null;
 
 	public Macro (int start, int end) {
@@ -178,6 +173,7 @@ public final class Skin {
 	    boolean escape = false;
 	    char quotechar = '\u0000';
 	    String lastParamName = null;
+	    
 	    StringBuffer b = new StringBuffer();
 
 	    for (int i=start+2; i<end-2; i++) {
@@ -314,6 +310,7 @@ public final class Skin {
 	    try {
 
 	        Object handlerObject = null;
+	        ResponseBuffer buffer = reval.res.getBuffer ();
 
 	        // flag to tell whether we found our invocation target object
 	        boolean objectFound = true;
@@ -357,7 +354,7 @@ public final class Skin {
 	                            break;
 	                        }
 	                    } */
-	                    handlerObject = reval.res.getMacroHandlers().get (handler);
+	                    handlerObject = reval.res.getMacroHandler (handler);
 	                }
 
 	                // the macro handler object couldn't be found
@@ -380,14 +377,14 @@ public final class Skin {
 
 	            String funcName = name+"_macro";
 	            if (reval.scriptingEngine.hasFunction (handlerObject, funcName)) {
-	                // remember length of response buffer before calling macro
-	                int bufLength = reval.res.getBufferLength ();
 	                // remember length of buffer with prefix written out
-	                int preLength = 0;
+	                // int preLength = 0;
 	                if (prefix != null) {
-	                    reval.res.write (prefix);
-	                    preLength = prefix.length();
+	                    buffer.add (prefix);
+	                    // preLength = prefix.length();
 	                }
+	                // remember length of response buffer before calling macro
+	                int bufSize = buffer.size ();
 
 	                // System.err.println ("Getting macro from function");
 	                // pass a clone of the parameter map so if the script changes it,
@@ -400,14 +397,14 @@ public final class Skin {
 
 	                Object v = reval.scriptingEngine.invoke (handlerObject, funcName, arguments, false);
 	                // check if macro wrote out to response buffer
-	                if (reval.res.getBufferLength () == bufLength + preLength) {
+	                if (buffer.size () == bufSize) {
 	                    // function didn't write out anything itself
-	                    if (preLength > 0)
-	                        reval.res.setBufferLength (bufLength);
+	                    // if (preLength > 0)
+	                    buffer.setSize (bufSize);
 	                    writeToResponse (v, reval.res, true);
 	                } else {
 	                    if (suffix != null)
-	                        reval.res.write (suffix);
+	                        buffer.add (suffix);
 	                    writeToResponse (v, reval.res, false);
 	                }
 	            } else {
@@ -474,22 +471,27 @@ public final class Skin {
 	/**
 	 * Utility method for writing text out to the response object.
 	 */
-	void writeToResponse (Object value, ResponseTrans res, boolean useDefault) {
-	    String text;
+	void writeToResponse (Object value, 
+	                      ResponseTrans res,
+	                      boolean useDefault) {
 	    if (value == null) {
 	        if (useDefault)
-	            text = defaultValue;
-	        else
-	            return;
-	    } else {
-	        text = value.toString ();
+	            value = defaultValue;
 	    }
-	    if (text == null || text.length() == 0)
+	    if (value == null)
 	        return;
-	    if (encoding != null)
-	        text = encode (text, encoding);
+	    int length;
+	    if (value instanceof ResponsePart)
+	        length = ((ResponsePart) value).length();
+	    else
+	        length = value.toString().length();
+	    if (length == 0)
+	        return;
 	    res.write (prefix);
-	    res.write (text);
+	    if (encoding != null)
+	        res.write (encode (value.toString(), encoding));
+	    else
+	        res.write (value);
 	    res.write (suffix);
 	}
 
@@ -522,6 +524,32 @@ public final class Skin {
 	    return fullName;
 	}
 
+    }
+    
+    class StaticPart implements ResponsePart {
+	int start;
+	int length;
+	
+	public StaticPart (int start, int length) {
+	    this.start = start;
+	    this.length = length;
+	}
+	
+	public int length() {
+	    return length;
+	}
+	
+	public void writeTo (Writer writer) throws IOException {
+	    writer.write (source, start, length);
+	}
+	
+	public void appendTo (StringBuffer buffer) {
+	    buffer.append (source, start, length);
+	}
+	
+	public String toString () {
+	    return new String (source, start, length);
+	}
     }
 
 }

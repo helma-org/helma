@@ -26,13 +26,13 @@ public class ResponseBean implements Serializable {
 	res.format (what);
     }
 
-    public void pushStringBuffer  () {
+    /* public void pushStringBuffer  () {
 	res.pushStringBuffer ();
     }
 
     public String popStringBuffer () {
 	return res.popStringBuffer ();
-    }
+    } */
 
     public void redirect (String url) throws RedirectException {
 	res.redirect (url);
