@@ -4,6 +4,7 @@
 package helma.framework;
 
 import java.rmi.*;
+import java.util.Vector;
 
 /**
  * RMI interface for an application. Currently only execute is used and supported.
@@ -13,7 +14,7 @@ public interface IRemoteApp extends Remote {
 
     public ResponseTrans execute (RequestTrans param) throws RemoteException;
 
-    public ResponseTrans get (String path, String sessionID) throws RemoteException;
+    public void replicateCache (Vector add, Vector delete) throws RemoteException;
 
     public void ping () throws RemoteException;
  
