@@ -41,7 +41,7 @@ public class RhinoActionAdapter {
      */
     public RhinoActionAdapter(ActionFile action) {
         String content = action.getContent();
-        String functionName = action.getFunctionName();
+        String functionName = action.getFunctionName().replace('.', '_');
 
         sourceName = action.toString();
         function = composeFunction(functionName,
