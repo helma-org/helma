@@ -844,7 +844,7 @@ public final class Application implements IPathElement, Runnable {
 	    if (rootproto != null && rootproto.equals (getPrototypeName (p)))
 	        break;
 	    b.insert (0, divider);
-	    b.insert (0, URLEncoder.encode (getElementName (p)));
+	    b.insert (0, UrlEncoded.encode (getElementName (p)));
 	    p = getParentElement (p);
 
 	    if (loopWatch++ > 20)
@@ -852,7 +852,7 @@ public final class Application implements IPathElement, Runnable {
 	}
 
 	if (actionName != null)
-	    b.append (URLEncoder.encode (actionName));
+	    b.append (UrlEncoded.encode (actionName));
 
 	return baseURI + b.toString ();
     }
