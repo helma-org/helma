@@ -426,7 +426,6 @@ public final class NodeManager {
 	        {
 	            b1.append (", "+columns[i].getName());
 	            b2.append (", ?");
-	            System.err.println ("ADDING COLUMN: "+columns[i].getName());
 	        }
 	    }
 
@@ -435,6 +434,10 @@ public final class NodeManager {
 
 	    Connection con = dbm.getConnection ();
 	    PreparedStatement stmt = con.prepareStatement (b1.toString ());
+	    
+	    if (logSql)
+	       app.logEvent ("### insertNode: "+b1.toString ());
+
 	    try {
 
 	        int stmtNumber = 1;
@@ -473,14 +476,23 @@ public final class NodeManager {
 	                            stmt.setDouble (stmtNumber, p.getFloatValue());
 	                            break;
 
-	                        case Types.LONGVARBINARY:
 	                        case Types.VARBINARY:
 	                        case Types.BINARY:
 	                        case Types.BLOB:
 	                            stmt.setString (stmtNumber, p.getStringValue());
 	                            break;
 
+	                        case Types.LONGVARBINARY:
 	                        case Types.LONGVARCHAR:
+	                            try {
+	                                stmt.setString (stmtNumber, p.getStringValue());
+	                            } catch (SQLException x) {
+	                                String str = p.getStringValue();
+	                                Reader r = new StringReader (str);
+	                                stmt.setCharacterStream (stmtNumber, r, str.length());
+	                            }
+	                            break;
+
 	                        case Types.CHAR:
 	                        case Types.VARCHAR:
 	                        case Types.OTHER:
@@ -594,7 +606,10 @@ public final class NodeManager {
 
 	    Connection con = dbm.getConnection ();
 	    PreparedStatement stmt = con.prepareStatement (b.toString ());
-	    System.err.println (b.toString());
+
+	    if (logSql)
+	       app.logEvent ("### updateNode: "+b.toString ());
+
 	    int stmtNumber = 0;
 	    try {
 	        for (int i=0; i<props.length; i++) {
@@ -625,14 +640,23 @@ public final class NodeManager {
 	                        stmt.setDouble (stmtNumber, p.getFloatValue());
 	                        break;
 
-	                    case Types.LONGVARBINARY:
 	                    case Types.VARBINARY:
 	                    case Types.BINARY:
 	                    case Types.BLOB:
 	                        stmt.setString (stmtNumber, p.getStringValue());
 	                        break;
 
+	                    case Types.LONGVARBINARY:
 	                    case Types.LONGVARCHAR:
+	                            try {
+	                                stmt.setString (stmtNumber, p.getStringValue());
+	                            } catch (SQLException x) {
+	                                String str = p.getStringValue();
+	                                Reader r = new StringReader (str);
+	                                stmt.setCharacterStream (stmtNumber, r, str.length());
+	                            }
+	                            break;
+
 	                    case Types.CHAR:
 	                    case Types.VARCHAR:
 	                    case Types.OTHER:
@@ -699,14 +723,17 @@ public final class NodeManager {
 	    Statement st = null;
 	    try {
 	        Connection con = dbm.getConnection ();
-	        st = con.createStatement ();
-	        st.executeUpdate (new StringBuffer ("DELETE FROM ")
+	        String str = new StringBuffer ("DELETE FROM ")
 	            .append(dbm.getTableName ())
 	            .append(" WHERE ")
 	            .append(dbm.getIDField())
 	            .append(" = ")
 	            .append(node.getID())
-	            .toString());
+	            .toString();
+	        st = con.createStatement ();
+	        st.executeUpdate (str);
+	        if (logSql)
+	           app.logEvent ("### deleteNode: "+str);
 	    } finally {
 	        if (st != null) try {
 	            st.close ();
