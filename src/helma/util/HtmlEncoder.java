@@ -278,49 +278,53 @@ public final class HtmlEncoder {
     // conversion around them to look good. However, they differ
     // in how many newlines around them should ignored. These sets
     // help to treat each tag right in newline conversion.
-    static final HashSet swallowAll = new HashSet();
-    static final HashSet swallowTwo = new HashSet();
-    static final HashSet swallowOne = new HashSet();
+    static final HashSet internalTags = new HashSet();
+    static final HashSet blockTags = new HashSet();
+    static final HashSet semiBlockTags = new HashSet();
 
     static {
         // actual block level elements
-        swallowOne.add("address");
-        swallowTwo.add("blockquote");
-        swallowTwo.add("center");
-        swallowOne.add("dir");
-        swallowOne.add("div");
-        swallowTwo.add("dl");
-        swallowTwo.add("fieldset");
-        swallowTwo.add("form");
-        swallowTwo.add("h1");
-        swallowTwo.add("h2");
-        swallowTwo.add("h3");
-        swallowTwo.add("h4");
-        swallowTwo.add("h5");
-        swallowTwo.add("h6");
-        swallowTwo.add("hr");
-        swallowTwo.add("isindex");
-        swallowAll.add("menu");
-        swallowAll.add("noframes");
-        swallowAll.add("noscript");
-        swallowTwo.add("ol");
-        swallowTwo.add("p");
-        swallowTwo.add("pre");
-        swallowOne.add("table");
-        swallowTwo.add("ul");
+        semiBlockTags.add("address");
+        semiBlockTags.add("dir");
+        semiBlockTags.add("div");
+        semiBlockTags.add("table");
+
+        blockTags.add("blockquote");
+        blockTags.add("center");
+        blockTags.add("dl");
+        blockTags.add("fieldset");
+        blockTags.add("form");
+        blockTags.add("h1");
+        blockTags.add("h2");
+        blockTags.add("h3");
+        blockTags.add("h4");
+        blockTags.add("h5");
+        blockTags.add("h6");
+        blockTags.add("hr");
+        blockTags.add("isindex");
+        blockTags.add("ol");
+        blockTags.add("p");
+        blockTags.add("pre");
+        blockTags.add("ul");
+
+        internalTags.add("menu");
+        internalTags.add("noframes");
+        internalTags.add("noscript");
 
         /// to be treated as block level elements
-        swallowTwo.add("br");
-        swallowTwo.add("dd");
-        swallowTwo.add("dt");
-        swallowTwo.add("frameset");
-        swallowTwo.add("li");
-        swallowAll.add("tbody");
-        swallowTwo.add("td");
-        swallowAll.add("tfoot");
-        swallowOne.add("th");
-        swallowAll.add("thead");
-        swallowAll.add("tr");
+        semiBlockTags.add("th");
+
+        blockTags.add("br");
+        blockTags.add("dd");
+        blockTags.add("dt");
+        blockTags.add("frameset");
+        blockTags.add("li");
+        blockTags.add("td");
+
+        internalTags.add("tbody");
+        internalTags.add("tfoot");
+        internalTags.add("thead");
+        internalTags.add("tr");
     }
 
     // set of tags that are always empty
@@ -347,8 +351,12 @@ public final class HtmlEncoder {
     static final byte TAG_ATT_NAME = 2;
     static final byte TAG_ATT_VAL = 3;
 
-    static final String newLine = System.getProperty("line.separator");
+    static final byte TEXT = 0;
+    static final byte SEMIBLOCK = 1;
+    static final byte BLOCK = 2;
+    static final byte INTERNAL = 3;
 
+    static final String newLine = System.getProperty("line.separator");
 
     /**
      *  Do "smart" encodging on a string. This means that valid HTML entities and tags,
@@ -369,7 +377,7 @@ public final class HtmlEncoder {
         // try to make stringbuffer large enough from the start
         StringBuffer ret = new StringBuffer(Math.round(l * 1.4f));
 
-        encode(str, ret, null);
+        encode(str, ret, false, null);
 
         return ret.toString();
     }
@@ -380,20 +388,38 @@ public final class HtmlEncoder {
      *  other occurrences of '<', '>' and '&' are encoded to HTML entities.
      */
     public final static void encode(String str, StringBuffer ret) {
-        encode(str, ret, null);
+        encode(str, ret, false, null);
     }
 
     /**
      *  Do "smart" encodging on a string. This means that valid HTML entities and tags,
      *  Helma macros and HTML comments are passed through unescaped, while
      *  other occurrences of '<', '>' and '&' are encoded to HTML entities.
+     *
+     *  @param str the string to encode
+     *  @param ret the string buffer to encode to
+     *  @param paragraphs if true use p tags for paragraphs, otherwise just use br's
+     *  @param allowedTags a set containing the names of allowed tags as strings. All other
+     *                     tags will be escaped
      */
-    public final static void encode(String str, StringBuffer ret, Set allowedTags) {
+    public final static void encode(String str, StringBuffer ret,
+                                    boolean paragraphs, Set allowedTags) {
         if (str == null) {
             return;
         }
 
         int l = str.length();
+
+        // where to insert the <p> tag in case we want to create a paragraph later on
+        int paragraphStart = ret.length();
+
+        // what kind of element/text are we leaving and entering?
+        // this is one of TEXT|SEMIBLOCK|BLOCK|INTERNAL
+        // depending on this information, we decide whether and how to insert
+        // paragraphs and line breaks. "entering" a tag means we're at the '<'
+        // and exiting means we're at the '>', not that it's a start or close tag.
+        byte entering = TEXT;
+        byte exiting = TEXT;
 
         Stack openTags = new Stack();
 
@@ -424,14 +450,13 @@ public final class HtmlEncoder {
         char htmlQuoteChar = '\u0000';
         char macroQuoteChar = '\u0000';
 
-        // number of newlines to ignore in \n -> <br> conversion
-        int swallowLinebreaks = 0;
-
         // number of newlines met since the last non-whitespace character
         int linebreaks = 0;
 
         // did we meet a backslash escape?
         boolean escape = false;
+
+        boolean triggerBreak = false;
 
         for (int i = 0; i < l; i++) {
             char c = str.charAt(i);
@@ -475,20 +500,19 @@ public final class HtmlEncoder {
                                 htmlQuoteChar = '\u0000';
                                 htmlTagMode = TAG_NAME;
 
-                                // set ignoreNewline on some tags, depending on wheather they're
-                                // being opened or closed.
-                                // what's going on here? we switch newline encoding on inside some tags, for
-                                // others we switch it on when they're closed
-                                linebreaks = Math.max(linebreaks - swallowLinebreaks, 0);
+                                exiting = entering;
+                                entering = TEXT;
 
-                                if (swallowAll.contains(tagName)) {
-                                    swallowLinebreaks = 1000;
-                                } else if (swallowTwo.contains(tagName)) {
-                                    swallowLinebreaks = 2;
-                                } else if (swallowOne.contains(tagName)) {
-                                    swallowLinebreaks = 1;
-                                } else {
-                                    swallowLinebreaks = 0;
+                                if (internalTags.contains(tagName)) {
+                                    entering = INTERNAL;
+                                } else if (blockTags.contains(tagName)) {
+                                    entering = BLOCK;
+                                } else if (semiBlockTags.contains(tagName)) {
+                                    entering = paragraphs ? BLOCK : SEMIBLOCK;
+                                }
+
+                                if (entering > 0) {
+                                    triggerBreak = !insidePreTag;
                                 }
 
                                 if (insideCloseTag) {
@@ -513,7 +537,6 @@ public final class HtmlEncoder {
                                     openTags.pop();
                                 } else {
                                     openTags.push(tagName);
-                                    swallowLinebreaks = Math.max(swallowLinebreaks - 1, 0);
                                 }
 
                                 if ("code".equals(tagName) && !insideCloseTag) {
@@ -526,25 +549,44 @@ public final class HtmlEncoder {
                             }
                         }
                     }
-                }
-                 // if (i < l-2)
+                } // if (i < l-2)
             }
 
-            if ((linebreaks > 0 || swallowLinebreaks > 0) && !Character.isWhitespace(c)) {
-                if (!insidePreTag) {
-                    for (int k = 0; k < linebreaks; k++) {
-                        if (k >= swallowLinebreaks) {
+            if ((triggerBreak || linebreaks > 0) && !Character.isWhitespace(c)) {
+
+                if (!insideTag) {
+                    exiting = entering;
+                    entering = TEXT;
+                    if (exiting >= SEMIBLOCK) {
+                        paragraphStart = ret.length();
+                    }
+                }
+
+                if (entering != INTERNAL && exiting != INTERNAL) {
+                    int swallowBreaks = 0;
+                    if (paragraphs && (entering != BLOCK || exiting != BLOCK) &&
+                          (exiting < BLOCK) &&
+                          (entering >= SEMIBLOCK || linebreaks > 1) &&
+                          paragraphStart < ret.length()) {
+                        ret.insert(paragraphStart, "<p>");
+                        ret.append("</p>");
+                        swallowBreaks = 2;
+                    }
+
+                    for (int k = linebreaks-1; k>=0; k--) {
+                        if (k >= swallowBreaks && k >= entering && k >= exiting) {
                             ret.append("<br />");
                         }
                         ret.append(newLine);
                     }
-                }
+                    if (exiting >= SEMIBLOCK || linebreaks > 1) {
+                        paragraphStart = ret.length();
+                    }
 
-                if (!insideTag) {
-                    swallowLinebreaks = 0;
                 }
 
                 linebreaks = 0;
+                triggerBreak = false;
             }
 
             switch (c) {
@@ -632,17 +674,18 @@ public final class HtmlEncoder {
                     break;
 
                 case '\n':
-                    if (!insideTag) {
-                        linebreaks++;
-                    } else {
+                    if (insideTag || insidePreTag) {
                         ret.append('\n');
+                    } else {
+                        linebreaks++;
                     }
 
                     break;
                 case '\r':
-                    if (!insideTag) {
-                        break;
+                    if (insideTag || insidePreTag) {
+                        ret.append('\r');
                     }
+                    break;
 
                 case '>':
 
@@ -673,12 +716,19 @@ public final class HtmlEncoder {
                                 openTags.pop();
                             }
                         }
+
+                        exiting = entering;
+                        if (exiting > 0) {
+                           triggerBreak = !insidePreTag;
+                        }
+
                     } else {
                         ret.append("&gt;");
                     }
 
                     // check if we still are inside any kind of tag
                     insideTag = insideComment || insideMacroTag || insideHtmlTag;
+                    insideCloseTag = insideTag;
 
                     break;
 
@@ -739,9 +789,16 @@ public final class HtmlEncoder {
         }
 
         // add remaining newlines we may have collected
+        int swallowBreaks = 0;
+        if (paragraphs && exiting < BLOCK) {
+            ret.insert(paragraphStart, "<p>");
+            ret.append("</p>");
+            swallowBreaks = 2;
+        }
+
         if (linebreaks > 0) {
-            for (int i = 0; i < linebreaks; i++) {
-                if (i >= swallowLinebreaks) {
+            for (int i = linebreaks-1; i>=0; i--) {
+                if (i >= swallowBreaks && i > exiting) {
                     ret.append("<br />");
                 }
                 ret.append(newLine);
