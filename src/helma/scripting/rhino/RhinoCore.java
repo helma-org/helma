@@ -46,7 +46,7 @@ public final class RhinoCore {
     GlobalObject global;
 
     // caching table for JavaScript object wrappers
-    WeakHashMap wrappercache;
+    CacheMap wrappercache;
 
     // table containing JavaScript prototypes
     Hashtable prototypes;
@@ -64,7 +64,7 @@ public final class RhinoCore {
     public RhinoCore(Application app) {
         this.app = app;
         // wrappercache = new CacheMap(500, .75f);
-        wrappercache = new WeakHashMap();
+        wrappercache = new CacheMap(500);
         prototypes = new Hashtable();
 
         Context context = Context.enter();
@@ -201,19 +201,21 @@ public final class RhinoCore {
         // or it has changed...
         setParentPrototype(prototype, op);
 
+        info.error = null;
+
         // loop through the prototype's code elements and evaluate them
         // first the zipped ones ...
         for (Iterator it = prototype.getZippedCode().values().iterator(); it.hasNext();) {
             Object code = it.next();
 
-            evaluate(prototype, op, code);
+            evaluate(prototype, info, code);
         }
 
         // then the unzipped ones (this is to make sure unzipped code overwrites zipped code)
         for (Iterator it = prototype.getCode().values().iterator(); it.hasNext();) {
             Object code = it.next();
 
-            evaluate(prototype, op, code);
+            evaluate(prototype, info, code);
         }
 
         // loop through function properties defined for this proto and
@@ -356,12 +358,35 @@ public final class RhinoCore {
     }
 
     /**
+     * A version of getPrototype() that retrieves a prototype and checks
+     * if it is valid, i.e. there were no errors when compiling it. If
+     * invalid, a ScriptingException is thrown.
+     */
+    public Scriptable getValidPrototype(String protoName) {
+        TypeInfo info = getPrototypeInfo(protoName);
+        if (info != null && info.error != null) {
+            throw new RuntimeException(info.error.toString());
+        }
+        return info == null ? null : info.objectPrototype;
+    }
+
+    /**
      *  Get the object prototype for a prototype name and initialize/update it
      *  if necessary. The policy here is to update the prototype only if it
      *  hasn't been updated before, otherwise we assume it already was updated
      *  by updatePrototypes(), which is called for each request.
      */
     public Scriptable getPrototype(String protoName) {
+        TypeInfo info = getPrototypeInfo(protoName);
+        return info == null ? null : info.objectPrototype;
+    }
+
+    /**
+     *  Private helper function that retrieves a prototype's TypeInfo
+     *  and creates it if not yet created. This is used by getPrototype() and
+     *  getValidPrototype().
+     */
+    private TypeInfo getPrototypeInfo(String protoName) {
         if (protoName == null) {
             return null;
         }
@@ -387,7 +412,7 @@ public final class RhinoCore {
             }
         }
 
-        return (info == null) ? null : info.objectPrototype;
+        return info;
     }
 
     /**
@@ -397,33 +422,6 @@ public final class RhinoCore {
         if ((protoName != null) && (op != null)) {
             prototypes.put(protoName, new TypeInfo(op, protoName));
         }
-    }
-
-    /**
-     * Check if an object has a function property (public method if it
-     * is a java object) with that name.
-     */
-    public boolean hasFunction(String protoname, String fname) {
-        // System.err.println ("HAS_FUNC: "+fname);
-        try {
-            Scriptable op = getPrototype(protoname);
-
-            // if this is an untyped object return false
-            if (op == null) {
-                return false;
-            }
-
-            Object func = ScriptableObject.getProperty(op, fname);
-
-            if ((func != null) && func instanceof Function) {
-                return true;
-            }
-        } catch (Exception esx) {
-            // System.err.println ("Error in hasFunction: "+esx);
-            return false;
-        }
-
-        return false;
     }
 
     /**
@@ -553,7 +551,6 @@ public final class RhinoCore {
      *  Get a script wrapper for an instance of helma.objectmodel.INode
      */
     public Scriptable getNodeWrapper(INode n) {
-        // FIXME: is this needed? should this return ESNull.theNull?
         if (n == null) {
             return null;
         }
@@ -561,39 +558,33 @@ public final class RhinoCore {
         HopObject esn = (HopObject) wrappercache.get(n);
 
         if (esn == null) {
-            try {
-                String protoname = n.getPrototype();
 
-                Scriptable op = null;
+            String protoname = n.getPrototype();
 
-                // set the DbMapping of the node according to its prototype.
-                // this *should* be done on the objectmodel level, but isn't currently
-                // for embedded nodes since there's not enough type info at the objectmodel level
-                // for those nodes.
-                if ((protoname != null) && (protoname.length() > 0) &&
-                        (n.getDbMapping() == null)) {
-                    n.setDbMapping(app.getDbMapping(protoname));
-                }
+            // set the DbMapping of the node according to its prototype.
+            // this *should* be done on the objectmodel level, but isn't currently
+            // for embedded nodes since there's not enough type info at the objectmodel level
+            // for those nodes.
+            /* if ((protoname != null) && (protoname.length() > 0) &&
+                    (n.getDbMapping() == null)) {
+                n.setDbMapping(app.getDbMapping(protoname));
+            } */
 
-                op = getPrototype(protoname);
+            Scriptable op = null;
 
-                // no prototype found for this node?
-                if (op == null) {
-                    op = getPrototype("hopobject");
-                    protoname = "hopobject";
-                }
+            op = getValidPrototype(protoname);
 
-                esn = new HopObject(protoname);
-                esn.init(this, n);
-                esn.setPrototype(op);
-
-                wrappercache.put(n, esn);
-
-                // app.logEvent ("Wrapper for "+n+" created");
-            } catch (Exception x) {
-                System.err.println("Error creating node wrapper: " + x);
-                throw new RuntimeException(x.toString());
+            // no prototype found for this node?
+            if (op == null) {
+                op = getValidPrototype("hopobject");
+                protoname = "hopobject";
             }
+
+            esn = new HopObject(protoname);
+            esn.init(this, n);
+            esn.setPrototype(op);
+
+            wrappercache.put(n, esn);
         }
 
         return esn;
@@ -644,7 +635,7 @@ public final class RhinoCore {
     // private evaluation/compilation methods
     ////////////////////////////////////////////////
 
-    private synchronized void evaluate(Prototype prototype, Scriptable op, Object code) {
+    private synchronized void evaluate(Prototype prototype, TypeInfo info, Object code) {
         if (code instanceof FunctionFile) {
             FunctionFile funcfile = (FunctionFile) code;
             File file = funcfile.getFile();
@@ -653,21 +644,21 @@ public final class RhinoCore {
                 try {
                     FileReader fr = new FileReader(file);
 
-                    updateEvaluator(prototype, op, fr, funcfile.getSourceName(), 1);
+                    updateEvaluator(prototype, info, fr, funcfile.getSourceName(), 1);
                 } catch (IOException iox) {
                     app.logEvent("Error updating function file: " + iox);
                 }
             } else {
                 StringReader reader = new StringReader(funcfile.getContent());
 
-                updateEvaluator(prototype, op, reader, funcfile.getSourceName(), 1);
+                updateEvaluator(prototype, info, reader, funcfile.getSourceName(), 1);
             }
         } else if (code instanceof ActionFile) {
             ActionFile action = (ActionFile) code;
             RhinoActionAdapter fa = new RhinoActionAdapter(action);
 
             try {
-                updateEvaluator(prototype, op, new StringReader(fa.function),
+                updateEvaluator(prototype, info, new StringReader(fa.function),
                                 action.getSourceName(), 0);
             } catch (Exception esx) {
                 app.logEvent("Error parsing " + action + ": " + esx);
@@ -675,21 +666,28 @@ public final class RhinoCore {
         }
     }
 
-    private synchronized void updateEvaluator(Prototype prototype, Scriptable op,
+    private synchronized void updateEvaluator(Prototype prototype, TypeInfo info,
                                         Reader reader, String sourceName, int firstline) {
         // System.err.println("UPDATE EVALUATOR: "+prototype+" - "+sourceName);
         try {
             // get the current context
             Context cx = Context.getCurrentContext();
 
+            Scriptable op = info.objectPrototype;
+
             // do the update, evaluating the file
             cx.evaluateReader(op, reader, sourceName, firstline, null);
 
-        } catch (Throwable e) {
-            app.logEvent("Error parsing file " + sourceName + ": " + e);
+        } catch (Exception e) {
+            app.logEvent("Error parsing file " + sourceName + ": " + e.getClass());
             // also write to standard out unless we're logging to it anyway
             if (!"console".equalsIgnoreCase(app.getProperty("logDir"))) {
                 System.err.println("Error parsing file " + sourceName + ": " + e);
+            }
+            // mark prototype as broken
+            if (info.error == null && e instanceof EcmaError) {
+                info.error = (EcmaError) e;
+                wrappercache.clear();
             }
             // e.printStackTrace();
         } finally {
@@ -714,16 +712,23 @@ public final class RhinoCore {
      *  TypeInfo helper class
      */
     class TypeInfo {
+
         // the object prototype for this type
         ScriptableObject objectPrototype;
+
         // timestamp of last update
         long lastUpdate = 0;
+
         // the prototype name
         String protoName;
+
         // a set of property values that were defined in last script compliation
         Set compiledFunctions;
+
         // a set of property keys that were present before first script compilation
         final Set predefinedProperties;
+
+        EcmaError error;
 
         public TypeInfo(ScriptableObject op, String name) {
             objectPrototype = op;
@@ -747,7 +752,7 @@ public final class RhinoCore {
      */
     class WrapMaker extends WrapFactory {
 
-        public Object wrap(Context cx, Scriptable scope, Object obj, Class staticType)  {
+        public Object wrap(Context cx, Scriptable scope, Object obj, Class staticType) {
             // System.err.println ("Wrapping: "+obj);
             if (obj instanceof INode) {
                 return getNodeWrapper((INode) obj);

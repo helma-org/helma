@@ -297,6 +297,8 @@ public class RhinoEngine implements ScriptingEngine {
             String msg;
             if (x instanceof JavaScriptException) {
                 msg = ((JavaScriptException) x).getValue().toString();
+            } else if (x instanceof WrappedException) {
+                msg = ((WrappedException) x).getWrappedException().toString();
             } else {
                 msg = x.toString();
             }
@@ -336,14 +338,15 @@ public class RhinoEngine implements ScriptingEngine {
      */
     public boolean hasFunction(Object obj, String fname) {
         // System.err.println ("HAS_FUNC: "+obj+"."+fname);
-        if (obj instanceof Scriptable) {
-            Scriptable scrpt = (Scriptable) obj;
-            Object func = scrpt.get(fname, scrpt);
-            if (func != null && func instanceof Function) {
-                return true;
-            }
+        Scriptable op = obj == null ? global : Context.toObject(obj, global);
+
+        Object func = ScriptableObject.getProperty(op, fname.replace('.', '_'));
+
+        if (func != null && func != Undefined.instance && func instanceof Function) {
+            return true;
         }
-        return core.hasFunction(app.getPrototypeName(obj), fname.replace('.', '_'));
+
+        return false;
     }
 
     /**
