@@ -480,7 +480,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
     private Scriptable list() {
         checkNode();
 
-        prefetchChildren(0, 1000);
+        // prefetchChildren(0, 1000);
         Enumeration e = node.getSubnodes();
         ArrayList a = new ArrayList();
 
