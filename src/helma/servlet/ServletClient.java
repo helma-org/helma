@@ -30,21 +30,31 @@ public class ServletClient extends AbstractServletClient {
 	String portstr = init.getInitParameter ("port");
 	port =  portstr == null ? 5055 : Integer.parseInt (portstr);
 	hopUrl = "//" + host + ":" + port + "/";
+	if (appName == null)
+	    throw new ServletException ("Application name not specified for helma.servlet.ServletClient");
     }
+
+    public void destroy () {
+	if (app != null) {
+	    app = null;
+	}
+    }
+
 
     ResponseTrans execute (RequestTrans req, String reqPath) throws Exception {
-	IRemoteApp app = getApp ();
 	req.path = getRequestPath (reqPath);
-	return app.execute (req);
+	if (app == null)
+	    initApp ();
+	try {
+	    return app.execute (req);
+	} catch (Exception x) {
+	    initApp ();
+	    return app.execute (req);
+	}
     }
 
-    IRemoteApp getApp () throws Exception {
-	if (app != null)
-	    return app;
-	if (appName == null)
-	    throw new ServletException ("Helma application name not specified for helma.servlet.ServletClient");
+    synchronized void initApp () throws Exception {
 	app = (IRemoteApp) Naming.lookup (hopUrl + appName);
-	return app;
     }
 
 

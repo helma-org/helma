@@ -9,7 +9,7 @@ import javax.servlet.http.*;
 import java.io.*;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
-import java.util.HashMap;
+import java.util.Hashtable;
 import helma.framework.*;
 
 /**
@@ -19,12 +19,12 @@ import helma.framework.*;
  */
  
 public class MultiServletClient extends AbstractServletClient {
-	
-    private HashMap apps = null;
+
+    private Hashtable apps;
 
     public void init (ServletConfig init) throws ServletException {
 	super.init (init);
-	apps = new HashMap ();
+	apps = new Hashtable ();
 	host =  init.getInitParameter ("host");
 	if (host == null)
 	    host = "localhost";
@@ -33,25 +33,37 @@ public class MultiServletClient extends AbstractServletClient {
 	hopUrl = "//" + host + ":" + port + "/";
     }
 
-    ResponseTrans execute (RequestTrans req, String reqPath) throws Exception {
-	String appID = getAppID (reqPath);
-	IRemoteApp app = getApp (appID);
-	req.path = getRequestPath (reqPath);
-	return app.execute (req);
-    }
-
-    IRemoteApp getApp (String appID) throws Exception {
-	IRemoteApp retval = (IRemoteApp) apps.get (appID);
-	if (retval != null) {
-	    return retval;
+    public void destroy () {
+	if (apps != null) {
+	    apps.clear ();
+	    apps = null;
 	}
-	retval = (IRemoteApp) Naming.lookup (hopUrl + appID);
-	apps.put (appID, retval);
-	return retval;
     }
 
-    void invalidateApp (String appID) {
-	apps.remove (appID);
+    ResponseTrans execute (RequestTrans req, String reqPath) throws Exception {
+	String appId = getAppID (reqPath);
+	IRemoteApp app = getApp (appId);
+	req.path = getRequestPath (reqPath);
+	try {
+	    return app.execute (req);
+	} catch (Exception x) {
+	    invalidateApp (appId);
+	    app = getApp (appId);
+	    return app.execute (req);
+	}
+    }
+
+    IRemoteApp getApp (String appId) throws Exception {
+	IRemoteApp app = (IRemoteApp) apps.get (appId);
+	if (app != null)
+	    return app;
+	app = (IRemoteApp) Naming.lookup (hopUrl + appId);
+	apps.put (appId, app);
+	return app;
+    }
+
+    void invalidateApp (String appId) {
+	apps.remove (appId);
     }
 
     String getAppID (String path) {
