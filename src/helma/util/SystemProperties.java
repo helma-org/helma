@@ -141,7 +141,7 @@ public final class SystemProperties extends Properties {
      * of discarding them.
      */
     public synchronized void addProps (String key, InputStream in) throws IOException {
-	Properties p = new Properties();
+	Properties p = new SystemProperties();
 	p.load (in);
 	if (additionalProps == null)
 	    additionalProps = new HashMap ();
