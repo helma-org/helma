@@ -611,7 +611,19 @@ public final class Skin {
                     return;
                 }
             } else {
-                text = value.toString();
+                // do not render doubles as doubles unless
+                // they actually have a decimal place. This is necessary because
+                // all numbers are handled as Double in JavaScript.
+                if (value instanceof Double) {
+                    Double d = (Double) value;
+                    if (d.longValue() == d.doubleValue()) {
+                        text = Long.toString(d.longValue());
+                    } else {
+                        text = d.toString();
+                    }
+                } else {
+                    text = value.toString();
+                }
             }
 
             if ((text != null) && (text.length() > 0)) {
