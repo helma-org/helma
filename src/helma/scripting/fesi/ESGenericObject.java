@@ -13,17 +13,17 @@ import java.util.*;
 
 
 /**
-  *
+  *  A wrapper for a Java object that may or may not implement the IPathElement interface.
   */
 
 public class ESGenericObject extends ObjectPrototype {
 
     ESWrapper wrapper;
-    IPathElement pathObj;
+    Object wrappedObject;
 
-    public ESGenericObject (ESObject prototype, Evaluator evaluator, IPathElement obj) {
+    public ESGenericObject (ESObject prototype, Evaluator evaluator, Object obj) {
 	super (prototype, evaluator);
-	pathObj = obj;
+	wrappedObject = obj;
 	wrapper = new ESWrapper (obj, evaluator);
     }
 
@@ -33,7 +33,7 @@ public class ESGenericObject extends ObjectPrototype {
     }
     
     public String toString () {
-	return pathObj.toString ();
+	return wrappedObject.toString ();
     }
     
     public String toDetailString () {
@@ -85,7 +85,7 @@ public class ESGenericObject extends ObjectPrototype {
     }
 
     public Object toJavaObject () {
- 	return pathObj;
+ 	return wrappedObject;
     }
 
     /**
@@ -99,7 +99,7 @@ public class ESGenericObject extends ObjectPrototype {
             return true;
         if (what instanceof ESGenericObject) {
             ESGenericObject other = (ESGenericObject) what;
-            return (pathObj.equals (other.pathObj));
+            return (wrappedObject.equals (other.wrappedObject));
         }
         return false;
     }	
