@@ -19,10 +19,7 @@ package helma.doc;
 import java.awt.Point;
 import java.io.*;
 import java.util.Vector;
-import org.mozilla.javascript.TokenStream;
-import org.mozilla.javascript.Token;
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.CompilerEnvirons;
+import org.mozilla.javascript.*;
 
 /**
  * 
@@ -76,55 +73,159 @@ public class DocFunction extends DocFileElement {
      * connected to another DocElement.
      */
     public static DocFunction[] newFunctions(File location, DocElement parent) {
+
         Vector vec = new Vector();
+
         try {
-            // the function file:
+
+            int token     = Token.EMPTY;
+            int lastToken = Token.EMPTY;
+            Point endOfLastToken      = null;
+            Point endOfLastUsedToken  = null;
+            Point startOfFunctionBody = null;
+            Point endOfFunctionBody   = null;
+
+            String lastNameString = null;
+            String functionName   = null;
+            String context        = null;
+
             TokenStream ts = getTokenStream (location);
-            DocFunction curFunction = null;
-            Point curFunctionStart = null;
+
             while (!ts.eof()) {
 
                 // store the position of the last token 
-                Point endOfLastToken = getPoint (ts);
-                // new token
-                int tok = ts.getToken();
-
-                // if we're currently parsing a functionbody and come to the start
-                // of the next function or eof -> read function body
-                if (curFunction != null && (tok== Token.FUNCTION || ts.eof())) {
-                    curFunction.content = "function " + Util.getStringFromFile(location, curFunctionStart, endOfLastToken);
+                endOfLastToken = getPoint (ts);
+                
+                // store last token
+                lastToken = token;
+                
+                // now get a new token
+                // regular expression syntax is troublesome for the TokenStream
+                // we can safely ignore syntax errors in regular expressions here
+                try {
+                    token = ts.getToken();
+                } catch(Exception anything) {
+                    continue;
                 }
 
-                if (tok == Token.FUNCTION) {
-                    // store the function start for parsing the function body later
-                    curFunctionStart = getPoint (ts); 
-                    // get and chop the comment
-                    String rawComment = Util.getStringFromFile(location, endOfLastToken, getPoint (ts)).trim ();
+                if (token == Token.LC) {
+
+                    // when we come across a left brace outside of a function,
+                    // we store the current string of the stream, it might be
+                    // a function object declaration
+                    // e.g. HttpClient = { func1:function()...}
+                    context = ts.getString();
+
+                } else if (token == Token.RC && context != null) {
+                    
+                    // when we come across a right brace outside of a function,
+                    // we reset the current context cache
+                    context = null;
+
+                } else if (token == Token.NAME) {
+
+                    // store all names, the last one before a function
+                    // declaration may be used as its name
+
+                    if (lastToken != Token.DOT) {
+
+                        lastNameString = ts.getString();
+
+                        // this may be the start of a name chain declaring a function
+                        // e.g. Number.prototype.functionName = function() { }
+                        startOfFunctionBody = getPoint(ts);
+                        startOfFunctionBody.x -= (ts.getString().length() + 1);
+
+                        // set pointer to end of last function to the token before the name
+                        endOfLastUsedToken = endOfLastToken;
+
+                    } else {
+
+                        // token in front of the name was a dot, so we connect the
+                        // names that way
+                        lastNameString += "." + ts.getString();
+
+                    }
+
+                } else if (token == Token.FUNCTION) {
+                    
+                    // store the end of the function word
+                    Point p = getPoint(ts);
+
+                    // look at the next token:
+                    int peekToken = ts.peekToken();
+
+                    // depending of the style of the declaration we already have all we need 
+                    // or need to fetch the name from the next token:
+                    if (peekToken == Token.NAME) {
+
+                        // if the token after FUNCTION is NAME, it's the usual function
+                        // declaration like this: function abc() {}
+                        
+                        // set the pointer for the start of the actual function body
+                        // to the letter f of the function word
+                        startOfFunctionBody = p;
+                        startOfFunctionBody.x -= 9;
+
+                        // lastToken should be the last thing that didn't belong to this function
+                        endOfLastUsedToken = endOfLastToken;
+
+                        // set stream to next token, so that name of the
+                        // function is the stream's current string
+                        token = ts.getToken();
+                        functionName = ts.getString();
+
+                    } else {
+                        
+                        // it's a different kind of function declaration.
+                        // the function name is the last found NAME-token
+                        // if context is set, prepend it to the function name
+                        functionName = (context != null) ? context + "." + lastNameString : lastNameString;
+
+                    }
+
+                    // get the comment from the file (unfortunately, the stream simply skips comments) ...
+                    String rawComment = Util.getStringFromFile(location, endOfLastUsedToken, startOfFunctionBody).trim ();
+                    // .. and clean it
                     rawComment = Util.chopComment (rawComment);
-                    // position stream at function name token
-                    tok = ts.getToken();
-                    // get the name and create the function object
-                    String name = ts.getString();
-                    curFunction = newFunction (name, location, parent);
-                    curFunction.parseComment (rawComment);
-                    vec.add (curFunction);
+
+                    // create the function object
+                    DocFunction theFunction = newFunction (functionName, location, parent);
+                    theFunction.parseComment (rawComment);
+                    vec.add (theFunction);
 
                     // subloop on the tokenstream: find the parameters of a function
-                    // only if it's a function (and not a macro or an action)
-                    if (curFunction.type == FUNCTION) {
-                        while (!ts.eof() && tok != Token.RP) {
-                            // store the position of the last token 
-                            endOfLastToken = getPoint (ts);
-                            // new token
-                            tok = ts.getToken();
-                            if (tok==Token.NAME) {
-                                curFunction.addParameter (ts.getString());
-                            }
+                    while (!ts.eof() && token != Token.RP) {
+                        token = ts.getToken();
+                        if (token==Token.NAME && theFunction.type == FUNCTION) {
+                            // add names of parameter only for functions, not for macros or actions
+                            theFunction.addParameter (ts.getString());
                         }
                     }
-                } // end if
 
-            }
+                    // subloop on the tokenstream: find the closing right bracket of the function
+                    token = ts.getToken();
+                    int level = (token == Token.LC) ? 1 : 0;
+                    while (!ts.eof() && level > 0) {
+                        // regular expression syntax is troublesome for the TokenStream
+                        // we don't need them here, so we just ignore such an error
+                        try {
+                            token = ts.getToken();
+                        } catch(Exception anything) {
+                            continue;
+                        }
+                        if (token == Token.LC) {
+                            level++;
+                        } else if (token == Token.RC) {
+                            level--;
+                        }
+                    }
+                    endOfFunctionBody = getPoint(ts);
+                    
+                    theFunction.content = Util.getStringFromFile(location, startOfFunctionBody, endOfFunctionBody);
+
+                } // end if
+            } // end while
 
         } catch (Exception ex) {
             ex.printStackTrace();
