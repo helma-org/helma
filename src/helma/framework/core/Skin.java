@@ -111,6 +111,7 @@ public class Skin {
 	                if (!escape && state == PARAMVALUE) {
 	                    if (quotechar == cnt[i]) {
 	                        parameters.put (lastParamName, b.toString());
+	                        lastParamName = null;
 	                        b.setLength (0);
 	                        state = PARAMNAME;
 	                        quotechar = '\u0000';
@@ -134,6 +135,7 @@ public class Skin {
 	                    state = PARAMNAME;
 	                } else if (state == PARAMVALUE && quotechar == '\u0000') {
 	                    parameters.put (lastParamName, b.toString());
+	                    lastParamName = null;
 	                    b.setLength (0);
 	                    state = PARAMNAME;
 	                } else if (state == PARAMVALUE)
@@ -154,8 +156,12 @@ public class Skin {
 	                escape = false;
 	        }
 	    }
-	    if (lastParamName != null && b.length() > 0)
-	        parameters.put (lastParamName, b.toString());
+	    if (b.length() > 0) {
+	        if (lastParamName != null && b.length() > 0)
+	            parameters.put (lastParamName, b.toString());
+	        else if (state <= MACRO)
+	            name = b.toString().trim();
+	    }
 	}
 
 

@@ -15,13 +15,13 @@ import helma.objectmodel.INode;
   * An EcmaScript object that makes stuff in a hashtable accessible as its properties
   */
 
-public class ESRequestData extends ESObject {
+public class ESRequestData extends ESWrapper {
 
     private Hashtable data;
     private RequestEvaluator reval;
 
     public ESRequestData (RequestEvaluator reval) {
-	super (null, reval.evaluator);
+	super (new Object(), reval.evaluator);
 	this.reval = reval;
     }
     
