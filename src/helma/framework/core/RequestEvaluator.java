@@ -23,7 +23,7 @@ public final class RequestEvaluator implements Runnable {
 
     public final Application app;
 
-    private ScriptingEngine scriptingEngine;
+    protected ScriptingEngine scriptingEngine;
 
     public RequestTrans req;
     public ResponseTrans res;
