@@ -463,20 +463,38 @@ public final class NodeManager {
     /**
      *  Insert a node into a different (relational) database than its default one.
      */
-    public void exportNode(Node node, DbSource dbs)
+    public void exportNode(Node node, DbSource dbs) 
+                    throws IOException, SQLException, ClassNotFoundException {
+        if (node == null) {
+            throw new IllegalArgumentException("Node can't be null in exportNode");
+        }
+        
+        DbMapping dbm = node.getDbMapping();
+        
+        if (dbs == null) {
+            throw new IllegalArgumentException("DbSource can't be null in exportNode");
+        } else if ((dbm == null) || !dbm.isRelational()) {
+            throw new IllegalArgumentException("Can't export into non-relational database");
+        } else {
+            insertRelationalNode(node, dbm, dbs.getConnection());
+        }
+    }
+    
+    /**
+     *  Insert a node into a different (relational) database than its default one.
+     */
+    public void exportNode(Node node, DbMapping dbm)
                     throws IOException, SQLException, ClassNotFoundException {
         if (node == null) {
             throw new IllegalArgumentException("Node can't be null in exportNode");
         }
 
-        DbMapping dbm = node.getDbMapping();
-
-        if (dbs == null) {
-            throw new IllegalArgumentException("DbSource can't be null in exportNode");
+        if (dbm == null) {
+            throw new IllegalArgumentException("DbMapping can't be null in exportNode");
         } else if ((dbm == null) || !dbm.isRelational()) {
-            throw new SQLException("Can't export into non-relational database");
+            throw new IllegalArgumentException("Can't export into non-relational database");
         } else {
-            insertRelationalNode(node, dbm, dbs.getConnection());
+            insertRelationalNode(node, dbm, dbm.getConnection());
         }
     }
 
