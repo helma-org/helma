@@ -5,8 +5,6 @@ import java.util.Date;
 import java.util.HashMap;
 
 import helma.objectmodel.INode;
-import helma.scripting.ScriptingEnvironment;
-import helma.scripting.ScriptingException;
 import helma.scripting.fesi.*;
 
 public class SessionBean implements Serializable {
