@@ -64,6 +64,7 @@
         <cvs cvsRoot="${cvs.root}" package="apps/bloggerapi" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/lillebror" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/manage" dest="${build.checkout}"/>
+        <cvs cvsRoot="${cvs.root}" package="apps/rss" dest="${build.checkout}"/>
     </target>
 
     <!-- =================================================================== -->
