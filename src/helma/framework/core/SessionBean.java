@@ -22,14 +22,15 @@ import java.util.Date;
 import java.util.HashMap;
 
 /**
- * 
+ * The SessionBean wraps a <code>Session</code> object and
+ * exposes it to the scripting framework.
  */
 public class SessionBean implements Serializable {
     // the wrapped session object
     Session session;
 
     /**
-     * Creates a new SessionBean object.
+     * Creates a new SessionBean around a Session object.
      *
      * @param session ...
      */
@@ -47,12 +48,14 @@ public class SessionBean implements Serializable {
     }
 
     /**
+     * Attempts to log in a user with the given username/password credentials.
+     * If username and password match, the user node is associated with the session
+     * and bound to the session.user property.
      *
+     * @param username the username
+     * @param password the password
      *
-     * @param username ...
-     * @param password ...
-     *
-     * @return ...
+     * @return true if the user exists and the password matches the user's password property.
      */
     public boolean login(String username, String password) {
         boolean success = session.getApp().loginSession(username, password, session);
@@ -61,21 +64,34 @@ public class SessionBean implements Serializable {
     }
 
     /**
+     * Directly associates the session with a user object without requiring
+     * a username/password pair. This is for applications that use their own
+     * authentication mechanism.
      *
+     * @param userNode the HopObject node representing the user.
+     */
+    public void login(INode userNode) {
+        session.login(userNode);
+    }
+
+    /**
+     * Disassociate this session from any user object it may have been associated with.
      */
     public void logout() {
         session.getApp().logoutSession(session);
     }
 
     /**
-     *
+     * Touching the session marks it as active, avoiding session timeout.
+     * Usually, sessions are touched when the user associated with it sends
+     * a request. This method may be used to artificially keep a session alive.
      */
     public void touch() {
         session.touch();
     }
 
     /**
-     *
+     * Returns the time this session was last touched.
      *
      * @return ...
      */
@@ -84,7 +100,7 @@ public class SessionBean implements Serializable {
     }
 
     /**
-     *
+     * Returns the time this session was created.
      *
      * @return ...
      */
@@ -93,12 +109,19 @@ public class SessionBean implements Serializable {
     }
 
     // property-related methods:
+
+    /**
+     * Get the cache/data node for this session. This object may be used
+     * to store transient per-session data. It is reflected to the scripting
+     * environment as session.data.
+     */
     public INode getdata() {
         return session.getCacheNode();
     }
 
     /**
-     *
+     * Gets the user object for this session. This method returns null unless
+     * one of the session.login methods was previously invoked.
      *
      * @return ...
      */
@@ -107,7 +130,7 @@ public class SessionBean implements Serializable {
     }
 
     /**
-     *
+     * Returns the unique identifier for a session object (session cookie).
      *
      * @return ...
      */
@@ -116,7 +139,7 @@ public class SessionBean implements Serializable {
     }
 
     /**
-     *
+     * Returns the unique identifier for a session object (session cookie).
      *
      * @return ...
      */
@@ -125,7 +148,7 @@ public class SessionBean implements Serializable {
     }
 
     /**
-     *
+     * Returns the time this session was last touched.
      *
      * @return ...
      */
@@ -134,7 +157,7 @@ public class SessionBean implements Serializable {
     }
 
     /**
-     *
+     * Returns a date object representing the time a user's session was started.
      *
      * @return ...
      */
@@ -143,7 +166,8 @@ public class SessionBean implements Serializable {
     }
 
     /**
-     *
+     * Gets the date at which the session was created or a login or
+     * logout was performed the last time.
      *
      * @return ...
      */
@@ -152,7 +176,8 @@ public class SessionBean implements Serializable {
     }
 
     /**
-     *
+     * Sets the date at which the session was created or a login or
+     * logout was performed the last time.
      *
      * @param date ...
      */
