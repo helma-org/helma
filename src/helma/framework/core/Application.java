@@ -673,7 +673,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	// String href = n.getUrl (root, users, tmpname, siteroot);
 
 	String divider = "/";
-	StringBuffer b = new StringBuffer (baseURI);
+	StringBuffer b = new StringBuffer ();
 	Object p = elem;
 	int loopWatch = 0;
 	
@@ -707,7 +707,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	if (actionName != null)
 	    b.append (UrlEncoder.encode (actionName));
 	
-	return b.toString ();
+	return baseURI + b.toString ();
     }
 
 
