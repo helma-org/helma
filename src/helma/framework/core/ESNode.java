@@ -513,7 +513,7 @@ public class ESNode extends ObjectPrototype {
             return true;
         if (what instanceof ESNode) {
             ESNode other = (ESNode) what;
-            return (other.nodeID.equals (nodeID) && other.dbmap == dbmap);
+            return (other.nodeID.equals (nodeID) /* && other.dbmap == dbmap*/ );
         }
         return false;
     }	
