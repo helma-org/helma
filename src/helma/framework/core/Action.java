@@ -43,7 +43,8 @@ public class Action implements Updatable {
 	this.app = proto.app;
 	this.name = name;
 	this.file = file;
-	update ();
+	if (file != null)
+	    update ();
     }
 
     /**
@@ -80,7 +81,7 @@ public class Action implements Updatable {
     public void update (String content) throws Exception {
 	// app.logEvent ("Reading text template " + name);
 
-	functionName = name+"_hop_action";
+	functionName = name+"_action";
 
              try {
 	    pfunc = parseFunction (functionName, "arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10", content);
@@ -107,7 +108,7 @@ public class Action implements Updatable {
 	    try {
 	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
 	        ObjectPrototype op = reval.getPrototype (prototype.getName());
-	        functionName = name+"_hop_action";
+	        functionName = name+"_action";
 	        ESValue esv = (ESValue) op.getProperty (functionName, functionName.hashCode());
 	        if (esv instanceof ConstructedFunctionObject || esv instanceof ThrowException) {
 	            op.deleteProperty (functionName, functionName.hashCode());
