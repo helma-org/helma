@@ -121,11 +121,9 @@ public final class RequestEvaluator implements Runnable {
         Transactor localrtx = (Transactor) Thread.currentThread();
 
         try {
-            do { // while (localrtx == rtx);
-                // initialize scripting engine, in case it hasn't been initialized yet
-                initScriptingEngine();
-                // update scripting prototypes
-                scriptingEngine.updatePrototypes();
+
+            // while this thread is serving requests
+            while (localrtx == rtx) {
 
                 // root object reference
                 Object root;
@@ -144,6 +142,11 @@ public final class RequestEvaluator implements Runnable {
                     currentElement = null;
 
                     try {
+
+                        // initialize scripting engine
+                        initScriptingEngine();
+                        // update scripting prototypes
+                        scriptingEngine.updatePrototypes();
 
                         // Transaction name is used for logging etc.
                         StringBuffer txname = new StringBuffer(app.getName());
@@ -516,8 +519,8 @@ public final class RequestEvaluator implements Runnable {
                             app.errorCount += 1;
                             app.logError("Error in " + Thread.currentThread(), x);
 
-                            // Dump the profiling data to System.err
-                            if (app.debug && !(x instanceof ScriptingException)) {
+                            // Dump stack trace to System.err in debug mode
+                            if (app.debug) {
                                 x.printStackTrace();
                             }
 
@@ -545,7 +548,7 @@ public final class RequestEvaluator implements Runnable {
 
                 notifyAndWait();
 
-            } while (localrtx == rtx);
+            }
 
         } finally {
             localrtx.closeConnections();
