@@ -335,17 +335,25 @@ public final class ResponseTrans implements Externalizable {
 	if (charset == null)
 	    charset = "ISO-8859-1";
 	boolean encodingError = false;
+	// only close if the response hasn't been closed yet
 	if (response == null) {
-	    if (buffer != null) {
-	        if (debugBuffer != null)
+	    // if debug buffer exists, append it to main buffer
+	    if (debugBuffer != null) {
+	        if (buffer == null)
+	            buffer = debugBuffer;
+	        else
 	            buffer.append (debugBuffer);
+	    }
+	    // get the buffer's bytes in the specified encoding
+	    if (buffer != null) {
 	        try {
 	            response = buffer.toString ().getBytes (charset);
 	        } catch (UnsupportedEncodingException uee) {
 	            encodingError = true;
 	            response = buffer.toString ().getBytes ();
 	        }
-	        buffer = null; // make sure this is done only once, even with more requsts attached
+	        // make sure this is done only once, even with more requsts attached
+	        buffer = null;
 	    } else {
 	        response = new byte[0];
 	    }
