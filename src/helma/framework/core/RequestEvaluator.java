@@ -150,13 +150,15 @@ public final class RequestEvaluator implements Runnable {
 	                    res.message = session.message;
 	                    session.message = null;
 	                }
+	                Map macroHandlers = res.getMacroHandlers ();
 
 	                try {
 
 	                    if (error != null) {
 	                        // there was an error in the previous loop, call error handler
 	                        currentElement = root;
-	                        requestPath.add (currentElement);
+	                        // do not reset the requestPath so error handler can use the original one
+	                        // get error handler action
 	                        String errorAction = app.props.getProperty ("error", "error");
 	                        action = getAction (currentElement, errorAction);
 	                        if (action == null)
@@ -165,6 +167,7 @@ public final class RequestEvaluator implements Runnable {
 	                    } else if (req.path == null || "".equals (req.path.trim ())) {
 	                        currentElement = root;
 	                        requestPath.add (currentElement);
+	                        macroHandlers.put ("root", root);
 	                        action = getAction (currentElement, null);
 	                        if (action == null)
 	                            throw new FrameworkException ("Action not found");
@@ -183,11 +186,15 @@ public final class RequestEvaluator implements Runnable {
 
 	                        currentElement = root;
 	                        requestPath.add (currentElement);
+	                        macroHandlers.put ("root", root);
 
 	                        for (int i=0; i<ntokens; i++) {
 
 	                            if (currentElement == null)
 	                                throw new FrameworkException ("Object not found.");
+
+	                            if (pathItems[i].length () == 0)
+	                                continue;
 
 	                            // we used to do special processing for /user and /users
 	                            // here but with the framework cleanup, this stuff has to be
@@ -201,15 +208,15 @@ public final class RequestEvaluator implements Runnable {
 
 	                            if (action == null) {
 
-	                                if (pathItems[i].length () == 0)
-	                                    continue;
-
 	                                currentElement = app.getChildElement (currentElement, pathItems[i]);
 
 	                                // add object to request path if suitable
 	                                if (currentElement != null) {
 	                                    // add to requestPath array
 	                                    requestPath.add (currentElement);
+	                                    String protoName = app.getPrototypeName (currentElement);
+	                                    if (protoName != null)
+	                                        macroHandlers.put (protoName, currentElement);
 	                                }
 	                            }
 	                        }
