@@ -33,16 +33,12 @@ public class FileResource implements Resource {
     protected FileResource(File file, FileRepository repository) {
         this.file = file;
 
-        if (repository == null) {
-            name = file.getAbsolutePath();
-            shortName = file.getName();
-        } else {
-            this.repository = repository;
-            name = repository.getName() + "/" + file.getName();
-            shortName = file.getName();
-            if (shortName.lastIndexOf(".") != -1) {
-                shortName = shortName.substring(0, shortName.lastIndexOf("."));
-            }
+        this.repository = repository;
+        name = file.getAbsolutePath();
+        shortName = file.getName();
+        // cut off extension from short name
+        if (shortName.lastIndexOf(".") > -1) {
+            shortName = shortName.substring(0, shortName.lastIndexOf("."));
         }
     }
 
@@ -98,6 +94,14 @@ public class FileResource implements Resource {
 
     public Repository getRepository() {
         return repository;
+    }
+
+    public int hashCode() {
+        return 17 + name.hashCode();
+    }
+
+    public boolean equals(Object obj) {
+        return obj instanceof FileResource && name.equals(((FileResource)obj).name);
     }
 
     public String toString() {

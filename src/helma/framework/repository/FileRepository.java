@@ -131,6 +131,12 @@ public class FileRepository extends AbstractRepository {
      * resources
      */
     public synchronized void update() {
+        if (!dir.exists()) {
+            repositories = new Repository[0];
+            resources.clear();
+            return;
+        }
+
         if (dir.lastModified() != lastModified) {
             lastModified = dir.lastModified();
 
@@ -157,6 +163,15 @@ public class FileRepository extends AbstractRepository {
                     newRepositories.toArray(new Repository[newRepositories.size()]);
             resources = newResources;
         }
+    }
+
+    public int hashCode() {
+        return 17 + (37 * dir.hashCode());
+    }
+
+    public boolean equals(Object obj) {
+        return obj instanceof FileRepository &&
+               dir.equals(((FileRepository) obj).dir);
     }
 
     public String toString() {

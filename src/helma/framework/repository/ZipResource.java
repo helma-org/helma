@@ -35,21 +35,15 @@ public final class ZipResource implements Resource {
         this.repository = repository;
 
         String entryname = zipentry.getName();
-        int lastDot = entryname.lastIndexOf('.');
         int lastSlash = entryname.lastIndexOf('/');
 
-        if (lastDot != -1 && lastDot > lastSlash) {
-            shortName = entryname.substring(lastSlash + 1, lastDot);
-        } else {
-            shortName = entryname.substring(lastSlash + 1);
-        }
+        shortName = entryname.substring(lastSlash + 1);
+        name = new StringBuffer(repository.getName()).append('/')
+                .append(shortName).toString();
 
-        StringBuffer buf = new StringBuffer(repository.getName())
-                .append('/').append(shortName);
-        if (lastDot != -1 && lastDot > lastSlash) {
-            name = buf.append(entryname.substring(lastDot)).toString();
-        } else {
-            name = buf.toString();
+        // cut off extension from short name
+        if (shortName.lastIndexOf(".") > -1) {
+            shortName = shortName.substring(0, shortName.lastIndexOf("."));
         }
     }
 
@@ -131,6 +125,14 @@ public final class ZipResource implements Resource {
 
     public Repository getRepository() {
         return repository;
+    }
+
+    public int hashCode() {
+        return 17 + name.hashCode();
+    }
+
+    public boolean equals(Object obj) {
+        return obj instanceof ZipResource && name.equals(((ZipResource) obj).name);
     }
 
     public String toString() {

@@ -180,6 +180,19 @@ public final class ZipRepository extends AbstractRepository {
         return file.lastModified();
     }
 
+    public int hashCode() {
+        return 17 + (37 * file.hashCode()) + (37 * name.hashCode());
+    }
+
+    public boolean equals(Object obj) {
+        if (!(obj instanceof ZipRepository)) {
+            return false;
+        }
+
+        ZipRepository rep = (ZipRepository) obj;
+        return (file.equals(rep.file) && name.equals(rep.name));
+    }
+
     public String toString() {
         return new StringBuffer("ZipRepository[").append(name).append("]").toString();
     }
