@@ -30,6 +30,7 @@ public class ApplicationManager {
     private SystemProperties props;
     private Server server;
     private long lastModified;
+    // EmbeddedTomcat tomcat;
 
     public ApplicationManager (int port, File hopHome, SystemProperties props, Server server) {
 	this.port = port;
@@ -38,6 +39,13 @@ public class ApplicationManager {
 	this.server = server;
 	applications = new Hashtable ();
 	lastModified = 0;
+	/*  tomcat = new EmbeddedTomcat();
+	tomcat.setPath("/Users/hannes/Desktop/jakarta-tomcat-4.0.3/test");
+	try {
+	    tomcat.startTomcat();
+	} catch (Exception x) {
+	    System.err.println ("Error starting Tomcat: "+x);
+	}  */
     }
 
 
@@ -91,7 +99,10 @@ public class ApplicationManager {
 	        Naming.unbind ("//:"+port+"/"+appName);
 	    } else {
 	        // server.websrv.removeServlet ("/"+appName+"/");
-	        server.websrv.removeServlet ("/"+appName+"/*");
+	        if ("base".equalsIgnoreCase (appName))
+	            server.websrv.removeDefaultServlet ();
+	        else
+	            server.websrv.removeServlet ("/"+appName+"/*");
 	    }
 	    app.stop ();
 	    Server.getLogger().log ("Unregistered application "+appName);
@@ -115,6 +126,7 @@ public class ApplicationManager {
 	        else {
 	            server.websrv.addServlet ("/"+appName+"/*", servlet);
 	        }
+	        // tomcat.addApplication (appName);
 	    }
 	    app.start ();
 	} catch (Exception x) {
