@@ -1,7 +1,6 @@
 package helma.xmlrpc;
 
-import java.io.InputStream;
-import java.io.IOException;
+import java.io.*;
 
 // This class is borrowed from Apache JServ
 class ServerInputStream extends InputStream {
@@ -11,10 +10,11 @@ class ServerInputStream extends InputStream {
     // data POSTed was read. If this is left to -1, content length is
     // assumed as unknown and the standard InputStream methods will be used
     long available = -1;
+    long markedAvailable;
 
-    private InputStream in;
+    private BufferedInputStream in;
 
-    public ServerInputStream(InputStream in, int available) {
+    public ServerInputStream(BufferedInputStream in, int available) {
         this.in = in;
         this.available = available;
     }
@@ -57,5 +57,18 @@ class ServerInputStream extends InputStream {
         return skip;
     }
 
+    public void mark (int readlimit) {
+        in.mark (readlimit);
+        markedAvailable = available;
+    }
+
+    public void reset () throws IOException {
+        in.reset ();
+        available = markedAvailable;
+    }
+
+    public boolean markSupported () {
+        return true;
+    }
 
 }
