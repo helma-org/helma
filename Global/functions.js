@@ -235,9 +235,6 @@ function createAuth()	{
   * macro-utility: formatting property lists
   */
 function formatProperties(props,par)	{
-	var prefix = (par && par.prefix) ? par.prefix : "";
-	var suffix = (par && par.suffix) ? par.suffix : "";
-	var separator = (par && par.separator) ? par.separator : "";
 	if ( props.size()==0 )
 		return "";
 	var e = props.keys();
@@ -249,7 +246,7 @@ function formatProperties(props,par)	{
 	for ( var i in arr )	{
 		// don't print the admin-password
 		if ( arr[i].toLowerCase()=="adminusername" || arr[i].toLowerCase()=="adminpassword" )	continue;
-		res.write ( prefix + arr[i] + separator + props.getProperty(arr[i]) + suffix );
+		res.write ( par.itemprefix + arr[i] + par.separator + props.getProperty(arr[i]) + par.itemsuffix );
 	}
 }
 

@@ -37,6 +37,6 @@
 <tr>
 	<td class="list_separator" colspan="3">app.properties</td>
 </tr>
-<% this.properties prefix="<tr><td class=\"list_property\" align=\"right\" valign=\"top\" width=\"200\">" separator="</td><td class=\"list_property\" width=\"5\">&nbsp;</td><td class=\"list_property\" align=\"left\" valign=\"top\">" suffix="</td></tr>" %>
+<% this.properties itemprefix='<tr><td class="list_property" align="right" valign="top" width="200">' separator='</td><td class="list_property" width="5">&nbsp;</td><td class="list_property" align="left" valign="top">' itemsuffix='</td></tr>' % -->
 </table>
 
