@@ -197,7 +197,7 @@ public class MapWrapper extends ScriptableObject {
     }
 
     public Object getDefaultValue(Class hint) {
-        if (hint == String.class) {
+        if (hint == null || hint == String.class) {
             return map == null ? "{}" : map.toString();
         }
         return super.getDefaultValue(hint);
