@@ -17,18 +17,12 @@
 package helma.extensions.demo;
 
 
-// fesi-related stuff:
-import FESI.Data.ESObject;
-import FESI.Data.ESWrapper;
-import FESI.Data.GlobalObject;
-import FESI.Exceptions.EcmaScriptException;
-import FESI.Interpreter.Evaluator;
 import helma.extensions.ConfigurationException;
 import helma.extensions.HelmaExtension;
 import helma.framework.core.Application;
 import helma.main.Server;
 import helma.scripting.ScriptingEngine;
-import helma.scripting.fesi.FesiEngine;
+import helma.scripting.rhino.RhinoEngine;
 import java.util.HashMap;
 
 /**
@@ -95,7 +89,7 @@ public class DemoExtension extends HelmaExtension {
      */
     public HashMap initScripting(Application app, ScriptingEngine engine)
                           throws ConfigurationException {
-        if (!(engine instanceof FesiEngine)) {
+        if (!(engine instanceof RhinoEngine)) {
             throw new ConfigurationException("scripting engine " + engine.toString() +
                                              " not supported in DemoExtension");
         }
@@ -103,14 +97,10 @@ public class DemoExtension extends HelmaExtension {
         app.logEvent("initScripting DemoExtension with " + app.getName() + " and " +
                      engine.toString());
 
-        // fesi-specific code:
-        Evaluator evaluator = ((FesiEngine) engine).getEvaluator();
-
-        // initialize prototypes and global vars here, but don't add them to fesi's global object
-        ESWrapper demo = new ESWrapper(Server.getServer(), evaluator);
+        // initialize prototypes and global vars here
         HashMap globals = new HashMap();
 
-        globals.put("demo", demo);
+        globals.put("demo", Server.getServer());
 
         return globals;
     }
