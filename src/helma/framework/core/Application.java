@@ -696,6 +696,15 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	xmlrpcAccess.checkAccess (proto, method);
     }
 
+    /**
+     * Decides whether subnode condition should be checked for cached nodes. This is on by default
+     * and can be switched off by adding "subnodeChecking=false" in the app.properties file.
+     * It is recommended to leave it on except you suffer severe performance problems and know what you do.
+     */
+    public boolean doesSubnodeChecking () {
+	return "false".equalsIgnoreCase (props.getProperty ("subnodeChecking"));
+    }
+
 }
 
 //////////////////////////////////////////////////////////////
