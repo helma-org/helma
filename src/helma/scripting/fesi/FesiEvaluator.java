@@ -22,7 +22,7 @@ import Acme.LruHashtable;
  * This is the implementation of ScriptingEnvironment for the FESI EcmaScript interpreter.
  */
 
-public class FesiEvaluator {
+public final class FesiEvaluator {
 
     // the application we're running in
     public Application app;
@@ -50,7 +50,12 @@ public class FesiEvaluator {
 	"helma.scripting.fesi.extensions.ImageExtension",
 	"helma.scripting.fesi.extensions.FtpExtension",
 	"FESI.Extensions.JavaAccess",
+	"helma.scripting.fesi.extensions.DomExtension",
 	"FESI.Extensions.OptionalRegExp"};
+
+    // remember global variables from last invokation to be able to
+    // do lazy cleanup
+    Map lastGlobals = null;
 
     public FesiEvaluator (Application app, RequestEvaluator reval) {
 	this.app = app;
@@ -145,12 +150,13 @@ public class FesiEvaluator {
 	    else
 	        evaluateString (prototype, ff.getContent ());
 	}
-	/* for (Iterator it = prototype.templates.values().iterator(); it.hasNext(); ) {
+	for (Iterator it = prototype.templates.values().iterator(); it.hasNext(); ) {
 	    Template tmp = (Template) it.next ();
 	    try {
-	        tmp.updateRequestEvaluator (reval);
+	        FesiActionAdapter adp = new FesiActionAdapter (tmp);
+	        adp.updateEvaluator (this);
 	    } catch (EcmaScriptException ignore) {}
-	} */
+	}
 	for (Iterator it = prototype.actions.values().iterator(); it.hasNext(); ) {
 	    ActionFile act = (ActionFile) it.next ();
 	    try {
@@ -204,7 +210,7 @@ public class FesiEvaluator {
 	            esv[i] = ESLoader.normalizeValue (args[i], evaluator);
 	    }
 
-	    if (globals != null) {
+	    if (globals != null && globals != lastGlobals) {
 	        // remember all global variables before invocation
 	        Set tmpGlobal = new HashSet ();
 	        for (Enumeration en = global.getAllProperties(); en.hasMoreElements(); ) {
@@ -249,6 +255,8 @@ public class FesiEvaluator {
 	                sv = ESLoader.normalizeValue (v, evaluator);
 	            global.putHiddenProperty (k, sv);
 	        }
+	        // remember the globals set on this evaluator
+	        // lastGlobals = globals;
 	    }
 	    evaluator.thread = Thread.currentThread ();
 	    ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
@@ -276,8 +284,10 @@ public class FesiEvaluator {
 	    if (globalVariables != null) {
 	        for (Enumeration en = global.getAllProperties(); en.hasMoreElements(); ) {
 	            String g = en.nextElement ().toString ();
-	            if (!globalVariables.contains (g)) try {
-	                global.deleteProperty (g, g.hashCode());
+	            try {
+	                if (!globalVariables.contains (g) &&
+				!(global.getProperty (g, g.hashCode()) instanceof BuiltinFunctionObject))
+	                    global.deleteProperty (g, g.hashCode());
 	            } catch (Exception x) {
 	                System.err.println ("Error resetting global property: "+g);
 	            }
