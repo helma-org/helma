@@ -289,7 +289,7 @@ public final class RhinoEngine implements ScriptingEngine {
                 // XML-RPC requires special argument conversion
                 if (xmlrpc) {
                     args[i] = core.processXmlRpcArgument (args[i]);
-                } else {
+                } else if (args[i] != null) {
                     args[i] = context.toObject(args[i], global);
                 }
             }
