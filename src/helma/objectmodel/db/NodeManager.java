@@ -594,8 +594,8 @@ public final class NodeManager {
 	    QueryDataSet qds = null;
 	    try {
 	        Relation subrel = rel;
-	        if (subrel.getFilter () != null)
-	            subrel = subrel.getFilter ();
+	        if (subrel.getSubnodeRelation () != null)
+	            subrel = subrel.getSubnodeRelation ();
 
 	        if (home.getSubnodeRelation() != null) {
 	            // subnode relation was explicitly set
@@ -660,8 +660,8 @@ public final class NodeManager {
 	    TableDataSet tds =  new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
 	    try {
 	        Relation subrel = rel;
-	        if (subrel.getFilter () != null)
-	            subrel = subrel.getFilter ();
+	        if (subrel.getSubnodeRelation () != null)
+	            subrel = subrel.getSubnodeRelation ();
 
 	        if (home.getSubnodeRelation() != null) {
 	            // HACK: subnodeRelation includes a "where", but we need it without
@@ -724,8 +724,8 @@ public final class NodeManager {
 	    QueryDataSet qds = null;
 	    try {
 	        Relation subrel = rel;
-	        if (subrel.getFilter () != null)
-	            subrel = subrel.getFilter ();
+	        if (subrel.getSubnodeRelation () != null)
+	            subrel = subrel.getSubnodeRelation ();
 
 	        if (home.getSubnodeRelation() != null) {
 	            qds = new QueryDataSet (con, "SELECT count(*) FROM "+table+" "+home.getSubnodeRelation());
@@ -911,8 +911,8 @@ public final class NodeManager {
 	            } else {
 	                Relation subrel = home.getDbMapping().getSubnodeRelation ();
 	                if (subrel != null) {
-	                    if (subrel.getFilter () != null)
-	                        subrel = subrel.getFilter ();
+	                    if (subrel.getSubnodeRelation () != null)
+	                        subrel = subrel.getSubnodeRelation ();
 	                    if (subrel != null && subrel.direction == Relation.BACKWARD) {
 	                        where.append (" and ");
 	                        where.append (subrel.getRemoteField());
