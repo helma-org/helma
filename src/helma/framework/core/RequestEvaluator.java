@@ -35,8 +35,8 @@ public class RequestEvaluator implements Runnable {
     // the method to be executed
     String method;
 
-    // the user object associated with the current request
-    User user;
+    // the session object associated with the current request
+    Session session;
 
     // arguments passed to the function
     Object[] args;
@@ -113,17 +113,17 @@ public class RequestEvaluator implements Runnable {
 
 	                HashMap globals = new HashMap ();
 	                globals.put ("root", root);
-	                globals.put ("user", user);
+	                globals.put ("session", session);
 	                globals.put ("req", req);
 	                globals.put ("res", res);
 	                globals.put ("path", requestPath);
 	                globals.put ("app", app.getAppNode());
 	                if (error != null)
 	                    res.error = error;
-	                if (user.message != null) {
+	                if (session.message != null) {
 	                    // bring over the message from a redirect
-	                    res.message = user.message;
-	                    user.message = null;
+	                    res.message = session.message;
+	                    session.message = null;
 	                }
 
 	                try {
@@ -284,7 +284,7 @@ public class RequestEvaluator implements Runnable {
 	                    // res.redirect = redirect.getMessage ();
 	                    // if there is a message set, save it on the user object for the next request
 	                    if (res.message != null)
-	                        user.message = res.message;
+	                        session.message = res.message;
 	                    done = true;
 	                }
 
@@ -497,10 +497,10 @@ public class RequestEvaluator implements Runnable {
 	} catch (InterruptedException ir) {}
     }
 
-    public synchronized ResponseTrans invoke (RequestTrans req, User user)  throws Exception {
+    public synchronized ResponseTrans invoke (RequestTrans req, Session session)  throws Exception {
 	this.reqtype = HTTP;
 	this.req = req;
-	this.user = user;
+	this.session = session;
 	this.res = new ResponseTrans ();
 
 	app.activeRequests.put (req, this);
@@ -534,7 +534,7 @@ public class RequestEvaluator implements Runnable {
 
     public synchronized Object invokeXmlRpc (String method, Object[] args) throws Exception {
 	this.reqtype = XMLRPC;
-	this.user = null;
+	this.session = null;
 	this.method = method;
 	this.args = args;
 	this.res = new ResponseTrans ();
@@ -559,7 +559,7 @@ public class RequestEvaluator implements Runnable {
     public synchronized Object invokeFunction (Object object, String functionName, Object[] args)
 		throws Exception {
 	reqtype = INTERNAL;
-	user = null;
+	session = null;
 	thisObject = object;
 	method = functionName;
 	this.args =args;
@@ -579,10 +579,10 @@ public class RequestEvaluator implements Runnable {
 	return result;
     }
 
-    public synchronized Object invokeFunction (User user, String functionName, Object[] args)
+    public synchronized Object invokeFunction (Session session, String functionName, Object[] args)
 		throws Exception {
 	reqtype = INTERNAL;
-	this.user = user;
+	this.session = session;
 	thisObject = null;
 	method = functionName;
 	this.args = args;
