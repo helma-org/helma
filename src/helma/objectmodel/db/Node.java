@@ -909,8 +909,12 @@ public final class Node implements INode, Serializable {
 	    if (rel != null)
 	        return (IPathElement) getNode (name, false);
 	    rel = dbmap.getSubnodeRelation ();
-	    if (rel != null && rel.groupby == null && rel.accessor != null)
-	        return (IPathElement) nmgr.getNode (this, name, rel);
+	    if (rel != null && rel.groupby == null && rel.accessor != null) {
+	        if (rel.otherType != null && rel.otherType.isRelational ())
+	            return (IPathElement) nmgr.getNode (this, name, rel);
+	        else
+	           return (IPathElement) getNode (name, false);
+	    }
 	    return (IPathElement) getSubnode (name);
 	} else {
 	    // no dbmapping - just try child collection first, then named property.
