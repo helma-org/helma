@@ -349,6 +349,8 @@ public final class Skin {
 	        throw redir;
 	    } catch (ConcurrencyException concur) {
 	        throw concur;
+	    } catch (TimeoutException timeout) {
+	        throw timeout;
 	    } catch (Exception x) {
 	        x.printStackTrace();
 	        String msg = "[HopMacro error: "+x+"]";
