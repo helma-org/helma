@@ -2492,9 +2492,9 @@ public final class Node implements INode, Serializable {
                 // unset constraints.
                 Relation rel = dbmap.getExactPropertyRelation(propname);
 
-                if (rel != null && (rel.isComplexReference() || rel.countConstraints() > 1)) {
+                if (rel != null && (rel.isComplexReference())) {
                     p = getProperty(propname);
-                    System.err.println ("NEED TO UNSET: "+p.getNodeValue());
+                    rel.unsetConstraints(this, p.getNodeValue());
                 }
             }
         } catch (Exception ignore) {
