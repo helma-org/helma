@@ -39,6 +39,9 @@ function headline_macro (param) {
 
 function hrefRoot_macro (param) {
 	var obj = this.getChildElement ("prototype_root");
+	if (obj == null) {
+	   var obj = this.getChildElement ("prototype_Root");
+   }	   
 	if (obj!=null)	{
 		var action = (param.action) ? param.action : "main";
 		return obj.href (action);
