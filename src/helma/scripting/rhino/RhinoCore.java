@@ -714,7 +714,7 @@ public final class RhinoCore {
                     Object obj = sp.get(ids[i].toString(), sp);
                     if (obj instanceof NativeJavaObject) {
                         param.put(ids[i], ((NativeJavaObject) obj).unwrap());
-                    } else {
+                    } else if (obj != Undefined.instance) {
                         param.put(ids[i], obj);
                     }
                 }
