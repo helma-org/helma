@@ -22,7 +22,7 @@ import com.sleepycat.db.*;
  * Helma server main class.
  */
  
- public class Server implements IPathElement	{
+ public class Server implements IPathElement, Runnable {
 
     public static final String version = "1.2pre2 2002/03/07";
     public static final long starttime = System.currentTimeMillis();
@@ -48,7 +48,7 @@ import com.sleepycat.db.*;
 
     static Hashtable dbSources;
 
-	static Server server;
+    private static Server server;
 
     protected static File hopHome = null;
 
@@ -111,7 +111,6 @@ import com.sleepycat.db.*;
 	}
 
 	server = new Server (homeDir);
-
     }
 
     public Server (String home) {
@@ -186,8 +185,8 @@ import com.sleepycat.db.*;
 
 	// Start running, finishing setup and then entering a loop to check changes
 	// in the apps.properties file.
-	mainThread = Thread.currentThread ();
-	run ();
+	mainThread = new Thread (this);
+	mainThread.start ();
     }
 
     /**
