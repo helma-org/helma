@@ -741,6 +741,13 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
+     * Return the prototype with the given name, if it exists
+     */
+    public Prototype getPrototypeByName(String name) {
+        return (Prototype) typemgr.prototypes.get(name);
+    }
+
+    /**
      * Return a collection containing all prototypes defined for this application
      */
     public Collection getPrototypes() {
