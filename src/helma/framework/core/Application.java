@@ -33,9 +33,6 @@ public final class Application extends UnicastRemoteObject implements IRemoteApp
     File home, appDir, dbDir;
     protected NodeManager nmgr;
 
-    // the class name of the scripting environment implementation
-    // ScriptingEnvironment scriptingEngine;
-
     // the root of the website, if a custom root object is defined.
     // otherwise this is managed by the NodeManager and not cached here.
     Object rootObject = null;
