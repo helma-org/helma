@@ -47,6 +47,9 @@ public class ZippedAppFile implements Updatable {
 	} else {
 
 	    ZipFile zip = null;
+	    // collect created protos - we need this to check DbMappings for each created
+	    // prototype afterwards
+	    HashSet newPrototypes = new HashSet ();
 	    try {
 	        lastmod = file.lastModified ();
 	        // System.err.println ("UPDATING ZIP FILE "+this);
@@ -60,8 +63,10 @@ public class ZippedAppFile implements Updatable {
 	                String fname = st.nextToken ();
 	                // System.err.println ("ZIPENTRY: "+ dir +" ~ "+fname);
 	                Prototype proto = app.typemgr.getPrototype (dir);
-	                if (proto == null)
+	                if (proto == null) {
 	                    proto = app.typemgr.createPrototype (dir);
+	                    newPrototypes.add (proto);
+	                }
 	                if (fname.endsWith (".hac")) {
 	                    String name = fname.substring (0, fname.lastIndexOf ("."));
 	                    String content = getZipEntryContent (zip, entry);
@@ -98,6 +103,15 @@ public class ZippedAppFile implements Updatable {
 	                    // DbMapping does its own registering, just construct it.
 	                    new DbMapping (app, proto.getName (), props);
 	                }
+	            }
+	        }
+	        for  (Iterator it = newPrototypes.iterator (); it.hasNext (); ) {
+	            Prototype proto = (Prototype) it.next ();
+	            if (app.getDbMapping (proto.getName ()) == null) {
+	                // DbMapping doesn't exist, we still need to create one
+	                SystemProperties props = new SystemProperties ();
+	                // DbMapping does its own registering, just construct it.
+	                new DbMapping (app, proto.getName (), props);
 	            }
 	        }
 	    } catch (Throwable x) {
