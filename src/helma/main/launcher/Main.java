@@ -38,11 +38,12 @@ public class Main {
                                         };
 
     /**
+     * Helma boot method. This retrieves the Helma home directory, creates the
+     * classpath and invokes main() in helma.main.Server.
      *
+     * @param args command line arguments
      *
-     * @param args ...
-     *
-     * @throws Exception ...
+     * @throws Exception if the Helma home dir or classpath couldn't be built
      */
     public static void main(String[] args) throws Exception {
         // check if home directory is set via command line arg. If not,
@@ -134,7 +135,16 @@ public class Main {
 
         jarlist.toArray(urls);
 
-        FilteredClassLoader loader = new FilteredClassLoader(urls);
+        // find out if system classes should be excluded from class path
+        String excludeSystemClasses = System.getProperty("helma.excludeSystemClasses");
+
+        FilteredClassLoader loader;
+
+        if ("true".equalsIgnoreCase(excludeSystemClasses)) {
+            loader = new FilteredClassLoader(urls, null);
+        } else {
+            loader = new FilteredClassLoader(urls);
+        }
 
         // set the new class loader as context class loader
         Thread.currentThread().setContextClassLoader(loader);
