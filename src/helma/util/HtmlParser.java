@@ -6,6 +6,9 @@ package helma.util;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Stack;
+import java.util.EmptyStackException;
 import java.io.IOException;
 import javax.swing.text.html.parser.*;
 import javax.swing.text.SimpleAttributeSet;
@@ -18,8 +21,26 @@ public class HtmlParser extends Parser {
     HTMLBuilder builder;
     Attributes attributes = new Attributes ();
 
+    Stack stack  = new Stack ();
+    
+    static final HashSet stopNone = new HashSet ();
+    static final HashSet stopTable = new HashSet ();
+    static final HashSet stopList = new HashSet ();
+    static final HashSet stopDeflist = new HashSet ();
+    static {
+	stopTable.add ("TABLE");
+	stopList.add ("TABLE");
+	stopList.add ("UL");
+	stopList.add ("OL");
+	stopDeflist.add ("TABLE");
+	stopDeflist.add ("DL");
+    }
+
+
     public HtmlParser () throws IOException {
 	super (DTD.getDTD ("html32"));
+	// define elements to be treated as container tags, and undefine those
+	// to be treated as empty tags.
 	dtd.getElement ("table");
 	dtd.getElement ("tr");
 	dtd.getElement ("td");
@@ -34,6 +55,17 @@ public class HtmlParser extends Parser {
 	dtd.getElement ("ul");
 	dtd.getElement ("ol");
 	dtd.getElement ("li");
+	dtd.getElement ("dl");
+	dtd.getElement ("dt");
+	dtd.getElement ("dd");
+	dtd.getElement ("h1");
+	dtd.getElement ("h2");
+	dtd.getElement ("h3");
+	dtd.getElement ("h4");
+	dtd.getElement ("h5");
+	dtd.getElement ("h6");
+	dtd.getElement ("form");
+	dtd.getElement ("option");
 	dtd.elementHash.remove ("meta");
 	dtd.elementHash.remove ("link");
 	dtd.elementHash.remove ("base");
@@ -52,25 +84,32 @@ public class HtmlParser extends Parser {
 	// System.err.println ("handleStartTag ("+tag.getHTMLTag()+")");
 	attributes.convert (getAttributes());
 	flushAttributes();
+	String tagname = tag.getHTMLTag().toString().toUpperCase();
+	// immediately empty A anchor tag
+	if ("A".equals (tagname) && attributes.getValue ("href") == null) try {
+	    builder.startElement (tagname, attributes);
+	    builder.endElement (tagname);
+	    return;
+	} catch (SAXException x) {}
+	if ("TD".equals (tagname)) {
+	    closeOpenTags ("TD", stopTable, 10);
+	} else if ("TR".equals (tagname)) {
+	    closeOpenTags ("TR", stopTable, 10);
+	} else if ("LI".equals (tagname)) {
+	    closeOpenTags ("LI", stopList, 6);
+	} else if ("DT".equals (tagname) || "DD".equals (tagname)) {
+	    closeOpenTags ("DT", stopDeflist, 6);
+	    closeOpenTags ("DL", stopDeflist, 6);
+	} else if ("OPTION".equals (tagname)) {
+	    closeOpenTags ("OPTION", stopNone, 1);
+	} else if ("P".equals (tagname)) {
+	    closeOpenTags ("P", stopNone, 1);
+	}
+	stack.push (tagname);
 	try {
-	    builder.startElement (tag.getHTMLTag().toString().toUpperCase(), attributes);
+	    builder.startElement (tagname, attributes);
 	} catch (SAXException x) {
 	    System.err.println ("Error in handleStartTag");
-	}
-    }
-
-    /**
-     * Handle Empty Tag.
-     */
-    protected void handleEmptyTag(TagElement tag) {
-	// System.err.println ("handleEmptyTag ("+tag.getHTMLTag()+")");
-	attributes.convert (getAttributes());
-	flushAttributes();
-	try {
-	    builder.startElement (tag.getHTMLTag().toString().toUpperCase(), attributes);
-	    builder.endElement (tag.getHTMLTag().toString().toUpperCase());
-	} catch (SAXException x) {
-	    System.err.println ("Error in handleEmptyTag: "+x);
 	}
     }
 
@@ -79,12 +118,35 @@ public class HtmlParser extends Parser {
      */
     protected void handleEndTag(TagElement tag) {
 	// System.err.println ("handleEndTag ("+tag.getHTMLTag()+")");
+	String tagname = tag.getHTMLTag().toString().toUpperCase();
 	try {
-	    builder.endElement (tag.getHTMLTag().toString().toUpperCase());
+	    if (tagname.equals (stack.peek ()))
+	        stack.pop ();
+	} catch (EmptyStackException es) {}
+	try {
+	    builder.endElement (tagname);
 	} catch (SAXException x) {
 	    System.err.println ("Error in handleEndTag: "+x);
 	}
     }
+
+
+    /**
+     * Handle Empty Tag.
+     */
+    protected void handleEmptyTag(TagElement tag) {
+	// System.err.println ("handleEmptyTag ("+tag.getHTMLTag()+")");
+	attributes.convert (getAttributes());
+	flushAttributes();
+	String tagname = tag.getHTMLTag().toString().toUpperCase();
+	try {
+	    builder.startElement (tagname, attributes);
+	    builder.endElement (tagname);
+	} catch (SAXException x) {
+	    System.err.println ("Error in handleEmptyTag: "+x);
+	}
+    }
+
 
     /**
      * Handle Text.
@@ -108,7 +170,13 @@ public class HtmlParser extends Parser {
     /**
      *  Handle comment.
      */
-    protected void handleComment(char text[]) {
+    protected void handleComment(char data[]) {
+	// System.err.println ("handleComment ("+new String (data)+")");
+	/* try {
+	    builder.characters (data, 0, data.length);
+	} catch (SAXException x) {
+	    System.err.println ("Error in handleComment");
+	}*/
     }
 
     public HTMLDocument getDocument () {
@@ -118,6 +186,29 @@ public class HtmlParser extends Parser {
 	return builder.getHTMLDocument ();
     }
 
+    
+    private void closeOpenTags (String until, HashSet stoppers, int maxdepth) {
+	int l = stack.size();
+	int stop = Math.max (0, l-maxdepth);
+	int found = -1;
+	for (int i=l-1; i>=stop; i--) {
+	    Object o = stack.elementAt (i);
+	    if (stoppers.contains (o))
+	        return;
+	    if (until.equals (o)) {
+	        found = i;
+	        break;
+	    }
+	}
+	if (found > -1) {
+	    for (int i=l-1; i>=found; i--) {
+	        try {
+	            String t = (String) stack.pop ();
+	            builder.endElement (t);
+	        } catch (Exception x) {}
+	    }
+	}
+    }
 
     class Attributes implements org.xml.sax.AttributeList {
 	HashMap map = new HashMap();
@@ -155,8 +246,9 @@ public class HtmlParser extends Parser {
 	    for (Enumeration e = attset.getAttributeNames(); e.hasMoreElements(); ) {
 	        Object name = e.nextElement ();
 	        Object value = attset.getAttribute (name).toString();
-	        map.put (name.toString(), value);
-	        names.add (name.toString());
+	        name = name.toString().toLowerCase ();
+	        map.put (name, value);
+	        names.add (name);
 	        values.add (value);
 	    }
 	}
