@@ -116,20 +116,22 @@ public class FesiEngine implements ScriptingEngine {
             // load extensions defined in server.properties:
             extensionGlobals = new HashMap();
 
-            Vector extVec = Server.getServer().getExtensions();
+            if (Server.getServer() != null) {
+                Vector extVec = Server.getServer().getExtensions();
 
-            for (int i = 0; i < extVec.size(); i++) {
-                HelmaExtension ext = (HelmaExtension) extVec.get(i);
+                for (int i = 0; i < extVec.size(); i++) {
+                    HelmaExtension ext = (HelmaExtension) extVec.get(i);
 
-                try {
-                    HashMap tmpGlobals = ext.initScripting(app, this);
+                    try {
+                        HashMap tmpGlobals = ext.initScripting(app, this);
 
-                    if (tmpGlobals != null) {
-                        extensionGlobals.putAll(tmpGlobals);
+                        if (tmpGlobals != null) {
+                            extensionGlobals.putAll(tmpGlobals);
+                        }
+                    } catch (ConfigurationException e) {
+                        app.logEvent("Couldn't initialize extension " + ext.getName() + ": " +
+                                     e.getMessage());
                     }
-                } catch (ConfigurationException e) {
-                    app.logEvent("Couldn't initialize extension " + ext.getName() + ": " +
-                                 e.getMessage());
                 }
             }
 

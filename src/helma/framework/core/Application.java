@@ -259,16 +259,18 @@ public final class Application implements IPathElement, Runnable {
      */
     public void init()
               throws DatabaseException, ScriptingException, MalformedURLException {
-        Vector extensions = Server.getServer().getExtensions();
+        if (Server.getServer() != null) {
+            Vector extensions = Server.getServer().getExtensions();
 
-        for (int i = 0; i < extensions.size(); i++) {
-            HelmaExtension ext = (HelmaExtension) extensions.get(i);
+            for (int i = 0; i < extensions.size(); i++) {
+                HelmaExtension ext = (HelmaExtension) extensions.get(i);
 
-            try {
-                ext.applicationStarted(this);
-            } catch (ConfigurationException e) {
-                logEvent("couldn't init extension " + ext.getName() + ": " +
-                         e.toString());
+                try {
+                    ext.applicationStarted(this);
+                } catch (ConfigurationException e) {
+                    logEvent("couldn't init extension " + ext.getName() + ": " +
+                             e.toString());
+                }
             }
         }
 
@@ -377,12 +379,14 @@ public final class Application implements IPathElement, Runnable {
         typemgr = null;
 
         // tell the extensions that we're stopped.
-        Vector extensions = Server.getServer().getExtensions();
+        if (Server.getServer() != null) {
+            Vector extensions = Server.getServer().getExtensions();
 
-        for (int i = 0; i < extensions.size(); i++) {
-            HelmaExtension ext = (HelmaExtension) extensions.get(i);
+            for (int i = 0; i < extensions.size(); i++) {
+                HelmaExtension ext = (HelmaExtension) extensions.get(i);
 
-            ext.applicationStopped(this);
+                ext.applicationStopped(this);
+            }
         }
 
         // store the sessions if wanted
@@ -1590,14 +1594,16 @@ public final class Application implements IPathElement, Runnable {
             }
 
             // update extensions
-            Vector extensions = Server.getServer().getExtensions();
+            if (Server.getServer() != null) {
+                Vector extensions = Server.getServer().getExtensions();
 
-            for (int i = 0; i < extensions.size(); i++) {
-                HelmaExtension ext = (HelmaExtension) extensions.get(i);
+                for (int i = 0; i < extensions.size(); i++) {
+                    HelmaExtension ext = (HelmaExtension) extensions.get(i);
 
-                try {
-                    ext.applicationUpdated(this);
-                } catch (ConfigurationException e) {
+                    try {
+                        ext.applicationUpdated(this);
+                    } catch (ConfigurationException e) {
+                    }
                 }
             }
 
