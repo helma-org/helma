@@ -210,6 +210,8 @@ public class FesiEvaluator {
 	                    parr.putHiddenProperty (app.getPrototypeName(pathElem), wrappedElement);
 	                }
 	                sv = parr;
+				} else if ("user".equals (k)) {
+				    sv = getNodeWrapper ((User) v);
 	            } else if ("app".equals (k)) {
 				    sv = new ESAppNode ((INode) v, this);
 				}
@@ -221,6 +223,8 @@ public class FesiEvaluator {
 	    evaluator.thread = Thread.currentThread ();
 	    ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
 	    return retval == null ? null : retval.toJavaObject ();
+	} catch (RedirectException redir) {
+	    throw redir;
 	} catch (Exception x) {
 	    String msg = x.getMessage ();
 	    if (msg == null || msg.length() < 10)

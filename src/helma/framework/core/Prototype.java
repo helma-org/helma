@@ -11,8 +11,8 @@ import helma.scripting.*;
 import helma.scripting.fesi.*;
 import helma.objectmodel.*;
 import helma.util.Updatable;
-import FESI.Data.*;
-import FESI.Exceptions.EcmaScriptException;
+// import FESI.Data.*;
+// import FESI.Exceptions.EcmaScriptException;
 
 
 /**
