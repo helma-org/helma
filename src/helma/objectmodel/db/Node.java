@@ -142,6 +142,8 @@ public class Node implements INode, Serializable {
 	checkWriteLock ();
 	String nameField =  dbmap.getNameField ();
 	name = nameField == null ? id : rec.getValue (nameField).asString ();
+	if (name == null || name.length() == 0)
+	    name = id;
 	setPrototype (dbmap.getTypeName ());
 	for (Enumeration e=dbmap.db2prop.elements (); e.hasMoreElements();  ) {
 
@@ -418,7 +420,7 @@ public class Node implements INode, Serializable {
 	        }
 	    } catch (Exception ignore) {} // just fall back to ID
 	}
-    	return anonymous ? id : name;
+    	return anonymous || name == null || name.length() == 0 ? id : name;
     }
 
 
