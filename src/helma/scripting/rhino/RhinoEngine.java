@@ -59,6 +59,9 @@ public final class RhinoEngine implements ScriptingEngine {
     // the global vars set by extensions
     HashMap extensionGlobals;
 
+    // the thread currently running this engine
+    Thread thread;
+
     // the introspector that provides documentation for this application
     DocApplication doc = null;
 
@@ -166,6 +169,7 @@ public final class RhinoEngine implements ScriptingEngine {
         // set globals on the global object
         // context = Context.enter (context);
         globals.putAll(extensionGlobals);
+        thread = Thread.currentThread();
 
         if ((globals != null) && (globals != lastGlobals)) {
             // loop through global vars and set them
@@ -200,34 +204,6 @@ public final class RhinoEngine implements ScriptingEngine {
                         v = arr;
                     }
 
-                    /* if (v instanceof Map) {
-                       sv = new ESMapWrapper (this, (Map) v);
-                       } else if ("path".equals (k)) {
-                           ArrayPrototype parr = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
-                           List path = (List) v;
-                           // register path elements with their prototype
-                           for (int j=0; j<path.size(); j++) {
-                               Object pathElem = path.get (j);
-                               ESValue wrappedElement = getElementWrapper (pathElem);
-                               parr.putProperty (j, wrappedElement);
-                               String protoname = app.getPrototypeName (pathElem);
-                               if (protoname != null)
-                                   parr.putHiddenProperty (protoname, wrappedElement);
-                           }
-                           sv = parr;
-                       } else if ("req".equals (k)) {
-                           sv = new ESBeanWrapper (new RequestBean ((RequestTrans) v), this);
-                       } else if ("res".equals (k)) {
-                           sv = new ESBeanWrapper (new ResponseBean ((ResponseTrans) v), this);
-                       } else if ("session".equals (k)) {
-                           sv = new ESBeanWrapper (new SessionBean ((Session)v), this);
-                       } else if ("app".equals (k)) {
-                           sv = new ESBeanWrapper (new ApplicationBean ((Application)v), this);
-                       } else if (v instanceof ESValue) {
-                           sv = (ESValue)v;
-                       } else {
-                           sv = ESLoader.normalizeValue (v, evaluator);
-                       } */
                     scriptable = context.toObject(v, global);
                     global.put(k, global, scriptable);
                 } catch (Exception x) {
@@ -248,11 +224,9 @@ public final class RhinoEngine implements ScriptingEngine {
         context.removeThreadLocal("reval");
         context.removeThreadLocal("engine");
         context.exit();
+        thread = null;
 
-        // unset the thread filed in the FESI evaluator
-        // evaluator.thread = null;
         // loop through previous globals and unset them, if necessary.
-
         /* if (lastGlobals != null) {
            for (Iterator i=lastGlobals.keySet().iterator(); i.hasNext(); ) {
                String g = (String) i.next ();
@@ -280,16 +254,6 @@ public final class RhinoEngine implements ScriptingEngine {
         }
         try {
             for (int i = 0; i < args.length; i++) {
-                // XML-RPC requires special argument conversion
-                // if (xmlrpc)
-                //    esv[i] = processXmlRpcArgument (args[i], evaluator);
-                // for java.util.Map objects, we use the special "tight" wrapper
-                // that makes the Map look like a native object
-
-                /* else if (args[i] instanceof Map)
-                   esv[i] = new ESMapWrapper (this, (Map) args[i]);
-                   else
-                       esv[i] = ESLoader.normalizeValue (args[i], evaluator); */
                 // XML-RPC requires special argument conversion
                 if (xmlrpc) {
                     args[i] = core.processXmlRpcArgument (args[i]);
@@ -350,11 +314,22 @@ public final class RhinoEngine implements ScriptingEngine {
 
     /**
      *  Let the evaluator know that the current evaluation has been
-     *  aborted. This is done by setting the thread ref in the evaluator
-     *  object to null.
+     *  aborted.
      */
     public void abort() {
         // current request has been aborted.
+        Thread t = thread;
+        if (t != null && t.isAlive()) {
+            t.interrupt();
+            try {
+                Thread.currentThread().sleep(5000);
+                if (t.isAlive()) {
+                    // thread is still running, gotta stop it.
+                    t.stop();
+                }
+            } catch (InterruptedException i) {
+            }
+        }
     }
 
     /**
