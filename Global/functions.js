@@ -219,10 +219,10 @@ function createAuth()	{
 	}	else	{
 		// no input from webform, so print it
 		res.reset();
-		res.skin = "basic";
-		res.title = "username & password on " + root.hostname_macro();
-		res.head = renderSkinAsString("head");
-		res.body = renderSkinAsString("pwdform",obj);
+		res.data.title = "username & password on " + root.hostname_macro();
+		res.data.head = renderSkinAsString("head");
+		res.data.body = renderSkinAsString("pwdform",obj);
+		renderSkin("basic");
 		return false;
 	}
 }
