@@ -59,8 +59,12 @@ public final class FesiEvaluator implements ScriptingEngine {
     // do lazy cleanup
     Map lastGlobals = null;
 
-	// the global vars set by extensions
-	HashMap extensionGlobals;
+    // the global vars set by extensions
+    HashMap extensionGlobals;
+    
+    // flag tells us if the current request has timed out
+    // and exceptions should thus be rethrown as TimeoutExceptions.
+    private boolean timeout;
 
     /**
      *  Create a FESI evaluator for the given application and request evaluator.
@@ -294,6 +298,10 @@ public final class FesiEvaluator implements ScriptingEngine {
      *  to be applied during this execution context.
      */
     public void enterContext (HashMap globals) throws ScriptingException {
+	// set the thread filed in the FESI evaluator
+	evaluator.thread = Thread.currentThread ();
+	// unset timeot flag
+	timeout = false;
 	// set globals on the global object
 	globals.putAll(extensionGlobals);
 	if (globals != null && globals != lastGlobals) {
@@ -350,6 +358,8 @@ public final class FesiEvaluator implements ScriptingEngine {
      *   execution context has terminated.
      */
     public void exitContext () {
+	// unset the thread filed in the FESI evaluator
+	evaluator.thread = null;
 	// loop through previous globals and unset them, if necessary.
 	if (lastGlobals != null) {
 	    for (Iterator i=lastGlobals.keySet().iterator(); i.hasNext(); ) {
@@ -384,7 +394,6 @@ public final class FesiEvaluator implements ScriptingEngine {
 	        else
 	            esv[i] = ESLoader.normalizeValue (args[i], evaluator);
 	    }
-	    evaluator.thread = Thread.currentThread ();
 	    ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
 	    return retval == null ? null : retval.toJavaObject ();
 	} catch (Exception x) {
@@ -395,6 +404,9 @@ public final class FesiEvaluator implements ScriptingEngine {
 	    // do the same for not-modified responses
 	    if (reval.res.getNotModified())
 	        throw new RedirectException (null);
+	    // has the request timed out? If so, throw TimeoutException
+	    if (timeout)
+	        throw new TimeoutException ();
 	    // create and throw a ScriptingException with the right message
 	    String msg = x.getMessage ();
 	    if (msg == null || msg.length() < 10)
@@ -413,6 +425,10 @@ public final class FesiEvaluator implements ScriptingEngine {
      * object to null.
      */
     public void abort () {
+	// set the timeout flag so we exceptions are
+	// rethrown as timeout exceptions
+	timeout = true;
+	// unset the thread filed in the FESI evaluator
 	evaluator.thread = null;
     }
 
