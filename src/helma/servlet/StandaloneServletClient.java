@@ -47,11 +47,13 @@ public final class StandaloneServletClient extends AbstractServletClient {
 	    throw new ServletException ("dbdir parameter not specified");
 }
 
-    IRemoteApp getApp (String appID) {
+    ResponseTrans execute (RequestTrans req, String reqPath) throws Exception {
+	req.path = getRequestPath (reqPath);
 	if (app == null)
 	    createApp ();
-	return app;
+	return app.execute (req);
     }
+
 
     /**
      * Create the application. Since we are synchronized only here, we
@@ -89,9 +91,6 @@ public final class StandaloneServletClient extends AbstractServletClient {
 	app = null;
     }
 
-    void invalidateApp (String appID) {
-	// app = null;
-    }
 
     String getAppID (String path) {
 	return appName;
@@ -121,7 +120,7 @@ public final class StandaloneServletClient extends AbstractServletClient {
 
     // for testing
       public static void main (String args[]) {
-	AbstractServletClient client = new ServletClient ();
+	StandaloneServletClient client = new StandaloneServletClient ();
 	String path = "///appname/some/random/path///";
 	System.out.println (client.getAppID (path));
 	System.out.println (client.getRequestPath (path));

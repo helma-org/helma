@@ -10,7 +10,7 @@ import java.io.*;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.util.HashMap;
-import helma.framework.IRemoteApp;
+import helma.framework.*;
 
 /**
  * This is the HOP servlet adapter. This class communicates with any
@@ -25,7 +25,19 @@ public class MultiServletClient extends AbstractServletClient {
     public void init (ServletConfig init) throws ServletException {
 	super.init (init);
 	apps = new HashMap ();
-	super.init (init);
+	host =  init.getInitParameter ("host");
+	if (host == null)
+	    host = "localhost";
+	String portstr = init.getInitParameter ("port");
+	port =  portstr == null ? 5055 : Integer.parseInt (portstr);
+	hopUrl = "//" + host + ":" + port + "/";
+    }
+
+    ResponseTrans execute (RequestTrans req, String reqPath) throws Exception {
+	String appID = getAppID (reqPath);
+	IRemoteApp app = getApp (appID);
+	req.path = getRequestPath (reqPath);
+	return app.execute (req);
     }
 
     IRemoteApp getApp (String appID) throws Exception {
@@ -89,7 +101,7 @@ public class MultiServletClient extends AbstractServletClient {
 
     // for testing
       public static void main (String args[]) {
-	AbstractServletClient client = new MultiServletClient ();
+	MultiServletClient client = new MultiServletClient ();
 	// String path = "///appname/do/it/for/me///";
 	String path = "appname";
 	System.out.println (client.getAppID (path));
@@ -97,22 +109,4 @@ public class MultiServletClient extends AbstractServletClient {
       }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

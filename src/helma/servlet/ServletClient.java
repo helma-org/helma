@@ -24,9 +24,21 @@ public class ServletClient extends AbstractServletClient {
     public void init (ServletConfig init) throws ServletException {
 	super.init (init);
 	appName = init.getInitParameter ("application");
+	host =  init.getInitParameter ("host");
+	if (host == null)
+	    host = "localhost";
+	String portstr = init.getInitParameter ("port");
+	port =  portstr == null ? 5055 : Integer.parseInt (portstr);
+	hopUrl = "//" + host + ":" + port + "/";
     }
 
-    IRemoteApp getApp (String appID) throws Exception {
+    ResponseTrans execute (RequestTrans req, String reqPath) throws Exception {
+	IRemoteApp app = getApp ();
+	req.path = getRequestPath (reqPath);
+	return app.execute (req);
+    }
+
+    IRemoteApp getApp () throws Exception {
 	if (app != null)
 	    return app;
 	if (appName == null)
@@ -35,13 +47,6 @@ public class ServletClient extends AbstractServletClient {
 	return app;
     }
 
-    void invalidateApp (String appID) {
-	app = null;
-    }
-
-    String getAppID (String path) {
-	return appName;
-    }
 
     String getRequestPath (String path) {
 	// get request path
@@ -67,9 +72,9 @@ public class ServletClient extends AbstractServletClient {
 
     // for testing
       public static void main (String args[]) {
-	AbstractServletClient client = new ServletClient ();
+	ServletClient client = new ServletClient ();
 	String path = "///appname/some/random/path///";
-	System.out.println (client.getAppID (path));
+	// System.out.println (client.getAppID (path));
 	System.out.println (client.getRequestPath (path));
       }
 

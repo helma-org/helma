@@ -26,10 +26,11 @@ public abstract class AbstractServletClient extends HttpServlet {
     String host = null;
     // port of Helma RMI server
     int port = 0;
-    // limit to HTTP uploads in kB
-    int uploadLimit = 1024;
     // RMI url of Helma app
     String hopUrl;
+    
+    // limit to HTTP uploads in kB
+    int uploadLimit = 1024;
     // cookie domain to use
     String cookieDomain;
     // default encoding for requests
@@ -44,35 +45,19 @@ public abstract class AbstractServletClient extends HttpServlet {
 
     public void init (ServletConfig init) throws ServletException {
 	super.init (init);
-
-	host =  init.getInitParameter ("host");
-	if (host == null) host = "localhost";
-
-	String portstr = init.getInitParameter ("port");
-	port =  portstr == null ? 5055 : Integer.parseInt (portstr);
-
+	// get max size for file uploads
 	String upstr = init.getInitParameter ("uploadLimit");
 	uploadLimit =  upstr == null ? 1024 : Integer.parseInt (upstr);
-
+	// get cookie domain
 	cookieDomain = init.getInitParameter ("cookieDomain");
-
-	hopUrl = "//" + host + ":" + port + "/";
-
+	// get default encoding
 	defaultEncoding = init.getInitParameter ("charset");
-
 	debug = ("true".equalsIgnoreCase (init.getInitParameter ("debug")));
-
 	caching = ! ("false".equalsIgnoreCase (init.getInitParameter ("caching")));
     }
 
 
-    abstract IRemoteApp getApp (String appID) throws Exception;
-
-    abstract void invalidateApp (String appID);
-
-    abstract String getAppID (String reqpath);
-
-    abstract String getRequestPath (String reqpath);
+    abstract ResponseTrans execute (RequestTrans req, String reqPath) throws Exception;
 
 
     public void doGet (HttpServletRequest request, HttpServletResponse response)
@@ -90,11 +75,11 @@ public abstract class AbstractServletClient extends HttpServlet {
 	String protocol = request.getProtocol ();
 	Cookie[] cookies = request.getCookies();
 
-	// get app and path from original request path
-	String pathInfo = request.getPathInfo ();
-	String appID = getAppID (pathInfo);
 	RequestTrans reqtrans = new RequestTrans (method);
-	reqtrans.path = getRequestPath (pathInfo);
+	// get app and path from original request path
+	// String pathInfo = request.getPathInfo ();
+	// String appID = getAppID (pathInfo);
+	// reqtrans.path = getRequestPath (pathInfo);
 
 	try {
 
@@ -126,10 +111,13 @@ public abstract class AbstractServletClient extends HttpServlet {
 	                }
 	            }
 	        } catch (Exception upx) {
-	            String uploadErr = upx.getMessage ();
+	            response.setStatus (HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
+	            writeError (response, "Sorry, upload size exceeds limit of "+uploadLimit+"kB.");
+	            return;
+	            /* String uploadErr = upx.getMessage ();
 	            if (uploadErr == null || uploadErr.length () == 0)
 	                uploadErr = upx.toString ();
-	            reqtrans.set ("uploadError", uploadErr);
+	            reqtrans.set ("uploadError", uploadErr); */
 	        }
 	    }
 
@@ -187,30 +175,18 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    if ( authorization != null )
 	        reqtrans.set ("authorization", authorization );
 
-	    // get RMI ref to application and execute request
-	    IRemoteApp app = getApp (appID);
-	    ResponseTrans restrans = null;
-	    try {
-	        restrans = app.execute (reqtrans);
-	    } catch (RemoteException cnx) {
-	        invalidateApp (appID);
-	        app = getApp (appID);
-	        app.ping ();
-                restrans = app.execute (reqtrans);
-	    }
+	    String pathInfo = request.getPathInfo ();
+	    ResponseTrans restrans = execute (reqtrans, pathInfo);
+
 	    writeResponse (response, restrans, cookies, protocol);
 
 	} catch (Exception x) {
-	    invalidateApp (appID);
-	    try {
-	        response.setContentType ("text/html");
-	        Writer out = response.getWriter ();
-	        if (debug)
-	            out.write ("<b>Error:</b><br>" +x);
-	        else
-	            out.write ("This server is temporarily unavailable. Please check back later.");
-	        out.flush ();
-	    } catch (Exception io_e) {}
+	    // invalidateApp (appID);
+	    response.setStatus (HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+	    if (debug)
+	        writeError (response, "<b>Error:</b><br>" +x);
+	    else
+	        writeError (response, "This server is temporarily unavailable. Please check back later.");
 	}
     }
 
@@ -271,19 +247,30 @@ public abstract class AbstractServletClient extends HttpServlet {
     }
 
 
-    public FileUpload getUpload (HttpServletRequest request) throws Exception {
+    void writeError (HttpServletResponse res, String message) {
+	try {
+	    res.setContentType ("text/html");
+	    Writer out = res.getWriter ();
+	    out.write (message);
+	    out.flush ();
+	} catch (Exception io_e) {
+	    // ignore
+	}
+    }
+
+    FileUpload getUpload (HttpServletRequest request) throws Exception {
 	int contentLength = request.getContentLength ();
 	BufferedInputStream in = new BufferedInputStream (request.getInputStream ());
 	if (contentLength > uploadLimit*1024) {
 	    // consume all input to make Apache happy
-	    byte b[] = new byte[4096];
+	    /* byte b[] = new byte[4096];
 	    int read = 0;
 	    int sum = 0;
 	    while (read > -1 && sum < contentLength) {
 	         read = in.read (b, 0, 4096);
 	         if (read > 0)
 	             sum += read;
-	    }
+	    } */
 	    throw new RuntimeException ("Upload exceeds limit of "+uploadLimit+" kb.");
 	}
 	String contentType = request.getContentType ();
@@ -293,7 +280,7 @@ public abstract class AbstractServletClient extends HttpServlet {
     }
 
 
-    public Object getUploadPart(FileUpload upload, String name) {
+    Object getUploadPart(FileUpload upload, String name) {
 	return upload.getParts().get(name);
     }
 

@@ -39,20 +39,13 @@ public final class EmbeddedServletClient extends AbstractServletClient {
 	    mountpoint = "/"+appName;
     }
 
-    IRemoteApp getApp (String appID) {
+    ResponseTrans execute (RequestTrans req, String reqPath) throws Exception {
+	req.path = getRequestPath (reqPath);
 	if (app == null)
 	    app = Server.getServer().getApplication (appName);
-	return app;
+	return app.execute (req);
     }
 
-
-    void invalidateApp (String appID) {
-	// do nothing
-    }
-
-    String getAppID (String path) {
-	return appName;
-    }
 
     String getRequestPath (String path) {
 	if (path == null)
