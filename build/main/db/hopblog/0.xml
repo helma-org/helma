@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="ISO8859_1"?>
+<!-- printed by helma object publisher     -->
+<!-- created Fri May 31 16:36:44 CEST 2002 -->
+<xmlroot xmlns:hop="http://www.helma.org/docs/guide/features/database">
+  <hopobject id="0" name="root" prototype="root" created="1022855750998" lastModified="1022855804064">
+    <hop:child idref="3" prototyperef="weblogstory"/>
+  </hopobject>
+</xmlroot>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="ISO8859_1"?>
+<!-- printed by helma object publisher     -->
+<!-- created Fri May 31 16:36:30 CEST 2002 -->
+<xmlroot xmlns:hop="http://www.helma.org/docs/guide/features/database">
+  <hopobject id="2" name="helma" prototype="user" created="1022855790020" lastModified="1022855790025">
+  <hop:parent idref="1" prototyperef="hopobject"/>
+    <email>admin@somedomain.at</email>
+    <password>helma</password>
+    <name>helma</name>
+  </hopobject>
+</xmlroot>
