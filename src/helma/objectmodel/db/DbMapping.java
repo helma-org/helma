@@ -150,6 +150,11 @@ public final class DbMapping implements Updatable {
 	    if (source == null) {
 	        app.logEvent ("*** Data Source for prototype "+typename+" does not exist: "+sourceName);
 	        app.logEvent ("*** accessing or storing a "+typename+" object will cause an error.");
+	    } else if (table == null) {
+	        app.logEvent ("*** No table name specified for prototype "+typename);
+	        app.logEvent ("*** accessing or storing a "+typename+" object will cause an error.");
+	        // mark mapping as invalid by nulling the source field
+	        source = null;
 	    }
 	}
 
