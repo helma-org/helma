@@ -23,7 +23,7 @@ public final class RequestEvaluator implements Runnable {
 
     public final Application app;
 
-    protected final ScriptingEngine scriptingEngine;
+    private ScriptingEngine scriptingEngine;
 
     public RequestTrans req;
     public ResponseTrans res;
@@ -65,9 +65,12 @@ public final class RequestEvaluator implements Runnable {
      */
     public RequestEvaluator (Application app) {
 	this.app = app;
-	scriptingEngine = helma.scripting.fesi.FesiEngineFactory.getEngine (app, this);
     }
 
+    protected void initScriptingEngine () {
+	if (scriptingEngine == null)
+	    scriptingEngine = helma.scripting.fesi.FesiEngineFactory.getEngine (app, this);
+    }
 
     public void run () {
 
@@ -81,6 +84,7 @@ public final class RequestEvaluator implements Runnable {
 
 	    // long startCheck = System.currentTimeMillis ();
 	    app.typemgr.checkPrototypes ();
+	    initScriptingEngine ();
 	    scriptingEngine.updatePrototypes ();
 	    // System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
 
