@@ -79,6 +79,8 @@ public final class ResponseTrans implements Externalizable {
      * transient, response must be constructed before this is serialized
      */
     public transient String title, head, body, message, error;
+    
+    static final int INITIAL_BUFFER_SIZE = 2048;
 
     /**
      *  JavaScript object to make the values Map accessible to
@@ -131,7 +133,7 @@ public final class ResponseTrans implements Externalizable {
 
 
     /**
-     * This is called before a template is rendered as string (xxx_as_string) to redirect the output
+     * This is called before a skin is rendered as string (renderSkinAsString) to redirect the output
      * to a new string buffer.
      */
     public void pushStringBuffer () {
@@ -139,7 +141,7 @@ public final class ResponseTrans implements Externalizable {
 	    buffers = new Stack();
 	if (buffer != null)
 	    buffers.push (buffer);
-	buffer = new StringBuffer (128);
+	buffer = new StringBuffer (64);
     }
 
     /**
@@ -161,22 +163,25 @@ public final class ResponseTrans implements Externalizable {
     }
 
     /**
-     * Append a string to the response unchanged.
+     * Append a string to the response unchanged. This is often called 
+     * at the end of a request to write out the whole page, so if buffer
+     * is uninitialized we just set it to the string argument.
      */
     public void write (Object what) {
 	if (what != null) {
+	    String str = what.toString ();
 	    if (buffer == null)
-	        buffer = new StringBuffer (512);
+	        buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
 	    buffer.append (what.toString ());
 	}
     }
 
     /**
-     * Utility function that appends a <br> to whatever is written
+     * Utility function that appends a <br> to whatever is written.
      */
     public void writeln (Object what) {
 	if (buffer == null)
-	    buffer = new StringBuffer (512);
+	    buffer = new StringBuffer (INITIAL_BUFFER_SIZE);
 	if (what != null)
 	    buffer.append (what.toString ());
 	buffer.append ("<br />\r\n");
@@ -187,7 +192,7 @@ public final class ResponseTrans implements Externalizable {
      */
     public void writeCharArray (char[] c, int start, int length) {
 	if (buffer == null)
-	    buffer = new StringBuffer (512);
+	    buffer = new StringBuffer (Math.max (length, INITIAL_BUFFER_SIZE));
 	buffer.append (c, start, length);
     }
 
@@ -207,9 +212,10 @@ public final class ResponseTrans implements Externalizable {
      */
     public void encode (Object what) {
 	if (what != null) {
+	    String str = what.toString ();
 	    if (buffer == null)
-	        buffer = new StringBuffer (512);
-	    HtmlEncoder.encodeAll (what.toString (), buffer);
+	        buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
+	    HtmlEncoder.encodeAll (str, buffer);
 	}
     }
 
@@ -219,9 +225,10 @@ public final class ResponseTrans implements Externalizable {
      */
     public void format (Object what) {
 	if (what != null) {
+	    String str = what.toString ();
 	    if (buffer == null)
-	        buffer = new StringBuffer (512);
-	    HtmlEncoder.encode (what.toString (), buffer);
+	        buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
+	    HtmlEncoder.encode (str, buffer);
 	}
     }
 
@@ -232,9 +239,10 @@ public final class ResponseTrans implements Externalizable {
      */
     public void encodeXml (Object what) {
 	if (what != null) {
+	    String str = what.toString ();
 	    if (buffer == null)
-	        buffer = new StringBuffer (512);
-	    HtmlEncoder.encodeXml (what.toString (), buffer);
+	        buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
+	    HtmlEncoder.encodeXml (str, buffer);
 	}
     }
 
@@ -244,18 +252,19 @@ public final class ResponseTrans implements Externalizable {
      */
     public void encodeForm (Object what) {
 	if (what != null) {
+	    String str = what.toString ();
 	    if (buffer == null)
-	        buffer = new StringBuffer (512);
-	    HtmlEncoder.encodeAll (what.toString (), buffer, false);
+	        buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
+	    HtmlEncoder.encodeAll (str, buffer, false);
 	}
     }
 
 
-    public void append (String what) {
-	if (what != null) {
+    public void append (String str) {
+	if (str != null) {
 	    if (buffer == null)
-	        buffer = new StringBuffer (512);
-	    buffer.append (what);
+	        buffer = new StringBuffer (Math.max (str.length(), INITIAL_BUFFER_SIZE));
+	    buffer.append (str);
 	}
     }
 
