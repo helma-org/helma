@@ -1592,15 +1592,12 @@ public final class Application implements IPathElement, Runnable {
             return dbs;
         }
 
-        if ((dbProps.getProperty(dbSrcName + ".url") != null) &&
-                (dbProps.getProperty(dbSrcName + ".driver") != null)) {
-            try {
-                dbs = new DbSource(name, dbProps);
-                dbSources.put(dbSrcName, dbs);
-            } catch (Exception problem) {
-                logEvent("Error creating DbSource " + name);
-                logEvent("Reason: " + problem);
-            }
+        try {
+            dbs = new DbSource(name, dbProps);
+            dbSources.put(dbSrcName, dbs);
+        } catch (Exception problem) {
+            logEvent("Error creating DbSource " + name +": ");
+            logEvent(problem.toString());
         }
 
         return dbs;
