@@ -19,6 +19,7 @@ package helma.scripting.rhino;
 import helma.scripting.rhino.extensions.*;
 import helma.framework.core.*;
 import helma.objectmodel.*;
+import helma.objectmodel.db.DbMapping;
 import helma.scripting.*;
 import helma.util.CacheMap;
 import helma.util.SystemMap;
@@ -611,10 +612,22 @@ public final class RhinoCore {
 
             op = getValidPrototype(protoname);
 
-            // no prototype found for this node?
+            // no prototype found for this node
             if (op == null) {
-                op = getValidPrototype("HopObject");
-                protoname = "HopObject";
+                // maybe this object has a prototype name that has been
+                // deleted, but the storage layer was able to set a
+                // DbMapping matching the relational table the object
+                // was fetched from.
+                DbMapping dbmap = n.getDbMapping();
+                if (dbmap != null && (protoname = dbmap.getTypeName()) != null) {
+                    op = getValidPrototype(protoname);
+                }
+
+                // if not found, fall back to HopObject prototype
+                if (op == null) {
+                    protoname = "HopObject";
+                    op = getValidPrototype("HopObject");
+                }
             }
 
             esn = new HopObject(protoname, op);
@@ -800,6 +813,7 @@ public final class RhinoCore {
             Scriptable op = type.objectPrototype;
 
             // do the update, evaluating the file
+            // Script script = cx.compileReader(reader, sourceName, firstline, null);
             cx.evaluateReader(op, reader, sourceName, firstline, null);
 
         } catch (Exception e) {

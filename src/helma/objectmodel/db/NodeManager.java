@@ -1683,6 +1683,7 @@ public final class NodeManager {
                         System.err.println("Warning: Invalid prototype name: " + protoName +
                                        " - using default");
                         dbmap = dbm;
+                        protoName = dbmap.getTypeName();
                     }
                 }
             }
