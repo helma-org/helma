@@ -443,6 +443,7 @@ public final class NodeManager {
 	// tx.timer.beginEvent ("updateNode "+node);
 
 	DbMapping dbm = node.getDbMapping ();
+	boolean markMappingAsUpdated = false;
 
 	if (dbm == null || !dbm.isRelational ()) {
 	    db.saveNode (txn, node.getID (), node);
@@ -503,6 +504,8 @@ public final class NodeManager {
 	                            break;
 	                    }
 	                    p.dirty = false;
+	                    if (!rel.isPrivate())
+	                        markMappingAsUpdated = true;
 	                }
 
 	            } else if (rel != null && rel.getDbField() != null) {
@@ -522,7 +525,8 @@ public final class NodeManager {
 	            tds.close ();
 	        } catch (Exception ignore) {}
 	    }
-	    dbm.notifyDataChange ();
+	    if (markMappingAsUpdated)
+	        dbm.notifyDataChange ();
 	}
 	// update may cause changes in the node's parent subnode array
 	if (node.isAnonymous()) {

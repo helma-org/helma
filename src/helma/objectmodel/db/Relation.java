@@ -53,6 +53,7 @@ public final class Relation {
     boolean aggressiveLoading;
     boolean aggressiveCaching;
     boolean subnodesAreProperties;
+    boolean isPrivate;
     String accessor; // db column used to access objects through this relation
     String order;
     String groupbyorder;
@@ -132,13 +133,15 @@ public final class Relation {
 	        columnName = desc;
 	        reftype = PRIMITIVE;
 	    }
-	    String rdonly = props.getProperty (desc+".readonly");
-	    if (rdonly != null && "true".equalsIgnoreCase (rdonly)) {
-	        readonly = true;
-	    } else {
-	        readonly = false;
-	    }
 	}
+	String rdonly = props.getProperty (desc+".readonly");
+	if (rdonly != null && "true".equalsIgnoreCase (rdonly)) {
+	    readonly = true;
+	} else {
+	    readonly = false;
+	}
+	isPrivate = "true".equalsIgnoreCase (props.getProperty (desc+".private"));
+
 	// the following options only apply to object and collection relations
 	if (reftype != PRIMITIVE && reftype != INVALID) {
 
@@ -407,6 +410,15 @@ public final class Relation {
     public boolean isReadonly () {
 	return readonly;
     }
+
+    /**
+     *  Tell wether the property described by this relation is to be handled as private, i.e.
+     *  a change on it should not result in any changed object/collection relations.
+     */
+    public boolean isPrivate () {
+	return isPrivate;
+    }
+
 
     /**
      * Check if the child node fullfills the constraints defined by this relation.
