@@ -267,6 +267,10 @@ public class RequestEvaluator implements Runnable {
 	                        throw new FrameworkException ("Action not found");
 
 	                } catch (FrameworkException notfound) {
+	                    if (error != null)
+	                        // we already have an error and the error template wasn't found,
+	                        // display it instead of notfound message
+	                        throw new RuntimeException ();
 	                    // The path could not be resolved. Check if there is a "not found" action
 	                    // specified in the property file.
 	                    String notFoundAction = app.props.getProperty ("notFound", "notfound");
