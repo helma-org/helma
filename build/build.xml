@@ -80,6 +80,8 @@
       <replace dir="${build.src}/helma" includes="**"
              token="java.util.LinkedList" value="${coll.import}.LinkedList"/>
       <replace dir="${build.src}/helma" includes="**"
+             token="java.util.ArrayList" value="${coll.import}.ArrayList"/>
+      <replace dir="${build.src}/helma" includes="**"
              token="java.util.Set" value="${coll.import}.Set"/>
       <replace dir="${build.src}/helma" includes="**"
              token="java.util.HashSet" value="${coll.import}.HashSet"/>
@@ -185,3 +187,4 @@
 
 
 </project>
+
