@@ -109,12 +109,15 @@ public final class ResponseTrans implements Externalizable {
      */
     public transient String error;
 
-    // the map of form and cookie data
+    // the res.data map of form and cookie data
     private transient Map values;
 
-    // the map of macro handlers
+    // the res.handlers map of macro handlers
     private transient Map handlers;
 
+    // the res.meta map for meta response data
+    private transient Map meta;
+    
     // the request trans for this response
     private transient RequestTrans reqtrans;
 
@@ -132,6 +135,7 @@ public final class ResponseTrans implements Externalizable {
         message = error = null;
         values = new SystemMap();
         handlers = new SystemMap();
+        meta = new SystemMap();
     }
 
     /**
@@ -167,6 +171,13 @@ public final class ResponseTrans implements Externalizable {
      */
     public Map getMacroHandlers() {
         return handlers;
+    }
+ 
+    /**
+     *  Get the meta info map for this response transmitter.
+     */
+    public Map getMetaData() {
+        return meta;
     }
 
     /**

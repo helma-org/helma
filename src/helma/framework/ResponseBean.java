@@ -249,6 +249,15 @@ public class ResponseBean implements Serializable {
     public Map getHandlers() {
         return res.getMacroHandlers();
     }
+    
+    /**
+     *
+     *
+     * @return ...
+     */
+    public Map getMeta() {
+        return res.getMetaData();
+    }
 
     /**
      *
