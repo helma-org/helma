@@ -443,7 +443,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	nmgr.replicateCache (add, delete);
     }
 
-        public void ping () {
+    public void ping () {
 	// do nothing
     }
 
@@ -453,14 +453,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      */
     public void clearCache () {
 	nmgr.clearCache ();
-    }
-
-    /**
-     * redundant method for clearCache() in order to be able to clear cache from 
-     * self-scripting base app - would otherwise interfere with ESNode.clearCache().
-     */
-    public void clearAppCache () {
-		nmgr.clearCache ();
     }
 
     /**
@@ -535,7 +527,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * return the generic hopobject prototype.
      */
     public Prototype getPrototype (Object obj) {
-    	String protoname = getPrototypeName (obj);
+	String protoname = getPrototypeName (obj);
 	if (protoname == null)
 	    return typemgr.getPrototype ("hopobject");
 	Prototype p = typemgr.getPrototype (protoname);
@@ -680,51 +672,48 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	// FIXME: will fail for non-node roots
 	Object root = getDataRoot ();
 	INode users = getUserRoot ();
-	
+
 	// check base uri and optional root prototype from app.properties
 	String base = props.getProperty ("baseURI");
 	String rootproto = props.getProperty ("rootPrototype");
-	
+
 	if (base != null || baseURI == null)
 	    setBaseURI (base);
-	
+
 	// String href = n.getUrl (root, users, tmpname, siteroot);
 
 	String divider = "/";
 	StringBuffer b = new StringBuffer ();
 	Object p = elem;
 	int loopWatch = 0;
-	
+
 	while  (p != null && getParentElement (p) != null && p != root) {
-	
+
 	    if (rootproto != null && rootproto.equals (getPrototypeName (p)))
 	        break;
-	
 	    b.insert (0, divider);
-	
+
 	    // users always have a canonical URL like /users/username
 	    if ("user".equals (getPrototypeName (p))) {
 	        b.insert (0, URLEncoder.encode (getElementName (p)));
 	        p = users;
 	        break;
 	    }
-	
 	    b.insert (0, URLEncoder.encode (getElementName (p)));
-	    	
 	    p = getParentElement (p);
 
 	    if (loopWatch++ > 20)
 	        break;
 	}
-	
+
 	if (p == users) {
 	    b.insert (0, divider);
 	    b.insert (0, "users");
 	}
-	
+
 	if (actionName != null)
 	    b.append (URLEncoder.encode (actionName));
-	
+
 	return baseURI + b.toString ();
     }
 
@@ -850,11 +839,11 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 		return null;
 	}
 
-	public IPathElement getParentElement()	{
+	public IPathElement getParentElement() {
 		return helma.main.Server.getServer();
 	}
 
-	public String getPrototype()	{
+	public String getPrototype() {
 		return "application";
 	}
 
@@ -1005,10 +994,13 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	            Prototype proto = (Prototype) typemgr.prototypes.get (typename);
 	            if (proto != null) {
 	                String protoname = m.getExtends ();
-	                if (protoname == null)
+	                // only use hopobject prototype if we're scripting HopObjects, not
+	                // java objects.
+	                boolean isjava = isJavaPrototype (typename);
+	                if (protoname == null && !isjava)
 	                    protoname = "hopobject";
 	                Prototype parentProto = (Prototype) typemgr.prototypes.get (protoname);
-	                if (parentProto == null)
+	                if (parentProto == null && !isjava)
 	                    parentProto = (Prototype) typemgr.prototypes.get ("hopobject");
 	                if (parentProto != null)
 	                    proto.setParentPrototype (parentProto);
@@ -1020,6 +1012,18 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	}
     }
 
+    /**
+     * Check whether a prototype is for scripting a java class, i.e. if there's an entry
+     * for it in the class.properties file.
+     */
+    protected boolean isJavaPrototype (String typename) {
+	for (Enumeration en = classMapping.elements(); en.hasMoreElements(); ) {
+	    String value = (String) en.nextElement ();
+	    if (typename.equals (value))
+	        return true;
+	}
+	return false;
+    }
 
     /**
      * Return a DbSource object for a given name. A DbSource is a relational database defined

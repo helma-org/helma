@@ -33,16 +33,16 @@ public class Prototype {
 
     Prototype parent;
 
+    // Tells us whether this prototype is used to script a generic Java object,
+    // as opposed to a Helma objectmodel node object.
+    boolean isJavaPrototype;
 
-     public Prototype (String name, Application app) {
-
+    public Prototype (String name, Application app) {
 	// app.logEvent ("Constructing Prototype "+app.getName()+"/"+name);
-
 	this.app = app;
 	this.name = name;
-	
+	isJavaPrototype = app.isJavaPrototype (name);
 	lastUpdate = 0; // System.currentTimeMillis ();
-
     }
 
     /**
@@ -52,24 +52,6 @@ public class Prototype {
 	return app;
     }
 
-    /**
-     * Get an action defined for this prototype
-     */
-    public Action getActionOrTemplate (String aname) {
-
-	Action retval = null;
-	if (aname == null || "".equals (aname))
-	    aname = "main";
-	retval = (Action) actions.get (aname);
-	// check if it's allowed to access templates via URL
-	// this should be cached in the future
-	if (retval == null && "true".equalsIgnoreCase (app.props.getProperty ("exposetemplates")))
-	    retval = (Action) templates.get (aname);
-	// if still not found, check if the action is defined for the generic node prototype
-	if (retval == null && parent != null)
-	    retval = parent.getActionOrTemplate (aname);
-	return retval;
-    }
 
     /**
      *  Set the parent prototype of this prototype, i.e. the prototype this one inherits from.
@@ -167,7 +149,10 @@ public class Prototype {
 	    }
 	}
 	if (!"global".equalsIgnoreCase (name) && !"hopobject".equalsIgnoreCase (name) && opp == null) {
-	    opp = reval.esNodePrototype;
+	    if (isJavaPrototype)
+	        opp = reval.esObjectPrototype;
+	    else
+	        opp = reval.esNodePrototype;
 	}
 
 	if ("user".equalsIgnoreCase (name)) {
