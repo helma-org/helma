@@ -363,11 +363,14 @@ public final class HtmlEncoder {
 	            if (i < l-2) {
 	                if (!insideMacroTag && '%' == str.charAt(i+1)) {
 	                    // this is the beginning of a Helma macro tag
-	                    insideMacroTag = insideTag = true;
-	                    macroQuoteChar = '\u0000';
+	                    if (!insideCodeTag) {
+	                        insideMacroTag = insideTag = true;
+	                        macroQuoteChar = '\u0000';
+	                    }
 	                } else if ('!' == str.charAt(i+1) && '-' == str.charAt(i+2)) {
 	                    // the beginning of an HTML comment?
-	                    insideComment = insideTag = (i<l-3 && '-' == str.charAt(i+3));
+	                    if (!insideCodeTag)
+	                        insideComment = insideTag = (i<l-3 && '-' == str.charAt(i+3));
 	                } else if (!insideTag) {
 	                    // check if this is a HTML tag.
 	                    boolean insideCloseTag = ('/' == str.charAt(i+1));
