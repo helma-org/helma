@@ -138,42 +138,46 @@ public class Relation {
 	        }
 	    }
 	}
-	String loading = props.getProperty (propname+".loadmode");
-	aggressiveLoading = loading != null && "aggressive".equalsIgnoreCase (loading.trim());
-	String caching = props.getProperty (propname+".cachemode");
-	aggressiveCaching = caching != null && "aggressive".equalsIgnoreCase (caching.trim());
-	// get order property
-	order = props.getProperty (propname+".order");
-	if (order != null && order.trim().length() == 0)
-	    order = null;
-	// get additional filter property
-	filter = props.getProperty (propname+".filter");
-	if (filter != null && filter.trim().length() == 0)
-	    filter = null;
-	// get group by property
-	groupby = props.getProperty (propname+".groupby");
-	if (groupby != null && groupby.trim().length() == 0)
-	    groupby = null;
-	if (groupby != null) {
-	    groupbyorder = props.getProperty (propname+".groupby.order");
-	    if (groupbyorder != null && groupbyorder.trim().length() == 0)
-	        groupbyorder = null;
-	    groupbyprototype = props.getProperty (propname+".groupby.prototype");
-	    if (groupbyprototype != null && groupbyprototype.trim().length() == 0)
-	        groupbyprototype = null;
-	    // aggressive loading and caching is not supported for groupby-nodes
-	    aggressiveLoading = aggressiveCaching = false;
-	}
-	// check if subnode condition should be applied for property relations
-	if ("_properties".equalsIgnoreCase (propname) || virtual) {
-	    String subnodes2props = props.getProperty (propname+".aresubnodes");
-	    subnodesAreProperties = "true".equalsIgnoreCase (subnodes2props);
-	    if (virtual) {
-	        String subnodefilter = props.getProperty (propname+".subnoderelation");
-	        if (subnodefilter != null) {
-	            subnoderelation = new Relation (subnodefilter, propname+".subnoderelation", home, props);
-	            subnoderelation.groupby = groupby;
-	            subnoderelation.order = order;
+	
+	// the following options only apply to object relations
+	if (direction != PRIMITIVE && direction != INVALID) {
+	    String loading = props.getProperty (propname+".loadmode");
+	    aggressiveLoading = loading != null && "aggressive".equalsIgnoreCase (loading.trim());
+	    String caching = props.getProperty (propname+".cachemode");
+	    aggressiveCaching = caching != null && "aggressive".equalsIgnoreCase (caching.trim());
+	    // get order property
+	    order = props.getProperty (propname+".order");
+	    if (order != null && order.trim().length() == 0)
+	        order = null;
+	    // get additional filter property
+	    filter = props.getProperty (propname+".filter");
+	    if (filter != null && filter.trim().length() == 0)
+	        filter = null;
+	    // get group by property
+	    groupby = props.getProperty (propname+".groupby");
+	    if (groupby != null && groupby.trim().length() == 0)
+	        groupby = null;
+	    if (groupby != null) {
+	        groupbyorder = props.getProperty (propname+".groupby.order");
+	        if (groupbyorder != null && groupbyorder.trim().length() == 0)
+	            groupbyorder = null;
+	        groupbyprototype = props.getProperty (propname+".groupby.prototype");
+	        if (groupbyprototype != null && groupbyprototype.trim().length() == 0)
+	            groupbyprototype = null;
+	        // aggressive loading and caching is not supported for groupby-nodes
+	        aggressiveLoading = aggressiveCaching = false;
+	    }
+	    // check if subnode condition should be applied for property relations
+	    if ("_properties".equalsIgnoreCase (propname) || virtual) {
+	        String subnodes2props = props.getProperty (propname+".aresubnodes");
+	        subnodesAreProperties = "true".equalsIgnoreCase (subnodes2props);
+	        if (virtual) {
+	            String subnodefilter = props.getProperty (propname+".subnoderelation");
+	            if (subnodefilter != null) {
+	                subnoderelation = new Relation (subnodefilter, propname+".subnoderelation", home, props);
+	                subnoderelation.groupby = groupby;
+	                subnoderelation.order = order;
+	            }
 	        }
 	    }
 	}
