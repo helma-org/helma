@@ -985,26 +985,38 @@ public class HopExtension {
             String tmpname = arguments.length == 0 ? "" : arguments[0].toString ();
             String basicHref =app.getNodeHref (n, tmpname);
             String hrefSkin = app.props.getProperty ("hrefSkin");
+            // FIXME: we should actually walk down the path from the object we called href() on
+            // instead we move down the URL path.
             if (hrefSkin != null) {
                 // we need to post-process the href with a skin for this application
+                // first, look in the object href was called on.
+                Prototype proto = app.getPrototype (n);
+                Skin skin = null;
+                if (proto != null) {
+                    skin = proto.getSkin (hrefSkin);
+                    if (skin != null)
+                        return renderSkin (skin, basicHref, (ESNode) thisObject);
+                }
                 for (int i=reval.reqPath.size()-1; i>=0; i--) {
                     ESNode esn = (ESNode) reval.reqPath.getProperty (i);
                     INode sn = esn.getNode ();
-                    Prototype p = app.getPrototype (sn);
-                    if (p != null) {
-                        Skin s = p.getSkin (hrefSkin);
-                        if (s != null) {
-                            reval.res.pushStringBuffer ();
-                            ESObject param = new ObjectPrototype (null, reval.evaluator);
-                            param.putProperty ("path", new ESString (basicHref), "path".hashCode ());
-                            s.render (reval, esn, param);
-                            return new ESString (reval.res.popStringBuffer ());
+                    proto = app.getPrototype (sn);
+                    if (proto != null) {
+                        skin = proto.getSkin (hrefSkin);
+                        if (skin != null) {
+                            return renderSkin (skin, basicHref, esn);
                         }
                     }
                 }
             }
             return new ESString (basicHref);
-                
+        }
+        private ESString renderSkin (Skin skin, String path, ESNode obj) throws EcmaScriptException {
+            reval.res.pushStringBuffer ();
+            ESObject param = new ObjectPrototype (null, reval.evaluator);
+            param.putProperty ("path", new ESString (path), "path".hashCode ());
+            skin.render (reval, obj, param);
+            return new ESString (reval.res.popStringBuffer ());
         }
     }
 
