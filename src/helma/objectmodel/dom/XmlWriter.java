@@ -131,7 +131,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 		write   ("<xmlroot xmlns:hop=\"");
 		write   (NAMESPACE);
 		writeln ("\">");
-		write   (node,null,0);
+		write   (node, null, null, 0);
 		writeln ("</xmlroot>");
 		convertedNodes = null;
 		return true;
@@ -142,7 +142,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
       * references are made here if a node already has been fully printed
       * or if this is the last level that's going to be dumped
 	  */
-	public void write (INode node, String name, int level) throws IOException {
+	public void write (INode node, String elementName, String propName, int level) throws IOException {
 		if (node==null)
 			return;
 		// if (stopTypes != null && stopTypes.contains (node.getPrototype()))
@@ -150,21 +150,22 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 		int previousLength = prefix.length();
 		prefix.append(indent);
 		if ( ++level>maxLevels ) {
-			writeReferenceTag (node, name);
+			writeReferenceTag (node, elementName, propName);
 			prefix.setLength( previousLength );
 			return;
 		}
 		if ( convertedNodes.contains(node) ) {
-			writeReferenceTag (node, name);
+			writeReferenceTag (node, elementName, propName);
 		} else {
 			convertedNodes.addElement (node);
-			writeTagOpen  (node,name);
-			if ( node.getParent()!=null ) {
-				writeReferenceTag  (node.getParent(),"hop:parent");
+			writeTagOpen  (node, elementName, propName);
+			INode parent = node.getParent ();
+			if ( parent!=null ) {
+				writeReferenceTag  (parent, "hop:parent", null);
 			}
-			writeProperties (node,level);
-			writeChildren (node,level);
-			writeTagClose (node,name);
+			writeProperties (node, level);
+			writeChildren (node, level);
+			writeTagClose (elementName);
 		}
 		prefix.setLength( previousLength );
 	}
@@ -191,39 +192,52 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 			String key = (String)e.nextElement();
 			IProperty prop = node.get(key,false);
 			if ( prop!=null ) {
+				boolean validName = isValidElementName (key);
+				String elementName, propName;
+				if (validName) {
+					elementName = key;
+					propName = null;
+				} else {
+					elementName = "property";
+					propName = key;
+				}
 				int type = prop.getType();
 				if( type==IProperty.NODE ) {
-					write (node.getNode(key,false), key, level);
+					write (prop.getNodeValue(), elementName, propName, level);
 				} else {
-					writeProperty (node.get(key,false));
+					writeProperty (prop, elementName, propName);
 				}
 			}
 		}
 	}
 
-	public void writeNullProperty (String key) throws IOException {
+	/* public void writeNullProperty (String key) throws IOException {
 		write (prefix.toString());
 		write (indent);
 		write ("<");
 		write (key);
 		write (" type=\"null\"/>");
 		write (LINESEPARATOR);
-	}
+	} */
 
 	/**
 	  * write a single property, set attribute type according to type,
 	  * apply xml-encoding.
 	  */
-	public void writeProperty (IProperty property) throws IOException {
+	public void writeProperty (IProperty property, String elementName, String propName) throws IOException {
 		int propType = property.getType();
 		// we can't encode java objects in XML
 		if (propType == IProperty.JAVAOBJECT)
 		    return;
-		String propName = property.getName();
 		write (prefix.toString());
 		write (indent);
 		write ("<");
-		write (propName);
+		write (elementName);
+		if (propName != null) {
+			write (" propertyname=\"");
+			write (HtmlEncoder.encodeXml (propName));
+			write ("\"");
+		}
 		switch (propType) {
 			case IProperty.BOOLEAN:
 				write (" type=\"boolean\">");
@@ -248,7 +262,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 					write ( str );
 		}
 		write ("</");
-		write (propName);
+		write (elementName);
 		write (">");
 		write (LINESEPARATOR);
 	}
@@ -266,7 +280,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 		Enumeration e = node.getSubnodes();
 		while (e.hasMoreElements()) {
 			INode nextNode = (INode)e.nextElement();
-			write (nextNode, "hop:child", level);
+			write (nextNode, "hop:child", null, level);
 		}
 	}
 
@@ -274,12 +288,16 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 	  * write an opening tag for a node. Include id and prototype, use a
 	  * name if parameter is non-empty.
 	  */
-	public void writeTagOpen (INode node, String name) throws IOException {
+	public void writeTagOpen (INode node, String name, String propName) throws IOException {
 		write (prefix.toString());
 		write ("<");
 		write ( (name==null)?"hopobject" : name);
 		write (" id=\"");
 		write (getNodeIdentifier(node));
+		if (propName != null) {
+			write ("\" propertyname=\"");
+			write (HtmlEncoder.encodeXml (propName));
+		}
 		write ("\" name=\"");
 		write (node.getName());
 		write ("\" prototype=\"");
@@ -297,7 +315,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 	  * write a closing tag for a node
 	  * e.g. </root>
 	  */
-	public void writeTagClose (INode node, String name) throws IOException {
+	public void writeTagClose (String name) throws IOException {
 		write (prefix.toString());
 		write ("</");
 		write ( (name==null)?"hopobject" : name);
@@ -310,16 +328,19 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 	  * been written out before.
 	  * e.g. <parent idref="35" prototyperef="hopobject"/>
 	  */
-	public void writeReferenceTag (INode node, String name) throws IOException {
+	public void writeReferenceTag (INode node, String name, String propName) throws IOException {
 		write (prefix.toString());
 		write ("<");
 		write ( (name==null)?"hopobject" : name);
 		write ( " idref=\"");
 		write (getNodeIdentifier(node));
+		if (propName != null) {
+			write ("\" propertyname=\"");
+			write (HtmlEncoder.encodeXml (propName));
+		}
 		write ("\" prototyperef=\"");
 		write (getNodePrototype(node));
-		write ("\"");
-		write ("/>");
+		write ("\"/>");
 		write (LINESEPARATOR);
 	}
 
@@ -352,5 +373,24 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 		write (LINESEPARATOR);
 	}
 
+	
+	/**
+	 *  Check if a string is usable as XML element name. If not, the name 
+	 *  will be appended as attribute to the XML element. We are
+	 *  conservative here, preferring to return false rather too often than 
+	 *  not enough.
+	 */
+	private boolean isValidElementName (String str) {
+		char c = str.charAt (0);
+		if (!Character.isLetter(c))
+		    return false;
+		int l = str.length();
+		for (int i=1; i<l; i++) {
+			c = str.charAt (i);
+			if (!Character.isLetterOrDigit(c) && c != '-' && c != '_')
+				return false;
+		}
+		return true;
+	}
 }
 

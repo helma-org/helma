@@ -99,20 +99,29 @@ public final class XmlDatabaseReader extends DefaultHandler implements XmlConsta
 	    } else if ("hop:parent".equals (qName)) {
 	        currentNode.setParentHandle (handle);
 	    } else {
-	        Property prop = new Property (qName, currentNode);
+	        // property name may be encoded as "propertyname" attribute,
+	        // otherwise it is the element name
+	        String propName = atts.getValue ("propertyname");
+	        if (propName == null)
+	            propName = qName;
+	        Property prop = new Property (propName, currentNode);
 	        prop.setNodeHandle (handle);
 	        if (propMap == null) {
 	            propMap = new Hashtable ();
 	            currentNode.setPropMap (propMap);
 	        }
-	        propMap.put (qName.toLowerCase(), prop);
+	        propMap.put (propName.toLowerCase(), prop);
 	    }
 	} else {
 	    // a primitive property
 	    elementType = atts.getValue ("type");
 	    if (elementType == null)
 	        elementType = "string";
-	    elementName = qName;
+	    // property name may be encoded as "propertyname" attribute,
+	    // otherwise it is the element name
+	    elementName = atts.getValue ("propertyname");
+	    if (elementName == null)
+	        elementName = qName;
 	    if (charBuffer == null)
 	        charBuffer = new StringBuffer();
 	    else

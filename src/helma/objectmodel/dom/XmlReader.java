@@ -108,11 +108,15 @@ public final class XmlReader extends DefaultHandler implements XmlConstants {
 	    } else {
 	        // it's a named node property
 	        nodeStack.push (currentNode);
-	        currentNode = currentNode.createNode (qName);
+	        // property name may be encoded as "propertyname" attribute,
+	        // otherwise it is the element name
+	        String propName = atts.getValue ("propertyname");
+	        if (propName == null)
+	            propName = qName;
+	        currentNode = currentNode.createNode (propName);
 	    }
 	    // set the prototype on the current node and
 	    // add it to the map of parsed nodes.
-	    String name = atts.getValue ("name");
 	    String prototype = atts.getValue ("prototype");
 	    if ( !"".equals(prototype) && !"hopobject".equals(prototype) )
 	        currentNode.setPrototype (prototype);
@@ -120,7 +124,7 @@ public final class XmlReader extends DefaultHandler implements XmlConstants {
 	    convertedNodes.put( key, currentNode );
 	    return;
 	}
-	
+
 	// check if we have a currentNode to set properties on,
 	// otherwise throw exception.
 	if (currentNode == null)
@@ -144,11 +148,16 @@ public final class XmlReader extends DefaultHandler implements XmlConstants {
 	    INode n = (INode) convertedNodes.get (key);
 	    if (n != null) {
 	        if ("hop:child".equals (qName)) {
-	           // add an already parsed node as child to current node
-	           currentNode.addNode (n);
+	            // add an already parsed node as child to current node
+	            currentNode.addNode (n);
 	        } else {
-	           // set an already parsed node as node property to current node
-	           currentNode.setNode (qName, n);
+	            // set an already parsed node as node property to current node
+	            // property name may be encoded as "propertyname" attribute,
+	            // otherwise it is the element name
+	            String propName = atts.getValue ("propertyname");
+	            if (propName == null)
+	                propName = qName;
+	           currentNode.setNode (propName, n);
 	        }
 	    }
 	} else {
@@ -158,7 +167,11 @@ public final class XmlReader extends DefaultHandler implements XmlConstants {
 	    elementType = atts.getValue ("type");
 	    if (elementType == null)
 	        elementType = "string";
-	    elementName = qName;
+	    // property name may be encoded as "propertyname" attribute,
+	    // otherwise it is the element name
+	    elementName = atts.getValue ("propertyname");
+	    if (elementName == null)
+	        elementName = qName;
 	    if (charBuffer == null)
 	        charBuffer = new StringBuffer();
 	    else

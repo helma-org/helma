@@ -30,6 +30,7 @@ public class XmlUtil	{
 			return domBuilder;
 		} else {
 			try {
+				// domBuilderFactory.setExpandEntityReferences (false);
 				domBuilder = domBuilderFactory.newDocumentBuilder();
 				domBuilders.put (Thread.currentThread(), domBuilder);
 				return domBuilder;
@@ -48,7 +49,7 @@ public class XmlUtil	{
 		DocumentBuilder d = getDocumentBuilder();
 		try	{
 			Document doc = d.parse (in);
-			doc.normalize();
+			// doc.normalize();
 			return doc;
 		}	catch (SAXException e)	{
 			throw new RuntimeException ("Bad xml-code: "+e.toString());
