@@ -161,10 +161,10 @@ public class XmlConverter implements XmlConstants {
 	            if (dot > -1) {
 	                String prototype = helmaKey.substring (0, dot);
 	                INode node = (INode) nodeCache.get (prototype);
-	                if (node != null)
-	                    node.setString (helmaKey.substring (dot+1), XmlUtil.getTextContent (childNode));
-	            }
-	            if ( helmaNode.getPrototype() != null && helmaNode.getString(helmaKey,false)==null ) {
+	                helmaKey = helmaKey.substring (dot+1);
+	                if (node != null && node.getString(helmaKey, false)==null)
+	                    node.setString (helmaKey, XmlUtil.getTextContent (childNode));
+	            } else if ( helmaNode.getString(helmaKey,false)==null ) {
 	                helmaNode.setString( helmaKey, XmlUtil.getTextContent(childNode) );
 	                if (DEBUG)
 	                    debug("childtext-2-property mapping, setting " + helmaKey + " as string" );
@@ -217,8 +217,13 @@ public class XmlConverter implements XmlConstants {
 	        if ( helmaKey==null && !sparse ) {
 	            helmaKey = childElement.getNodeName().replace(':',defaultSeparator);
 	        }
-	        if (helmaKey == null)
+	        if (helmaKey == null) {
+	            // we don't map this child element itself since we do
+	            // sparse parsing, but there may be something of interest
+	            // in the child's child elements.
+	            children (childElement, helmaNode, nodeCache);
 	            continue;
+	        }
 
 	        // get the node on which to opererate, depending on the helmaKey
 	        // value from the properties file.
@@ -258,7 +263,7 @@ public class XmlConverter implements XmlConstants {
 	}
 
 	// if there's some text content for this element, map it:
-	if ( textcontent.length()>0 ) {
+	if ( textcontent.length()>0 && !sparse ) {
 	    helmaKey = props.getProperty(element.getNodeName()+"._text");
 	    if ( helmaKey==null )
 	        helmaKey = "text";
