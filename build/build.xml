@@ -14,16 +14,27 @@
         <property name="version" value="1.2pre3"/>
         <property name="project" value="helma"/>
         <property name="build.compiler" value="classic"/>
-        <property name="build.dir" value=".."/>
-        <property name="build.src" value="${build.dir}/src"/>
-        <property name="build.dest" value="${build.dir}/classes"/>
-        <property name="build.work" value="${build.dir}/work"/>
+
+        <property name="home.dir" value=".."/>
+
+		<!-- values for building a snapshot -->
+        <property name="snapshot.src" value="${home.dir}/src/hop"/>
+        <property name="snapshot.classes" value="${home.dir}/classes"/>
+        <property name="snapshot.lib" value="${home.dir}/lib"/>
+
+		<!-- values for building the distribution -->
+        <property name="build.work" value="${home.dir}/work"/>
         <property name="build.checkout" value="${build.work}/checkout"/>
-        <property name="cvs.root" value=":pserver:anonymous@coletta.helma.at:/opt/cvs"/>
-        <property name="javadoc.destdir" value="../docs/apidocs"/>
-        <property name="jar.name" value="helma"/>
+        <property name="build.src" value="${build.checkout}/hop"/>
+        <property name="build.lib" value="${build.checkout}/hopbuild/lib"/>
+        <property name="build.classes" value="${build.work}/classes"/>
+        <property name="build.docs" value="${build.work}/docs"/>
+        <property name="build.javadocs" value="${build.docs}/api"/>
         <property name="final.name" value="${project}-${version}"/>
-        <property name="final.dir" value="../${final.name}/"/>
+        <property name="final.dir" value="${build.work}/${final.name}"/>
+
+        <property name="cvs.root" value=":pserver:anonymous@coletta.helma.at:/opt/cvs"/>
+        <property name="jar.name" value="helma"/>
         <property name="debug" value="off"/>
         <property name="optimize" value="on"/>
         <property name="deprecation" value="off"/>
@@ -37,42 +48,23 @@
         <!-- JDK1.1 collections support -->
         <property name="coll.import" value="com.sun.java.util.collections"/>
         <available classname="${coll.import}.Collection" property="coll.present"/>
-
     </target>
-
 
     <!-- =================================================================== -->
     <!-- Copies the source code to the build directory and does filtering    -->
     <!-- =================================================================== -->
     <target name="checkout" depends="init">
-
-	<!-- cvspass cvsroot="${cvs.root}" password=""/ -->
-
         <mkdir dir="${build.src}"/>
         <mkdir dir="${build.checkout}"/>
- 
         <cvs cvsRoot="${cvs.root}" package="hop" dest="${build.checkout}"/>
-        <copy todir="${build.src}">
-            <fileset dir="${build.checkout}/hop"
-                includes="helma/**/*.java,FESI/**/*.java,Acme/**/*.java"/>
-        </copy>
- 
-        <cvs cvsRoot="${cvs.root}" package="hopbuild/lib" dest="${build.checkout}"/>
-        <copy todir="${build.dir}/lib">
-	         <fileset dir="${build.checkout}/hopbuild/lib"/>
-        </copy>
-
-        <cvs cvsRoot="${cvs.root}" package="hopbuild/skeleton" dest="${build.checkout}"/>
-
+        <cvs cvsRoot="${cvs.root}" package="hopbuild" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/base" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/hopblog" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/himp" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/bloggerapi" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/lillebror" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/manage" dest="${build.checkout}"/>
-
     </target>
-
 
     <!-- =================================================================== -->
     <!-- Does replacement on files for dealing with collections.             -->
@@ -110,129 +102,135 @@
              value="java.util.*;\u000aimport ${coll.import}.*"/>
     </target>
 
-
     <!-- =================================================================== -->
     <!-- Compiles the source directory                                       -->
     <!-- =================================================================== -->
     <target name="compile" depends="init">
-
-        <mkdir dir="${build.dest}"/>
-
+        <mkdir dir="${build.classes}"/>
         <javac srcdir="${build.src}"
-            destdir="${build.dest}"
+            destdir="${build.classes}"
             debug="${debug}"
             deprecation="${deprecation}"
             optimize="${optimize}">
             <classpath>
-                <fileset dir="${build.dir}/lib">
-	             <exclude name="**/helma*.jar" />
+                <fileset dir="${build.lib}">
                      <include name="**/*.jar" />
                 </fileset>
                 <pathelement path="${classpath}" />
             </classpath>
         </javac>
-
-        <rmic classname="helma.framework.core.Application" base="${build.dest}"/>
-        <rmic classname="helma.image.Server" base="${build.dest}"/>
-        <rmic classname="helma.image.RemoteImage" base="${build.dest}"/>
+        <rmic classname="helma.framework.core.Application" base="${build.classes}"/>
+        <rmic classname="helma.image.Server" base="${build.classes}"/>
+        <rmic classname="helma.image.RemoteImage" base="${build.classes}"/>
     </target>
 
     <!-- =================================================================== -->
-    <!-- Creates a .jar file               -->
+    <!-- Creates a .jar file                                                 -->
     <!-- =================================================================== -->
     <target name="jar" depends="compile">
-        <jar jarfile="${build.dir}/${jar.name}-${DSTAMP}.jar"
-            basedir="${build.dest}"
+        <jar jarfile="${build.work}/${jar.name}-${DSTAMP}.jar"
+            basedir="${build.classes}"
             excludes="**/package.html"/>
     </target>
-
 
     <!-- =================================================================== -->
     <!-- Creates the API documentation                                       -->
     <!-- =================================================================== -->
     <target name="javadocs" depends="init">
-        <mkdir dir="${javadoc.destdir}"/>
+        <mkdir dir="${build.javadocs}"/>
         <javadoc packagenames="helma.*"
             sourcepath="${build.src}"
-            destdir="${javadoc.destdir}"
+            destdir="${build.javadocs}"
             author="false"
             private="false"
             version="false"
             windowtitle="${Name} ${version} API"
             doctitle="${Name} ${version} API"
-            bottom="Copyright &#169; 1998-2001 Helma.org. All Rights Reserved."
-        />
+            bottom="Copyright &#169; ${year} Helma.org. All Rights Reserved.">
+            <classpath>
+                <fileset dir="${build.lib}">
+                     <include name="**/*.jar" />
+                </fileset>
+                <pathelement path="${classpath}" />
+            </classpath>
+       </javadoc>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Get the documentation                                               -->
+    <!-- =================================================================== -->
+    <target name="helmadocs" depends="init">
+		<get src="http://www.helma.org/docs/reference/print"
+		     dest="${build.docs}/reference.html"
+		     ignoreerrors="true"
+		/>
     </target>
 
     <!-- =================================================================== -->
     <!-- Package                                                             -->
     <!-- =================================================================== -->
-    <target name="package" depends="checkout, jar, javadocs">
-
+    <target name="package" depends="init, checkout, jar, javadocs, helmadocs">
         <mkdir dir="${final.dir}"/>
 
-        <!-- mkdir dir="${final.dir}/static"/ -->
-
-        <mkdir dir="${final.dir}/src"/>
-        <!-- jar jarfile="${final.dir}/src/${Name}-src.jar"
-            basedir="${build.src}"/ -->
-
-        <copy todir="${final.dir}/src">
-            <fileset dir="${build.dir}/src" excludes="{Name}-src.jar"/>
+        <mkdir dir="${final.dir}/src/hop"/>
+        <copy todir="${final.dir}/src/hop">
+            <fileset dir="${build.checkout}/hop" />
         </copy>
 
         <copy todir="${final.dir}/build">
-            <fileset dir="${build.dir}/build"/>
+            <fileset dir="${build.checkout}/hopbuild/build"/>
         </copy>
         <chmod file="${final.dir}/build/build.sh" perm="755"/>
 
         <copy todir="${final.dir}/docs">
-            <fileset dir="../docs"/>
+            <fileset dir="${build.docs}"/>
         </copy>
 
         <copy todir="${final.dir}/lib">
             <fileset dir="${build.checkout}/hopbuild/lib"/>
         </copy>
 
+        <copy file="${build.work}/${jar.name}-${DSTAMP}.jar" tofile="${final.dir}/lib/helma.jar"/>
+
         <copy todir="${final.dir}">
             <fileset dir="${build.checkout}/hopbuild/skeleton" excludes="**/CVS"/>
         </copy>
+        <chmod file="${final.dir}/hop.sh" perm="755"/>
 
         <copy todir="${final.dir}/apps">
             <fileset dir="${build.checkout}/apps" excludes="**/CVS,manage/**"/>
         </copy>
 
-        <copy file="${build.dir}/${jar.name}-${DSTAMP}.jar" tofile="${final.dir}/lib/helma.jar"/>
-        <chmod file="${final.dir}/hop.sh" perm="755"/>
-
         <mkdir dir="${final.dir}/apps/manage"/>
-		  	<zip zipfile="${final.dir}/apps/manage/manage.zip" basedir="${build.checkout}/apps/manage/" includes="**"/>
-
+		  	<zip zipfile="${final.dir}/apps/manage/manage.zip" basedir="${build.checkout}/apps/manage/" includes="**" excludes="**/properties,readme/**" />
+		<copy todir="${final.dir}/apps/manage">
+		    <fileset dir="${build.checkout}/apps/manage" includes="app.properties,class.properties,readme.txt"/>
+		</copy>
    </target>
 
     <!-- =================================================================== -->
     <!-- Packages the distribution with ZIP                                  -->
     <!-- =================================================================== -->
     <target name="package-zip" depends="package">
-        <zip zipfile="../${Name}-${version}.zip" basedir="../" includes="**/${final.name}/**"/>
+        <zip zipfile="${home.dir}/${Name}-${version}.zip" basedir="${build.work}" includes="**/${final.name}/**"/>
     </target>
 
     <!-- =================================================================== -->
     <!-- Packages the distribution with TAR-GZIP                             -->
     <!-- =================================================================== -->
     <target name="package-tgz" depends="package">
-        <tar tarfile="../${Name}-${version}.tar" basedir=".." excludes="**">
-             <tarfileset dir=".." mode="755">
+        <tar tarfile="${build.work}/${Name}-${version}.tar" basedir="${build.work}/${final.name}" excludes="**">
+             <tarfileset dir="${build.work}" mode="755">
                   <include name="${final.name}/hop.sh"/>
                   <include name="${final.name}/build/build.sh"/>
              </tarfileset>
-             <tarfileset dir="..">
+             <tarfileset dir="${build.work}">
                   <include name="${final.name}/**"/>
                   <exclude name="${final.name}/hop.sh"/>
                   <exclude name="${final.name}/build/build.sh"/>
-	     </tarfileset>
+             </tarfileset>
         </tar>
-        <gzip zipfile="../${Name}-${version}.tar.gz" src="../${Name}-${version}.tar"/>
+        <gzip zipfile="${home.dir}/${Name}-${version}.tar.gz" src="${build.work}/${Name}-${version}.tar"/>
     </target>
 
     <!-- =================================================================== -->
@@ -241,6 +239,37 @@
     <target name="package-all" depends="package-zip, package-tgz">
     </target>
 
+    <!-- =================================================================== -->
+    <!-- Compiles the source directory for a snapshot                        -->
+    <!-- =================================================================== -->
+    <target name="snapshotcompile" depends="init">
+        <mkdir dir="${snapshot.classes}"/>
+        <javac srcdir="${snapshot.src}"
+            destdir="${snapshot.classes}"
+            debug="${debug}"
+            deprecation="${deprecation}"
+            optimize="${optimize}">
+            <classpath>
+                <fileset dir="${snapshot.lib}">
+                     <include name="**/*.jar" />
+					 <exclude name="**/helma*.jar" />
+                </fileset>
+                <pathelement path="${classpath}" />
+            </classpath>
+        </javac>
+        <rmic classname="helma.framework.core.Application" base="${snapshot.classes}"/>
+        <rmic classname="helma.image.Server" base="${snapshot.classes}"/>
+        <rmic classname="helma.image.RemoteImage" base="${snapshot.classes}"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Creates a .jar file for a snapshot                                  -->
+    <!-- =================================================================== -->
+    <target name="snapshot" depends="snapshotcompile">
+        <jar jarfile="${snapshot.lib}/${jar.name}-${DSTAMP}.jar"
+            basedir="${snapshot.classes}"
+            excludes="**/package.html"/>
+    </target>
 
     <!-- =================================================================== -->
     <!-- These are just some tests                                           -->
@@ -249,7 +278,7 @@
          <ftp server="piefke.helma.at"
             userid="anonymous"
             password="tobi@helma.at">
-            <fileset dir="${build.dir}">
+            <fileset dir="${home.dir}">
                  <include name="${Name}-${version}.zip,${Name}-${version}.tar.gz"/>
             </fileset>
         </ftp>
