@@ -170,7 +170,6 @@ public final class NodeManager {
 	    // The requested node isn't in the shared cache. Synchronize with key to make sure only one
 	    // version is fetched from the database.
 	    if (key instanceof SyntheticKey) {
-	    System.err.println ("SPLITTING SYNTHETIC KEY: "+key);
 	        Node parent = getNode (key.getParentKey ());
 	        Relation rel = parent.dbmap.getPropertyRelation (key.getID());
 	        if (rel == null || rel.groupby != null)
@@ -211,14 +210,14 @@ public final class NodeManager {
 
 	Key key = null;
 	// check what kind of object we're looking for and make an apropriate key
-	if (rel.virtual || rel.groupby != null || !rel.usesPrimaryKey())
+	if (rel.virtual || rel.groupby != null  || !rel.usesPrimaryKey())
 	    // a key for a virtually defined object that's never actually  stored in the db
 	    // or a key for an object that represents subobjects grouped by some property, generated on the fly
 	    key = new SyntheticKey (home.getKey (), kstr);
 	else
 	    // if a key for a node from within the DB
 	    key = new DbKey (rel.other, rel.getKeyID (home, kstr));
-
+	
 	// See if Transactor has already come across this node
 	Node node = tx.getVisitedNode (key);
 
@@ -226,7 +225,7 @@ public final class NodeManager {
 	    // we used to refresh the node in the main cache here to avoid the primary key entry being
 	    // flushed from cache before the secondary one (risking duplicate nodes in cache) but
 	    // we don't need to since we fetched the node from the threadlocal transactor cache and
-	   // didn't refresh it in the main cache.
+	    // didn't refresh it in the main cache.
 	    return node;
 	}
 
@@ -241,8 +240,6 @@ public final class NodeManager {
 	        if (node.created() < rel.other.getLastDataChange ())
 	            node = null; //  cached null not valid anymore
 	    } else if (app.doesSubnodeChecking () && home.contains (node) < 0) {
-	    System.err.println ("NULLING SUBNODE: "+key);
-	    System.err.println ("REL = "+rel);
 	        node = null;
 	    }
 	}
@@ -251,7 +248,6 @@ public final class NodeManager {
 
 	    // The requested node isn't in the shared cache. Synchronize with key to make sure only one
 	    // version is fetched from the database.
-if (key instanceof SyntheticKey && node == null) System.err.println ("GETTING BY REL: "+key+" > "+node);
 	    node = getNodeByRelation (tx.txn, home, kstr, rel);
 
 	    if (node != null) {
@@ -636,7 +632,6 @@ if (key instanceof SyntheticKey && node == null) System.err.println ("GETTING BY
 	            Key key = rel.groupby == null ?
 	            		(Key) new DbKey (rel.other, kstr) :
 	            		(Key) new SyntheticKey (k, kstr);
-	            System.err.println ("CREATED KEY: "+key);
 	            retval.add (new NodeHandle (key));
 	            // if these are groupby nodes, evict nullNode keys
 	            if (rel.groupby != null && cache.get (key) instanceof NullNode)
@@ -872,7 +867,6 @@ if (key instanceof SyntheticKey && node == null) System.err.println ("GETTING BY
     }
 
     private Node getNodeByRelation (DbTxn txn, Node home, String kstr, Relation rel) throws Exception {
-
 	Node node = null;
 
 	if (rel.virtual) {
