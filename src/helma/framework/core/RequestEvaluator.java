@@ -135,18 +135,13 @@ public class RequestEvaluator implements Runnable {
         try {
 	do {
 
-	    // make sure there is only one thread running per instance of this class
-	    if (localrtx != rtx) {
-	        localrtx.closeConnections ();
-	        return;
-	    }
-
 	    // IServer.getLogger().log ("got request "+reqtype);
 
 	    switch (reqtype) {
 	    case HTTP:
 	        int tries = 0;
 	        boolean done = false;
+	        String error = null;
 	        while (!done) {
 
 	            current = null;
@@ -179,7 +174,16 @@ public class RequestEvaluator implements Runnable {
 
 	                try {
 
-	                    if (req.path == null || "".equals (req.path.trim ())) {
+	                    if (error != null) {
+	                        // there was an error in the previous loop, call error handler
+	                        currentNode = root;
+	                        current = getNodeWrapper (root);
+	                        reqPath.putProperty (0, current);
+	                        Prototype p = app.getPrototype (root);
+	                        String errorAction = app.props.getProperty ("error", "error");
+	                        action = p.getActionOrTemplate (errorAction);
+	
+	                    } else if (req.path == null || "".equals (req.path.trim ())) {
 	                        currentNode = root;
 	                        current = getNodeWrapper (root);
 	                        reqPath.putProperty (0, current);
@@ -303,33 +307,26 @@ public class RequestEvaluator implements Runnable {
 	                    continue;
 	                } else {
 	                    abortTransaction (false);
-	                    app.errorCount += 1;
-	                    res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>Couldn't complete transaction due to heavy object traffic (tried "+tries+" times).</pre>");
-	                    done = true;
+	                    if (error == null) {
+	                        app.errorCount += 1;
+	                        error = "Couldn't complete transaction due to heavy object traffic (tried "+tries+" times)";
+	                    } else {
+	                        // error in error action. use traditional minimal error message
+	                        res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>"+error+"</pre>");
+	                        done = true;
+	                    }
 	                }
-
-	            } catch (FrameworkException x) {
-
-	                abortTransaction (false);
-
-	                app.errorCount += 1;
-	                res.reset ();
-	                res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>" + x.getMessage () + "</pre>");
-	                if (app.debug)
-	                    x.printStackTrace ();
-	                done = true;
 
 	            } catch (Exception x) {
 
 	                abortTransaction (false);
 
-	                app.errorCount += 1;
-	                System.err.println ("### Exception in "+app.getName()+"/"+req.path+": current = "+currentNode);
-	                System.err.println (x);
+	                IServer.getLogger().log ("### Exception in "+app.getName()+"/"+req.path+": "+x);
 	                // Dump the profiling data to System.err
-	                ((Transactor) Thread.currentThread ()).timer.dump (System.err);
-	                if (app.debug)
+	                if (app.debug) {
+	                    ((Transactor) Thread.currentThread ()).timer.dump (System.err);
 	                    x.printStackTrace ();
+	                }
 
 	                // If the transactor thread has been killed by the invoker thread we don't have to
 	                // bother for the error message, just quit.
@@ -337,8 +334,17 @@ public class RequestEvaluator implements Runnable {
 	                    break;
 
 	                res.reset ();
-	                res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>" + x.getMessage () + "</pre>");
-	                done = true;
+	                if (error == null) {
+	                    app.errorCount += 1;
+	                    error = x.getMessage ();
+	                    if (error == null || error.length() == 0)
+	                        error = x.toString ();
+	                } else {
+	                    // error in error action. use traditional minimal error message
+	                    res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>"+error+"</pre>");
+	                    done = true;
+	                }
+
 	            }
 	        }
 	        break;
@@ -455,6 +461,12 @@ public class RequestEvaluator implements Runnable {
 	        break;
 	    }
 
+	    // make sure there is only one thread running per instance of this class
+	    if (localrtx != rtx) {
+	        localrtx.closeConnections ();
+	        return;
+	    }
+
 	    notifyAndWait ();
 
             }  while (localrtx == rtx);
@@ -492,10 +504,14 @@ public class RequestEvaluator implements Runnable {
     synchronized void notifyAndWait () {
 	Transactor localrtx = (Transactor) Thread.currentThread ();
 	if (reqtype != NONE)
-	    return;
+	    return; // is there a new request already?
 	notifyAll ();
 	try {
-	    wait ();
+	    // wait for request, max 30 min
+	    wait (1800000l);
+	    //  if no request arrived, release ressources and thread
+	    if (reqtype == NONE && rtx == localrtx)
+	        rtx = null;
 	} catch (InterruptedException ir) {
 	    localrtx.closeConnections ();
 	}
@@ -620,7 +636,7 @@ public class RequestEvaluator implements Runnable {
     private synchronized void checkThread () throws InterruptedException {
 	if (rtx == null || !rtx.isAlive()) {
 	    // IServer.getLogger().log ("Starting Thread");
-	    rtx = new Transactor (this, app.nmgr);
+	    rtx = new Transactor (this, app.threadgroup, app.nmgr);
 	    evaluator.thread = rtx;
 	    rtx.start ();
 	} else {
