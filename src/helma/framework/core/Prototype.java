@@ -557,7 +557,13 @@ public final class Prototype {
 
             super.clear();
 
-            // System.err.println ("LOADING SKIN VALUES: "+Prototype.this);
+            // load Skins from zip files first, then from directories
+            for (Iterator i = zippedSkins.entrySet().iterator(); i.hasNext();) {
+                Map.Entry e = (Map.Entry) i.next();
+
+                super.put(e.getKey(), e.getValue());
+            }
+
             for (Iterator i = skins.entrySet().iterator(); i.hasNext();) {
                 Map.Entry e = (Map.Entry) i.next();
 
