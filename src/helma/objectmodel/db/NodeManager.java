@@ -882,7 +882,7 @@ public final class NodeManager {
 	    TableDataSet tds = null;
 	    try {
 	        tds = new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
-	        tds.where (idfield+" = '"+kstr+"'");
+	        tds.where (idfield+" = "+kstr);
 
 	        if (logSql)
 	            app.logEvent ("### getNodeByKey: "+tds.getSelectString());
