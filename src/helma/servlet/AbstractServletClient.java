@@ -132,18 +132,6 @@ public abstract class AbstractServletClient extends HttpServlet {
 	        } catch (Exception badCookie) {}
 	    }
 
-	    // check if we need to create a session id
-	    if (reqtrans.session == null) {
-	        reqtrans.session = Long.toString (
-	            Math.round (Math.random ()* Long.MAX_VALUE) -
-	            System.currentTimeMillis (), 36);
-	        Cookie c = new Cookie("HopSession", reqtrans.session);
-	        c.setPath ("/");
-	        if (cookieDomain != null)
-	            c.setDomain (cookieDomain);
-	        response.addCookie(c);
-	    }
-
 	    // do standard HTTP variables
 	    String host = request.getHeader ("Host");
 	    if (host != null) {
@@ -160,7 +148,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 	        if (ifModifiedSince > -1)
 	            reqtrans.setIfModifiedSince (ifModifiedSince);
 	    } catch (IllegalArgumentException ignore) {}
-	    
+
 	    String ifNoneMatch = request.getHeader ("If-None-Match");
 	    if (ifNoneMatch != null)
 	        reqtrans.setETags (ifNoneMatch);
@@ -168,6 +156,19 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    String remotehost = request.getRemoteAddr ();
 	    if (remotehost != null)
 	        reqtrans.set ("http_remotehost", remotehost);
+
+	    // check if we need to create a session id. also handle the
+	    // case that the session id doesn't match the remote host address
+	    if (reqtrans.session == null || !reqtrans.session.startsWith (remotehost)) {
+	        reqtrans.session = remotehost+"."+Long.toString (
+	            Math.round (Math.random ()* Long.MAX_VALUE) -
+	            System.currentTimeMillis (), 36);
+	        Cookie c = new Cookie("HopSession", reqtrans.session);
+	        c.setPath ("/");
+	        if (cookieDomain != null)
+	            c.setDomain (cookieDomain);
+	        response.addCookie(c);
+	    }
 
 	    String browser = request.getHeader ("User-Agent");
 	    if (browser != null)
