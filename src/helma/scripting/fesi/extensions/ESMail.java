@@ -9,7 +9,6 @@ import javax.mail.internet.*;
 import javax.activation.*;
 import java.io.*;
 import java.util.*;
-import helma.main.Server;
 import helma.framework.core.*;
 import helma.util.*;
 import FESI.Data.*;
@@ -57,7 +56,7 @@ public class ESMail extends ESObject implements Serializable {
 	    Session session = Session.getDefaultInstance(props, null);
 	    message = new MimeMessage (session); 
 	} catch (Throwable t) {
-	    Server.getLogger().log ("caught in mail constructor: "+t);
+	    this.evaluator.reval.app.logEvent ("Error in mail constructor: "+t);
 	}
     }
 
