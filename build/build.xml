@@ -1,8 +1,27 @@
 <?xml version="1.0"?>
 
 <!-- ======================================================================= -->
-<!-- Hop build file                                                      -->
+<!-- Hop build file                                                          -->
 <!-- ======================================================================= -->
+<!--                                                                         -->
+<!-- Usage:                                                                  -->
+<!--    ant [-buildfile build.xml] target                                    -->
+<!--                                                                         -->
+<!-- Available targets:                                                      -->
+<!--    checkout        copies helma source code from cvs                    -->
+<!--    fullcheckout    copies helma source code and applications from cvs   -->
+<!--    compile         compiles helma source code to java classes           -->
+<!--    jar             compiles helma source code to java archives          -->
+<!--    javadocs        creates api documentation for helma java classes     -->
+<!--    helmadocs       creates printable user documentation for helma       -->
+<!--    package         creates directory with compiled helma, docs and apps -->
+<!--    package-zip     creates zipped file of package                       -->
+<!--    package-tgz     creates tared and gzipped file of package            -->
+<!--    package-all     creates package, package-zip and package-tgz         -->
+<!--    snapshotcompile compiles current helma snapshot to java classes      -->
+<!--    snapshot        compiles current helma snapshot to java archive      -->
+<!--    app-package     creates a zipped file of an application from cvs     -->
+
 <project name="Hop" default="main" basedir=".">
 
     <!-- =================================================================== -->
