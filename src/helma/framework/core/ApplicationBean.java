@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.List;
 
 import helma.objectmodel.INode;
+import helma.util.CronJob;
 
 public class ApplicationBean implements Serializable {
 
@@ -116,6 +117,21 @@ public class ApplicationBean implements Serializable {
 	List userSessions = app.getSessionsForUsername (username);
 	return (SessionBean[]) userSessions.toArray (new SessionBean[0]);
     }
+
+	public void addCronJob (String functionName) {
+	    CronJob job = new CronJob (functionName);
+	    job.setFunction (functionName);
+	    app.customCronJobs.put (functionName, job);
+	}
+
+	public void addCronJob (String functionName, String year, String month, String day, String weekday, String hour, String minute) {
+	    CronJob job = CronJob.newJob (functionName, year, month, day, weekday, hour, minute);
+	    app.customCronJobs.put (functionName, job);
+	}
+
+	public void removeCronJob (String functionName) {
+	    app.customCronJobs.remove (functionName);
+	}
 
     // getter methods for readonly properties of this application
 

@@ -122,8 +122,9 @@ public final class Application implements IPathElement, Runnable {
     private String xmlrpcHandlerName;
 
     // the list of cron jobs
-    private Vector cronJobs = null;
     private Map activeCronJobs  = null;
+    private Vector cronJobs = null;
+    Hashtable customCronJobs = null;
 
 
     /**
@@ -262,6 +263,7 @@ public final class Application implements IPathElement, Runnable {
 	}
 	activeRequests = new Hashtable ();
 	activeCronJobs = new WeakHashMap ();
+	customCronJobs = new Hashtable ();
 
 	skinmgr = new SkinManager (this);
 
@@ -1143,7 +1145,9 @@ public final class Application implements IPathElement, Runnable {
 	        cronJobs = CronJob.parse (props);
 	    }
 	    Date d = new Date ();
-	    Collection jobs = (Collection) cronJobs.clone ();
+	    List jobs = (List) cronJobs.clone ();
+        jobs.addAll (customCronJobs.values ());
+        CronJob.sort (jobs);
 	    for (Iterator i = jobs.iterator (); i.hasNext ();) {
 	        CronJob j = (CronJob) i.next ();
 	        if (j.appliesToDate (d)) {
