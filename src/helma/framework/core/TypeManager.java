@@ -16,7 +16,7 @@ import java.io.*;
  * applications and updates the evaluators if anything has changed.
  */
 
-public class TypeManager {
+public final class TypeManager {
 
     Application app;
     File appDir;
@@ -121,7 +121,6 @@ public class TypeManager {
 		
 	if (rewire) {
 	    // there have been changes in the  DbMappings
-             System.err.println ("REWIRING "+app);
 	    app.rewireDbMappings ();
 	    rewire = false;
 	}
@@ -192,7 +191,7 @@ public class TypeManager {
         proto.skins = nskins;
         proto.updatables = updatables;
 
-        app.scriptingEngine.updatePrototype (proto);
+        // app.scriptingEngine.updatePrototype (proto);
     }
 
 

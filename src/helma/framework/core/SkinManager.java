@@ -15,7 +15,7 @@ import java.io.*;
  */
 
 
-public class SkinManager {
+public final class SkinManager {
 
     Application app;
     Map skincache;

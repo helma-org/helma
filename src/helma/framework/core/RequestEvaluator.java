@@ -18,11 +18,12 @@ import java.util.*;
  * is killed and an error message is returned.
  */
 
-public class RequestEvaluator implements Runnable {
+public final class RequestEvaluator implements Runnable {
 
 
     public Application app;
-    protected boolean initialized;
+	
+	protected ScriptingEnvironment scriptingEngine;
 
     public RequestTrans req;
     public ResponseTrans res;
@@ -63,7 +64,7 @@ public class RequestEvaluator implements Runnable {
      */
     public RequestEvaluator (Application app) {
 	this.app = app;
-	initialized = false;
+	scriptingEngine = helma.scripting.fesi.FesiEngineFactory.getEnvironment (app, this);
     }
 
 
@@ -79,9 +80,6 @@ public class RequestEvaluator implements Runnable {
 
 	    // long startCheck = System.currentTimeMillis ();
 	    app.typemgr.checkPrototypes ();
-	    // evaluators are only initialized as needed, so we need to check that here
-	    // if (!initialized)
-	    //     app.typemgr.initRequestEvaluator (this);
 	    // System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
 
 	    // object refs to ressolve request path
@@ -235,7 +233,7 @@ public class RequestEvaluator implements Runnable {
 	                    // try calling onRequest() function on object before
 	                    // calling the actual action
 	                    try {
-	                        app.scriptingEngine.invoke (currentElement, "onRequest", new Object[0], globals, this);
+	                        scriptingEngine.invoke (currentElement, "onRequest", new Object[0], globals);
 	                    } catch (RedirectException redir) {
 	                        throw redir;
 	                    } catch (Exception ignore) {
@@ -244,7 +242,7 @@ public class RequestEvaluator implements Runnable {
 
 	                    // do the actual action invocation
 	                    if (isAction) {
-	                        app.scriptingEngine.invoke (currentElement, action, new Object[0], globals, this);
+	                        scriptingEngine.invoke (currentElement, action, new Object[0], globals);
 	                    } else {
 	                        Skin skin = app.skinmgr.getSkinInternal (app.appDir, app.getPrototype(currentElement).getName(),
 	                                         action.substring (0, actionDot), action.substring (actionDot+1));
@@ -276,7 +274,7 @@ public class RequestEvaluator implements Runnable {
 	                        }
 	                        Object[] skinNameArg = new Object[1];
 	                        skinNameArg[0] = skinName;
-	                        app.scriptingEngine.invoke (skinObject, "renderSkin", skinNameArg, globals, this);
+	                        scriptingEngine.invoke (skinObject, "renderSkin", skinNameArg, globals);
 	                    }
 
 	                    localrtx.timer.endEvent (txname+" execute");
@@ -381,7 +379,7 @@ public class RequestEvaluator implements Runnable {
 	            String proto = app.getPrototypeName (currentElement);
 	            app.checkXmlRpcAccess (proto, method);
 
-	            result = app.scriptingEngine.invoke (currentElement, method, args, globals, this);
+	            result = scriptingEngine.invoke (currentElement, method, args, globals);
 	            commitTransaction ();
 
 	        } catch (Exception wrong) {
@@ -405,7 +403,7 @@ public class RequestEvaluator implements Runnable {
 	        // avoid going into transaction if called function doesn't exist
 	        boolean functionexists = true;
 	        if (thisObject == null) try {
-	            functionexists = app.scriptingEngine.hasFunction (null, method, this);
+	            functionexists = scriptingEngine.hasFunction (null, method);
 			} catch (ScriptingException ignore) {}
 
 	        if (!functionexists)
@@ -421,7 +419,7 @@ public class RequestEvaluator implements Runnable {
 	            globals.put ("res", res);
 	            globals.put ("app", app.getAppNode());
 
-	            app.scriptingEngine.invoke (thisObject, method, args, globals, this);
+	            scriptingEngine.invoke (thisObject, method, args, globals);
 	            commitTransaction ();
 
 	        } catch (Exception wrong) {
@@ -552,7 +550,7 @@ public class RequestEvaluator implements Runnable {
     }
 
     protected Object invokeDirectFunction (Object obj, String functionName, Object[] args) throws Exception {
-	return app.scriptingEngine.invoke (obj, functionName, args, null, this);
+	return scriptingEngine.invoke (obj, functionName, args, null);
     } 
 
     public synchronized Object invokeFunction (Object object, String functionName, Object[] args)
@@ -674,7 +672,7 @@ public class RequestEvaluator implements Runnable {
 	} else {
 	    String act = action == null ? "main_action" : action+"_action";
 	    try {
-	        if (app.scriptingEngine.hasFunction (obj, act, this))
+	        if (scriptingEngine.hasFunction (obj, act))
 	            return act;
 	    } catch (ScriptingException x) {
 	        return null;

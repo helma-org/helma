@@ -103,6 +103,8 @@ public class DomExtension extends Extension  {
 			try	{
 				ByteArrayOutputStream out = new ByteArrayOutputStream();
 				XmlWriter writer = new XmlWriter (out);
+                                                        if (arguments.length > 1 && arguments[1] instanceof ESNumber)
+                                                             writer.setMaxLevels(arguments[1].toInt32());
 				writer.setDatabaseMode(false);
 				boolean result = writer.write(node);
 				writer.flush();

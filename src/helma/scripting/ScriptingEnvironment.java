@@ -18,29 +18,29 @@ public interface ScriptingEnvironment {
     /**
      * Initialize the environment using the given properties
      */
-    public void init (Application app, Properties props) throws ScriptingException;
+    // public void init (Application app, Properties props) throws ScriptingException;
 
     /**
      * A prototype has been updated and must be re-evaluated.
      */
-    public void updatePrototype (Prototype prototype);
+    // public void updatePrototype (Prototype prototype);
 
     /**
      * Invoke a function on some object, using the given arguments and global vars.
      */
     public Object invoke (Object thisObject, String functionName, Object[] args,
-		HashMap globals, RequestEvaluator reval)
+		HashMap globals)
 		throws ScriptingException;
 
     /**
      *  Get a property on an object
      */
-    public Object get (Object thisObject, String key, RequestEvaluator reval);
+    public Object get (Object thisObject, String key);
 
     /**
      *  Return true if a function by that name is defined for that object.
      */
-    public boolean hasFunction (Object thisObject, String functionName, RequestEvaluator reval)
+    public boolean hasFunction (Object thisObject, String functionName)
 		throws ScriptingException;
 
 }

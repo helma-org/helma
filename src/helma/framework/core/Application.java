@@ -26,7 +26,7 @@ import java.rmi.server.*;
  * requests from the Web server or XML-RPC port and dispatches them to
  * the evaluators.
  */
-public class Application extends UnicastRemoteObject implements IRemoteApp, IPathElement, IReplicatedApp, Runnable {
+public final class Application extends UnicastRemoteObject implements IRemoteApp, IPathElement, IReplicatedApp, Runnable {
 
     private String name;
     SystemProperties props, dbProps;
@@ -34,7 +34,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     protected NodeManager nmgr;
 
     // the class name of the scripting environment implementation
-    ScriptingEnvironment scriptingEngine;
+    // ScriptingEnvironment scriptingEngine;
 
     // the root of the website, if a custom root object is defined.
     // otherwise this is managed by the NodeManager and not cached here.
@@ -231,8 +231,12 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Get the application ready to run, initializing the evaluators and type manager.
      */
     public void init () throws DatabaseException, ScriptingException {
-	scriptingEngine = new helma.scripting.fesi.FesiScriptingEnvironment ();
-	scriptingEngine.init (this, props);
+	// scriptingEngine = new helma.scripting.fesi.FesiScriptingEnvironment ();
+	// scriptingEngine.init (this, props);
+
+	typemgr = new TypeManager (this);
+	typemgr.createPrototypes ();
+	// logEvent ("Started type manager for "+name);
 
 	eval = new RequestEvaluator (this);
 	logEvent ("Starting evaluators for "+name);
@@ -249,10 +253,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	    allThreads.addElement (ev);
 	}
 	activeRequests = new Hashtable ();
-
-	typemgr = new TypeManager (this);
-	typemgr.createPrototypes ();
-	// logEvent ("Started type manager for "+name);
 
 	skinmgr = new SkinManager (this);
 
@@ -272,7 +272,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	if (xmlrpc != null)
 	    xmlrpc.addHandler (xmlrpcHandlerName, new XmlRpcInvoker (this));
 
-	// typemgr.start ();
     }
 
     /**
@@ -931,9 +930,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     /**
      *  Get scripting environment for this application
      */
-    public ScriptingEnvironment getScriptingEnvironment () {
+    /* public ScriptingEnvironment getScriptingEnvironment () {
 	return scriptingEngine;
-    }
+    } */
 
 
     /**

@@ -20,7 +20,7 @@ import helma.util.Updatable;
  */
 
 
-public class Prototype {
+public final class Prototype {
 
     String id;
     String name;

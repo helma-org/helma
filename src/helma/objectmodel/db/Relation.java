@@ -14,7 +14,7 @@ import java.sql.SQLException;
  *  relational database table. This can be either a scalar property (string, date, number etc.)
  *  or a reference to one or more other objects.
  */
-public class Relation {
+public final class Relation {
 
     // these constants define different type of property-to-db-mappings
 

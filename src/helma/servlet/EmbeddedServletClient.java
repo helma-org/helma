@@ -25,11 +25,21 @@ public final class EmbeddedServletClient extends AbstractServletClient {
     // depending on this we know whether we have to transform the request path
     boolean root;
 
+    public EmbeddedServletClient () {
+	super ();
+	}
+
     public EmbeddedServletClient (String appName, boolean isRoot) {
 	this.appName = appName;
 	this.root = isRoot;
     }
 
+    public void init (ServletConfig init) throws ServletException {
+	super.init (init);
+	String app = init.getInitParameter ("application");
+	if (app != null)
+	    appName = app;
+    }
 
     IRemoteApp getApp (String appID) {
 	if (app == null)

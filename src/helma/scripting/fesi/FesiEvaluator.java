@@ -22,7 +22,7 @@ import Acme.LruHashtable;
  * This is the implementation of ScriptingEnvironment for the FESI EcmaScript interpreter.
  */
 
-public final class FesiEvaluator {
+public final class FesiEvaluator implements ScriptingEnvironment {
 
     // the application we're running in
     public Application app;
@@ -41,9 +41,6 @@ public final class FesiEvaluator {
 
     // the request evaluator instance owning this fesi evaluator
     RequestEvaluator reval;
-
-    // Hop extension providing basic Helma functionality to evaluator
-    HopExtension hopx;
     
     // extensions loaded by this evaluator
     static String[] extensions = new String[] {
@@ -59,6 +56,7 @@ public final class FesiEvaluator {
     // remember global variables from last invokation to be able to
     // do lazy cleanup
     Map lastGlobals = null;
+	
     // remember which protos are up to date
     HashSet validatedTypes = new HashSet ();
 
@@ -73,7 +71,7 @@ public final class FesiEvaluator {
 	    global = evaluator.getGlobalObject();
 	    for (int i=0; i<extensions.length; i++)
              evaluator.addExtension (extensions[i]);
-              hopx = new HopExtension (app);
+	    HopExtension hopx = new HopExtension (app);
 	    hopx.initializeExtension (this);
 	    MailExtension mailx = (MailExtension) evaluator.addExtension ("helma.scripting.fesi.extensions.MailExtension");
 	    mailx.setProperties (app.getProperties ());
@@ -100,10 +98,10 @@ public final class FesiEvaluator {
 	    Prototype proto = (Prototype) i.next ();
 	    initPrototype (proto);
 	}
-         // always fully initialize global prototype, because
-         // we always need it and there's no chance to trigger
-         // creation when it's needed.
-         getPrototype ("global");
+	// always fully initialize global prototype, because
+	// we always need it and there's no chance to trigger
+	// creation when it's needed.
+	getPrototype ("global");
     }
 
     void initPrototype (Prototype prototype) {
@@ -151,11 +149,13 @@ public final class FesiEvaluator {
 	        FunctionPrototype fp = (FunctionPrototype) evaluator.getFunctionPrototype();
 	        evaluator.getGlobalObject().putHiddenProperty (name, new NodeConstructor (name, fp, this));
 	    } catch (EcmaScriptException ignore) {}
-        } 
+	} 
+	// app.typemgr.updatePrototype (prototype.getName());
+	// evaluatePrototype (prototype);
     }
 
     void evaluatePrototype (Prototype prototype) {
-        System.err.println ("FESI EVALUATE PROTO "+prototype+" FOR "+this);
+        // System.err.println ("FESI EVALUATE PROTO "+prototype+" FOR "+this);
 	ObjectPrototype op = null;
 
 	// get the prototype's prototype if possible and necessary
@@ -265,7 +265,7 @@ public final class FesiEvaluator {
 	    }
 
 	    if (globals != null && globals != lastGlobals) {
-                 validatedTypes.clear();
+		    validatedTypes.clear();
 	        // remember all global variables before invocation
 	        Set tmpGlobal = new HashSet ();
 	        for (Enumeration en = global.getAllProperties(); en.hasMoreElements(); ) {
@@ -356,9 +356,9 @@ public final class FesiEvaluator {
      * Check if an object has a function property (public method if it
      * is a java object) with that name.
      */
-    public boolean hasFunction (Object obj, String fname) {
-        // System.err.println ("HAS_FUNC: "+fname);
-                  ESObject eso = null;
+    public boolean hasFunction (Object obj, String fname) {    
+	// System.err.println ("HAS_FUNC: "+fname);
+	ESObject eso = null;
 	if (obj == null)
 	    eso = evaluator.getGlobalObject ();
 	else
@@ -379,7 +379,7 @@ public final class FesiEvaluator {
      * Check if an object has a defined property (public field if it
      * is a java object) with that name.
      */
-    public Object getProperty (Object obj, String propname) {
+    public Object get (Object obj, String propname) {
 	if (obj == null || propname == null)
 	    return null;
 

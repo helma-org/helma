@@ -14,7 +14,7 @@ import java.util.Vector;
  * in JavaScript which doesn't know about them (except for the exception message).
  */
  
- public class WrappedNodeManager {
+ public final class WrappedNodeManager {
 
     NodeManager nmgr;
 

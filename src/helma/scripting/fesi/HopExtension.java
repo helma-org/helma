@@ -23,7 +23,7 @@ import org.xml.sax.InputSource;
  * (Node objects), the user prototype, the global prototype  etc.
  */
 
-public class HopExtension {
+public final class HopExtension {
 
     protected Application app;
     protected FesiEvaluator fesi;
