@@ -1,0 +1,1 @@
+Helma's server management console. Start applications, introspection etc. 
