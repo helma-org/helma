@@ -84,6 +84,7 @@ public final class RhinoCore {
             ScriptableObject.defineClass(global, FileObject.class);
             ScriptableObject.defineClass(global, FtpObject.class);
             ImageObject.init(global);
+            MailObject.init(global, app.getProperties());
             putPrototype("hopobject",
                          ScriptableObject.getClassPrototype(global, "HopObject"));
             putPrototype("global", global);
