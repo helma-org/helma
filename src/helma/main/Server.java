@@ -24,7 +24,7 @@ import com.sleepycat.db.*;
  
  public class Server {
 
-    public static final String version = "1.2pre2 2001/12/07";
+    public static final String version = "1.2pre2 2001/12/13";
 
     public static boolean useTransactions = true;
     public static boolean paranoid;
