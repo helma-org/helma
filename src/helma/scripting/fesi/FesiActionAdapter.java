@@ -31,7 +31,7 @@ public class FesiActionAdapter {
     Application app;
     String sourceName;
     // this is the parsed function which can be easily applied to RequestEvaluator objects
-    TypeUpdater pfunc;
+    TypeUpdater pfunc, pfuncAsString;
 
     public FesiActionAdapter (ActionFile action) {
 	prototype = action.getPrototype ();
@@ -40,45 +40,34 @@ public class FesiActionAdapter {
 	String functionName = action.getFunctionName ();
 	sourceName = action.toString ();
 	try {
-	    pfunc = parseFunction (functionName, "arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10", content);
+	    pfunc = parseFunction (functionName,
+		"arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10",
+		content);
 	} catch (Throwable x) {
 	    String message = x.getMessage ();
 	    pfunc =  new ErrorFeedback (functionName, message);
 	}
+	// check if this is a template and we need to generate an "_as_string" variant
+	if (action instanceof Template) {
+	    try {
+	        pfuncAsString = parseFunction (functionName+"_as_string",
+			"arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10",
+			"res.pushStringBuffer(); "+content+"\r\nreturn res.popStringBuffer();\r\n");
+	    } catch (Throwable x) {
+	        String message = x.getMessage ();
+	        pfunc =  new ErrorFeedback (functionName+"_as_string", message);
+	    }
+	} else {
+	   pfuncAsString = null;
+	}
     }
-
-    /* protected void update (FesiEvaluator fesi) throws Exception {
-	// app.logEvent ("Reading text template " + name);
-
-	FesiScriptingEnvironment scriptEnv = (FesiScriptingEnvironment) app.getScriptingEnvironment ();
-	Iterator evals = scriptEnv.getEvaluators().iterator();
-	while (evals.hasNext ()) {
-	    try {
-	        FesiEvaluator fesi = (FesiEvaluator) evals.next ();
-	        updateEvaluator (fesi);
-	    } catch (Exception ignore) {}
-	}
-    } */
-
-   /* protected void remove () {
-	Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
-	while (evals.hasNext ()) {
-	    try {
-	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
-	        ObjectPrototype op = reval.getPrototype (prototype.getName());
-	        functionName = name+"_action";
-	        ESValue esv = (ESValue) op.getProperty (functionName, functionName.hashCode());
-	        if (esv instanceof ConstructedFunctionObject || esv instanceof ThrowException) {
-	            op.deleteProperty (functionName, functionName.hashCode());
-	        }
-	    } catch (Exception ignore) {}
-	}
-    } */
 
 
     public synchronized void updateEvaluator (FesiEvaluator fesi) throws EcmaScriptException {
-        if (pfunc != null)
-            pfunc.updateEvaluator (fesi);
+	if (pfunc != null)
+	    pfunc.updateEvaluator (fesi);
+	if (pfuncAsString != null)
+	    pfuncAsString.updateEvaluator (fesi);
     }
 
     protected TypeUpdater parseFunction (String funcname, String params, String body) throws EcmaScriptException {
