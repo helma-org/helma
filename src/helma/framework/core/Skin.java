@@ -7,7 +7,6 @@ import java.io.*;
 import java.util.*;
 import helma.framework.*;
 import helma.scripting.*;
-import helma.scripting.fesi.*;
 import helma.objectmodel.INode;
 import helma.objectmodel.ConcurrencyException;
 import helma.util.HtmlEncoder;
@@ -132,11 +131,11 @@ public class Skin {
 	String handler;
 	String name;
 	String fullname;
-	Hashtable parameters;
+	HashMap parameters;
 
 	public Macro (String str) {
 
-	    parameters = new Hashtable ();
+	    parameters = new HashMap ();
 
 	    int l = str.length ();
 	    char cnt[] = new char[l];
@@ -247,9 +246,7 @@ public class Skin {
 	        Object handlerObject = null;
 
 	        Object[] arguments = new Object[1];
-	        ESRequestData par =  new ESRequestData (reval);
-	        par.setData (parameters);
-	        arguments[0] = par;
+	        arguments[0] = parameters;
 	
 	        // flag to tell whether we found our invocation target object
 	        boolean objectFound = true;
