@@ -15,6 +15,7 @@ function scheduler() {
   */
 function onStart() {
 	app.data.addressFilter = createAddressFilter();
+	app.data.addressString = root.getProperty ("allowadmin");
 }
 
 /**
@@ -75,9 +76,9 @@ function appStat ()	{
   * utility function to sort object-arrays by name
   */
 function sortByName(a,b)	{
-	if ( a.getName () > b.getName ())
+	if (a.name > b.name)
 		return 1;
-	else if (a.getName () == b.getName ())
+	else if (a.name == b.name)
 		return 0;
 	else
 		return -1;
@@ -126,7 +127,7 @@ function checkAuth(appObj)	{
 	if ( md5username==rootUsername && md5password==rootPassword )
 		return true;
 
-	if ( appObj!=null && appObj.isActive() )	{
+	if (appObj!=null && appObj.isActive())	{
 		// check against application
 		var appUsername = appObj.getProperty("adminusername");
 		var appPassword = appObj.getProperty("adminpassword");
@@ -141,6 +142,12 @@ function checkAuth(appObj)	{
   * check access to the manage-app by ip-addresses
   */
 function checkAddress()	{
+	// if allowadmin value in server.properties has changed,
+	// re-construct the addressFilter
+	if (app.data.addressString != root.getProperty ("allowadmin")){
+		app.data.addressFilter = createAddressFilter();
+		app.data.addressString = root.getProperty ("allowadmin");
+	}
 	if ( !app.data.addressFilter.matches(java.net.InetAddress.getByName(req.data.http_remotehost)) )	{
 		app.log("denied request from " + req.data.http_remotehost );
 		// forceStealth seems a bit like overkill here.
@@ -181,32 +188,21 @@ function createAuth()	{
 	}
 	var obj = new Object();
 	obj.msg = "";
-	
-	if ( req.data.username!=null && req.data.password!=null && req.data.password2!=null )	{
+	if (req.data.username!=null && req.data.password!=null)	{
 		// we have input from webform
 		if ( req.data.username=="" )
 			obj.msg += "username can't be left empty!<br>";
 		if ( req.data.password=="" )
 			obj.msg += "password can't be left empty!<br>";
-		else if ( req.data.password!=req.data.password2 )
-			obj.msg += "password and re-typed password don't match!<br>";
 		if ( obj.msg!="" )	{
 			obj.username = req.data.username;
 			res.reset();
 			renderSkin("pwdform",obj);
 			return false;
 		}
-		var f = new File(root.getHopHome().toString, "server.properties");
-		var str = f.readAll();
-		var sep = java.lang.System.getProperty("line.separator");
-		str += sep + "adminUsername=" + Packages.helma.util.MD5Encoder.encode(req.data.username) + sep;
-		str += "adminPassword=" + Packages.helma.util.MD5Encoder.encode(req.data.password) + sep;
-		f.remove();
-		f.open();
-		f.write(str);
-		f.close();
-		app.log( req.data.http_remotehost + " saved new adminUsername/adminPassword to server.properties");
-		res.redirect ( root.href("main") );
+		var str = "adminUsername=" + Packages.helma.util.MD5Encoder.encode(req.data.username) + "<br>\n";
+		str += "adminPassword=" + Packages.helma.util.MD5Encoder.encode(req.data.password) + "<br>";
+		res.write ("<pre>" + str + "</pre>");
 	
 	}	else	{
 		// no input from webform, so print it

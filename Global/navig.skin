@@ -24,3 +24,7 @@
 	<li><a href="http://adele.helma.org/source/cvsweb.cgi/?cvsroot=hop">cvs</a><br/>
 	<li><a href="http://helma.org/download/">download</a><br/>
 </p>
+
+<p>
+	<li><a href="<% root.href action="makekey" %>">generate server password</a>
+</p>

@@ -1,26 +1,21 @@
 <body bgcolor="white">
 
-<table width="500" border="0" cellspacing="1" cellpadding="5" bgcolor="#000000">
+<table width="500" border="0" cellspacing="0" cellpadding="5" bgcolor="#000000">
 <tr>
 <td width="500" align="left" valign="top" bgcolor="#ffffff">
 
 <big>Username and password for helma's manager:</big><br>
 
 <p>Please choose an username and password combination to access the
-manage application of this server. They will be appended md5-encoded
-to the server.properties file. You can change the settings manually
-by editing the server.properties file or through this webinterface
-in manage/makekey (from localhost only!).</p>
-<p>This is a stupid script and doesn't check wheter these properties
-are already set in this file. So if you've already set username and
-password you need to delete the old values manually.</p>
+manage application of this server. They will be printed md5-encoded
+in a format that you've got to copy/paste into the server.properties
+file.</p>
 
 <font color="red"><% param.msg %></font>
 <form method="post">
 <input class="formEl" name="username" size="25" value="<% param.username %>"> (username)<br>
-<input class="formEl" type="password" name="password"  size="25"> (password)<br>
-<input class="formEl" type="password" name="password2" size="25"> (password retyped)<br><br>
-<input class="formEl" type="submit" value="save to server.properties"><br>
+<input class="formEl" name="password"  size="25"> (password)<br>
+<input class="formEl" type="submit" value="md5 encode"><br>
 </form>
 
 <p><b>Warning:</b> The used http-authorization transmits username and password
