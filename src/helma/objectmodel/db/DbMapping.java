@@ -810,10 +810,6 @@ public final class DbMapping implements Updatable {
                                    this);
         }
 
-        /* if ((dbSource == null) && (parentMapping != null)) {
-            return parentMapping.getColumns();
-        } */
-
         // Use local variable cols to avoid synchronization (schema may be nulled elsewhere)
         if (columns == null) {
             // we do two things here: set the SQL type on the Relation mappings
