@@ -27,8 +27,8 @@ public class SessionBean implements Serializable {
 	return success;
 	}
 
-	public boolean logout ()	{
-	return session.getApp().logoutSession (session);
+	public void logout ()	{
+	session.getApp().logoutSession (session);
 	}
 
 	public void touch () {
