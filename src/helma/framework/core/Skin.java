@@ -22,6 +22,7 @@ import helma.objectmodel.INode;
 import helma.scripting.*;
 import helma.util.HtmlEncoder;
 import helma.util.SystemMap;
+import helma.util.WrappedMap;
 import java.io.*;
 import java.net.URLEncoder;
 import java.util.*;
@@ -478,14 +479,14 @@ public final class Skin {
                         }
 
                         // System.err.println ("Getting macro from function");
-                        // pass a clone of the parameter map so if the script changes it,
-                        // Map param = ;
-                        // if (parameters == null)
-                        //     parameters = new HashMap ();
-                        Object[] arguments = {
-                                                 (parameters == null) ? new SystemMap()
-                                                                      : new SystemMap(parameters)
-                                             };
+                        // pass a clone/copy of the parameter map so if the script changes it,
+                        Object[] arguments = new Object[1];
+                        if (parameters == null) {
+                            arguments[0] = new SystemMap(0);
+                        } else {
+                            arguments[0] = new WrappedMap(parameters, WrappedMap.COPY_ON_WRITE);
+                            // arguments[0] = new SystemMap(parameters);
+                        }
 
                         Object value = reval.scriptingEngine.invoke(handlerObject,
                                                                     funcName, arguments,
