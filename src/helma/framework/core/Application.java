@@ -29,6 +29,9 @@ import java.lang.reflect.*;
 import java.net.MalformedURLException;
 import java.rmi.*;
 import java.util.*;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 
 /**
  * The central class of a Helma application. This class keeps a pool of so-called
@@ -46,13 +49,13 @@ public final class Application implements IPathElement, Runnable {
     // properties and db-properties
     SystemProperties dbProps;
 
-    // home, app and data directories
+    // Helma server home directory
     File home;
 
-    // home, app and data directories
+    // application directory
     File appDir;
 
-    // home, app and data directories
+    // embedded db directory
     File dbDir;
 
     // this application's node manager
@@ -96,11 +99,13 @@ public final class Application implements IPathElement, Runnable {
     // Map of requesttrans -> active requestevaluators
     Hashtable activeRequests;
 
-    // Two logs for each application: events and accesses
-    Logger eventLog;
+    // Two logs for each application
+    Log eventLog;
+    Log accessLog;
 
-    // Two logs for each application: events and accesses
-    Logger accessLog;
+    // Symbolic names for each log
+    String eventLogName;
+    String accessLogName;
 
     // A transient node that is shared among all evaluators
     protected INode cachenode;
@@ -229,6 +234,10 @@ public final class Application implements IPathElement, Runnable {
 
         props = new SystemProperties(propfile.getAbsolutePath(), sysProps);
 
+        // get log names
+        accessLogName = props.getProperty("accessLog", "helma."+name+".access");
+        eventLogName = props.getProperty("eventLog", "helma."+name+".event");
+
         // create app-level db sources
         File dbpropfile = new File(appDir, "db.properties");
 
@@ -266,6 +275,16 @@ public final class Application implements IPathElement, Runnable {
      */
     public void init()
               throws DatabaseException, ScriptingException, MalformedURLException {
+
+        // create and init type mananger
+        typemgr = new TypeManager(this);
+        typemgr.createPrototypes();
+
+        // set the context classloader. Note that this must be done before
+        // using the logging framework so that a new LogFactory gets created
+        // for this app.
+        Thread.currentThread().setContextClassLoader(typemgr.loader);
+
         if (Server.getServer() != null) {
             Vector extensions = Server.getServer().getExtensions();
 
@@ -285,10 +304,6 @@ public final class Application implements IPathElement, Runnable {
         if ("true".equalsIgnoreCase(getProperty("persistentSessions"))) {
             loadSessionData(null);
         }
-
-        // create and init type mananger
-        typemgr = new TypeManager(this);
-        typemgr.createPrototypes();
 
         // create and init evaluator/thread lists
         freeThreads = new Stack();
@@ -317,11 +332,14 @@ public final class Application implements IPathElement, Runnable {
         activeCronJobs = new WeakHashMap();
         customCronJobs = new Hashtable();
 
+        // create the skin manager
         skinmgr = new SkinManager(this);
 
         rootMapping = getDbMapping("root");
         userMapping = getDbMapping("user");
 
+        // The whole user/userroot handling is basically old
+        // ugly obsolete crap. Don't bother.
         SystemProperties p = new SystemProperties();
         String usernameField = userMapping.getNameField();
 
@@ -334,7 +352,12 @@ public final class Application implements IPathElement, Runnable {
         userRootMapping = new DbMapping(this, "__userroot__", p);
         userRootMapping.update();
 
+        // create the node manager
         nmgr = new NodeManager(this, dbDir.getAbsolutePath(), props);
+
+        // reset the classloader to the parent/system/server classloader.
+        Thread.currentThread().setContextClassLoader(typemgr.loader.getParent());
+
     }
 
     /**
@@ -399,14 +422,6 @@ public final class Application implements IPathElement, Runnable {
             storeSessionData(null);
         }
 
-        // stop logs if they exist
-        if (eventLog != null) {
-            eventLog.close();
-        }
-
-        if (accessLog != null) {
-            accessLog.close();
-        }
     }
 
     /**
@@ -1266,52 +1281,43 @@ public final class Application implements IPathElement, Runnable {
     ////////////////////////////////////////////////////////////////////////
 
     /**
-     * Get the logger object for logging generic events
+     * Log a generic application event
      */
     public void logEvent(String msg) {
-        if ((eventLog == null) || eventLog.isClosed()) {
-            eventLog = getLogger("event");
+        if (eventLog == null) {
+            eventLog = getLogger(eventLogName);
         }
 
-        eventLog.log(msg);
+        eventLog.info(msg);
     }
 
     /**
-     * Get the logger object for logging access events
+     * Log an application access
      */
     public void logAccess(String msg) {
-        if ((accessLog == null) || accessLog.isClosed()) {
-            accessLog = getLogger("access");
+        if (accessLog == null) {
+            accessLog = getLogger(accessLogName);
         }
 
-        accessLog.log(msg);
+        accessLog.info(msg);
     }
 
     /**
      *  Get a logger object to log events for this application.
      */
-    public Logger getLogger(String logname) {
-        Logger log = null;
-        String logDir = props.getProperty("logdir", "log");
+    protected Log getLogger(String logname) {
+        String logdir = props.getProperty("logdir");
 
-        // allow log to be redirected to System.out by setting logdir to "console"
-        if ("console".equalsIgnoreCase(logDir)) {
-            return new Logger(System.out);
+        if ("console".equals(logdir) || "console".equals(logname)) {
+            return Logging.getConsoleLog();
+        } else {
+
+            // set up helma.logdir system property in case we're using it
+            File dir = new File(logdir);
+            System.setProperty("helma.logdir", dir.getAbsolutePath());
+
+            return LogFactory.getLog(logname);
         }
-
-        File helper = new File(logDir);
-
-        // construct the fully qualified log name
-        String fullLogname = name + "_" + logname;
-
-        if ((home != null) && !helper.isAbsolute()) {
-            helper = new File(home, logDir);
-        }
-
-        logDir = helper.getAbsolutePath();
-        log = Logger.getLogger(logDir, fullLogname);
-
-        return log;
     }
 
     /**

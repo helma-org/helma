@@ -19,6 +19,8 @@ package helma.main;
 import helma.framework.core.*;
 import helma.util.StringUtils;
 import helma.util.SystemProperties;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.xmlrpc.XmlRpcHandler;
 import org.mortbay.http.*;
 import org.mortbay.http.handler.*;
@@ -97,7 +99,7 @@ public class ApplicationManager implements XmlRpcHandler {
                     }
                 }
             } catch (Exception mx) {
-                Server.getLogger().log("Error checking applications: " + mx);
+                Server.getLogger().error("Error checking applications: " + mx);
             }
 
             lastModified = System.currentTimeMillis();
@@ -161,7 +163,7 @@ public class ApplicationManager implements XmlRpcHandler {
 
             lastModified = System.currentTimeMillis();
         } catch (Exception mx) {
-            Server.getLogger().log("Error starting applications: " + mx);
+            Server.getLogger().error("Error starting applications: " + mx);
             mx.printStackTrace();
         }
     }
@@ -322,7 +324,7 @@ public class ApplicationManager implements XmlRpcHandler {
 
 
         void start() {
-            Server.getLogger().log("Building application " + appName);
+            Server.getLogger().info("Building application " + appName);
 
             try {
                 // create the application instance
@@ -336,13 +338,13 @@ public class ApplicationManager implements XmlRpcHandler {
                 app.init();
                 app.start();
             } catch (Exception x) {
-                Server.getLogger().log("Error creating application " + appName + ": " + x);
+                Server.getLogger().error("Error creating application " + appName + ": " + x);
                 x.printStackTrace();
             }
         }
 
         void stop() {
-            Server.getLogger().log("Stopping application " + appName);
+            Server.getLogger().info("Stopping application " + appName);
 
             // unbind application
             unbind();
@@ -350,9 +352,9 @@ public class ApplicationManager implements XmlRpcHandler {
             // stop application
             try {
                 app.stop();
-                Server.getLogger().log("Stopped application " + appName);
+                Server.getLogger().info("Stopped application " + appName);
             } catch (Exception x) {
-                Server.getLogger().log("Couldn't stop app: " + x);
+                Server.getLogger().error("Couldn't stop app: " + x);
             }
 
             descriptors.remove(appName);
@@ -361,7 +363,7 @@ public class ApplicationManager implements XmlRpcHandler {
 
         void bind() {
             try {
-                Server.getLogger().log("Binding application " + appName);
+                Server.getLogger().info("Binding application " + appName);
 
                 // bind to RMI server
                 if (port > 0) {
@@ -380,7 +382,7 @@ public class ApplicationManager implements XmlRpcHandler {
                     if (encode) {
                         // FIXME: ContentEncodingHandler is broken/removed in Jetty 4.2
                         // context.addHandler(new ContentEncodingHandler());
-                        Server.getLogger().log("Warning: disabling response encoding for Jetty 4.2 compatibility");
+                        Server.getLogger().warn("Warning: disabling response encoding for Jetty 4.2 compatibility");
                     }
 
                     ServletHandler handler = new ServletHandler();
@@ -413,7 +415,7 @@ public class ApplicationManager implements XmlRpcHandler {
                             protectedContent = new File(server.getHopHome(), protectedStaticDir);
                         }
                         context.setResourceBase(protectedContent.getAbsolutePath());
-                        Server.getLogger().log("Serving protected static from " +
+                        Server.getLogger().info("Serving protected static from " +
                                        protectedContent.getAbsolutePath());
                         context.addHandler(new ResourceHandler());
                     }
@@ -428,9 +430,9 @@ public class ApplicationManager implements XmlRpcHandler {
                             staticContent = new File(server.getHopHome(), staticDir);
                         }
 
-                        Server.getLogger().log("Serving static from " +
+                        Server.getLogger().info("Serving static from " +
                                        staticContent.getAbsolutePath());
-                        Server.getLogger().log("Mounting static at " +
+                        Server.getLogger().info("Mounting static at " +
                                        staticMountpoint);
 
                         context = server.http.addContext(staticMountpoint);
@@ -450,13 +452,13 @@ public class ApplicationManager implements XmlRpcHandler {
                 xmlrpcHandlers.put(xmlrpcHandlerName, app);
                 // app.start();
             } catch (Exception x) {
-                Server.getLogger().log("Couldn't bind app: " + x);
+                Server.getLogger().error("Couldn't bind app: " + x);
                 x.printStackTrace();
             }
         }
 
         void unbind() {
-            Server.getLogger().log("Unbinding application " + appName);
+            Server.getLogger().info("Unbinding application " + appName);
 
             try {
                // unbind from RMI server
@@ -486,9 +488,13 @@ public class ApplicationManager implements XmlRpcHandler {
                 // unregister as XML-RPC handler
                 xmlrpcHandlers.remove(xmlrpcHandlerName);
             } catch (Exception x) {
-                Server.getLogger().log("Couldn't unbind app: " + x);
+                Server.getLogger().error("Couldn't unbind app: " + x);
             }
 
+        }
+
+        public String toString() {
+            return "[AppDescriptor "+app+"]";
         }
 
     }

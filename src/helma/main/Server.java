@@ -21,10 +21,15 @@ import helma.framework.*;
 import helma.framework.core.*;
 import helma.objectmodel.db.DbSource;
 import helma.util.*;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.xmlrpc.*;
 import org.mortbay.http.*;
 import org.mortbay.http.ajp.*;
-import org.mortbay.util.*;
+import org.mortbay.util.InetAddrPort;
+import org.mortbay.util.LogSink;
+import org.mortbay.util.MultiException;
+import org.mortbay.util.Frame;
 import java.io.*;
 import java.net.*;
 import java.rmi.registry.*;
@@ -47,10 +52,14 @@ public class Server implements IPathElement, Runnable {
     protected static File hopHome = null;
 
     // our logger
-    private static Logger logger;
+    private static Log logger;
+    // are we using helma.util.Logging?
+    private static boolean helmaLogging;
+
+    // server start time
     public final long starttime;
 
-    // if true we only accept RMI and XML-RPC connections from 
+    // if true we only accept RMI and XML-RPC connections from
     // explicitly listed hosts.
     public boolean paranoid;
     private ApplicationManager appManager;
@@ -142,6 +151,13 @@ public class Server implements IPathElement, Runnable {
 
         // create system properties
         sysProps = new SystemProperties(propfile);
+
+        // set the log factory property
+        String logFactory = sysProps.getProperty("loggerFactory",
+                                                 "helma.util.Logging");
+
+        helmaLogging = "helma.util.Logging".equals(logFactory);
+        System.setProperty("org.apache.commons.logging.LogFactory", logFactory);
 
         // check if there's a property setting for those ports not specified via command line
         if ((websrvPort == null) && (sysProps.getProperty("webPort") != null)) {
@@ -243,7 +259,7 @@ public class Server implements IPathElement, Runnable {
         try {
             hopHome = hopHome.getCanonicalFile();
         } catch (IOException iox) {
-            System.err.println("Error calling getCanonicalFile() on hopHome: " + iox);
+            hopHome = hopHome.getAbsoluteFile();
         }
 
         // set the current working directory to the helma home dir.
@@ -254,23 +270,23 @@ public class Server implements IPathElement, Runnable {
         System.setProperty("user.dir", hopHome.getPath());
 
         // from now on it's safe to call getLogger() because hopHome is set up
+        getLogger();
+
         String startMessage = "Starting Helma " + version + " on Java " +
                               System.getProperty("java.version");
 
-        getLogger().log(startMessage);
+        logger.info(startMessage);
 
         // also print a msg to System.out
         System.out.println(startMessage);
 
-        getLogger().log("propfile = " + propfile);
-        getLogger().log("hopHome = " + hopHome);
+        logger.info("Setting Helma Home to " + hopHome);
 
         File helper = new File(hopHome, "db.properties");
 
         dbPropfile = helper.getAbsolutePath();
         dbProps = new SystemProperties(dbPropfile);
         DbSource.setDefaultProps(dbProps);
-        getLogger().log("dbPropfile = " + dbPropfile);
 
         appsPropfile = sysProps.getProperty("appsPropFile");
 
@@ -282,7 +298,6 @@ public class Server implements IPathElement, Runnable {
 
         appsPropfile = helper.getAbsolutePath();
         appsProps = new SystemProperties(appsPropfile);
-        getLogger().log("appsPropfile = " + appsPropfile);
 
         paranoid = "true".equalsIgnoreCase(sysProps.getProperty("paranoid"));
 
@@ -298,9 +313,9 @@ public class Server implements IPathElement, Runnable {
             TimeZone.setDefault(TimeZone.getTimeZone(timezone));
         }
 
-        getLogger().log("Locale = " + Locale.getDefault());
-        getLogger().log("TimeZone = " +
-                        TimeZone.getDefault().getDisplayName(Locale.getDefault()));
+        // logger.debug("Locale = " + Locale.getDefault());
+        // logger.debug("TimeZone = " +
+        //                 TimeZone.getDefault().getDisplayName(Locale.getDefault()));
 
         dbSources = new Hashtable();
 
@@ -320,9 +335,9 @@ public class Server implements IPathElement, Runnable {
 
                     ext.init(this);
                     extensions.add(ext);
-                    getLogger().log("Loaded: " + extClassName);
+                    logger.info("Loaded: " + extClassName);
                 } catch (Throwable e) {
-                    getLogger().log("Error loading extension " + extClassName + ": " + e.toString());
+                    logger.error("Error loading extension " + extClassName + ": " + e.toString());
                 }
             }
         }
@@ -379,8 +394,8 @@ public class Server implements IPathElement, Runnable {
 
                 // disable Jetty logging  FIXME: seems to be a jetty bug; as soon
                 // as the logging is disabled, the more is logged
-                Log.instance().disableLog();
-                Log.instance().add(new LogSink() {
+                org.mortbay.util.Log.instance().disableLog();
+                org.mortbay.util.Log.instance().add(new LogSink() {
                         public String getOptions() {
                             return null;
                         }
@@ -434,7 +449,7 @@ public class Server implements IPathElement, Runnable {
                 }
 
                 ajp13.setRemoteServers(jkallowarr);
-                getLogger().log("Starting AJP13-Listener on port " + (ajp13Port));
+                logger.info("Starting AJP13-Listener on port " + (ajp13Port));
             }
 
             if (xmlrpcPort != null) {
@@ -463,7 +478,7 @@ public class Server implements IPathElement, Runnable {
                     }
                 }
 
-                getLogger().log("Starting XML-RPC server on port " + (xmlrpcPort));
+                logger.info("Starting XML-RPC server on port " + (xmlrpcPort));
             }
 
             if (rmiPort != null) {
@@ -484,7 +499,7 @@ public class Server implements IPathElement, Runnable {
                     RMISocketFactory.setSocketFactory(factory);
                 }
 
-                getLogger().log("Starting RMI server on port " + rmiPort);
+                logger.info("Starting RMI server on port " + rmiPort);
                 LocateRegistry.createRegistry(rmiPort.getPort());
 
                 // create application manager which binds to the given RMI port
@@ -501,7 +516,7 @@ public class Server implements IPathElement, Runnable {
             // add shutdown hook to close running apps and servers on exit
             Runtime.getRuntime().addShutdownHook(new HelmaShutdownHook(appManager));
         } catch (Exception gx) {
-            getLogger().log("Error initializing embedded database: " + gx);
+            logger.error("Error initializing embedded database: " + gx);
             gx.printStackTrace();
 
             return;
@@ -517,10 +532,10 @@ public class Server implements IPathElement, Runnable {
                                                                 .newInstance();
 
                 System.setSecurityManager(secMan);
-                getLogger().log("Setting security manager to " + secManClass);
+                logger.info("Setting security manager to " + secManClass);
             }
         } catch (Exception x) {
-            getLogger().log("Error setting security manager: " + x);
+            logger.error("Error setting security manager: " + x);
         }
 
         // start applications
@@ -531,7 +546,7 @@ public class Server implements IPathElement, Runnable {
             try {
                 http.start();
             } catch (MultiException m) {
-                getLogger().log("Error starting embedded web server: " + m);
+                logger.error("Error starting embedded web server: " + m);
             }
         }
 
@@ -539,7 +554,7 @@ public class Server implements IPathElement, Runnable {
             try {
                 ajp13.start();
             } catch (Exception m) {
-                getLogger().log("Error starting AJP13 listener: " + m);
+                logger.error("Error starting AJP13 listener: " + m);
             }
         }
 
@@ -552,7 +567,7 @@ public class Server implements IPathElement, Runnable {
             try {
                 appManager.checkForChanges();
             } catch (Exception x) {
-                getLogger().log("Caught in app manager loop: " + x);
+                logger.warn("Caught in app manager loop: " + x);
             }
         }
     }
@@ -574,24 +589,25 @@ public class Server implements IPathElement, Runnable {
     /**
      *  Get a logger to use for output in this server.
      */
-    public static Logger getLogger() {
+    public static Log getLogger() {
         if (logger == null) {
+            // get the logDir property
             String logDir = sysProps.getProperty("logdir", "log");
 
-            if ("console".equalsIgnoreCase(logDir)) {
-                logger = new Logger(System.out);
+            if ("console".equals(logDir)) {
+                logger = Logging.getConsoleLog();
             } else {
-                File helper = new File(logDir);
-
-                if ((hopHome != null) && !helper.isAbsolute()) {
-                    helper = new File(hopHome, logDir);
+                if (helmaLogging) {
+                    // set up helma.logdir system property
+                    File dir = new File(logDir);
+                    if (!dir.isAbsolute()) {
+                        dir = new File(hopHome, logDir);
+                    }
+                    System.setProperty("helma.logdir", dir.getAbsolutePath());
                 }
-
-                logDir = helper.getAbsolutePath();
-                logger = Logger.getLogger(logDir, "hop");
+                logger = LogFactory.getLog("helma.server");
             }
         }
-
         return logger;
     }
 

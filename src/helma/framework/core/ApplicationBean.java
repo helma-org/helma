@@ -72,7 +72,7 @@ public class ApplicationBean implements Serializable {
     public void log(String logname, Object msg) {
         String str = (msg == null) ? "null" : msg.toString();
 
-        app.getLogger(logname).log(str);
+        app.getLogger(logname).info(str);
     }
 
     /**
@@ -98,7 +98,7 @@ public class ApplicationBean implements Serializable {
         if (app.debug()) {
             String str = (msg == null) ? "null" : msg.toString();
 
-            app.getLogger(logname).log(str);
+            app.getLogger(logname).info(str);
         }
     }
 
