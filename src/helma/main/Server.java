@@ -24,7 +24,7 @@ import com.sleepycat.db.*;
  
  public class Server implements IPathElement, Runnable {
 
-    public static final String version = "1.2pre3 2002/04/26";
+    public static final String version = "1.2pre3 2002/05/14";
     public static final long starttime = System.currentTimeMillis();
 
     public static boolean useTransactions = true;
