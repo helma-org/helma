@@ -72,7 +72,7 @@ public class ESUser extends ESNode {
 
 
     public String toString () {
-	return ("UserNode "+node.getNameOrID ());
+	return ("UserObject "+node.getNameOrID ());
     }
 
 }
