@@ -1278,7 +1278,7 @@ public final class NodeManager {
 
             // if we do a groupby query (creating an intermediate layer of groupby nodes),
             // retrieve the value of that field instead of the primary key
-            String namefield = rel.accessName;
+            String namefield = (rel.groupby == null) ? rel.accessName : rel.groupby; 
             Connection con = rel.otherType.getConnection();
             String table = rel.otherType.getTableName();
 
