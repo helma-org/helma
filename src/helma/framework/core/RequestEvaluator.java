@@ -740,6 +740,17 @@ public class RequestEvaluator implements Runnable {
 	            return skin;
 	    }
 	    proto = app.getPrototype (n);
+	    // not found in node manager for this prototype.
+	    // the next step is to look if it is defined as skin file for this prototype
+	    if (proto != null) {
+	        skin = proto.getSkin (skinname);
+	        // if we have a thisObject and didn't find the skin, try in parent prototype
+	        if (skin == null && n != null) {
+	            proto = proto.getPrototype ();
+	            if (proto != null)
+	                skin = proto.getSkin (skinname);
+	        }
+	    }
 	} else {
 	    // the requested skin is global - start from currentNode (=end of request path) for app skin retrieval
 	    if (skinManager != null) {
@@ -748,14 +759,7 @@ public class RequestEvaluator implements Runnable {
 	            return skin;
 	    }
 	    proto = app.typemgr.getPrototype ("global");
-	}
-	if (proto != null)
 	    skin = proto.getSkin (skinname);
-	// if we have a thisObject and didn't find the skin, try in hopobject
-	if (skin == null && n != null) {
-	    proto = app.typemgr.getPrototype ("hopobject");
-	    if (proto != null)
-	        skin = proto.getSkin (skinname);
 	}
 	return skin;
     }
@@ -773,8 +777,13 @@ public class RequestEvaluator implements Runnable {
 	    }
 	}
 	// if this is not for the global prototype, also check hopobject
-	if (!"global".equalsIgnoreCase (prototype) && !"hopobject".equalsIgnoreCase (prototype))
-	    return getSkinFromNode (node, "hopobject", skinname);
+	
+	// NOT! inheritance is taken care of in the above getSkin method.
+	// the sequence is prototype.skin-from-db, prototype.skin-from-file, parent.from-db, parent.from-file etc.
+	
+	// if (!"global".equalsIgnoreCase (prototype) && !"hopobject".equalsIgnoreCase (prototype)) {
+	//     return getSkinFromNode (node, "hopobject", skinname);
+	// }
 	return null;
     }
 
