@@ -60,9 +60,6 @@ public final class ResponseTrans implements Serializable {
      */
     public String realm;
 
-    // name of the skin to be rendered  after completion, if any
-    public transient String skin = null;
-
     // the actual response
     private byte[] response = null;
 
@@ -113,13 +110,13 @@ public final class ResponseTrans implements Serializable {
     public transient String error;
 
     // the res.data map of form and cookie data
-    private transient Map values = new SystemMap();;
+    private transient Map values = new SystemMap();
 
     // the res.handlers map of macro handlers
-    private transient Map handlers = new SystemMap();;
+    private transient Map handlers = new SystemMap();
 
     // the res.meta map for meta response data
-    private transient Map meta = new SystemMap();;
+    private transient Map meta = new SystemMap();
     
     // the request trans for this response
     private transient RequestTrans reqtrans;
@@ -189,13 +186,18 @@ public final class ResponseTrans implements Serializable {
 
         buffers = null;
         response = null;
-        redir = null;
-        skin = null;
-        message = error = null;
+        cache = true;
+        redir = forward = message = error = null;
+        etag = realm = charset = null;
+        contentType =  "text/html";
         values.clear();
+        handlers.clear();
+        meta.clear();
         lastModified = -1;
         notModified = false;
-        etag = null;
+        skinpath = null;
+        skincache = null;
+        cookies = null;
 
         if (digest != null) {
             digest.reset();
