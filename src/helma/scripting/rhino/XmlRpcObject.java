@@ -107,13 +107,15 @@ public class XmlRpcObject extends BaseFunction {
             throw new JavaScriptException("Invalid method name");
         }
 
+        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+        RhinoCore c = engine.core;
+        Scriptable retval = null;
+
         try {
-            RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
-            RhinoCore c = engine.core;
+            retval = Context.getCurrentContext().newObject(c.global);
             XmlRpcClient client = new XmlRpcClient(url);
 
             // long now = System.currentTimeMillis ();
-            Object retval = null;
             int l = args.length;
             Vector v = new Vector();
 
@@ -122,9 +124,9 @@ public class XmlRpcObject extends BaseFunction {
                 v.addElement(arg);
             }
 
-            retval = client.execute(method, v);
+            Object result = client.execute(method, v);
 
-            return c.processXmlRpcArgument(retval);
+            retval.put("result", retval, c.processXmlRpcArgument(result));
 
         } catch (Exception x) {
             String msg = x.getMessage();
@@ -132,8 +134,10 @@ public class XmlRpcObject extends BaseFunction {
             if ((msg == null) || (msg.length() == 0)) {
                 msg = x.toString();
             }
-            throw new JavaScriptException(msg);
+            retval.put("error", retval, msg);
         }
+
+        return retval;
 
     }
 
