@@ -294,15 +294,16 @@ public class ESNode extends ObjectPrototype {
         if (!(pval[0] instanceof ESNode))
             return false;
         ESNode esn = (ESNode) pval[0];
-        INode n = esn.getNode ();
-        if (!(n instanceof helma.objectmodel.db.Node))
+        INode pn = esn.getNode ();
+        if (!(pn instanceof helma.objectmodel.db.Node))
             return false;
         // check if there is an additional string element - if so, it's the property name by which the node is
         // accessed, otherwise it will be accessed as anonymous subnode via its id
-        if (pval.length == 2)
-            ((helma.objectmodel.db.Node) node).setParent ((helma.objectmodel.db.Node) n, pval[1].toString ());
-        else
-            ((helma.objectmodel.db.Node) node).setParent ((helma.objectmodel.db.Node) n, null);
+        String propname = null;
+        if (pval.length == 2 && pval[1] != null && !(pval[1] instanceof ESNull))
+            propname = pval[1].toString ();
+        helma.objectmodel.db.Node n = (helma.objectmodel.db.Node) node;
+        n.setParent ((helma.objectmodel.db.Node) pn, propname);
         return true;
     }
 
