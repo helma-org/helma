@@ -144,6 +144,7 @@ public final class NodeManager {
 	// tx.timer.beginEvent ("getNode "+kstr);
 	Key key = tx.key;
 	key.recycle (dbmap, kstr);
+
 	// See if Transactor has already come across this node
 	Node node = tx.getVisitedNode (key);
 
@@ -158,7 +159,6 @@ public final class NodeManager {
 
 	    // The requested node isn't in the shared cache. Synchronize with key to make sure only one
 	    // version is fetched from the database.
-
 	    node = getNodeByKey (db, tx.txn, kstr, dbmap);
 	    key.recycle (dbmap, kstr);
 	    if (node != null) {
@@ -170,17 +170,16 @@ public final class NodeManager {
 	            }
 	        }  // synchronized
 	    }
-	} else {
-	    // cache hit
 	}
 
 	if (node != null) {
 	    tx.visitCleanNode (key.duplicate(), node);
 	}
-	// tx.timer.endEvent ("getNode "+kstr);
 
+	// tx.timer.endEvent ("getNode "+kstr);
 	return node;
     }
+
 
     public Node getNode (Node home, String kstr, Relation rel) throws Exception {
 
