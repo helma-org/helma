@@ -34,7 +34,8 @@ public class FileResource implements Resource {
         this.file = file;
 
         if (repository == null) {
-            name = shortName = file.getName();
+            name = file.getAbsolutePath();
+            shortName = file.getName();
         } else {
             this.repository = repository;
             name = repository.getName() + "/" + file.getName();
