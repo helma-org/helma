@@ -1,4 +1,4 @@
-This is the README file for version 1.2 of Helma Object Publisher.
+This is the README file for version 1.4.1 of Helma Object Publisher.
 
 ===========
 ABOUT HELMA
@@ -35,9 +35,9 @@ you already have a Java runtime that will work well with Helma.
 For other operating systems, please consult the documentation about the 
 availabilty of a Java 1.3 (or higher) runtime.
 
-=======================
-HELMA IMAGING EXTENSION
-=======================
+===============================================
+USING IMAGE MANIPULATION FEATURES WITH JAVA 1.3
+===============================================
 
 As of version 1.4.1, Helma uses a new Imaging extension contributed by 
 Juerg Lehni that is based on the javax.imageio.* package introduced with 
