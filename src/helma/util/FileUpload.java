@@ -63,7 +63,7 @@ public class FileUpload {
      * @throws MimeParserException ...
      * @throws IOException ...
      */
-    public void load(InputStream is, String contentType, int contentLength)
+    public void load(InputStream is, String contentType, int contentLength, String encoding)
               throws Exception {
         parts = new Hashtable();
 
@@ -129,7 +129,7 @@ public class FileUpload {
 
                 parts.put(name, part);
             } else {
-                parts.put(name, new String(newb));
+                parts.put(name, new String(newb, encoding));
             }
         }
     }

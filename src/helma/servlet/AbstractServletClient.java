@@ -120,13 +120,22 @@ public abstract class AbstractServletClient extends HttpServlet {
     protected void execute(HttpServletRequest request, HttpServletResponse response,
                            byte method) {
         RequestTrans reqtrans = new RequestTrans(method);
-        // get app and path from original request path
-        // String pathInfo = request.getPathInfo ();
-        // String appID = getAppID (pathInfo);
-        // reqtrans.path = getRequestPath (pathInfo);
+
         try {
+            // get the character encoding
+            String encoding = request.getCharacterEncoding();
+
+            if (encoding == null) {
+                // no encoding from request, use standard one
+                encoding = defaultEncoding;
+            }
+
+            if (encoding == null) {
+                encoding = "ISO-8859-1";
+            }
+
             // read and set http parameters
-            Map parameters = parseParameters(request);
+            Map parameters = parseParameters(request, encoding);
 
             for (Iterator i = parameters.entrySet().iterator(); i.hasNext();) {
                 Map.Entry entry = (Map.Entry) i.next();
@@ -149,7 +158,7 @@ public abstract class AbstractServletClient extends HttpServlet {
                     (contentType.indexOf("multipart/form-data") == 0)) {
                 // File Upload
                 try {
-                    FileUpload upload = getUpload(request);
+                    FileUpload upload = getUpload(request, encoding);
 
                     if (upload != null) {
                         Hashtable parts = upload.getParts();
@@ -410,7 +419,7 @@ public abstract class AbstractServletClient extends HttpServlet {
         res.setHeader("Location", location);
     }
 
-    FileUpload getUpload(HttpServletRequest request) throws Exception {
+    FileUpload getUpload(HttpServletRequest request, String encoding) throws Exception {
         int contentLength = request.getContentLength();
         BufferedInputStream in = new BufferedInputStream(request.getInputStream());
 
@@ -421,7 +430,7 @@ public abstract class AbstractServletClient extends HttpServlet {
         String contentType = request.getContentType();
         FileUpload upload = new FileUpload(uploadLimit);
 
-        upload.load(in, contentType, contentLength);
+        upload.load(in, contentType, contentLength, encoding);
 
         return upload;
     }
@@ -500,18 +509,7 @@ public abstract class AbstractServletClient extends HttpServlet {
         map.put(name, newValues);
     }
 
-    protected Map parseParameters(HttpServletRequest request) {
-        String encoding = request.getCharacterEncoding();
-
-        if (encoding == null) {
-            // no encoding from request, use standard one
-            encoding = defaultEncoding;
-        }
-
-        if (encoding == null) {
-            encoding = "ISO-8859-1";
-        }
-
+    protected Map parseParameters(HttpServletRequest request, String encoding) {
         HashMap parameters = new HashMap();
 
         // Parse any query string parameters from the request
@@ -542,7 +540,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 
                     len += next;
                 }
-
+                
                 // is.close();
                 parseParameters(parameters, buf, encoding);
             } catch (IllegalArgumentException e) {
