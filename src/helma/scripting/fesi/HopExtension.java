@@ -776,6 +776,7 @@ public final class HopExtension {
                        if (obj == null)
                            throw new RuntimeException ("hrefFunction "+hrefFunction+" returned null");
                        basicHref = obj.toString ();
+                       break;
                     }
                     funcElem = app.getParentElement (funcElem);
                 }
