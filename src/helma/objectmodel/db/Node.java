@@ -1249,12 +1249,15 @@ public final class Node implements INode, Serializable {
 	loadNodes ();
 	if (subnodes == null)
 	    return;
+	if (startIndex >= subnodes.size())
+	    return;
 	int l = Math.min (subnodes.size()-startIndex, length);
 	if (l < 1)
 	    return;
 	Key[] keys = new Key[l];
-	for (int i=startIndex; i<startIndex+l; i++)
-	    keys[i] = ((NodeHandle) subnodes.get (i)).getKey ();
+	for (int i=0; i<l; i++) {
+	    keys[i] = ((NodeHandle) subnodes.get (i+startIndex)).getKey ();
+	}
 	nmgr.nmgr.prefetchNodes (this, dbmap.getSubnodeRelation (), keys);
     }
 
