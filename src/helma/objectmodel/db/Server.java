@@ -36,7 +36,7 @@ import com.sleepycat.db.*;
     static String dbFilename = "hop.db";
     static String propfile;
     static String dbPropfile = "db.properties";
-    static String appsPropfile = "apps.properties";
+    static String appsPropfile;
     static SystemProperties appsProps;
     static int port = 5055;
     static int webport = 0;
@@ -45,11 +45,11 @@ import com.sleepycat.db.*;
 
     public static void main (String args[]) throws IOException {
 
+	String homeDir = null;
+
 	boolean usageError = false;
 
 	useTransactions = true;
-
-	String homeDir = null;
 
 	for (int i=0; i<args.length; i++) {
 	    if (args[i].equals ("-h") && i+1<args.length)
@@ -74,6 +74,25 @@ import com.sleepycat.db.*;
 	        usageError = true;
 	}
 
+	if (usageError ) {
+	    System.out.println ("usage: java helma.objectmodel.db.Server [-h dir] [-f file] [-p port] [-w port] [-t]");
+	    System.out.println ("  -h dir     Specify hop home directory");
+	    System.out.println ("  -f file    Specify server.properties file");
+	    System.out.println ("  -p port    Specify TCP port number");
+	    System.out.println ("  -w port    Start embedded Web server on that port");
+	    System.out.println ("  -t         Disable Berkeley DB Transactions");
+	    getLogger().log ("Usage Error - exiting");
+	    System.exit (0);
+	}
+
+	new Server (homeDir);
+
+    }
+
+    public Server (String home) {
+
+	String homeDir = home;
+
 	// get main property file from home dir or vice versa, depending on what we have.
 	// get property file from hopHome
 	if (propfile == null) {
@@ -96,22 +115,16 @@ import com.sleepycat.db.*;
 	getLogger().log ("propfile = "+propfile);
 	getLogger().log ("hopHome = "+hopHome);
 
-	if (usageError ) {
-	    System.out.println ("usage: java helma.objectmodel.db.Server [-h dir] [-f file] [-p port] [-w port] [-t]");
-	    System.out.println ("  -h dir     Specify hop home directory");
-	    System.out.println ("  -f file    Specify server.properties file");
-	    System.out.println ("  -p port    Specify TCP port number");
-	    System.out.println ("  -w port    Start embedded Web server on that port");
-	    System.out.println ("  -t         Disable Berkeley DB Transactions");
-	    getLogger().log ("Usage Error - exiting");
-	    System.exit (0);
-	}
 
 	File helper = new File (hopHome, "db.properties");
 	dbPropfile = helper.getAbsolutePath ();
 	getLogger().log ("dbPropfile = "+dbPropfile);
 
-	helper = new File (hopHome, "apps.properties");
+	appsPropfile = sysProps.getProperty ("appsPropFile");
+	if (appsPropfile != null && !"".equals (appsPropfile.trim()))
+	    helper = new File (appsPropfile);
+	else
+	    helper = new File (hopHome, "apps.properties");
 	appsPropfile = helper.getAbsolutePath ();
 	getLogger().log ("appsPropfile = "+appsPropfile);
 
@@ -130,12 +143,6 @@ import com.sleepycat.db.*;
 	getLogger().log ("TimeZone = "+TimeZone.getDefault());
 
 	dbSources = new Hashtable ();
-
-	new Server ();
-
-    }
-
-    public Server () {
 
 	try {
 	    checkRunning ();  // check if a server is already running with this db
