@@ -840,28 +840,21 @@ public final class Node implements INode, Serializable {
             Relation srel = dbmap.getSubnodeRelation();
 
             if ((srel != null) && (srel.groupby != null)) {
-                try {
-                    Relation groupbyRel = srel.otherType.columnNameToRelation(srel.groupby);
-                    String groupbyProp = (groupbyRel != null) ? groupbyRel.propName
+                Relation groupbyRel = srel.otherType.columnNameToRelation(srel.groupby);
+                String groupbyProp = (groupbyRel != null) ? groupbyRel.propName
                                                               : srel.groupby;
-                    String groupbyValue = node.getString(groupbyProp);
-                    INode groupbyNode = getNode(groupbyValue);
+                String groupbyValue = node.getString(groupbyProp);
+                INode groupbyNode = getNode(groupbyValue);
 
-                    // if group-by node doesn't exist, we'll create it
-                    if (groupbyNode == null) {
-                        groupbyNode = getGroupbySubnode(groupbyValue, true);
-                    } else {
-                        groupbyNode.setDbMapping(dbmap.getGroupbyMapping());
-                    }
-
-                    groupbyNode.addNode(node);
-
-                    return node;
-                } catch (Exception x) {
-                    System.err.println("Error adding groupby: " + x);
-
-                    return null;
+                // if group-by node doesn't exist, we'll create it
+                if (groupbyNode == null) {
+                    groupbyNode = getGroupbySubnode(groupbyValue, true);
+                } else {
+                    groupbyNode.setDbMapping(dbmap.getGroupbyMapping());
                 }
+
+                groupbyNode.addNode(node);
+                return node;
             }
         }
 
@@ -896,11 +889,14 @@ public final class Node implements INode, Serializable {
                     String prop = node.getString(propname);
 
                     if ((prop != null) && (prop.length() > 0)) {
-                        INode old = getNode(prop);
+                        INode old = (INode) getChildElement(prop);
 
                         if ((old != null) && (old != node)) {
-                            unset(prop);
-                            removeNode(old);
+                            // FIXME: we delete the existing node here, 
+                            // but actually the app developer should prevent this from 
+                            // happening, so it might be better to throw an exception.
+                            old.remove();
+                            this.removeNode(old);
                         }
 
                         setNode(prop, node);
