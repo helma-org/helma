@@ -44,7 +44,7 @@ public final class Prototype {
     Resource[] resources;
 
     // tells us the checksum of the repositories at the time we last updated them
-    long lastChecksum = 0;
+    long lastChecksum = -1;
 
     // the time at which any of the prototype's files were found updated the last time
     long lastCodeUpdate = 0;
