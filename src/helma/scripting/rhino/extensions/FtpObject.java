@@ -23,7 +23,6 @@ import org.mozilla.javascript.Function;
 import org.mozilla.javascript.FunctionObject;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
-import org.mozilla.javascript.PropertyException;
 import org.mozilla.javascript.Undefined;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
@@ -44,8 +43,7 @@ public class FtpObject extends ScriptableObject {
     /**
      * Create a new FTP Client
      *
-     * @param prototype The prototype object for the FTP object
-     * @param evaluator The current evaluator
+     * @param srvstr the name of the server to connect to
      */
     FtpObject(String srvstr) {
         this.server = srvstr;
@@ -93,7 +91,8 @@ public class FtpObject extends ScriptableObject {
     /**
      * Login to the FTP server
      *
-     * @param   arguments  The argument list
+     * @param   username the user name
+     * @param   password the user's password
      * @return  true if successful, false otherwise
      */
     public boolean login(String username, String password) {
@@ -244,7 +243,6 @@ public class FtpObject extends ScriptableObject {
     /**
      * Disconnect from FTP server
      *
-     * @param   arguments  The argument list
      * @return  true if successful, false otherwise
      */
     public boolean logout() {
