@@ -1,4 +1,4 @@
-// ScriptingEnvironment.java
+// ScriptingEngine.java
 // Copyright (c) Hannes Wallnöfer 1998-2001
 
 package helma.scripting;
@@ -13,23 +13,26 @@ import java.io.File;
  * This is the interface that must be implemented to make a scripting environment
  * usable by the Helma application server.
  */
-public interface ScriptingEnvironment {
+public interface ScriptingEngine {
 
     /**
-     * Initialize the environment using the given properties
+     *  This method is called when an execution context for a request
+     *  evaluation is entered. The globals parameter contains the global values
+     *  to be applied during this executino context.
      */
-    // public void init (Application app, Properties props) throws ScriptingException;
+    public void enterContext (HashMap globals) throws ScriptingException;
 
     /**
-     * A prototype has been updated and must be re-evaluated.
+     *   This method is called to let the scripting engine know that the current
+     *   execution context has terminated.
      */
-    // public void updatePrototype (Prototype prototype);
+    public void exitContext ();
+
 
     /**
      * Invoke a function on some object, using the given arguments and global vars.
      */
-    public Object invoke (Object thisObject, String functionName, Object[] args,
-		HashMap globals)
+    public Object invoke (Object thisObject, String functionName, Object[] args)
 		throws ScriptingException;
 
     /**

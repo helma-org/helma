@@ -11,7 +11,7 @@ import helma.framework.core.*;
  */
 public final class FesiEngineFactory  {
 
-    public static ScriptingEnvironment getEnvironment (Application app, RequestEvaluator reval) {
+    public static ScriptingEngine getEngine (Application app, RequestEvaluator reval) {
 	return new FesiEvaluator (app, reval);
     }
 	
