@@ -88,22 +88,50 @@ public class DbSource {
         lastRead = (defaultProps == null) ? props.lastModified()
                                           : Math.max(props.lastModified(),
                                                      defaultProps.lastModified());
+        // get JDBC URL and driver class name
+        url = props.getProperty(name + ".url");
+        driver = props.getProperty(name + ".driver");
+        // sanity checks
+        if (url == null) {
+            throw new NullPointerException(name+".url is not defined in db.properties");
+        }
+        if (driver == null) {
+            throw new NullPointerException(name+".driver class not defined in db.properties");
+        }
+        // test if this is an Oracle driver
+        isOracle = driver.startsWith("oracle.jdbc.driver");
+        // test if driver class is available
+        Class.forName(driver);
+
+        // set up driver connection properties
         conProps=new Properties();
+        String prop = props.getProperty(name + ".user");
+        if (prop != null) {
+            conProps.put("user", prop);
+        }
+        prop = props.getProperty(name + ".password");
+        if (prop != null) {
+            conProps.put("password", prop);
+        }
+
+        // read any remaining extra properties to be passed to the driver
         for (Enumeration e = props.keys(); e.hasMoreElements(); ) {
-            String key = (String) e.nextElement();
-            if (!key.toLowerCase().startsWith(name.toLowerCase()))
-                continue;
-            if (key.equalsIgnoreCase(name + ".url")) {
-                url = props.getProperty(key);
-                continue;
-            }
-            if (key.equalsIgnoreCase(name + ".driver")) {
-                driver = props.getProperty(key);
-                isOracle = driver != null && driver.startsWith("oracle.jdbc");
-                Class.forName(driver);
+            String fullkey = (String) e.nextElement();
+
+            int dot = fullkey.indexOf('.');
+            // filter out properties that don't belong to this data source
+            if (dot < 0 || !fullkey.substring(0, dot).equalsIgnoreCase(name)) {
                 continue;
             }
-            conProps.setProperty(key.substring(name.length()+1), props.getProperty(key));
+            String key = fullkey.substring(dot+1);
+            // filter out properties we alread have
+            if ("url".equalsIgnoreCase(key) ||
+                "driver".equalsIgnoreCase(key) ||
+                "user".equalsIgnoreCase(key) ||
+                "password".equalsIgnoreCase(key)) {
+                continue;
+            }
+            conProps.setProperty(key, props.getProperty(fullkey));
         }
     }
 
