@@ -142,7 +142,8 @@ public class Relation {
 	aggressiveCaching = caching != null && "aggressive".equalsIgnoreCase (caching.trim());
 	// get order property
 	order = props.getProperty (propname+".order");
-	if (order != null && order.trim().length() == 0) order = null;
+	if (order != null && order.trim().length() == 0)
+	    order = null;
 	// get group by property
 	groupby = props.getProperty (propname+".groupby");
 	if (groupby != null && groupby.trim().length() == 0)
@@ -161,6 +162,7 @@ public class Relation {
 	        if (subnodefilter != null) {
 	            filter = new Relation (subnodefilter, propname+".subnoderelation", home, props);
 	            filter.groupby = groupby;
+	            filter.order = order;
 	        }
 	    }
 	}
