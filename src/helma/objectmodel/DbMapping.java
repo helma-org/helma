@@ -444,7 +444,7 @@ public class DbMapping implements Updatable {
 	        groupbyMapping.propertiesRel = propertiesRel.getGroupbyPropertyRelation ();
 	    else
 	        groupbyMapping.propertiesRel = subnodesRel.getGroupbyPropertyRelation ();
-	    groupbyMapping.typename = subnodesRel.prototype;
+	    groupbyMapping.typename = subnodesRel.groupbyprototype;
 	}
 	return groupbyMapping;
     }
