@@ -152,7 +152,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	        this.lvalue =  date.getTime ();
 	        return;
 	    } catch (ParseException nodate) {
-	        IServer.getLogger().log ("Couldn't parse date: was expecting something like "+dateformat.format (new Date()));
+	        node.nmgr.logEvent ("Couldn't parse date: was expecting something like "+dateformat.format (new Date()));
 	        // store as plain string
 	    }
 	}

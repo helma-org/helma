@@ -18,7 +18,7 @@ public abstract class IServer {
     public static SystemProperties sysProps, dbProps;
     public static Hashtable dbSources;
 
-    protected static String hopHome = null;
+    protected static File hopHome = null;
 
     private static Logger logger;
 
@@ -65,7 +65,7 @@ public abstract class IServer {
 	return logger;
     }
 
-    public static String getHopHome () {
+    public static File getHopHome () {
 	return hopHome;
     }
 

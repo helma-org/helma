@@ -35,7 +35,6 @@ import com.sleepycat.db.*;
     static String dbPropfile = "db.properties";
     static String appsPropfile = "apps.properties";
     static SystemProperties appsProps;
-    static String dbDir = null;
     static int port = 5055;
     static int webport = 0;
 
@@ -47,9 +46,11 @@ import com.sleepycat.db.*;
 
 	useTransactions = true;
 
+	String homeDir = null;
+
 	for (int i=0; i<args.length; i++) {
 	    if (args[i].equals ("-h") && i+1<args.length)
-	        hopHome = args[++i];
+	        homeDir = args[++i];
 	    else if (args[i].equals ("-f") && i+1<args.length)
 	        propfile = args[++i];
 	    else if (args[i].equals ("-t"))
@@ -73,17 +74,21 @@ import com.sleepycat.db.*;
 	// get main property file from home dir or vice versa, depending on what we have.
 	// get property file from hopHome
 	if (propfile == null) {
-	    if (hopHome != null)
-	        propfile = new File (hopHome, "server.properties").getAbsolutePath ();
+	    if (homeDir != null)
+	        propfile = new File (homeDir, "server.properties").getAbsolutePath ();
 	    else
 	        propfile = new File ("server.properties").getAbsolutePath ();
 	}
+
 	sysProps = new SystemProperties (propfile);
 	// get hopHome from property file
-	if (hopHome == null)
-	    hopHome = sysProps.getProperty ("hophome");
-	if (hopHome == null)
-	    hopHome =  new File (propfile).getParent ();
+	if (homeDir == null)
+	    homeDir = sysProps.getProperty ("hophome");
+	if (homeDir == null)
+	    homeDir =  new File (propfile).getParent ();
+
+	// create hopHome File object
+	hopHome = new File (homeDir);
 
 	getLogger().log ("propfile = "+propfile);
 	getLogger().log ("hopHome = "+hopHome);
@@ -99,34 +104,13 @@ import com.sleepycat.db.*;
 	    System.exit (0);
 	}
 
-	dbDir = sysProps.getProperty ("dbhome", "db");
-	File helper = new File (dbDir);
-	if (hopHome != null && !helper.isAbsolute ())
-	    helper = new File (hopHome, dbDir);
-	dbDir = helper.getAbsolutePath ();
-	getLogger().log ("dbHome = "+dbDir);
-
-	dbPropfile = sysProps.getProperty ("dbpropfile", "db.properties");
-	helper = new File (dbPropfile);
-	if (hopHome != null && !helper.isAbsolute ())
-	    helper = new File (hopHome, dbPropfile);
+	File helper = new File (hopHome, "db.properties");
 	dbPropfile = helper.getAbsolutePath ();
 	getLogger().log ("dbPropfile = "+dbPropfile);
 
-	appsPropfile = sysProps.getProperty ("appspropfile", "apps.properties");
-	helper = new File (appsPropfile);
-	if (hopHome != null && !helper.isAbsolute ())
-	    helper = new File (hopHome, appsPropfile);
+	helper = new File (hopHome, "apps.properties");
 	appsPropfile = helper.getAbsolutePath ();
 	getLogger().log ("appsPropfile = "+appsPropfile);
-
-	File libdir = new File (hopHome, "lib");
-	Properties p = System.getProperties ();
-	String libpath = p.getProperty ("java.library.path");
-	if (libpath != null && libpath.length () > 0)
-	    p.put ("java.library.path", libpath+System.getProperty("path.separator")+libdir.getCanonicalPath());
-	else
-	    p.put ("java.library.path", libdir.getCanonicalPath());
 
 	paranoid = "true".equalsIgnoreCase (sysProps.getProperty ("paranoid"));
 
@@ -225,21 +209,13 @@ import com.sleepycat.db.*;
 
 
 	    // start application framework
-	    String appDir = sysProps.getProperty ("apphome", "apps");
-	    File appHome = new File (appDir);
-	    if (hopHome != null && !appHome.isAbsolute())
-	        appHome = new File (hopHome, appDir);
 	    appsProps = new SystemProperties (appsPropfile);
-	    File dbHome = new File (dbDir);
-	    appManager = new ApplicationManager (port, appHome, dbHome, appsProps, this);
+	    appManager = new ApplicationManager (port, hopHome, appsProps, this);
 
 
 	} catch (Exception gx) {
 	    getLogger().log ("Error initializing embedded database: "+gx);
 	    gx.printStackTrace ();
-	    /* try {
-	        transactor.abort ();
-	    } catch (Exception ignore) {} */
 	    return;
              }
 

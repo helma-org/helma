@@ -27,7 +27,7 @@ import java.util.Vector;
 	} catch (ObjectNotFoundException x) {
 	    return null;
 	} catch (Exception x) {
-	    Server.getLogger().log ("Error retrieving Node via DbMapping: "+x.getMessage ());
+	    nmgr.app.logEvent ("Error retrieving Node via DbMapping: "+x.getMessage ());
 	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
 	        x.printStackTrace();
 	    throw new RuntimeException ("Error retrieving Node: "+x.getMessage ());
@@ -40,7 +40,7 @@ import java.util.Vector;
 	} catch (ObjectNotFoundException x) {
 	    return null;
 	} catch (Exception x) {
-	    Server.getLogger().log ("Error retrieving Node \""+id+"\" from "+home+": "+x.getMessage ());
+	    nmgr.app.logEvent ("Error retrieving Node \""+id+"\" from "+home+": "+x.getMessage ());
 	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
 	        x.printStackTrace();
 	    throw new RuntimeException ("Error retrieving Node: "+x.getMessage ());
@@ -132,6 +132,14 @@ import java.util.Vector;
 
     public Object[] getCacheEntries () {
 	return nmgr.getCacheEntries ();
+    }
+
+    public void logEvent (String msg) {
+	nmgr.app.logEvent (msg);
+    }
+
+    public DbMapping getDbMapping (String name) {
+	return nmgr.app.getDbMapping (name);
     }
 
 

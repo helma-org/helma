@@ -325,12 +325,12 @@ public class Node implements INode, Serializable {
 	if (!current.isActive ())
 	    throw new helma.framework.TimeoutException ();
 	if (state == INVALID) {
-	    IServer.getLogger().log ("Got Invalid Node: "+this);
+	    nmgr.logEvent ("Got Invalid Node: "+this);
 	    Thread.dumpStack ();
 	    throw new ConcurrencyException ("Node "+this+" was invalidated by another thread.");
 	}
 	if (lock != null && lock != current && lock.isAlive () && lock.isActive ()) {
-	    IServer.getLogger().log ("Concurrency conflict for "+this+", lock held by "+lock);
+	    nmgr.logEvent ("Concurrency conflict for "+this+", lock held by "+lock);
 	    throw new ConcurrencyException ("Tried to modify "+this+" from two threads at the same time.");
 	}
 	current.visitNode (this);
@@ -593,20 +593,24 @@ public class Node implements INode, Serializable {
     public INode getParent () {
 
 	// check what's specified in the type.properties for this node.
-	String[] parentProps = null;
+	ParentInfo[] parentInfo = null;
 	if (dbmap != null && dbmap.isRelational ())
-	    parentProps = dbmap.getParentPropNames ();
+	    parentInfo = dbmap.getParentInfo ();
 
 	// check if current parent candidate matches presciption, if not, try to get it
-	if (parentProps != null) {
-	    for (int i=0; i<parentProps.length; i++) {
-	        INode pn = getNode (parentProps[i], false);
+	if (parentInfo != null) {
+	    for (int i=0; i<parentInfo.length; i++) {
+	        ParentInfo pinfo = parentInfo[i];
+	        INode pn = getNode (pinfo.propname, false);
+	        if (pinfo.isroot && pn == null)
+	            pn = nmgr.getNode ("0", nmgr.getDbMapping ("root"));
 	        if (pn != null) {
 	            // see if dbmapping specifies anonymity for this node
-	            Boolean[] ano = dbmap.getAnonymous ();
-	            if (ano != null && ano.length > i)
-	                anonymous = ano[i].booleanValue();
-	            return pn;
+	            anonymous = !pinfo.named;
+	            if (pinfo.virtualname != null)
+	                pn = pn.getNode (pinfo.virtualname, false);
+	            if (pn != null)
+	                return pn;
 	        }
 	    }
 	}
@@ -895,7 +899,7 @@ public class Node implements INode, Serializable {
 	        return node;
 	    }
 	} catch (Exception noluck) {
-	    IServer.getLogger ().log ("Error creating group-by node for "+sid+": "+noluck);
+	    nmgr.logEvent ("Error creating group-by node for "+sid+": "+noluck);
 	}
 	return null;
     }
@@ -911,7 +915,7 @@ public class Node implements INode, Serializable {
 
 
     public void removeNode (INode node) {
-	IServer.getLogger().log ("removing: "+ node);
+	nmgr.logEvent ("removing: "+ node);
 	Node n = (Node) node;
 	checkWriteLock ();
 	n.checkWriteLock ();
@@ -969,7 +973,7 @@ public class Node implements INode, Serializable {
 	// Server.throwNodeEvent (new NodeEvent (node, NodeEvent.NODE_REMOVED));
 	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.SUBNODE_REMOVED, node));
 	lastmodified = System.currentTimeMillis ();
-	// IServer.getLogger().log ("released node "+node +" from "+this+"     oldobj = "+what);
+	// nmgr.logEvent ("released node "+node +" from "+this+"     oldobj = "+what);
 	if (state == CLEAN) markAs (MODIFIED);
     }
 
@@ -994,7 +998,7 @@ public class Node implements INode, Serializable {
 	        String pid = (String) e1.nextElement ();
 	        Node pnode = nmgr.getNode (pid, null);
 	        if (pnode != null) {
-	            IServer.getLogger().log("Warning: Can't unset node property of "+pnode.getFullName ());
+	            nmgr.logEvent("Warning: Can't unset node property of "+pnode.getFullName ());
 	        }
 	    } catch (Exception ignore) {}
 	}
@@ -1163,7 +1167,7 @@ public class Node implements INode, Serializable {
     }
 
     protected Property getProperty (String propname, boolean inherit) {
-	// IServer.getLogger().log ("GETTING PROPERTY: "+propname);
+	// nmgr.logEvent ("GETTING PROPERTY: "+propname);
 	if (propname == null)
 	    return null;
 	Property prop = propMap == null ? null : (Property) propMap.get (propname.toLowerCase ());
@@ -1275,7 +1279,7 @@ public class Node implements INode, Serializable {
     }
 
     public void setString (String propname, String value) {
-	// IServer.getLogger().log ("setting String prop");
+	// nmgr.logEvent ("setting String prop");
 	checkWriteLock ();
 
 	if (propMap == null)
@@ -1337,7 +1341,7 @@ public class Node implements INode, Serializable {
     }
 
     public void setInteger (String propname, long value) {
-	// IServer.getLogger().log ("setting bool prop");
+	// nmgr.logEvent ("setting bool prop");
 	checkWriteLock ();
 
 	if (propMap == null)
@@ -1360,7 +1364,7 @@ public class Node implements INode, Serializable {
     }
 
     public void setFloat (String propname, double value) {
-	// IServer.getLogger().log ("setting bool prop");
+	// nmgr.logEvent ("setting bool prop");
 	checkWriteLock ();
 
 	if (propMap == null)
@@ -1383,7 +1387,7 @@ public class Node implements INode, Serializable {
     }
 
     public void setBoolean (String propname, boolean value) {
-	// IServer.getLogger().log ("setting bool prop");
+	// nmgr.logEvent ("setting bool prop");
 	checkWriteLock ();
 
 	if (propMap == null)
@@ -1407,7 +1411,7 @@ public class Node implements INode, Serializable {
 
 
     public void setDate (String propname, Date value) {
-	// IServer.getLogger().log ("setting date prop");
+	// nmgr.logEvent ("setting date prop");
 	checkWriteLock ();
 
 	if (propMap == null)
@@ -1430,7 +1434,7 @@ public class Node implements INode, Serializable {
     }
 
     public void setJavaObject (String propname, Object value) {
-	// IServer.getLogger().log ("setting jobject prop");
+	// nmgr.logEvent ("setting jobject prop");
 	checkWriteLock ();
 
 	if (propMap == null)
@@ -1453,7 +1457,7 @@ public class Node implements INode, Serializable {
     }
 
     public void setNode (String propname, INode value) {
-	// IServer.getLogger().log ("setting node prop");
+	// nmgr.logEvent ("setting node prop");
 	checkWriteLock ();
 
     	Node n = null;
@@ -1473,8 +1477,8 @@ public class Node implements INode, Serializable {
 	    n.setParent (this);
 	    n.name = propname;
 	    n.anonymous = false;
-	    // IServer.getLogger().log ("adopted named node: "+n.getFullName ());
-	} // else IServer.getLogger().log ("not adopted: "+n.getFullName ());
+	    // nmgr.logEvent ("adopted named node: "+n.getFullName ());
+	} // else nmgr.logEvent ("not adopted: "+n.getFullName ());
 
 	if (propMap == null)
 	    propMap = new Hashtable ();
@@ -1689,7 +1693,7 @@ public class Node implements INode, Serializable {
 
 	byte retval[] = new byte[content.length];
 	System.arraycopy (content, 0, retval, 0, content.length);
-	// IServer.getLogger().log ("copied "+retval.length+ " bytes");
+	// nmgr.logEvent ("copied "+retval.length+ " bytes");
 	return retval;
     }
 

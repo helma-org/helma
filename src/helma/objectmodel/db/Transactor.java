@@ -137,19 +137,19 @@ public class Transactor extends Thread {
 	        nmgr.insertNode (nmgr.db, txn, node);
 	        node.setState (Node.CLEAN);
 	        ins++;
-	        IServer.getLogger().log ("inserted: Node "+node.getName ()+"/"+node.getID ());
+	        nmgr.app.logEvent ("inserted: Node "+node.getName ()+"/"+node.getID ());
 	    } else if (nstate == Node.MODIFIED) {
 	        nmgr.updateNode (nmgr.db, txn, node);
 	        node.setState (Node.CLEAN);
 	        upd++;
-	        IServer.getLogger().log ("updated: Node "+node.getName ()+"/"+node.getID ());
+	        nmgr.app.logEvent ("updated: Node "+node.getName ()+"/"+node.getID ());
 	    } else if (nstate == Node.DELETED) {
-	        // IServer.getLogger().log ("deleted: "+node.getFullName ()+" ("+node.getName ()+")");
+	        // nmgr.app.logEvent ("deleted: "+node.getFullName ()+" ("+node.getName ()+")");
 	        nmgr.deleteNode (nmgr.db, txn, node);
 	        nmgr.evictNode (node);
 	        dlt++;
 	    } else {
-	        // IServer.getLogger().log ("noop: "+node.getFullName ());
+	        // nmgr.app.logEvent ("noop: "+node.getFullName ());
 	    }
 	    node.clearWriteLock ();
 	}
@@ -168,7 +168,7 @@ public class Transactor extends Thread {
 	    txn = null;
 	}
 
-	IServer.getLogger().log (tname+" "+l+" marked, "+ins+" inserted, "+upd+" updated, "+dlt+" deleted in "+(System.currentTimeMillis()-tstart)+" millis");
+	nmgr.app.logAccess (tname+" "+l+" marked, "+ins+" inserted, "+upd+" updated, "+dlt+" deleted in "+(System.currentTimeMillis()-tstart)+" millis");
     }
 
     public synchronized void abort () throws Exception {
@@ -191,7 +191,7 @@ public class Transactor extends Thread {
 	        nmgr.db.abortTransaction (txn);
 	        txn = null;
 	    }
-	    IServer.getLogger().log (tname+" aborted after "+(System.currentTimeMillis()-tstart)+" millis");
+	    nmgr.app.logEvent (tname+" aborted after "+(System.currentTimeMillis()-tstart)+" millis");
 	}
     }
 
@@ -214,13 +214,13 @@ public class Transactor extends Thread {
     }
 
     public void closeConnections () {
-	// IServer.getLogger().log("Cleaning up Transactor thread");
+	// nmgr.app.logEvent("Cleaning up Transactor thread");
 	if (sqlCon != null) {
 	    for (Iterator i=sqlCon.values().iterator(); i.hasNext(); ) {
 	        try {
 	            Connection con = (Connection) i.next();
 	            con.close ();
-	            IServer.getLogger ().log ("Closing DB connection: "+con);
+	            nmgr.app.logEvent ("Closing DB connection: "+con);
 	        } catch (Exception ignore) {}
 	    }
 	    sqlCon.clear ();

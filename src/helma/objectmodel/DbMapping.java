@@ -25,8 +25,8 @@ public class DbMapping {
     DbSource source;
     String table;
 
-    String[] parent;  // list of properties to try for parent
-    Boolean[] anonymous;  // are parent relations anonymous or not?
+    ParentInfo[] parent;  // list of properties to try for parent
+
     DbMapping subnodes;
     DbMapping properties;
     private Relation subnodesRel;
@@ -110,6 +110,16 @@ public class DbMapping {
 
 	nameField = props.getProperty ("_name");
 
+	String parentMapping = props.getProperty ("_parent");
+	if (parentMapping != null) {
+	    // comma-separated list of properties to be used as parent
+	    StringTokenizer st = new StringTokenizer (parentMapping, ",;");
+	    parent = new ParentInfo[st.countTokens()];
+	    for (int i=0; i<parent.length; i++)
+	        parent[i] = new ParentInfo (st.nextToken().trim());
+	} else
+	    parent = null;
+
 	lastTypeChange = lastmod;
 	// set the cached schema & keydef to null so it's rebuilt the next time around
 	schema = null;
@@ -124,7 +134,7 @@ public class DbMapping {
     public synchronized void rewire () {
 
 	// if (table != null && source != null) {
-	// IServer.getLogger().log ("set data source for "+typename+" to "+source);
+	// app.logEvent ("set data source for "+typename+" to "+source);
 	Hashtable p2d = new Hashtable ();
 	Hashtable d2p = new Hashtable ();
 
@@ -138,35 +148,15 @@ public class DbMapping {
 	            p2d.put (propName, rel);
 	            if (rel.localField != null)
 	                d2p.put (rel.localField, rel);
-	            // IServer.getLogger().log ("Mapping "+propName+" -> "+dbField);
+	            // app.logEvent ("Mapping "+propName+" -> "+dbField);
 	        }
 	    } catch (Exception x) {
-	        IServer.getLogger ().log ("Error in type.properties: "+x.getMessage ());
+	        app.logEvent ("Error in type.properties: "+x.getMessage ());
 	    }
 	}
 
 	prop2db = p2d;
 	db2prop = d2p;
-
-	String ano = props.getProperty ("_anonymous");
-	if (ano != null) {
-	    // comma-separated list of true/false values
-	    StringTokenizer st = new StringTokenizer (ano, ",; ");
-	    anonymous = new Boolean[st.countTokens()];
-	    for (int i=0; i<anonymous.length; i++)
-	        anonymous[i] = "false".equalsIgnoreCase (st.nextToken().trim()) ? Boolean.FALSE : Boolean.TRUE;
-	} else
-	    anonymous = null;
-
-	String parentMapping = props.getProperty ("_parent");
-	if (parentMapping != null) {
-	    // comma-separated list of properties to be used as parent
-	    StringTokenizer st = new StringTokenizer (parentMapping, ",; ");
-	    parent = new String[st.countTokens()];
-	    for (int i=0; i<parent.length; i++)
-	        parent[i] = st.nextToken().trim();
-	} else
-	    parent = null;
 
 	String subnodeMapping = props.getProperty ("_subnodes");
 	if (subnodeMapping != null) {
@@ -177,7 +167,7 @@ public class DbMapping {
 	        else
 	            subnodes = (DbMapping) app.getDbMapping (subnodeMapping);
 	    } catch (Exception x) {
-	        IServer.getLogger ().log ("Error in type.properties: "+x.getMessage ());
+	        app.logEvent ("Error in type.properties: "+x.getMessage ());
 	        subnodesRel = null;
 	    }
 	} else
@@ -195,13 +185,13 @@ public class DbMapping {
 	        if (propertiesRel.subnodesAreProperties && subnodesRel != null)
 	            propertiesRel.groupby = subnodesRel.groupby;
 	    } catch (Exception x) {
-	        IServer.getLogger ().log ("Error in type.properties: "+x.getMessage ());
+	        app.logEvent ("Error in type.properties: "+x.getMessage ());
 	        propertiesRel = null;
 	    }
 	} else
 	    propertiesRel = null;
 
-	IServer.getLogger().log ("rewiring: "+this);
+	app.logEvent ("rewiring: "+this);
     }
 
 
@@ -264,13 +254,13 @@ public class DbMapping {
 	return (Relation) prop2db.get (propName);
     }
 
-    public synchronized String[] getParentPropNames () {
+    public synchronized ParentInfo[] getParentInfo () {
 	return parent;
     }
 
-    public synchronized Boolean[] getAnonymous () {
+    /* public synchronized Boolean[] getAnonymous () {
 	return anonymous;
-    }
+    }*/
 
     public DbMapping getSubnodeMapping () {
 	return subnodes;
@@ -382,6 +372,7 @@ public class DbMapping {
     public long getLastTypeChange () {
 	return lastTypeChange;
     }
+
 
 }
 

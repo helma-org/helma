@@ -24,15 +24,14 @@ public class ApplicationManager {
 
     private Hashtable applications;
     private int port;
-    private File appHome, dbHome;
+    private File hopHome;
     private SystemProperties props;
     private Server server;
     private long lastModified;
 
-    public ApplicationManager (int port, File appHome, File dbHome, SystemProperties props, Server server) {
+    public ApplicationManager (int port, File hopHome, SystemProperties props, Server server) {
 	this.port = port;
-	this.appHome = appHome;
-	this.dbHome = dbHome;
+	this.hopHome = hopHome;
 	this.props = props;
 	this.server = server;
 	applications = new Hashtable ();
@@ -70,7 +69,7 @@ public class ApplicationManager {
     private void start (String appName) {
 	IServer.getLogger().log ("Building application "+appName);
 	try {
-	    Application app = new Application (appName, dbHome, appHome);
+	    Application app = new Application (appName, Server.sysProps, hopHome);
 	    applications.put (appName, app);
 	    // if we're running with the embedded web server, set app base uri to /appname
 	    if (server.websrv != null)

@@ -24,13 +24,15 @@ public class DbWrapper {
     volatile long txncount=0;
 
     private File dbBaseDir;
+    private NodeManager nmgr;
     private String dbHome;
 
-    public DbWrapper (String dbHome, String dbFilename, boolean useTx) throws DbException {
+    public DbWrapper (String dbHome, String dbFilename, NodeManager nmgr, boolean useTx) throws DbException {
+
+	this.dbHome = dbHome;
+	this.nmgr = nmgr;
 
 	try {
-
-	    this.dbHome = dbHome;
 	    dbBaseDir = new File (dbHome);
 	    if (!dbBaseDir.exists())
 	        dbBaseDir.mkdirs();
@@ -71,12 +73,12 @@ public class DbWrapper {
 	    loaded = true;
 
 	} catch (NoClassDefFoundError noclass) {
-	    Server.getLogger().log ("Warning: Using internal file based db as fallback.");
-	    Server.getLogger().log ("Reason: "+noclass);
+	    nmgr.app.logEvent ("Warning: Using internal file based db as fallback.");
+	    nmgr.app.logEvent ("Reason: "+noclass);
 	    loaded = false;
 	} catch (UnsatisfiedLinkError nolib) {
-	    Server.getLogger().log ("Warning: Using internal file based db as fallback.");
-	    Server.getLogger().log ("Reason: "+nolib);
+	    nmgr.app.logEvent ("Warning: Using internal file based db as fallback.");
+	    nmgr.app.logEvent ("Reason: "+nolib);
 	    loaded = false;
 	}
 	
@@ -89,7 +91,7 @@ public class DbWrapper {
 	    // closing the dbenv leads to segfault when app is restarted
 	    // dbenv.close (0);
 	    // dbenv.remove (dbHome, Db.DB_FORCE);
-	    Server.getLogger ().log ("Closed Berkeley DB");
+	    nmgr.app.logEvent ("Closed Berkeley DB");
 	}
     }
 
@@ -126,7 +128,7 @@ public class DbWrapper {
 	dbenv.txn_checkpoint (0, 0, 0); // for berkeley 3.0, remove third 0 parameter
 	txncount = 0;
 	lastCheckpoint = now;
-	Server.getLogger().log ("Spent "+(System.currentTimeMillis()-now)+" in checkpoint");
+	nmgr.app.logEvent ("Spent "+(System.currentTimeMillis()-now)+" in checkpoint");
     }
 
     public IDGenerator getIDGenerator (DbTxn txn, String kstr) throws Exception {
@@ -220,7 +222,7 @@ public class DbWrapper {
 	value.set_size (vbuf.length);
 	
 	db.put (txn, key, value, 0);
-	// IServer.getLogger().log ("saved "+obj+", size = "+vbuf.length);
+	// nmgr.app.logEvent ("saved "+obj+", size = "+vbuf.length);
     }
 
     private void deleteFromDB (DbTxn txn, String kstr) throws Exception {

@@ -44,7 +44,7 @@ public final class NodeManager {
 	// Make actual cache size bigger, since we use it only up to the threshold
 	// cache = new CacheMap ((int) Math.ceil (cacheSize/0.75f), 0.75f);
 	cache = new CacheMap (cacheSize, 0.75f);
-	IServer.getLogger().log ("set up node cache ("+cacheSize+")");
+	app.logEvent ("set up node cache ("+cacheSize+")");
 
 	safe = new WrappedNodeManager (this);
 
@@ -55,7 +55,7 @@ public final class NodeManager {
 	    idBaseValue = Math.max (1l, idBaseValue); // 0 and 1 are reserved for root nodes
 	} catch (NumberFormatException ignore) {}
 
-	db = new DbWrapper (dbHome, Server.dbFilename, Server.useTransactions);
+	db = new DbWrapper (dbHome, Server.dbFilename, this, Server.useTransactions);
 	initDb ();
 
 	logSql = "true".equalsIgnoreCase(props.getProperty ("logsql"));
@@ -287,7 +287,7 @@ public final class NodeManager {
 	if (dbm == null || !dbm.isRelational ()) {
 	    db.save (txn, node.getID (), node);
 	} else {
-	    IServer.getLogger().log ("inserting relational node: "+node.getID ());
+	    app.logEvent ("inserting relational node: "+node.getID ());
 	    TableDataSet tds = null;
 	    try {
 	        tds = new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
@@ -553,7 +553,7 @@ public final class NodeManager {
 	        }
 
 	        if (logSql)
-	           IServer.getLogger().log ("### getNodeIDs: "+qds.getSelectString());
+	           app.logEvent ("### getNodeIDs: "+qds.getSelectString());
 
 	        qds.fetchRecords ();
 	        for (int i=0; i<qds.size (); i++) {
@@ -610,7 +610,7 @@ public final class NodeManager {
 	        }
 
 	        if (logSql)
-	           IServer.getLogger().log ("### getNodes: "+tds.getSelectString());
+	           app.logEvent ("### getNodes: "+tds.getSelectString());
 
 	        tds.fetchRecords ();
 	        for (int i=0; i<tds.size (); i++) {
@@ -668,7 +668,7 @@ public final class NodeManager {
 	        }
 
 	        if (logSql)
-	            IServer.getLogger().log ("### countNodes: "+qds.getSelectString());
+	            app.logEvent ("### countNodes: "+qds.getSelectString());
 
 	        qds.fetchRecords ();
 	        if (qds.size () == 0)
@@ -712,7 +712,7 @@ public final class NodeManager {
 	        qds = new QueryDataSet (con, q);
 
 	        if (logSql)
-	           IServer.getLogger().log ("### getPropertyNames: "+qds.getSelectString());
+	           app.logEvent ("### getPropertyNames: "+qds.getSelectString());
 
 	        qds.fetchRecords ();
 	        for (int i=0; i<qds.size (); i++) {
@@ -751,7 +751,7 @@ public final class NodeManager {
 	        tds.where (dbm.getIDField ()+" = '"+kstr+"'");
 
 	        if (logSql)
-	            IServer.getLogger().log ("### getNodeByKey: "+tds.getSelectString());
+	            app.logEvent ("### getNodeByKey: "+tds.getSelectString());
 
 	        tds.fetchRecords ();
 
@@ -858,7 +858,7 @@ public final class NodeManager {
 	        tds.where (where.toString ());
 
 	        if (logSql)
-	            IServer.getLogger().log ("### getNodeByRelation: "+tds.getSelectString());
+	            app.logEvent ("### getNodeByRelation: "+tds.getSelectString());
 
 	        tds.fetchRecords ();
 
