@@ -468,6 +468,8 @@ public class HopObject extends ScriptableObject {
 
                 if ("Date".equals(s.getClassName())) {
                     node.setDate(name, new Date((long) ScriptRuntime.toNumber(s)));
+                } else if ("String".equals(s.getClassName())) {
+                    node.setString(name, ScriptRuntime.toString(s));
                 } else if (s instanceof MapWrapper) {
                     node.setJavaObject(name, ((MapWrapper) s).unwrap());
                 } else if (s instanceof HopObject) {
