@@ -129,6 +129,7 @@ public final class ResponseTrans implements Externalizable {
 	title = head = body = message = error = null;
 	values.clear ();
 	lastModified = -1;
+	notModified = false;
     }
 
 
