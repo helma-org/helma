@@ -526,7 +526,14 @@ public final class HtmlEncoder {
 	            ret.append ("&amp;");
 	            break;
 	        default:
-	             ret.append (c);
+	            if (c < 0x20) {
+	                // sort out invalid XML characters below 0x20 - all but 0x9, 0xA and 0xD.
+	                // The trick is an adaption of java.lang.Character.isSpace().
+	                if (((((1L << 0x9) | (1L << 0xA) | (1L << 0xD)) >> ch) & 1L) != 0)
+	                    ret.append (c);
+	            } else {
+	                ret.append (c);
+	            }
 	    }
 	}
      }
