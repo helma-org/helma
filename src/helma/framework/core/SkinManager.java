@@ -79,10 +79,10 @@ public final class SkinManager implements FilenameFilter {
         // check if the skinset object is a HopObject (db based skin)
         // or a String (file based skin)
         if (skinset instanceof INode) {
-            INode n = ((INode) skinset).getNode(prototype);
+            INode n = (INode) ((INode) skinset).getChildElement(prototype);
 
             if (n != null) {
-                n = n.getNode(skinname);
+                n = (INode) n.getChildElement(skinname);
 
                 if (n != null) {
                     String skin = n.getString("skin");
