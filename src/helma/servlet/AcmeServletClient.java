@@ -25,7 +25,6 @@ public class AcmeServletClient extends HttpServlet {
     private Hashtable apps;
     private Application app;
     private String cookieDomain;
-    private boolean caching;
     private boolean debug;
 
     static final byte HTTP_GET = 0;
@@ -164,7 +163,7 @@ public class AcmeServletClient extends HttpServlet {
 
 	} else {
 
-                 if (!trans.cache || ! caching) {
+	    if (!trans.cache) {
 	        // Disable caching of response.
 	        if (protocol == null || !protocol.endsWith ("1.1"))
 	            res.setHeader ("Pragma", "no-cache"); // for HTTP 1.0
