@@ -12,7 +12,7 @@ import helma.objectmodel.*;
  * class are directly exposed to JavaScript as global property req. 
  */
  
-public class RequestTrans implements Serializable {
+public class RequestTrans implements Externalizable {
 
     public String path;
     public String session;
@@ -72,4 +72,15 @@ public class RequestTrans implements Serializable {
 	}
     }
 
+    public void readExternal (ObjectInput s) throws ClassNotFoundException, IOException {
+	path = s.readUTF ();
+	session = s.readUTF ();
+	values = (Hashtable) s.readObject ();
+    }
+
+    public void writeExternal (ObjectOutput s) throws IOException {
+	s.writeUTF (path);
+	s.writeUTF (session);
+	s.writeObject (values);
+    }
 }

@@ -13,7 +13,7 @@ import helma.util.*;
  * class are directly exposed to JavaScript as global property res. 
  */
  
-public class ResponseTrans implements Serializable {
+public class ResponseTrans implements Externalizable {
 
     public String contentType = "text/html";
     // the actual response
@@ -40,7 +40,7 @@ public class ResponseTrans implements Serializable {
     public transient String title, head, body, message, error;
 
     // name of the skin to be rendered  after completion, if any
-    public transient String mainSkin = null;
+    public transient String skin = null;
 
 
     public ResponseTrans () {
@@ -52,7 +52,7 @@ public class ResponseTrans implements Serializable {
 	if (buffer != null)
 	    buffer.setLength (0);
 	redirect = null;
-	mainSkin = null;
+	skin = null;
 	title = head = body = message = error = "";
     }
 
@@ -227,6 +227,27 @@ public class ResponseTrans implements Serializable {
 	return cookieValues[i];
     }
 
+    public void readExternal (ObjectInput s) throws ClassNotFoundException, IOException {
+	contentType = (String) s.readObject ();
+	response = (byte[]) s.readObject ();
+	redirect = (String) s.readObject ();
+	cookieKeys = (String[]) s.readObject ();
+	cookieValues = (String[]) s.readObject ();
+	cookieDays = (int[]) s.readObject ();
+	nCookies = s.readInt ();
+	cache = s.readBoolean ();
+    }
+
+    public void writeExternal (ObjectOutput s) throws IOException {
+	s.writeObject (contentType);
+	s.writeObject (response);
+	s.writeObject (redirect);
+	s.writeObject (cookieKeys);
+	s.writeObject (cookieValues);
+	s.writeObject (cookieDays);
+	s.writeInt (nCookies);
+	s.writeBoolean (cache);
+    }
 
 }
 

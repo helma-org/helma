@@ -293,10 +293,10 @@ public class RequestEvaluator implements Runnable {
 	                try {
 	                    localrtx.timer.beginEvent (requestPath+" execute");
 	                    current.doIndirectCall (evaluator, current, action.getFunctionName (), new ESValue[0]);
-	                    if (res.mainSkin != null) {
-	                        Skin mainSkin = getSkin (null, res.mainSkin);
-	                        if (mainSkin != null)
-	                            mainSkin.render (this, null, null);
+	                    if (res.skin != null) {
+	                        Skin skin = getSkin (null, res.skin);
+	                        if (skin != null)
+	                            skin.render (this, null, null);
 	                    }
 	                    localrtx.timer.endEvent (requestPath+" execute");
 	                } catch (RedirectException redirect) {
