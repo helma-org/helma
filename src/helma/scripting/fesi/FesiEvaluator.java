@@ -262,7 +262,7 @@ public final class FesiEvaluator implements ScriptingEngine {
 	    if (info.lastUpdate > 0) {
 	        Prototype p = app.typemgr.getPrototype (info.protoName);
 	        if (p != null) {
-	            app.typemgr.updatePrototype(info.protoName);
+	            app.typemgr.updatePrototype(p);
 	            if (p.getLastUpdate () > info.lastUpdate) {
 	                evaluatePrototype(p);
 	                info.lastUpdate = p.getLastUpdate ();
@@ -484,7 +484,7 @@ public final class FesiEvaluator implements ScriptingEngine {
         if (info != null && info.lastUpdate == 0) {
             Prototype p = app.typemgr.getPrototype (protoName);
             if (p != null) {
-                app.typemgr.updatePrototype(protoName);
+                app.typemgr.updatePrototype(p);
                 if (p.getLastUpdate () > info.lastUpdate) {
                     info.lastUpdate = p.getLastUpdate ();
                     evaluatePrototype(p);
