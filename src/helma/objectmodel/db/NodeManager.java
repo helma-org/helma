@@ -1089,6 +1089,7 @@ public final class NodeManager {
             Connection con = dbm.getConnection();
             Statement stmt = con.createStatement();
             DbColumn[] columns = dbm.getColumns();
+            Relation[] joins = dbm.getJoins();
             StringBuffer q = dbm.getSelect();
 
             try {
@@ -1132,7 +1133,30 @@ public final class NodeManager {
                             cache.put(primKey, oldnode);
                         }
                     }
+
+                    int resultSetOffset = columns.length;
+                    // create joined objects
+                    for (int i = 0; i < joins.length; i++) {
+                        DbMapping jdbm = joins[i].otherType;
+                        node = createNode(jdbm, rs, jdbm.getColumns(), resultSetOffset);
+                        if (node != null) {
+                            primKey = node.getKey();
+                            // register new nodes with the cache. If an up-to-date copy
+                            // existed in the cache, use that.
+                            synchronized (cache) {
+                                Node oldnode = (Node) cache.put(primKey, node);
+
+                                if ((oldnode != null) &&
+                                        (oldnode.getState() != INode.INVALID)) {
+                                    // found an ok version in the cache, use it.
+                                    cache.put(primKey, oldnode);
+                                }
+                            }
+                        }
+                        resultSetOffset += jdbm.getColumns().length;
+                    }
                 }
+
             } finally {
                 // tx.timer.endEvent ("getNodes "+home);
                 if (stmt != null) {
@@ -1487,6 +1511,7 @@ public final class NodeManager {
                 stmt = con.createStatement();
 
                 DbColumn[] columns = dbm.getColumns();
+                Relation[] joins = dbm.getJoins();
                 StringBuffer q = dbm.getSelect();
 
                 q.append("WHERE ");
@@ -1514,6 +1539,28 @@ public final class NodeManager {
                 }
 
                 node = createNode(dbm, rs, columns, 0);
+
+                int resultSetOffset = columns.length;
+                // create joined objects
+                for (int i = 0; i < joins.length; i++) {
+                    DbMapping jdbm = joins[i].otherType;
+                    node = createNode(jdbm, rs, jdbm.getColumns(), resultSetOffset);
+                    if (node != null) {
+                        Key primKey = node.getKey();
+                        // register new nodes with the cache. If an up-to-date copy
+                        // existed in the cache, use that.
+                        synchronized (cache) {
+                            Node oldnode = (Node) cache.put(primKey, node);
+
+                            if ((oldnode != null) &&
+                                        (oldnode.getState() != INode.INVALID)) {
+                                // found an ok version in the cache, use it.
+                                cache.put(primKey, oldnode);
+                            }
+                        }
+                    }
+                    resultSetOffset += jdbm.getColumns().length;
+                }
 
                 if (rs.next()) {
                     throw new RuntimeException("More than one value returned by query.");
@@ -1570,6 +1617,7 @@ public final class NodeManager {
 
                 Connection con = dbm.getConnection();
                 DbColumn[] columns = dbm.getColumns();
+                Relation[] joins = dbm.getJoins();
                 StringBuffer q = dbm.getSelect();
 
                 if (home.getSubnodeRelation() != null && !rel.isComplexReference()) {
@@ -1616,6 +1664,29 @@ public final class NodeManager {
                         node = existing;
                     }
                 }
+
+                int resultSetOffset = columns.length;
+                // create joined objects
+                for (int i = 0; i < joins.length; i++) {
+                    DbMapping jdbm = joins[i].otherType;
+                    node = createNode(jdbm, rs, jdbm.getColumns(), resultSetOffset);
+                    if (node != null) {
+                        Key primKey = node.getKey();
+                        // register new nodes with the cache. If an up-to-date copy
+                        // existed in the cache, use that.
+                        synchronized (cache) {
+                            Node oldnode = (Node) cache.put(primKey, node);
+
+                            if ((oldnode != null) &&
+                                        (oldnode.getState() != INode.INVALID)) {
+                                // found an ok version in the cache, use it.
+                                cache.put(primKey, oldnode);
+                            }
+                        }
+                    }
+                    resultSetOffset += jdbm.getColumns().length;
+                }
+
             } finally {
                 if (stmt != null) {
                     try {
