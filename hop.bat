@@ -1,14 +1,17 @@
 @echo off
 rem Batch file for Starting Helma with a JDK-like virtual machine.
 
+rem To add jar files to the classpath, simply place them into the 
+rem lib/ext directory of this Helma installation.
+
 :: Initialize variables
 :: (don't touch this section)
+set JAVA_HOME=
+set HOP_HOME=
 set HTTP_PORT=
 set XMLRPC_PORT=
 set AJP13_PORT=
 set RMI_PORT=
-set HOP_HOME=
-set JAVA_HOME=
 set OPTIONS=
 
 :: Set TCP ports for Helma servers
@@ -34,7 +37,7 @@ rem set JAVA_OPTIONS=-server -Xmx128m
 :: Setting the script path
 set SCRIPT_DIR=%~d0%~p0
 
-:: Using JAVA_HOME variable if defined. Otherwise, 
+:: Using JAVA_HOME variable if defined. Otherwise,
 :: Java executable must be contained in PATH variable
 if "%JAVA_HOME%"=="" goto default
    set JAVACMD=%JAVA_HOME%\bin\java
@@ -47,23 +50,8 @@ if "%JAVA_HOME%"=="" goto default
 if "%HOP_HOME%"=="" (
    set HOP_HOME=%SCRIPT_DIR%
 )
+cd %HOP_HOME%
 
-:: Setting the classpath
-set LIB=%SCRIPT_DIR%lib
-set JARS=%LIB%\helma.jar
-set JARS=%JARS%;%LIB%\jetty.jar
-set JARS=%JARS%;%LIB%\crimson.jar
-set JARS=%JARS%;%LIB%\xmlrpc.jar
-set JARS=%JARS%;%LIB%\village.jar
-set JARS=%JARS%;%LIB%\servlet.jar
-set JARS=%JARS%;%LIB%\regexp.jar
-set JARS=%JARS%;%LIB%\netcomponents.jar
-set JARS=%JARS%;%LIB%\jimi.jar
-set JARS=%JARS%;%LIB%\apache-dom.jar
-set JARS=%JARS%;%LIB%\jdom.jar
-set JARS=%JARS%;%LIB%\mail.jar
-set JARS=%JARS%;%LIB%\activation.jar
-set JARS=%JARS%;%LIB%\mysql.jar
 
 :: Setting Helma server options
 if not "%HTTP_PORT%"=="" (
@@ -84,8 +72,8 @@ if not "%RMI_PORT%"=="" (
 )
 if not "%HOP_HOME%"=="" (
    echo Serving applications from %HOP_HOME%
-   set OPTIONS=%OPTIONS% -h %HOP_HOME%
+   set OPTIONS=%OPTIONS% -h "%HOP_HOME%
 )
 
 :: Invoking the Java virtual machine
-%JAVACMD% %JAVA_OPTIONS% -classpath %JARS% helma.main.Server %OPTIONS%
+%JAVACMD% %JAVA_OPTIONS% -jar launcher.jar %OPTIONS%
