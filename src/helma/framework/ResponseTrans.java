@@ -16,8 +16,8 @@ import helma.util.*;
 public class ResponseTrans implements Serializable {
 
     public String contentType = "text/html";
-    // the page body
-    private char[] body = null;
+    // the actual response
+    private char[] response = null;
     // contains the redirect URL
     public String redirect = null;
 
@@ -30,14 +30,21 @@ public class ResponseTrans implements Serializable {
     // used to allow or disable client side caching
     public boolean cache = true;
 
-    // the buffer used to build the body
+    // the buffer used to build the response
     private transient StringBuffer buffer = null;
     // these are used to implement the _as_string variants for Hop templates.
     private transient Stack buffers;
 
+    // the buffers used to build the single body parts -
+    // transient, response must be constructed before this is serialized
+    public transient String title;
+    public transient String body;
+    public transient String message;
+
 
     public ResponseTrans () {
 	super ();
+	title = body = message = "";
     }
     
     public void reset () {
@@ -137,16 +144,16 @@ public class ResponseTrans implements Serializable {
      */
     public void close () {
 	if (buffer != null)
-	    body = new String (buffer).toCharArray();
+	    response = new String (buffer).toCharArray();
     }
 
     public String getContentString () {
-	return body == null ? "" : new String (body);
+	return response == null ? "" : new String (response);
     }
 
     public int getContentLength () {
-	if (body != null)
-	    return body.length;
+	if (response != null)
+	    return response.length;
 	return 0;
     }
 
