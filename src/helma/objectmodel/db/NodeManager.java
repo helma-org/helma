@@ -42,6 +42,10 @@ public final class NodeManager {
     public final WrappedNodeManager safe;
 
 
+    /**
+    *  Create a new NodeManager for Application app. An embedded database will be
+    * created in dbHome if one doesn't already exist.
+    */
     public NodeManager (Application app, String dbHome, Properties props) throws DbException {
 	this.app = app;
 	int cacheSize = Integer.parseInt (props.getProperty ("cachesize", "1000"));
@@ -130,11 +134,23 @@ public final class NodeManager {
     }
 
 
+    /**
+    *  Shut down this node manager. This is called when the application using this
+    *  node manager is stopped.
+    */
     public void shutdown () throws DbException {
 	db.shutdown ();
-	this.cache = null;
+	if (cache != null) {
+	    synchronized (cache) {
+	        cache.clear ();
+	        cache = null;
+	    }
+	}
     }
 
+    /**
+    *  Delete a node from the database.
+    */
     public void deleteNode (Node node) throws Exception {
 	if (node != null) {
 	    String id = node.getID ();
@@ -147,6 +163,9 @@ public final class NodeManager {
     }	
 
 
+    /**
+    *  Get a node by key.
+    */
     public Node getNode (Key key) throws Exception {
 
 	Transactor tx = (Transactor) Thread.currentThread ();
@@ -201,6 +220,9 @@ public final class NodeManager {
     }
 
 
+    /**
+    *  Get a node by relation, using the home node, the relation and a key to apply.
+    */
     public Node getNode (Node home, String kstr, Relation rel) throws Exception {
 
 	if (kstr == null)
@@ -309,12 +331,17 @@ public final class NodeManager {
 	return node;
     }
 
-
+    /**
+    * Register a node in the node cache.
+    */
     public void registerNode (Node node) {
 	cache.put  (node.getKey (), node);
     }
 
-
+    /**
+    * Remove a node from the node cache. If at a later time it is  accessed again, it will be
+    * refetched from the database.
+    */
     public void evictNode (Node node) {
 	node.setState (INode.INVALID);
 	cache.remove (node.getKey ());
@@ -333,6 +360,10 @@ public final class NodeManager {
     ////////////////////////////////////////////////////////////////////////
 
 
+    /**
+    *  Insert a new node in the embedded database or a relational database table, depending
+    * on its db mapping.
+    */
     public void insertNode (DbWrapper db, DbTxn txn, Node node) throws Exception {
 
 	Transactor tx = (Transactor) Thread.currentThread ();
@@ -406,6 +437,10 @@ public final class NodeManager {
 	// tx.timer.endEvent ("insertNode "+node);
     }
 
+    /**
+    *  Updates a modified node in the embedded db or an external relational database, depending
+    * on its database mapping.
+    */
     public void updateNode (DbWrapper db, DbTxn txn, Node node) throws Exception {
 
 	Transactor tx = (Transactor) Thread.currentThread ();
@@ -501,6 +536,9 @@ public final class NodeManager {
 	// tx.timer.endEvent ("updateNode "+node);
     }
 
+    /**
+    *  Performs the actual deletion of a node from either the embedded or an external SQL database.
+    */
     public void deleteNode (DbWrapper db, DbTxn txn, Node node) throws Exception {
 
 	Transactor tx = (Transactor) Thread.currentThread ();
@@ -721,6 +759,10 @@ public final class NodeManager {
     }
 
 
+    /**
+     * Count the nodes contained in the child collection of the home node
+     * which is defined by Relation rel.
+     */
     public int countNodes (Node home, Relation rel) throws Exception {
 
 	Transactor tx = (Transactor) Thread.currentThread ();
@@ -953,20 +995,43 @@ public final class NodeManager {
     }
 
 
+    /**
+     *  Get an array of the the keys currently held in the object cache
+     */
     public Object[] getCacheEntries () {
 	return cache.getEntryArray ();
     }
 
+    /**
+    * Clear the object cache, causing all objects to be recreated.
+    */
+    public void clearCache () {
+	synchronized (cache) {
+	    cache.clear ();
+	}
+    }
+
+    /**
+     * Get a replicator for this node cache. A replicator is used to transfer updates
+     * in this node manager to other node managers in remote servers via RMI.
+     */
     protected Replicator getReplicator () {
 	return replicator;
     }
 
+    /**
+    *  Register a remote application as listener to updates in this cache.
+    */
     public void registerReplicatedApp (helma.framework.IReplicatedApp rapp) {
 	if (replicator == null)
 	    replicator = new Replicator ();
 	replicator.addApp (rapp);
     }
 	
+    /**
+    *  Receive notification from a remote app that objects in its cache have been
+    * modified.
+    */
     public void replicateCache (Vector add, Vector delete) {
 	synchronized (cache) {
 	    for (Enumeration en=add.elements(); en.hasMoreElements(); ) {
@@ -993,162 +1058,4 @@ public final class NodeManager {
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
