@@ -147,7 +147,11 @@ public final class TypeManager {
             if (name.endsWith(".jar")) {
                 if (!jarfiles.contains(name)) {
                     jarfiles.add(name);
-                    loader.addURL(resource.getUrl());
+                    try {
+                        loader.addURL(resource.getUrl());
+                    } catch (UnsupportedOperationException x) {
+                        // not implemented by all kinds of resources
+                    }
                 }
             }
         }
