@@ -174,10 +174,10 @@ public class RhinoEngine implements ScriptingEngine {
         context.setOptimizationLevel(optLevel);
         // register the per-thread scope with the dynamic scope
         core.global.registerScope(global);
-        // update prototypes
-        core.updatePrototypes();
         context.putThreadLocal("reval", reval);
         context.putThreadLocal("engine", this);
+        // update prototypes
+        core.updatePrototypes();
     }
 
     /**
