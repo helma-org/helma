@@ -356,12 +356,13 @@ import org.apache.xmlrpc.*;
 	        LocateRegistry.createRegistry (rmiPort);
 	    }
 
-
 	    // create application manager
 	    appManager = new ApplicationManager (rmiPort, hopHome, appsProps, this);
 	    if (xmlrpc != null)
 	        xmlrpc.addHandler ("$default", appManager);
 
+	    // add shutdown hook to close running apps and servers on exit
+	    Runtime.getRuntime().addShutdownHook (new HelmaShutdownHook(appManager));
 
 	} catch (Exception gx) {
 	    getLogger().log ("Error initializing embedded database: "+gx);
