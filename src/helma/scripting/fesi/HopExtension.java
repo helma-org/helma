@@ -15,6 +15,10 @@ import FESI.Data.*;
 import java.io.*;
 import java.util.*;
 import java.text.*;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.HttpURLConnection;
+import java.text.SimpleDateFormat;
 import org.xml.sax.InputSource;
 
 /**
@@ -571,18 +575,42 @@ public final class HopExtension {
             if (arguments.length < 1)
                 return  ESNull.theNull;
             try {
-                ByteArrayOutputStream body = new ByteArrayOutputStream ();
-                java.net.URL url = new java.net.URL (arguments[0].toString ());
+                URL url = new URL (arguments[0].toString ());
+                URLConnection con = url.openConnection ();
+                // do we have if-modified-since or etag headers to set?
+                if (arguments.length > 1) {
+                    if (arguments[1] instanceof DatePrototype) {
+                        Date date = (Date) arguments[1].toJavaObject();
+                        con.setIfModifiedSince(date.getTime());
+                        SimpleDateFormat format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.UK);
+                        format.setTimeZone(TimeZone.getTimeZone("GMT"));
+                        con.setRequestProperty("If-Modified-Since", format.format(date));
+                    } else if (arguments[1] != null) {
+                        con.setRequestProperty ("If-None-Match", arguments[1].toString());
+                    }
+                }
+                con.setAllowUserInteraction(false);
                 String filename = url.getFile ();
-                java.net.URLConnection con = url.openConnection ();
                 String contentType = con.getContentType ();
-                InputStream in = new BufferedInputStream (con.getInputStream ());
-                byte[] b = new byte[1024];
-                int read;
-                while ((read = in.read (b)) > -1)
-                    body.write (b, 0, read);
+                long lastmod = con.getLastModified ();
+                String etag = con.getHeaderField ("ETag");
+                int length = con.getContentLength();
+                int resCode = 0;
+                if (con instanceof HttpURLConnection)
+                    resCode = ((HttpURLConnection) con).getResponseCode();
+                ByteArrayOutputStream body = new ByteArrayOutputStream ();
+                InputStream in = con.getInputStream ();
+                if (length != 0 && resCode != 304) {
+                    byte[] b = new byte[1024];
+                    int read;
+                    while ((read = in.read (b)) > -1)
+                        body.write (b, 0, read);
+                }
                 in.close ();
                 MimePart mime = new MimePart (filename, body.toByteArray(), contentType);
+                if (lastmod > 0)
+                    mime.lastModified = new Date(lastmod);
+                mime.eTag = etag;
                 return ESLoader.normalizeObject (mime, evaluator);
             } catch (Exception ignore) {}
             return  ESNull.theNull;
