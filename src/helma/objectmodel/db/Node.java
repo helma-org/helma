@@ -1724,8 +1724,10 @@ public class Node implements INode, Serializable {
 	    b.insert (0, divider);
 	    b.insert (0, UrlEncoder.encode (p.getNameOrID ()));
 
-	    if (p.getParent () == userroot)
+	    if ("user".equals (p.getPrototype ())) {
 	        b.insert (0, "users"+divider);
+	        break;
+	    }
 	    p = p.getParent ();
 
 	    if (loopWatch++ > 10)
