@@ -102,7 +102,7 @@ public class EcmaScriptException extends Exception {
    * <P>If cause by another exception displays its callback chain
    */
   public String getMessage() {
-      String msg = "Runtime error " + super.getMessage();
+      String msg = super.getMessage();
       if (originatingException!=null) {
           msg += eol + "Caused by exception: " + eol + "  " + originatingException.getMessage();
       }
