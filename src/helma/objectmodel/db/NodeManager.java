@@ -425,9 +425,9 @@ public final class NodeManager {
 	        rec.markForInsert ();
 	        tds.save ();
 	    } finally {
-	        if (tds != null) {
+	        if (tds != null) try {
 	            tds.close ();
-	        }
+	        } catch (Exception ignore) {}
 	    }
 	    dbm.notifyDataChange ();
 	}
@@ -519,9 +519,9 @@ public final class NodeManager {
 	            tds.save ();
 	        }
 	    } finally {
-	        if (tds != null) {
+	        if (tds != null) try {
 	            tds.close ();
-	        }
+	        } catch (Exception ignore) {}
 	    }
 	    dbm.notifyDataChange ();
 	}
@@ -553,8 +553,9 @@ public final class NodeManager {
 	        st = con.createStatement ();
 	        st.executeUpdate ("DELETE FROM "+dbm.getTableName ()+" WHERE "+dbm.getIDField ()+" = "+node.getID ());
 	    } finally {
-	        if (st != null)
+	        if (st != null) try {
 	            st.close ();
+	        } catch (Exception ignore) {}
 	    }
 	    dbm.notifyDataChange ();
 	}
@@ -589,9 +590,9 @@ public final class NodeManager {
 	    }
 	} finally {
 	    // tx.timer.endEvent ("generateID "+map);
-	    if (qds != null) {
+	    if (qds != null) try {
 	        qds.close ();
-	    }
+	    } catch (Exception ignore) {}
 	}
 	return retval;
     }
@@ -615,9 +616,9 @@ public final class NodeManager {
 	    retval = qds.getRecord (0).getValue (1).asString ();
 	} finally {
 	    // tx.timer.endEvent ("generateID "+map);
-	    if (qds != null) {
+	    if (qds != null) try {
 	        qds.close ();
-	    }
+	    } catch (Exception ignore) {}
 	}
 	return retval;
     }
@@ -754,9 +755,9 @@ public final class NodeManager {
 
 	    } finally {
 	        // tx.timer.endEvent ("getNodes "+home);
-	        if (tds != null) {
+	        if (tds != null)  try {
 	            tds.close ();
-	        }
+	        } catch (Exception ignore) {}
 	    }
 	    return retval;
 	}
@@ -805,9 +806,9 @@ public final class NodeManager {
 
 	    } finally {
 	        // tx.timer.endEvent ("countNodes "+home);
-	        if (qds != null) {
+	        if (qds != null) try {
 	            qds.close ();
-	        }
+	        } catch (Exception ignore) {}
 	    }
 	    return rel.maxSize > 0 ? Math.min (rel.maxSize, retval) : retval;
 	}
@@ -851,9 +852,9 @@ public final class NodeManager {
 
 	    } finally {
 	        // tx.timer.endEvent ("getNodeIDs "+home);
-	        if (qds != null) {
+	        if (qds != null) try {
 	            qds.close ();
-	        }
+	        } catch (Exception ignore) {}
 	    }
 	    return retval;
 	}
@@ -896,9 +897,9 @@ public final class NodeManager {
 	        node = new Node (dbm, rec, safe);
 
 	    } finally {
-	        if (tds != null) {
+	        if (tds != null) try {
 	            tds.close ();
-	        }
+	        } catch (Exception ignore) {}
 	    }
 	}
 	return node;
@@ -973,9 +974,9 @@ public final class NodeManager {
 	        }
 
 	    } finally {
-	        if (tds != null) {
+	        if (tds != null) try {
 	            tds.close ();
-	        }
+	        } catch (Exception ignore) {}
 	    }
 	}
 	return node;
