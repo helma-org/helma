@@ -10,7 +10,6 @@ import javax.servlet.*;
 import javax.servlet.http.*;
 import java.io.*;
 import java.util.*;
-import java.net.URLEncoder;
 import java.net.URLDecoder;
 import helma.framework.*;
 import helma.util.*;
@@ -28,7 +27,7 @@ public abstract class AbstractServletClient extends HttpServlet {
     int port = 0;
     // RMI url of Helma app
     String hopUrl;
-    
+
     // limit to HTTP uploads in kB
     int uploadLimit = 1024;
     // cookie domain to use
@@ -490,7 +489,10 @@ public abstract class AbstractServletClient extends HttpServlet {
 	        continue;
 	    if (i > prefixTokens)
 	        pathbuffer.append ("/");
-	    pathbuffer.append (URLDecoder.decode (token));
+	    if (token.indexOf ("+") == -1 && token.indexOf ("%") == -1)
+	        pathbuffer.append (token);
+	    else
+	        pathbuffer.append (URLDecoder.decode (token));
 	}
 	return pathbuffer.toString ();
     }
