@@ -103,7 +103,6 @@ public class DocApplication extends DocElement implements IPathElement {
 	}
 
 	public IPathElement getParentElement()	{
-		// FIXME: Server.getServer() throws a NullPointerException from here ?
 		Server s = helma.main.Server.getServer();
 		return s.getChildElement(this.name);
 	}
