@@ -12,27 +12,23 @@ function getDir (dir, obj) {
 	dir.mkdir ();
 	if (obj.getType () == this.APPLICATION) {
 		return dir;
-	} else if (obj.getType () == this.PROTOTYPE) {
-		var protoObj = this.getDocPrototype (obj);
-		var dir = new File (dir, protoObj.getElementName ());
-		dir.mkdir ();
-		return dir;
 	} else {
 		var protoObj = this.getDocPrototype (obj);
-		var dir = this.getDir (dir, protoObj);
-		dir = new File (dir, obj.getElementName ());
+		var dir = new File (dir, protoObj.getElementName ());
 		dir.mkdir ();
 		return dir;
 	}
 }
 
 
-function storePage (obj, action, backPath) {
+function storePage (obj, action, backPath, filename) {
+	if (filename==null)
+		var filename = action + ".html";
 	var str = this.getPage (obj, action, backPath);
 	var appObj = this.getParentElement ();
 	var dir = new File (appObj.getAppDir ().getAbsolutePath (), ".docs");
 	dir = this.getDir (dir, obj);
-	var f = new File (dir, action + ".html");
+	var f = new File (dir, filename);
 	f.remove ();
 	f.open ();
 	f.write (str);
@@ -46,12 +42,19 @@ function getPage (obj, action, backPath) {
 	res.pushStringBuffer ();
 	eval ("obj." + action + "_action ();");
 	var str = res.popStringBuffer ();
+	// get the baseURI out of the url and replace
+	// it with the given relative prefix
 	var reg = new RegExp ("href=\"" + this.href ("") + "([^\"]+)\"");
 	reg.global = true;
 	str = str.replace (reg, "href=\"" + backPath + "$1.html\"");
 	var reg = new RegExp ("src=\"" + this.href ("") + "([^\"]+)\"");
 	reg.global = true;
 	str = str.replace (reg, "src=\"" + backPath + "$1.html\"");
+	// shorten links, so that function files can move up one directory
+	// in the hierarchy
+	var reg = new RegExp ("(prototype_[^/]+/[^/]+)/main.html");
+	reg.global = true;
+	str = str.replace (reg, "$1.html");
 	return str;
 }
 

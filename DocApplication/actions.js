@@ -1,3 +1,8 @@
+function read_action () {
+	this.readApplication ();
+	res.redirect (this.href("main"));
+}
+
 function main_action () {
 	if (checkAddress()==false)
 	   return;
@@ -44,7 +49,7 @@ function render_action () {
 	   return;
 	res.writeln("<html><head><title>render</title></head><body>rendering API ... ");
 	var prefix = this.href ("");
-	this.storePage (this, "main");
+	this.storePage (this, "main", "", "index.html");
 	this.storePage (this, "prototypes");
 	this.storePage (this, "summary");
 	this.storePage (this, "functionindex");
@@ -56,7 +61,7 @@ function render_action () {
 		ct += 2;
 		var subarr = arr[i].listChildren ();
 		for (var j=0; j<subarr.length; j++) {
-			this.storePage (subarr[j], "main", "../../");
+			this.storePage (subarr[j], "main", "../", subarr[j].getElementName () + ".html");
 			ct += 1;
 		}
 	}
