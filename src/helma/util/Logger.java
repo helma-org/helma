@@ -94,7 +94,9 @@ public class Logger implements Log {
      * Return a string representation of this Logger
      */
     public String toString() {
-        return "Logger[" + canonicalName + "]";
+        return new StringBuffer(getClass().getName()).append("[")
+                .append(canonicalName).append(",").append(logLevel)
+                .append("]").toString();
     }
 
     /**
