@@ -160,6 +160,7 @@ public final class NodeManager {
 	    // version is fetched from the database.
 
 	    node = getNodeByKey (db, tx.txn, kstr, dbmap);
+	    key.recycle (dbmap, kstr);
 	    if (node != null) {
 	        synchronized (cache) {
 	            Node oldnode = (Node) cache.put (node.getKey (), node);
@@ -173,9 +174,11 @@ public final class NodeManager {
 	    // cache hit
 	}
 
-	if (node != null)
+	if (node != null) {
 	    tx.visitCleanNode (key.duplicate(), node);
+	}
 	// tx.timer.endEvent ("getNode "+kstr);
+
 	return node;
     }
 
@@ -263,8 +266,9 @@ public final class NodeManager {
 	    }
 	}
 
-	if (node != null)
+	if (node != null) {
 	    tx.visitCleanNode (key.duplicate(), node);
+	}
 
 	// tx.timer.endEvent ("getNode "+kstr);
 	return node;
