@@ -147,6 +147,10 @@ public final class SystemProperties extends Properties {
 	return props.elements();
     }
 
+    public String toString () {
+	return props.toString ();
+    }
+
 }
 
 
