@@ -1,0 +1,124 @@
+<?xml version="1.0"?>
+
+<!-- ======================================================================= -->
+<!-- Hop build file                                                      -->
+<!-- ======================================================================= -->
+<project name="Hop" default="main" basedir=".">
+
+    <!-- =================================================================== -->
+    <!-- Initializes some variables                                          -->
+    <!-- =================================================================== -->
+    <target name="init">    
+        <property name="Name" value="Hop"/>
+        <property name="year" value="1998-2001"/>
+        <property name="version" value="1.0.beta1"/>
+        <property name="project" value="hop"/>
+        <property name="build.compiler" value="classic"/>
+        <property name="build.dir" value="../bin"/>
+        <property name="build.src" value="${build.dir}/src"/>
+        <property name="build.dest" value="${build.dir}/classes"/>
+        <property name="src.java.dir" value="../"/>
+        <property name="javadoc.destdir" value="../docs/apidocs"/>
+        <property name="final.name" value="${project}-${version}"/>
+        <property name="final.dir" value="../${final.name}/"/>
+        <property name="debug" value="on"/>
+        <property name="optimize" value="on"/>
+        <property name="deprecation" value="off"/>
+        
+        <filter token="year" value="${year}"/>
+        <filter token="version" value="${version}"/>
+        <filter token="date" value="${TODAY}"/>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Copies the source code to the build directory and does filtering    -->
+    <!-- =================================================================== -->
+    <target name="prepare" depends="init">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${build.dest}"/>
+        <mkdir dir="${build.src}"/>
+
+        <copy todir="${build.src}">
+            <fileset dir="${src.java.dir}"
+                includes="helma/**/*.java,FESI/**/*.java,Acme/**/*.java"/>
+        </copy>
+
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Compiles the source directory                                       -->
+    <!-- =================================================================== -->
+    <target name="compile" depends="prepare">
+        <javac srcdir="${build.src}"
+            destdir="${build.dest}"
+            debug="${debug}"
+            deprecation="${deprecation}"
+            optimize="${optimize}">
+            <classpath>
+                <fileset dir="../lib">
+                     <include name="**/*.jar" />
+                </fileset>
+                <pathelement path="${classpath}" />
+            </classpath>
+        </javac>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Compiles the source directory and creates a .jar file               -->
+    <!-- =================================================================== -->
+    <target name="jar" depends="compile">
+        <jar jarfile="${build.dir}/${final.name}.jar"
+            basedir="${build.dest}"
+            excludes="**/package.html"/>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Creates the API documentation                                       -->
+    <!-- =================================================================== -->
+    <target name="javadocs" depends="prepare">
+        <mkdir dir="${javadoc.destdir}"/>
+        <javadoc packagenames="helma.*"
+            sourcepath="${build.src}"
+            destdir="${javadoc.destdir}"
+            author="false"
+            private="false"
+            version="false"
+            windowtitle="${Name} ${version} API"
+            doctitle="${Name} ${version} API"
+            bottom="Copyright &#169; 1998-2001 Helma.org. All Rights Reserved."
+        />
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Package                                                             -->
+    <!-- =================================================================== -->
+    <target name="package" depends="jar,javadocs">
+        <mkdir dir="${final.dir}"/>
+        <copydir src="${build.dir}/src/" dest="${final.dir}/src/"/>
+        <copydir src="../docs" dest="${final.dir}/docs"/>
+        <copydir src="../lib" dest="${final.dir}/lib"/>
+        <copydir src="../build" dest="${final.dir}/build"/>
+        <copyfile src="${build.dir}/${final.name}.jar" dest="${final.dir}/${final.name}.jar"/>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Packages the distribution with ZIP                                  -->
+    <!-- =================================================================== -->
+    <target name="package-zip" depends="package">
+        <zip zipfile="../${Name}-${version}.zip" basedir="../" includes="**/${final.name}/**"/>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Packages the distribution with TAR-GZIP                             -->
+    <!-- =================================================================== -->
+    <target name="package-tgz" depends="package">
+        <tar tarfile="../${Name}-${version}.tar" basedir="../" includes="**/${final.name}/**"/>
+        <gzip zipfile="../${Name}-${version}.tar.gz" src="../${Name}-${version}.tar"/>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Packages the distribution with ZIP and TAG-GZIP                     -->
+    <!-- =================================================================== -->
+    <target name="package-all" depends="package-zip, package-tgz">
+    </target>
+</project>
