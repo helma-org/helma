@@ -19,7 +19,7 @@ public class Benchmark implements Runnable {
     Date date;
     
     public Benchmark () throws Exception {
-	client = new XmlRpcClientLite (url);
+	client = new XmlRpcClient (url);
 	
 	Vector args = new Vector ();
 	// Some JITs (Symantec, IBM) have problems with several Threads

@@ -328,7 +328,8 @@ public class XmlRpcClient implements XmlRpcHandler {
      * Just for testing.
      */
     public static void main (String args[]) throws Exception {
-    	// XmlRpc.setDebug (true);
+	// XmlRpc.setDebug (true);
+	// XmlRpc.setKeepAlive (true);
 	try {
 	    String url = args[0];
 	    String method = args[1];
