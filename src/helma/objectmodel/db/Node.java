@@ -212,33 +212,32 @@ public final class Node implements INode, Serializable {
     /**
      * Constructor used for nodes being stored in a relational database table.
      */
-    public Node (DbMapping dbmap, Record rec, WrappedNodeManager nmgr) throws DataSetException {
+    public Node (DbMapping dbm, Record rec, WrappedNodeManager nmgr) throws DataSetException {
 
 	this.nmgr = nmgr;
 	// see what prototype/DbMapping this object should use
-	DbMapping m = dbmap;
+	dbmap = dbm;
 	String protoField= dbmap.getPrototypeField ();
 	if (protoField != null) {
 	    Value val = rec.getValue (protoField);
 	    if (val != null && !val.isNull ()) {
 	        String protoName = val.asString ();
-	        m = nmgr.getDbMapping (protoName);
-	        if (m == null) {
+	        dbmap = nmgr.getDbMapping (protoName);
+	        if (dbmap == null) {
 	            // invalid prototype name!
 	            System.err.println ("Warning: Invalid prototype name: "+protoName+" - using default");
-	            m = dbmap;
+	            dbmap = dbm;
 	        }
 	    }
 	}
-	setPrototype (m.getTypeName ());
-	this.dbmap = m;
+	setPrototype (dbmap.getTypeName ());
 
 	id = rec.getValue (dbmap.getIDField ()).asString ();
 	// checkWriteLock ();
 	String nameField =  dbmap.getNameField ();
 	name = nameField == null ? id : rec.getValue (nameField).asString ();
 	if (name == null || name.length() == 0)
-	    name = m.getTypeName() + " " + id;
+	    name = dbmap.getTypeName() + " " + id;
 	// set parent for user objects to internal userroot node
 	if ("user".equals (prototype)) {
 	    parentHandle = new NodeHandle (new DbKey (null, "1"));
@@ -590,7 +589,9 @@ public final class Node implements INode, Serializable {
 
 	NodeHandle oldParentHandle = parentHandle;
 	parentHandle = parent == null ? null : parent.getHandle ();
-
+	// mark parent as set, otherwise getParent will try to
+	// determine the parent again when called.
+	lastParentSet = System.currentTimeMillis ();
 	if (parentHandle == null || parentHandle.equals (oldParentHandle))
 	    // nothing changed, no need to find access property
 	    return;
