@@ -35,7 +35,7 @@ public class SkinFile implements Updatable {
      * the file has been modified or deleted.
      */
     public boolean needsUpdate () {
-	return lastmod != file.lastModified () || !file.exists ();
+	return (skin != null && lastmod != file.lastModified ()) || !file.exists ();
     }
 
 

@@ -232,8 +232,9 @@ public class TypeManager implements Runnable {
         // our plan is to do as little as possible, so first check if anything has changed at all...
         for (Iterator i = proto.updatables.values().iterator(); i.hasNext(); ) {
 	Updatable upd = (Updatable) i.next();
-	if (upd.needsUpdate ())
+	if (upd.needsUpdate ()) {
 	    needsUpdate = true;
+             }
         }
 
         String list[] = dir.list();
@@ -241,8 +242,9 @@ public class TypeManager implements Runnable {
 	String fn = list[i];
 	if (!proto.updatables.containsKey (fn)) {
 	    if (fn.endsWith (app.templateExtension) || fn.endsWith (app.scriptExtension) ||
-	    fn.endsWith (app.actionExtension) || fn.endsWith (app.scriptExtension) || "type.properties".equalsIgnoreCase (fn))
+	    fn.endsWith (app.actionExtension) || fn.endsWith (app.scriptExtension) || "type.properties".equalsIgnoreCase (fn)) {
 	        needsUpdate = true;
+                 }
 	}
         }
 
@@ -251,6 +253,7 @@ public class TypeManager implements Runnable {
 
         // let the thread know we had to do something.
         idleSeconds = 0;
+        app.logEvent ("TypeManager: Updating prototypes for "+app.getName());
 
         // first go through new files and create new items
         for (int i=0; i<list.length; i++) {
