@@ -8,6 +8,8 @@ import helma.objectmodel.*;
 import FESI.Exceptions.*;
 import FESI.Data.*;
 import FESI.Interpreter.Evaluator;
+import java.util.Enumeration;
+import java.util.Hashtable;
 import java.util.Iterator;
 
 /**
@@ -32,6 +34,19 @@ public class ESAppNode extends ESNode {
 	putHiddenProperty("getMaxActiveThreads", new AppCountMaxActiveEvaluators ("getMaxActiveThreads", evaluator, fp));
 	putHiddenProperty("setMaxThreads", new AppSetNumberOfEvaluators ("setMaxThreads", evaluator, fp));
 	putHiddenProperty("clearCache", new AppClearCache ("clearCache", evaluator, fp));
+
+	// session-related methods
+	putHiddenProperty("countSessions", new AppCountSessions ("countSessions", evaluator, fp));
+	putHiddenProperty("getSession",    new AppGetSession    ("getSession", evaluator, fp));
+	putHiddenProperty("getSessions",   new AppGetSessions   ("getSessions", evaluator, fp));
+	putHiddenProperty("createSession", new AppCreateSession ("createSession", evaluator, fp));
+
+	// user-related methods:
+	putHiddenProperty("registerUser",  new AppRegisterUser   ("registerUser", evaluator, fp));
+	putHiddenProperty("getUser",       new AppGetUser        ("getUser", evaluator, fp));
+	putHiddenProperty("getActiveUsers",new AppGetActiveUsers ("getActiveUsers", evaluator, fp));
+	putHiddenProperty("getSessionsForUser", new AppGetSessionsForUser ("getSessionsForUser", evaluator, fp));
+
     }
 
     /**
@@ -138,6 +153,141 @@ public class ESAppNode extends ESNode {
             app.clearCache ();
             return ESBoolean.makeBoolean (true);
         }
+    }
+    
+	class AppCountSessions extends BuiltinFunctionObject {
+        AppCountSessions (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 1);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+            return new ESNumber ( (double)app.sessions.size() );
+        }
+    }
+
+	class AppGetSession extends BuiltinFunctionObject {
+        AppGetSession (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 1);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+			Session session = null;
+			if (arguments.length > 0) {
+				String sid = arguments[0].toString ().trim ();
+				session = app.getSession (sid);
+			}
+			if (session == null)
+				return ESNull.theNull;
+			return new ESSession (session, eval);
+        }
+    }
+
+	class AppCreateSession extends BuiltinFunctionObject {
+        AppCreateSession (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 1);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+			Session session = null;
+			if (arguments.length > 0) {
+				String sid = arguments[0].toString ().trim ();
+				session = app.checkSession (sid);
+			}
+			if (session == null)
+				return ESNull.theNull;
+			return new ESSession (session, eval);
+        }
+    }
+
+	class AppGetSessions extends BuiltinFunctionObject {
+        AppGetSessions (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 1);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+			ArrayPrototype theArray = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
+			theArray.setSize (app.sessions.size ());
+			int i=0;
+			for (Enumeration e=app.sessions.elements(); e.hasMoreElements(); ) {
+				Session s = (Session) e.nextElement ();
+				theArray.setElementAt (new ESSession(s,eval), i++);
+			}
+			return theArray;
+		}
+    }
+
+	class AppRegisterUser extends BuiltinFunctionObject {
+        AppRegisterUser (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 1);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+            if (arguments.length < 2)
+                return ESBoolean.makeBoolean(false);
+            INode usernode = app.registerUser (arguments[0].toString (), arguments[1].toString ());
+			if (usernode==null)
+				return ESNull.theNull;
+			else
+				return eval.getNodeWrapper (usernode);
+        }
+    }
+
+	class AppGetUser extends BuiltinFunctionObject {
+        AppGetUser (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 1);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+            if (arguments.length==0)
+                return ESNull.theNull;
+            INode usernode = app.getUserNode (arguments[0].toString ());
+			if (usernode==null)
+				return ESNull.theNull;
+			else
+				return eval.getNodeWrapper (usernode);
+        }
+    }
+
+	class AppGetActiveUsers extends BuiltinFunctionObject {
+        AppGetActiveUsers (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 1);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+			ArrayPrototype theArray = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
+			theArray.setSize (app.activeUsers.size ());
+			int i=0;
+			for (Enumeration e=app.activeUsers.elements(); e.hasMoreElements(); ) {
+				User user = (User) e.nextElement ();
+				INode usernode = user.getUserNodeHandle().getNode(eval.app.getWrappedNodeManager());
+				if (usernode==null)
+					theArray.setElementAt (ESNull.theNull, i++);
+				else
+					theArray.setElementAt (eval.getNodeWrapper(usernode), i++);
+			}
+			return theArray;
+		}
+    }
+
+	class AppGetSessionsForUser extends BuiltinFunctionObject {
+        AppGetSessionsForUser (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 1);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+            if (arguments.length==0)
+                return ESNull.theNull;
+			String username = null;
+			if ( arguments[0] instanceof ESNode )
+				username = ((ESNode)arguments[0]).getNode().getName();
+			else
+				username = arguments[0].toString();
+			ArrayPrototype theArray = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
+			Hashtable userSessions = app.getSessionsForUsername(username);
+			if (userSessions==null)	{
+				theArray.setSize(0);
+				return theArray;
+			}
+			theArray.setSize (userSessions.size());
+			int i=0;
+			for (Enumeration e=userSessions.elements(); e.hasMoreElements(); ) {
+				Session s = (Session) e.nextElement ();
+				theArray.setElementAt (new ESSession(s,eval), i++);
+			}
+			return theArray;
+		}
     }
 
 
