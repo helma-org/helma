@@ -214,4 +214,12 @@ public class MapWrapper extends ScriptableObject {
     public String getClassName() {
         return "[MapWrapper]";
     }
+
+    public String toString() {
+        if (map == null) {
+            return "[MapWrapper{}]";
+        } else {
+            return "[MapWrapper"+map.toString()+"]";
+        }
+    }
 }
