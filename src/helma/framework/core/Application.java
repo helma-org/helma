@@ -1832,12 +1832,12 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
+     * Return the name of the character encoding used by this application
      *
-     *
-     * @return ...
+     * @return the character encoding
      */
     public String getCharset() {
-        return props.getProperty("charset", "ISO-8859-1");
+        return charset;
     }
 
     /**
