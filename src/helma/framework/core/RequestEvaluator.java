@@ -22,8 +22,8 @@ public final class RequestEvaluator implements Runnable {
 
 
     public Application app;
-	
-	protected ScriptingEnvironment scriptingEngine;
+
+    protected ScriptingEnvironment scriptingEngine;
 
     public RequestTrans req;
     public ResponseTrans res;
@@ -64,7 +64,6 @@ public final class RequestEvaluator implements Runnable {
      */
     public RequestEvaluator (Application app) {
 	this.app = app;
-	scriptingEngine = helma.scripting.fesi.FesiEngineFactory.getEnvironment (app, this);
     }
 
 
@@ -74,6 +73,9 @@ public final class RequestEvaluator implements Runnable {
         // first, set a local variable to the current transactor thread so we know
         // when it's time to quit because another thread took over.
         Transactor localrtx = (Transactor) Thread.currentThread ();
+
+        if (scriptingEngine == null)
+            scriptingEngine = helma.scripting.fesi.FesiEngineFactory.getEnvironment (app, this);
 
         try {
 	do {
@@ -487,11 +489,16 @@ public final class RequestEvaluator implements Runnable {
 
 	notifyAll ();
 	try {
+	    System.err.println ("PRE-wait "+this+" - "+reqtype);
 	    // wait for request, max 10 min
-	    wait (1000*60*10);
+	    wait (100*60*1);
+	    System.err.println ("POST-wait "+this+" - "+reqtype);
 	    //  if no request arrived, release ressources and thread
-	    if (reqtype == NONE && rtx == localrtx)
+	    if (reqtype == NONE && rtx == localrtx) {
+	        System.err.println ("      ***       Releasing engine and thread.");
+	        scriptingEngine = null;
 	        rtx = null;
+	    }
 	} catch (InterruptedException ir) {}
     }
 
@@ -505,7 +512,7 @@ public final class RequestEvaluator implements Runnable {
 
 	checkThread ();
 	wait (app.requestTimeout);
- 	if (reqtype != NONE) {
+	if (reqtype != NONE) {
 	    app.logEvent ("Stopping Thread for Request "+app.getName()+"/"+req.path);
 	    stopThread ();
 	    res.reset ();
@@ -540,10 +547,12 @@ public final class RequestEvaluator implements Runnable {
 
 	checkThread ();
 	wait (app.requestTimeout);
- 	if (reqtype != NONE) {
+	if (reqtype != NONE) {
 	    stopThread ();
 	}
 
+	// reset res for garbage collection (res.data may hold reference to evaluator)
+	res = null;
 	if (exception != null)
 	    throw (exception);
 	return result;
@@ -567,10 +576,12 @@ public final class RequestEvaluator implements Runnable {
 	checkThread ();
 	wait (60000l*15); // give internal call more time (15 minutes) to complete
 
- 	if (reqtype != NONE) {
+	if (reqtype != NONE) {
 	    stopThread ();
 	}
 
+	// reset res for garbage collection (res.data may hold reference to evaluator)
+	res = null;
 	if (exception != null)
 	    throw (exception);
 	return result;
@@ -590,10 +601,12 @@ public final class RequestEvaluator implements Runnable {
 	checkThread ();
 	wait (app.requestTimeout);
 
- 	if (reqtype != NONE) {
+	if (reqtype != NONE) {
 	    stopThread ();
 	}
 
+	// reset res for garbage collection (res.data may hold reference to evaluator)
+	res = null;
 	if (exception != null)
 	    throw (exception);
 	return result;
