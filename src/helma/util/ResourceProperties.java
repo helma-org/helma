@@ -52,14 +52,17 @@ public final class ResourceProperties extends Properties {
     private String resourceName;
 
     // Sorted map of resources
-    private TreeSet resources;
+    private Set resources;
 
     /**
      * Constructs an empty ResourceProperties
      * Resources must be added manually afterwards
      */
     public ResourceProperties() {
-        resources = new TreeSet();
+        // TODO: we can't use TreeSet because we don't have the app's resource comparator
+        // Since resources don't implement Comparable, we can't add them to a "naked" TreeSet
+        // As a result, resource ordering is random when updating.
+        resources = new HashSet();
     }
 
     /**
@@ -79,11 +82,12 @@ public final class ResourceProperties extends Properties {
      * application using the given name to fetch resources and falling back
      * to the given default properties
      * @param app application to fetch resources from
-     * @param sourceName name to use when fetching resources from the application
+     * @param resourceName name to use when fetching resources from the application
      * @param defaultProperties default properties
      */
-    public ResourceProperties(Application app, String sourceName, ResourceProperties defaultProperties) {
-        this(app, sourceName);
+    public ResourceProperties(Application app, String resourceName,
+                              ResourceProperties defaultProperties) {
+        this(app, resourceName);
         this.defaultProperties = defaultProperties;
         forceUpdate();
     }
@@ -111,7 +115,7 @@ public final class ResourceProperties extends Properties {
      * @param resource resource to add
      */
     public void addResource(Resource resource) {
-        if (resource != null) {
+        if (resource != null && !resources.contains(resource)) {
             resources.add(resource);
             forceUpdate();
         }
@@ -160,9 +164,9 @@ public final class ResourceProperties extends Properties {
                 while (iterator.hasNext()) {
                     try {
                         Repository repository = (Repository) iterator.next();
-                        Resource resource = repository.getResource(resourceName);
-                        if (resource != null) {
-                            load(resource.getInputStream());
+                        Resource res = repository.getResource(resourceName);
+                        if (res != null && res.exists()) {
+                            load(res.getInputStream());
                         }
                     } catch (IOException iox) {
                         iox.printStackTrace();
@@ -175,8 +179,13 @@ public final class ResourceProperties extends Properties {
                 Iterator iterator = resources.iterator();
                 while (iterator.hasNext()) {
                     try {
-                        load(((Resource) iterator.next()).getInputStream());
-                    } catch (IOException ignore) {}
+                        Resource res = (Resource) iterator.next();
+                        if (res.exists()) {
+                            load(res.getInputStream());
+                        }
+                    } catch (IOException iox) {
+                        iox.printStackTrace();
+                    }
                 }
             }
 
