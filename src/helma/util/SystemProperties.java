@@ -111,6 +111,15 @@ public final class SystemProperties extends Properties {
     }
 
     /**
+     * Get the properties file
+     *
+     * @return the properties file
+     */
+    public File getFile() {
+        return file;
+    }
+
+    /**
      * Reload properties. This clears out the existing entries,
      * loads the main properties file and then adds any additional
      * properties there may be (usually from zip files). This is used
