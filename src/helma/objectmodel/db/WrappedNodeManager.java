@@ -33,7 +33,7 @@ import java.util.Vector;
 	    return null;
 	} catch (Exception x) {
 	    nmgr.app.logEvent ("Error retrieving Node via DbMapping: "+x.getMessage ());
-	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
+	    if (nmgr.app.debug ())
 	        x.printStackTrace();
 	    throw new RuntimeException ("Error retrieving Node: "+x.getMessage ());
 	}
@@ -46,7 +46,7 @@ import java.util.Vector;
 	    return null;
 	} catch (Exception x) {
 	    nmgr.app.logEvent ("Error retrieving Node \""+id+"\" from "+home+": "+x.getMessage ());
-	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
+	    if (nmgr.app.debug ())
 	        x.printStackTrace();
 	    throw new RuntimeException ("Error retrieving Node: "+x.getMessage ());
 	}
@@ -56,7 +56,7 @@ import java.util.Vector;
 	try {
 	    return nmgr.getNodes (home, rel);
 	} catch (Exception x) {
-	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
+	    if (nmgr.app.debug ())
 	        x.printStackTrace();
 	    throw new RuntimeException ("Error retrieving Nodes: "+x.getMessage ());
 	}
@@ -66,7 +66,7 @@ import java.util.Vector;
 	try {
 	    return nmgr.getNodeIDs (home, rel);
 	} catch (Exception x) {
-	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
+	    if (nmgr.app.debug ())
 	        x.printStackTrace();
 	    throw new RuntimeException ("Error retrieving NodeIDs: "+x.getMessage ());
 	}
@@ -76,7 +76,7 @@ import java.util.Vector;
 	try {
 	    return nmgr.countNodes (home, rel);
 	} catch (Exception x) {
-	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
+	    if (nmgr.app.debug ())
 	        x.printStackTrace();
 	    throw new RuntimeException ("Error counting Node: "+x.getMessage ());
 	}
@@ -86,7 +86,7 @@ import java.util.Vector;
 	try {
 	    nmgr.deleteNode (node);
 	} catch (Exception x) {
-	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
+	    if (nmgr.app.debug ())
 	        x.printStackTrace();
 	    throw new RuntimeException ("Error deleting Node: "+x.getMessage ());
 	}
@@ -96,7 +96,7 @@ import java.util.Vector;
 	try {
 	    return nmgr.getPropertyNames (home, rel);
 	} catch (Exception x) {
-	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
+	    if (nmgr.app.debug ())
 	        x.printStackTrace();
 	    throw new RuntimeException ("Error retrieving property names: "+x.getMessage ());
 	}

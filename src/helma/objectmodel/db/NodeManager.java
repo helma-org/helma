@@ -27,6 +27,7 @@ public final class NodeManager {
     protected Application app;
 
     private CacheMap cache;
+
     private Replicator replicator;
 
     protected DbWrapper db;
@@ -40,8 +41,6 @@ public final class NodeManager {
     // a wrapper that catches some Exceptions while accessing this NM
     public final WrappedNodeManager safe;
 
-    // an instance of Node that's used to cache null values
-    // private Node nullNode;
 
     public NodeManager (Application app, String dbHome, Properties props) throws DbException {
 	this.app = app;
@@ -68,7 +67,7 @@ public final class NodeManager {
 	    idBaseValue = Math.max (1l, idBaseValue); // 0 and 1 are reserved for root nodes
 	} catch (NumberFormatException ignore) {}
 
-	db = new DbWrapper (dbHome, Server.dbFilename, this, Server.useTransactions);
+	db = new DbWrapper (dbHome, helma.main.Server.dbFilename, this, helma.main.Server.useTransactions);
 	initDb ();
 
 	logSql = "true".equalsIgnoreCase(props.getProperty ("logsql"));

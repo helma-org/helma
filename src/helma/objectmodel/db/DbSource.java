@@ -27,7 +27,6 @@ public class DbSource {
 	this.name = name;
 	this.props = props;
 	init ();
-	Server.getLogger().log ("created db source ["+name+", "+url+", "+driver+", "+user+"]");
     }
 
     public Connection getConnection () throws ClassNotFoundException, SQLException {
@@ -42,7 +41,7 @@ public class DbSource {
 	    con = DriverManager.getConnection (url, user, password);
 	    // If we wanted to use SQL transactions, we'd set autoCommit to
 	    // false here and make commit/rollback invocations in Transactor methods;
-	    Server.getLogger().log ("Created new Connection to "+url);
+	    System.err.println ("Created new Connection to "+url);
 	    tx.registerConnection (this, con);
 	    //////////////////////////////////////////////
 	   /*  DatabaseMetaData meta = con.getMetaData ();
