@@ -496,7 +496,7 @@ public final class HtmlEncoder {
                  // if (i < l-2)
             }
 
-            if ((linebreaks > 0) && !Character.isWhitespace(c)) {
+            if ((linebreaks > 0 || swallowLinebreaks > 0) && !Character.isWhitespace(c)) {
                 if (!insidePreTag && (linebreaks > swallowLinebreaks)) {
                     linebreaks -= swallowLinebreaks;
 
