@@ -251,6 +251,19 @@ public final class Relation {
             cnst.addElement(new Constraint(local, otherType.getTableName(), foreign, false));
             columnName = local;
         }
+
+        // parse additional contstraints
+        for (int i=1; i<10; i++) {
+            local = props.getProperty(propName + ".local."+i);
+            foreign = props.getProperty(propName + ".foreign."+i);
+
+            if ((local != null) && (foreign != null)) {
+                cnst.addElement(new Constraint(local, otherType.getTableName(), foreign, false));
+            } else {
+                break;
+            }
+
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -682,7 +695,7 @@ public final class Relation {
      * appropriate properties
      */
     public void setConstraints(Node parent, Node child) {
-        INode home = parent.getNonVirtualParent();
+        Node home = parent.getNonVirtualParent();
 
         for (int i = 0; i < constraints.length; i++) {
             // don't set groupby constraints since we don't know if the
@@ -717,16 +730,17 @@ public final class Relation {
                         child.setString(crel.propName, home.getID());
                     }
                 } else if (crel.reftype == PRIMITIVE) {
-                    String value = null;
+                    Property prop = null;
 
                     if (ownType.isRelational()) {
-                        value = home.getString(ownType.columnNameToProperty(localName));
+                        prop = home.getProperty(ownType.columnNameToProperty(localName));
+                        // value = home.getString(ownType.columnNameToProperty(localName));
                     } else {
-                        value = home.getString(localName);
+                        prop = home.getProperty(localName);
                     }
 
-                    if (value != null) {
-                        child.setString(crel.propName, value);
+                    if (prop != null) {
+                        child.set(crel.propName, prop.getValue(), prop.getType());
                     }
                 }
             }
