@@ -22,6 +22,8 @@ import helma.objectmodel.dom.XmlDatabaseReader;
 import helma.objectmodel.dom.XmlWriter;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -60,7 +62,41 @@ public final class XmlDatabase implements IDatabase {
             throw new DatabaseException("No write permission for database directory "+dbHomeDir);
         }
 
+        File stylesheet = new File(dbHomeDir, "helma.xsl");
+        // if style sheet doesn't exist, copy it
+        if (!stylesheet.exists()) {
+            copyStylesheet(stylesheet);
+        }
+
         this.encoding = nmgr.app.getCharset();
+    }
+    
+    /**
+     * Try to copy style sheet for XML files to database directory
+     */
+    private void copyStylesheet(File destination) {
+        InputStream in = null;
+        FileOutputStream out = null;
+        byte[] buffer = new byte[1024];
+        int read;
+        
+        try {
+            in = getClass().getResourceAsStream("helma.xsl");
+            out = new FileOutputStream(destination);
+            while ((read = in.read(buffer, 0, buffer.length)) > 0) {
+                out.write(buffer, 0, read);
+            }
+        } catch (IOException iox) {
+            System.err.println("Error copying db style sheet: "+iox);
+        } finally {
+            try {
+                if (out != null) 
+                    out.close();
+                if (in != null) 
+                    in.close();
+            } catch (IOException ignore) {
+            }
+        }
     }
 
     /**
