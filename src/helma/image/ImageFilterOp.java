@@ -70,8 +70,17 @@ public class ImageFilterOp implements BufferedImageOp {
             }
         } else {
             // integer, use the simple rgb mode:
+            WritableRaster raster = src.getRaster();
+            int pixels[] = new int[width];
+            // calculate scanline by scanline in order to safe memory.
+            // It also seems to run faster like that
+            for (int y = 0; y < height; y++) {
+                raster.getDataElements(0, y, width, 1, pixels);
+                fltr.setPixels(0, y, width, 1, cm, pixels, 0, width);
+            }
         }
         */
+
         // allways work in integer mode. this is more effective, and most
         // filters convert to integer internally anyhow
         ColorModel cm = new SimpleColorModel();
@@ -84,6 +93,8 @@ public class ImageFilterOp implements BufferedImageOp {
         Graphics2D g2d = row.createGraphics();
         int pixels[] = ((DataBufferInt)row.getRaster().getDataBuffer()).getData();
 
+        // make sure alpha values do not add up for each row:
+        g2d.setComposite(AlphaComposite.Src);
         // calculate scanline by scanline in order to safe memory.
         // It also seems to run faster like that
         for (int y = 0; y < height; y++) {
@@ -93,6 +104,7 @@ public class ImageFilterOp implements BufferedImageOp {
             fltr.setPixels(0, y, width, 1, cm, pixels, 0, width);
         }
         g2d.dispose();
+
         // the consumer now contains the filtered image, return it.
         return consumer.getImage();
     }
@@ -135,7 +147,7 @@ public class ImageFilterOp implements BufferedImageOp {
         }
 
         public int getAlpha(int pixel) {
-            return pixel >>> 24;
+            return pixel  >> 24;
         }
 
         public int getRed(int pixel) {
