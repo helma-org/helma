@@ -259,6 +259,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	    res.write ("Error in application: <b>" + x.getMessage () + "</b>");
 	} finally {
 	    if (primaryRequest) {
+	        activeRequests.remove (req);
 	        releaseEvaluator (ev);
 	        res.close ();  // this needs to be done before sending it back
 	    } else {

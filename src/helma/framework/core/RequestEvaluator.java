@@ -533,19 +533,15 @@ public class RequestEvaluator implements Runnable {
 	this.user = user;
 	this.res = new ResponseTrans ();
 
-	try {
-	    app.activeRequests.put (req, this);
+	app.activeRequests.put (req, this);
 
-	    checkThread ();
-	    wait (app.requestTimeout);
- 	    if (reqtype != NONE) {
-	        IServer.getLogger().log ("Stopping Thread for Request "+app.getName()+"/"+req.path);
-	        stopThread ();
-	        res.reset ();
-	        res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>Request timed out.</pre>");
-	    }
-	} finally {
-	    app.activeRequests.remove (req);
+	checkThread ();
+	wait (app.requestTimeout);
+ 	if (reqtype != NONE) {
+	    IServer.getLogger().log ("Stopping Thread for Request "+app.getName()+"/"+req.path);
+	    stopThread ();
+	    res.reset ();
+	    res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>Request timed out.</pre>");
 	}
 
 	return res;
