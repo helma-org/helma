@@ -230,8 +230,9 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	    if (rel != null && rel.other != null) {
 	        DbMapping vmap = value.getDbMapping ();
 	        // check if actual type matches expected type
-	        if (rel.other != vmap)
+	        if (rel.other != vmap && (!rel.virtual || rel.prototype != null)) {
 	            throw new RuntimeException ("Can't assign property: expected prototype "+rel.other+", got "+vmap);
+	        }
 	        // check if this is a forward relation, i.e. if we point to a field in the value object
 	        // if so, we may use something else than the object's id to refer to it.
 	        if (!rel.virtual && rel.direction == Relation.FORWARD) {
