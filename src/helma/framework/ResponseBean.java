@@ -26,14 +26,6 @@ public class ResponseBean implements Serializable {
 	res.format (what);
     }
 
-    public void pushStringBuffer  () {
-	res.pushStringBuffer ();
-    }
-
-    public String popStringBuffer () {
-	return res.popStringBuffer ();
-    }
-
     public void redirect (String url) throws RedirectException {
 	res.redirect (url);
     }
@@ -43,11 +35,19 @@ public class ResponseBean implements Serializable {
     }
 
     public void setCookie (String key, String value) {
-	res.setCookie (key, value, -1);
+	res.setCookie (key, value, -1, null, null);
     }
 
     public void setCookie (String key, String value, int days) {
-	res.setCookie (key, value, days);
+	res.setCookie (key, value, days, null, null);
+    }
+    
+    public void setCookie (String key, String value, int days, String path) {
+	res.setCookie (key, value, days, path, null);
+    }
+
+    public void setCookie (String key, String value, int days, String path, String domain) {
+	res.setCookie (key, value, days, path, domain);
     }
 
     public void write (Object what) {
@@ -172,11 +172,5 @@ public class ResponseBean implements Serializable {
 	res.digestDependencies ();
     }
 
-    /* public void notModified () throws RedirectException {
-	res.setNotModified (true);
-    } */
-
 }
-
-
 

@@ -59,10 +59,7 @@ public final class ResponseTrans implements Externalizable {
     private String etag = null;
 
     // cookies
-    String cookieKeys[];
-    String cookieValues[];
-    int cookieDays[];
-    int nCookies = 0;
+    Map cookies;
 
     // the buffer used to build the response
     private transient StringBuffer buffer = null;
@@ -260,8 +257,7 @@ public final class ResponseTrans implements Externalizable {
     }
 
     /**
-     * Replace special characters with entities but leave <, > and ", allowing HTML tags
-     *  in the response.
+     * Replace special characters with entities but pass through HTML tags
      */
     public void format (Object what) {
 	if (what != null) {
@@ -494,61 +490,49 @@ public final class ResponseTrans implements Externalizable {
 	skincache.put (id, skin);
     }
 
-    public synchronized void setCookie (String key, String value) {
-	setCookie (key, value, -1);
-    }
-
-    public synchronized void setCookie (String key, String value, int days) {
-	if (nCookies == 0) {
-	    cookieKeys = new String [3];
-	    cookieValues = new String [3];
-	    cookieDays = new int [3];
+    public void setCookie (String key, String value, int days, String path, String domain) {
+	CookieTrans c = null;
+	if (cookies == null) {
+	    cookies = new HashMap ();
+	} else {
+	    c = (CookieTrans) cookies.get (key);
 	}
-	if (nCookies == cookieKeys.length) {
-	    String nk[] = new String [nCookies+3];
-	    System.arraycopy (cookieKeys, 0, nk, 0, nCookies);
-	    String nv[] = new String [nCookies+3];
-	    System.arraycopy (cookieValues, 0, nv, 0, nCookies);
-	    int nd[] = new int [nCookies+3];
-	    System.arraycopy (cookieDays, 0, nd, 0, nCookies);
-	    cookieKeys = nk;
-	    cookieValues = nv;
-	    cookieDays = nd;
+	if (c == null) {
+	    c = new CookieTrans (key, value);
+	    cookies.put (key, c);
+	} else {
+	    c.setValue (value);
 	}
-	cookieKeys [nCookies] = key;
-	cookieValues [nCookies] = value;
-	cookieDays [nCookies] = days;
-	nCookies += 1;
+	c.setDays (days);
+	c.setPath (path);
+	c.setDomain (domain);
     }
 
     public void resetCookies () {
-	nCookies = 0;
+	if (cookies != null)
+	    cookies.clear ();
     }
 
     public int countCookies () {
-	return nCookies;
+	if (cookies != null)
+	    return cookies.size();
+	return 0;
     }
 
-    public int getDaysAt (int i) {
-	return cookieDays[i];
+    public CookieTrans[] getCookies () {
+	if (cookies == null)
+	    return new CookieTrans[0];
+	CookieTrans[] c = new CookieTrans[cookies.size()];
+	cookies.values().toArray (c);
+	return c;
     }
 
-    public String getKeyAt (int i) {
-	return cookieKeys[i];
-    }
-
-    public String getValueAt (int i) {
-	return cookieValues[i];
-    }
 
     public void readExternal (ObjectInput s) throws ClassNotFoundException, IOException {
 	contentType = (String) s.readObject ();
 	response = (byte[]) s.readObject ();
 	redir = (String) s.readObject ();
-	cookieKeys = (String[]) s.readObject ();
-	cookieValues = (String[]) s.readObject ();
-	cookieDays = (int[]) s.readObject ();
-	nCookies = s.readInt ();
+	cookies = (Map) s.readObject ();
 	cache = s.readBoolean ();
 	status = s.readInt ();
 	realm = (String) s.readObject ();
@@ -562,10 +546,7 @@ public final class ResponseTrans implements Externalizable {
 	s.writeObject (contentType);
 	s.writeObject (response);
 	s.writeObject (redir);
-	s.writeObject (cookieKeys);
-	s.writeObject (cookieValues);
-	s.writeObject (cookieDays);
-	s.writeInt (nCookies);
+	s.writeObject (cookies);
 	s.writeBoolean (cache);
 	s.writeInt (status);
 	s.writeObject (realm);

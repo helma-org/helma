@@ -178,6 +178,8 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    if ( authorization != null )
 	        reqtrans.set ("authorization", authorization );
 
+	    // response.setHeader ("Server", "Helma/"+helma.main.Server.version);
+
 	    reqtrans.path = getPathInfo (request);
 	    ResponseTrans restrans = execute (reqtrans);
 
@@ -208,16 +210,14 @@ public abstract class AbstractServletClient extends HttpServlet {
                         HttpServletResponse res,
                         ResponseTrans hopres) {
 
-	for (int i = 0; i < hopres.countCookies(); i++) try {
-	    Cookie c = new Cookie(hopres.getKeyAt(i), hopres.getValueAt(i));
-	    c.setPath ("/");
-	    if (cookieDomain != null)
-	        c.setDomain (cookieDomain);
-	    int expires = hopres.getDaysAt(i);
-	    if (expires > 0)
-	        c.setMaxAge(expires * 60*60*24);   // Cookie time to live, days -> seconds
-	    res.addCookie(c);
-	} catch (Exception ign) {}
+	int ncookies = hopres.countCookies();
+	if (hopres.countCookies() > 0) {
+	    CookieTrans[] cookies = hopres.getCookies ();
+	    for (int i = 0; i < cookies.length; i++) try {
+	        Cookie c = cookies[i].getCookie ("/", cookieDomain);
+	        res.addCookie(c);
+	    } catch (Exception ignore) {}
+	}
 
 	if (hopres.getETag() != null) {
 	    res.setHeader ("ETag", hopres.getETag());
