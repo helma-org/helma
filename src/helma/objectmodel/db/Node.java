@@ -617,7 +617,7 @@ public final class Node implements INode, Serializable {
     public void setName(String name) {
         if ((name == null) || (name.trim().length() == 0)) {
             // use id as name
-            this.name = id; 
+            this.name = id;
         } else if (name.indexOf('/') > -1) {
             // "/" is used as delimiter, so it's not a legal char
             return;
@@ -892,8 +892,8 @@ public final class Node implements INode, Serializable {
                         INode old = (INode) getChildElement(prop);
 
                         if ((old != null) && (old != node)) {
-                            // FIXME: we delete the existing node here, 
-                            // but actually the app developer should prevent this from 
+                            // FIXME: we delete the existing node here,
+                            // but actually the app developer should prevent this from
                             // happening, so it might be better to throw an exception.
                             old.remove();
                             this.removeNode(old);
@@ -989,7 +989,7 @@ public final class Node implements INode, Serializable {
 
 
     /**
-     * This implements the getChild() method of the IPathElement interface
+     * This implements the getChildElement() method of the IPathElement interface
      */
     public IPathElement getChildElement(String name) {
         if (dbmap != null) {
@@ -1007,7 +1007,12 @@ public final class Node implements INode, Serializable {
                 if (state != TRANSIENT && rel.otherType != null && rel.otherType.isRelational()) {
                     return nmgr.getNode(this, name, rel);
                 } else {
-                    return getNode(name);
+                    INode node = getNode(name);
+                    // set DbMapping for embedded db group nodes
+                    if (node != null && rel.groupby != null) {
+                         node.setDbMapping(dbmap.getGroupbyMapping());
+                    }
+                    return node;
                 }
             }
 
@@ -1151,7 +1156,7 @@ public final class Node implements INode, Serializable {
 
                     // set "groupname" property to value of groupby field
                     node.setString("groupname", sid);
-                        
+
                     node.setDbMapping(groupbyMapping);
 
                     if (!relational) {
