@@ -1,6 +1,9 @@
 package helma.scripting.fesi;
 
+import java.util.Map;
+
 import helma.objectmodel.INode;
+
 import FESI.Interpreter.Evaluator;
 import FESI.Exceptions.EcmaScriptException;
 import FESI.Data.ESNull;
@@ -29,6 +32,8 @@ public class ESBeanWrapper extends ESWrapper {
 			ESValue val = super.getProperty (propertyName, hash);
 			if (val instanceof ESWrapper && ((ESWrapper)val).getJavaObject() instanceof INode)	{
 				return eval.getNodeWrapper( (INode) ((ESWrapper)val).getJavaObject() );
+			} else if (val instanceof ESWrapper && ((ESWrapper)val).getJavaObject() instanceof Map)	{
+				return new ESMapWrapper(eval, (Map) ((ESWrapper)val).getJavaObject() );
 			} else {
 				return val;
 			}
@@ -43,8 +48,8 @@ public class ESBeanWrapper extends ESWrapper {
     		super.putProperty (propertyName, propertyValue, hash);
     	} catch (Exception rte) {
     		// create a nice error message
-    		throw new EcmaScriptException("property " + propertyName +
-    		" is readonly on " + getJavaObject().toString() );
+    		throw new EcmaScriptException("can't set property " + propertyName +
+    		" to this value on " + getJavaObject().toString() );
     	}
 	}
 
