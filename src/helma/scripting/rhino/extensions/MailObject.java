@@ -232,6 +232,11 @@ public class MailObject extends ScriptableObject implements Serializable {
 
             MimeBodyPart part = new MimeBodyPart();
 
+            // if param is wrapped JavaObject unwrap.
+            if (obj instanceof Wrapper) {
+                obj = ((Wrapper) obj).unwrap();
+            }
+
             if (obj instanceof String) {
                 part.setContent(obj.toString(), "text/plain");
             } else if (obj instanceof File) {
@@ -248,9 +253,11 @@ public class MailObject extends ScriptableObject implements Serializable {
             if (filename != null && filename != Undefined.instance) {
                 try {
                     part.setFileName(filename.toString());
-                } catch (Exception x) {
-                    // FIXME: error setting file name ... should we ignore this or throw an exception?
-                }
+                } catch (Exception x) {}
+            } else if (obj instanceof File) {
+                try {
+                    part.setFileName(((File) obj).getName());
+                } catch (Exception x) {}
             }
 
             multipart.addBodyPart(part);
