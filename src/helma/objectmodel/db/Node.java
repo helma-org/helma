@@ -410,8 +410,10 @@ public final class Node implements INode, Serializable {
      */
 
     public String getID () {
-	if (state == TRANSIENT)
+	if (state == TRANSIENT) {
+	    Thread.dumpStack ();
 	    throw new RuntimeException ("getID called on transient Node: "+this);
+	}
 	return id;
     }
 
@@ -536,8 +538,10 @@ public final class Node implements INode, Serializable {
     }
 
     public Key getKey () {
-	if (state == TRANSIENT)
+	if (state == TRANSIENT) {
+	    Thread.dumpStack ();
 	    throw new RuntimeException ("getKey called on transient Node: "+this);
+	}
 	if (dbmap == null && prototype != null && nmgr != null)
 	    dbmap = nmgr.getDbMapping (prototype);
 	if (primaryKey == null)
@@ -1178,6 +1182,10 @@ public final class Node implements INode, Serializable {
      *  ID index or the actual nodes.
      */
     protected void loadNodes () {
+	// Don't do this for transient nodes which don't have an explicit subnode relation set
+	if ((state == TRANSIENT || state == NEW) && subnodeRelation == null)
+	    return;
+	
 	DbMapping smap = dbmap == null ? null : dbmap.getSubnodeMapping ();
 	if (smap != null && smap.isRelational ()) {
 	    // check if subnodes need to be reloaded
@@ -1647,16 +1655,17 @@ public final class Node implements INode, Serializable {
 	    prop.nhandle = new NodeHandle (new DbKey (n.getDbMapping (), kval, rel.getRemoteField ()));
 	}
 	
-	String nID = n.getID();
-
-	// check node in with transactor cache
-	Transactor tx = (Transactor) Thread.currentThread ();
-	tx.visitCleanNode (new DbKey (nmap, nID), n);
-	// if the field is not the primary key of the property, also register it
-	if (rel != null && rel.direction == Relation.DIRECT) {
-	    Key secKey = new SyntheticKey (getKey (), propname);
-	    nmgr.evictKey (secKey);
-	    tx.visitCleanNode (secKey, n);
+	if (n.state != TRANSIENT) {
+	    // check node in with transactor cache
+	    String nID = n.getID();
+	    Transactor tx = (Transactor) Thread.currentThread ();
+	    tx.visitCleanNode (new DbKey (nmap, nID), n);
+	    // if the field is not the primary key of the property, also register it
+	    if (rel != null && rel.direction == Relation.DIRECT) {
+	        Key secKey = new SyntheticKey (getKey (), propname);
+	        nmgr.evictKey (secKey);
+	        tx.visitCleanNode (secKey, n);
+	    }
 	}
 
 	lastmodified = System.currentTimeMillis ();
@@ -1781,18 +1790,18 @@ public final class Node implements INode, Serializable {
 	    Transactor current = (Transactor) Thread.currentThread ();
 	    current.visitNode (this);
 	    current.visitCleanNode (this);
-	}
-	for (Enumeration e = getSubnodes (); e.hasMoreElements (); ) {
-	    Node n = (Node) e.nextElement ();
-	    if (n.state == TRANSIENT)
-	        n.makePersistentCapable ();
-	}
- 	for (Enumeration e = properties (); e.hasMoreElements (); ) {
-	    IProperty next = get ((String) e.nextElement (), false);
-	    if (next != null && next.getType () == IProperty.NODE) {
-	        Node n = (Node) next.getNodeValue ();
-	        if (n != null && n.state == TRANSIENT)
+	    for (Enumeration e = getSubnodes (); e.hasMoreElements (); ) {
+	        Node n = (Node) e.nextElement ();
+	        if (n.state == TRANSIENT)
 	            n.makePersistentCapable ();
+	    }
+	    for (Enumeration e = properties (); e.hasMoreElements (); ) {
+	        IProperty next = get ((String) e.nextElement (), false);
+	        if (next != null && next.getType () == IProperty.NODE) {
+	            Node n = (Node) next.getNodeValue ();
+	            if (n != null && n.state == TRANSIENT)
+	                n.makePersistentCapable ();
+	        }
 	    }
 	}
     }
