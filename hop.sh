@@ -8,4 +8,4 @@ export JARS=lib/helma.jar:lib/berkeley.jar:lib/village.jar:lib/jsdk.jar:lib/open
 export JARS=$JARS:lib/sax.jar:lib/regexp.jar:lib/netcomponents.jar:lib/jimi.jar
 export JARS=$JARS:lib/mail.jar:lib/activation.jar:lib/mysql.jar:lib/jdom.jar:lib/minml.jar
 
-java -classpath $CLASSPATH:$JARS helma.objectmodel.db.Server -w $HOP_PORT
+java -classpath $CLASSPATH:$JARS helma.main.Server -w $HOP_PORT

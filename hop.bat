@@ -10,4 +10,4 @@ set HOP_PORT=8080
 
 echo Starting Web server on port %HOP_PORT%
 
-java -classpath c:\winnt\java\packages\rmi.zip;%JARS% helma.objectmodel.db.Server -w %HOP_PORT%
+java -classpath c:\winnt\java\packages\rmi.zip;%JARS% helma.main.Server -w %HOP_PORT%
