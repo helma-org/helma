@@ -43,6 +43,19 @@ public class SkinFile implements Updatable {
 	this.skin = new Skin (body, app);
     }
 
+    /**
+     * Create a skinfile without that doesn't belong to a prototype, or at
+     * least it doesn't know about its prototype and isn't managed by the prototype.
+     */
+    public SkinFile (File file, String name, Application app) {
+	this.prototype = null;
+	this.app = app;
+	this.name = name;
+	this.file = file;
+	this.skin = null;
+    }
+
+
      /**
      * Tell the type manager whether we need an update. this is the case when
      * the file has been modified or deleted.
@@ -56,8 +69,10 @@ public class SkinFile implements Updatable {
 
 	if (!file.exists ()) {
 	    // remove skin from  prototype
-	    prototype.skins.remove (name);
-	    prototype.updatables.remove (file.getName());
+	    if (prototype != null) {
+	        prototype.skins.remove (name);
+	        prototype.updatables.remove (file.getName());
+	    }
 	} else {
 	    // we only need to update if the skin has already been initialized
 	    if (skin != null)
