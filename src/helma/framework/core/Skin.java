@@ -11,6 +11,7 @@ import FESI.Data.*;
 import FESI.Exceptions.*;
 import helma.objectmodel.INode;
 import helma.objectmodel.IServer;
+import helma.objectmodel.ConcurrencyException;
 
 
 /**
@@ -64,7 +65,7 @@ public class Skin {
 	return source;
     }
 
-    public void render (RequestEvaluator reval, ESNode thisNode, ESObject paramObject) {
+    public void render (RequestEvaluator reval, ESNode thisNode, ESObject paramObject) throws RedirectException {
 	if (parts == null)
 	    return;
 	for (int i=0; i<parts.length; i++) {
@@ -174,7 +175,7 @@ public class Skin {
 	}
 
 
-	public void render (RequestEvaluator reval, ESNode thisNode, ESObject paramObject) {
+	public void render (RequestEvaluator reval, ESNode thisNode, ESObject paramObject) throws RedirectException {
 
 	    if ("response".equalsIgnoreCase (handler)) {
 	        renderFromResponse (reval);
@@ -246,6 +247,10 @@ public class Skin {
 	            reval.res.write (" "+msg+" ");
 	            app.logEvent (msg);
 	        }
+	    } catch (RedirectException redir) {
+	        throw redir;
+	    } catch (ConcurrencyException concur) {
+	        throw concur;
 	    } catch (Exception x) {
 	        String msg = "[HopMacro error: "+x+"]";
 	        reval.res.write (" "+msg+" ");
