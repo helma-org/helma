@@ -182,7 +182,7 @@ public final class HtmlEncoder {
 	        case  '\n':
 	            ret.append ('\n');
                          if (!ignoreNewline && !swallowOneNewline)
-	                ret.append ("<br>");
+	                ret.append ("<br />");
 	            if (!tagOpen)
 	                swallowOneNewline = false;
 	            break;
@@ -267,7 +267,7 @@ public final class HtmlEncoder {
 	        case  '\n':
 	            ret.append ('\n');
 	            if (encodeNewline) {
-	                ret.append ("<br>");
+	                ret.append ("<br />");
 	            }
 	            break;
 	        default:
