@@ -44,9 +44,6 @@ import java.util.HashMap;
 
 public class CacheMap  {
 
-    // Number of buckets.
-    private static final int nBuckets = 2;
-
     // Load factor.
     private float loadFactor;
 
@@ -63,7 +60,7 @@ public class CacheMap  {
     // the logger to output messages to
     private Logger logger = null;
 
-    /// Constructs a new, empty hashtable with the specified initial 
+    /// Constructs a new, empty hashtable with the specified initial
     // capacity and the specified load factor.
     // Unlike a plain Hashtable, an LruHashtable will never grow or
     // shrink from this initial capacity.
@@ -82,14 +79,20 @@ public class CacheMap  {
 	if ( initialCapacity <= 0 || loadFactor <= 0.0 )
 	    throw new IllegalArgumentException();
 	this.loadFactor = loadFactor;
-	threshold = (int) (initialCapacity * loadFactor) - 1;
-	eachCapacity = initialCapacity / nBuckets + 1;
-	oldTable = new HashMap (eachCapacity, loadFactor);
+	// table rotation threshold: we allow each table to gain
+	// initialCapacity/2 entries.
+	threshold = initialCapacity / 2;
+	// We deliberately choose the initial capacity of tables large
+	// enough that it can hold threshold entries without being rehashed,
+	// in other words, make sure our threshold for table rotation is lower
+	// than that of the underlying HashMap for table rehashing.
+	eachCapacity = (int) (threshold / loadFactor) + 2;
+	// create tables
+	oldTable = new HashMap ();
 	newTable = new HashMap (eachCapacity, loadFactor);
-	// System.out.println ("CREATED NEW CACHEMAP: CAP="+initialCapacity+" EACH="+eachCapacity+"  THRES="+threshold);
     }
 
-    /// Constructs a new, empty hashtable with the specified initial 
+    /// Constructs a new, empty hashtable with the specified initial
     // capacity.
     // Unlike a plain Hashtable, an LruHashtable will never grow or
     // shrink from this initial capacity.
@@ -98,7 +101,7 @@ public class CacheMap  {
 	this (initialCapacity, 0.75F);
     }
 
-    /// Returns the number of elements contained in the hashtable. 
+    /// Returns the number of elements contained in the hashtable.
     public int size() {
 	return newTable.size() + oldTable.size();
     }
@@ -109,10 +112,32 @@ public class CacheMap  {
     }
 
 
+    /// Set the capacity of the CacheMap
+    public void setCapacity(int capacity) {
+	// table rotation threshold: we allow each table to gain
+	// initialCapacity/2 entries.
+	int newThreshold = capacity / 2;
+	if (newThreshold != threshold) {
+	    if (logger != null)
+	       logger.log ("Setting cache capacity to "+capacity);
+	    updateThreshold (newThreshold);
+	}
+    }
+
+    private synchronized void updateThreshold (int newThreshold) {
+	    threshold = newThreshold;
+	    eachCapacity = (int) (threshold / loadFactor) + 2;
+	    // if newtable is larger than threshold, rotate.
+	    if (newTable.size() > threshold) {
+	        oldTable = newTable;
+	        newTable = new HashMap (eachCapacity, loadFactor);
+	    }
+    }
+
     /// Returns true if the specified object is an element of the hashtable.
     // This operation is more expensive than the containsKey() method.
     // @param value the value that we are looking for
-    // @exception NullPointerException If the value being searched 
+    // @exception NullPointerException If the value being searched
     // for is equal to null.
     // @see LruHashtable#containsKey
     public synchronized boolean containsValue (Object value) {
@@ -207,7 +232,7 @@ public class CacheMap  {
 	if (oldValue != null)
 	    oldTable.remove( key );
 	else {
-	    if (newTable.size() >= eachCapacity) {
+	    if (newTable.size() >= threshold) {
 		// Rotate the tables.
 		if (logger != null)
 		    logger.log ("Rotating Cache tables at "+newTable.size()+"/"+oldTable.size()+" (new/old)");
