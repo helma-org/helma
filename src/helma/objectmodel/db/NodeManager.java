@@ -602,7 +602,6 @@ public final class NodeManager {
 	    String table = rel.otherType.getTableName ();
 
 	    Statement stmt = null;
-	    // QueryDataSet qds = null;
 	    try {
 	
 	        String q = null;
@@ -618,13 +617,10 @@ public final class NodeManager {
 	        if (logSql)
 	           app.logEvent ("### getNodeIDs: "+q);
 
-	        // qds = new QueryDataSet (con, q);
 	        stmt = con.createStatement ();
 	        if (rel.maxSize > 0)
 	            stmt.setMaxRows (rel.maxSize);
 	        ResultSet result = stmt.executeQuery (q);
-	
-	        // qds.fetchRecords ();
 	
 	        // problem: how do we derive a SyntheticKey from a not-yet-persistent Node?
 	        Key k = rel.groupby != null ?  home.getKey (): null;
@@ -649,9 +645,6 @@ public final class NodeManager {
 
 	    } finally {
 	        // tx.timer.endEvent ("getNodeIDs "+home);
-	        // if (qds != null) {
-	        //     qds.close ();
-	        // }
 	        if (stmt != null) try {
 	            stmt.close ();
 	        } catch (Exception ignore) {}
@@ -697,7 +690,11 @@ public final class NodeManager {
 	        if (logSql)
 	           app.logEvent ("### getNodes: "+tds.getSelectString());
 
-	        tds.fetchRecords ();
+	        if (rel.maxSize > 0)
+	            tds.fetchRecords (rel.maxSize);
+	        else
+	            tds.fetchRecords ();
+	
 	        for (int i=0; i<tds.size (); i++) {
 	            // create new Nodes.
 	            Record rec = tds.getRecord (i);
@@ -766,7 +763,7 @@ public final class NodeManager {
 	            qds.close ();
 	        }
 	    }
-	    return retval;
+	    return rel.maxSize > 0 ? Math.min (rel.maxSize, retval) : retval;
 	}
     }
 
