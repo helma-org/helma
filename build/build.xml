@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <!-- ======================================================================= -->
-<!-- Hop build file                                                          -->
+<!-- Hop build file for building with ant                                    -->
 <!-- ======================================================================= -->
 <!--                                                                         -->
 <!-- Usage:                                                                  -->
@@ -13,14 +13,18 @@
 <!--    compile         compiles helma source code to java classes           -->
 <!--    jar             compiles helma source code to java archives          -->
 <!--    javadocs        creates api documentation for helma java classes     -->
-<!--    helmadocs       creates printable user documentation for helma       -->
-<!--    package         creates directory with compiled helma, docs and apps -->
-<!--    package-zip     creates zipped file of package                       -->
-<!--    package-tgz     creates tared and gzipped file of package            -->
-<!--    package-all     creates package, package-zip and package-tgz         -->
+<!--    helmadocs       fetches printable user reference for helma           -->
+<!--    package         creates directory with compiled helma and apps       -->
+<!--    fullpackage     creates directory with compiled helma, docs and apps -->
+<!--    package-zip     creates zipped file of fullpackage                   -->
+<!--    package-tgz     creates tared and gzipped file of fullpackage        -->
+<!--    package-all     creates fullpackage, package-zip and package-tgz     -->
 <!--    snapshotcompile compiles current helma snapshot to java classes      -->
 <!--    snapshot        compiles current helma snapshot to java archive      -->
 <!--    app-package     creates a zipped file of an application from cvs     -->
+<!--    antclick        creates package incl. helma, Antville and manage app -->
+<!--    cleanup         removes temporary directories                        -->
+<!--    fullcleanup     removes all directories created by ant               -->
 
 <project name="Hop" default="main" basedir=".">
 
@@ -36,12 +40,12 @@
 
         <property name="home.dir" value=".."/>
 
-		<!-- values for building a snapshot -->
+        <!-- values for building a snapshot -->
         <property name="snapshot.src" value="${home.dir}/src"/>
         <property name="snapshot.classes" value="${home.dir}/classes"/>
         <property name="snapshot.lib" value="${home.dir}/lib"/>
 
-		<!-- values for building the distribution -->
+        <!-- values for building the distribution -->
         <property name="build.work" value="${home.dir}/work"/>
         <property name="build.checkout" value="${build.work}/checkout"/>
         <property name="build.src" value="${build.checkout}/hop"/>
@@ -63,10 +67,6 @@
         <filter token="year" value="${year}"/>
         <filter token="version" value="${version}"/>
         <filter token="date" value="${TODAY}"/>
-
-        <!-- JDK1.1 collections support -->
-        <property name="coll.import" value="com.sun.java.util.collections"/>
-        <available classname="${coll.import}.Collection" property="coll.present"/>
     </target>
 
     <!-- =================================================================== -->
@@ -86,47 +86,10 @@
         <cvs cvsRoot="${cvs.root}" package="hop" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="hopbuild" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/base" dest="${build.checkout}"/>
-        <cvs cvsRoot="${cvs.root}" package="apps/hopblog" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/himp" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/bloggerapi" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/lillebror" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/manage" dest="${build.checkout}"/>
-    </target>
-
-    <!-- =================================================================== -->
-    <!-- Does replacement on files for dealing with collections.             -->
-    <!-- XXX The efficiency could be improved here; all replacements should  -->
-    <!-- XXX happen during one read/write phase and only for files that have -->
-    <!-- XXX changed.                                                        -->
-    <!-- =================================================================== -->
-    <target name="collections" if="coll.present" depends="init">
-      <replace dir="${build.src}/helma" includes="**"
-             token="java.util.Collection" value="${coll.import}.Collection"/>
-      <replace dir="${build.src}/helma" includes="**"
-             token="java.util.Map" value="${coll.import}.Map"/>
-      <replace dir="${build.src}/helma" includes="**"
-             token="java.util.HashMap" value="${coll.import}.HashMap"/>
-      <replace dir="${build.src}/helma" includes="**"
-             token="java.util.List" value="${coll.import}.List"/>
-      <replace dir="${build.src}/helma" includes="**"
-             token="java.util.LinkedList" value="${coll.import}.LinkedList"/>
-      <replace dir="${build.src}/helma" includes="**"
-             token="java.util.ArrayList" value="${coll.import}.ArrayList"/>
-      <replace dir="${build.src}/helma" includes="**"
-             token="java.util.Set" value="${coll.import}.Set"/>
-      <replace dir="${build.src}/helma" includes="**"
-             token="java.util.HashSet" value="${coll.import}.HashSet"/>
-      <replace dir="${build.src}/helma" includes="**"
-             token="java.util.Iterator" value="${coll.import}.Iterator"/>
-      <!-- The following replace handles the "import java.util.*" case by    -->
-      <!-- adding an "import com.sun.java.util.collections.*" after it.      -->
-      <!-- BTW, \u000a is the Unicode escape for a new line. (jhunter)       -->
-      <replace dir="${build.src}/helma/framework/core" includes="**"
-             token="java.util.*"
-             value="java.util.*;\u000aimport ${coll.import}.*"/>
-      <replace dir="${build.src}/helma/objectmodel" includes="**"
-             token="java.util.*"
-             value="java.util.*;\u000aimport ${coll.import}.*"/>
     </target>
 
     <!-- =================================================================== -->
@@ -184,7 +147,7 @@
     </target>
 
     <!-- =================================================================== -->
-    <!-- Get the documentation                                               -->
+    <!-- Get the documentation (currently fails due to request time-out)     -->
     <!-- =================================================================== -->
     <target name="helmadocs" depends="init">
 		<get src="http://www.helma.org/docs/reference/print"
@@ -196,7 +159,7 @@
     <!-- =================================================================== -->
     <!-- Package                                                             -->
     <!-- =================================================================== -->
-    <target name="package" depends="init, fullcheckout, jar, javadocs, helmadocs">
+    <target name="package" depends="init, fullcheckout, jar">
         <mkdir dir="${final.dir}"/>
 
         <mkdir dir="${final.dir}/src/hop"/>
@@ -209,10 +172,6 @@
         </copy>
         <chmod file="${final.dir}/build/build.sh" perm="755"/>
 
-        <copy todir="${final.dir}/docs">
-            <fileset dir="${build.docs}"/>
-        </copy>
-
         <copy todir="${final.dir}/lib">
             <fileset dir="${build.checkout}/hopbuild/lib"/>
         </copy>
@@ -220,7 +179,7 @@
         <copy file="${build.work}/${jar.name}-${DSTAMP}.jar" tofile="${final.dir}/lib/helma.jar"/>
 
         <copy todir="${final.dir}">
-            <fileset dir="${build.checkout}/hopbuild/skeleton" excludes="**/CVS"/>
+            <fileset dir="${build.checkout}/hopbuild/skeleton" excludes="**/CVS,extras/**"/>
         </copy>
         <chmod file="${final.dir}/hop.sh" perm="755"/>
 
@@ -236,16 +195,25 @@
    </target>
 
     <!-- =================================================================== -->
+    <!-- Full Package (includes documentation)                               -->
+    <!-- =================================================================== -->
+    <target name="fullpackage" depends="package, javadocs">
+        <copy todir="${final.dir}/docs">
+            <fileset dir="${build.docs}"/>
+        </copy>
+    </target>
+
+    <!-- =================================================================== -->
     <!-- Packages the distribution with ZIP                                  -->
     <!-- =================================================================== -->
-    <target name="package-zip" depends="package">
+    <target name="package-zip" depends="fullpackage">
         <zip zipfile="${home.dir}/${Name}-${version}.zip" basedir="${build.work}" includes="**/${final.name}/**"/>
     </target>
 
     <!-- =================================================================== -->
     <!-- Packages the distribution with TAR-GZIP                             -->
     <!-- =================================================================== -->
-    <target name="package-tgz" depends="package">
+    <target name="package-tgz" depends="fullpackage">
         <tar tarfile="${build.work}/${Name}-${version}.tar" basedir="${build.work}/${final.name}" excludes="**">
              <tarfileset dir="${build.work}" mode="755">
                   <include name="${final.name}/hop.sh"/>
@@ -304,13 +272,62 @@
     <!-- =================================================================== -->
     <target name="app-package" depends="init">
       <mkdir dir="${build.checkout}"/>
-      <cvs cvsRoot="${cvs.root}" package="apps/rss" dest="${build.checkout}"/>
+      <cvs cvsRoot="${cvs.root}" package="apps/${application}" dest="${build.checkout}"/>
       <zip zipfile="../${application}.zip" basedir="${build.checkout}/apps/${application}/" includes="**"/>
     </target>
 
+    <!-- =================================================================== -->
+    <!-- Make Antclick package (helma plus Antville and manage apps)         -->
+    <!-- =================================================================== -->
+    <target name="antclick" depends="package">
+      <property name="antclick.dir" value="${build.work}/antclick"/>
+      <mkdir dir="${antclick.dir}"/>
+      <cvs cvsRoot="${cvs.root}" package="apps/antville" dest="${build.checkout}"/>
+      <copy todir="${antclick.dir}/">
+        <fileset dir="${final.dir}" includes="db.properties,server.properties,*.txt,lib/**,db/antville.*"/>
+      </copy>
+      <copy todir="${antclick.dir}/apps/">
+        <fileset dir="${build.checkout}/apps" excludes="antville/images.zip,antville/*.sql,antville/db.properties" includes="antville/**"/>
+      </copy>
+      <copy todir="${antclick.dir}/apps/">
+        <fileset dir="${final.dir}/apps" includes="manage/**"/>
+      </copy>
+      <copy todir="${antclick.dir}/">
+        <fileset dir="${build.checkout}/hopbuild/skeleton/extras" includes="apps.properties,hop.bat,hop.sh"/>
+      </copy>
+      <copy todir="${antclick.dir}/lib/">
+        <fileset dir="${build.checkout}/hopbuild/skeleton/extras" includes="hsqldb-1.7RC5Pre2-patched.jar"/>
+      </copy>
+      <mkdir dir="${antclick.dir}/static/antville"/>
+      <unzip src="${build.checkout}/apps/antville/images.zip" dest="${antclick.dir}/static/antville">
+        <patternset>
+          <include name="**"/>
+        </patternset>
+      </unzip>
+      <copy todir="${antclick.dir}/apps/antville/">
+        <fileset dir="${build.checkout}/hopbuild/skeleton/extras" includes="db.properties"/>
+      </copy>
+			<zip zipfile="../antclick.zip" basedir="${build.work}/" includes="antclick/**"/>
+    </target>
 
     <!-- =================================================================== -->
-    <!-- These are just some tests                                           -->
+    <!-- Remove temporary directories                                        -->
+    <!-- =================================================================== -->
+    <target name="cleanup" depends="init">
+      <delete dir="${build.classes}"/>
+      <delete dir="${final.dir}"/>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Remove all directories created by ant                               -->
+    <!-- =================================================================== -->
+    <target name="fullcleanup" depends="init">
+      <delete dir="${build.work}"/>
+      <delete dir="${snapshot.src}"/>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- These are just some test targets                                    -->
     <!-- =================================================================== -->
     <target name="ftp-test" depends="">
          <ftp server="piefke.helma.at"
@@ -326,6 +343,13 @@
       <mkdir dir="${build.checkout}"/>
       <cvs cvsRoot="${cvs.root}" package="apps/manage" dest="${build.checkout}"/>
 			<zip zipfile="../manage.zip" basedir="${build.checkout}/apps/manage/" includes="**"/>
+    </target>
+
+		<target name="test2" depends="init">
+      <property name="antclick.dir" value="${build.work}/antclick"/>
+      <copy todir="${antclick.dir}/apps/antville/">
+        <fileset dir="${build.checkout}/hopbuild/skeleton/extras" includes="db.properties"/>
+      </copy>
     </target>
 
 </project>
