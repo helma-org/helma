@@ -88,7 +88,9 @@ public class DbMapping implements Updatable {
     /**
      * Create an empty DbMapping
      */
-    public DbMapping () {
+    public DbMapping (Application app) {
+
+	this.app = app;
 
 	prop2db = new Hashtable ();
 	db2prop = new Hashtable ();
@@ -471,7 +473,7 @@ public class DbMapping implements Updatable {
 	    if (parentMapping != null)
 	        return parentMapping.getPropertyMapping (null);
 	}
-	
+
 	Relation rel = (Relation) prop2db.get (propname.toLowerCase());
 	if (rel != null) {
 	    // if this is a virtual node, it doesn't have a dbmapping
@@ -480,7 +482,7 @@ public class DbMapping implements Updatable {
 	    else
 	        return rel.otherType;
 	}
-	
+
 	if (propertiesRel != null)
 	    return propertiesRel.otherType;
 	if (parentMapping != null)
@@ -502,7 +504,7 @@ public class DbMapping implements Updatable {
 	        groupbyMapping = app.getDbMapping (subnodesRel.groupbyprototype);
 	    // if mapping doesn' exist or isn't defined, create a new (anonymous internal) one
 	    if (groupbyMapping == null)
-	        groupbyMapping = new DbMapping ();
+	        groupbyMapping = new DbMapping (app);
 	    groupbyMapping.subnodesRel = subnodesRel.getGroupbySubnodeRelation ();
 	    if (propertiesRel != null)
 	        groupbyMapping.propertiesRel = propertiesRel.getGroupbyPropertyRelation ();
