@@ -23,7 +23,7 @@ public class Node implements INode, Serializable {
     protected Vector links;   // links to this node
     protected Vector proplinks;  // nodes using this node as property
 
-    protected String prototype;
+    transient String prototype;
 
     protected String contentType;
     protected byte content[];
