@@ -93,6 +93,7 @@ public class Server implements IPathElement, Runnable {
      * Constructs a new Server instance with an array of command line options.
      */
     public Server(Config config) {
+        server = this;
         starttime = System.currentTimeMillis();
 
         rmiPort    = config.rmiPort;
