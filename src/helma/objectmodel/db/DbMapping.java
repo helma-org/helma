@@ -675,11 +675,11 @@ public class DbMapping implements Updatable {
      *  by the string argument, either itself or via one of its parent prototypes.
      */
     public boolean isInstanceOf (String other) {
-	if (typename.equals (other))
+	if (typename != null && typename.equals (other))
 	    return true;
 	DbMapping p = parentMapping;
 	while (p != null) {
-	    if (p.typename.equals (other))
+	    if (p.typename != null && p.typename.equals (other))
 	        return true;
 	    p = p.parentMapping;
 	}
