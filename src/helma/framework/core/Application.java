@@ -8,7 +8,6 @@ import helma.doc.DocException;
 import helma.framework.*;
 import helma.main.Server;
 import helma.scripting.*;
-//import helma.scripting.fesi.ESUser;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.xmlrpc.*;
@@ -70,7 +69,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     public long starttime;
 
     public Hashtable sessions;
-    public Hashtable activeUsers;
     Hashtable dbMappings;
     Hashtable dbSources;
 
@@ -219,7 +217,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	skinExtension = ".skin";
 	
 	sessions = new Hashtable ();
-	activeUsers = new Hashtable ();
 	dbMappings = new Hashtable ();
 	dbSources = new Hashtable ();
 
@@ -266,7 +263,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	p.put ("_version","1.2");
 	p.put ("_children", "collection(user)");
 	p.put ("_children.accessname", usernameField);
-//	p.put ("_properties", "user."+usernameField);
 	userRootMapping = new DbMapping (this, "__userroot__", p);
 
 	rewireDbMappings ();
@@ -612,15 +608,68 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	sessions.remove (session.getSessionID ());
 	}
 
+    public Enumeration getActiveUsers () {
+        return new FilteredSessions (null);
+    }
+
     /**
      * Return an array of session currently associated with a given Hop user object.
      */
-	public Hashtable getSessionsForUsername (String username)	{
-	User u = (User)activeUsers.get(username);
-	if (u==null)
-	    return null;
-	return u.getSessions();
+	public Enumeration getSessionsForUsername (String username)	{
+	    return new FilteredSessions (username);
 	}
+
+    class FilteredSessions implements Enumeration {
+        String username;
+        Session nextSession;
+        Enumeration sessionEnum;
+        Vector usernames;
+
+        FilteredSessions (String username) {
+        this.username = username;
+        if (username==null)
+            usernames = new Vector();
+        sessionEnum = sessions.elements ();
+        nextSession = nextValidSession ();
+        }
+
+        public boolean hasMoreElements () {
+        if (nextSession==null)
+            return false;
+        else
+            return true;
+        }
+
+        public Object nextElement () {
+        Session thisSession = nextSession;
+        nextSession = nextValidSession ();
+        return thisSession;
+        }
+
+        private Session nextValidSession () {
+        while( sessionEnum.hasMoreElements () ) {
+            Session s = (Session)sessionEnum.nextElement ();
+            if(s==null) {
+                continue;
+            } else {
+                if (username!=null && username.equals(s.getUID ())) {
+                    // returns a session if it is logged in and fits
+                    // the given username
+                    return s;
+                } else if (username==null && s.isLoggedIn()==true && !usernames.contains (s.getUID ()) ) {
+                    // returns a session if it is logged in and has not been
+                    // returned before (so for each logged-in user we get one
+                    // session object, even if this user is logged in several
+                    // times (used to retrieve the active users list).
+                    usernames.add (s.getUID ());
+                    return s;
+                }
+            }
+        }
+        return null;
+        }
+    }
+
 
     /**
      * Return the session currently associated with a given Hop session ID.
@@ -684,12 +733,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 			// let the old user-object forget about this session
 			logoutSession(session);
         	session.login (unode);
-        	User u = (User)activeUsers.get(unode.getName());
-        	if (u==null) {
-		        activeUsers.put (unode.getName (), new User(unode.getHandle(), unode.getName(),session));
-			}	else	{
-				u.addSession(session);
-			}
         	return true;
     	}
 	} catch (Exception x) {
@@ -701,16 +744,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     /**
      * Log out a session from this application.
      */
-    public boolean logoutSession (Session session) {
-	if (session.isLoggedIn()==true) {
-    	String uid = session.uid;
-		User u = (User) activeUsers.get (uid);
-		if (u.removeSession(session)==0)	{
-			activeUsers.remove (uid);
-		}
-		session.logout();
-	}
-	return true;
+    public void logoutSession (Session session) {
+	session.logout();
     }
 
     /**
@@ -992,10 +1027,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	            Session session = (Session) e.nextElement ();
 	            if (now - session.lastTouched () > sessionTimeout * 60000) {
 //	                if (session.uid != null) {
-//	FIXME onlogout()!        try {
-//	                        eval.invokeFunction (u, "onLogout", new Object[0]);
-//	                    } catch (Exception ignore) {}
-//	                    activeUsers.remove (session.uid);
+//	FIXME onlogout()!        try {eval.invokeFunction (u, "onLogout", new Object[0]);} catch (Exception ignore) {}
 //	                }
 					destroySession(session);
 	            }
