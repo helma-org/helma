@@ -47,6 +47,13 @@ public final class Relation {
     // this is managed differently than REFERENCE, hence the separate type.
     public final static int COMPLEX_REFERENCE = 3;
 
+    // constraints linked together by OR or AND if applicable?
+    private int constraintsLogic;
+    public final static int CONSTRAINTS_AND = 0;
+    public final static int CONSTRAINTS_OR = 1;
+    public final static int CONSTRAINTS_XOR = 2;
+    public final String[] logicalOperators = {" AND ", " OR ", " XOR "};
+    
     // direct mapping is a very powerful feature: objects of some types can be directly accessed
     // by one of their properties/db fields.
     // public final static int DIRECT = 3;
@@ -93,6 +100,7 @@ public final class Relation {
         this.constraints = rel.constraints;
         this.accessName = rel.accessName;
         this.maxSize = rel.maxSize;
+        this.constraintsLogic = rel.constraintsLogic;
     }
 
     /**
@@ -304,10 +312,33 @@ public final class Relation {
                 cnst.addElement(new Constraint(local, foreign, false));
             }
         }
+        
+        // parse constraints logic
+        if (cnst.size() > 1) {
+            String logic = props.getProperty(propName + ".logic");
+            if ("and".equalsIgnoreCase(logic))
+                constraintsLogic = CONSTRAINTS_AND;
+            else if ("or".equalsIgnoreCase(logic))
+                constraintsLogic = CONSTRAINTS_OR;
+            else if ("xor".equalsIgnoreCase(logic))
+                constraintsLogic = CONSTRAINTS_XOR;
+            else
+                throw new RuntimeException("Unrecognized logical operator: "+logic);
+        } else
+            constraintsLogic = CONSTRAINTS_AND;
+        
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * Constraints linked by AND or OR?
+     */
+    
+    public String getConstraintsOperator() {
+        return logicalOperators[constraintsLogic];
+    }
+    
     /**
      * Does this relation describe a virtual (collection) node?
      */
@@ -647,9 +678,20 @@ public final class Relation {
             prefix = " AND ";
         }
 
+        if (constraints.length > 1 && constraintsLogic != CONSTRAINTS_AND) {
+            q.append(prefix);
+            q.append("(");
+            prefix = "";
+        }
+
         for (int i = 0; i < constraints.length; i++) {
             q.append(prefix);
             constraints[i].addToQuery(q, home, nonvirtual);
+            prefix = getConstraintsOperator();
+        }
+
+        if (constraints.length > 1 && constraintsLogic != CONSTRAINTS_AND) {
+            q.append(")");
             prefix = " AND ";
         }
 
