@@ -60,14 +60,25 @@ public interface IDatabase {
                   throws IOException, ObjectNotFoundException;
 
     /**
-     * Save a node with the given key
+     * Insert a node with the given key
      *
      * @param transaction
      * @param key
      * @param node
      * @throws IOException
      */
-    public void saveNode(ITransaction transaction, String key, INode node)
+    public void insertNode(ITransaction transaction, String key, INode node)
+                  throws IOException;
+
+    /**
+     * Update a node with the given key
+     *
+     * @param transaction
+     * @param key
+     * @param node
+     * @throws IOException
+     */
+    public void updateNode(ITransaction transaction, String key, INode node)
                   throws IOException;
 
     /**

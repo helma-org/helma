@@ -19,9 +19,6 @@ package helma.objectmodel.dom;
 import helma.objectmodel.*;
 import helma.objectmodel.db.NodeManager;
 import helma.objectmodel.db.Node;
-import helma.objectmodel.dom.XmlIDGenerator;
-import helma.objectmodel.dom.XmlDatabaseReader;
-import helma.objectmodel.dom.XmlWriter;
 import helma.framework.core.Application;
 
 import java.io.*;
@@ -101,7 +98,7 @@ public final class XmlDatabase implements IDatabase {
             } catch (ObjectNotFoundException notfound) {
                 node = new Node("root", "0", "Root", nmgr.safe);
                 node.setDbMapping(app.getDbMapping("root"));
-                saveNode(txn, node.getID(), node);
+                insertNode(txn, node.getID(), node);
                 // register node with nodemanager cache
                 nmgr.registerNode(node);
             }
@@ -111,7 +108,7 @@ public final class XmlDatabase implements IDatabase {
             } catch (ObjectNotFoundException notfound) {
                 node = new Node("users", "1", null, nmgr.safe);
                 node.setDbMapping(app.getDbMapping("__userroot__"));
-                saveNode(txn, node.getID(), node);
+                insertNode(txn, node.getID(), node);
                 // register node with nodemanager cache
                 nmgr.registerNode(node);
             }
@@ -279,17 +276,38 @@ public final class XmlDatabase implements IDatabase {
             throw new IOException(x.toString());
         }
     }
+    /**
+     * Save a node with the given key. Writes the node to a temporary file
+     * which is copied to its final name when the transaction is committed.
+     *
+     * @param txn
+     * @param kstr
+     * @param node
+     * @throws java.io.IOException
+     */
+    public void insertNode(ITransaction txn, String kstr, INode node)
+                throws IOException {
+        File f = new File(dbHomeDir, kstr + ".xml");
+
+        if (f.exists()) {
+            throw new IOException("Object already exists for key " + kstr);
+        }
+
+        // apart from the above check insertNode() is equivalent to updateNode()
+        updateNode(txn, kstr, node);
+    }
 
     /**
-     * Write the node to a temporary file.
+     * Update a node with the given key. Writes the node to a temporary file
+     * which is copied to its final name when the transaction is committed.
      *
-     * @param txn the transaction we're in
-     * @param kstr the node's key
-     * @param node the node to save
-     * @throws IOException
+     * @param txn
+     * @param kstr
+     * @param node
+     * @throws java.io.IOException
      */
-    public void saveNode(ITransaction txn, String kstr, INode node)
-                  throws IOException {
+    public void updateNode(ITransaction txn, String kstr, INode node)
+                throws IOException {
         XmlWriter writer = null;
         File tmp = File.createTempFile(kstr + ".xml.", ".tmp", dbHomeDir);
 

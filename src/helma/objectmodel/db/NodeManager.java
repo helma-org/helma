@@ -401,7 +401,7 @@ public final class NodeManager {
         DbMapping dbm = node.getDbMapping();
 
         if ((dbm == null) || !dbm.isRelational()) {
-            db.saveNode(txn, node.getID(), node);
+            db.insertNode(txn, node.getID(), node);
         } else {
             insertRelationalNode(node, dbm, dbm.getConnection());
         }
@@ -534,7 +534,7 @@ public final class NodeManager {
         boolean markMappingAsUpdated = false;
 
         if ((dbm == null) || !dbm.isRelational()) {
-            db.saveNode(txn, node.getID(), node);
+            db.updateNode(txn, node.getID(), node);
         } else {
             Hashtable propMap = node.getPropMap();
             Property[] props;
