@@ -37,10 +37,11 @@ public class Template extends ActionFile {
      *
      * @param file ...
      * @param name ...
+     * @param sourceName
      * @param proto ...
      */
-    public Template(File file, String name, Prototype proto) {
-        super(file, name, proto);
+    public Template(File file, String name, String sourceName, Prototype proto) {
+        super(file, name, sourceName, proto);
     }
 
     /**

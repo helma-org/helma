@@ -34,11 +34,12 @@ public class FunctionFile implements Updatable {
      * Creates a new FunctionFile object.
      *
      * @param file ...
+     * @param sourceName ...
      * @param proto ...
      */
-    public FunctionFile(File file, Prototype proto) {
+    public FunctionFile(File file, String sourceName, Prototype proto) {
         this.prototype = proto;
-        this.sourceName = file.getParentFile().getName() + "/" + file.getName();
+        this.sourceName = sourceName;
         this.file = file;
         update();
     }
@@ -47,6 +48,10 @@ public class FunctionFile implements Updatable {
      *  Create a function file without a file, passing the code directly. This is used for
      *  files contained in zipped applications. The whole update mechanism is bypassed
      *  by immediately parsing the code.
+     *
+     * @param body ...
+     * @param sourceName ...
+     * @param proto ...
      */
     public FunctionFile(String body, String sourceName, Prototype proto) {
         this.prototype = proto;

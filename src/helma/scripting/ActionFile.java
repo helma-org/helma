@@ -39,12 +39,13 @@ public class ActionFile implements Updatable {
      *
      * @param file ...
      * @param name ...
+     * @param sourceName ...
      * @param proto ...
      */
-    public ActionFile(File file, String name, Prototype proto) {
+    public ActionFile(File file, String name, String sourceName, Prototype proto) {
         this.prototype = proto;
         this.name = name;
-        this.sourceName = file.getParentFile().getName() + "/" + file.getName();
+        this.sourceName = sourceName;
         this.file = file;
         this.lastmod = file.lastModified();
         this.content = null;

@@ -416,10 +416,11 @@ public final class TypeManager {
                     String filename = file.getName();
                     int dot = filename.lastIndexOf(".");
                     String tmpname = filename.substring(0, dot);
+                    String srcName = getSourceName(file);
 
                     if (filename.endsWith(templateExtension)) {
                         try {
-                            Template t = new Template(file, tmpname, proto);
+                            Template t = new Template(file, tmpname, srcName, proto);
 
                             proto.addTemplate(t);
                         } catch (Throwable x) {
@@ -427,7 +428,7 @@ public final class TypeManager {
                         }
                     } else if (filename.endsWith(scriptExtension)) {
                         try {
-                            FunctionFile ff = new FunctionFile(file, proto);
+                            FunctionFile ff = new FunctionFile(file, srcName, proto);
 
                             proto.addFunctionFile(ff);
                         } catch (Throwable x) {
@@ -435,7 +436,7 @@ public final class TypeManager {
                         }
                     } else if (filename.endsWith(actionExtension)) {
                         try {
-                            ActionFile af = new ActionFile(file, tmpname, proto);
+                            ActionFile af = new ActionFile(file, tmpname, srcName, proto);
 
                             proto.addActionFile(af);
                         } catch (Throwable x) {
@@ -473,5 +474,14 @@ public final class TypeManager {
             proto.markUpdated();
         }
          // end of synchronized (proto)
+    }
+    
+    private String getSourceName(File file) {
+        StringBuffer b = new StringBuffer(app.getName());
+        b.append(":");
+        b.append(file.getParentFile().getName());
+        b.append("/");
+        b.append(file.getName());
+        return b.toString();
     }
 }

@@ -31,7 +31,10 @@ public class ZippedAppFile implements Updatable {
     Application app;
     File file;
     long lastmod;
+    // Set of updatables provided by this zip file
     Set updatables;
+    // Set of prototypes this zip files provides updatables for
+    Set prototypes;
 
     /**
      * Creates a new ZippedAppFile object.
@@ -42,8 +45,8 @@ public class ZippedAppFile implements Updatable {
     public ZippedAppFile(File file, Application app) {
         this.app = app;
         this.file = file;
-
-        // System.err.println ("CREATING ZIP FILE "+this);
+        updatables = new HashSet();
+        prototypes = new HashSet();
     }
 
     /**
@@ -57,18 +60,18 @@ public class ZippedAppFile implements Updatable {
     /**
      *
      */
-    public void update() {
+    public synchronized void update() {
         if (!file.exists()) {
             remove();
         } else {
             ZipFile zip = null;
+            Set newUpdatables = new HashSet();
+            Set newPrototypes = new HashSet();
 
             try {
                 lastmod = file.lastModified();
 
-                // System.err.println ("UPDATING ZIP FILE "+this);
                 zip = new ZipFile(file);
-                updatables = new HashSet();
 
                 for (Enumeration en = zip.entries(); en.hasMoreElements();) {
                     ZipEntry entry = (ZipEntry) en.nextElement();
@@ -98,26 +101,26 @@ public class ZippedAppFile implements Updatable {
 
                         if (fname.endsWith(".hac")) {
                             String name = fname.substring(0, fname.lastIndexOf("."));
-                            String sourceName = file.getName() + "/" + ename;
+                            String srcName = getSourceName(ename);
                             String content = getZipEntryContent(zip, entry);
 
                             // System.err.println ("["+content+"]");
-                            ActionFile act = new ActionFile(content, name, sourceName,
+                            ActionFile act = new ActionFile(content, name, srcName,
                                                             proto);
 
                             proto.addActionFile(act);
-                            updatables.add(act);
+                            newUpdatables.add(act);
 
                         } else if (fname.endsWith(".hsp")) {
                             String name = fname.substring(0, fname.lastIndexOf("."));
-                            String sourceName = file.getName() + "/" + ename;
+                            String srcName = getSourceName(ename);
                             String content = getZipEntryContent(zip, entry);
 
                             // System.err.println ("["+content+"]");
-                            Template tmp = new Template(content, name, sourceName, proto);
+                            Template tmp = new Template(content, name, srcName, proto);
 
                             proto.addTemplate(tmp);
-                            updatables.add(tmp);
+                            newUpdatables.add(tmp);
 
                         } else if (fname.endsWith(".skin")) {
                             String name = fname.substring(0, fname.lastIndexOf("."));
@@ -127,17 +130,17 @@ public class ZippedAppFile implements Updatable {
                             SkinFile skin = new SkinFile(content, name, proto);
 
                             proto.addSkinFile(skin);
-                            updatables.add(skin);
+                            newUpdatables.add(skin);
 
                         } else if (fname.endsWith(".js")) {
-                            String sourceName = file.getName() + "/" + ename;
+                            String srcName = getSourceName(ename);
                             String content = getZipEntryContent(zip, entry);
 
                             // System.err.println ("["+content+"]");
-                            FunctionFile ff = new FunctionFile(content, sourceName, proto);
+                            FunctionFile ff = new FunctionFile(content, srcName, proto);
 
                             proto.addFunctionFile(ff);
-                            updatables.add(ff);
+                            newUpdatables.add(ff);
 
                         } else if ("type.properties".equalsIgnoreCase(fname)) {
                             DbMapping dbmap = proto.getDbMapping();
@@ -147,7 +150,7 @@ public class ZippedAppFile implements Updatable {
                         }
 
                         // mark prototype as updated
-                        proto.markUpdated();
+                        newPrototypes.add(proto);
                     }
                 }
             } catch (Throwable x) {
@@ -156,6 +159,20 @@ public class ZippedAppFile implements Updatable {
                     x.printStackTrace();
                 }
             } finally {
+                // remove updatables that have gone
+                updatables.removeAll(newUpdatables);
+                for (Iterator it = updatables.iterator(); it.hasNext();) {
+                    ((Updatable) it.next()).remove();
+                }
+                updatables = newUpdatables;
+                
+                // mark both old and new prototypes as updated
+                prototypes.addAll(newPrototypes);
+                for (Iterator it = prototypes.iterator(); it.hasNext();) {
+                    ((Prototype) it.next()).markUpdated();
+                }
+                prototypes = newPrototypes;
+                
                 try {
                     zip.close();
                 } catch (Exception ignore) {
@@ -168,14 +185,17 @@ public class ZippedAppFile implements Updatable {
      *
      */
     public void remove() {
-        if (updatables != null) {
-            for (Iterator it = updatables.iterator(); it.hasNext();)
-                ((Updatable) it.next()).remove();
+        // remove updatables from prototypes
+        for (Iterator it = updatables.iterator(); it.hasNext();) {
+            ((Updatable) it.next()).remove();
+        }
+        // mark affected prototypes as updated
+        for (Iterator it = prototypes.iterator(); it.hasNext();) {
+            ((Prototype) it.next()).markUpdated();
         }
 
+        // remove self from type manager
         app.typemgr.removeZipFile(file.getName());
-
-        // System.err.println ("REMOVING ZIP FILE "+this);
     }
 
     /**
@@ -206,5 +226,15 @@ public class ZippedAppFile implements Updatable {
      */
     public String toString() {
         return file.getName();
+    }
+    
+        
+    private String getSourceName(String entry) {
+        StringBuffer b = new StringBuffer(app.getName());
+        b.append(":");
+        b.append(file.getName());
+        b.append("/");
+        b.append(entry);
+        return b.toString();
     }
 }
