@@ -495,7 +495,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	String base = props.getProperty ("baseURI");
 	String siteroot = props.getProperty ("rootPrototype");
 	
-	if (base != null) setBaseURI (base);
+	if (base != null || baseURI == null)
+	    setBaseURI (base);
 	String href = n.getUrl (root, users, tmpname, siteroot);
 	
 	return baseURI + href;
