@@ -3,7 +3,10 @@
  
 package helma.framework.core;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.HashSet;
+import java.util.Enumeration;
 import java.io.*;
 import helma.framework.*;
 import helma.util.Updatable;
