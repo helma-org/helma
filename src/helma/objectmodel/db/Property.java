@@ -277,6 +277,8 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	    return ((Long) value).longValue ();
 	if (type == FLOAT)
 	    return ((Double) value).longValue ();
+	if (type == BOOLEAN)
+	    return ((Boolean) value).booleanValue() ? 1 : 0;
 	try {
 	    return Long.parseLong (getStringValue());
 	} catch (Exception x) {
