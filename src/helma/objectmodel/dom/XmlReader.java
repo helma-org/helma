@@ -23,6 +23,7 @@ import helma.objectmodel.db.Node;
 import helma.objectmodel.db.NodeHandle;
 import helma.objectmodel.db.NodeManager;
 import helma.objectmodel.db.Property;
+import helma.objectmodel.db.DbMapping;
 
 public class XmlReader implements XmlConstants	{
 
@@ -199,23 +200,24 @@ public class XmlReader implements XmlConstants	{
 	    if ( childElement.getTagName().equals("hop:child") ) {
 	        // add a new NodeHandle, presume all IDs in this objectcache are unique,
 	        // a prerequisite for a simple internal database.
-	        subnodes.add (new NodeHandle (new DbKey(null,childElement.getAttribute("idref") ) ) );
+	        subnodes.add (makeNodeHandle (childElement) );
 	        continue;
 	    }
 
 	    if ( childElement.getTagName().equals("hop:parent") ) {
 	        // add a NodeHandle to parent object
-	        helmaNode.setParentHandle (new NodeHandle (new DbKey(null,childElement.getAttribute("idref") ) ) );
+	        helmaNode.setParentHandle (makeNodeHandle (childElement) );
 	        continue;
 	    }
 
 	    // if we come until here, childelement is a property value
+	    // FIXME: Stefan, why are we checking for id, and not just for 
+	    // idref here? (hns)
 	    Property prop = new Property (childElement.getTagName(), helmaNode);
 	    if ( !"".equals(childElement.getAttribute("id")) ||
 	         !"".equals(childElement.getAttribute("idref")) ) {
 	        // we've got an object!
-	        String idref = childElement.getAttribute("idref");
-	        prop.setNodeHandle (new NodeHandle(new DbKey(null,idref)));
+	        prop.setNodeHandle (makeNodeHandle(childElement));
 	    } else {
 	        String type = childElement.getAttribute("type");
 	        String content = XmlUtil.getTextContent(childElement);
@@ -252,6 +254,16 @@ public class XmlReader implements XmlConstants	{
 	else
 	    helmaNode.setSubnodes (null);
 	return helmaNode;
+    }
+
+    // create a node handle from a node reference DOM element
+    private NodeHandle makeNodeHandle (Element element) {
+	String idref = element.getAttribute("idref");
+	String protoref = element.getAttribute("prototyperef");
+	DbMapping dbmap = null;
+	if (protoref != null)
+	    dbmap = nmgr.getDbMapping(protoref);
+	return new NodeHandle (new DbKey (dbmap, idref));
     }
 
 }
