@@ -67,7 +67,7 @@ public final class NodeManager {
 	    idBaseValue = Math.max (1l, idBaseValue); // 0 and 1 are reserved for root nodes
 	} catch (NumberFormatException ignore) {}
 
-	db = new XmlDatabase (dbHome, helma.main.Server.dbFilename, this);
+	db = new XmlDatabase (dbHome, null, this);
 	initDb ();
 
 	logSql = "true".equalsIgnoreCase(props.getProperty ("logsql"));
