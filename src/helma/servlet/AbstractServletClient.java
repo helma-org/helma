@@ -342,7 +342,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 
             // if we don't know which charset to use for parsing HTTP params,
             // take the one from the response. This usually works because
-            // browsers send parrameters in the same encoding as the page
+            // browsers send parameters in the same encoding as the page
             // containing the form has. Problem is we can do this only per servlet,
             // not per session or even per page, which would produce too much overhead
             if (defaultEncoding == null) {
