@@ -1,26 +1,81 @@
 #!/bin/sh
 # Shell script for starting Helma with a JDK-like virtual machine.
-# Presumes that you have your classpath set.
 
-# set Helma TCP ports
-WEB_PORT=8080
-XMLRPC_PORT=8081
+# uncomment to set JAVA_HOME variable
+# JAVA_HOME=/usr/lib/java
 
-# if JAVA_HOME variable is set, use it. Otherwise, java executable
+# uncomment to set HOP_HOME, otherwise we get it from the script path
+# HOP_HOME=/usr/local/helma
+
+# options to pass to the Java virtual machine
+# JAVA_OPTIONS="-server -Xmx128m"
+
+# Set TCP ports for Helma servers
+# (comment/uncomment to de/activate)
+HTTP_PORT=8080
+# XMLRPC_PORT=8081
+# AJP13_PORT=8009
+# RMI_PORT=5050
+
+###########################################################
+###### No user configuration needed below this line #######
+###########################################################
+
+# if JAVA_HOME variable is set, use it. Otherwise, Java executable
 # must be contained in PATH variable.
-if [  "$JAVA_HOME" ]; then
-    JAVACMD="$JAVA_HOME"/bin/java
+if [ "$JAVA_HOME" ]; then
+   JAVACMD="$JAVA_HOME/bin/java"
 else
    JAVACMD=java
 fi
 
-# set classpath
-JARS=lib/helma.jar:lib/crimson.jar:lib/village.jar:lib/servlet.jar:lib/jetty.jar
-JARS=$JARS:lib/regexp.jar:lib/netcomponents.jar:lib/jimi.jar:lib/apache-dom.jar
-JARS=$JARS:lib/mail.jar:lib/activation.jar:lib/mysql.jar:lib/jdom.jar:lib/minml.jar
+# get HOP_HOME variable if it isn't set
+if test -z "$HOP_HOME"; then
+  # try to get HOP_HOME from script file and pwd
+  # strip everyting behind last slash
+  HOP_HOME="${0%/*}"
+  cd $HOP_HOME
+  HOP_HOME=$PWD
+else
+  cd $HOP_HOME
+fi
+echo "Starting Helma in directory $HOP_HOME"
 
-echo Starting Web server on port $WEB_PORT
-echo Starting XML-RPC server on port $XMLRPC_PORT
+# Set classpath
+JARS=lib/helma.jar
+JARS=$JARS:lib/jetty.jar
+JARS=$JARS:lib/crimson.jar
+JARS=$JARS:lib/xmlrpc.jar
+JARS=$JARS:lib/village.jar
+JARS=$JARS:lib/servlet.jar
+JARS=$JARS:lib/regexp.jar
+JARS=$JARS:lib/mail.jar
+JARS=$JARS:lib/activation.jar
+JARS=$JARS:lib/netcomponents.jar
+JARS=$JARS:lib/jimi.jar
+JARS=$JARS:lib/apache-dom.jar
+JARS=$JARS:lib/jdom.jar
+JARS=$JARS:lib/mysql.jar
 
-# launch
-$JAVACMD -classpath $CLASSPATH:$JARS helma.main.Server -w $WEB_PORT -x $XMLRPC_PORT
+if [ "$HTTP_PORT" ]; then
+   SWITCHES="$SWITCHES -w $HTTP_PORT"
+   echo Starting HTTP server on port $HTTP_PORT
+fi
+if [ "$XMLRPC_PORT" ]; then
+   SWITCHES="$SWITCHES -x $XMLRPC_PORT"
+   echo Starting XML-RPC server on port $XMLRPC_PORT
+fi
+if [ "$AJP13_PORT" ]; then
+   SWITCHES="$SWITCHES -jk $AJP13_PORT"
+   echo Starting AJP13 listener on port $AJP13_PORT
+fi
+if [ "$RMI_PORT" ]; then
+   SWITCHES="$SWITCHES -p $RMI_PORT"
+   echo Starting RMI server on port $RMI_PORT
+fi
+if [ "$HOP_HOME" ]; then
+   SWITCHES="$SWITCHES -h $HOP_HOME"
+fi
+
+# Invoking the Java VM
+$JAVACMD $JAVA_OPTIONS -classpath $CLASSPATH:$JARS helma.main.Server $SWITCHES
