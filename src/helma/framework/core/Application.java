@@ -31,9 +31,9 @@ import java.util.StringTokenizer;
  */
 public class Application extends UnicastRemoteObject implements IRemoteApp, Runnable {
 
-    SystemProperties props;
-    File home, appDir, dbDir;
     private String name;
+    SystemProperties props, dbProps;
+    File home, appDir, dbDir;
     protected NodeManager nmgr;
     protected static WebServer xmlrpc;
     protected XmlRpcAccess xmlrpcAccess;
@@ -53,6 +53,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     Hashtable sessions;
     Hashtable activeUsers;
     Hashtable dbMappings;
+    Hashtable dbSources;
 
     Thread worker;
     long requestTimeout = 60000; // 60 seconds for request timeout.
@@ -83,7 +84,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	super ();
     }
 
-    public Application (String name, SystemProperties sysProps, File home) throws RemoteException, DbException, IllegalArgumentException {
+    public Application (String name, SystemProperties sysProps, SystemProperties sysDbProps, File home)
+	    throws RemoteException, DbException, IllegalArgumentException {
 	
 	if (name == null || name.trim().length() == 0)
 	    throw new IllegalArgumentException ("Invalid application name: "+name);
@@ -114,6 +116,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	File propfile = new File (appDir, "app.properties");
 	props = new SystemProperties (propfile.getAbsolutePath (), sysProps);
 
+	File dbpropfile = new File (appDir, "db.properties");
+	dbProps = new SystemProperties (dbpropfile.getAbsolutePath (), sysDbProps);
+
 	File pwf = new File (home, "passwd");
 	CryptFile parentpwfile = new CryptFile (pwf, null);
 	pwf = new File (appDir, "passwd");
@@ -134,6 +139,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	sessions = new Hashtable ();
 	activeUsers = new Hashtable ();
 	dbMappings = new Hashtable ();
+	dbSources = new Hashtable ();
 
 	appnode = new Node ("app");
 	xmlrpc = IServer.getXmlRpcServer ();
@@ -301,11 +307,14 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     }
 
 
-    // get raw content from the database, circumventing the scripting framework.
-    // currently not used/supported.
-    public ResponseTrans get (String path, String sessionID) {
-    	ResponseTrans res = null;
-	return res;
+    /**
+     * Update HopObjects in this application's cache. This is used to replicate
+     * application caches in a distributed app environment
+     */
+    public void replicateCache (Vector add, Vector delete) {
+	if (!"true".equalsIgnoreCase (props.getProperty ("allowReplication")))
+	    return;
+	nmgr.replicateCache (add, delete);
     }
 
     public void ping () {
@@ -588,12 +597,52 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	    try {
 	        DbMapping m = (DbMapping) e.nextElement ();
 	        m.rewire ();
+	        String typename = m.getTypeName ();
+	        // set prototype hierarchy
+	        if (!"hopobject".equalsIgnoreCase (typename) && !"global".equalsIgnoreCase (typename)) {
+	            Prototype proto = (Prototype) typemgr.prototypes.get (typename);
+	            if (proto != null) {
+	                String protoname = m.getExtends ();
+	                if (protoname == null)
+	                    protoname = "hopobject";
+	                Prototype protoProto = (Prototype) typemgr.prototypes.get (protoname);
+	                if (protoProto == null)
+	                    protoProto = (Prototype) typemgr.prototypes.get ("hopobject");
+	                if (protoProto != null)
+	                    proto.setPrototype (protoProto);
+	            }
+	        }
 	    } catch (Exception x) {
 	        logEvent ("Error rewiring DbMappings: "+x);
 	    }
 	}
     }
 
+
+    /**
+     * Return a DbSource object for a given name. A DbSource is a relational database defined
+     * in a db.properties file.
+     */
+    public DbSource getDbSource (String name) {
+	String dbSrcName = name.toLowerCase ();
+	DbSource dbs = (DbSource) dbSources.get (dbSrcName);
+	if (dbs != null)
+	    return dbs;
+	if (dbProps.getProperty (dbSrcName+".url") != null && dbProps.getProperty (dbSrcName+".driver") != null) {	
+	    try {
+	        dbs = new DbSource (name, dbProps);
+	        dbSources.put (dbSrcName, dbs);
+	    } catch (Exception problem) {
+	        logEvent ("Error creating DbSource "+name);
+	        logEvent ("Reason: "+problem);
+	    }
+	}
+	return dbs;
+    }
+
+    /**
+     * Return the name of this application
+     */
     public String getName () {
 	return name;
     }
