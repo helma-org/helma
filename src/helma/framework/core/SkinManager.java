@@ -103,6 +103,11 @@ public final class SkinManager implements FilenameFilter {
             // retrieve the skin
             File f = new File(skinset.toString(), prototype);
 
+            // if directory does not exist use lower case property name
+            if (!f.isDirectory()) {
+                f = new File(skinset.toString(), prototype.toLowerCase());
+            }
+
             f = new File(f, skinname + skinExtension);
 
             if (f.exists() && f.canRead()) {
@@ -119,6 +124,14 @@ public final class SkinManager implements FilenameFilter {
 
     protected Map getSkinFiles(String skinDir, Prototype proto) {
         File dir = new File(skinDir.toString(), proto.getName());
+        // if directory does not exist use lower case property name
+        if (!dir.isDirectory()) {
+            dir = new File(skinDir.toString(), proto.getLowerCaseName());
+            if (!dir.isDirectory()) {
+                return null;
+            }
+        }
+        
         String[] skinNames = dir.list(this);
 
         if ((skinNames == null) || (skinNames.length == 0)) {
