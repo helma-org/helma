@@ -11,15 +11,15 @@ public class Benchmark implements Runnable {
 
     XmlRpcClient client;
     static String url;
-    static int clients = 8;
-    static int loops = 200;
+    static int clients = 16;
+    static int loops = 100;
 
     int gCalls = 0, gErrors = 0;
 
     Date date;
     
     public Benchmark () throws Exception {
-	client = new XmlRpcClient (url);
+	client = new XmlRpcClientLite (url);
 	
 	Vector args = new Vector ();
 	// Some JITs (Symantec, IBM) have problems with several Threads

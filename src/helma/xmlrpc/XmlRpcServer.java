@@ -96,8 +96,7 @@ public class XmlRpcServer {
 	inParams = new Vector ();
 	if (strbuf == null)
 	    strbuf = new StringBuffer ();
-	else
-	    strbuf.setLength (0);
+
 	long now = System.currentTimeMillis ();
 
     	try {
@@ -150,7 +149,11 @@ public class XmlRpcServer {
 	    String message = x.toString ();
 	    // check if XmlRpcException was thrown so we can get an error code
 	    int code = x instanceof XmlRpcException ? ((XmlRpcException) x).code : 0;
-	    writeError (code, message, writer);
+	    try {
+	        writeError (code, message, writer);
+	    } catch (XmlRpcException xrx) {
+	        // won't happen, we just sent a struct with an int and a string
+	    }
 	    try {
 	        result = writer.getBytes ();
 	    } catch (UnsupportedEncodingException encx) {
@@ -173,7 +176,7 @@ public class XmlRpcServer {
     /**
      * Writes an XML-RPC response to the XML writer.
      */
-    void writeResponse (Object param, XmlWriter writer) {
+    void writeResponse (Object param, XmlWriter writer) throws XmlRpcException {
 	writer.startElement ("methodResponse");
 	// if (param == null) param = ""; // workaround for Frontier bug
 	writer.startElement ("params");
@@ -187,7 +190,7 @@ public class XmlRpcServer {
      /**
      * Writes an XML-RPC error response to the XML writer.
      */
-     void writeError (int code, String message, XmlWriter writer) {
+     void writeError (int code, String message, XmlWriter writer) throws XmlRpcException {
     	// System.err.println ("error: "+message);
 	Hashtable h = new Hashtable ();
 	h.put ("faultCode", new Integer (code));

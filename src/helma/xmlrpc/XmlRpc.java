@@ -239,7 +239,7 @@ public abstract class XmlRpc extends HandlerBase {
     /**
      * Writes the XML representation of a supported Java object to the XML writer.
      */
-    void writeObject (Object what, XmlWriter writer)  {
+    void writeObject (Object what, XmlWriter writer) throws XmlRpcException {
 	writer.startElement ("value");
 	if (what == null) {
 	    // try sending experimental <ni/> element
@@ -295,7 +295,7 @@ public abstract class XmlRpc extends HandlerBase {
 	    }
 	    writer.endElement ("struct");
 	} else
-	    throw new RuntimeException ("unsupported Java type: " + what.getClass ());
+	    throw new XmlRpcException (0, "Java class not supported in XML-RPC: " + what.getClass ());
 	writer.endElement ("value");
     }
 
@@ -542,6 +542,7 @@ public abstract class XmlRpc extends HandlerBase {
     	
 	public XmlWriter (StringBuffer buf, String enc) {
 	    this.buf = buf;
+	    buf.setLength (0);
 	    this.enc = enc;
 	    // get name of encoding for XML prolog
 	    String encName = encodings.getProperty (enc, enc);

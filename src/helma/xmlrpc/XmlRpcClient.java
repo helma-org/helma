@@ -24,6 +24,8 @@ public class XmlRpcClient implements XmlRpcHandler {
     // pool of worker instances
     Stack pool = new Stack ();
     int workers = 0;
+    int asyncWorkers = 0;
+
 
     // average roundtrip of this method call. This is used to decide if
     // additional threads are needed or not in async mode
@@ -82,7 +84,7 @@ public class XmlRpcClient implements XmlRpcHandler {
      * @exception IOException: If the call could not be made because of lower level problems.
      */
     public Object execute (String method, Vector params) throws XmlRpcException, IOException {
-    	Worker worker = getWorker ();
+    	Worker worker = getWorker (false);
 	long start = System.currentTimeMillis ();
 	try {
     	    Object retval =  worker.execute (method, params);
@@ -90,7 +92,7 @@ public class XmlRpcClient implements XmlRpcHandler {
 	    roundtrip = (int) ((roundtrip*4)+(end-start))/5;
 	    return retval;
 	} finally {
-	    releaseWorker (worker);
+	    releaseWorker (worker, false);
 	}
     }
 
@@ -101,13 +103,13 @@ public class XmlRpcClient implements XmlRpcHandler {
      * 
      */
     public void executeAsync (String method, Vector params, AsyncCallback callback) {
-	if (workers > 2) {
+	if (asyncWorkers > 2) {
 	    enqueue (method, params, callback);
 	    return;
 	}
     	Worker worker = null;
 	try {
-	    worker = getWorker ();
+	    worker = getWorker (true);
     	    worker.executeAsync (method, params, callback);
 	} catch (IOException iox) {
 	    // make a queued worker that doesn't run immediately
@@ -116,14 +118,20 @@ public class XmlRpcClient implements XmlRpcHandler {
     }
     
 
-    synchronized Worker getWorker () throws IOException {
+    synchronized Worker getWorker (boolean async) throws IOException {
 	try {
 	    Worker w =  (Worker) pool.pop ();
-	     workers += 1;
+	    if (async)
+	        asyncWorkers += 1;
+	    else
+	        workers += 1;
 	     return w;
 	} catch (EmptyStackException x) {
 	    if (workers < maxThreads) {
-	        workers += 1;
+	        if (async)
+	            asyncWorkers += 1;
+	        else
+	            workers += 1;
 	        return new Worker ();
 	    }
 	    throw new IOException ("XML-RPC System overload");
@@ -133,12 +141,15 @@ public class XmlRpcClient implements XmlRpcHandler {
    /**
      * Release possibly big per-call object references to allow them to be garbage collected
      */
-    synchronized void releaseWorker (Worker w) {
+    synchronized void releaseWorker (Worker w, boolean async) {
 	w.result = null;
 	w.call = null;
 	if (pool.size() < 20 && !w.fault)
 	    pool.push (w);
-	workers -= 1;
+	if (async)
+	    asyncWorkers -= 1;
+	else
+	    workers -= 1;
     }
 
 
@@ -155,8 +166,8 @@ public class XmlRpcClient implements XmlRpcHandler {
     synchronized CallData dequeue () {
 	if (first == null)
 	    return null;
-	// if (workers > 2 && workers*4 > roundtrip)
-	//     return null;
+	if (asyncWorkers > 4 && asyncWorkers*4 > roundtrip)
+	    return null;
 	CallData call = first;
 	if (first == last)
 	    first = last = null;
@@ -187,11 +198,9 @@ public class XmlRpcClient implements XmlRpcHandler {
     public void run () {
 	while (call != null) {
 	    runAsync (call.method, call.params, call.callback);
-// System.err.println (workers+" ---- "+ roundtrip);
 	    call = dequeue ();
-	    // if (call != null) System.err.print (".");
 	}
-	releaseWorker (this);
+	releaseWorker (this, false);
     }
 
     void runAsync (String method, Vector params, AsyncCallback callback) {
@@ -203,8 +212,9 @@ public class XmlRpcClient implements XmlRpcHandler {
 	    if (callback != null)
 	        callback.handleResult (res, url, method);
 	} catch (Exception x) {
-                 if (callback != null)
+                 if (callback != null) try {
 	        callback.handleError (x, url, method);
+	    } catch (Exception ignore) {}
 	}
 	long end = System.currentTimeMillis ();
 	roundtrip = (int) ((roundtrip*4)+(end-start))/5;
@@ -218,8 +228,7 @@ public class XmlRpcClient implements XmlRpcHandler {
 
 	    if (strbuf == null)
 	        strbuf = new StringBuffer ();
-	    else
-	        strbuf.setLength (0);
+
 	    XmlWriter writer = new XmlWriter (strbuf);
 	    writeRequest (writer, method, params);
 	    byte[] request = writer.getBytes();
@@ -272,7 +281,7 @@ public class XmlRpcClient implements XmlRpcHandler {
     /**
      * Generate an XML-RPC request from a method name and a parameter vector.
      */
-    void writeRequest (XmlWriter writer, String method, Vector params) throws IOException {
+    void writeRequest (XmlWriter writer, String method, Vector params) throws IOException, XmlRpcException {
 	writer.startElement ("methodCall");
 
 	writer.startElement ("methodName");

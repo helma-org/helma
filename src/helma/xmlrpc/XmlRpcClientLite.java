@@ -41,14 +41,20 @@ public class XmlRpcClientLite extends XmlRpcClient {
     }
 
 
-   synchronized Worker getWorker () throws IOException {
+   synchronized Worker getWorker (boolean async) throws IOException {
 	try {
 	    Worker w = (Worker) pool.pop ();
-	    workers += 1;
+	    if (async)
+	        asyncWorkers += 1;
+	    else
+	        workers += 1;
 	    return w;
 	} catch (EmptyStackException x) {
 	    if (workers < maxThreads) {
-	        workers += 1;
+	        if (async)
+	            asyncWorkers += 1;
+	        else
+	            workers += 1;
 	        return new LiteWorker ();
 	    }
 	    throw new IOException ("XML-RPC System overload");
