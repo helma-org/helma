@@ -408,10 +408,13 @@ public final class NodeManager {
 
 	        for (Enumeration e=dbm.prop2db.keys(); e.hasMoreElements(); ) {
 	            String propname = (String) e.nextElement ();
-	            Property p = node.getProperty (propname, false);
 	            Relation rel = dbm.propertyToColumnName (propname);
-	            if (rel != null && rel.readonly)
+
+	            // skip properties that don't need to be updated before fetching them
+	            if (rel != null && (rel.readonly || rel.virtual || rel.direction != Relation.FORWARD))
 	                continue;
+
+	            Property p = node.getProperty (propname, false);
 
 	            if (p != null && rel != null) {
 
