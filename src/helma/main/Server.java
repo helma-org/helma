@@ -116,7 +116,7 @@ public class Server implements IPathElement, Runnable {
         try {
             config = parseArgs(args);
         } catch (Exception cex) {
-            printUsageError(cex.toString());
+            printUsageError("error reading configuration: " + cex.getMessage());
             System.exit(1);
         }
 
@@ -171,6 +171,7 @@ public class Server implements IPathElement, Runnable {
 
         Config config = new Config();
 
+        // get possible environment setting for helma home
         if (System.getProperty("helma.home")!=null) {
             config.homeDir = new File(System.getProperty("helma.home"));
         }
@@ -213,8 +214,10 @@ public class Server implements IPathElement, Runnable {
             }
         }
 
-        // get main property file from home dir or vice versa, depending on what we have.
-        // get property file from hopHome
+        // get main property file from home dir or vice versa,
+        // depending on what we have:
+
+        // get property file from hopHome:
         if (config.propFile == null) {
             if (config.homeDir != null) {
                 config.propFile = new File(config.homeDir, "server.properties");
@@ -223,8 +226,37 @@ public class Server implements IPathElement, Runnable {
             }
         }
 
+
         // create system properties
         SystemProperties sysProps = new SystemProperties(config.propFile.getAbsolutePath());
+
+
+        // try to get hopHome from property file
+        if (config.homeDir == null && sysProps.getProperty("hophome") != null) {
+            config.homeDir = new File(sysProps.getProperty("hophome"));
+        }
+
+        // use the directory where server.properties is located:
+        if (config.homeDir == null && config.propFile != null) {
+//            config.homeDir = config.propFile.getAbsoluteFile().getParentFile();
+            config.homeDir = config.propFile.getParentFile();
+        }
+
+        if (!config.hasPropFile()) {
+            throw new Exception ("no server.properties found");
+        }
+
+        if (!config.hasHomeDir()) {
+            throw new Exception ("couldn't determine helma directory");
+        }
+
+        // try to transform hopHome directory to its canonical representation
+        try {
+            config.homeDir = config.homeDir.getCanonicalFile();
+        } catch (IOException iox) {
+            config.homeDir = config.homeDir.getAbsoluteFile();
+        }
+
 
         // check if there's a property setting for those ports not specified via command line
         if ((config.websrvPort == null) && (sysProps.getProperty("webPort") != null)) {
@@ -257,22 +289,6 @@ public class Server implements IPathElement, Runnable {
             } catch (Exception portx) {
                 throw new Exception("Error parsing XML-RPC server port property from server.properties: " + portx);
             }
-        }
-
-        // get hopHome from property file
-        if (config.homeDir == null) {
-            config.homeDir = new File(sysProps.getProperty("hophome"));
-        }
-
-        if (config.homeDir == null) {
-            config.homeDir = new File(config.propFile.getParent());
-        }
-
-        // try to transform hopHome directory to its canonical representation
-        try {
-            config.homeDir = config.homeDir.getCanonicalFile();
-        } catch (IOException iox) {
-            config.homeDir = config.homeDir.getAbsoluteFile();
         }
 
         return config;
