@@ -288,15 +288,15 @@ public final class Logger {
     }
 
     private static void rotateAllLogs () {
-    int nloggers = loggers.size();
-    for (int i=nloggers-1; i>=0; i--) {
-        Logger log = (Logger) loggers.get (i);
-        try {
-            log.rotateLogFile ();
-        } catch (IOException io) {
-            System.err.println ("Error rotating log " + log.getCanonicalName() + ": " + io.toString ());
-        }
-    }
+	int nloggers = loggers.size();
+	for (int i=nloggers-1; i>=0; i--) {
+	    Logger log = (Logger) loggers.get (i);
+	    try {
+	        log.rotateLogFile ();
+	    } catch (IOException io) {
+	        System.err.println ("Error rotating log " + log.getCanonicalName() + ": " + io.toString ());
+	    }
+	}
     }
 
     /**
@@ -307,10 +307,10 @@ public final class Logger {
 	public void run () {
 	    long nextMidnight = nextMidnight ();
 	    while (runner == this  && !isInterrupted ()) {
-            if (nextMidnight < System.currentTimeMillis ()) {
-                rotateAllLogs ();
-                nextMidnight = nextMidnight ();
-            }
+	        if (nextMidnight < System.currentTimeMillis ()) {
+	            rotateAllLogs ();
+	            nextMidnight = nextMidnight ();
+	        }
 	        int nloggers = loggers.size();
 	        for (int i=nloggers-1; i>=0; i--) {
 	            try {
@@ -364,18 +364,18 @@ public final class Logger {
 
 
     public static long nextMidnight () {
-        Calendar cal = Calendar.getInstance ();
-        cal.set (Calendar.DATE, 1 + cal.get(Calendar.DATE));
-        cal.set (Calendar.HOUR_OF_DAY, 0);
-        cal.set (Calendar.MINUTE, 0);
-        cal.set (Calendar.SECOND, 1);
-        // for testing, rotate the logs every minute:
-        // cal.set (Calendar.MINUTE, 1 + cal.get(Calendar.MINUTE));
-        return cal.getTime().getTime ();
+	Calendar cal = Calendar.getInstance ();
+	cal.set (Calendar.DATE, 1 + cal.get(Calendar.DATE));
+	cal.set (Calendar.HOUR_OF_DAY, 0);
+	cal.set (Calendar.MINUTE, 0);
+	cal.set (Calendar.SECOND, 1);
+	// for testing, rotate the logs every minute:
+	// cal.set (Calendar.MINUTE, 1 + cal.get(Calendar.MINUTE));
+	return cal.getTime().getTime ();
     }
 
     public static long lastMidnight () {
-        return nextMidnight () - 86400000;
+	return nextMidnight () - 86400000;
     }
 
     /**
