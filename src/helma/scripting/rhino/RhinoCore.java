@@ -856,6 +856,10 @@ public final class RhinoCore {
         // the parent prototype info
         TypeInfo parentType;
 
+        // a set of property keys that were in script compilation.
+        // Used to decide which properties should be removed if not renewed.
+        Set compiledProperties;
+
         // a set of property keys that were present before first script compilation
         final Set predefinedProperties;
 
@@ -865,6 +869,7 @@ public final class RhinoCore {
             frameworkProto = proto;
             objProto = op;
             // remember properties already defined on this object prototype
+            compiledProperties = new HashSet();
             predefinedProperties = new HashSet();
             Object[] keys = op.getAllIds();
             for (int i = 0; i < keys.length; i++) {
@@ -899,35 +904,31 @@ public final class RhinoCore {
                 Set changedProperties = recorder.getChangeSet();
                 recorder.clearChangeSet();
 
-                Object[] keys = objProto.getAllIds();
+                // ignore all  properties that were defined before we started
+                // compilation. We won't manage these properties, even
+                // if they were set during compilation.
+                changedProperties.removeAll(predefinedProperties);
 
-                for (int i = 0; i < keys.length; i++) {
-                    if (! (keys[i] instanceof String)) {
-                        continue;
-                    }
+                // remove all renewed properties from the previously compiled
+                // property names so we can remove those properties that were not
+                // renewed in this compilation
+                compiledProperties.removeAll(changedProperties);
 
-                    String key = (String) keys[i];
-                    if (predefinedProperties.contains(key)) {
-                        // don't mess with properties we didn't set
-                        continue;
-                    }
+                Iterator it = compiledProperties.iterator();
+                while (it.hasNext()) {
+                    String key = (String) it.next();
 
-                    Object value = objProto.get(key, objProto);
-                    if (value instanceof FunctionObject) {
-                        // this is probably a HopObject Constructor - don't remove!
-                        continue;
-                    }
-
-                    if (!changedProperties.contains(key)) {
-                        try {
-                            objProto.setAttributes(key, 0);
-                            objProto.delete(key);
-                        } catch (Exception px) {
-                            System.err.println("Error unsetting property "+key+" on "+
-                                               frameworkProto.getName());
-                        }
+                    try {
+                        objProto.setAttributes(key, 0);
+                        objProto.delete(key);
+                    } catch (Exception px) {
+                        System.err.println("Error unsetting property "+key+" on "+
+                                           frameworkProto.getName());
                     }
                 }
+
+                // update compiled properties
+                compiledProperties = changedProperties;
             }
 
             // mark this type as updated
