@@ -211,6 +211,7 @@ public final class ResponseTrans implements Externalizable {
     public String popStringBuffer() {
         StringBuffer b = buffer;
 
+        // restore the previous buffer, which may be null
         buffer = buffers.empty() ? null : (StringBuffer) buffers.pop();
 
         return b.toString();
