@@ -103,6 +103,7 @@ public final class NodeManager {
 	        node.nmgr = safe;
 	    } catch (ObjectNotFoundException notfound) {
 	        node = new Node ("root", "0", "root", safe);
+	        node.setDbMapping (app.getDbMapping ("root"));
 	        db.save (txn, node.getID (), node);
 	        registerNode (node); // register node with nodemanager cache
 	    }
@@ -112,6 +113,7 @@ public final class NodeManager {
 	        node.nmgr = safe;
 	    } catch (ObjectNotFoundException notfound) {
 	        node = new Node ("users", "1", null, safe);
+	        node.setDbMapping (app.getDbMapping ("__userroot__"));
 	        db.save (txn, node.getID (), node);
 	        registerNode (node); // register node with nodemanager cache
 	    }
@@ -145,16 +147,16 @@ public final class NodeManager {
     }	
 
 
-    public Node getNode (String kstr, DbMapping dbmap) throws Exception {
+    public Node getNode (Key key) throws Exception {
 
-	if (kstr == null)
-	    return null;
+	// if (kstr == null)
+	//     return null;
 
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNode "+kstr);
 
 	// it would be a good idea to reuse key objects one day.
-	Key key = new Key (dbmap, kstr);
+	// Key key = new Key (dbmap, kstr);
 
 	// See if Transactor has already come across this node
 	Node node = tx.getVisitedNode (key);
@@ -170,7 +172,7 @@ public final class NodeManager {
 
 	    // The requested node isn't in the shared cache. Synchronize with key to make sure only one
 	    // version is fetched from the database.
-	    node = getNodeByKey (db, tx.txn, kstr, dbmap);
+	    node = getNodeByKey (tx.txn, key);
 	    if (node != null) {
 	        synchronized (cache) {
 	            Node oldnode = (Node) cache.put (node.getKey (), node);
@@ -262,18 +264,8 @@ public final class NodeManager {
 	        // node fetched from db is null, cache result using nullNode
 	        synchronized (cache) {
 	            Node oldnode = (Node) cache.put (key, new NullNode ());
-	            // for the rare case that some other thread created the node in the meantime
-	            /* if (oldnode != null && !(oldnode instanceof NullNode) && oldnode.getState () != Node.INVALID) {
-	                Key primKey = oldnode.getKey ();
-	                boolean keyIsPrimary = primKey.equals (key);
-	                cache.put (oldnode.getKey (), oldnode);
-	                if (!keyIsPrimary) {
-	                    cache.put (key, oldnode);
-	                }
-	                node = oldnode;
-	            } else { */
-	                return null;
-	            // }
+	            // we ignore the case that onother thread has created the node in the meantime
+	            return null;
 	        }
 	    }
 	} else if (node instanceof NullNode) {
@@ -825,8 +817,11 @@ public final class NodeManager {
     // private getNode methods
     ///////////////////////////////////////////////////////////////////////////////////////
 
-    private Node getNodeByKey (DbWrapper db, DbTxn txn, String kstr, DbMapping dbm) throws Exception {
+    private Node getNodeByKey (DbTxn txn, Key key) throws Exception {
 	Node node = null;
+	String kstr = key.getID ();
+	DbMapping dbm = app.getDbMapping (key.getType ());
+	
 	if (dbm == null || !dbm.isRelational ()) {
 	    node = db.getNode (txn, kstr);
 	    node.nmgr = safe;
