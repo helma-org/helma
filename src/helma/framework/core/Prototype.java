@@ -121,7 +121,7 @@ public final class Prototype {
     public long getChecksum() {
         // long start = System.currentTimeMillis();
         File[] f = getFiles();
-        long c = 0;
+        long c = directory.lastModified();
 
         for (int i = 0; i < f.length; i++)
             c += f[i].lastModified();
