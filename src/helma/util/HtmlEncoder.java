@@ -302,6 +302,8 @@ public final class HtmlEncoder {
 	// if we are inside a <code> tag, we encode everything to make 
 	// documentation work easier
 	boolean insideCodeTag = false;
+	// are we within a macro tag?
+	boolean insideMacroTag = false;
 	// the difference between swallowOneNewline and ignoreNewline is that
 	// swallowOneNewline is just effective once (for the next newline)
 	boolean ignoreNewline = false;
@@ -337,13 +339,17 @@ public final class HtmlEncoder {
 	            ret.append ("&amp;");
 	            break;
 	        case '<':
-	            if (i < l-2) {
+	            if (insideTag) {
+	                ret.append ('<');
+	                break;
+	            } else if (i < l-2) {
 	                boolean insideCloseTag = ('/' == chars[i+1]);
 	                int tagStart = insideCloseTag ? i+2 : i+1;
 	                int j = tagStart;
 	                while (j<l && (Character.isLetterOrDigit (chars[j]) || chars[j] == '%'))
 	                    j++;
 	                if (j > tagStart && j < l) {
+	                    insideMacroTag = ('%' == chars[i+1]);
 	                    String tagName = new String (chars, tagStart, j-tagStart).toLowerCase ();
 	                    if ("code".equals (tagName) && insideCloseTag && insideCodeTag)
 	                        insideCodeTag = false;
@@ -360,9 +366,7 @@ public final class HtmlEncoder {
 	                        } else if (suppressLinebreakTags.contains (tagName)) {
 	                            ignoreNewline = !insideCloseTag;
 	                            swallowOneNewline = true;
-	                        } else if ("p".equalsIgnoreCase (tagName) || 
-	                                     "blockquote".equalsIgnoreCase (tagName) ||
-	                                     "bq".equalsIgnoreCase (tagName)) {
+	                        } else if ("p".equals (tagName) || "blockquote".equals (tagName) || "bq".equals (tagName)) {
 	                            swallowOneNewline = true;
 	                        }
 	                        if ("code".equals (tagName) && !insideCloseTag)
@@ -385,7 +389,7 @@ public final class HtmlEncoder {
 	                ret.append ('>');
 	            else
 	                ret.append ("&gt;");
-	            insideTag = false;
+	            insideTag = insideMacroTag ? chars[i-1] != '%' :  false;
 	            break;
 	        default:
 	            // ret.append (c);
