@@ -260,10 +260,11 @@ public abstract class ESLoader extends ESObject {
            return (ESArrayWrapper) obj; // An array wrapper received externally  
         } else if (obj.getClass().isArray()) {
             return new ESArrayWrapper(obj, evaluator);
-        } else if (obj instanceof helma.framework.IPathElement) {   // Hannes Wallnoefer, 13. Aug 2001
-            return evaluator.reval.getElementWrapper ((helma.framework.IPathElement) obj);
-        }
-        return new ESWrapper(obj, evaluator);
+        } // else if (obj instanceof helma.framework.IPathElement) {   // Hannes Wallnoefer, 13. Aug 2001
+        //     return evaluator.reval.getElementWrapper ((helma.framework.IPathElement) obj);
+        // }
+        // return new ESWrapper(obj, evaluator);
+        return evaluator.reval.getElementWrapper (obj);
     }
     
     /**
@@ -337,6 +338,7 @@ public abstract class ESLoader extends ESObject {
      * Check that each object in the paremeter array can be converted 
      * to the type specified by the target array and convert them if needed.
      * <P>Even if the parameters are compatible with an EcmaScript value,
+
      * some may have to be converted to an intermediate type. For example
      * an EcmaScript string of 1 character long is compatible with a Java
      * Character, but some conversion is needed. Arrays need a similar
