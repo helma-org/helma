@@ -472,13 +472,23 @@ public class Relation {
      * appropriate properties
      */
     public void setConstraints (Node parent, Node child) {
+	INode nonVirtual = parent.getNonVirtualParent ();
 	for (int i=0; i<constraints.length; i++) {
-	    String propname = otherType.columnNameToProperty (constraints[i].foreignName);
-	    if (propname != null) {
-	        INode home = constraints[i].isGroupby ? parent : parent.getNonVirtualParent ();
+	    Relation crel = otherType.columnNameToRelation (constraints[i].foreignName);
+	    if (crel != null) {
+	        INode home = constraints[i].isGroupby ? parent : nonVirtual;
 	        String localName = constraints[i].localName;
 	        if (localName == null  || localName.equals (ownType.getIDField ())) {
-	            child.setNode (propname, parent);
+	            INode currentValue = child.getNode (crel.propName, false);
+	            // we set the backwards reference iff the reference is currently unset, if
+	            // is set to a transient object, or if the new target is not transient. This
+	            // prevents us from overwriting a persistent refererence with a transient one,
+	            // which would most probably not be what we want.
+	            if (currentValue == null ||
+				(currentValue != home &&
+				(currentValue.getState() == Node.TRANSIENT ||
+				home.getState() != Node.TRANSIENT)))
+	                child.setNode (crel.propName, home);
 	        } else {
 	            String value = null;
 	            if (ownType.isRelational ())
@@ -487,7 +497,7 @@ public class Relation {
 	                value = home.getString (localName, false);
 	            if (value != null) {
 	                // System.err.println ("SETTING "+child+"."+propname+" TO "+value);
-	                child.setString (propname, value);
+	                child.setString (crel.propName, value);
 	            }
 	        }
 	    }
