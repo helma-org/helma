@@ -5,11 +5,14 @@ package helma.scripting.fesi;
 
 import helma.scripting.*;
 import helma.scripting.fesi.extensions.*;
+import helma.extensions.HelmaExtension;
+import helma.extensions.ConfigurationException;
 import helma.framework.*;
 import helma.framework.core.*;
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Relation;
+import helma.main.Server;
 import helma.util.Updatable;
 import java.util.*;
 import java.io.*;
@@ -75,6 +78,17 @@ public final class FesiEvaluator implements ScriptingEngine {
 	    mailx.setProperties (app.getProperties ());
 	    Database dbx = (Database) evaluator.addExtension ("helma.scripting.fesi.extensions.Database");
 	    dbx.setApplication (app);
+
+	    // load extensions defined in server.properties
+	    Vector extVec = Server.getServer ().getExtensions ();
+	    for (int i=0; i<extVec.size(); i++ ) {
+	        HelmaExtension ext = (HelmaExtension)extVec.get(i);
+	        try {
+	            ext.initScripting (app,this);
+	        } catch (ConfigurationException e) {
+	            app.logEvent ("Couldn't initialize extension " + ext.getName () + ": " + e.getMessage ());
+	        }
+	    }
 
 	    // fake a cache member like the one found in ESNodes
 	    global.putHiddenProperty ("cache", new ESNode (new TransientNode ("cache"), this));
