@@ -611,7 +611,16 @@ public final class DbMapping implements Updatable {
     public DbMapping getExactPropertyMapping(String propname) {
         Relation rel = getExactPropertyRelation(propname);
 
-        return (rel != null) ? rel.otherType : null;
+        if (rel != null) {
+            // if this is a virtual node, it doesn't have a dbmapping
+            if (rel.virtual && (rel.prototype == null)) {
+                return null;
+            } else {
+                return rel.otherType;
+            }
+        }
+
+        return null;
     }
 
     /**
