@@ -9,8 +9,9 @@ import javax.mail.internet.*;
 import javax.activation.*;
 import java.io.*;
 import java.util.*;
+import helma.objectmodel.IServer;
 import helma.framework.core.*;
-import helma.objectmodel.*;
+import helma.util.*;
 import FESI.Data.*;
 import FESI.Interpreter.*;
 import FESI.Exceptions.*;
@@ -22,7 +23,6 @@ import FESI.Exceptions.*;
 
 public class ESMail extends ESObject implements Serializable {
 
-    INode node;
     MailExtension mailx;
     Properties mprops;
     MimeMessage message;
@@ -94,20 +94,21 @@ public class ESMail extends ESObject implements Serializable {
     	    multipart = new MimeMultipart ();
     	}
     	for (int i=0; i<val.length; i++) {
-	    INode node = getNode (val[i]);
-	    if (node != null) {
+    	    // FIXME: addPart is broken.
+	    /* MimePart mp = null;
+	    if (mp != null) {
 	        BodyPart part = new MimeBodyPart ();
-	        IServer.getLogger().log ("Adding MimePart: "+node.getContentType ());
-	        NodeDataSource nds=new NodeDataSource (node);
-	        part.setDataHandler(new DataHandler(nds));
+	        IServer.getLogger().log ("Adding MimePart: "+mp.getContentType ());
+	        MimePartDataSource ds = new MimePartDataSource (mp);
+	        part.setDataHandler (new DataHandler(ds));
 	        // part.setFileName(filename);
-	        // part.setDataHandler (new javax.activation.DataHandler (node.getContent(), node.getContentType ()));
+	        // part.setDataHandler (new javax.activation.DataHandler (mp.getContent(), mp.getContentType ()));
 	        multipart.addBodyPart (part);
 	    } else if (val[i] != null) {
 	        BodyPart part = new MimeBodyPart ();
 	        part.setContent (val[i].toString (), "text/plain");
 	        multipart.addBodyPart (part);
-	    }
+	    } */
 	}
     }
     
@@ -182,20 +183,6 @@ public class ESMail extends ESObject implements Serializable {
 	else 
 	    message.setText ("");
  	Transport.send (message);
-    }
-
-
-    private final INode getNode (Object obj) {
-	if (obj == null)
-	    return null;
-	if (obj instanceof ESNode)
-	    return ((ESNode) obj).getNode ();
-	if (obj instanceof ESWrapper) {
-	    Object n = ((ESWrapper) obj).getJavaObject();
-	    if (n instanceof INode)
-	        return (INode) n;
-	}
-	return null;
     }
 
 
