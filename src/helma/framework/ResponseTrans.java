@@ -246,7 +246,13 @@ public final class ResponseTrans implements Externalizable {
      * Utility function that appends a <br> to whatever is written.
      */
     public void writeln(Object what) {
-        this.write(what);
+        write(what);
+
+        // if what is null, buffer may still be uninitialized
+        if (buffer == null) {
+            buffer = new StringBuffer(INITIAL_BUFFER_SIZE);
+        }
+
         buffer.append("<br />");
         buffer.append(newLine);
     }
