@@ -1443,10 +1443,13 @@ public class Node implements INode, Serializable {
 	    propMap.put (p2, prop);
 	} 
 	String nID = n.getID();
-	((Transactor) Thread.currentThread ()).visitCleanNode (new Key (nmap, nID), n);
+
+	// check node in with transactor cache
+	Transactor tx = (Transactor) Thread.currentThread ();
+	tx.visitCleanNode (new Key (nmap, nID), n);
 	// if the field is not the primary key of the property, also register it
 	if (rel != null && !rel.getKeyID(this, p2).equals (nID))
-	     ((Transactor) Thread.currentThread ()).visitCleanNode (new Key (rel.other, rel.getKeyID(this, p2)), n);
+	     tx.visitCleanNode (new Key (rel.other, rel.getKeyID(this, p2)), n);
 
 	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.SUBNODE_ADDED, n));
 	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
