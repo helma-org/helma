@@ -41,7 +41,7 @@ public class HelmaShutdownHook extends Thread {
     public void run() {
         System.err.println("Shutting down Helma - please stand by...");
 
-        LogFactory.getLog("helma.server").info("Shutting down Helma");
+        Server.getLogger().info("Shutting down Helma");
 
         appmgr.stopAll();
 
