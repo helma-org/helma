@@ -211,6 +211,8 @@ public class RequestEvaluator implements Runnable {
 	                        reqPath.putHiddenProperty ("root", current);
 	                        Prototype p = app.getPrototype (root);
 	                        action = p.getActionOrTemplate (null);
+	                        if (action == null)
+	                            throw new FrameworkException ("Action not found");
 
 	                    } else {
 
@@ -276,11 +278,12 @@ public class RequestEvaluator implements Runnable {
 
 	                                    // add object to request path if suitable
 	                                    if (currentNode != null) {
+	                                        // add to reqPath array
+	                                        current = getNodeWrapper (currentNode);
+	                                        reqPath.putProperty (reqPath.size(), current);
 	                                        String pt = currentNode.getPrototype ();
 	                                        if (pt != null) {
-	                                            // add to reqPath array
-	                                            current = getNodeWrapper (currentNode);
-	                                            reqPath.putProperty (reqPath.size(), current);
+	                                            // if a prototype exists, add also by prototype name
 	                                            reqPath.putHiddenProperty (pt, current);
 	                                        }
 	                                    }
@@ -826,7 +829,7 @@ public class RequestEvaluator implements Runnable {
         } else {
             // the user node may have changed (login/logout) while the ESUser was
             // lingering in the cache.
-            esn.updateNode ();
+            esn.updateNodeFromUser ();
         }
 
         return esn;
