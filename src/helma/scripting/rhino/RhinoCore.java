@@ -17,6 +17,8 @@
 package helma.scripting.rhino;
 
 import helma.scripting.rhino.extensions.*;
+import helma.scripting.rhino.debug.HelmaDebugger;
+import helma.scripting.rhino.debug.ScopeProvider;
 import helma.framework.core.*;
 import helma.framework.repository.Resource;
 import helma.objectmodel.*;
@@ -27,8 +29,6 @@ import helma.util.CacheMap;
 import helma.util.SystemMap;
 import helma.util.WrappedMap;
 import org.mozilla.javascript.*;
-import org.mozilla.javascript.tools.debugger.Main;
-import org.mozilla.javascript.tools.debugger.ScopeProvider;
 
 import java.io.*;
 import java.text.*;
@@ -65,7 +65,7 @@ public final class RhinoCore implements ScopeProvider {
     // Any error that may have been found in global code
     String globalError;
 
-    Main debugger = null;
+    HelmaDebugger debugger = null;
 
     /**
      *  Create a Rhino evaluator for the given application and request evaluator.
@@ -86,12 +86,7 @@ public final class RhinoCore implements ScopeProvider {
 
         // Set up visual debugger if rhino.debug = true
         if ("true".equals(app.getProperty("rhino.debug"))) {
-            debugger = new Main(app.getName() + " Debugger");
-            debugger.setScopeProvider(this);
-            debugger.pack();
-            debugger.setVisible(true);
-            debugger.contextCreated(context);
-            debugger.contextEntered(context);
+            initDebugger(context);
         }
 
         // Set default optimization level according to whether debugger is on
@@ -151,6 +146,19 @@ public final class RhinoCore implements ScopeProvider {
                 debugger.contextReleased(context);
             }
         }
+    }
+
+    void initDebugger(Context context) {
+        if (debugger == null) {
+            debugger = new HelmaDebugger(app.getName());
+            debugger.setScopeProvider(this);
+            debugger.pack();
+            debugger.setLocation(60, 60);
+        }
+        if (!debugger.isVisible())
+            debugger.setVisible(true);
+        debugger.contextCreated(context);
+        debugger.contextEntered(context);
     }
 
     /**
