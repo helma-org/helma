@@ -225,6 +225,7 @@
              <tarfileset dir="..">
                   <include name="${final.name}/**"/>
                   <exclude name="${final.name}/hop.sh"/>
+                  <exclude name="${final.name}/build/build.sh"/>
 	     </tarfileset>
         </tar>
         <gzip zipfile="../${Name}-${version}.tar.gz" src="../${Name}-${version}.tar"/>
