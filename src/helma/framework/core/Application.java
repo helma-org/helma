@@ -365,6 +365,23 @@ public final class Application implements IPathElement, Runnable {
      */
     public void start() {
         starttime = System.currentTimeMillis();
+
+        // read in standard prototypes to make first request go faster
+        // typemgr.updatePrototype("root");
+        // typemgr.updatePrototype("global");
+
+        // as first thing, invoke global onStart() function
+        RequestEvaluator eval = getEvaluator();
+        try {
+            eval.invokeInternal(null, "onStart", new Object[0]);
+        } catch (Exception ignore) {
+            logEvent("Error in " + name + "/onStart(): " + ignore);
+        } finally {
+            if (!stopped) {
+                releaseEvaluator(eval);
+            }
+        }
+
         worker = new Thread(this, "Worker-" + name);
         worker.setPriority(Thread.NORM_PRIORITY + 1);
         worker.start();
@@ -623,6 +640,23 @@ public final class Application implements IPathElement, Runnable {
             releaseEvaluator(ev);
         }
 
+        return retval;
+    }
+
+
+    public Object executeExternal(String method, Vector args)
+                        throws Exception {
+        Object retval = null;
+        RequestEvaluator ev = null;
+        try {
+            // check if the properties file has been updated
+            updateProperties();
+            // get evaluator and invoke
+            ev = getEvaluator();
+            retval = ev.invokeExternal(method, args.toArray());
+        } finally {
+            releaseEvaluator(ev);
+        }
         return retval;
     }
 
@@ -1331,22 +1365,6 @@ public final class Application implements IPathElement, Runnable {
 
         // logEvent ("Starting scheduler for "+name);
 
-        // read in standard prototypes to make first request go faster
-        typemgr.updatePrototype("root");
-        typemgr.updatePrototype("global");
-
-        // as first thing, invoke function onStart in the root object
-        RequestEvaluator eval = getEvaluator();
-        try {
-            eval.invokeInternal(null, "onStart", new Object[0]);
-        } catch (Exception ignore) {
-            logEvent("Error in " + name + "/onStart(): " + ignore);
-        } finally {
-            if (!stopped) {
-                releaseEvaluator(eval);
-            }
-        }
-
         // loop-local cron job data
         List cronJobs = null;
         long lastCronParse = 0;
@@ -1369,7 +1387,11 @@ public final class Application implements IPathElement, Runnable {
                                                                "30")));
                 } catch (Exception ignore) {}
 
+                RequestEvaluator thisEvaluator = null;
+
                 try {
+
+                    thisEvaluator = getEvaluator();
 
                     Hashtable cloned = (Hashtable) sessions.clone();
 
@@ -1383,7 +1405,7 @@ public final class Application implements IPathElement, Runnable {
                                 try {
                                     Object[] param = { session.getSessionID() };
 
-                                    eval.invokeInternal(userhandle, "onLogout", param);
+                                    thisEvaluator.invokeInternal(userhandle, "onLogout", param);
                                 } catch (Exception ignore) {
                                 }
                             }
@@ -1394,6 +1416,10 @@ public final class Application implements IPathElement, Runnable {
                 } catch (Exception cx) {
                     logEvent("Error cleaning up sessions: " + cx);
                     cx.printStackTrace();
+                } finally {
+                    if (!stopped && thisEvaluator != null) {
+                        releaseEvaluator(thisEvaluator);
+                    }
                 }
             }
 

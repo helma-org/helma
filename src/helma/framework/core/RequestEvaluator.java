@@ -35,6 +35,7 @@ public final class RequestEvaluator implements Runnable {
     static final int HTTP = 1; // via HTTP gateway
     static final int XMLRPC = 2; // via XML-RPC
     static final int INTERNAL = 3; // generic function call, e.g. by scheduler
+    static final int EXTERNAL = 4; // function from script etc
     public final Application app;
     protected ScriptingEngine scriptingEngine;
     public RequestTrans req;
@@ -496,6 +497,68 @@ public final class RequestEvaluator implements Runnable {
 
                         break;
 
+
+                    case EXTERNAL:
+
+                        try {
+                            localrtx.begin(app.getName() + ":external:" + method);
+
+                            root = app.getDataRoot();
+
+                            HashMap globals = new HashMap();
+
+                            globals.put("root", root);
+                            globals.put("res", new ResponseBean(res));
+                            globals.put("app", new ApplicationBean(app));
+
+                            scriptingEngine.enterContext(globals);
+
+                            currentElement = root;
+
+                            if (method.indexOf('.') > -1) {
+                                StringTokenizer st = new StringTokenizer(method, ".");
+                                int cnt = st.countTokens();
+
+                                for (int i = 1; i < cnt; i++) {
+                                    String next = st.nextToken();
+
+                                    currentElement = getChildElement(currentElement,
+                                                                     next);
+                                }
+
+                                if (currentElement == null) {
+                                    throw new FrameworkException("Method name \"" +
+                                                                 method +
+                                                                 "\" could not be resolved.");
+                                }
+
+                                method = st.nextToken();
+                            }
+
+                            // reset skin recursion detection counter
+                            skinDepth = 0;
+
+                            result = scriptingEngine.invoke(currentElement, method, args,
+                                                            true);
+                            commitTransaction();
+                        } catch (Exception x) {
+                            abortTransaction(false);
+
+                            app.logEvent("Exception in " + Thread.currentThread() + ": " +
+                                         x);
+
+                            // If the transactor thread has been killed by the invoker thread we don't have to
+                            // bother for the error message, just quit.
+                            if (localrtx != rtx) {
+                                return;
+                            }
+
+                            this.exception = x;
+                        }
+
+                        break;
+
+
                     case INTERNAL:
 
                         // Just a human readable descriptor of this invocation
@@ -712,6 +775,45 @@ public final class RequestEvaluator implements Runnable {
 
         checkThread();
         wait(app.requestTimeout);
+
+        if (reqtype != NONE) {
+            stopThread();
+        }
+
+        // reset res for garbage collection (res.data may hold reference to evaluator)
+        res = null;
+
+        if (exception != null) {
+            throw (exception);
+        }
+
+        return result;
+    }
+
+
+
+    /**
+     *
+     *
+     * @param method ...
+     * @param args ...
+     *
+     * @return ...
+     *
+     * @throws Exception ...
+     */
+    public synchronized Object invokeExternal(String method, Object[] args)
+                                     throws Exception {
+        this.reqtype = EXTERNAL;
+        this.session = null;
+        this.method = method;
+        this.args = args;
+        this.res = new ResponseTrans();
+        result = null;
+        exception = null;
+
+        checkThread();
+        wait();
 
         if (reqtype != NONE) {
             stopThread();
