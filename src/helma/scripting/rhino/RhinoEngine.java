@@ -108,7 +108,7 @@ public final class RhinoEngine implements ScriptingEngine {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
         } finally {
-            // Context.exit ();
+            Context.exit ();
         }
     }
 
@@ -134,7 +134,7 @@ public final class RhinoEngine implements ScriptingEngine {
      *  engine know it should update its prototype information.
      */
     public void updatePrototypes() {
-        context = Context.enter(context);
+        context = Context.enter();
         context.setCompileFunctionsWithDynamicScope(true);
         context.setWrapFactory(core.wrapper);
 
@@ -241,9 +241,9 @@ public final class RhinoEngine implements ScriptingEngine {
      *   execution context has terminated.
      */
     public void exitContext() {
-        context.exit();
         context.removeThreadLocal("reval");
         context.removeThreadLocal("engine");
+        context.exit();
 
         // unset the thread filed in the FESI evaluator
         // evaluator.thread = null;
@@ -347,11 +347,10 @@ public final class RhinoEngine implements ScriptingEngine {
     /**
      *  Let the evaluator know that the current evaluation has been
      *  aborted. This is done by setting the thread ref in the evaluator
-     * object to null.
+     *  object to null.
      */
     public void abort() {
-        // unset the thread filed in the FESI evaluator
-        // evaluator.thread = null;
+        // current request has been aborted.
     }
 
     /**
