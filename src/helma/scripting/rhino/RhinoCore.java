@@ -91,7 +91,7 @@ public final class RhinoCore {
             // create global object
             global = new DynamicGlobalObject(this, app);
             global.init();
-            // call the initStandardsObject in ImporterTopLevel so that 
+            // call the initStandardsObject in ImporterTopLevel so that
             // importClass() and importPackage() are set up.
             global.initStandardObjects(context, false);
 
@@ -318,7 +318,7 @@ public final class RhinoCore {
         Collection protos = app.getPrototypes();
 
         // in order to respect inter-prototype dependencies, we try to update
-        // the global prototype before all other prototypes, and parent 
+        // the global prototype before all other prototypes, and parent
         // prototypes before their descendants.
 
         HashSet checked = new HashSet(protos.size()*2);
@@ -511,7 +511,7 @@ public final class RhinoCore {
         if (what instanceof NativeObject) {
             NativeObject no = (NativeObject) what;
             Object[] ids = no.getIds();
-            Hashtable ht = new Hashtable(ids.length);
+            Hashtable ht = new Hashtable(ids.length*2);
             for (int i=0; i<ids.length; i++) {
                 if (ids[i] instanceof String) {
                     String key = (String) ids[i];
@@ -533,7 +533,13 @@ public final class RhinoCore {
             what = retval;
         } else if (what instanceof Map) {
             Map map = (Map) what;
-            what = new Hashtable(map);
+            Hashtable ht = new Hashtable(map.size()*2);
+            for (Iterator it=map.entrySet().iterator(); it.hasNext();) {
+                Map.Entry entry = (Map.Entry) it.next();
+                ht.put(entry.getKey().toString(),
+                       processXmlRpcResponse(entry.getValue()));
+            }
+            what = ht;
         } else if (what instanceof Number) {
             Number n = (Number) what;
             if (what instanceof Float || what instanceof Long) {
