@@ -147,8 +147,24 @@ public class Node implements INode, Serializable {
      * Constructor used for nodes being stored in a relational database table.
      */
     public Node (DbMapping dbmap, Record rec, WrappedNodeManager nmgr) throws DataSetException {
+	
+	// see what prototype/DbMapping this object should use
+	DbMapping m = dbmap;
+	String protoField= dbmap.getPrototypeField ();
+	if (protoField != null) {
+	    Value val = rec.getValue (protoField);
+	    if (val != null && !val.isNull ()) {
+	        String protoName = val.asString ();
+	        m = nmgr.getDbMapping (protoName);
+	        if (m == null) {
+	            // invalid prototype name!
+	        }
+	    }
+	}
+	setPrototype (m.getTypeName ());
+	this.dbmap = m;
+	
 	this.nmgr = nmgr;
-	this.dbmap = dbmap;
 	id = rec.getValue (dbmap.getIDField ()).asString ();
 	checkWriteLock ();
 	String nameField =  dbmap.getNameField ();
@@ -156,8 +172,8 @@ public class Node implements INode, Serializable {
 	if (name == null || name.length() == 0)
 	    name = id;
 	created = lastmodified = System.currentTimeMillis ();
-	setPrototype (dbmap.getTypeName ());
-	for (Enumeration e=dbmap.db2prop.elements (); e.hasMoreElements();  ) {
+	
+	for (Enumeration e=dbmap.getDB2Prop ().elements (); e.hasMoreElements();  ) {
 
 	    Relation rel = (Relation) e.nextElement ();
 	    // NOTE: this should never be the case, since we're just looping through
@@ -595,7 +611,7 @@ public class Node implements INode, Serializable {
 	            // reverse look up property used to access this via parent
 	            String dbfield = prel.getRemoteField ();
 	            if (dbfield != null) {
-	                Relation proprel = (Relation) dbmap.db2prop.get (dbfield);
+	                Relation proprel = (Relation) dbmap.getDB2Prop ().get (dbfield);
 	                if (proprel != null && proprel.propname != null)
 	                    newname = getString (proprel.propname, false);
 	            }
@@ -642,7 +658,7 @@ public class Node implements INode, Serializable {
 	            try {
 	                if (dbm != null && dbm.getSubnodeGroupby () != null) {
 	                    // check for groupby
-	                    Relation rel = (Relation) dbmap.db2prop.get (dbm.getSubnodeGroupby());
+	                    Relation rel = (Relation) dbmap.getDB2Prop ().get (dbm.getSubnodeGroupby());
 	                    pn = pn.getSubnode (getString (rel.propname, false));
 	                }
 	                if (pn != null) {
@@ -715,7 +731,7 @@ public class Node implements INode, Serializable {
 	if (dbmap != null) {
 	    Relation srel = dbmap.getSubnodeRelation ();
 	    if (srel != null && srel.groupby != null) try {
-	        Relation groupbyRel = (Relation) srel.other.db2prop.get (srel.groupby);
+	        Relation groupbyRel = (Relation) srel.other.getDB2Prop ().get (srel.groupby);
 	        String groupbyProp = (groupbyRel != null) ?
 	            groupbyRel.propname : srel.groupby;
 	        String groupbyValue = node.getString (groupbyProp, false);
@@ -1124,7 +1140,7 @@ public class Node implements INode, Serializable {
 	    Relation subRel = dbmap.getSubnodeRelation ();
 	    if (subRel.aggressiveLoading) {
 	        // we don't want to load *all* nodes if we just want to count them
-	        long lastChange = subRel.aggressiveCaching ? lastSubnodeChange : smap.lastDataChange;
+	        long lastChange = subRel.aggressiveCaching ? lastSubnodeChange : smap.getLastDataChange ();
 	        // also reload if the type mapping has changed.
 	        lastChange = Math.max (lastChange, dbmap.getLastTypeChange ());
 	        if (lastChange < lastSubnodeFetch && subnodes != null) {
@@ -1154,7 +1170,7 @@ public class Node implements INode, Serializable {
 	    // check if subnodes need to be reloaded
 	    Relation subRel = dbmap.getSubnodeRelation ();
 	    synchronized (this) {
-	        long lastChange = subRel.aggressiveCaching ? lastSubnodeChange : smap.lastDataChange;
+	        long lastChange = subRel.aggressiveCaching ? lastSubnodeChange : smap.getLastDataChange ();
 	        // also reload if the type mapping has changed.
 	        lastChange = Math.max (lastChange, dbmap.getLastTypeChange ());
 	        if (lastChange >= lastSubnodeFetch || subnodes == null) {
@@ -1194,9 +1210,9 @@ public class Node implements INode, Serializable {
      */
     public Enumeration properties () {
 
-	if (dbmap != null && dbmap.prop2db.size() > 0)
+	if (dbmap != null && dbmap.getProp2DB ().size() > 0)
 	    // return the properties defined in type.properties, if there are any
-	    return dbmap.prop2db.keys();
+	    return dbmap.getProp2DB ().keys();
 
 	Relation prel = dbmap == null ? null : dbmap.getPropertyRelation ();
 	if (prel != null && prel.direction == Relation.DIRECT && !prel.subnodesAreProperties

@@ -224,7 +224,7 @@ public final class NodeManager {
 	if (rel.subnodesAreProperties && node != null && node.getState() != Node.INVALID) {
 	    // check if node is null node (cached null)
 	    if (node instanceof NullNode) {
-	        if (node.created() < rel.other.lastDataChange)
+	        if (node.created() < rel.other.getLastDataChange ())
 	            node = null; //  cached null not valid anymore
 	    } else if (app.doesSubnodeChecking () && home.contains (node) < 0) {
 	        node = null;
@@ -345,7 +345,7 @@ public final class NodeManager {
 	        if (nameField != null)
 	            rec.setValue (nameField, node.getName ());
 
-	        for (Enumeration e=dbm.prop2db.keys(); e.hasMoreElements(); ) {
+	        for (Enumeration e=dbm.getProp2DB ().keys(); e.hasMoreElements(); ) {
 	            String propname = (String) e.nextElement ();
 	            Property p = node.getProperty (propname, false);
 	            Relation rel = dbm.propertyToColumnName (propname);
@@ -381,6 +381,10 @@ public final class NodeManager {
 	                rec.setValueNull (rel.getDbField());
 	            }
 	        }
+	
+	        if (dbm.getPrototypeField () != null) {
+	            rec.setValue (dbm.getPrototypeField (), node.getPrototype ());
+	        }
 	        rec.markForInsert ();
 	        tds.save ();
 	    } finally {
@@ -388,7 +392,7 @@ public final class NodeManager {
 	            tds.close ();
 	        }
 	    }
-	    dbm.lastDataChange = System.currentTimeMillis ();
+	    dbm.notifyDataChange ();
 	}
 	// tx.timer.endEvent ("insertNode "+node);
     }
@@ -412,7 +416,7 @@ public final class NodeManager {
 
 	        int updated = 0;
 
-	        for (Enumeration e=dbm.prop2db.keys(); e.hasMoreElements(); ) {
+	        for (Enumeration e=dbm.getProp2DB ().keys(); e.hasMoreElements(); ) {
 	            String propname = (String) e.nextElement ();
 	            Relation rel = dbm.propertyToColumnName (propname);
 
@@ -476,7 +480,7 @@ public final class NodeManager {
 	            tds.close ();
 	        }
 	    }
-	    dbm.lastDataChange = System.currentTimeMillis ();
+	    dbm.notifyDataChange ();
 	}
 	// update may cause changes in the node's parent subnode array
 	if (node.isAnonymous()) {
@@ -506,7 +510,7 @@ public final class NodeManager {
 	        if (st != null)
 	            st.close ();
 	    }
-	    dbm.lastDataChange = System.currentTimeMillis ();
+	    dbm.notifyDataChange ();
 	}
 	// node may still be cached via non-primary keys. mark as invalid
 	node.setState (Node.INVALID);
@@ -532,8 +536,7 @@ public final class NodeManager {
 	    if (qds.size () == 0)
 	        return "0";
 	    long currMax = qds.getRecord (0).getValue (1).asLong ();
-	    currMax = Math.max (currMax+1, map.lastID+1);
-	    map.lastID = currMax;
+	    currMax = map.getNewID (currMax);
 	    retval = Long.toString (currMax);
 	} finally {
 	    // tx.timer.endEvent ("generateID "+map);
@@ -985,7 +988,7 @@ public final class NodeManager {
 	        Node n = (Node) en.nextElement ();
 	        DbMapping dbm = app.getDbMapping (n.getPrototype ());
 	        if (dbm != null)
-	            dbm.lastDataChange = System.currentTimeMillis ();
+	            dbm.notifyDataChange ();
 	        n.lastParentSet = -1;
 	        n.setDbMapping (dbm);
 	        n.nmgr = safe;
@@ -995,7 +998,7 @@ public final class NodeManager {
 	        Node n = (Node) en.nextElement ();
 	        DbMapping dbm = app.getDbMapping (n.getPrototype ());
 	        if (dbm != null)
-	            dbm.lastDataChange = System.currentTimeMillis ();
+	            dbm.notifyDataChange ();
 	        n.setDbMapping (dbm);
 	        n.nmgr = safe;
 	        cache.put (n.getKey(), n);
