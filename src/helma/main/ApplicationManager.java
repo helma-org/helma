@@ -90,7 +90,6 @@ public class ApplicationManager implements XmlRpcHandler {
                         ndesc.app = appDesc.app;
                         ndesc.bind();
                         descriptors.put(ndesc.appName, ndesc);
-
                     }
                 }
             } catch (Exception mx) {
@@ -369,6 +368,11 @@ public class ApplicationManager implements XmlRpcHandler {
                 // bind to RMI server
                 if (rmiPort > 0) {
                     Naming.rebind("//:" + rmiPort + "/" + appName, new RemoteApplication(app));
+                }
+
+                // set application URL prefix if it isn't set in app.properties
+                if (!app.hasExplicitBaseURI()) {
+                    app.setBaseURI(mountpoint);
                 }
 
                 // bind to Jetty HTTP server
