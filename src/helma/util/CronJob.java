@@ -111,42 +111,42 @@ public class CronJob {
      *  <ul><dl>
      *  <dt><tt>year-list</tt></dt>
      **  <dd>
-     **  This is a semi-colon (<tt>;</tt>) separated list of individual
-     *  years or of year ranges.  Examples: "<tt>1999;2000</tt>" or
-     *  "<tt>1999-2004;2005-2143;2650</tt>"
+     **  This is a comma (<tt>,</tt>) separated list of individual
+     *  years or of year ranges.  Examples: "<tt>1999,2000</tt>" or
+     *  "<tt>1999-2004,2005-2143,2650</tt>"
      *  </dd><P>
      *
      *  <dt><tt>month-list</tt></dt>
      *  <dd>
-     *  This is a semi-colon (<tt>;</tt>) separated list of month
-     *  names.  Example: "<tt>january;march;may</tt>"
+     *  This is a comma (<tt>,</tt>) separated list of month
+     *  names.  Example: "<tt>january,march,may</tt>"
      *  </dd><P>
      *
      *  <dt><tt>day-list</tt></dt>
      *  <dd>
-     *  This is a semi-colon (<tt>;</tt>) separated list of individual
+     *  This is a comma (<tt>,</tt>) separated list of individual
      *  day-of-month numbers or of day-of-month ranges.
-     *  Examples: "<tt>1;15</tt>" or "<tt>1-5;7;10-24</tt>"
+     *  Examples: "<tt>1,15</tt>" or "<tt>1-5,7,10-24</tt>"
      *  </dd><P>
      *
      *  <dt><tt>weekday-list</tt></dt>
      *  <dd>
-     *  This is a semi-colon (<tt>;</tt>) separated list of weekday names
-     *  names.  Example: "<tt>monday;tuesday</tt>"
+     *  This is a comma (<tt>,</tt>) separated list of weekday names
+     *  names.  Example: "<tt>monday,tuesday</tt>"
      *  </dd><P>
      *
      *  <dt><tt>hour-list</tt></dt>
      *  <dd>
-     *  This is a semi-colon (<tt>;</tt>) separated list of individual
+     *  This is a comma (<tt>,</tt>) separated list of individual
      *  hours-of-day (24-hour time) or of hour-of-day ranges.
-     *  Examples: "<tt>12;15</tt>" or "<tt>8-17;19;20-22</tt>"
+     *  Examples: "<tt>12,15</tt>" or "<tt>8-17,19,20-22</tt>"
      *  </dd><P>
      *
      *  <dt><tt>minute-list</tt></dt>
      *  <dd>
-     *  This is a semi-colon (<tt>;</tt>) separated list of individual
+     *  This is a comma (<tt>,</tt>) separated list of individual
      *  minutes (during an hour) or of minute ranges.
-     *  Examples: "<tt>0;15;30;45</tt>" or "<tt>0-5;8-14;23;28-32</tt>"
+     *  Examples: "<tt>0,15,30,45</tt>" or "<tt>0-5,8-14,23,28-32</tt>"
      *  </dd><P>
      *
      *  </dl></ul>
@@ -177,7 +177,7 @@ public class CronJob {
                continue;
             CronJob job = (CronJob) jobs.get (jobName);
             if (job==null) {
-               job = new CronJob ();
+               job = new CronJob (jobName);
                jobs.put (jobName, job);
             }
             String value = props.getProperty (key);
@@ -355,7 +355,8 @@ public class CronJob {
   /**
    *  Create an empty CronJob.
    */
-   public CronJob () {
+   public CronJob (String name) {
+      this.name = name;
       all.put (ALL_VALUE, value);
       year = new Hashtable (all);
       month = new Hashtable (all);
@@ -614,6 +615,22 @@ public class CronJob {
       this.minute.remove(ALL_VALUE);
   }
 
+
+  /**
+   *  Set this entry's name
+   */
+  public void setName(String name)
+  {
+    this.name = name;
+  }
+
+  /**
+   *  Get this entry's name
+   */
+  public String getName()
+  {
+    return this.name;
+  }
 
   /**
    *  Set this entry's function
