@@ -16,6 +16,7 @@
 
 /* Portierung von helma.asp.AspClient auf Servlets */
 /* Author: Raphael Spannocchi Datum: 27.11.1998 */
+
 package helma.servlet;
 
 import helma.framework.*;
@@ -292,6 +293,7 @@ public abstract class AbstractServletClient extends HttpServlet {
                 if (debug) {
                     sendError(response, response.SC_INTERNAL_SERVER_ERROR,
                               "Error in request handler:" + x);
+                    x.printStackTrace();
                 } else {
                     sendError(response, response.SC_INTERNAL_SERVER_ERROR,
                               "The server encountered an error while processing your request. " +
