@@ -684,7 +684,7 @@ public class RequestEvaluator implements Runnable {
 	Skin skin = null;
 	// FIXME: we can't do that, because if no db skinmanager exists we'll query over and over again
 	if (skinManager == null) {
-	    skinManager = currentNode.getNode ("skinmanager", true);
+	    skinManager = currentNode == null ? null : currentNode.getNode ("skinmanager", true);
 	    // System.err.println ("SKINMGR: "+skinManager);
 	    // mark as null
 	    if (skinManager == null)
