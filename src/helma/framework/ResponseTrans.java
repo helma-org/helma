@@ -5,6 +5,7 @@ package helma.framework;
 
 import java.io.*;
 import java.util.*;
+import helma.framework.core.Skin;
 import helma.objectmodel.*;
 import helma.util.*;
 
@@ -13,7 +14,7 @@ import helma.util.*;
  * class are directly exposed to JavaScript as global property res. 
  */
  
-public class ResponseTrans implements Externalizable {
+public final class ResponseTrans implements Externalizable {
 
     /**
      * Set the MIME content type of the response.
@@ -64,6 +65,8 @@ public class ResponseTrans implements Externalizable {
     private transient Object skinpath = null;
     // the processed skinpath as array of Nodes or directory names
     private transient Object[] translatedSkinpath = null;
+    // hashmap for skin caching
+    private transient HashMap skincache;
 
     static final long serialVersionUID = -8627370766119740844L;
 
@@ -327,8 +330,9 @@ public class ResponseTrans implements Externalizable {
     }
 
     public void setSkinpath (Object obj) {
-	this.skinpath = obj;
-	this.translatedSkinpath = null;
+	skinpath = obj;
+	translatedSkinpath = null;
+	skincache = null;
     }
 
     public Object getSkinpath () {
@@ -341,6 +345,18 @@ public class ResponseTrans implements Externalizable {
 
     public Object[] getTranslatedSkinpath () {
 	return translatedSkinpath;
+    }
+
+    public Skin getCachedSkin (String id) {
+	if (skincache == null)
+	    return null;
+	return (Skin) skincache.get (id);
+    }
+
+    public void cacheSkin (String id, Skin skin) {
+	if (skincache == null)
+	    skincache = new HashMap ();
+	skincache.put (id, skin);
     }
 
     public synchronized void setCookie (String key, String value) {

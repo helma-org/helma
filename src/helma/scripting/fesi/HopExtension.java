@@ -23,7 +23,7 @@ import org.xml.sax.InputSource;
  * (Node objects), the global prototype, the session object etc.
  */
 
-public class HopExtension {
+public final class HopExtension {
 
     protected Application app;
     protected FesiEvaluator fesi;
@@ -436,11 +436,7 @@ public class HopExtension {
             if (arguments.length != 1 || ESNull.theNull.equals (arguments[0]))
                 throw new EcmaScriptException ("createSkin must be called with one String argument");
             String str = arguments[0].toString ();
-	    Skin skin = (Skin) app.skincache.get (str);
-	    if (skin == null) {
-	        skin = new Skin (str, app);
-	        app.skincache.put (str, skin);
-	    }
+            Skin skin = new Skin (str, app);
             return new ESWrapper (skin, evaluator);
         }
     }
@@ -502,8 +498,14 @@ public class HopExtension {
 
                 // ready... retrieve the skin and render it.
                 Object javaObject = thisObject == null ? null : thisObject.toJavaObject ();
-                if (skin == null)
-                    skin = app.getSkin (javaObject, arguments[0].toString (), skinpath);
+                if (skin == null) {
+                    String skinid = app.getPrototypeName(javaObject)+"/"+arguments[0].toString ();
+                    skin = res.getCachedSkin (skinid);
+                    if (skin == null) {
+                        skin = app.getSkin (javaObject, arguments[0].toString (), skinpath);
+                        res.cacheSkin (skinid, skin);
+                    }
+                }
                 if (asString)
                     res.pushStringBuffer ();
                 if (skin != null)
