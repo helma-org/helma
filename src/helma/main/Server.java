@@ -591,23 +591,26 @@ public class Server implements IPathElement, Runnable {
      */
     public static Log getLogger() {
         if (logger == null) {
-            // get the logDir property
-            String logDir = sysProps.getProperty("logdir", "log");
+            if (helmaLogging) {
+                // set up system properties for helma.util.Logging
+                String logDir = sysProps.getProperty("logdir", "log");
 
-            if ("console".equals(logDir)) {
-                logger = Logging.getConsoleLog();
-            } else {
-                if (helmaLogging) {
+                if (!"console".equals(logDir)) {
+                    // try to get the absolute logdir path
+
                     // set up helma.logdir system property
                     File dir = new File(logDir);
                     if (!dir.isAbsolute()) {
                         dir = new File(hopHome, logDir);
                     }
-                    System.setProperty("helma.logdir", dir.getAbsolutePath());
+                    
+                    logDir = dir.getAbsolutePath();
                 }
-                logger = LogFactory.getLog("helma.server");
+                System.setProperty("helma.logdir", logDir);
             }
+            logger = LogFactory.getLog("helma.server");
         }
+
         return logger;
     }
 
@@ -636,6 +639,11 @@ public class Server implements IPathElement, Runnable {
      *  A primitive method to check whether a server is already running on our port.
      */
     private void checkRunning(InetAddrPort addrPort) throws Exception {
+        // checkRunning is disabled until we find a fix for the socket creation
+        // timeout problems reported on the list.
+        return;
+
+        /*
         InetAddress addr = addrPort.getInetAddress();
         if (addr == null) {
             try {
@@ -655,6 +663,7 @@ public class Server implements IPathElement, Runnable {
 
         // if we got so far, another server is already running on this port and db
         throw new Exception("Error: Server already running on this port: " + addrPort);
+        */
     }
 
     /**
