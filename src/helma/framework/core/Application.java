@@ -77,6 +77,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 
     protected CacheMap skincache = new CacheMap (100);
 
+    String charset;
+
     private CryptFile pwfile;
 
 
@@ -125,6 +127,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	pwfile = new CryptFile (pwf, parentpwfile);
 
 	nmgr = new NodeManager (this, dbDir.getAbsolutePath (), props);
+
+	charset = props.getProperty ("charset", "ISO-8859-1");
 
 	debug = "true".equalsIgnoreCase (props.getProperty ("debug"));
 	try {
@@ -297,7 +301,12 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	    if (primaryRequest) {
 	        activeRequests.remove (req);
 	        releaseEvaluator (ev);
-	        res.close ();  // this needs to be done before sending it back
+	        // response needs to be closed/encoded before sending it back
+	        try {
+	            res.close (charset);
+	        } catch (UnsupportedEncodingException uee) {
+	            logEvent ("Unsupported response encoding: "+uee.getMessage());
+	        }
 	    } else {
 	        res.waitForClose ();
 	    }
