@@ -1,11 +1,20 @@
 package helma.objectmodel.dom;
 
-import java.io.*;
-import java.net.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.Vector;
 
 import helma.objectmodel.*;
+import helma.objectmodel.INode;
+import helma.objectmodel.IProperty;
+import helma.objectmodel.TransientNode;
 import helma.util.HtmlEncoder;
 
 public class XmlWriter	extends OutputStreamWriter implements XmlConstants		{
@@ -19,6 +28,7 @@ public class XmlWriter	extends OutputStreamWriter implements XmlConstants		{
 	private StringBuffer prefix = new StringBuffer();
 
 	private static int fileid;
+ 	private SimpleDateFormat format = new SimpleDateFormat ( DATEFORMAT );
 	
 	/**
 	  * create ids that can be used for temporary files.
@@ -86,23 +96,34 @@ public class XmlWriter	extends OutputStreamWriter implements XmlConstants		{
 
 	/**
 	  * write a hopobject and print all its properties and children.
-      * if node has already been fully printed, just make a reference here.
+      * references are made here if a node already has been fully printed
+      * or if this is the last level that's going to be dumped
 	  */
 	public void write (INode node, String name, int level) throws IOException	{
-		if ( ++level>maxLevels )
+		if (node==null)
 			return;
 		prefix.append(indent);
+		if ( ++level>maxLevels )	{
+			writeReferenceTag (node, name);
+			prefix = prefix.delete( prefix.length()-indent.length(), Integer.MAX_VALUE );
+			return;
+		}
 		if ( convertedNodes.contains(node) )	{
 			writeReferenceTag (node, name);
 		}	else	{
 			convertedNodes.addElement (node);
 			writeTagOpen  (node,name);
+			if ( node.getParent()!=null )	{
+				writeReferenceTag  (node.getParent(),"hop:parent");
+			}
 			writeProperties (node,level);
 			writeChildren (node,level);
 			writeTagClose (node,name);
 		}
 		prefix = prefix.delete( prefix.length()-indent.length(), Integer.MAX_VALUE );
 	}
+
+
 
 	/**
 	  * loop through properties and print them with their property-name
@@ -155,7 +176,6 @@ public class XmlWriter	extends OutputStreamWriter implements XmlConstants		{
 		}
 		if ( property.getType()==IProperty.DATE )	{
 			write (" hop:type=\"date\"");
-			SimpleDateFormat format = new SimpleDateFormat ( DATEFORMAT );
 			write (">");
 			write ( format.format (property.getDateValue()) );
 		}	else	{
@@ -189,10 +209,16 @@ public class XmlWriter	extends OutputStreamWriter implements XmlConstants		{
 		write ( (name==null)?"hopobject" : name);
 		write (" hop:id=\"");
 		write (getNodeIdentifier(node));
+		write ("\" hop:name=\"");
+		write (node.getName());
 		write ("\" hop:prototype=\"");
 		write (getNodePrototype(node));
-		write ("\"");
-		write (">");
+		write ("\" hop:created=\"");
+		write (Long.toString(node.created()));
+		write ("\" hop:lastModified=\"");
+		write (Long.toString(node.lastModified()));
+		//FIXME: do we need anonymous-property?
+		write ("\">");
 		write (LINESEPARATOR);
 	}
 
@@ -210,8 +236,8 @@ public class XmlWriter	extends OutputStreamWriter implements XmlConstants		{
 
 	/**
 	  * write a tag holding a reference to an element that has
-	  * been dumped before.
-	  * e.g. <parent hop:idref="t35" hop:prototyperef="hopobject"/>
+	  * been written out before.
+	  * e.g. <parent hop:idref="35" hop:prototyperef="hopobject"/>
 	  */
 	public void writeReferenceTag (INode node, String name) throws IOException	{
 		write (prefix.toString());
