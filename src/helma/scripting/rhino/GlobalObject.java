@@ -48,7 +48,8 @@ public class GlobalObject extends ScriptableObject {
         String[] globalFuncs = {
                                    "renderSkin", "renderSkinAsString", "getProperty",
                                    "authenticate", "createSkin", "format", "encode",
-                                   "encodeXml", "encodeForm", "stripTags"
+                                   "encodeXml", "encodeForm", "stripTags",
+                                   "getDBConnection"
                                };
 
         defineFunctionProperties(globalFuncs, GlobalObject.class, 0);
@@ -194,6 +195,17 @@ public class GlobalObject extends ScriptableObject {
     public Skin createSkin(String str) {
         return new Skin(str, app);
     }
+
+    public DatabaseObject getDBConnection(String dbsource) throws Exception {
+        if (dbsource == null)
+            throw new RuntimeException ("Wrong number of arguments in getDBConnection(dbsource)");
+        DbSource dbsrc = app.getDbSource (dbsource.toLowerCase ());
+        if (dbsrc == null)
+            throw new RuntimeException ("DbSource "+dbsource+" does not exist");
+        DatabaseObject db = new DatabaseObject (dbsrc, 0);
+        return db;
+    }
+
 
     /**
      *
