@@ -16,6 +16,7 @@
 
 package helma.scripting.rhino;
 
+import helma.scripting.ScriptingException;
 import helma.framework.*;
 import helma.framework.core.*;
 import helma.objectmodel.*;
@@ -71,7 +72,8 @@ public class HopObject extends ScriptableObject {
      *  This method is used as HopObject constructor from JavaScript.
      */
     public static Object hopObjectConstructor(Context cx, Object[] args,
-                                              Function ctorObj, boolean inNewExpr) {
+                                              Function ctorObj, boolean inNewExpr)
+                         throws ScriptingException {
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
         RhinoCore c = engine.core;
         String prototype = ((FunctionObject) ctorObj).getFunctionName();
@@ -80,6 +82,11 @@ public class HopObject extends ScriptableObject {
         HopObject hobj = new HopObject(prototype);
 
         hobj.init(c, n);
+        Scriptable p = c.getPrototype(prototype);
+        if (p != null) {
+            hobj.setPrototype(p);
+            engine.invoke(hobj, "constructor", args, false);
+        }
 
         return hobj;
     }
