@@ -38,6 +38,9 @@ public final class NodeManager {
     // a wrapper that catches some Exceptions while accessing this NM
     public final WrappedNodeManager safe;
 
+    // an instance of Node that's used to cache null values
+    private Node nullNode;
+
     public NodeManager (Application app, String dbHome, Properties props) throws DbException {
 	this.app = app;
 	int cacheSize = Integer.parseInt (props.getProperty ("cachesize", "1000"));
@@ -47,6 +50,7 @@ public final class NodeManager {
 	app.logEvent ("set up node cache ("+cacheSize+")");
 
 	safe = new WrappedNodeManager (this);
+	nullNode = new Node ("nullNode", "nullNode", null, safe);
 
 	// get the initial id generator value
 	String idb = props.getProperty ("idBaseValue");
@@ -222,15 +226,35 @@ public final class NodeManager {
 	            // check if node is already in cache with primary key
 	            Node oldnode = (Node) cache.put (primKey, node);
 	            // no need to check for oldnode != node because we fetched a new node from db
-	            if (oldnode != null && oldnode.getState () != Node.INVALID) {
+	            if (oldnode != null && oldnode != nullNode && oldnode.getState () != Node.INVALID) {
 	                cache.put (primKey, oldnode);
 	                if (!keyIsPrimary)
 	                    cache.put (key, oldnode);
 	                node = oldnode;
-	            } else if (!keyIsPrimary) // cache node with secondary key
+	            } else if (!keyIsPrimary) {
+	                // cache node with secondary key
 	                cache.put (key, node);
+	            }
 	        } // synchronized
+	    } else {
+	        // node fetched from db is null, cache result using nullNode
+	        synchronized (cache) {
+	            Node oldnode = (Node) cache.put (key, nullNode);
+	            // for the rare case that some other thread created the node in the meantime
+	            if (oldnode != null && oldnode != nullNode && oldnode.getState () != Node.INVALID) {
+	                Key primKey = oldnode.getKey ();
+	                boolean keyIsPrimary = primKey.equals (key);
+	                cache.put (oldnode.getKey (), oldnode);
+	                if (!keyIsPrimary)
+	                    cache.put (key, oldnode);
+	                node = oldnode;
+	            } else {
+	                return null;
+	            }
+	        }
 	    }
+	} else if (node == nullNode) {
+	    return null;
 	} else {
 	    // update primary key in cache to keep it from being flushed, see above
 	    if (!rel.usesPrimaryKey ()) {
