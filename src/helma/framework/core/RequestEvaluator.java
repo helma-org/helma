@@ -137,15 +137,14 @@ public class RequestEvaluator implements Runnable {
         // when it's time to quit because another thread took over.
         Transactor localrtx = (Transactor) Thread.currentThread ();
 
-        // evaluators are only initialized as needed, so we need to check that here
-        if (!initialized)
-	app.typemgr.initRequestEvaluator (this);
-
         try {
 	do {
 
 	    // long startCheck = System.currentTimeMillis ();
 	    app.typemgr.checkPrototypes ();
+	    // evaluators are only initialized as needed, so we need to check that here
+	    if (!initialized)
+	        app.typemgr.initRequestEvaluator (this);
 	    // System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
 	
 	    IPathElement root, currentElement;
