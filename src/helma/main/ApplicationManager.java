@@ -213,6 +213,12 @@ public class ApplicationManager implements XmlRpcHandler {
         Application app = (Application) xmlrpcHandlers.get(handler);
 
         if (app == null) {
+            app = (Application) xmlrpcHandlers.get("*");
+            // use the original method name, the handler is resolved within the app.
+            method2 = method;
+        }
+
+        if (app == null) {
             throw new Exception("Handler \"" + handler + "\" not found for " + method);
         }
 
@@ -269,7 +275,7 @@ public class ApplicationManager implements XmlRpcHandler {
         String pathPattern;
         String staticDir;
         String staticMountpoint;
-        String[] xmlrpcHandlerNames;
+        String xmlrpcHandlerName;
         String cookieDomain;
         String uploadLimit;
         String debug;
@@ -287,7 +293,6 @@ public class ApplicationManager implements XmlRpcHandler {
             staticDir = props.getProperty(name+".static");
             staticMountpoint = getPathPattern(props.getProperty(name+".staticMountpoint",
                                         joinMountpoint(mountpoint, "static")));
-            xmlrpcHandlerNames = StringUtils.split(props.getProperty(name+".xmlrpcHandler"));
             cookieDomain = props.getProperty(name+".cookieDomain");
             uploadLimit = props.getProperty(name+".uploadLimit");
             debug = props.getProperty(name+".debug");
@@ -409,7 +414,8 @@ public class ApplicationManager implements XmlRpcHandler {
                 }
 
                 // register as XML-RPC handler
-                xmlrpcHandlers.put(app.getXmlRpcHandlerName(), app);
+                xmlrpcHandlerName = app.getXmlRpcHandlerName();
+                xmlrpcHandlers.put(xmlrpcHandlerName, app);
                 // app.start();
             } catch (Exception x) {
                 Server.getLogger().log("Couldn't bind app: " + x);
@@ -446,7 +452,7 @@ public class ApplicationManager implements XmlRpcHandler {
                 }
 
                 // unregister as XML-RPC handler
-                xmlrpcHandlers.remove(app.getXmlRpcHandlerName());
+                xmlrpcHandlers.remove(xmlrpcHandlerName);
             } catch (Exception x) {
                 Server.getLogger().log("Couldn't unbind app: " + x);
             }
