@@ -546,24 +546,31 @@ public class Node implements INode, Serializable {
     }
 
 
-    public Key getParentKey () {
-	if (parentID == null)
-	    return null;
-	
-	DbMapping pm = parentmap;
-	if (pm == null && dbmap != null)
-	    pm = dbmap.getParentMapping ();
-	return Key.makeKey (pm, parentID);
-    }
-
     public INode getParent () {
+
+	// check what's specified in the type.properties for this node.
+	String[] parentProps = null;
+	if (dbmap != null && dbmap.isRelational ())
+	    parentProps = dbmap.getParentPropNames ();
+
+	// check if current parent candidate matches presciption, if not, try to get it
+	if (parentProps != null) {
+	    for (int i=0; i<parentProps.length; i++) {
+	        INode pn = getNode (parentProps[i], false);
+	        if (pn != null) {
+	            // see if dbmapping specifies anonymity for this node
+	            Boolean[] ano = dbmap.getAnonymous ();
+	            if (ano != null && ano.length > i)
+	                anonymous = ano[i].booleanValue();
+	            return pn;
+	        }
+	    }
+	}
+
+	// fall back to heuristic parent (the node that fetched this one from db)
 	if (parentID == null)
 	    return null;
-	
-	DbMapping pm = parentmap;
-	if (pm == null && dbmap != null)
-	    pm = dbmap.getParentMapping ();
-	return nmgr.getNode (parentID, pm);
+	return nmgr.getNode (parentID, parentmap);
     }
 
 

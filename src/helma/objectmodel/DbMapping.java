@@ -25,10 +25,10 @@ public class DbMapping {
     DbSource source;
     String table;
 
-    DbMapping parent;
+    String[] parent;  // list of properties to try for parent
+    Boolean[] anonymous;  // are parent relations anonymous or not?
     DbMapping subnodes;
     DbMapping properties;
-    private Relation parentRel;
     private Relation subnodesRel;
     private Relation propertiesRel;
 
@@ -80,7 +80,7 @@ public class DbMapping {
     /**
      * Read the mapping from the Properties. Return true if the properties were changed.
      */
-    public boolean read () {
+    public synchronized boolean read () {
 
 	long lastmod = props.lastModified ();
 	if (lastmod == lastTypeChange)
@@ -98,7 +98,7 @@ public class DbMapping {
 	return true;
     }
 
-    public void rewire () {
+    public synchronized void rewire () {
 
 	// if (table != null && source != null) {
 	// IServer.getLogger().log ("set data source for "+typename+" to "+source);
@@ -116,25 +116,34 @@ public class DbMapping {
 	            d2p.put (rel.localField, rel);
 	        // IServer.getLogger().log ("Mapping "+propName+" -> "+dbField);
 
-	    } else if ("_id".equalsIgnoreCase (propName)) {
-	        idField = props.getProperty (propName);
-
-                 } else if ("_name".equalsIgnoreCase (propName)) {
-	        nameField = props.getProperty (propName);
 	    }
 	}
 	prop2db = p2d;
 	db2prop = d2p;
 
+	idField = props.getProperty ("_id");
+
+	nameField = props.getProperty ("_name");
+
+	String ano = props.getProperty ("_anonymous");
+	if (ano != null) {
+	    // comma-separated list of true/false values
+	    StringTokenizer st = new StringTokenizer (ano, ",; ");
+	    anonymous = new Boolean[st.countTokens()];
+	    for (int i=0; i<anonymous.length; i++)
+	        anonymous[i] = "false".equalsIgnoreCase (st.nextToken().trim()) ? Boolean.FALSE : Boolean.TRUE;
+	} else
+	    anonymous = null;
+
 	String parentMapping = props.getProperty ("_parent");
 	if (parentMapping != null) {
-	    parentRel = new Relation (parentMapping, "_parent", this, props);
-	    if (parentRel.isReference ())
-	        parent = parentRel.other;
-	    else
-	        parent = (DbMapping) app.getDbMapping (parentMapping);
+	    // comma-separated list of properties to be used as parent
+	    StringTokenizer st = new StringTokenizer (parentMapping, ",; ");
+	    parent = new String[st.countTokens()];
+	    for (int i=0; i<parent.length; i++)
+	        parent[i] = st.nextToken().trim();
 	} else
-	    parentRel = null;
+	    parent = null;
 
 	String subnodeMapping = props.getProperty ("_subnodes");
 	if (subnodeMapping != null) {
@@ -222,8 +231,12 @@ public class DbMapping {
 	return (Relation) prop2db.get (propName);
     }
 
-    public DbMapping getParentMapping () {
+    public synchronized String[] getParentPropNames () {
 	return parent;
+    }
+
+    public synchronized Boolean[] getAnonymous () {
+	return anonymous;
     }
 
     public DbMapping getSubnodeMapping () {
@@ -282,6 +295,7 @@ public class DbMapping {
 	return rel != null ? rel : propertiesRel;
     }
 
+
     public String getIDgen () {
 	return idgen;
     }
@@ -299,7 +313,7 @@ public class DbMapping {
     /**
      * Return a Village Schema object for this DbMapping.
      */
-    public Schema getSchema () throws ClassNotFoundException, SQLException, DataSetException {
+    public synchronized Schema getSchema () throws ClassNotFoundException, SQLException, DataSetException {
 	if (!isRelational ())
 	    throw new SQLException ("Can't get Schema for non-relational data mapping");
 	// Use local variable s to avoid synchronization (schema may be nulled elsewhere)
@@ -313,7 +327,7 @@ public class DbMapping {
     /**
      * Return a Village Schema object for this DbMapping.
      */
-    public KeyDef getKeyDef () {
+    public synchronized KeyDef getKeyDef () {
 	if (!isRelational ())
 	    throw new RuntimeException ("Can't get KeyDef for non-relational data mapping");
 	// Use local variable s to avoid synchronization (keydef may be nulled elsewhere)
