@@ -514,8 +514,7 @@ public final class RequestEvaluator implements Runnable {
                         // check if we tried to process the error already
                         if (error == null) {
                             app.errorCount += 1;
-                            app.logEvent("Exception in " +
-                                    Thread.currentThread() + ": " + x);
+                            app.logError("Error in " + Thread.currentThread(), x);
 
                             // Dump the profiling data to System.err
                             if (app.debug && !(x instanceof ScriptingException)) {
