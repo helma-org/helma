@@ -1088,7 +1088,13 @@ public final class RhinoCore {
          * @return the HopObject or null if it doesn't exist
          */
         public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
-            DbMapping dbmap = app.getDbMapping(typeName);
+            if (args.length < 1 || args.length > 2)
+                throw new IllegalArgumentException("Wrong number of arguments in getById()");
+            // If second argument is provided, use it as type name.
+            // Otherwise, use our own type name.
+            String type = args.length == 1 ? typeName: Context.toString(args[1]); 
+
+            DbMapping dbmap = app.getDbMapping(type);
             if (dbmap == null)
                 return null;
             Object node = null;
