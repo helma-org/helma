@@ -12,7 +12,8 @@ import FESI.Exceptions.*;
 import helma.objectmodel.INode;
 import helma.objectmodel.IServer;
 import helma.objectmodel.ConcurrencyException;
-
+import helma.util.HtmlEncoder;
+import helma.util.UrlEncoder;
 
 /**
  * This represents a HOP skin, i.e. a template created from JavaScript. It uses the request path array
@@ -259,32 +260,49 @@ public class Skin {
 	}
 
 	private void renderFromResponse (RequestEvaluator reval) {
+	    String encoding = (String) parameters.get ("encoding");
 	    if ("title".equals (name) && reval.res.title != null)
-	        reval.res.write (reval.res.title);
+	        reval.res.write (encode (reval.res.title, encoding));
 	    else if ("head".equals (name) && reval.res.head != null)
-	        reval.res.write (reval.res.head);
+	        reval.res.write (encode (reval.res.head, encoding));
 	    else if ("body".equals (name) && reval.res.body != null)
-	        reval.res.write (reval.res.body);
+	        reval.res.write (encode (reval.res.body, encoding));
 	    else if ("message".equals (name) && reval.res.message != null)
-	        reval.res.write (reval.res.message);
+	        reval.res.write (encode (reval.res.message, encoding));
 	}
 
 	private void renderFromRequest (RequestEvaluator reval) {
+	    String encoding = (String) parameters.get ("encoding");
 	    Object value = reval.req.get (name);
 	    if (value != null)
-	        reval.res.write (value);
+	        reval.res.write (encode (value.toString (), encoding));
 	}
 
 	private void renderFromParam (RequestEvaluator reval, ESObject paramObject) {
+	    String encoding = (String) parameters.get ("encoding");
 	    if (paramObject == null)
 	        reval.res.write ("[HopMacro error: Skin requires a parameter object]");
 	    else {
 	        try {
 	            ESValue value = paramObject.getProperty (name, name.hashCode());
 	            if (value != null && value != ESUndefined.theUndefined && value != ESNull.theNull)
-	                reval.res.write (value);
+	                reval.res.write (encode (value.toString (), encoding));
 	        } catch (EcmaScriptException ignore) {}
 	    }
+	}
+	
+	public String encode (String text, String encoding) {
+	    if (encoding == null || text == null)
+	        return text;
+	    if ("html".equalsIgnoreCase (encoding))
+	        return HtmlEncoder.encodeSoft (text);
+	    if ("xml".equalsIgnoreCase (encoding))
+	        return HtmlEncoder.encodeXml (text);
+	    if ("form".equalsIgnoreCase (encoding))
+	        return HtmlEncoder.encodeFormValue (text);
+	    if ("url".equalsIgnoreCase (encoding))
+	        return UrlEncoder.encode (text);
+	    return text;
 	}
 
 	public String toString () {
