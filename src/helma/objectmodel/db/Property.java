@@ -190,7 +190,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
     /**
      *
      *
-     * @return ...
+     * @return the property's value in its native class
      */
     public Object getValue() {
         return value;
@@ -199,10 +199,22 @@ public final class Property implements IProperty, Serializable, Cloneable {
     /**
      *
      *
-     * @return ...
+     * @return the property's type as defined in helma.objectmodel.IProperty.java
      */
     public int getType() {
         return type;
+    }
+
+    /**
+     * Directly set the value of this property.
+     */
+    protected void setValue(Object value, int type) {
+        if (type == NODE) {
+            unregisterNode();
+        }
+        this.value = value;
+        this.type = type;
+        dirty = true;
     }
 
     /**
@@ -419,7 +431,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 
             case DATE:
 
-                SimpleDateFormat format = new SimpleDateFormat("dd.MM.yy hh:mm:ss");
+                SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 
                 return format.format((Date) value);
 
