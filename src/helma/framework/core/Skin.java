@@ -482,7 +482,7 @@ public final class Skin {
                         // pass a clone/copy of the parameter map so if the script changes it,
                         Object[] arguments = new Object[1];
                         if (parameters == null) {
-                            arguments[0] = new SystemMap(0);
+                            arguments[0] = new SystemMap(4);
                         } else {
                             arguments[0] = new WrappedMap(parameters, WrappedMap.COPY_ON_WRITE);
                             // arguments[0] = new SystemMap(parameters);
