@@ -58,7 +58,7 @@ public final class RhinoCore {
     PathWrapper pathProto;
 
     // Any error that may have been found in global code
-    EcmaError globalError;
+    String globalError;
 
     /**
      *  Create a Rhino evaluator for the given application and request evaluator.
@@ -199,9 +199,12 @@ public final class RhinoCore {
 
         // set the parent prototype in case it hasn't been done before
         // or it has changed...
-        setParentPrototype(prototype, op);
+        setParentPrototype(prototype, type);
 
-        globalError = type.error = null;
+        type.error = null;
+        if ("global".equals(prototype.getLowerCaseName())) {
+            globalError = null;
+        }
 
         // loop through the prototype's code elements and evaluate them
         // first the zipped ones ...
@@ -254,29 +257,29 @@ public final class RhinoCore {
      *  Set the parent prototype on the ObjectPrototype.
      *
      *  @param prototype the prototype spec
-     *  @param op the prototype object
+     *  @param type the prototype object info
      */
-    private void setParentPrototype(Prototype prototype, Scriptable op) {
+    private void setParentPrototype(Prototype prototype, TypeInfo type) {
         String name = prototype.getName();
         String lowerCaseName = prototype.getLowerCaseName();
 
         if (!"global".equals(lowerCaseName) && !"hopobject".equals(lowerCaseName)) {
 
             // get the prototype's prototype if possible and necessary
-            Scriptable opp = null;
+            TypeInfo parentType = null;
             Prototype parent = prototype.getParentPrototype();
 
             if (parent != null) {
                 // see if parent prototype is already registered. if not, register it
-                opp = getPrototype(parent.getName());
+                parentType = getPrototypeInfo(parent.getName());
             }
 
-            if (opp == null && !app.isJavaPrototype(name)) {
+            if (parentType == null && !app.isJavaPrototype(name)) {
                 // FIXME: does this ever occur?
-                opp = getPrototype("hopobject");
+                parentType = getPrototypeInfo("hopobject");
             }
 
-            op.setPrototype(opp);
+            type.setParentType(parentType);
         }
     }
 
@@ -348,11 +351,11 @@ public final class RhinoCore {
      */
     public Scriptable getValidPrototype(String protoName) {
         if (globalError != null) {
-            throw new EvaluatorException(globalError.toString());
+            throw new EvaluatorException(globalError);
         }
         TypeInfo type = getPrototypeInfo(protoName);
-        if (type != null && type.error != null) {
-            throw new EvaluatorException(type.error.toString());
+        if (type != null && type.hasError()) {
+            throw new EvaluatorException(type.getError());
         }
         return type == null ? null : type.objectPrototype;
     }
@@ -770,11 +773,13 @@ public final class RhinoCore {
                 System.err.println("Error parsing file " + sourceName + ": " + e);
             }
             // mark prototype as broken
-            if (type.error == null && e instanceof EcmaError) {
+            if (type.error == null) {
+                type.error = e.getMessage();
+                if (type.error == null) {
+                    type.error = e.toString();
+                }
                 if ("global".equals(type.frameworkPrototype.getLowerCaseName())) {
-                    globalError = (EcmaError) e;
-                } else {
-                    type.error = (EcmaError) e;
+                    globalError = type.error;
                 }
                 wrappercache.clear();
             }
@@ -816,8 +821,8 @@ public final class RhinoCore {
         // to get the prototype chain set.
         long lastUpdate = -1;
 
-        // the prototype name
-        // String protoName;
+        // the parent prototype info
+        TypeInfo parentType;
 
         // a set of property values that were defined in last script compliation
         Set compiledFunctions;
@@ -825,7 +830,7 @@ public final class RhinoCore {
         // a set of property keys that were present before first script compilation
         final Set predefinedProperties;
 
-        EcmaError error;
+        String error;
 
         public TypeInfo(Prototype proto, ScriptableObject op) {
             frameworkPrototype = proto;
@@ -841,6 +846,35 @@ public final class RhinoCore {
 
         public boolean needsUpdate() {
             return frameworkPrototype.getLastUpdate() > lastUpdate;
+        }
+
+        public void setParentType(TypeInfo type) {
+            parentType = type;
+            if (type == null) {
+                objectPrototype.setPrototype(null);
+            } else {
+                objectPrototype.setPrototype(type.objectPrototype);
+            }
+        }
+
+        public boolean hasError() {
+            TypeInfo p = this;
+            while (p != null) {
+                if (p.error != null)
+                    return true;
+                p = p.parentType;
+            }
+            return false;
+        }
+
+        public String getError() {
+            TypeInfo p = this;
+            while (p != null) {
+                if (p.error != null)
+                    return p.error;
+                p = p.parentType;
+            }
+            return null;
         }
 
         public String toString() {
