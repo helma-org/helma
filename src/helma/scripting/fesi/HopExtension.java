@@ -572,15 +572,19 @@ public final class HopExtension {
             if (arguments.length < 1)
                 return  ESNull.theNull;
             try {
-                StringBuffer urltext = new StringBuffer ();
+                ByteArrayOutputStream body = new ByteArrayOutputStream ();
                 java.net.URL url = new java.net.URL (arguments[0].toString ());
-                BufferedReader in = new BufferedReader (new InputStreamReader (url.openConnection ().getInputStream ()));
-                char[] c = new char[1024];
-                int read = -1;
-                while ((read = in.read (c)) > -1)
-                    urltext.append (c, 0, read);
+                String filename = url.getFile ();
+                java.net.URLConnection con = url.openConnection ();
+                String contentType = con.getContentType ();
+                InputStream in = new BufferedInputStream (con.getInputStream ());
+                byte[] b = new byte[1024];
+                int read;
+                while ((read = in.read (b)) > -1)
+                    body.write (b, 0, read);
                 in.close ();
-                return new ESString (urltext.toString ());
+                MimePart mime = new MimePart (filename, body.toByteArray(), contentType);
+                return ESLoader.normalizeObject (mime, evaluator);
             } catch (Exception ignore) {}
             return  ESNull.theNull;
         }
