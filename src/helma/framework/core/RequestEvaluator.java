@@ -829,12 +829,15 @@ public class RequestEvaluator implements Runnable {
 
 
     public ESObject getElementWrapper (IPathElement e) {
+	
 	if (e instanceof INode)
 	    return getNodeWrapper ((INode) e);
 
 	String protoname = e.getPrototype ();
 
-	ObjectPrototype op = (ObjectPrototype) prototypes.get (protoname);
+	ObjectPrototype op = getPrototype (protoname);
+	if (op == null)
+                  op = esNodePrototype;
 
 	return new ESGenericObject (op, evaluator, e);
     }
@@ -861,12 +864,11 @@ public class RequestEvaluator implements Runnable {
                 n.setDbMapping (app.getDbMapping (protoname));
             }
 
-            try {
-                op = (ObjectPrototype) prototypes.get (protoname);
-            } catch (Exception ignore) {}
+            op = getPrototype (protoname);
 
+            // no prototype found for this node?
             if (op == null)
-                op = esNodePrototype; // no prototype found for this node.
+                op = esNodePrototype;
 
             esn = new ESNode (op, evaluator, n, this);
 
@@ -877,7 +879,9 @@ public class RequestEvaluator implements Runnable {
         return esn;
     }
 
-
+    /**
+     *  Get a scripting wrapper object for a user object. Active user objects use different wrapper classes.
+     */
     public ESNode getNodeWrapper (User u) {
         if (u == null)
             return null;
@@ -896,12 +900,21 @@ public class RequestEvaluator implements Runnable {
         return esn;
     }
 
+    /**
+     *  Get the object prototype for a prototype name
+     */
     public ObjectPrototype getPrototype (String protoName) {
-        return (ObjectPrototype) prototypes.get (protoName.toLowerCase ());
+        if (protoName == null)
+            return null;
+        return (ObjectPrototype) prototypes.get (protoName);
     }
 
+    /**
+     * Register an object prototype for a certain prototype name.
+     */
     public void putPrototype (String protoName, ObjectPrototype op) {
-        prototypes.put (protoName.toLowerCase (), op);
+        if (protoName != null && op != null)
+            prototypes.put (protoName, op);
     }
 
 
