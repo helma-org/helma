@@ -350,9 +350,10 @@ public class RequestEvaluator implements Runnable {
 	                    // calling the actual action
 	                    try {
 	                        current.doIndirectCall (evaluator, current, "onRequest", new ESValue[0]);
+	                    } catch (RedirectException redir) {
+	                        throw redir;
 	                    } catch (Exception ignore) {
-	                        // System.err.println ("error in onRequest(): "+ignore);
-	                        // onRequest not defined
+	                        // function is not defined or caused an exception, ignore
 	                    }
 	                    // do the actual action invocation
 	                    current.doIndirectCall (evaluator, current, action, new ESValue[0]);
