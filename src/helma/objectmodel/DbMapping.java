@@ -518,10 +518,15 @@ public class DbMapping implements Updatable {
 	return db2prop;
     }
 
+    /**
+     *  Return the name of the prototype which specifies the storage location
+     * (dbsource + tablename) for this type, or null if it is stored in the embedded
+     * db.
+     */
     public String getStorageTypeName () {
-	if (table == null && parentMapping != null && !"hopobject".equalsIgnoreCase (extendsProto))
+	if (table == null && parentMapping != null)
 	    return parentMapping.getStorageTypeName ();
-	return typename;
+	return sourceName == null ? null : typename;
     }
 
 }
