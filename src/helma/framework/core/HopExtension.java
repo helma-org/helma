@@ -238,10 +238,6 @@ public class HopExtension {
             if (node instanceof helma.objectmodel.db.Node) {
                 ((helma.objectmodel.db.Node) node).invalidate ();
                 esn.checkNode ();
-	   /* try {
-                    node = app.nmgr.getNode (new Key (node.getDbMapping (), node.getID ()));
-                    esn.setNode (node);
-	   } catch (Exception x) {} */
             }
             return ESBoolean.makeBoolean (true);
         }
