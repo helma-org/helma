@@ -166,6 +166,7 @@ public class RequestEvaluator implements Runnable {
 	                global.putHiddenProperty("user", esu);
 	                global.putHiddenProperty ("req", new ESWrapper (req, evaluator));
 	                global.putHiddenProperty ("res", new ESWrapper (res, evaluator));
+	                if (error != null) res.error = error;
 	                global.putHiddenProperty ("path", reqPath);
 	                global.putHiddenProperty ("app", appnode);
 	                // set and mount the request data object
@@ -287,7 +288,6 @@ public class RequestEvaluator implements Runnable {
 	                    localrtx.timer.beginEvent (requestPath+" execute");
 	                    current.doIndirectCall (evaluator, current, action.getFunctionName (), new ESValue[0]);
 	                    localrtx.timer.endEvent (requestPath+" execute");
-	                    done = true;
 	                } catch (RedirectException redirect) {
 	                    res.redirect = redirect.getMessage ();
 	                    done = true;
@@ -458,14 +458,8 @@ public class RequestEvaluator implements Runnable {
 
 	    }
 
-	    // create a new Thread every 1000 requests. The current one will fade out
-	    if (txcount++ > 1000) {
-	        // stop thread - a new one will be created when needed
-	        localrtx.closeConnections ();
-	        break;
-	    }
-
 	    // make sure there is only one thread running per instance of this class
+	    // if localrtx != rtx, the current thread has been aborted and there's no need to notify
 	    if (localrtx != rtx) {
 	        localrtx.closeConnections ();
 	        return;
