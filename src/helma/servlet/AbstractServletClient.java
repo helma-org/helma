@@ -469,14 +469,20 @@ public abstract class AbstractServletClient extends HttpServlet {
     }
 
     /**
-     *  Adds an the 3 most significant bytes of an IP address to the
-     *  session cookie id.
+     *  Adds an the 3 most significant bytes of an IP address header to the
+     *  session cookie id. Some headers may contain a list of IP addresses
+     *  separated by comma - in that case, care is taken that only the first
+     *  one is considered.
      */
     private void addIPAddress(StringBuffer b, String addr) {
         if (addr != null) {
-            int cut = addr.lastIndexOf(".");
+            int cut = addr.indexOf(',');
+            if (cut > -1) {
+                addr = addr.substring(0, cut);
+            }
+            cut = addr.lastIndexOf('.');
             if (cut == -1) {
-                cut = addr.lastIndexOf(":");
+                cut = addr.lastIndexOf(':');
             }
             if (cut > -1) {
                 b.append(addr.substring(0, cut+1));
