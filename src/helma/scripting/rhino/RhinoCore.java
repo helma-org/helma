@@ -749,10 +749,13 @@ public final class RhinoCore {
             return super.wrap(cx, scope, obj, staticType);
         }
 
-        /* public Scriptable wrapAsJavaObject(Context cx, Scriptable scope, Object javaObject) {
-            System.err.println ("J-Wrapping: "+javaObject);
+        public Scriptable wrapAsJavaObject(Context cx, Scriptable scope, Object javaObject) {
+            if (javaObject instanceof IPathElement) {
+                return getElementWrapper(javaObject);
+            }
+
             return super.wrapAsJavaObject(cx, scope, javaObject);
-        } */
+        }
 
         public Scriptable wrapNewObject(Context cx, Scriptable scope, Object obj) {
             // System.err.println ("N-Wrapping: "+obj);
