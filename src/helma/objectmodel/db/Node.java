@@ -235,7 +235,8 @@ public final class Node implements INode, Serializable {
     /**
      * Constructor used for nodes being stored in a relational database table.
      */
-    public Node (DbMapping dbm, ResultSet rs, WrappedNodeManager nmgr) throws SQLException {
+    public Node (DbMapping dbm, ResultSet rs, String[] columns, WrappedNodeManager nmgr)
+                 throws SQLException {
 
 	this.nmgr = nmgr;
 	// see what prototype/DbMapping this object should use
@@ -268,12 +269,11 @@ public final class Node implements INode, Serializable {
 
 	created = lastmodified = System.currentTimeMillis ();
 
-	for (Iterator i=dbmap.getDBPropertyIterator(); i.hasNext(); ) {
+	for (int i=0; i<columns.length; i++) {
 
-	    Relation rel = (Relation) i.next ();
-	    // NOTE: this should never be the case, since we're just looping through
-	    // mappnigs with a local db column
-	    if (rel.reftype != Relation.PRIMITIVE && rel.reftype != Relation.REFERENCE)
+	    Relation rel = dbm.columnNameToRelation (columns[i]);
+	    if (rel == null || (rel.reftype != Relation.PRIMITIVE &&
+	                        rel.reftype != Relation.REFERENCE))
 	        continue;
 
 	    Property newprop = new Property (rel.propName, this);

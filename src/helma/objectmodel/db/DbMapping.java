@@ -52,8 +52,8 @@ public final class DbMapping implements Updatable {
     HashMap prop2db;
      // Map of db columns to Relations objects
     HashMap db2prop;
-    // prerendered list of columns to fetch from db
-    String columns = null;
+    // list of columns to fetch from db
+    String[] columns = null;
     // pre-rendered select statement
     String select = null;
 
@@ -139,8 +139,6 @@ public final class DbMapping implements Updatable {
      * for rewire to work, all other db mappings must have been initialized and registered.
      */
     public synchronized void update () {
-	// reset columns
-	columns = select = null;
 	// read in properties
 	table = props.getProperty ("_table");
 	idgen = props.getProperty ("_idgen");
@@ -184,9 +182,13 @@ public final class DbMapping implements Updatable {
 	}
 
 	lastTypeChange = props.lastModified ();
-	// set the cached schema & keydef to null so it's rebuilt the next time around
+	// null the cached schema & keydef so it's rebuilt the next time around
 	schema = null;
 	keydef = null;
+	// same with columns and select string
+	columns = null;
+	select = null;
+
 
 	if (extendsProto != null) {
 	    parentMapping = app.getDbMapping (extendsProto);
@@ -574,12 +576,12 @@ public final class DbMapping implements Updatable {
     /**
      * Return a Village Schema object for this DbMapping.
      */
-    public synchronized String getColumns() throws ClassNotFoundException, SQLException {
+    public synchronized String[] getColumns() throws ClassNotFoundException, SQLException {
 	if (!isRelational ())
 	    throw new SQLException ("Can't get Schema for non-relational data mapping");
 	if (source == null && parentMapping != null)
 	    return parentMapping.getColumns ();
-	// Use local variable s to avoid synchronization (schema may be nulled elsewhere)
+	// Use local variable cols to avoid synchronization (schema may be nulled elsewhere)
 	if (columns == null) {
 	    // we do two things here: set the SQL type on the Relation mappings
 	    // and build a string of column names.
@@ -590,18 +592,16 @@ public final class DbMapping implements Updatable {
 	        throw new SQLException ("Error retrieving DB scheme for "+this);
 	    ResultSetMetaData meta = rs.getMetaData ();
 	    // ok, we have the meta data, now loop through mapping...
-	    // StringBuffer cbuffer = new StringBuffer (getIDField ());
-	    for (Iterator i=getDBPropertyIterator(); i.hasNext(); ) {
-	        Relation rel = (Relation) i.next ();
-	        if (rel.reftype != Relation.PRIMITIVE && rel.reftype != Relation.REFERENCE)
+	    int ncols = meta.getColumnCount ();
+	    columns = new String[ncols];
+	    for (int i=0; i<ncols; i++) {
+	        columns[i] = meta.getColumnName (i+1);
+	        Relation rel = columnNameToRelation (columns[i]);
+	        if (rel == null || (rel.reftype != Relation.PRIMITIVE &&
+	                            rel.reftype != Relation.REFERENCE))
 	            continue;
-	        // cbuffer.append (",");
-	        // cbuffer.append (rel.getDbField());
-	        int idx = rs.findColumn (rel.getDbField());
-	        rel.setColumnType (meta.getColumnType (idx));
+	        rel.setColumnType (meta.getColumnType (i+1));
 	    }
-	    // columns = cbuffer.toString();
-	    columns = "*";
 	}
 	return columns;
     }
@@ -610,9 +610,14 @@ public final class DbMapping implements Updatable {
 	String sel = select;
 	if (sel != null)
 	    return new StringBuffer (sel);
-	StringBuffer s = new StringBuffer ("select ");
-	s.append (getColumns ());
-	s.append (" from ");
+	StringBuffer s = new StringBuffer ("SELECT * FROM ");
+	/* String[] cols = getColumns ();
+	for (int i=0; i<cols.length; i++) {
+	    if (i>0)
+	        s.append (",");
+	    s.append (cols[i]);
+	}
+	s.append (" FROM "); */
 	s.append (getTableName ());
 	s.append (" ");
 	// cache rendered string for later calls.

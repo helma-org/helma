@@ -750,6 +750,7 @@ public final class NodeManager {
 
 	    Connection con = dbm.getConnection ();
 	    Statement stmt = con.createStatement ();
+	    String[] columns = dbm.getColumns ();
 	    StringBuffer q = dbm.getSelect ();
 	    try {
 	        if (home.getSubnodeRelation() != null) {
@@ -771,7 +772,7 @@ public final class NodeManager {
 
 	        while (rs.next()) {
 	            // create new Nodes.
-	            Node node = new Node (rel.otherType, rs, safe);
+	            Node node = new Node (rel.otherType, rs, columns, safe);
 	            Key primKey = node.getKey ();
 	            retval.add (new NodeHandle (primKey));
 	            // do we need to synchronize on primKey here?
@@ -807,13 +808,14 @@ public final class NodeManager {
 	    if (missing > 0) {
 	        Connection con = dbm.getConnection ();
 	        Statement stmt = con.createStatement ();
+	        String[] columns = dbm.getColumns ();
 	        StringBuffer q = dbm.getSelect ();
 	        try {
 	            String idfield = rel.groupby != null ? rel.groupby : dbm.getIDField ();
 	            boolean needsQuotes = dbm.needsQuotes (idfield);
-	            q.append (" where ");
+	            q.append ("WHERE ");
 	            q.append (idfield);
-	            q.append (" in (");
+	            q.append (" IN (");
 	            boolean first = true;
 	            for (int i=0; i<keys.length; i++) {
 	                if (keys[i] != null) {
@@ -855,7 +857,7 @@ public final class NodeManager {
 
 	            while (rs.next ()) {
 	                // create new Nodes.
-	                Node node = new Node (dbm, rs, safe);
+	                Node node = new Node (dbm, rs, columns, safe);
 	                Key primKey = node.getKey ();
 
 	                // for grouped nodes, collect subnode lists for the intermediary
@@ -1035,8 +1037,9 @@ public final class NodeManager {
 	        Connection con = dbm.getConnection ();
 	        stmt = con.createStatement ();
 
+	        String[] columns = dbm.getColumns ();
 	        StringBuffer q = dbm.getSelect ();
-	        q.append (" where ");
+	        q.append ("WHERE ");
 	        q.append (idfield);
 	        q.append (" = ");
 	        q.append (kstr);
@@ -1048,7 +1051,7 @@ public final class NodeManager {
 
 	        if (!rs.next ())
 	            return null;
-	        node = new Node (dbm, rs, safe);
+	        node = new Node (dbm, rs, columns, safe);
 	        if (rs.next ())
 	            throw new RuntimeException ("More than one value returned by query.");
 
@@ -1093,12 +1096,13 @@ public final class NodeManager {
 	    Statement stmt = null;
 	    try {
 	        DbMapping dbm = rel.otherType;
-	
+
 	        Connection con = dbm.getConnection ();
+	        String[] columns = dbm.getColumns ();
 	        StringBuffer q = dbm.getSelect ();
 	        if (home.getSubnodeRelation () != null) {
 	            // combine our key with the constraints in the manually set subnode relation
-	            q.append (" WHERE ");
+	            q.append ("WHERE ");
 	            q.append (rel.accessor);
 	            q.append (" = '");
 	            q.append (escape(kstr));
@@ -1106,7 +1110,7 @@ public final class NodeManager {
 	            q.append (" AND ");
                     q.append (home.getSubnodeRelation().trim().substring(5));
 	        } else {
-	            q.append (rel.buildQuery (home, home.getNonVirtualParent (), kstr, " WHERE ", false));
+	            q.append (rel.buildQuery (home, home.getNonVirtualParent (), kstr, "WHERE ", false));
 	        }
 	        if (logSql)
 	            app.logEvent ("### getNodeByRelation: "+q.toString());
@@ -1116,7 +1120,7 @@ public final class NodeManager {
 
 	        if (!rs.next ())
 	            return null;
-	        node = new Node (rel.otherType, rs, safe);
+	        node = new Node (rel.otherType, rs, columns, safe);
 	        if (rs.next ())
 	            throw new RuntimeException ("More than one value returned by query.");
 
