@@ -14,6 +14,8 @@ public interface Updatable {
     public boolean needsUpdate ();
 
     public void update ();
+    
+    public void remove ();
 
 }
 
