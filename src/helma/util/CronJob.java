@@ -161,6 +161,25 @@ public class CronJob {
      */
 
 
+  public static CronJob newJob (String functionName, String year, String month, String day, String weekday, String hour, String minute) {
+    CronJob job = new CronJob (functionName);
+    job.setFunction (functionName);
+    if (year != null)
+        parseYear (job, year);
+    if (month != null)
+        parseMonth (job, month);
+    if (day != null)
+        parseDay (job, day);
+    if (weekday != null)
+        parseWeekDay (job, weekday);
+    if (hour != null)
+        parseHour (job, hour);
+    if (minute != null)
+        parseMinute (job, minute);
+    return job;
+  }
+
+
   public static Vector parse(Properties props) {
       Hashtable jobs = new Hashtable ();
       Enumeration e = props.keys ();
@@ -202,7 +221,11 @@ public class CronJob {
          }
       }
       Vector jobVec = new Vector (jobs.values ());
-      Collections.sort (jobVec, new Comparator() {
+      return (Vector) sort (jobVec);
+   }
+
+    public static List sort (List list) {
+      Collections.sort (list, new Comparator() {
         public int compare (Object o1, Object o2) {
             CronJob cron1 = (CronJob) o1;
             CronJob cron2 = (CronJob) o2;
@@ -222,9 +245,8 @@ public class CronJob {
         }
 
         });
-      return jobVec;
-   }
-
+        return list;
+    }
 
 
    public static void parseYear (CronJob job, String value) {
