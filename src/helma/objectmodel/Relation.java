@@ -250,9 +250,9 @@ public class Relation {
 	    throw new RuntimeException ("getVirtualSubnodeRelation called on non-virtual relation");
 	Relation vr = null;
 	if (subnoderelation != null)
-	    vr = subnoderelation;
+	    vr = subnoderelation.makeClone ();
 	else
-	    vr = new Relation (other, localField, remoteField, direction, subnodesAreProperties);
+	    vr = makeClone ();
 	vr.groupby = groupby;
 	vr.groupbyorder = groupbyorder;
 	vr.groupbyprototype = groupbyprototype;
@@ -267,7 +267,7 @@ public class Relation {
     public Relation getVirtualPropertyRelation () {
 	if (!virtual)
 	    throw new RuntimeException ("getVirtualPropertyRelation called on non-virtual relation");
-	Relation vr = new Relation (other, localField, remoteField, direction, subnodesAreProperties);
+	Relation vr = makeClone ();
 	vr.groupby = groupby;
 	vr.groupbyorder = groupbyorder;
 	vr.groupbyprototype = groupbyprototype;
@@ -281,12 +281,12 @@ public class Relation {
      */
     public Relation getGroupbySubnodeRelation () {
 	if (groupby == null)
-	    throw new RuntimeException ("getGroupbyPropertyRelation called on non-group-by relation");
+	    throw new RuntimeException ("getGroupbySubnodeRelation called on non-group-by relation");
 	Relation vr = null;
 	if (subnoderelation != null)
-	    vr =  subnoderelation;
+	    vr =  subnoderelation.makeClone ();
 	else
-	    vr =  new Relation (other, localField, remoteField, direction, subnodesAreProperties);
+	    vr =  makeClone ();
 	vr.order = order;
 	vr.prototype = groupbyprototype;
 	return vr;
@@ -298,12 +298,20 @@ public class Relation {
     public Relation getGroupbyPropertyRelation () {
 	if (groupby == null)
 	    throw new RuntimeException ("getGroupbyPropertyRelation called on non-group-by relation");
-	Relation vr = new Relation (other, localField, remoteField, direction, subnodesAreProperties);
+	Relation vr = makeClone ();
 	vr.order = order;
 	vr.prototype = groupbyprototype;
 	return vr;
     }
 
+    public Relation makeClone () {
+	return new Relation (other, localField, remoteField, direction, subnodesAreProperties);
+    }
+
+
+    public String toString () {
+	return "Relation["+home+">"+other+"]";
+    }
 
 }
 
