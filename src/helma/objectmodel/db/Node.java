@@ -36,12 +36,6 @@ public class Node implements INode, Serializable {
     // Other nodes that refer to this node as property. Used for reference counting/checking
     private List proplinks;
 
-    // the name of the (Hop) prototype - this is stored as standard property instead.
-    // private String prototype;
-
-    private String contentType;
-    private byte content[];
-
     private long created;
     private long lastmodified;
 
@@ -61,8 +55,11 @@ public class Node implements INode, Serializable {
 	    parentID = (String) in.readObject ();
 	    created = in.readLong ();
 	    lastmodified = in.readLong ();
-	    content = (byte[]) in.readObject ();
-	    contentType = (String) in.readObject ();
+	    if (version < 4) {
+	        // read away content and contentType, which were dropped
+	        in.readObject ();
+	        in.readObject ();
+	    }
 	    subnodes = (ExternalizableVector) in.readObject ();
 	    links = (ExternalizableVector) in.readObject ();
 	    proplinks = (ExternalizableVector) in.readObject ();
@@ -70,7 +67,7 @@ public class Node implements INode, Serializable {
 	    anonymous = in.readBoolean ();
 	    if (version == 2)
 	        prototype = in.readUTF ();
-	    else if (version == 3)
+	    else if (version >= 3)
 	        prototype = (String) in.readObject ();
 	} catch (ClassNotFoundException x) {
 	    throw new IOException (x.toString ());
@@ -78,14 +75,12 @@ public class Node implements INode, Serializable {
     }
 
     private void writeObject (ObjectOutputStream out) throws IOException {
-	out.writeShort (3);  // serialization version
+	out.writeShort (4);  // serialization version
 	out.writeUTF (id);
 	out.writeUTF (name);
 	out.writeObject (parentID);
 	out.writeLong (created);
 	out.writeLong (lastmodified);
-	out.writeObject (content);
-	out.writeObject (contentType);
 	DbMapping smap = dbmap == null ? null : dbmap.getSubnodeMapping ();
 	if (smap != null && smap.isRelational ())
 	    out.writeObject (null);
@@ -271,10 +266,12 @@ public class Node implements INode, Serializable {
     /**
      * Creates a new Node with the given name.
      */
-    public Node (String n, WrappedNodeManager nmgr) {
+    public Node (String n, String prototype, WrappedNodeManager nmgr) {
 	this.nmgr = nmgr;
+	this.prototype = prototype;
+	dbmap = nmgr.getDbMapping (prototype);
 	id = nmgr.generateID (dbmap);
-	checkWriteLock ();
+	// checkWriteLock ();
 	this.name = n == null || "".equals (n) ? id : n;
 	created = lastmodified = System.currentTimeMillis ();
 	adoptName = true;
@@ -302,15 +299,13 @@ public class Node implements INode, Serializable {
     *  interface INode. This Constructor is used when a transient
     *  node is converted into a persistent-capable one, hence the status is set to NEW.
     */ 
-    private Node (INode node, Hashtable ntable, boolean conversionRoot, WrappedNodeManager nmgr) {
+    /* private Node (INode node, Hashtable ntable, boolean conversionRoot, WrappedNodeManager nmgr) {
 	this.nmgr = nmgr;
 	this.dbmap = node.getDbMapping ();
 	this.id = nmgr.generateID (dbmap);
 	checkWriteLock ();
 	this.name = node.getName ();
 	this.prototype = node.getPrototype ();
-	created = lastmodified = System.currentTimeMillis ();
-	setContent (node.getContent (), node.getContentType ());
 	created = lastmodified = System.currentTimeMillis ();
 	ntable.put (node, this);
 	// only take over name from property if this is not the root of the current node conversion
@@ -354,7 +349,7 @@ public class Node implements INode, Serializable {
 	adoptName = true; // switch back to normal name adoption behaviour
 	markAs (NEW);
 	// nmgr.registerNode (this);
-    }
+    } */
 
     protected synchronized void checkWriteLock () {
 	// System.err.println ("registering writelock for "+this.getName ()+" ("+lock+") to "+Thread.currentThread ());
@@ -550,6 +545,8 @@ public class Node implements INode, Serializable {
     }
 
     public Key getKey () {
+	if (dbmap == null && prototype != null && nmgr != null)
+	    dbmap = nmgr.getDbMapping (prototype);
 	if (primaryKey == null)
 	    primaryKey = new Key (dbmap, id);
 	return primaryKey;
@@ -713,7 +710,7 @@ public class Node implements INode, Serializable {
     	if (elem instanceof Node)
 	    node = (Node) elem;
 	else 
-	    node = convert (elem);
+	    throw new RuntimeException ("Can't add fixed-transient node to a persistent node");
 	// if the new node is marked as TRANSIENT and this node is not, mark new node as NEW
 	if (state != TRANSIENT && node.state == TRANSIENT)
 	    node.makePersistentCapable ();
@@ -849,7 +846,7 @@ public class Node implements INode, Serializable {
     	boolean anon = false;
 	if (nm == null || "".equals (nm.trim ())) 
 	    anon = true;
-	Node n = new Node (nm, nmgr);
+	Node n = new Node (nm, null, nmgr);
 	if (anon)
 	    addNode (n, where);
 	else 
@@ -949,7 +946,7 @@ public class Node implements INode, Serializable {
 	    boolean relational = srel.other != null && srel.other.isRelational ();
 
 	    if (relational || create) {
-	        Node node = relational ? new Node (this, sid, nmgr, null) : new Node ("groupby-"+sid, nmgr);
+	        Node node = relational ? new Node (this, sid, nmgr, null) : new Node ("groupby-"+sid, null, nmgr);
 	        // set "groupname" property to value of groupby field
 	        node.setString ("groupname", sid);
 
@@ -1089,7 +1086,7 @@ public class Node implements INode, Serializable {
 	        String pid = (String) e1.next ();
 	        Node pnode = nmgr.getNode (pid, null);
 	        if (pnode != null) {
-	            nmgr.logEvent("Warning: Can't unset node property of "+pnode.getFullName ());
+	            nmgr.logEvent("Warning: Not unsetting node property of "+pnode.getFullName ());
 	        }
 	    } catch (Exception ignore) {}
 	}
@@ -1566,7 +1563,8 @@ public class Node implements INode, Serializable {
     	if (value instanceof Node)
 	    n = (Node) value;
 	else 
-	    n = convert (value);
+	    throw new RuntimeException ("Can't add fixed-transient node to a persistent node");
+
 	// if the new node is marked as TRANSIENT and this node is not, mark new node as NEW
 	if (state != TRANSIENT && n.state == TRANSIENT)
 	    n.makePersistentCapable ();
@@ -1666,149 +1664,6 @@ public class Node implements INode, Serializable {
     }
 
 
-   /* public void sanityCheck () {
-	checkSubnodes ();
-	checkProperties ();
-	checkLinks ();
-	checkPropLinks ();
-	if (getParent () == null && !"root".equals (name)) {
-	    System.out.println ("*** parent: "+parentID+": "+this.getName ());
-	}
-    }
-
-
-    private void checkLinks () {
-	Vector v = links == null ? null : (Vector) links.clone ();
-	int l = v == null ? 0 : v.size ();
-	for (int i = 0; i < l; i++) {
-	    String k = (String) v.get (i);
-	    Node link = nmgr.getNode (k,  null);
-	    if (link == null) {
-	        links.remove (k);
-	        System.out.println ("**** link "+k+": "+this.getFullName ());
-	        markAs (MODIFIED);
-	    }
-	}
-    }
-
-    private void checkPropLinks () {
-	Vector v = proplinks == null ? null : (Vector) proplinks.clone ();
-	int l = v == null ? 0 : v.size ();
-	for (int i = 0; i < l; i++) {
-	    String k = (String) v.get (i);
-	    Node link = nmgr.getNode (k,  null);
-	    if (link == null) {
-	        proplinks.remove (k);
-	        System.out.println ("**** proplink "+k+": "+this.getFullName ());
-	        markAs (MODIFIED);
-	    }
-	}
-    }
-
-    private void checkSubnodes () {
-	Vector v = subnodes == null ? null : (Vector) subnodes.clone ();
-	int l = v == null ? 0 : v.size ();
-	for (int i = 0; i < l; i++) {
-	    String k = (String) v.get (i);
-	    Node link = nmgr.getNode (k,  null);
-	    if (link == null) {
-	        subnodes.remove (k);
-	        System.out.println ("**** subnode "+k+": "+this.getFullName ());
-	        markAs (MODIFIED);
-	    }
-	}
-    }
-
-    private void checkProperties () {
-	Hashtable ht = propMap == null ? new Hashtable () : (Hashtable) propMap.clone ();
-	for (Enumeration ps = ht.elements (); ps.hasMoreElements (); ) {
-	    Property p = (Property) ps.nextElement ();
-	    if (p.getType () == IProperty.NODE && p.getNodeValue () == null) {
-	        System.out.println ("**** property "+p.propname+"->"+p.nvalueID+": "+this.getFullName ());
-	        // INode par = getParent ();
-	        // if (par != null)
-	        //     par.removeNode (this);
-	        // markAs (DELETED);
-	    }
-	}
-
-    }  */
-
-    /**
-     *  content-related
-     */ 
-
-    public boolean isText () throws IOException {
-	return getContentType().indexOf ("text/") == 0;
-    }
-
-    public boolean isBinary () throws IOException {
-	return getContentType().indexOf ("text/") != 0;
-    }
-
-    public String getContentType () {
-	if (contentType == null)
-	    return "text/plain";
-	return contentType;
-    }
-
-    public void setContentType (String type) {
-	checkWriteLock ();
-	contentType = type;
-	lastmodified = System.currentTimeMillis ();
-	if (state == CLEAN) markAs (MODIFIED);
-    }
-
-    public int getContentLength () {
-	if (content == null)
-	    return 0;
-	return content.length;
-    }
-
-    public void setContent (byte cnt[], String type) {
-	checkWriteLock ();
-
-	if (type != null)
-	    contentType = type;
-	content = cnt;
-	lastmodified = System.currentTimeMillis ();
-	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.CONTENT_CHANGED));
-	if (state == CLEAN) markAs (MODIFIED);
-    }
-
-
-    public void setContent (String cstr) {
-	checkWriteLock ();
-
-	content = cstr.getBytes ();
-	lastmodified = System.currentTimeMillis ();
-	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.CONTENT_CHANGED));
-	if (state == CLEAN) markAs (MODIFIED);
-    }
-
-    public byte[] getContent () {
-
-	if (content == null || content.length == 0)
-	    return "".getBytes ();
-
-	byte retval[] = new byte[content.length];
-	System.arraycopy (content, 0, retval, 0, content.length);
-	// nmgr.logEvent ("copied "+retval.length+ " bytes");
-	return retval;
-    }
-
-    public String getText () {
-	if (content != null) {
-	    if (getContentType ().startsWith ("text/")) {
-	        return new String (content);
-	    } else {
-	        return null;
-	    }
-	}
-	return null;
-    }
-
-
     /**
      *  Get the path to eiter the general data-root or the user root, depending on 
      *  where this node is located.
@@ -1865,11 +1720,11 @@ public class Node implements INode, Serializable {
     /**
      * Recursively convert other implementations of INode into helma.objectmodel.db.Node.
      */
-    protected Node convert (INode n) {
+    /* protected Node convert (INode n) {
     	Hashtable ntable = new Hashtable ();
 	Node converted = new Node (n, ntable, false, nmgr);
 	return converted;
-    }
+    } */
 
     /**
      * Recursively turn node status from TRANSIENT to NEW so that the Transactor will
@@ -1889,7 +1744,12 @@ public class Node implements INode, Serializable {
 	            n.makePersistentCapable ();
 	    }
 	}
-	state = NEW;
+	if (state == TRANSIENT) {
+	    state = NEW;
+	    Transactor current = (Transactor) Thread.currentThread ();
+	    current.visitNode (this);
+	    current.visitCleanNode (this);
+	}
     }
 
 
