@@ -41,19 +41,18 @@ public class ESMail extends ESObject implements Serializable {
 
 
     public ESMail (MailExtension mailx) {
-
-    	super (mailx.esMailPrototype, mailx.evaluator);
+	super (mailx.esMailPrototype, mailx.evaluator);
 	this.status = OK;
-    	this.mailx = mailx;
-    	this.mprops = mailx.mprops;
-    	
-    	// create some properties and get the default Session
-    	try {
+	this.mailx = mailx;
+	this.mprops = mailx.mprops;
+
+	// create some properties and get the default Session
+	try {
 	    Properties props = new Properties();
 	    props.put ("mail.smtp.host", mprops.getProperty ("smtp", "mail"));
 
 	    Session session = Session.getDefaultInstance(props, null);
-	    message = new MimeMessage (session); 
+	    message = new MimeMessage (session);
 	} catch (Throwable t) {
 	    this.evaluator.reval.app.logEvent ("Error in mail constructor: "+t);
 	}
@@ -76,23 +75,23 @@ public class ESMail extends ESObject implements Serializable {
     }
 
     /**
-     * 
+     *
      */
-    
+
     public void setText (ESValue val) throws Exception {
-	if (buffer == null) 
+	if (buffer == null)
 	    buffer = new StringBuffer ();
-	if (val != null) 
+	if (val != null)
 	    buffer.append (val.toString ());
     }
- 
+
     public void addPart (ESValue val[]) throws Exception {
-    	if (val == null || val.length == 0) return;
-    	if (multipart == null) {
-    	    multipart = new MimeMultipart ();
-    	}
-    	for (int i=0; i<val.length; i++) {
-    	    // FIXME: addPart is broken.
+	if (val == null || val.length == 0) return;
+	if (multipart == null) {
+	    multipart = new MimeMultipart ();
+	}
+	for (int i=0; i<val.length; i++) {
+	    // FIXME: addPart is broken.
 	    MimeBodyPart part = new MimeBodyPart ();
 	    Object obj = val[i].toJavaObject ();
 	    if (obj instanceof String) {
@@ -104,10 +103,10 @@ public class ESMail extends ESObject implements Serializable {
 	    multipart.addBodyPart (part);
 	}
     }
-    
+
     public void setSubject (ESValue val) throws Exception {
-    	if (val == null)
-    	    return;
+	if (val == null)
+	    return;
 	message.setSubject (MimeUtility.encodeWord (val.toString (), "iso-8859-1", null));
     }
 
@@ -115,8 +114,8 @@ public class ESMail extends ESObject implements Serializable {
 	String addstring = add.toString ();
 	if (addstring.indexOf ("@") < 0)
 	    throw new AddressException ();
-    	Address replyTo[] = new Address[1];
-    	replyTo[0] = new InternetAddress (addstring);
+	Address replyTo[] = new Address[1];
+	replyTo[0] = new InternetAddress (addstring);
 	message.setReplyTo (replyTo);
     }
 
@@ -127,9 +126,9 @@ public class ESMail extends ESObject implements Serializable {
 	Address address  = null;
 	if (add.length > 1)
 	    address =  new InternetAddress (addstring, MimeUtility.encodeWord (add[1].toString (), "iso-8859-1", null));
-	else 
+	else
 	    address = new InternetAddress (addstring);
- 	message.setFrom (address);
+	message.setFrom (address);
     }
 
     public void addTo (ESValue add[]) throws Exception {
@@ -139,7 +138,7 @@ public class ESMail extends ESObject implements Serializable {
 	Address address  = null;
 	if (add.length > 1)
 	    address =  new InternetAddress (addstring, MimeUtility.encodeWord (add[1].toString (), "iso-8859-1", null));
-	else 
+	else
 	    address = new InternetAddress (addstring);
 	message.addRecipient (Message.RecipientType.TO, address);
     }
@@ -151,7 +150,7 @@ public class ESMail extends ESObject implements Serializable {
 	Address address  = null;
 	if (add.length > 1)
 	    address =  new InternetAddress (addstring, MimeUtility.encodeWord (add[1].toString (), "iso-8859-1", null));
-	else 
+	else
 	    address = new InternetAddress (addstring);
 	message.addRecipient (Message.RecipientType.CC, address);
     }
@@ -163,32 +162,21 @@ public class ESMail extends ESObject implements Serializable {
 	Address address  = null;
 	if (add.length > 1)
 	    address =  new InternetAddress (addstring, MimeUtility.encodeWord (add[1].toString (), "iso-8859-1", null));
-	else 
+	else
 	    address = new InternetAddress (addstring);
 	message.addRecipient (Message.RecipientType.BCC, address);
     }
 
     public void send () throws Exception {
-    	if (buffer != null)
-    	    message.setText (buffer.toString ());
-    	else if (multipart != null)
+	if (buffer != null)
+	    message.setText (buffer.toString ());
+	else if (multipart != null)
 	    message.setContent (multipart);
-	else 
+	else
 	    message.setText ("");
- 	Transport.send (message);
+	Transport.send (message);
     }
 
 
 }
-
-
-
-
-
-
-
-
-
-
-
 
