@@ -272,6 +272,8 @@ public final class Application implements IPathElement, Runnable {
             throws DatabaseException, IllegalAccessException,
                    InstantiationException, ClassNotFoundException {
 
+        running = true;
+
         // create and init session manager
         String sessionMgrImpl = props.getProperty("sessionManagerImpl",
                                                   "helma.framework.core.SessionManager");
@@ -360,11 +362,10 @@ public final class Application implements IPathElement, Runnable {
 
         // create the node manager
         nmgr = new NodeManager(this);
-        nmgr.init(dbDir.getAbsolutePath(), props);
+        nmgr.init(dbDir.getAbsoluteFile(), props);
 
         // reset the classloader to the parent/system/server classloader.
         Thread.currentThread().setContextClassLoader(typemgr.getClassLoader().getParent());
-
     }
 
     /**
@@ -372,8 +373,6 @@ public final class Application implements IPathElement, Runnable {
      */
     public synchronized void start() {
         starttime = System.currentTimeMillis();
-
-        running = true;
 
         worker = new Thread(this, "Worker-" + name);
         worker.setPriority(Thread.NORM_PRIORITY + 1);
@@ -450,7 +449,7 @@ public final class Application implements IPathElement, Runnable {
     /**
      * Returns a free evaluator to handle a request.
      */
-    private RequestEvaluator getEvaluator() {
+    public RequestEvaluator getEvaluator() {
         if (!running) {
             throw new ApplicationStoppedException();
         }
@@ -503,7 +502,7 @@ public final class Application implements IPathElement, Runnable {
     /**
      * Returns an evaluator back to the pool when the work is done.
      */
-    protected void releaseEvaluator(RequestEvaluator ev) {
+    public void releaseEvaluator(RequestEvaluator ev) {
         if (ev != null) {
             ev.recycle();
             freeThreads.push(ev);
