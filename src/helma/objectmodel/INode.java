@@ -66,7 +66,7 @@ public interface INode extends INodeState, IPathElement {
     public Enumeration properties ();
     public IProperty get (String name, boolean inherit);
     public String getString (String name, boolean inherit); 
-    public String getString (String name, String defaultValue, boolean inherit);
+    // public String getString (String name, String defaultValue, boolean inherit);
     public boolean getBoolean (String name, boolean inherit);
     public Date getDate (String name, boolean inherit);
     public long getInteger (String name, boolean inherit);
