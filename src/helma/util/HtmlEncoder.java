@@ -18,14 +18,14 @@ import java.text.*;
 public final class HtmlEncoder {
 
     // transformation table for characters 128 to 255. These actually fall into two 
-	// groups, put together for efficiency: "Windows" chacacters 128-159 such as 
-	// "smart quotes", which are encoded to valid Unicode entities, and 
-	// valid ISO-8859 caracters 160-255, which are encoded to the symbolic HTML
-	// entity. Everything >= 256 is encoded to a numeric entity.
-	// 
+    // groups, put together for efficiency: "Windows" chacacters 128-159 such as
+    // "smart quotes", which are encoded to valid Unicode entities, and
+    // valid ISO-8859 caracters 160-255, which are encoded to the symbolic HTML
+    // entity. Everything >= 256 is encoded to a numeric entity.
+    //
     // for mor on HTML entities see http://www.pemberley.com/janeinfo/latin1.html  and
-	// ftp://ftp.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/WINDOWS/CP1252.TXT
-	//
+    // ftp://ftp.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/WINDOWS/CP1252.TXT
+    //
     static final String[] transform =  {
         "&euro;",   // 128
         "",           // empty string means character is undefined in unicode
@@ -253,7 +253,6 @@ public final class HtmlEncoder {
 	allTags.add ("var");
 	allTags.add ("wbr");
 	allTags.add ("xmp");
-	allTags.add ("%");
     }
 
     // tags which signal us to start suppressing \n -> <br> encoding
@@ -304,6 +303,8 @@ public final class HtmlEncoder {
 	boolean insideCodeTag = false;
 	// are we within a macro tag?
 	boolean insideMacroTag = false;
+	// are we inside an HTML comment?
+	boolean insideComment = false;
 	// the difference between swallowOneNewline and ignoreNewline is that
 	// swallowOneNewline is just effective once (for the next newline)
 	boolean ignoreNewline = false;
@@ -346,10 +347,22 @@ public final class HtmlEncoder {
 	                boolean insideCloseTag = ('/' == chars[i+1]);
 	                int tagStart = insideCloseTag ? i+2 : i+1;
 	                int j = tagStart;
-	                while (j<l && (Character.isLetterOrDigit (chars[j]) || chars[j] == '%'))
+	                while (j<l && Character.isLetterOrDigit (chars[j]))
 	                    j++;
+	                // if we haven't gotten past the <, 
+	                // check if it's an HTML comment or Helma macro tag
+	                if (j == tagStart) {
+	                    if ('%' == chars[j]) {
+	                        insideMacroTag = insideTag = true;
+	                        ret.append ('<');
+	                        continue;
+	                    } else if (j < l-2 && '!' == chars[j] && '-' == chars[j+1] && '-' == chars[j+2]) {
+	                        insideComment = insideTag = true;
+	                        ret.append ('<');
+	                        continue;
+	                    }
+	                }
 	                if (j > tagStart && j < l) {
-	                    insideMacroTag = ('%' == chars[i+1]);
 	                    String tagName = new String (chars, tagStart, j-tagStart).toLowerCase ();
 	                    if ("code".equals (tagName) && insideCloseTag && insideCodeTag)
 	                        insideCodeTag = false;
@@ -385,11 +398,17 @@ public final class HtmlEncoder {
 	                swallowOneNewline = false;
 	            break;
 	        case '>':
-	            if (insideTag)
+	            if (insideTag) {
 	                ret.append ('>');
-	            else
+	                if (insideMacroTag) 
+	                    insideMacroTag = insideTag = !(chars[i-1] == '%');
+	                else if (insideComment)
+	                    insideComment = insideTag = !(chars[i-2] == '-' && chars[i-1] == '-');
+	                else
+	                    insideTag = false;
+	            } else {
 	                ret.append ("&gt;");
-	            insideTag = insideMacroTag ? chars[i-1] != '%' :  false;
+	            }
 	            break;
 	        default:
 	            // ret.append (c);
