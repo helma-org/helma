@@ -234,7 +234,7 @@ public final class Node implements INode, Serializable {
     /**
      * Constructor used for nodes being stored in a relational database table.
      */
-    public Node (DbMapping dbm, ResultSet rs, String[] columns, WrappedNodeManager nmgr)
+    public Node (DbMapping dbm, ResultSet rs, DbColumn[] columns, WrappedNodeManager nmgr)
                  throws SQLException {
 
 	this.nmgr = nmgr;
@@ -265,35 +265,35 @@ public final class Node implements INode, Serializable {
 
 	for (int i=0; i<columns.length; i++) {
 
-	    Relation rel = dbm.columnNameToRelation (columns[i]);
+	    Relation rel = columns[i].getRelation();
 	    if (rel == null || (rel.reftype != Relation.PRIMITIVE &&
 	                        rel.reftype != Relation.REFERENCE))
 	        continue;
 
 	    Property newprop = new Property (rel.propName, this);
 
-	    switch (rel.getColumnType()) {
+	    switch (columns[i].getType()) {
 
 	        case Types.BIT:
-	            newprop.setBooleanValue (rs.getBoolean(columns[i]));
+	            newprop.setBooleanValue (rs.getBoolean(columns[i].getName()));
 	            break;
 
 	        case Types.TINYINT:
 	        case Types.BIGINT:
 	        case Types.SMALLINT:
 	        case Types.INTEGER:
-	            newprop.setIntegerValue (rs.getLong(columns[i]));
+	            newprop.setIntegerValue (rs.getLong(columns[i].getName()));
 	            break;
 
 	        case Types.REAL:
 	        case Types.FLOAT:
 	        case Types.DOUBLE:
-	            newprop.setFloatValue (rs.getDouble(columns[i]));
+	            newprop.setFloatValue (rs.getDouble(columns[i].getName()));
 	            break;
 
 	        case Types.DECIMAL:
 	        case Types.NUMERIC:
-	            BigDecimal num = rs.getBigDecimal (columns[i]);
+	            BigDecimal num = rs.getBigDecimal (columns[i].getName());
 	            if (num == null) 
 	                break;
 	            if (num.scale() > 0)
@@ -305,20 +305,20 @@ public final class Node implements INode, Serializable {
 	        case Types.LONGVARBINARY:
 	        case Types.VARBINARY:
 	        case Types.BINARY:
-	            newprop.setStringValue (rs.getString(columns[i]));
+	            newprop.setStringValue (rs.getString(columns[i].getName()));
 	            break;
 
 	        case Types.LONGVARCHAR:
 	        case Types.CHAR:
 	        case Types.VARCHAR:
 	        case Types.OTHER:
-	            newprop.setStringValue (rs.getString(columns[i]));
+	            newprop.setStringValue (rs.getString(columns[i].getName()));
 	            break;
 
 	        case Types.DATE:
 	        case Types.TIME:
 	        case Types.TIMESTAMP:
-	            newprop.setDateValue (rs.getTimestamp(columns[i]));
+	            newprop.setDateValue (rs.getTimestamp(columns[i].getName()));
 	            break;
 
 	        case Types.NULL:
@@ -327,7 +327,7 @@ public final class Node implements INode, Serializable {
 	            // continue;
 
 	        default:
-	            newprop.setStringValue (rs.getString(columns[i]));
+	            newprop.setStringValue (rs.getString(columns[i].getName()));
 	            break;
 	    }
 

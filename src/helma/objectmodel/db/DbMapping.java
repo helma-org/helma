@@ -13,8 +13,8 @@ import java.util.StringTokenizer;
 import java.sql.*;
 import com.workingdogs.village.*;
 
-/** 
-  * A DbMapping describes how a certain type of  Nodes is to mapped to a 
+/**
+  * A DbMapping describes how a certain type of  Nodes is to mapped to a
   * relational database table. Basically it consists of a set of JavaScript property-to-
   * Database row bindings which are represented by instances of the Relation class.
   */
@@ -43,15 +43,21 @@ public final class DbMapping implements Updatable {
     Relation subRelation;
     Relation propRelation;
 
-    // if this defines a subnode mapping with groupby layer, we need a DbMapping for those groupby nodes
+    // if this defines a subnode mapping with groupby layer,
+    // we need a DbMapping for those groupby nodes
     DbMapping groupbyMapping;
 
      // Map of property names to Relations objects
     HashMap prop2db;
-     // Map of db columns to Relations objects
+    // Map of db columns to Relations objects.
+    // Case insensitive, keys are stored in upper case so 
+    // lookups must do a toUpperCase().
     HashMap db2prop;
+
     // list of columns to fetch from db
-    String[] columns = null;
+    DbColumn[] columns = null;
+    // Map of db columns by name
+    HashMap columnMap;
     // pre-rendered select statement
     String select = null;
 
@@ -115,6 +121,8 @@ public final class DbMapping implements Updatable {
 
 	prop2db = new HashMap ();
 	db2prop = new HashMap ();
+	
+	columnMap = new HashMap ();
 
 	parent = null;
 
@@ -185,6 +193,7 @@ public final class DbMapping implements Updatable {
 	keydef = null;
 	// same with columns and select string
 	columns = null;
+	columnMap.clear();
 	select = null;
 
 
@@ -211,8 +220,8 @@ public final class DbMapping implements Updatable {
 	            rel.update (dbField, props);
 	            p2d.put (propName, rel);
 	            if (rel.columnName != null &&
-	            		(rel.reftype == Relation.PRIMITIVE ||
-	            		rel.reftype == Relation.REFERENCE))
+	                    (rel.reftype == Relation.PRIMITIVE ||
+	                     rel.reftype == Relation.REFERENCE))
 	                d2p.put (rel.columnName.toUpperCase (), rel);
 	            // app.logEvent ("Mapping "+propName+" -> "+dbField);
 	        }
@@ -231,7 +240,7 @@ public final class DbMapping implements Updatable {
 	        if (subRelation == null)
 	            subRelation = new Relation (subnodeMapping, "_children", this, props);
 	        subRelation.update (subnodeMapping, props);
-	        // if subnodes are accessed via access name or group name, 
+	        // if subnodes are accessed via access name or group name,
 	        // the subnode relation is also the property relation.
 	        if (subRelation.accessor != null || subRelation.groupby != null)
 	            propRelation = subRelation;
@@ -250,7 +259,7 @@ public final class DbMapping implements Updatable {
     }
 
 
-    /** 
+    /**
      * Method in interface Updatable.
      */
     public void remove () {
@@ -479,7 +488,7 @@ public final class DbMapping implements Updatable {
 	groupbyMapping.typename = subRelation.groupbyPrototype;
     }
 
-    
+
     public void setPropertyRelation (Relation rel) {
 	propRelation = rel;
     }
@@ -567,11 +576,11 @@ public final class DbMapping implements Updatable {
 
 
     /**
-     * Return a Village Schema object for this DbMapping.
+     * Return an array of DbColumns for the relational table mapped by this DbMapping.
      */
-    public synchronized String[] getColumns() throws ClassNotFoundException, SQLException {
+    public synchronized DbColumn[] getColumns() throws ClassNotFoundException, SQLException {
 	if (!isRelational ())
-	    throw new SQLException ("Can't get Schema for non-relational data mapping");
+	    throw new SQLException ("Can't get columns for non-relational data mapping "+this);
 	if (source == null && parentMapping != null)
 	    return parentMapping.getColumns ();
 	// Use local variable cols to avoid synchronization (schema may be nulled elsewhere)
@@ -580,23 +589,44 @@ public final class DbMapping implements Updatable {
 	    // and build a string of column names.
 	    Connection con = getConnection ();
 	    Statement stmt = con.createStatement ();
-	    ResultSet rs = stmt.executeQuery ("select * from "+getTableName()+" where 1 = 0");
+	    String t = getTableName();
+	    if (t == null)
+	        throw new SQLException ("Table name is null in getColumns() for "+this);
+	    ResultSet rs = stmt.executeQuery (
+	        new StringBuffer("SELECT * FROM ")
+	        .append(t).append(" WHERE 1 = 0").toString());
 	    if (rs == null)
-	        throw new SQLException ("Error retrieving DB scheme for "+this);
+	        throw new SQLException ("Error retrieving columns for "+this);
 	    ResultSetMetaData meta = rs.getMetaData ();
 	    // ok, we have the meta data, now loop through mapping...
 	    int ncols = meta.getColumnCount ();
-	    columns = new String[ncols];
+	    columns = new DbColumn[ncols];
 	    for (int i=0; i<ncols; i++) {
-	        columns[i] = meta.getColumnName (i+1);
-	        Relation rel = columnNameToRelation (columns[i]);
-	        if (rel == null || (rel.reftype != Relation.PRIMITIVE &&
-	                            rel.reftype != Relation.REFERENCE))
-	            continue;
-	        rel.setColumnType (meta.getColumnType (i+1));
+	        String colName = meta.getColumnName (i+1);
+	        Relation rel = columnNameToRelation (colName);
+	        columns[i] = new DbColumn (colName, meta.getColumnType (i+1), rel);
 	    }
 	}
 	return columns;
+    }
+
+    public DbColumn getColumn (String columnName) throws ClassNotFoundException, SQLException {
+	DbColumn col = (DbColumn) columnMap.get(columnName);
+	if (col == null) {
+	    DbColumn[] cols = columns;
+	    if (cols == null)
+	        cols = getColumns();
+	    for (int i=0; i<cols.length; i++) {
+	        if (columnName.equalsIgnoreCase (cols[i].getName())) {
+	            col = cols[i];
+	            break;
+	        }
+	    }
+	    if (col == null)
+	        throw new SQLException ("Column "+columnName+" not found in "+this);
+	    columnMap.put (columnName, col);
+	}
+	return col;
     }
 
     public StringBuffer getSelect () throws SQLException, ClassNotFoundException {
@@ -619,13 +649,8 @@ public final class DbMapping implements Updatable {
 	if (table == null && parentMapping != null)
 	    return parentMapping.needsQuotes (columnName);
 	try {
-	    Relation rel = (Relation) db2prop.get (columnName.toUpperCase());
-	    if (rel == null)
-	        throw new SQLException ("Error retrieving relational schema for "+this);
-	    // make sure columns are initialized and up to date
-	    if (columns == null)
-	        getColumns();
-	    switch (rel.getColumnType()) {
+	    DbColumn col = getColumn (columnName);
+	    switch (col.getType()) {
 	        case Types.CHAR:
 	        case Types.VARCHAR:
 	        case Types.LONGVARCHAR:
