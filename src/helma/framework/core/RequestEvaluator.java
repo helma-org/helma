@@ -44,7 +44,7 @@ public class RequestEvaluator implements Runnable {
     // the object path of the request we're evaluating
     List requestPath;
 
-    // the result of the
+    // the result of the operation
     Object result;
 
     // the exception thrown by the evaluator, if any.
@@ -513,7 +513,6 @@ public class RequestEvaluator implements Runnable {
 	    res.reset ();
 	    res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>Request timed out.</pre>");
 	}
-
 	return res;
     }
 
@@ -641,7 +640,18 @@ public class RequestEvaluator implements Runnable {
 	}
     }
 
-
+    /**
+     *  Null out some fields, mostly for the sake of garbage collection.
+     */
+    public void recycle () {
+        res = null;
+        req = null;
+        user = null;
+        args = null;
+        requestPath = null;
+        result = null;
+        exception = null;        
+    }
 
     /**
      * Check if an action with a given name is defined for a scripted object. If it is,

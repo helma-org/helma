@@ -18,7 +18,7 @@ public final class FesiScriptingEnvironment implements ScriptingEnvironment {
 
     Application app;
     Properties props;
-    HashMap evaluators;
+    WeakHashMap evaluators;
 
     /**
      * Initialize the environment using the given properties
@@ -26,7 +26,7 @@ public final class FesiScriptingEnvironment implements ScriptingEnvironment {
     public void init (Application app, Properties props) throws ScriptingException {
 	this.app = app;
 	this.props = props;
-	evaluators = new HashMap ();
+	evaluators = new WeakHashMap ();
     }
 
 
@@ -36,7 +36,7 @@ public final class FesiScriptingEnvironment implements ScriptingEnvironment {
     public void updatePrototype (Prototype prototype) {
 	for (Iterator i = evaluators.values().iterator(); i.hasNext(); ) {
 	    FesiEvaluator fesi = (FesiEvaluator) i.next();
-	    fesi.evaluatePrototype (prototype);
+	    fesi.initPrototype (prototype);
 	}
     }
 
@@ -80,6 +80,9 @@ public final class FesiScriptingEnvironment implements ScriptingEnvironment {
 	    fesi = new FesiEvaluator (app, reval);
 	    evaluators.put (reval, fesi);
 	}
+         System.err.println ("Evaluators: "+evaluators.size());
+    for (Iterator it = evaluators.values().iterator(); it.hasNext(); )
+        System.err.println ("           "+it.next());
 	return fesi;
     }
 }

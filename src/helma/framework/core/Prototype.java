@@ -13,8 +13,8 @@ import helma.util.Updatable;
 
 
 /**
- * The Prototype class represents JavaScript prototypes defined in HOP
- * applications. This manages a prototypes templates, functions and actions 
+ * The Prototype class represents Script prototypes/type defined in a Helma
+ * application. This class manages a prototypes templates, functions and actions 
  * as well as optional information about the mapping of this type to a 
  * relational database table.
  */
@@ -28,7 +28,7 @@ public class Prototype {
     public HashMap templates, functions, actions, skins, updatables;
     long lastUpdate;
 
-    Prototype parent;
+    private Prototype parent;
 
     // Tells us whether this prototype is used to script a generic Java object,
     // as opposed to a Helma objectmodel node object.
@@ -57,29 +57,7 @@ public class Prototype {
 	// this is not allowed for the hopobject and global prototypes
 	if ("hopobject".equalsIgnoreCase (name) || "global".equalsIgnoreCase (name))
 	    return;
-	    
-	Prototype old = this.parent;
 	this.parent = parent;
-
-	// if parent has changed, update ES-prototypes in request evaluators
-	if (parent != old) {
-	    /* Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
-	    while (evals.hasNext ()) {
-	        try {
-	            RequestEvaluator reval = (RequestEvaluator) evals.next ();
-	            ObjectPrototype op = reval.getPrototype (getName());
-	            // use hopobject (node) as prototype even if prototype is null -
-	            // this is the case if no hopobject directory exists
-	            ObjectPrototype opp = parent == null ?
-	            	reval.esNodePrototype : reval.getPrototype (parent.getName ());
-	            // don't think this is possible, but check anyway
-	            if (opp == null)
-	                opp = reval.esNodePrototype;
-	            op.setPrototype (opp);
-	        } catch (Exception ignore) {
-	        }
-	    } */
-	}
     }
 
     public Prototype getParentPrototype () {
@@ -125,10 +103,15 @@ public class Prototype {
 	    }
 	}
 	return upd;
-
     }
 
-
+    public long getLastUpdate () {
+	return lastUpdate;
+    }
+	
+    public void markUpdated () {
+	lastUpdate = System.currentTimeMillis ();
+    }
 
     public String toString () {
 	return "[Prototype "+ app.getName()+"/"+name+"]";

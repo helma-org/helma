@@ -42,6 +42,9 @@ public final class FesiEvaluator {
     // the request evaluator instance owning this fesi evaluator
     RequestEvaluator reval;
 
+    // Hop extension providing basic Helma functionality to evaluator
+    HopExtension hopx;
+    
     // extensions loaded by this evaluator
     static String[] extensions = new String[] {
 	"FESI.Extensions.BasicIO",
@@ -56,6 +59,8 @@ public final class FesiEvaluator {
     // remember global variables from last invokation to be able to
     // do lazy cleanup
     Map lastGlobals = null;
+    // remember which protos are up to date
+    HashSet validatedTypes = new HashSet ();
 
     public FesiEvaluator (Application app, RequestEvaluator reval) {
 	this.app = app;
@@ -67,8 +72,8 @@ public final class FesiEvaluator {
 	    evaluator.reval = this;
 	    global = evaluator.getGlobalObject();
 	    for (int i=0; i<extensions.length; i++)
-	        evaluator.addExtension (extensions[i]);
-	    HopExtension hopx = new HopExtension (app);
+             evaluator.addExtension (extensions[i]);
+              hopx = new HopExtension (app);
 	    hopx.initializeExtension (this);
 	    MailExtension mailx = (MailExtension) evaluator.addExtension ("helma.scripting.fesi.extensions.MailExtension");
 	    mailx.setProperties (app.getProperties ());
@@ -93,12 +98,64 @@ public final class FesiEvaluator {
 	Collection prototypes = app.getPrototypes();
 	for (Iterator i=prototypes.iterator(); i.hasNext(); ) {
 	    Prototype proto = (Prototype) i.next ();
-	    evaluatePrototype (proto);
+	    initPrototype (proto);
 	}
+         // always fully initialize global prototype, because
+         // we always need it and there's no chance to trigger
+         // creation when it's needed.
+         getPrototype ("global");
+    }
+
+    void initPrototype (Prototype prototype) {
+        // System.err.println ("FESI INIT PROTO "+prototype);
+	ObjectPrototype op = null;
+
+	// get the prototype's prototype if possible and necessary
+	ObjectPrototype opp = null;
+	Prototype parent = prototype.getParentPrototype ();
+	if (parent != null) {
+	    // see if parent prototype is already registered. if not, register it
+	    opp = getRawPrototype (parent.getName ());
+	    if (opp == null) {
+	        initPrototype (parent);
+	        opp = getRawPrototype (parent.getName ());
+	    }
+	}
+	String name = prototype.getName ();
+	if (!"global".equalsIgnoreCase (name) && !"hopobject".equalsIgnoreCase (name) && opp == null) {
+	    if (app.isJavaPrototype (name))
+	        opp = getRawPrototype ("__javaobject__");
+	    else
+	        opp = getRawPrototype ("hopobject");
+	}
+
+	// if prototype doesn't exist (i.e. is a standard prototype built by HopExtension), create it.
+	op = getRawPrototype (name);
+	if (op == null) {
+	    op = new ObjectPrototype (opp, evaluator);
+	    try {
+	        op.putProperty ("prototypename", new ESString (name), "prototypename".hashCode ());
+	    } catch (EcmaScriptException ignore) {}
+	    putPrototype (name, op);
+	} else {
+	    // set parent prototype just in case it has been changed
+	    op.setPrototype (opp);
+	}
+
+	// Register a constructor for all types except global.
+	// This will first create a new prototyped hopobject and then calls 
+                  // the actual (scripted) constructor on it.
+	if (!"global".equalsIgnoreCase (name)) {
+             if (!"root".equalsIgnoreCase (name) && !"user".equalsIgnoreCase (name))
+             try {
+	        FunctionPrototype fp = (FunctionPrototype) evaluator.getFunctionPrototype();
+	        evaluator.getGlobalObject().putHiddenProperty (name, new NodeConstructor (name, fp, this));
+	    } catch (EcmaScriptException ignore) {}
+        } 
     }
 
     void evaluatePrototype (Prototype prototype) {
-
+        System.err.println ("FESI EVALUATE PROTO "+prototype+" FOR "+this);
 	ObjectPrototype op = null;
 
 	// get the prototype's prototype if possible and necessary
@@ -119,7 +176,6 @@ public final class FesiEvaluator {
 	    else
 	        opp = getPrototype ("hopobject");
 	}
-
 	// if prototype doesn't exist (i.e. is a standard prototype built by HopExtension), create it.
 	op = getPrototype (name);
 	if (op == null) {
@@ -129,15 +185,16 @@ public final class FesiEvaluator {
 	    } catch (EcmaScriptException ignore) {}
 	    putPrototype (name, op);
 	} else {
+                      // reset prototype to original state
+	    resetPrototype (op);
 	    // set parent prototype just in case it has been changed
 	    op.setPrototype (opp);
 	}
 
-	resetPrototype (op);
-
 	// Register a constructor for all types except global.
-	// This will first create a node and then call the actual (scripted) constructor on it.
-	if (!"global".equalsIgnoreCase (name)) {
+	// This will first create a new prototyped hopobject and then calls 
+                  // the actual (scripted) constructor on it.
+	if (!"global".equalsIgnoreCase (name) && !"root".equalsIgnoreCase (name) && !"user".equalsIgnoreCase (name)) {
 	    try {
 	        FunctionPrototype fp = (FunctionPrototype) evaluator.getFunctionPrototype();
 	        evaluator.getGlobalObject().putHiddenProperty (name, new NodeConstructor (name, fp, this));
@@ -175,8 +232,7 @@ public final class FesiEvaluator {
 	    String prop = en.nextElement ().toString ();
 	    try {
 	        ESValue esv = op.getProperty (prop, prop.hashCode ());
-	        // System.err.println (protoname+"."+obj+"   ->   "+esv.getClass());
-	        if (esv instanceof ConstructedFunctionObject || esv instanceof FesiActionAdapter.ThrowException)
+	        if (esv instanceof ConstructedFunctionObject || esv instanceof FesiActionAdapter.ThrowException) 
 	            op.deleteProperty (prop, prop.hashCode());
 	    } catch (Exception x) {}
 	}
@@ -193,9 +249,7 @@ public final class FesiEvaluator {
 	    eso = global;
 	else
 	    eso = getElementWrapper (thisObject);
-
 	GlobalObject global = evaluator.getGlobalObject ();
-
 	// if we are provided with global variables to set for this invocation,
 	// remember the global variables before invocation to be able to reset them afterwards.
 	Set globalVariables = null;
@@ -211,6 +265,7 @@ public final class FesiEvaluator {
 	    }
 
 	    if (globals != null && globals != lastGlobals) {
+                 validatedTypes.clear();
 	        // remember all global variables before invocation
 	        Set tmpGlobal = new HashSet ();
 	        for (Enumeration en = global.getAllProperties(); en.hasMoreElements(); ) {
@@ -256,7 +311,7 @@ public final class FesiEvaluator {
 	            global.putHiddenProperty (k, sv);
 	        }
 	        // remember the globals set on this evaluator
-	        // lastGlobals = globals;
+	        lastGlobals = globals;
 	    }
 	    evaluator.thread = Thread.currentThread ();
 	    ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
@@ -281,7 +336,7 @@ public final class FesiEvaluator {
 	    // endure from one request to the next since this leads to buggy code that
 	    // relies on requests being served by the same evaluator, which is typically the
 	    // case under development conditions but not in deployment.
-	    if (globalVariables != null) {
+	    /* if (globalVariables != null) {
 	        for (Enumeration en = global.getAllProperties(); en.hasMoreElements(); ) {
 	            String g = en.nextElement ().toString ();
 	            try {
@@ -292,7 +347,7 @@ public final class FesiEvaluator {
 	                System.err.println ("Error resetting global property: "+g);
 	            }
 	        }
-	    }
+	    } */
 	}
     }
 
@@ -302,7 +357,8 @@ public final class FesiEvaluator {
      * is a java object) with that name.
      */
     public boolean hasFunction (Object obj, String fname) {
-	ESObject eso = null;
+        // System.err.println ("HAS_FUNC: "+fname);
+                  ESObject eso = null;
 	if (obj == null)
 	    eso = evaluator.getGlobalObject ();
 	else
@@ -332,7 +388,7 @@ public final class FesiEvaluator {
 		"password".equalsIgnoreCase (propname))
 	    return "[macro access to password property not allowed]";
 
-	// if this is a HopObject, check if the property is defined
+                  // if this is a HopObject, check if the property is defined
 	// in the type.properties db-mapping.
 	if (obj instanceof INode) {
 	    DbMapping dbm = app.getDbMapping (prototypeName);
@@ -371,13 +427,37 @@ public final class FesiEvaluator {
 	return app;
     }
 
+
+    /**
+     * Get a raw prototype, i.e. in potentially unfinished state
+     * without checking if it needs to be updated.
+    */
+    private ObjectPrototype getRawPrototype (String protoName) {
+        if (protoName == null)
+            return null;
+        TypeInfo info = (TypeInfo) prototypes.get (protoName);
+        return info == null? null : info.objectPrototype;
+    }
+
     /**
      *  Get the object prototype for a prototype name
      */
     public ObjectPrototype getPrototype (String protoName) {
         if (protoName == null)
             return null;
-        return (ObjectPrototype) prototypes.get (protoName);
+        TypeInfo info = (TypeInfo) prototypes.get (protoName);
+        if (info != null && !validatedTypes.contains (protoName)) {
+            Prototype p = app.typemgr.getPrototype (protoName);
+            if (p != null) {
+                validatedTypes.add (protoName);
+                app.typemgr.updatePrototype(protoName);
+                if (p.getLastUpdate () > info.lastUpdate) {
+                    evaluatePrototype(p);
+                    info.lastUpdate = p.getLastUpdate ();
+                }
+            }
+        }
+        return info == null? null : info.objectPrototype;
     }
 
     /**
@@ -385,7 +465,7 @@ public final class FesiEvaluator {
      */
     public void putPrototype (String protoName, ObjectPrototype op) {
         if (protoName != null && op != null)
-            prototypes.put (protoName, op);
+            prototypes.put (protoName, new TypeInfo (op));
     }
 
 
@@ -417,7 +497,7 @@ public final class FesiEvaluator {
 
 	// Gotta find out the prototype name to use for this object...
 	String prototypeName = app.getPrototypeName (e);
-
+        
 	ObjectPrototype op = getPrototype (prototypeName);
 
 	if (op == null)
@@ -429,7 +509,7 @@ public final class FesiEvaluator {
 
 
     /**
-     *  Get a script wrapper for an implemntation of helma.objectmodel.INode
+     *  Get a script wrapper for an instance of helma.objectmodel.INode
      */
     public ESNode getNodeWrapper (INode n) {
 
@@ -439,6 +519,7 @@ public final class FesiEvaluator {
         ESNode esn = (ESNode) wrappercache.get (n);
         if (esn == null || esn.getNode() != n) {
             String protoname = n.getPrototype ();
+
             ObjectPrototype op = null;
 
             // set the DbMapping of the node according to its prototype.
@@ -537,15 +618,11 @@ public final class FesiEvaluator {
 	updateEvaluator (prototype, reader, es);
     }
 
-    public  synchronized void updateEvaluator (Prototype prototype, Reader reader, EvaluationSource source) {
-
+    private  synchronized void updateEvaluator (Prototype prototype, Reader reader, EvaluationSource source) {
         try {
-
             ObjectPrototype op = getPrototype (prototype.getName());
-
             // do the update, evaluating the file
             evaluator.evaluate(reader, op, source, false);
-
         } catch (Throwable e) {
             app.logEvent ("Error parsing function file "+source+": "+e);
         } finally {
@@ -557,5 +634,13 @@ public final class FesiEvaluator {
         }
     }
 
+
+    class TypeInfo {
+        ObjectPrototype objectPrototype;
+        long lastUpdate = 0;
+        public TypeInfo (ObjectPrototype op) {
+            objectPrototype = op;
+        }
+    }
 
 }

@@ -347,8 +347,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Returns an evaluator back to the pool when the work is done.
      */
     protected void releaseEvaluator (RequestEvaluator ev) {
-	if (ev != null)
-	    freeThreads.push (ev);
+        if (ev != null) {
+            ev.recycle ();
+            freeThreads.push (ev);
+        }
     }
 
     /**
@@ -434,6 +436,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        // response needs to be closed/encoded before sending it back
 	        try {
 	            res.close (charset);
+                res.data = null;
+                req.data = null;
 	        } catch (UnsupportedEncodingException uee) {
 	            logEvent ("Unsupported response encoding: "+uee.getMessage());
 	        }
@@ -441,7 +445,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        res.waitForClose ();
 	    }
 	}
-	
 	return res;
     }
 
@@ -940,8 +943,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     public void run () {
 	long cleanupSleep = 60000;    // thread sleep interval (fixed)
 	long scheduleSleep = 60000;  // interval for scheduler invocation
-	long lastScheduler = 0;
-	long lastCleanup = System.currentTimeMillis ();
+	long lastScheduler = System.currentTimeMillis ();
+	long lastCleanup = lastScheduler;
 
 	// logEvent ("Starting scheduler for "+name);
 	// as first thing, invoke function onStart in the root object
