@@ -16,7 +16,7 @@ import com.workingdogs.village.*;
  * external data sources, caching them in a least-recently-used Hashtable, 
  * and writing changes back to the databases.
  */
- 
+
 public final class NodeManager {
 
     protected Application app;
@@ -985,6 +985,14 @@ public final class NodeManager {
 	return node;
     }
 
+    /**
+     * Get a DbMapping for a given prototype name. This is just a proxy 
+     * method to the app's getDbMapping() method.
+     */
+    public DbMapping getDbMapping (String protoname) {
+	return app.getDbMapping (protoname);
+    }
+
     // a utility method to escape single quotes
     private String escape (String str) {
         if (str == null)
@@ -996,7 +1004,7 @@ public final class NodeManager {
         for (int i=0; i<l; i++) {
             char c = str.charAt (i);
             if (c == '\'')
-                sbuf.append ("\\");
+                sbuf.append ('\'');
             sbuf.append (c);
         }
         return sbuf.toString ();
