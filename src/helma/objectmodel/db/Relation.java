@@ -454,7 +454,7 @@ public class Relation {
 	    constraints[i].addToQuery (q, home, nonvirtual);
 	    prefix = " AND ";
 	}
-	
+
 	if (filter != null) {
 	    q.append (prefix);
 	    q.append (filter);
@@ -478,6 +478,12 @@ public class Relation {
 	    return order;
     }
 
+    /**
+     *  Tell wether the property described by this relation is to be handled as readonly/write protected.
+     */
+    public boolean isReadonly () {
+	return readonly;
+    }
 
     /**
      * Check if the child node fullfills the constraints defined by this relation.
@@ -596,7 +602,7 @@ public class Relation {
     	    foreignName = foreign;
     	    isGroupby = groupby;
     	}
-    	
+
     	public void addToQuery (StringBuffer q, INode home, INode nonvirtual) {
     	    String local = null;
     	    INode ref = isGroupby ? home : nonvirtual;
@@ -611,74 +617,24 @@ public class Relation {
     	    q.append (escape (local));
     	    q.append ("'");
     	}
-    	
+
     	public boolean foreignKeyIsPrimary () {
     	    return foreignName == null || foreignName.equals (otherType.getIDField ());
     	}
-    	
+
     	public String foreignProperty () {
     	    return  otherType.columnNameToProperty (foreignName);
     	}
-    	
+
     	public String localProperty () {
     	    return  ownType.columnNameToProperty (localName);
     	}
-    	
+
     	public String toString () {
     	    return ownType+"."+localName+"="+tableName+"."+foreignName;
     	}
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
