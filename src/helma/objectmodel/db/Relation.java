@@ -651,8 +651,8 @@ public class Relation {
 	for (int i=0; i<constraints.length; i++) {
 	    // don't set groupby constraints since we don't know if the
 	    // parent node is the base node or a group node
-	    // if (constraints[i].isGroupby)
-	    //    continue;
+	    if (constraints[i].isGroupby)
+	        continue;
 	    Relation crel = otherType.columnNameToRelation (constraints[i].foreignName);
 	    if (crel != null) {
 	        // INode home = constraints[i].isGroupby ? parent : nonVirtual;
