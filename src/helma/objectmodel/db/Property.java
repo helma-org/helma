@@ -285,7 +285,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	case STRING:
 	    return svalue;
 	case BOOLEAN:
-	    return "" + bvalue;
+	    return bvalue ? "true" : "false";
 	case DATE:
 	    SimpleDateFormat format = new SimpleDateFormat ("dd.MM.yy hh:mm");
 	    return format.format (new Date (lvalue));
