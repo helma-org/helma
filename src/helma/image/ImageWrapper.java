@@ -14,411 +14,466 @@
  * $Date$
  */
 
+/*
+ * A few explanations:
+ * 
+ * - ImageWrapper.image is either an AWT Image or a BufferedImage.
+ *   It depends on the ImageGenerator in what form the Image initially is.
+ *   (the ImageIO implementation only uses BufferedImages for example.
+ * 
+ *   As soon as some action that needs the graphics object is performed and the  
+ *   image is still in AWT format, it is converted to a BufferedImage
+ * 
+ *   Any internal function that performs graphical actions needs to call
+ *   createGraphics (but only if this.graphics == null)
+ * 
+ * - ImageWrapper objects are created and safed by the ImageGenerator class
+ *   all different implementations of Imaging functionallity are implemented
+ *   as a ImageGenerator extending class.
+ * 
+ */
+
 package helma.image;
 
 import java.awt.*;
+import java.awt.geom.AffineTransform;
 import java.awt.image.*;
 import java.io.*;
-import java.rmi.*;
-import java.rmi.server.*;
-import java.util.*;
 
 /**
  * Abstract base class for Image Wrappers.
  */
-public abstract class ImageWrapper {
-    Image img;
-    Graphics g;
-    int width;
-    int height;
-    int fontstyle;
-    int fontsize;
-    String fontname;
-    ImageGenerator imggen;
+public class ImageWrapper {
+    protected Image image;
+    protected int width;
+    protected int height;
+    protected Graphics2D graphics;
+    protected ImageGenerator generator;
 
     /**
      * Creates a new ImageWrapper object.
-     *
+     * 
      * @param img ...
      * @param g ...
      * @param width ...
      * @param height ...
      * @param imggen ...
      */
-    public ImageWrapper(Image img, Graphics g, int width, int height,
-                        ImageGenerator imggen) {
-        this.img = img;
-        this.g = g;
+    public ImageWrapper(Image image, int width, int height,
+        ImageGenerator generator) {
+        this.image = image;
         this.width = width;
         this.height = height;
-        this.imggen = imggen;
-
-        if (g != null) {
-            Font f = g.getFont();
-
-            fontname = f.getName();
-            fontstyle = f.getStyle();
-            fontsize = f.getSize();
-        }
+        this.generator = generator;
+        // graphics are turned off by default. every graphical function
+        // has to assure that graphcis != null, and if not, call createGraphics
+        // the function that turns this image into a paintable one! 
+        this.graphics = null;
+    }
+    
+    public ImageWrapper(Image image, ImageGenerator generator) {
+        this(image, image.getWidth(null), image.getHeight(null), generator);
     }
 
     /**
-     *  Return the Graphics object to directly paint to this Image.
-     *
-     *  @return the Graphics object used by this image
+     * Converts the internal image object to a BufferedImage (if it's not
+     * already) and returns it. this is necessary as not all images are of type
+     * BufferedImage. e.g. images loaded from a resource with the Toolkit are
+     * not. By using getBufferedImage, images are only converted to a
+     * getBufferedImage when this is actually needed, which is better than
+     * storing images as BufferedImage in general.
+     * 
+     * @return the Image object as a BufferedImage
+     */
+    public BufferedImage getBufferedImage() {
+        if (!(image instanceof BufferedImage)) {
+            BufferedImage buffered = new BufferedImage(width, height,
+                BufferedImage.TYPE_INT_ARGB);
+            buffered.createGraphics().drawImage(image, 0, 0, null);
+            image = buffered;
+        }
+        return (BufferedImage)image;
+    }
+    
+    /**
+     * convert's the internal image to a BufferedImage and creates a graphics object:
+     */
+    protected void createGraphics() {
+        BufferedImage img = getBufferedImage();
+        graphics = img.createGraphics();
+    }
+
+    /**
+     * Sets the palette index of the transparent color for Images with an
+     * IndexColorModel. This can be used together with
+     * {@link helma.image.ImageWrapper#getPixel}.
+     */
+    public void setTransparentPixel(int trans) throws IOException {
+        BufferedImage bi = this.getBufferedImage();
+        ColorModel cm = bi.getColorModel();
+        if (!(cm instanceof IndexColorModel))
+            throw new IOException("Image is not indexed!");
+        IndexColorModel icm = (IndexColorModel) cm;
+        int mapSize = icm.getMapSize();
+        byte reds[] = new byte[mapSize];
+        byte greens[] = new byte[mapSize];
+        byte blues[] = new byte[mapSize];
+        icm.getReds(reds);
+        icm.getGreens(greens);
+        icm.getBlues(blues);
+        // create the new IndexColorModel with the changed transparentPixel:
+        icm = new IndexColorModel(icm.getPixelSize(), mapSize, reds, greens,
+            blues, trans);
+        // create a new BufferedImage with the new IndexColorModel and the old
+        // raster:
+        image = new BufferedImage(icm, bi.getRaster(), false, null);
+    }
+
+    /**
+     * Returns the pixel at x, y. If the image is indexed, it returns the
+     * palette index, otherwise the rgb code of the color is returned.
+     * 
+     * @param x the x coordinate of the pixel
+     * @param y the y coordinate of the pixel
+     * @return the pixel at x, y
+     */
+    public int getPixel(int x, int y) {
+        BufferedImage bi = this.getBufferedImage();
+        if (bi.getColorModel() instanceof IndexColorModel)
+            return bi.getRaster().getSample(x, y, 0);
+        else
+            return bi.getRGB(x, y);
+    }
+
+    /**
+     * Creates and returns a copy of this image.
+     * 
+     * @return a clone of this image.
+     */
+    public Object clone() {
+        ImageWrapper wrapper = generator.createImage(this.width,
+            this.height);
+        wrapper.getGraphics().drawImage(image, 0, 0, null);
+        return wrapper;
+    }
+
+    /**
+     * Returns the Graphics object to directly paint to this Image.
+     * 
+     * @return the Graphics object used by this image
      */
     public Graphics getGraphics() {
-        return g;
+        if (graphics == null) createGraphics();
+        return graphics;
     }
 
     /**
      * Returns the Image object represented by this ImageWrapper.
-     *
+     * 
      * @return the image object
      */
     public Image getImage() {
-        return img;
+        return image;
     }
 
+    /**
+     * Returns the ImageProducer of the wrapped image
+     * 
+     * @return the images's ImageProducer
+     */
+    public ImageProducer getSource() {
+        return image.getSource();
+    }
 
     /**
      * Dispose the Graphics context and null out the image.
      */
     public void dispose() {
-        if (img != null) {
-            g.dispose();
-            img = null;
+        image = null;
+        if (graphics != null) {
+            graphics.dispose();
+            graphics = null;
         }
     }
 
     /**
-     *  Set the font used to write on this image.
+     * Set the font used to write on this image.
      */
     public void setFont(String name, int style, int size) {
-        this.fontname = name;
-        this.fontstyle = style;
-        this.fontsize = size;
-        g.setFont(new Font(name, style, size));
+        if (graphics == null) createGraphics();
+        graphics.setFont(new Font(name, style, size));
     }
 
     /**
-     *  Set the color used to write/paint to this image.
-     *
+     * Sets the color used to write/paint to this image.
+     * 
      * @param red ...
      * @param green ...
      * @param blue ...
      */
     public void setColor(int red, int green, int blue) {
-        g.setColor(new Color(red, green, blue));
+        if (graphics == null) createGraphics();
+        graphics.setColor(new Color(red, green, blue));
     }
 
     /**
-     * Set the color used to write/paint to this image.
-     *
+     * Sets the color used to write/paint to this image.
+     * 
      * @param color ...
      */
     public void setColor(int color) {
-        g.setColor(new Color(color));
+        if (graphics == null) createGraphics();
+        graphics.setColor(new Color(color));
     }
 
     /**
-     *  Draw a string to this image at the given coordinates.
-     *
+     * Sets the color used to write/paint to this image.
+     * 
+     * @param color ...
+     */
+    public void setColor(Color color) {
+        if (graphics == null) createGraphics();
+        graphics.setColor(color);
+    }
+
+    /**
+     * Draws a string to this image at the given coordinates.
+     * 
      * @param str ...
      * @param x ...
      * @param y ...
      */
     public void drawString(String str, int x, int y) {
-        g.drawString(str, x, y);
+        if (graphics == null) createGraphics();
+        graphics.drawString(str, x, y);
     }
 
     /**
-     *  Draw a line to this image from x1/y1 to x2/y2.
-     *
+     * Draws a line to this image from x1/y1 to x2/y2.
+     * 
      * @param x1 ...
      * @param y1 ...
      * @param x2 ...
      * @param y2 ...
      */
     public void drawLine(int x1, int y1, int x2, int y2) {
-        g.drawLine(x1, y1, x2, y2);
+        if (graphics == null) createGraphics();
+        graphics.drawLine(x1, y1, x2, y2);
     }
 
     /**
-     *  Draw a rectangle to this image.
-     *
+     * Draws a rectangle to this image.
+     * 
      * @param x ...
      * @param y ...
      * @param w ...
      * @param h ...
      */
     public void drawRect(int x, int y, int w, int h) {
-        g.drawRect(x, y, w, h);
+        if (graphics == null) createGraphics();
+        graphics.drawRect(x, y, w, h);
     }
 
     /**
-     *  Draw another image to this image.
-     *
+     * Draws another image to this image.
+     * 
      * @param filename ...
      * @param x ...
      * @param y ...
      */
     public void drawImage(String filename, int x, int y) {
+        if (graphics == null) createGraphics();
         try {
-            Image i = imggen.createImage(filename);
-
-            g.drawImage(i, x, y, null);
+            Image img = generator.read(filename);
+            graphics.drawImage(img, x, y, null);
         } catch (Exception ignore) {
         }
     }
 
     /**
-     *  Draw a filled rectangle to this image.
-     *
+     * Draws a filled rectangle to this image.
+     * 
      * @param x ...
      * @param y ...
      * @param w ...
      * @param h ...
      */
     public void fillRect(int x, int y, int w, int h) {
-        g.fillRect(x, y, w, h);
+        if (graphics == null) createGraphics();
+        graphics.fillRect(x, y, w, h);
     }
 
     /**
-     *  get the width of this image.
-     *
-     * @return ...
+     * Returns the width of this image.
+     * 
+     * @return the width of this image
      */
     public int getWidth() {
         return width;
     }
 
     /**
-     *  get the height of this image.
-     *
-     * @return ...
+     * Returns the height of this image.
+     * 
+     * @return the height of this image
      */
     public int getHeight() {
         return height;
     }
 
     /**
-     * crop this image.
-     *
+     * Crops the image.
+     * 
      * @param x ...
      * @param y ...
      * @param w ...
      * @param h ...
      */
     public void crop(int x, int y, int w, int h) {
-        ImageFilter filter = new CropImageFilter(x, y, w, h);
+        if (image instanceof BufferedImage) {
+            image = ((BufferedImage)image).getSubimage(x, y, w, h);
+        } else {
+            BufferedImage buffered = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2d = buffered.createGraphics();
+            g2d.drawImage(image, -x, -y, null);
+            g2d.dispose();
+            image = buffered;
+        }
+    }
+    
+    /**
+     * resizes the image using the Graphics2D approach
+     */
+    protected BufferedImage resize(int w, int h, boolean smooth) {
+        BufferedImage buffered = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = buffered.createGraphics();
 
-        img = Toolkit.getDefaultToolkit().createImage(new FilteredImageSource(img.getSource(),
-                                                                              filter));
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, 
+            smooth ? RenderingHints.VALUE_INTERPOLATION_BICUBIC :
+                RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR
+        );
+
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, 
+            smooth ? RenderingHints.VALUE_RENDER_QUALITY :
+                RenderingHints.VALUE_RENDER_SPEED
+        );
+
+        AffineTransform at = AffineTransform.getScaleInstance(
+            (double) w / width,
+            (double) h / height
+        );
+        g2d.drawImage(image, at, null);
+        g2d.dispose();
+        return buffered;
     }
 
     /**
-     *  resize this image
-     *
+     * Resize the image
+     * 
      * @param w ...
      * @param h ...
      */
+
     public void resize(int w, int h) {
-        img = img.getScaledInstance(w, h, Image.SCALE_SMOOTH);
+        double factor = Math.max(
+            (double) w / width,
+            (double) h / height
+        );
+        // if the image is scaled, used the Graphcis2D method, otherwise use AWT:
+        if (factor > 1f)
+            image = resize(w, h, true);
+        else {
+            // Area averaging has the best results for shrinking of images:
+            /*
+            // as getScaledInstance is asynchronous, the ImageWaiter is needed here too:
+            Image scaled = ImageWaiter.waitForImage(image.getScaledInstance(w, h, Image.SCALE_AREA_AVERAGING));
+            if (scaled == null)
+                throw new RuntimeException("Image cannot be resized.");
+            */
+            image = new ImageFilterOp(new AreaAveragingScaleFilter(w, h)).filter(getBufferedImage(), null);
+        }
         width = w;
         height = h;
     }
 
     /**
-     *  resize this image, using a fast and cheap algorithm
-     *
+     * Resize the image, using a fast and cheap algorithm
+     * 
      * @param w ...
      * @param h ...
      */
     public void resizeFast(int w, int h) {
-        img = img.getScaledInstance(w, h, Image.SCALE_FAST);
+        image = resize(w, h, false);
         width = w;
         height = h;
+   }
+
+    /**
+     * Reduces the colors used in the image. Necessary before saving as GIF.
+     * 
+     * @param colors colors the number of colors to use, usually <= 256.
+     */
+    public void reduceColors(int colors) {
+        reduceColors(colors, false);
     }
 
     /**
-     *  reduce the colors used in this image. Necessary before saving as GIF.
-     *
-     * @param colors ...
+     * Reduces the colors used in the image. Necessary before saving as GIF.
+     * 
+     * @param colors colors the number of colors to use, usually <= 256.
+     * @param dither ...
      */
-    public abstract void reduceColors(int colors);
+    public void reduceColors(int colors, boolean dither) {
+        reduceColors(colors, dither, true);
+    }
 
     /**
-     *  Save this image. Image format is deduced from filename.
-     *
+     * Reduce the colors used in this image. Useful and necessary before saving
+     * the image as GIF file.
+     * 
+     * @param colors the number of colors to use, usually <= 256.
+     * @param dither ...
+     * @param alphaToBitmask ...
+     */
+
+    public void reduceColors(int colors, boolean dither, boolean alphaToBitmask) {
+        image = Quantize.process(getBufferedImage(), colors, dither,
+            alphaToBitmask);
+    }
+
+    /**
+     * Save the image. Image format is deduced from filename.
+     * 
      * @param filename ...
+     * @throws IOException
      */
-    public abstract void saveAs(String filename);
-
-    /**
-     * Get ImageProducer of the wrapped image
-     */
-    public ImageProducer getSource() {
-        return img.getSource();
+    public void saveAs(String filename)
+    throws IOException {
+        saveAs(filename, -1f, false); // -1 means default quality
     }
 
     /**
-     * Draw a string to this image, breaking lines when necessary.
-     *
-     * @param str ...
+     * Saves the image. Image format is deduced from filename.
+     * 
+     * @param filename ...
+     * @param quality ...
+     * @throws IOException
      */
-    public void fillString(String str) {
-        Filler filler = new Filler(0, 0, width, height);
-
-        filler.layout(str);
+    public void saveAs(String filename, float quality)
+    throws IOException {
+        saveAs(filename, quality, false);
     }
 
     /**
-     * Draw a line to a rectangular section of this image, breaking lines when necessary.
-     *
-     * @param str ...
-     * @param x ...
-     * @param y ...
-     * @param w ...
-     * @param h ...
+     * Saves the image. Image format is deduced from filename.
+     * 
+     * @param filename ...
+     * @param quality ...
+     * @param alpha ...
+     * @throws IOException
      */
-    public void fillString(String str, int x, int y, int w, int h) {
-        Filler filler = new Filler(x, y, w, h);
-
-        filler.layout(str);
-    }
-
-    class Filler {
-        int x;
-        int y;
-        int w;
-        int h;
-        int addedSpace = 0;
-        int xLeft;
-        int yLeft;
-        int realHeight;
-        transient Vector lines;
-
-        public Filler(int x, int y, int w, int h) {
-            this.x = x;
-            this.y = y;
-            this.w = w;
-            this.h = h;
-        }
-
-        public void layout(String str) {
-            int size = fontsize;
-
-            lines = new Vector();
-
-            while (!splitMessage(str, size) && (size > 10)) {
-                lines.setSize(0);
-                size = Math.max(2, size - 1);
-            }
-
-            Font oldfont = g.getFont();
-
-            g.setFont(new Font(fontname, fontstyle, size));
-
-            int l = lines.size();
-
-            for (int i = 0; i < l; i++) {
-                ((Line) lines.elementAt(i)).paint(g, xLeft / 2, (yLeft / 2) + y);
-            }
-
-            g.setFont(oldfont);
-        }
-
-        private boolean splitMessage(String string, int size) {
-            Font font = new Font(fontname, fontstyle, size);
-            FontMetrics metrics = Toolkit.getDefaultToolkit().getFontMetrics(font);
-            int longestLine = 0;
-            int heightSoFar = 0;
-            int heightIncrement = (int) (0.84f * metrics.getHeight());
-            StringTokenizer tk = new StringTokenizer(string);
-            StringBuffer buffer = new StringBuffer();
-            int spaceWidth = metrics.stringWidth(" ");
-            int currentWidth = 0;
-            int maxWidth = w - 2;
-            int maxHeight = (h + addedSpace) - 2;
-
-            while (tk.hasMoreTokens()) {
-                String nextToken = tk.nextToken();
-                int nextWidth = metrics.stringWidth(nextToken);
-
-                if ((((currentWidth + nextWidth) >= maxWidth) && (currentWidth != 0))) {
-                    Line line = new Line(buffer.toString(), x, heightSoFar, metrics);
-
-                    lines.addElement(line);
-
-                    if (line.textwidth > longestLine) {
-                        longestLine = line.textwidth;
-                    }
-
-                    buffer = new StringBuffer();
-
-                    currentWidth = 0;
-                    heightSoFar += heightIncrement;
-                }
-
-                buffer.append(nextToken);
-                buffer.append(" ");
-                currentWidth += (nextWidth + spaceWidth);
-
-                if (((1.18 * heightSoFar) > maxHeight) && (fontsize > 10)) {
-                    return false;
-                }
-            }
-
-            if (!"".equals(buffer.toString().trim())) {
-                Line line = new Line(buffer.toString(), x, heightSoFar, metrics);
-
-                lines.addElement(line);
-
-                if (line.textwidth > longestLine) {
-                    longestLine = line.textwidth;
-                }
-
-                if ((longestLine > maxWidth) && (fontsize > 10)) {
-                    return false;
-                }
-
-                heightSoFar += heightIncrement;
-            }
-
-            xLeft = w - longestLine;
-            yLeft = (addedSpace + h) - heightSoFar;
-            realHeight = heightSoFar;
-
-            return ((1.18 * heightSoFar) <= maxHeight);
-        }
-    }
-
-    class Line implements Serializable {
-        String text;
-        int xoff;
-        int yoff;
-        FontMetrics fm;
-        public int textwidth;
-        public int len;
-        int ascent;
-
-        public Line(String text, int xoff, int yoff, FontMetrics fm) {
-            this.text = text.trim();
-            len = text.length();
-            this.xoff = xoff;
-            this.yoff = yoff;
-            this.fm = fm;
-            textwidth = (len == 0) ? 0 : fm.stringWidth(this.text);
-            ascent = (int) (0.9f * fm.getAscent());
-        }
-
-        public void paint(Graphics g, int xadd, int yadd) {
-            g.drawString(text, xoff + xadd, yoff + ascent + yadd);
-        }
-
-        public boolean contains(int y) {
-            return (y < (yoff + fm.getHeight())) ? true : false;
-        }
+    public void saveAs(String filename, float quality, boolean alpha)
+        throws IOException {
+        generator.write(this, filename, quality, alpha);
     }
 }
