@@ -221,7 +221,10 @@ public final class NodeManager {
 	// check if we can use the cached node without further checks.
 	// we need further checks for subnodes fetched by name if the subnodes were changed.
 	if (rel.subnodesAreProperties && node != null && node.getState() != Node.INVALID) {
-	    if (home.contains (node) < 0)
+	    // check if node is null node (cached null)
+	    if (node == nullNode)
+	        ; // TODO: perform null validity test
+	    else if (home.contains (node) < 0)
 	        node = null;
 	}
 
