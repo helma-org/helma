@@ -34,8 +34,6 @@ public final class Node implements INode, Serializable {
     private Hashtable propMap;
     // Other nodes that link to this node. Used for reference counting/checking
     private List links;
-    // Other nodes that refer to this node as property. Used for reference counting/checking
-    private List proplinks;
 
     private long created;
     private long lastmodified;
@@ -74,7 +72,9 @@ public final class Node implements INode, Serializable {
 	    }
 	    subnodes = (ExternalizableVector) in.readObject ();
 	    links = (ExternalizableVector) in.readObject ();
-	    proplinks = (ExternalizableVector) in.readObject ();
+	    if (version < 6)
+	        // read away obsolete proplinks list
+	        in.readObject ();
 	    propMap = (Hashtable) in.readObject ();
 	    anonymous = in.readBoolean ();
 	    if (version == 2)
@@ -97,12 +97,6 @@ public final class Node implements INode, Serializable {
 	                links.set (i, new NodeHandle (new DbKey (null, s)));
 	            }
 	        }
-	        if (proplinks != null) {
-	            for (int i=0; i<proplinks.size(); i++) {
-	                String s = (String) proplinks.get (i);
-	                proplinks.set (i, new NodeHandle (new DbKey (null, s)));
-	            }
-	        }
 	    }
 	} catch (ClassNotFoundException x) {
 	    throw new IOException (x.toString ());
@@ -113,7 +107,7 @@ public final class Node implements INode, Serializable {
      * Write out this instance to a stream
      */
     private void writeObject (ObjectOutputStream out) throws IOException {
-	out.writeShort (5);  // serialization version
+	out.writeShort (6);  // serialization version
 	out.writeUTF (id);
 	out.writeUTF (name);
 	out.writeObject (parentHandle);
@@ -125,7 +119,6 @@ public final class Node implements INode, Serializable {
 	else
 	    out.writeObject (subnodes);
 	out.writeObject (links);
-	out.writeObject (proplinks);
 	out.writeObject (propMap);
 	out.writeBoolean (anonymous);
 	out.writeObject (prototype);
@@ -855,6 +848,8 @@ public final class Node implements INode, Serializable {
     protected void registerLinkFrom (Node from) {
 	if (isRelational ())
 	    return;
+	if (from.getState () == TRANSIENT)
+	    return;
 	if (links == null)
 	    links = new ExternalizableVector ();
 	Object fromHandle = from.getHandle ();
@@ -1069,16 +1064,6 @@ public final class Node implements INode, Serializable {
 	    Node link = lhandle.getNode (nmgr);
 	    if (link != null)
 	        link.releaseNode (this);
-	}
-
-	// clean up all nodes that refer to this as a property
-	if (proplinks != null) {
-	    for (Iterator e1 = proplinks.iterator (); e1.hasNext ();  ) try {
-	        NodeHandle phandle = (NodeHandle) e1.next ();
-	        Node pnode = phandle.getNode (nmgr);
-	        if (pnode != null)
-	            nmgr.logEvent("Warning: Not unsetting node property of "+pnode.getName ());
-	    } catch (Exception ignore) {}
 	}
 
 	// tell all nodes that are properties of n that they are no longer used as such
@@ -1676,69 +1661,6 @@ public final class Node implements INode, Serializable {
 	} catch (Exception ignore) {}
     }
 
-    protected void registerPropLinkFrom (Node n) {
-	if (isRelational ())
-	    return;
-	if (proplinks == null)
-	    proplinks = new ExternalizableVector ();
-	Object fromHandle = n.getHandle ();
-	if (!proplinks.contains (fromHandle))
-	    proplinks.add (fromHandle);
-	if (state == CLEAN || state == DELETED)
-	    markAs (MODIFIED);
-    }
-
-    protected void unregisterPropLinkFrom (Node n) {
-	if (proplinks != null)
-	    proplinks.remove (n.getHandle ());
-	if (state == CLEAN)
-	    markAs (MODIFIED);
-    }
-
-
-    /**
-     *  Get the path to eiter the general data-root or the user root, depending on 
-     *  where this node is located.
-     */
-   /*  public String getUrl (INode root, INode users, String tmpname, String rootproto) {
-	
-	if (state == TRANSIENT)
-	    throw new RuntimeException ("Can't get URL for transient Object");
-
-	String divider = "/";
-	StringBuffer b = new StringBuffer ();
-	INode p = this;
-	int loopWatch = 0;
-	
-	while  (p != null && p.getParent () != null && p != root) {
-	
-	    if (rootproto != null && rootproto.equals (p.getPrototype ()))
-	        break;
-	
-	    b.insert (0, divider);
-	
-	    // users always have a canonical URL like /users/username
-	    if ("user".equals (p.getPrototype ())) {
-	        b.insert (0, UrlEncoder.encode (p.getName ()));
-	        p = users;
-	        break;
-	    }
-	
-	    b.insert (0, UrlEncoder.encode (p.getElementName ()));
-	    	
-	    p = p.getParent ();
-
-	    if (loopWatch++ > 20)
-	        break;
-	}
-	
-	if (p == users) {
-	    b.insert (0, divider);
-	    b.insert (0, "users");
-	}
-	return b.toString()+UrlEncoder.encode (tmpname);
-    } */
-
     public long lastModified () {
 	return lastmodified;
     }
@@ -1839,7 +1761,6 @@ public final class Node implements INode, Serializable {
 	System.err.println ("subnodes: "+subnodes);
 	System.err.println ("properties: "+propMap);
 	System.err.println ("links: "+links);
-	System.err.println ("proplinks: "+proplinks);
     }
 
 }
