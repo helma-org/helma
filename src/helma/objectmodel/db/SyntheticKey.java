@@ -42,7 +42,7 @@ public final class SyntheticKey implements Key, Serializable {
      */
     public SyntheticKey(Key key, String name) {
         this.parentKey = key;
-        this.name = name;
+        this.name = name.toLowerCase();
     }
 
     /**
