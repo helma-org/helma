@@ -106,9 +106,13 @@ public class Transactor extends Thread {
     }
 
     public synchronized void begin (String tnm) throws Exception {
-	if (active) {
+
+	if (killed)
+	    throw new DbException ("Transaction started on killed thread");
+
+	if (active)
 	    abort ();
-	}
+
 	nodes.clear ();
 	cleannodes.clear ();
 	txn = nmgr.db.beginTransaction ();
