@@ -219,6 +219,9 @@ public class WebServer implements Runnable {
     if (listener != null) {
         Thread l = listener;
         listener = null;
+        try {
+            serverSocket.close ();
+        } catch (Exception ignore) {}
         l.interrupt ();
     }
   }
