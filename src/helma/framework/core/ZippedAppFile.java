@@ -74,6 +74,8 @@ public class ZippedAppFile implements Updatable {
 	                    // System.err.println ("["+content+"]");
 	                    ActionFile act = new ActionFile (content, name, proto);
 	                    proto.actions.put (name, act);
+	                    // mark prototype as updated
+	                    proto.markUpdated ();
 	                }
 	                else if (fname.endsWith (".hsp")) {
 	                    String name = fname.substring (0, fname.lastIndexOf ("."));
@@ -81,6 +83,8 @@ public class ZippedAppFile implements Updatable {
 	                    // System.err.println ("["+content+"]");
 	                    Template tmp = new Template (content, name, proto);
 	                    proto.templates.put (name, tmp);
+	                    // mark prototype as updated
+	                    proto.markUpdated ();
 	                }
 	                else if (fname.endsWith (".skin")) {
 	                    String name = fname.substring (0, fname.lastIndexOf ("."));
@@ -95,12 +99,16 @@ public class ZippedAppFile implements Updatable {
 	                    // System.err.println ("["+content+"]");
 	                    FunctionFile ff = new FunctionFile (content, name, proto);
 	                    proto.functions.put (name, ff);
+	                    // mark prototype as updated
+	                    proto.markUpdated ();
 	                }
 	                else if ("type.properties".equalsIgnoreCase (fname)) {
 	                    String name = fname.substring (0, fname.lastIndexOf ("."));
 	                    SystemProperties props = new SystemProperties (zip.getInputStream (entry));
 	                    // DbMapping does its own registering, just construct it.
 	                    new DbMapping (app, proto.getName (), props);
+	                    // mark prototype as updated
+	                    proto.markUpdated ();
 	                }
 	            }
 	        }

@@ -18,11 +18,12 @@ import java.util.*;
  * is killed and an error message is returned.
  */
 
-public class RequestEvaluator implements Runnable {
+public final class RequestEvaluator implements Runnable {
 
 
-    public Application app;
-    protected boolean initialized;
+    public final Application app;
+
+    protected final ScriptingEngine scriptingEngine;
 
     public RequestTrans req;
     public ResponseTrans res;
@@ -44,7 +45,7 @@ public class RequestEvaluator implements Runnable {
     // the object path of the request we're evaluating
     List requestPath;
 
-    // the result of the
+    // the result of the operation
     Object result;
 
     // the exception thrown by the evaluator, if any.
@@ -63,7 +64,7 @@ public class RequestEvaluator implements Runnable {
      */
     public RequestEvaluator (Application app) {
 	this.app = app;
-	initialized = false;
+	scriptingEngine = helma.scripting.fesi.FesiEngineFactory.getEngine (app, this);
     }
 
 
@@ -79,9 +80,6 @@ public class RequestEvaluator implements Runnable {
 
 	    // long startCheck = System.currentTimeMillis ();
 	    app.typemgr.checkPrototypes ();
-	    // evaluators are only initialized as needed, so we need to check that here
-	    // if (!initialized)
-	    //     app.typemgr.initRequestEvaluator (this);
 	    // System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
 
 	    // object refs to ressolve request path
@@ -225,13 +223,16 @@ public class RequestEvaluator implements Runnable {
 	                try {
 	                    localrtx.timer.beginEvent (txname+" execute");
 
+	                    // enter execution context
+	                    scriptingEngine.enterContext (globals);
+
 	                    // set the req.action property, cutting off the _action suffix
 	                    req.action = action.substring (0, action.length()-7);
 
 	                    // try calling onRequest() function on object before
 	                    // calling the actual action
 	                    try {
-	                        app.scriptingEngine.invoke (currentElement, "onRequest", new Object[0], globals, this);
+	                        scriptingEngine.invoke (currentElement, "onRequest", new Object[0]);
 	                    } catch (RedirectException redir) {
 	                        throw redir;
 	                    } catch (Exception ignore) {
@@ -239,7 +240,7 @@ public class RequestEvaluator implements Runnable {
 	                    }
 
 	                    // do the actual action invocation
-	                    app.scriptingEngine.invoke (currentElement, action, new Object[0], globals, this);
+	                    scriptingEngine.invoke (currentElement, action, new Object[0]);
 
 	                    localrtx.timer.endEvent (txname+" execute");
 	                } catch (RedirectException redirect) {
@@ -324,6 +325,8 @@ public class RequestEvaluator implements Runnable {
 	            globals.put ("res", res);
 	            globals.put ("app", app);
 
+	            scriptingEngine.enterContext (globals);
+
 	            currentElement = root;
 
 	            if (method.indexOf (".") > -1) {
@@ -343,7 +346,7 @@ public class RequestEvaluator implements Runnable {
 	            String proto = app.getPrototypeName (currentElement);
 	            app.checkXmlRpcAccess (proto, method);
 
-	            result = app.scriptingEngine.invoke (currentElement, method, args, globals, this);
+	            result = scriptingEngine.invoke (currentElement, method, args);
 	            commitTransaction ();
 
 	        } catch (Exception wrong) {
@@ -366,14 +369,12 @@ public class RequestEvaluator implements Runnable {
 
 	        // avoid going into transaction if called function doesn't exist
 	        boolean functionexists = true;
-	        if (thisObject == null) try {
-	            functionexists = app.scriptingEngine.hasFunction (null, method, this);
-			} catch (ScriptingException ignore) {}
+	        functionexists = scriptingEngine.hasFunction (thisObject, method);
 
-	        if (!functionexists)
-	            // global function doesn't exist, nothing to do here.
+	        if (!functionexists) {
+	            // function doesn't exist, nothing to do here.
 	            reqtype = NONE;
-	        else try {
+	        } else try {
 	            localrtx.begin (funcdesc);
 
 	            root = app.getDataRoot ();
@@ -383,7 +384,9 @@ public class RequestEvaluator implements Runnable {
 	            globals.put ("res", res);
 	            globals.put ("app", app);
 
-	            app.scriptingEngine.invoke (thisObject, method, args, globals, this);
+	            scriptingEngine.enterContext (globals);
+
+	            result = scriptingEngine.invoke (thisObject, method, args);
 	            commitTransaction ();
 
 	        } catch (Exception wrong) {
@@ -402,6 +405,9 @@ public class RequestEvaluator implements Runnable {
 	        break;
 
 	    }
+
+	    // exit execution context
+	    scriptingEngine.exitContext ();
 
 	    // make sure there is only one thread running per instance of this class
 	    // if localrtx != rtx, the current thread has been aborted and there's no need to notify
@@ -454,8 +460,13 @@ public class RequestEvaluator implements Runnable {
 	    // wait for request, max 10 min
 	    wait (1000*60*10);
 	    //  if no request arrived, release ressources and thread
-	    if (reqtype == NONE && rtx == localrtx)
+	    if (reqtype == NONE && rtx == localrtx) {
+	        // comment this in to release not just the thread, but also the scripting engine.
+	        // currently we don't do this because of the risk of memory leaks (objects from
+	        // framework referencing into the scripting engine)
+	        // scriptingEngine = null;
 	        rtx = null;
+	    }
 	} catch (InterruptedException ir) {}
     }
 
@@ -469,13 +480,12 @@ public class RequestEvaluator implements Runnable {
 
 	checkThread ();
 	wait (app.requestTimeout);
- 	if (reqtype != NONE) {
+	if (reqtype != NONE) {
 	    app.logEvent ("Stopping Thread for Request "+app.getName()+"/"+req.path);
 	    stopThread ();
 	    res.reset ();
 	    res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>Request timed out.</pre>");
 	}
-
 	return res;
     }
 
@@ -505,18 +515,20 @@ public class RequestEvaluator implements Runnable {
 
 	checkThread ();
 	wait (app.requestTimeout);
- 	if (reqtype != NONE) {
+	if (reqtype != NONE) {
 	    stopThread ();
 	}
 
+	// reset res for garbage collection (res.data may hold reference to evaluator)
+	res = null;
 	if (exception != null)
 	    throw (exception);
 	return result;
     }
 
     protected Object invokeDirectFunction (Object obj, String functionName, Object[] args) throws Exception {
-	return app.scriptingEngine.invoke (obj, functionName, args, null, this);
-    } 
+	return scriptingEngine.invoke (obj, functionName, args);
+    }
 
     public synchronized Object invokeFunction (Object object, String functionName, Object[] args)
 		throws Exception {
@@ -532,10 +544,12 @@ public class RequestEvaluator implements Runnable {
 	checkThread ();
 	wait (60000l*15); // give internal call more time (15 minutes) to complete
 
- 	if (reqtype != NONE) {
+	if (reqtype != NONE) {
 	    stopThread ();
 	}
 
+	// reset res for garbage collection (res.data may hold reference to evaluator)
+	res = null;
 	if (exception != null)
 	    throw (exception);
 	return result;
@@ -555,10 +569,12 @@ public class RequestEvaluator implements Runnable {
 	checkThread ();
 	wait (app.requestTimeout);
 
- 	if (reqtype != NONE) {
+	if (reqtype != NONE) {
 	    stopThread ();
 	}
 
+	// reset res for garbage collection (res.data may hold reference to evaluator)
+	res = null;
 	if (exception != null)
 	    throw (exception);
 	return result;
@@ -603,7 +619,18 @@ public class RequestEvaluator implements Runnable {
 	}
     }
 
-
+    /**
+     *  Null out some fields, mostly for the sake of garbage collection.
+     */
+    public void recycle () {
+        res = null;
+        req = null;
+        session = null;
+        args = null;
+        requestPath = null;
+        result = null;
+        exception = null;
+    }
 
     /**
      * Check if an action with a given name is defined for a scripted object. If it is,
@@ -613,12 +640,8 @@ public class RequestEvaluator implements Runnable {
 	if (obj == null)
 	    return null;
 	String act = action == null ? "main_action" : action+"_action";
-	try {
-	    if (app.scriptingEngine.hasFunction (obj, act, this))
-	        return act;
-	} catch (ScriptingException x) {
-	    return null;
-	}
+	if (scriptingEngine.hasFunction (obj, act))
+	    return act;
 	return null;
     }
 

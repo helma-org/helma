@@ -18,19 +18,24 @@ import java.util.*;
  * from the RequestEvaluator object to resolve Macro handlers by type name.
  */
 
-public class Skin {
+public final class Skin {
 
-    Macro[] parts;
-    Application app;
-    char[] source;
-    int sourceLength;
-    HashSet sandbox;
+    private Macro[] parts;
+    private Application app;
+    private char[] source;
+    private int sourceLength;
+    private HashSet sandbox;
+
 
     /**
      * Create a skin without any restrictions on which macros are allowed to be called from it
      */
     public Skin (String content, Application app) {
-	this (content, app, null);
+	this.app = app;
+	sandbox = null;
+	source = content.toCharArray ();
+	sourceLength = source.length;
+	parse ();
     }
 
     /**
@@ -50,8 +55,8 @@ public class Skin {
     public Skin (char[] content, int length, Application app) {
 	this.app = app;
 	this.sandbox = null;
-	this.source = content;
-	this.sourceLength = length;
+	source = content;
+	sourceLength = length;
 	parse ();
     }
 
@@ -315,12 +320,12 @@ public class Skin {
 	            Object v = null;
 	            // remember length of response buffer before calling macro
 	            int oldLength = reval.res.getBufferLength ();
-	            if (app.scriptingEngine.hasFunction (handlerObject, name+"_macro", reval)) {
+	            if (reval.scriptingEngine.hasFunction (handlerObject, name+"_macro")) {
 	                // System.err.println ("Getting macro from function");
-	                v = app.scriptingEngine.invoke (handlerObject, name+"_macro", arguments, null, reval);
+	                v = reval.scriptingEngine.invoke (handlerObject, name+"_macro", arguments);
 	            } else {
 	                // System.err.println ("Getting macro from property");
-	                v = app.scriptingEngine.get (handlerObject, name, reval);
+	                v = reval.scriptingEngine.get (handlerObject, name);
 	            }
 	            // check if macro wrote out to response buffer
 	            int newLength = reval.res.getBufferLength ();

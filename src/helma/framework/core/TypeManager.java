@@ -16,7 +16,7 @@ import java.io.*;
  * applications and updates the evaluators if anything has changed.
  */
 
-public class TypeManager {
+public final class TypeManager {
 
     Application app;
     File appDir;
@@ -26,36 +26,23 @@ public class TypeManager {
     long idleSeconds = 120; // if idle for longer than 5 minutes, slow down
     boolean rewire;
 
-    // this contains only those evaluatores which have already been initialized
-    // and thus need to get updates
-    List registeredEvaluators;
-
-
-    static HashSet standardTypes;
-    static {
-	standardTypes = new HashSet ();
-	standardTypes.add ("user");
-	standardTypes.add ("global");
-	standardTypes.add ("root");
-	standardTypes.add ("hopobject");
-    }
-
+    static String[] standardTypes = {"user", "global", "root", "hopobject"};
+ 
     public TypeManager (Application app) {
-	this.app = app;
-	appDir = app.appDir;
-	// make sure the directories for the standard prototypes exist, and lament otherwise
-	if (appDir.list().length == 0) {
-	    for (Iterator it=standardTypes.iterator (); it.hasNext (); ) {
-	        File f = new File (appDir, (String) it.next ());
-	        if (!f.exists() && !f.mkdir ())	
-	            app.logEvent ("Warning: directory "+f.getAbsolutePath ()+" could not be created.");
-	        else if (!f.isDirectory ())
-	            app.logEvent ("Warning: "+f.getAbsolutePath ()+" is not a directory.");
-	    }
-	}
-	prototypes = new HashMap ();
-	zipfiles = new HashMap ();
-	registeredEvaluators = Collections.synchronizedList (new ArrayList ());
+        this.app = app;
+        appDir = app.appDir;
+        // make sure the directories for the standard prototypes exist, and lament otherwise
+        if (appDir.list().length == 0) {
+            for (int i=0; i<standardTypes.length; i++) {
+                File f = new File (appDir, standardTypes[i]);
+                if (!f.exists() && !f.mkdir ())	
+                    app.logEvent ("Warning: directory "+f.getAbsolutePath ()+" could not be created.");
+                else if (!f.isDirectory ())
+                    app.logEvent ("Warning: "+f.getAbsolutePath ()+" is not a directory.");
+            }
+        }
+        prototypes = new HashMap ();
+        zipfiles = new HashMap ();
     }
 
 
@@ -64,7 +51,17 @@ public class TypeManager {
      * compile or evaluate any scripts.
      */
     public void createPrototypes () {
-	check (false);
+        checkFiles ();
+        // check if standard prototypes have been created
+        // if not, create them.
+        for (int i=0; i<standardTypes.length; i++) {
+            String pname = standardTypes[i];
+            if (prototypes.get (pname) == null) {
+                Prototype proto = new Prototype (pname, app);
+                registerPrototype (pname, new File (appDir, pname), proto);
+                prototypes.put (pname, proto);
+            }
+        }
     }
 
 
@@ -73,10 +70,10 @@ public class TypeManager {
      * If so, update prototypes and scripts.
      */
     public synchronized void checkPrototypes () {
-	if (System.currentTimeMillis () - lastCheck  < 500l)
+	if (System.currentTimeMillis () - lastCheck  < 1000l)
 	    return;
 	try {
-	    check (true);
+	    checkFiles ();
 	} catch (Exception ignore) {}
 	lastCheck = System.currentTimeMillis ();
     }
@@ -84,7 +81,7 @@ public class TypeManager {
     /**
      * Run through application's prototype directories and check if anything has been updated.
      */
-    public void check (boolean update) {
+    public void checkFiles () {
 	// long now = System.currentTimeMillis ();
 	// System.out.print ("checking "+Thread.currentThread ());
 	File[] list = appDir.listFiles ();
@@ -96,12 +93,12 @@ public class TypeManager {
 	    if (proto != null) {
 	        // check if existing prototype needs update
 	        // app.logEvent (protoDir.lastModified ());
-	        updatePrototype (filename, list[i], proto);
+	        // updatePrototype (filename, list[i], proto);
 	    } else if (list[i].isDirectory () && isValidTypeName (filename)) {
 	        // leave out ".." and other directories that contain "."
 	        // create new prototype
 	        proto = new Prototype (filename, app);
-	        registerPrototype (filename, list[i], proto, update);
+	        registerPrototype (filename, list[i], proto);
 	        prototypes.put (filename, proto);
 	        // give logger thread a chance to tell what's going on
 	        // Thread.yield();
@@ -121,20 +118,7 @@ public class TypeManager {
 	        zipped.update ();
 	    }
 	}
-	
-	// check if standard prototypes have been created
-	// as a performance hack, we only do this when update is false, i.e. the first time we're called.
-	if (!update) {
-	    for (Iterator it=standardTypes.iterator (); it.hasNext (); ) {
-	        String pname = (String) it.next();
-	        if (prototypes.get (pname) == null) {
-	            Prototype proto = new Prototype (pname, app);
-	            registerPrototype (pname, new File (appDir, pname), proto, false);
-	            prototypes.put (pname, proto);
-	        }
-	    }
-	}
-	
+		
 	if (rewire) {
 	    // there have been changes in the  DbMappings
 	    app.rewireDbMappings ();
@@ -182,7 +166,8 @@ public class TypeManager {
     /**
      *  Create a prototype from a directory containing scripts and other stuff
      */
-    public void registerPrototype (String name, File dir, Prototype proto, boolean update) {
+    public void registerPrototype (String name, File dir, Prototype proto) {
+        // System.err.println ("REGISTER PROTO: "+app.getName()+"/"+name);
         // app.logEvent ("registering prototype "+name);
 
         // show the type checker thread that there has been type activity
@@ -194,61 +179,11 @@ public class TypeManager {
         HashMap nskins = new HashMap ();
         HashMap updatables = new HashMap ();
 
-        if (update) {
-            String list[] = dir.list();
-            for (int i=0; i<list.length; i++) {
-                File tmpfile = new File (dir, list[i]);
-                int dot = list[i].indexOf (".");
-
-                if (dot < 0)
-                    continue;
-
-                String tmpname = list[i].substring(0, dot);
-
-                if (list[i].endsWith (app.templateExtension)) {
-                    try {
-                        Template t = new Template (tmpfile, tmpname, proto);
-                        updatables.put (list[i], t);
-                        ntemp.put (tmpname, t);
-                    } catch (Throwable x) {
-                        app.logEvent ("Error creating prototype: "+x);
-                    }
-
-                } else if (list[i].endsWith (app.scriptExtension) && tmpfile.length () > 0) {
-                    try {
-                        FunctionFile ff = new FunctionFile (tmpfile, tmpname, proto);
-                        updatables.put (list[i], ff);
-                        nfunc.put (tmpname, ff);
-                    } catch (Throwable x) {
-                        app.logEvent ("Error creating prototype: "+x);
-                    }
-
-                } else if (list[i].endsWith (app.actionExtension) && tmpfile.length () > 0) {
-                    try {
-                        ActionFile af = new ActionFile (tmpfile, tmpname, proto);
-                        updatables.put (list[i], af);
-                        nact.put (tmpname, af);
-                    } catch (Throwable x) {
-                        app.logEvent ("Error creating prototype: "+x);
-                    }
-                }  else if (list[i].endsWith (app.skinExtension)) {
-                    try {
-                        SkinFile sf = new SkinFile (tmpfile, tmpname, proto);
-                        updatables.put (list[i], sf);
-                        nskins.put (tmpname, sf);
-                    } catch (Throwable x) {
-                        app.logEvent ("Error creating prototype: "+x);
-                    }
-                }
-            }
-        }
-
         // Create and register type properties file
         File propfile = new File (dir, "type.properties");
         SystemProperties props = new SystemProperties (propfile.getAbsolutePath ());
         DbMapping dbmap = new DbMapping (app, name, props);
         updatables.put ("type.properties", dbmap);
-
 
         proto.templates = ntemp;
         proto.functions = nfunc;
@@ -256,22 +191,26 @@ public class TypeManager {
         proto.skins = nskins;
         proto.updatables = updatables;
 
-        // init prototype on evaluators that are already initialized.
-        /* Iterator evals = getRegisteredRequestEvaluators ();
-        while (evals.hasNext ()) {
-            RequestEvaluator reval = (RequestEvaluator) evals.next ();
-            proto.initRequestEvaluator (reval);
-        }*/
-        app.scriptingEngine.updatePrototype (proto);
-
+        // app.scriptingEngine.updatePrototype (proto);
     }
 
 
     /**
     * Update a prototype based on the directory which defines it.
     */
-    public void updatePrototype (String name, File dir, Prototype proto) {
+    public void updatePrototype (String name) {
+        // System.err.println ("UPDATE PROTO: "+app.getName()+"/"+name);
+        Prototype proto = getPrototype (name);
+        if (proto == null)
+            return;
+        if (System.currentTimeMillis() - proto.getLastCheck() < 1000)
+            return;
 
+        synchronized (proto) {
+        if (System.currentTimeMillis() - proto.getLastCheck() < 1000)
+            return;
+
+        File dir = new File (appDir, name);
         boolean needsUpdate = false;
         HashSet updatables = null;
 
@@ -290,22 +229,22 @@ public class TypeManager {
         if (proto.lastUpdate < dir.lastModified ()) {
             String[] list = dir.list();
             for (int i=0; i<list.length; i++) {
-	    String fn = list[i];
-	    if (!proto.updatables.containsKey (fn)) {
-	        if (fn.endsWith (app.templateExtension) || fn.endsWith (app.scriptExtension) ||
+                String fn = list[i];
+                if (!proto.updatables.containsKey (fn)) {
+                    if (fn.endsWith (app.templateExtension) || fn.endsWith (app.scriptExtension) ||
 	    	fn.endsWith (app.actionExtension) || fn.endsWith (app.skinExtension) ||
 	    	"type.properties".equalsIgnoreCase (fn)) {
-	            needsUpdate = true;
-	            // updatables.add ("[new:"+proto.getName()+"/"+fn+"]");
-                      }
-	    }
-             }
+                        needsUpdate = true;
+                        // updatables.add ("[new:"+proto.getName()+"/"+fn+"]");
+                    }
+                }
+            }
         }
 
-        if (!needsUpdate)
-	return;
-
-        proto.lastUpdate = System.currentTimeMillis ();
+        if (!needsUpdate) {
+            proto.markChecked ();
+            return;
+        }
 
         // let the thread know we had to do something.
         idleSeconds = 0;
@@ -381,31 +320,12 @@ public class TypeManager {
                 }
             }
         }
-        app.scriptingEngine.updatePrototype (proto);
+        proto.markUpdated();
+
+        } // end of synchronized (proto)
+
+        // app.scriptingEngine.updatePrototype (proto);
     }
-
-
-    /*public void initRequestEvaluator (RequestEvaluator reval) {
-        if (!registeredEvaluators.contains (reval))
-            registeredEvaluators.add (reval);
-        for (Iterator it = prototypes.values().iterator(); it.hasNext(); ) {
-            Prototype p = (Prototype) it.next ();
-            p.initRequestEvaluator (reval);
-        }
-        reval.initialized = true;
-    }
-
-    public void unregisterRequestEvaluator (RequestEvaluator reval) {
-        registeredEvaluators.remove (reval);
-    }
-
-    public Iterator getRegisteredRequestEvaluators () {
-        return registeredEvaluators.iterator ();
-    }
-
-    public int countRegisteredRequestEvaluators () {
-        return registeredEvaluators.size ();
-    } */
 
 }
 

@@ -25,15 +25,12 @@ import java.rmi.server.*;
  * requests from the Web server or XML-RPC port and dispatches them to
  * the evaluators.
  */
-public class Application extends UnicastRemoteObject implements IRemoteApp, IPathElement, IReplicatedApp, Runnable {
+public final class Application extends UnicastRemoteObject implements IRemoteApp, IPathElement, IReplicatedApp, Runnable {
 
     private String name;
     SystemProperties props, dbProps;
     File home, appDir, dbDir;
     protected NodeManager nmgr;
-
-    // the class name of the scripting environment implementation
-    ScriptingEnvironment scriptingEngine;
 
     // the root of the website, if a custom root object is defined.
     // otherwise this is managed by the NodeManager and not cached here.
@@ -110,9 +107,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     Properties classMapping;
     // Map of extensions allowed for public skins
     Properties skinExtensions;
-
-    // a cache for parsed skin objects
-    public CacheMap skincache = new CacheMap (200, 0.80f);
 
     // DocApplication used for introspection
     public DocApplication docApp;
@@ -228,28 +222,28 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Get the application ready to run, initializing the evaluators and type manager.
      */
     public void init () throws DatabaseException, ScriptingException {
-	scriptingEngine = new helma.scripting.fesi.FesiScriptingEnvironment ();
-	scriptingEngine.init (this, props);
-
-	eval = new RequestEvaluator (this);
-	logEvent ("Starting evaluators for "+name);
-	int maxThreads = 12;
-	try {
-	    maxThreads = Integer.parseInt (props.getProperty ("maxThreads"));
-	} catch (Exception ignore) {}
-	freeThreads = new Stack ();
-	allThreads = new Vector ();
-	allThreads.addElement (eval);
-	for (int i=0; i<maxThreads; i++) {
-	    RequestEvaluator ev = new RequestEvaluator (this);
-	    freeThreads.push (ev);
-	    allThreads.addElement (ev);
-	}
-	activeRequests = new Hashtable ();
+	// scriptingEngine = new helma.scripting.fesi.FesiScriptingEnvironment ();
+	// scriptingEngine.init (this, props);
 
 	typemgr = new TypeManager (this);
 	typemgr.createPrototypes ();
 	// logEvent ("Started type manager for "+name);
+
+	// eval = new RequestEvaluator (this);
+	logEvent ("Starting evaluators for "+name);
+	freeThreads = new Stack ();
+	allThreads = new Vector ();
+	// allThreads.addElement (eval);
+	/* int maxThreads = 12;
+	try {
+	    maxThreads = Integer.parseInt (props.getProperty ("maxThreads"));
+	} catch (Exception ignore) {}
+	for (int i=0; i<maxThreads; i++) {
+	    RequestEvaluator ev = new RequestEvaluator (this);
+	    freeThreads.push (ev);
+	    allThreads.addElement (ev);
+	} */
+	activeRequests = new Hashtable ();
 
 	skinmgr = new SkinManager (this);
 
@@ -267,16 +261,15 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	rewireDbMappings ();
 
 	nmgr = new NodeManager (this, dbDir.getAbsolutePath (), props);
-	
+
 	xmlrpcHandlerName = props.getProperty ("xmlrpcHandlerName", this.name);
 	if (xmlrpc != null)
 	    xmlrpc.addHandler (xmlrpcHandlerName, new XmlRpcInvoker (this));
 
-	// typemgr.start ();
     }
 
     /**
-     *  Create request evaluators and start scheduler and cleanup thread
+     *  Create and start scheduler and cleanup thread
      */
     public void start () {
 	starttime = System.currentTimeMillis();
@@ -308,18 +301,21 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        ev.stopThread ();
 	    }
 	}
-	
+
 	// remove evaluators
 	allThreads.removeAllElements ();
 	freeThreads = null;
-	
+
 	// shut down node manager and embedded db
 	try {
 	    nmgr.shutdown ();
 	} catch (DatabaseException dbx) {
 	    System.err.println ("Error shutting down embedded db: "+dbx);
 	}
-	
+
+	// null out type manager
+	typemgr = null;
+
 	// stop logs if they exist
 	if (eventLog != null) {
 	    eventLog.close ();
@@ -339,6 +335,20 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	try {
 	    return (RequestEvaluator) freeThreads.pop ();
 	} catch (EmptyStackException nothreads) {
+	    synchronized (this) {
+	        int maxThreads = 12;
+	        try {
+	            maxThreads = Integer.parseInt (props.getProperty ("maxThreads"));
+	        } catch (Exception ignore) {
+	            // property not set, use default value
+	        }
+	        if (allThreads.size() < maxThreads) {
+	            logEvent ("Starting evaluator "+(allThreads.size()+1) +" for application "+name);
+	            RequestEvaluator ev = new RequestEvaluator (this);
+	            allThreads.addElement (ev);
+	            return (ev);
+	        }
+	    }
 	    throw new RuntimeException ("Maximum Thread count reached.");
 	}
     }
@@ -347,8 +357,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Returns an evaluator back to the pool when the work is done.
      */
     protected void releaseEvaluator (RequestEvaluator ev) {
-	if (ev != null)
-	    freeThreads.push (ev);
+        if (ev != null) {
+            ev.recycle ();
+            freeThreads.push (ev);
+        }
     }
 
     /**
@@ -435,6 +447,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        // response needs to be closed/encoded before sending it back
 	        try {
 	            res.close (charset);
+	            // reset data fields for garbage collection (may hold references to evaluator)
+	            res.data = null;
+	            req.data = null;
 	        } catch (UnsupportedEncodingException uee) {
 	            logEvent ("Unsupported response encoding: "+uee.getMessage());
 	        }
@@ -442,7 +457,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        res.waitForClose ();
 	    }
 	}
-
 	return res;
     }
 
@@ -845,6 +859,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	return debug;
     }
 
+    /**
+     *  Utiliti function invoker for the methods below. This *must* be called 
+     *  by an active RequestEvaluator thread.
+     */
     private Object invokeFunction (Object obj, String func, Object[] args) {
 	Thread thread = Thread.currentThread ();
 	RequestEvaluator reval = null;
@@ -858,13 +876,13 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	    return reval.invokeDirectFunction (obj, func, args);
 	} catch (Exception x) {
 	    if (debug)
-	        System.err.println ("ERROR invoking function "+func+": "+x);
+	        System.err.println ("Error in Application.invokeFunction ("+func+"): "+x);
 	}
 	return null;
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ///   The following methods mimic the IPathElement interface. This allows as
+    ///   The following methods mimic the IPathElement interface. This allows us
     ///   to script any Java object: If the object implements IPathElement (as does
     ///   the Node class in Helma's internal objectmodel) then the corresponding
     ///   method is called in the object itself. Otherwise, a corresponding script function
@@ -1000,25 +1018,24 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 
 
     /**
-     *  Get scripting environment for this application
-     */
-    public ScriptingEnvironment getScriptingEnvironment () {
-	return scriptingEngine;
-    }
-
-
-    /**
      * The run method performs periodic tasks like executing the scheduler method and
      * kicking out expired user sessions.
      */
     public void run () {
 	long cleanupSleep = 60000;    // thread sleep interval (fixed)
 	long scheduleSleep = 60000;  // interval for scheduler invocation
-	long lastScheduler = 0;
+	long lastScheduler = 0;    // run scheduler immediately
 	long lastCleanup = System.currentTimeMillis ();
 
 	// logEvent ("Starting scheduler for "+name);
 	// as first thing, invoke function onStart in the root object
+
+	eval = new RequestEvaluator (this);
+	allThreads.addElement (eval);
+
+	// read in standard prototypes to make first request go faster
+	typemgr.updatePrototype ("root");
+	typemgr.updatePrototype ("global");
 
 	try {
 	    eval.invokeFunction ((INode) null, "onStart", new Object[0]);
@@ -1032,8 +1049,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	    try {
 	        sessionTimeout = Math.max (0, Integer.parseInt (props.getProperty ("sessionTimeout", "30")));
 	    } catch (Exception ignore) {
-	    	System.out.println(ignore.toString());
-	    	}
+	        System.out.println(ignore.toString());
+	    }
 
 	    long now = System.currentTimeMillis ();
 
@@ -1044,9 +1061,12 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        for (Enumeration e = cloned.elements (); e.hasMoreElements (); ) {
 	            Session session = (Session) e.nextElement ();
 	            if (now - session.lastTouched () > sessionTimeout * 60000) {
-//	                if (session.uid != null) {
-//	FIXME onlogout()!        try {eval.invokeFunction (u, "onLogout", new Object[0]);} catch (Exception ignore) {}
-//	                }
+	                INode usernode = session.getUserNode ();
+	                if (usernode != null) {
+	                    try {
+	                        eval.invokeFunction (usernode, "onLogout", new Object[0]);
+	                    } catch (Exception ignore) {}
+	                }
 	                destroySession(session);
 	            }
 	        }
@@ -1080,10 +1100,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        worker = null;
 	        break;
 	    }
-
-
 	}
-
 	logEvent ("Scheduler for "+name+" exiting");
     }
 
