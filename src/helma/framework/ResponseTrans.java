@@ -166,6 +166,15 @@ public class ResponseTrans implements Externalizable {
     }
 
     /**
+     *  Append a part from a char array to the response buffer.
+     */
+    public void writeCharArray (char[] c, int start, int length) {
+	if (buffer == null)
+	    buffer = new StringBuffer (512);
+	buffer.append (c, start, length);
+    }
+
+    /**
      * Replace special characters with entities, including <, > and ", thus allowing
      * no HTML tags.
      */
