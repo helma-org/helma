@@ -74,6 +74,7 @@ public final class RhinoCore implements WrapHandler {
 
             global = context.initStandardObjects(g);
             ScriptableObject.defineClass(global, HopObject.class);
+            ScriptableObject.defineClass(global, FileObject.class);
             putPrototype("hopobject",
                          ScriptableObject.getClassPrototype(global, "HopObject"));
             putPrototype("global", global);
@@ -623,14 +624,14 @@ public final class RhinoCore implements WrapHandler {
                 try {
                     FileReader fr = new FileReader(file);
 
-                    updateEvaluator(prototype, fr, funcfile.getSourceName());
+                    updateEvaluator(prototype, fr, funcfile.getSourceName(), 1);
                 } catch (IOException iox) {
                     app.logEvent("Error updating function file: " + iox);
                 }
             } else {
                 StringReader reader = new StringReader(funcfile.getContent());
 
-                updateEvaluator(prototype, reader, funcfile.getSourceName());
+                updateEvaluator(prototype, reader, funcfile.getSourceName(), 1);
             }
         } else if (code instanceof ActionFile) {
             ActionFile action = (ActionFile) code;
@@ -638,7 +639,7 @@ public final class RhinoCore implements WrapHandler {
 
             try {
                 updateEvaluator(prototype, new StringReader(fa.function),
-                                action.getSourceName());
+                                action.getSourceName(), 0);
             } catch (Exception esx) {
                 app.logEvent("Error parsing " + action + ": " + esx);
             }
@@ -646,7 +647,7 @@ public final class RhinoCore implements WrapHandler {
     }
 
     private synchronized void updateEvaluator(Prototype prototype, Reader reader,
-                                              String sourceName) {
+                                              String sourceName, int firstline) {
         // context = Context.enter(context);
         try {
             Scriptable op = getPrototype(prototype.getName());
@@ -655,7 +656,7 @@ public final class RhinoCore implements WrapHandler {
             Context cx = Context.getCurrentContext();
 
             // do the update, evaluating the file
-            cx.evaluateReader(op, reader, sourceName, 1, null);
+            cx.evaluateReader(op, reader, sourceName, firstline, null);
         } catch (Throwable e) {
             app.logEvent("Error parsing function file " + sourceName + ": " + e);
             e.printStackTrace();
