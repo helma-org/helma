@@ -108,11 +108,11 @@ public class ApplicationManager {
 	    if (server.websrv == null) {
 	        Naming.rebind ("//:"+port+"/"+appName, app);
 	    } else {
-	        AcmeServletClient servlet = new AcmeServletClient (app);
-	        if ("base".equalsIgnoreCase (appName))
+	        boolean isRoot = "base".equalsIgnoreCase (appName);
+	        EmbeddedServletClient servlet = new EmbeddedServletClient (appName, isRoot);
+	        if (isRoot)
 	            server.websrv.setDefaultServlet (servlet);
 	        else {
-	            // server.websrv.addServlet ("/"+appName+"/", servlet);
 	            server.websrv.addServlet ("/"+appName+"/*", servlet);
 	        }
 	    }
@@ -147,14 +147,17 @@ public class ApplicationManager {
     }
 
     /**
-     *  Get an enumeration of all currently running applications.
+     *  Get an array containing all currently running applications.
      */
     public Object[] getApplications () {
 	return applications.values ().toArray ();
     }
 
-	public Application getApplication(String name)	{
-		return (Application)applications.get(name);
-	}
+    /**
+    *  Get an application by name.
+    */
+    public Application getApplication(String name)	{
+	return (Application)applications.get(name);
+    }
 
 }

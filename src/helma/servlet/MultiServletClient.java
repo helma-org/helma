@@ -70,17 +70,17 @@ public class MultiServletClient extends AbstractServletClient {
 	int len = val.length;
 	int st = 0;
 
-	// advance to start of path
+	// advance to start of path, eating up any slashes
 	while ((st < len) && (val[st] <= ' ' || val[st] == '/'))
 	    st++;
 
-	// eat characters of first path element
+	// advance until slash ending the first path element
 	while (st < len && val[st] != '/')
 	    st++;
 	if (st < len && val[st] == '/')
 	    st++;
 
-	// eat away noise at end of path
+	// eat away spaces and slashes at end of path
 	while ((st < len) && (val[len - 1] <= ' ' || val[len - 1] == '/'))
 	    len--;
 

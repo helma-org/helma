@@ -1,44 +1,36 @@
 // ServletClient.java
-// Copyright (c) Hannes Wallnöfer, Raphael Spannocchi 1998-2000
+// Copyright (c) Hannes Wallnöfer, Raphael Spannocchi 1998-2002
 
-/* Portierung von helma.asp.AspClient auf Servlets */
-/* Author: Raphael Spannocchi Datum: 27.11.1998 */
 
 package helma.servlet;
 
 import javax.servlet.*;
-import javax.servlet.http.*;
 import java.io.*;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.util.*;
 import helma.framework.*;
-import helma.util.*;
 
 /**
- * This is the HOP servlet adapter. This class communicates with just
- * one Hop application.
+ * This is the standard Helma servlet adapter. This class represents a servlet
+ * that is dedicated to one Helma application over RMI.
  */
  
 public class ServletClient extends AbstractServletClient {
 	
     private IRemoteApp app = null;
-    private String appName;
+    private String appName = null;
 
     public void init (ServletConfig init) throws ServletException {
 	super.init (init);
-
 	appName = init.getInitParameter ("application");
-	if (appName == null)
-	    appName = "base";
-
-	super.init (init);
     }
 
     IRemoteApp getApp (String appID) throws Exception {
 	if (app != null)
 	    return app;
-
+	if (appName == null)
+	    throw new ServletException ("Helma application name not specified for helma.servlet.ServletClient");
 	app = (IRemoteApp) Naming.lookup (hopUrl + appName);
 	return app;
     }
@@ -76,29 +68,12 @@ public class ServletClient extends AbstractServletClient {
     // for testing
       public static void main (String args[]) {
 	AbstractServletClient client = new ServletClient ();
-	String path = "///appname/do/it/for/me///";
+	String path = "///appname/some/random/path///";
 	System.out.println (client.getAppID (path));
 	System.out.println (client.getRequestPath (path));
       }
 
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
