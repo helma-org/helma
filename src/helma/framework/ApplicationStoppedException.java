@@ -3,9 +3,7 @@
 
 package helma.framework;
 
-import FESI.Exceptions.EcmaScriptException;
-
-/** 
+/**
  * This is thrown when a request is made to a stopped
  * application
  */
