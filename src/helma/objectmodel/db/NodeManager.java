@@ -136,7 +136,7 @@ public final class NodeManager {
                 node = (Node) db.getNode(txn, "0");
                 node.nmgr = safe;
             } catch (ObjectNotFoundException notfound) {
-                node = new Node("root", "0", "root", safe);
+                node = new Node("root", "0", "Root", safe);
                 node.setDbMapping(app.getDbMapping("root"));
                 db.saveNode(txn, node.getID(), node);
                 registerNode(node); // register node with nodemanager cache
