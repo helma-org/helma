@@ -1,17 +1,50 @@
 @echo off
 
-rem Batch file for starting Hop with a JDK-like virtual machine.
+rem Batch file for Starting Helma with a JDK-like virtual machine.
 
-rem Set Helma TCP ports
-set WEB_PORT=8080
-set XMLRPC_PORT=8081
+:: Initialize variables
+:: (don't touch this section)
+set SWITCHES=
+set HTTP_PORT=
+set XMLRPC_PORT=
+set AJP13_PORT=
+set RMI_PORT=
+set HOP_HOME=
 
-rem Set Classpath
-set JARS=lib\helma.jar;lib\crimson.jar;lib\village.jar;lib\servlet.jar;lib\jetty.jar
-set JARS=%JARS%;lib\regexp.jar;lib\netcomponents.jar;lib\jimi.jar;lib\apache-dom.jar
-set JARS=%JARS%;lib\mail.jar;lib\activation.jar;lib\mysql.jar;lib\jdom.jar;lib\minml.jar
+:: Set server parameters
+:: (comment/uncomment to de/activate)
+set HTTP_PORT=8080
+rem set XMLRPC_PORT=8081
+rem set AJP13_PORT=8009
+rem set RMI_PORT=5050
+rem set HOP_HOME=c:/program files/helma
 
-echo Starting Web server on port %WEB_PORT%
-echo Starting XML-RPC server on port %XMLRPC_PORT%
+:: Set classpath
+set JARS=lib\helma.jar;lib\xmlrpc.jar;lib\crimson.jar;lib\village.jar
+set JARS=%JARS%;lib\servlet.jar;lib\regexp.jar;lib\netcomponents.jar
+set JARS=%JARS%;lib\jimi.jar;lib\apache-dom.jar;lib\jdom.jar;lib\mail.jar
+set JARS=%JARS%;lib\activation.jar;lib\mysql.jar;lib\jetty.jar
 
-java -classpath %JARS% helma.main.Server -w %WEB_PORT% -x %XMLRPC_PORT%
+:: Set switches
+if not %HTTP_PORT%"==" (
+   echo Starting HTTP server on port %HTTP_PORT%
+   set SWITCHES=%SWITCHES% -w %HTTP_PORT%
+)
+if not %XMLRPC_PORT%"==" (
+   echo Starting XML-RPC server on port %XMLRPC_PORT%
+   set SWITCHES=%SWITCHES% -x %XMLRPC_PORT%
+)
+if not %AJP13_PORT%"==" (
+   echo Starting AJP13 listener on port %AJP13_PORT%
+   set SWITCHES=%SWITCHES% -jk %AJP13_PORT%
+)
+if not %RMI_PORT%"==" (
+   echo Starting RMI server on port %RMI_PORT%
+   set SWITCHES=%SWITCHES% -p %RMI_PORT%
+)
+if not %HOP_HOME%"==" (
+   set SWITCHES=%SWITCHES% -h %HOP_HOME%
+)
+
+:: Invoking the Java VM
+java -classpath %JARS% helma.main.Server %SWITCHES%
