@@ -109,7 +109,11 @@ function source_macro(par)	{
 		str4 += '<font color="#aaaaaa">' + (i+1) + ':</font> '
 		if (i<99)	str4+=' ';
 		if (i<9)	str4+=' ';
-		str4 += arr[i] + "<br>";
+		// Hack: remove leading returns/line feeds in each line
+		while (arr[i].length>0 && 
+				(arr[i][0] == '\n' || arr[i][0] == '\r'))
+			arr[i] = arr[i].substring(1);
+		str4 += arr[i] + "<br />";
 	}
 	return ( str4 );
 }
