@@ -23,6 +23,8 @@ public class Node implements INode, Serializable {
     protected Vector links;   // links to this node
     protected Vector proplinks;  // nodes using this node as property
 
+    protected String prototype;
+
     protected String contentType;
     protected byte content[];
 
@@ -182,6 +184,14 @@ public class Node implements INode, Serializable {
 	    this.name = id;
 	else
 	    this.name = name;
+    }
+
+    public String getPrototype () {
+	return prototype;
+    }
+
+    public void setPrototype (String proto) {
+	this.prototype = proto;
     }
 
 
@@ -748,7 +758,7 @@ public class Node implements INode, Serializable {
 	return converted;
     }
 
-    Node cacheNode;
+    INode cacheNode;
     /**
      * Get the cache node for this node. This can be used to store transient cache data per node from Javascript.
      */
@@ -756,6 +766,10 @@ public class Node implements INode, Serializable {
 	if (cacheNode == null)
 	    cacheNode = new Node();
 	return cacheNode;
+    }
+
+    public synchronized void setCacheNode (INode cache) {
+	this.cacheNode = cache;
     }
 
 }

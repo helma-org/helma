@@ -90,11 +90,11 @@ public class ESNode extends ObjectPrototype {
     public void setPrototype (String protoName) {
         checkNode ();
         this.protoName = protoName;
-        node.setString ("prototype", protoName);
+        node.setPrototype (protoName);
     }
 
     public String getESClassName () {
-        return protoName == null ? "Node" : protoName;
+        return protoName == null ? "HopObject" : protoName;
     }
     
     public String toString () {

@@ -249,10 +249,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     }
 
     public Prototype getPrototype (INode n) {
-    	IProperty proto = n.get ("prototype", false);
-	if (proto == null)
+    	String protoname = n.getPrototype ();
+	if (protoname == null)
 	    return null;
-	return getPrototype (proto.toString ());
+	return getPrototype (protoname);
     }
 
 
@@ -290,7 +290,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	    unode = new Node (uname);
 	    unode.setString ("name", uname);
 	    unode.setString ("password", password);
-	    unode.setString ("prototype", "user");
+	    unode.setPrototype ("user");
 	    unode.setDbMapping (userMapping);
 	    users.setNode (uname, unode);
 	    return users.getNode (uname, false);	

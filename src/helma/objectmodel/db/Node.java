@@ -84,6 +84,7 @@ public class Node implements INode, Serializable {
 	out.writeBoolean (anonymous);
     }
 
+    transient String prototype;
     transient INode cacheNode;
     transient WrappedNodeManager nmgr;
     transient DbMapping dbmap;
@@ -117,9 +118,9 @@ public class Node implements INode, Serializable {
 	this.name = propname;
 	this.anonymous = false;
 	if (prototype == null)
-	    setString ("prototype", ""); // set prototype to avoid db lookup if unset
+	    setPrototype ("");
 	else
-	    setString ("prototype", prototype);
+	    setPrototype (prototype);
 	this.state = VIRTUAL;
     }
 
@@ -133,7 +134,7 @@ public class Node implements INode, Serializable {
 	checkWriteLock ();
 	String nameField =  dbmap.getNameField ();
 	name = nameField == null ? id : rec.getValue (nameField).asString ();
-	setString ("prototype", dbmap.getTypeName ());
+	setPrototype (dbmap.getTypeName ());
 	for (Enumeration e=dbmap.db2prop.elements (); e.hasMoreElements();  ) {
 
 	    Relation rel = (Relation) e.nextElement ();
@@ -242,12 +243,8 @@ public class Node implements INode, Serializable {
 	this.nmgr = nmgr;
  	this.id = id;
 	this.name = name == null || "".equals (name) ? id : name;
-	if (prototype != null) {
-	    propMap = new Hashtable ();
-	    Property prop = new Property ("prototype", this);
-	    prop.setStringValue (prototype);
-	    propMap.put ("prototype", prop);
-	}
+	if (prototype != null)
+	    setPrototype (prototype);
 	created = lastmodified = System.currentTimeMillis ();
 	markAs (CLEAN);
     }
@@ -462,6 +459,21 @@ public class Node implements INode, Serializable {
 	}
 	return path;
     }
+
+    public String getPrototype () {
+	if (prototype == null && propMap != null) {
+	    // retrieve prototype name from properties
+	    Property pp = (Property) propMap.get ("prototype");
+	    if (pp != null)
+	        prototype = pp.getStringValue ();
+	}
+	return prototype;
+    }
+
+    public void setPrototype (String proto) {
+	this.prototype = proto;
+    }
+
 
     public void setDbMapping (DbMapping dbmap) {
 	if (this.dbmap != dbmap) {
@@ -767,6 +779,8 @@ public class Node implements INode, Serializable {
 	loadNodes ();
 	if (subnodes.contains (sid)) try {
 	    Node node = new Node (this, sid, nmgr, null);
+	    // set "groupname" property to value of groupby field
+	    node.setString ("groupname", sid);
 	    Relation srel = dbmap.getSubnodeRelation ();
 	    Relation prel = dbmap.getPropertyRelation ();
 	    DbMapping dbm = new DbMapping ();
@@ -1377,7 +1391,7 @@ public class Node implements INode, Serializable {
 	DbMapping nmap = dbmap == null ? null : dbmap.getPropertyMapping (propname);
 	if (nmap != null && nmap != n.getDbMapping()) {
 	    n.setDbMapping (nmap);
-	    n.setString ("prototype", nmap.getTypeName ());
+	    n.setPrototype (nmap.getTypeName ());
 	}
 
 	Property prop = (Property) propMap.get (p2);
@@ -1675,6 +1689,10 @@ public class Node implements INode, Serializable {
 	if (cacheNode == null)
 	    cacheNode = new helma.objectmodel.Node();
 	return cacheNode;
+    }
+
+    public synchronized void setCacheNode (INode cache) {
+	this.cacheNode = cache;
     }
 
     // walk down node path to the first non-virtual node and return its id.

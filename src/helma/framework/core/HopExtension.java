@@ -80,6 +80,7 @@ public class HopExtension {
 
         // methods that give access to properties and global user lists
         go.putHiddenProperty("Node", node); // register the constructor for a plain Node object.
+        go.putHiddenProperty("HopObject", node); // HopObject is the new name for node.
         go.putHiddenProperty("getProperty", new GlobalGetProperty ("getProperty", evaluator, fp));
         go.putHiddenProperty("token", new GlobalGetProperty ("token", evaluator, fp));
         go.putHiddenProperty("getUser", new GlobalGetUser ("getUser", evaluator, fp, reval));

@@ -29,7 +29,7 @@ public class NodeConstructor extends BuiltinFunctionObject {
 
         public ESObject doConstruct(ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
            ESNode node = null;
-           if ("Node".equals (typename)) {
+           if ("Node".equals (typename) || "hopobject".equalsIgnoreCase (typename)) {
                if (arguments.length == 0) {
                    node = new ESNode (reval.esNodePrototype, this.evaluator, null, reval);
                    reval.objectcache.put (node.getNode (), node);

@@ -686,8 +686,8 @@ public final class NodeManager {
 	    Key k = home.getKey ().getVirtualKey (kstr);
 	    node = (Node) cache.get (k);
 	    if (node != null && node.getState() != INode.INVALID) {
-	        if (rel.prototype != null && !rel.prototype.equals (node.getString ("prototype", false)))
-	            node.setString ("prototype", rel.prototype);
+	        if (rel.prototype != null && !rel.prototype.equals (node.getPrototype ()))
+	            node.setPrototype (rel.prototype);
 	        return node;
 	    }
 
@@ -696,7 +696,7 @@ public final class NodeManager {
 	    if (rel.other == null || (!rel.other.isRelational() && !home.getDbMapping().isRelational())) {
 	        node = (Node) home.createNode (rel.propname);
 	        if (rel.prototype != null)
-	            node.setString ("prototype", rel.prototype);
+	            node.setPrototype (rel.prototype);
 	    } else {
 	        node = new Node (home, kstr, safe, rel.prototype);
 	    }

@@ -44,9 +44,10 @@ public interface INode {
     public long lastModified ();
     public long created ();
     public boolean isAnonymous (); // is this a named node, or an anonymous node in a collection?
-    // public void setPrototype (String prototype);
-    // public String getPrototype ();
+    public String getPrototype ();
+    public void setPrototype (String prototype);
     public INode getCacheNode ();
+    public void setCacheNode (INode cache);
 
     /**
      *  node-related methods

@@ -246,8 +246,8 @@ public class RequestEvaluator implements Runnable {
 	                    isProperty = false;
 	                    if (currentNode != null && currentNode.getState() != INode.VIRTUAL) // add to reqPath array
 	                        reqPath.putProperty (reqPath.size(), getNodeWrapper (currentNode));
-	                    // limit path to < 20 tokens
-	                    if (i > 20) throw new RuntimeException ("Path too deep");
+	                    // limit path to < 50 tokens
+	                    if (i > 50) throw new RuntimeException ("Path too deep");
 	                }
 
 	                if (currentNode == null)
@@ -384,9 +384,8 @@ public class RequestEvaluator implements Runnable {
 	        }
 
 	        // check XML-RPC access permissions
-	        String proto = current.getProperty ("prototype", "prototype".hashCode ()).toString ();
-	        if (proto != null)
-	            app.checkXmlRpcAccess (proto, method);
+	        String proto = ((ESNode) current).getNode().getPrototype ();
+	        app.checkXmlRpcAccess (proto, method);
 
 	        ESValue esa[] = new ESValue[l];
 	        for (int i=0; i<l; i++) {
@@ -624,7 +623,7 @@ public class RequestEvaluator implements Runnable {
 
         if (esn == null || esn.getNode() != n) {
             ObjectPrototype op = null;
-            String protoname = n.getString ("prototype", false);
+            String protoname = n.getPrototype ();
 
             // set the DbMapping of the node according to its prototype.
             // this *should* be done on the objectmodel level, but isn't currently
