@@ -133,9 +133,10 @@ public class DatabaseObject {
      * @param   arguments  The argument list
      * @return  true if successful, false otherwise
      */
-    public boolean connect(String url, String userName, String password) throws SQLException  {
+    public boolean connect(String url, String userName, String password) {
         if (!driverOK) {
-            throw new SQLException("Driver not initialized properly - cannot connect");
+            lastError = new SQLException("Driver not initialized properly - cannot connect");
+            return false;
         }
         lastError = null;
         try {
@@ -159,9 +160,10 @@ public class DatabaseObject {
      *
      * @return  true if successful, false if error during idsconnect
      */
-    public boolean disconnect() throws SQLException {
+    public boolean disconnect() {
         if (!driverOK) {
-            throw new SQLException("Driver not initialized properly - cannot disconnect");
+            lastError = new SQLException("Driver not initialized properly - cannot disconnect");
+            return false;
         }
         lastError = null;
         if (connection != null) {
@@ -180,18 +182,15 @@ public class DatabaseObject {
     }
 
     public void release()  {
-       if (driverOK) {
-          try {
-              disconnect();
-          } catch (SQLException e) {
-              // ignored
-          }
-       }
+        if (driverOK) {
+            disconnect();
+        }
     }
 
-    public RowSet executeRetrieval(String sql) throws SQLException {
+    public RowSet executeRetrieval(String sql) {
         if (connection==null) {
-            throw new SQLException("JDBC driver not connected");
+            lastError = new SQLException("JDBC driver not connected");
+            return null;
         }
         Statement statement = null;
         ResultSet resultSet = null;
@@ -199,6 +198,10 @@ public class DatabaseObject {
         try {
             statement = connection.createStatement();
             resultSet = statement.executeQuery(sql);     // will return true if first result is a result set
+
+            RowSet rowSet = new RowSet(sql, this, statement, resultSet);
+
+            return rowSet;
        } catch(SQLException e) {
             // System.err.println("##Cannot retrieve: " + e);
             // e.printStackTrace();
@@ -210,15 +213,14 @@ public class DatabaseObject {
             statement = null;
             return null;
         }
-        RowSet rowSet = new RowSet(sql, this, statement, resultSet);
-        return rowSet;
     }
 
-    public int executeCommand(String sql) throws SQLException {
+    public int executeCommand(String sql) {
         int count = 0;
 
         if (connection==null) {
-            throw new SQLException("JDBC driver not connected");
+            lastError = new SQLException("JDBC driver not connected");
+            return -1;
         }
 
         Statement statement = null;
@@ -282,10 +284,10 @@ class RowSet {
         this.statement = statement;
         this.resultSet = resultSet;
 
-        if (sql==null) throw new NullPointerException();
-        if (resultSet==null) throw new NullPointerException();
-        if (statement==null) throw new NullPointerException();
-        if (database==null) throw new NullPointerException();
+        if (sql==null) throw new NullPointerException("sql");
+        if (resultSet==null) throw new NullPointerException("resultSet");
+        if (statement==null) throw new NullPointerException("statement");
+        if (database==null) throw new NullPointerException("database");
         
         try {
             
@@ -351,22 +353,25 @@ class RowSet {
         return !lastRowSeen;   // Simplistic implementation
     }
 
-    public String getColumnName(int idx) throws SQLException {
+    public String getColumnName(int idx) {
        if (resultSet == null) {
-            throw new SQLException("Attempt to access a released result set");
+            lastError = new SQLException("Attempt to access a released result set");
+            return null;
        }
         if (idx>0 && idx <=colNames.size()) {
             return (String) colNames.elementAt(idx-1); // to base 0
         } else {
-            throw new SQLException("Column index (base 1) " + idx +
+            lastError = new SQLException("Column index (base 1) " + idx +
                                         " out of range, max: " +colNames.size());
+            return null;
         }
     }
 
 
-    public int getColumnDatatypeNumber(int idx) throws SQLException {
+    public int getColumnDatatypeNumber(int idx) {
        if (resultSet == null) {
-            throw new SQLException("Attempt to access a released result set");
+            lastError = new SQLException("Attempt to access a released result set");
+            return -1;
        }
         if (idx>0 && idx <=colNames.size()) {
             try {
@@ -376,15 +381,17 @@ class RowSet {
                 return -1;
             }
         } else {
-            throw new SQLException("Column index (base 1) " + idx +
+            lastError = new SQLException("Column index (base 1) " + idx +
                                         " out of range, max: " +colNames.size());
+            return -1;
         }
     }
 
 
-    public String getColumnDatatypeName(int idx) throws SQLException {
+    public String getColumnDatatypeName(int idx) {
        if (resultSet == null) {
-            throw new SQLException("Attempt to access a released result set");
+            lastError = new SQLException("Attempt to access a released result set");
+            return null;
        }
         if (idx>0 && idx <=colNames.size()) {
             try {
@@ -394,18 +401,21 @@ class RowSet {
                 return null;
             }
         } else {
-            throw new SQLException("Column index (base 1) " + idx +
+            lastError = new SQLException("Column index (base 1) " + idx +
                                         " out of range, max: " +colNames.size());
+            return null;
         }
     }
 
 
-    public Object getColumnItem(String propertyName) throws SQLException {
+    public Object getColumnItem(String propertyName) {
        if (resultSet == null) {
-            throw new SQLException("Attempt to access a released result set");
+            lastError = new SQLException("Attempt to access a released result set");
+            return null;
        }
        if (!firstRowSeen) {
-            throw new SQLException("Attempt to access data before the first row is read");
+            lastError = new SQLException("Attempt to access data before the first row is read");
+            return null;
        }
        try {
             int index = -1; // indicates not a valid index value
@@ -432,8 +442,7 @@ class RowSet {
        return null;
     }
 
-    public Object getProperty(String propertyName, int hash)
-                                throws SQLException {
+    public Object getProperty(String propertyName, int hash) {
         //System.err.println(" &&& Getting property '" + propertyName + "'");
 
         // Length property is firsy checked
@@ -443,10 +452,12 @@ class RowSet {
              return new Integer(colNames.size());
         } else {
            if (resultSet == null) {
-                throw new SQLException("Attempt to access a released result set");
+                lastError = new SQLException("Attempt to access a released result set");
+                return null;
            }
             if (!firstRowSeen) {
-                throw new SQLException("Attempt to access data before the first row is read");
+                lastError = new SQLException("Attempt to access data before the first row is read");
+                return null;
             }
            try {
                 int index = -1; // indicates not a valid index value
@@ -474,13 +485,14 @@ class RowSet {
         return null;
      }
 
-    public Object getProperty(int index)
-                            throws SQLException {
+    public Object getProperty(int index) {
         if (!firstRowSeen) {
-            throw new SQLException("Attempt to access data before the first row is read");
+            lastError = new SQLException("Attempt to access data before the first row is read");
+            return null;
         }
         if (resultSet == null) {
-            throw new SQLException("Attempt to access a released result set");
+            lastError = new SQLException("Attempt to access a released result set");
+            return null;
         }
 
         try {
@@ -503,77 +515,10 @@ class RowSet {
    public Enumeration getProperties() {
        if (resultSet == null) {
             return (new Vector()).elements();
-       }        
+       }
        return colNames.elements();
    }
 
-    /**
-     * Get all properties (including hidden ones), for the command
-     * @listall of the interpreter. Include the visible properties of the
-     * prototype (that is the one added by the user) but not the
-     * hidden ones of the prototype (otherwise this would list
-     * all functions for any object).
-     *
-     * @return An enumeration of all properties (visible and hidden).  
-     */
-    /* public Enumeration getAllProperties() {
-         return new Enumeration() {
-                String [] specialProperties = getSpecialPropertyNames();
-                int specialEnumerator = 0;
-                Enumeration props = getProperties(); // all of object properties
-                String currentKey = null;
-                int currentHash = 0;
-                boolean inside = false;     // true when examing prototypes properties
-                public boolean hasMoreElements() {
-                    // OK if we already checked for a property and one exists
-                    if (currentKey != null) return true;
-                    // Loop on special properties first
-                    if (specialEnumerator < specialProperties.length) {
-                        currentKey = specialProperties[specialEnumerator];
-                        currentHash = currentKey.hashCode();
-                        specialEnumerator++;
-                        return true;
-                    }
-                    // loop on standard or prototype properties
-                    while (props.hasMoreElements()) {
-                       currentKey = (String) props.nextElement();
-                       currentHash = currentKey.hashCode();
-                       if (inside) {
-                           try {
-                              if (hasProperty(currentKey, currentHash)) continue;
-                           } catch (EcmaScriptException ignore) {
-                           }
-                           // SHOULD CHECK IF NOT IN SPECIAL
-                       }
-                       return true;
-                    }
-                    // If prototype properties have not yet been examined, look for them
-                    if (!inside && getPrototype() != null) {
-                        inside = true;
-                        props = getPrototype().getProperties();
-                        while (props.hasMoreElements()) {
-                           currentKey = (String) props.nextElement();
-                           currentHash = currentKey.hashCode();
-                           try {
-                               if (hasProperty(currentKey, currentHash)) continue;
-                           } catch (EcmaScriptException ignore) {
-                           }
-                           return true;
-                        }
-                    }
-                    return false;
-                }
-                public Object nextElement() {
-                    if (hasMoreElements()) {
-                       String key = currentKey;
-                       currentKey = null;
-                       return key;
-                     } else {
-                         throw new java.util.NoSuchElementException();
-                     }
-                 }
-         };
-    } */
 
     public String[] getSpecialPropertyNames() {
         String [] ns = {"length"};
@@ -581,13 +526,15 @@ class RowSet {
     }
 
 
-    public boolean next() throws SQLException {
+    public boolean next() {
         boolean status = false;
         if (lastRowSeen) {
-            throw new SQLException("Attempt to access a next row after last row has been returned");
+            lastError = new SQLException("Attempt to access a next row after last row has been returned");
+            return false;
         }
         if (resultSet == null) {
-            throw new SQLException("Attempt to access a released result set");
+            lastError = new SQLException("Attempt to access a released result set");
+            return false;
         }   
         try {
             status = resultSet.next();
