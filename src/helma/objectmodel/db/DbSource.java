@@ -41,7 +41,7 @@ public class DbSource {
 	    con = DriverManager.getConnection (url, user, password);
 	    // If we wanted to use SQL transactions, we'd set autoCommit to
 	    // false here and make commit/rollback invocations in Transactor methods;
-	    System.err.println ("Created new Connection to "+url);
+	    // System.err.println ("Created new Connection to "+url);
 	    tx.registerConnection (this, con);
 	    //////////////////////////////////////////////
 	   /*  DatabaseMetaData meta = con.getMetaData ();
