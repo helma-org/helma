@@ -358,15 +358,15 @@ public class ApplicationManager implements XmlRpcHandler {
                     context.setContextPath(pathPattern);
                     server.http.addContext(context);
 
+                    if (encode) {
+                        context.addHandler(new ContentEncodingHandler());
+                    }
+
                     ServletHolder holder = context.addServlet(appName, "/*",
                                                           "helma.servlet.EmbeddedServletClient");
 
                     holder.setInitParameter("application", appName);
                     // holder.setInitParameter("mountpoint", mountpoint);
-
-                    if (encode) {
-                        context.addHandler(new ContentEncodingHandler());
-                    }
 
                     if (cookieDomain != null) {
                         holder.setInitParameter("cookieDomain", cookieDomain);
