@@ -19,7 +19,10 @@ package helma.scripting;
 import helma.framework.IPathElement;
 import helma.framework.core.Application;
 import helma.framework.core.RequestEvaluator;
-import java.util.*;
+import java.io.OutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
 
 /**
  * This is the interface that must be implemented to make a scripting environment
@@ -116,4 +119,26 @@ public interface ScriptingEngine {
      *  class should be compatible with helma.doc.DocApplication.
      */
     public IPathElement getIntrospector();
+
+    /**
+     * Provide object serialization for this engine's scripted objects. If no special
+     * provisions are required, this method should just wrap the stream with an
+     * ObjectOutputStream and write the object.
+     *
+     * @param obj the object to serialize
+     * @param out the stream to write to
+     * @throws IOException
+     */
+    public void serialize(Object obj, OutputStream out) throws IOException;
+
+    /**
+     * Provide object deserialization for this engine's scripted objects. If no special
+     * provisions are required, this method should just wrap the stream with an
+     * ObjectIntputStream and read the object.
+     *
+     * @param in the stream to read from
+     * @return the deserialized object
+     * @throws IOException
+     */
+    public Object deserialize(InputStream in) throws IOException, ClassNotFoundException;
 }

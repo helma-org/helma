@@ -28,10 +28,11 @@ import helma.objectmodel.db.Relation;
 import helma.scripting.*;
 import helma.scripting.rhino.debug.Tracer;
 import org.mozilla.javascript.*;
+import org.mozilla.javascript.serialize.ScriptableOutputStream;
+import org.mozilla.javascript.serialize.ScriptableInputStream;
 
 import java.util.*;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.lang.ref.WeakReference;
 
 /**
@@ -448,6 +449,43 @@ public class RhinoEngine implements ScriptingEngine {
             doc.readApplication();
         }
         return doc;
+    }
+
+    /**
+     * Provide object serialization for this engine's scripted objects. If no special
+     * provisions are required, this method should just wrap the stream with an
+     * ObjectOutputStream and write the object.
+     *
+     * @param obj the object to serialize
+     * @param out the stream to write to
+     * @throws java.io.IOException
+     */
+    public void serialize(Object obj, OutputStream out) throws IOException {
+        // use a special ScriptableOutputStream that unwraps Wrappers
+        ScriptableOutputStream sout = new ScriptableOutputStream(out, core.global) {
+            protected Object replaceObject(Object obj) throws IOException {
+                if (obj instanceof Wrapper)
+                    obj = ((Wrapper) obj).unwrap();
+                return super.replaceObject(obj);
+            }
+        };
+        sout.writeObject(obj);
+        sout.flush();
+    }
+
+    /**
+     * Provide object deserialization for this engine's scripted objects. If no special
+     * provisions are required, this method should just wrap the stream with an
+     * ObjectIntputStream and read the object.
+     *
+     * @param in the stream to read from
+     * @return the deserialized object
+     * @throws java.io.IOException
+     */
+    public Object deserialize(InputStream in) throws IOException, ClassNotFoundException {
+        ObjectInputStream sin = new ScriptableInputStream(in, core.global);
+        Object deserialized = sin.readObject();
+        return Context.toObject(deserialized, core.global);
     }
 
     /**
