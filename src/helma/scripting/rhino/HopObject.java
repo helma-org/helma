@@ -368,7 +368,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
         ArrayList a = new ArrayList();
 
         while ((e != null) && e.hasMoreElements()) {
-            a.add(e.nextElement());
+            a.add(Context.toObject(e.nextElement(), core.global));
         }
 
         return Context.getCurrentContext().newArray(core.global, a.toArray());
