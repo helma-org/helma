@@ -104,8 +104,8 @@ public class ApplicationManager {
 	try {
 	    IServer.getLogger().log ("Binding application "+appName);
 	    Application app = (Application) applications.get (appName);
-	        Naming.rebind ("//:"+port+"/"+appName, app);
 	    if (server.websrv == null) {
+	        Naming.rebind ("//:"+port+"/"+appName, app);
 	    } else {
 	        AcmeServletClient servlet = new AcmeServletClient (app);
 	        server.websrv.addServlet ("/"+appName+"/", servlet);

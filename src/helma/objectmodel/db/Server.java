@@ -198,10 +198,10 @@ import com.sleepycat.db.*;
 	        RMISocketFactory.setSocketFactory (factory);
 	    }
 
-	    // if (websrv == null) {
+	    if (websrv == null) {
 	        getLogger().log ("Starting server on port "+port);
 	        LocateRegistry.createRegistry (port);
-	    // }
+	    }
 
 
 	    // start application framework
