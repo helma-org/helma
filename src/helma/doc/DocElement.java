@@ -251,6 +251,21 @@ public abstract class DocElement implements IPathElement	{
 	}
 
 	/**
+	  * walks up the tree and tries to find a DocApplication object
+	  */
+	public DocApplication getDocApplication () {
+		DocElement el = this;
+		while (el != null) {
+			if (el instanceof DocApplication) {
+				return (DocApplication) el;
+			}
+			el = (DocElement) el.getParentElement ();
+		}
+		return null;
+	}
+
+
+	/**
 	  * from helma.framework.IPathElement. Elements are named
 	  * like this: typename_name
 	  */
