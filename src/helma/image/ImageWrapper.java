@@ -63,7 +63,17 @@ public abstract class ImageWrapper {
     }
 
     /**
-     *  image manipulation methods
+     *  Return the Graphics object to directly paint to this Image.
+     *
+     *  @return the Graphics object used by this image
+     */
+    public Graphics getGraphics() {
+        return g;
+    }
+
+
+    /**
+     *  Set the font used to write on this image.
      */
     public void setFont(String name, int style, int size) {
         this.fontname = name;
@@ -73,7 +83,7 @@ public abstract class ImageWrapper {
     }
 
     /**
-     *
+     *  Set the color used to write/paint to this image.
      *
      * @param red ...
      * @param green ...
@@ -84,7 +94,7 @@ public abstract class ImageWrapper {
     }
 
     /**
-     *
+     * Set the color used to write/paint to this image.
      *
      * @param color ...
      */
@@ -93,7 +103,7 @@ public abstract class ImageWrapper {
     }
 
     /**
-     *
+     *  Draw a string to this image at the given coordinates.
      *
      * @param str ...
      * @param x ...
@@ -104,7 +114,7 @@ public abstract class ImageWrapper {
     }
 
     /**
-     *
+     *  Draw a line to this image from x1/y1 to x2/y2.
      *
      * @param x1 ...
      * @param y1 ...
@@ -116,7 +126,7 @@ public abstract class ImageWrapper {
     }
 
     /**
-     *
+     *  Draw a rectangle to this image.
      *
      * @param x ...
      * @param y ...
@@ -128,7 +138,7 @@ public abstract class ImageWrapper {
     }
 
     /**
-     *
+     *  Draw another image to this image.
      *
      * @param filename ...
      * @param x ...
@@ -144,7 +154,7 @@ public abstract class ImageWrapper {
     }
 
     /**
-     *
+     *  Draw a filled rectangle to this image.
      *
      * @param x ...
      * @param y ...
@@ -156,7 +166,7 @@ public abstract class ImageWrapper {
     }
 
     /**
-     *
+     *  get the width of this image.
      *
      * @return ...
      */
@@ -165,7 +175,7 @@ public abstract class ImageWrapper {
     }
 
     /**
-     *
+     *  get the height of this image.
      *
      * @return ...
      */
@@ -174,7 +184,7 @@ public abstract class ImageWrapper {
     }
 
     /**
-     *
+     * crop this image.
      *
      * @param x ...
      * @param y ...
@@ -189,7 +199,7 @@ public abstract class ImageWrapper {
     }
 
     /**
-     *
+     *  resize this image
      *
      * @param w ...
      * @param h ...
@@ -201,7 +211,7 @@ public abstract class ImageWrapper {
     }
 
     /**
-     *
+     *  resize this image, using a fast and cheap algorithm
      *
      * @param w ...
      * @param h ...
@@ -213,14 +223,14 @@ public abstract class ImageWrapper {
     }
 
     /**
-     *
+     *  reduce the colors used in this image. Necessary before saving as GIF.
      *
      * @param colors ...
      */
     public abstract void reduceColors(int colors);
 
     /**
-     *
+     *  Save this image. Image format is deduced from filename.
      *
      * @param filename ...
      */
@@ -234,7 +244,7 @@ public abstract class ImageWrapper {
     }
 
     /**
-     *
+     * Draw a string to this image, breaking lines when necessary.
      *
      * @param str ...
      */
@@ -245,7 +255,7 @@ public abstract class ImageWrapper {
     }
 
     /**
-     *
+     * Draw a line to a rectangular section of this image, breaking lines when necessary.
      *
      * @param str ...
      * @param x ...
