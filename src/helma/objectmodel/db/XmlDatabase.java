@@ -18,10 +18,7 @@ package helma.objectmodel.db;
 
 import helma.objectmodel.*;
 import helma.objectmodel.dom.*;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import java.io.*;
-import java.util.Date;
 import javax.xml.parsers.ParserConfigurationException;
 import org.xml.sax.SAXException;
 
@@ -200,7 +197,7 @@ public final class XmlDatabase implements IDatabase {
 
         writer.setMaxLevels(1);
 
-        boolean result = writer.write((Node) node);
+        writer.write((Node) node);
 
         writer.close();
     }
@@ -225,7 +222,7 @@ public final class XmlDatabase implements IDatabase {
      *
      * @param enc ...
      */
-    public void setEncoding(String enc) {
+    public void setEncoding(String encoding) {
         this.encoding = encoding;
     }
 

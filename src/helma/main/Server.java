@@ -59,10 +59,10 @@ public class Server implements IPathElement, Runnable {
     private Thread mainThread;
 
     // server ports
-    int rmiPort = 0;
-    int xmlrpcPort = 0;
-    int websrvPort = 0;
-    int ajp13Port = 0;
+    InetAddrPort rmiPort = null;
+    InetAddrPort xmlrpcPort = null;
+    InetAddrPort websrvPort = null;
+    InetAddrPort ajp13Port = null;
 
     // map of server-wide database sources
     Hashtable dbSources;
@@ -100,25 +100,25 @@ public class Server implements IPathElement, Runnable {
                 propfile = args[++i];
             } else if (args[i].equals("-p") && ((i + 1) < args.length)) {
                 try {
-                    rmiPort = Integer.parseInt(args[++i]);
+                    rmiPort = new InetAddrPort(args[++i]);
                 } catch (Exception portx) {
                     usageError = true;
                 }
             } else if (args[i].equals("-x") && ((i + 1) < args.length)) {
                 try {
-                    xmlrpcPort = Integer.parseInt(args[++i]);
+                    xmlrpcPort = new InetAddrPort(args[++i]);
                 } catch (Exception portx) {
                     usageError = true;
                 }
             } else if (args[i].equals("-w") && ((i + 1) < args.length)) {
                 try {
-                    websrvPort = Integer.parseInt(args[++i]);
+                    websrvPort = new InetAddrPort(args[++i]);
                 } catch (Exception portx) {
                     usageError = true;
                 }
             } else if (args[i].equals("-jk") && ((i + 1) < args.length)) {
                 try {
-                    ajp13Port = Integer.parseInt(args[++i]);
+                    ajp13Port = new InetAddrPort(args[++i]);
                 } catch (Exception portx) {
                     usageError = true;
                 }
@@ -145,72 +145,82 @@ public class Server implements IPathElement, Runnable {
         sysProps = new SystemProperties(propfile);
 
         // check if there's a property setting for those ports not specified via command line
-        if ((websrvPort == 0) && (sysProps.getProperty("webPort") != null)) {
+        if ((websrvPort == null) && (sysProps.getProperty("webPort") != null)) {
             try {
-                websrvPort = Integer.parseInt(sysProps.getProperty("webPort"));
-            } catch (NumberFormatException fmt) {
+                websrvPort = new InetAddrPort(sysProps.getProperty("webPort"));
+            } catch (Exception fmt) {
                 System.err.println("Error parsing web server port property: " + fmt);
             }
         }
 
-        if ((ajp13Port == 0) && (sysProps.getProperty("ajp13Port") != null)) {
+        if ((ajp13Port == null) && (sysProps.getProperty("ajp13Port") != null)) {
             try {
-                ajp13Port = Integer.parseInt(sysProps.getProperty("ajp13Port"));
-            } catch (NumberFormatException fmt) {
+                ajp13Port = new InetAddrPort(sysProps.getProperty("ajp13Port"));
+            } catch (Exception fmt) {
                 System.err.println("Error parsing AJP1.3 server port property: " + fmt);
             }
         }
 
-        if ((rmiPort == 0) && (sysProps.getProperty("rmiPort") != null)) {
+        if ((rmiPort == null) && (sysProps.getProperty("rmiPort") != null)) {
             try {
-                rmiPort = Integer.parseInt(sysProps.getProperty("rmiPort"));
-            } catch (NumberFormatException fmt) {
+                rmiPort = new InetAddrPort(sysProps.getProperty("rmiPort"));
+            } catch (Exception fmt) {
                 System.err.println("Error parsing RMI server port property: " + fmt);
             }
         }
 
-        if ((xmlrpcPort == 0) && (sysProps.getProperty("xmlrpcPort") != null)) {
+        if ((xmlrpcPort == null) && (sysProps.getProperty("xmlrpcPort") != null)) {
             try {
-                xmlrpcPort = Integer.parseInt(sysProps.getProperty("xmlrpcPort"));
-            } catch (NumberFormatException fmt) {
+                xmlrpcPort = new InetAddrPort(sysProps.getProperty("xmlrpcPort"));
+            } catch (Exception fmt) {
                 System.err.println("Error parsing XML-RPC server port property: " + fmt);
             }
         }
 
         // check server ports. If no port is set, issue a warning and exit.
-        if (!usageError && ((websrvPort | ajp13Port | rmiPort | xmlrpcPort) == 0)) {
+        if (!usageError && websrvPort == null && ajp13Port == null &&
+                           rmiPort == null && xmlrpcPort == null) {
             System.out.println("  Error: No server port specified.");
             usageError = true;
         }
 
         // if there's a usage error, output message and exit
         if (usageError) {
-            System.out.println("usage: java helma.main.Server [-h dir] [-f file] [-p port] [-w port] [-x port]");
-            System.out.println("  -h dir     Specify hop home directory");
-            System.out.println("  -f file    Specify server.properties file");
-            System.out.println("  -p port    Specify RMI port number");
-            System.out.println("  -w port    Specify port number for embedded Web server");
-            System.out.println("  -x port    Specify XML-RPC port number");
-            System.out.println("  -jk port   Specify AJP13 port number");
+            System.out.println("");
+            System.out.println("Usage: java helma.main.Server [options]");
+            System.out.println("Possible options:");
+            System.out.println("  -h dir       Specify hop home directory");
+            System.out.println("  -f file      Specify server.properties file");
+            System.out.println("  -w [ip:]port      Specify embedded web server address/port");
+            System.out.println("  -x [ip:]port      Specify XML-RPC address/port");
+            System.out.println("  -jk [ip:]port     Specify AJP13 address/port");
+            System.out.println("  -p [ip:]port      Specify RMI address/port");
+            System.out.println("");
+            System.out.println("Supported formats for server ports:");
+            System.out.println("   <port-number>");
+            System.out.println("   <ip-address>:<port-number>");
+            System.out.println("   <hostname>:<port-number>");
+            System.out.println("");
             System.err.println("Usage Error - exiting");
+            System.out.println("");
             System.exit(0);
         }
 
         // check if any of the specified server ports is in use already
         try {
-            if (websrvPort > 0) {
+            if (websrvPort != null) {
                 checkRunning(websrvPort);
             }
 
-            if (rmiPort > 0) {
+            if (rmiPort != null) {
                 checkRunning(rmiPort);
             }
 
-            if (xmlrpcPort > 0) {
+            if (xmlrpcPort != null) {
                 checkRunning(xmlrpcPort);
             }
 
-            if (ajp13Port > 0) {
+            if (ajp13Port != null) {
                 checkRunning(ajp13Port);
             }
         } catch (Exception running) {
@@ -366,7 +376,7 @@ public class Server implements IPathElement, Runnable {
      */
     public void run() {
         try {
-            if ((websrvPort > 0) || (ajp13Port > 0)) {
+            if ((websrvPort != null) || (ajp13Port != null)) {
                 http = new HttpServer();
 
                 // disable Jetty logging  FIXME: seems to be a jetty bug; as soon
@@ -399,14 +409,14 @@ public class Server implements IPathElement, Runnable {
             }
 
             // start embedded web server if port is specified
-            if (websrvPort > 0) {
-                http.addListener(new InetAddrPort(websrvPort));
+            if (websrvPort != null) {
+                http.addListener(websrvPort);
             }
 
             // activate the ajp13-listener
-            if (ajp13Port > 0) {
+            if (ajp13Port != null) {
                 // create AJP13Listener
-                ajp13 = new AJP13Listener(new InetAddrPort(ajp13Port));
+                ajp13 = new AJP13Listener(ajp13Port);
                 ajp13.setHttpServer(http);
 
                 String jkallow = sysProps.getProperty("allowAJP13");
@@ -429,14 +439,18 @@ public class Server implements IPathElement, Runnable {
                 getLogger().log("Starting AJP13-Listener on port " + (ajp13Port));
             }
 
-            if (xmlrpcPort > 0) {
+            if (xmlrpcPort != null) {
                 String xmlparser = sysProps.getProperty("xmlparser");
 
                 if (xmlparser != null) {
                     XmlRpc.setDriver(xmlparser);
                 }
 
-                xmlrpc = new WebServer(xmlrpcPort);
+                if (xmlrpcPort.getInetAddress() != null) {
+                    xmlrpc = new WebServer(xmlrpcPort.getPort(), xmlrpcPort.getInetAddress());
+                } else {
+                    xmlrpc = new WebServer(xmlrpcPort.getPort());
+                }
 
                 if (paranoid) {
                     xmlrpc.setParanoid(true);
@@ -454,10 +468,13 @@ public class Server implements IPathElement, Runnable {
                 getLogger().log("Starting XML-RPC server on port " + (xmlrpcPort));
             }
 
-            if (rmiPort > 0) {
+            if (rmiPort != null) {
                 if (paranoid) {
                     HelmaSocketFactory factory = new HelmaSocketFactory();
                     String rallow = sysProps.getProperty("allowWeb");
+                    if (rallow == null) {
+                        rallow = sysProps.getProperty("allowRMI");
+                    }
 
                     if (rallow != null) {
                         StringTokenizer st = new StringTokenizer(rallow, " ,;");
@@ -470,11 +487,14 @@ public class Server implements IPathElement, Runnable {
                 }
 
                 getLogger().log("Starting RMI server on port " + rmiPort);
-                LocateRegistry.createRegistry(rmiPort);
-            }
+                LocateRegistry.createRegistry(rmiPort.getPort());
 
-            // create application manager
-            appManager = new ApplicationManager(rmiPort, hopHome, appsProps, this);
+                // create application manager which binds to the given RMI port
+                appManager = new ApplicationManager(hopHome, appsProps, this, rmiPort.getPort());
+            } else {
+                // create application manager with RMI port 0
+                appManager = new ApplicationManager(hopHome, appsProps, this, 0);
+            }
 
             if (xmlrpc != null) {
                 xmlrpc.addHandler("$default", appManager);
@@ -525,11 +545,9 @@ public class Server implements IPathElement, Runnable {
             }
         }
 
-        int count = 0;
-
         while (Thread.currentThread() == mainThread) {
             try {
-                mainThread.sleep(3000L);
+                Thread.sleep(3000L);
             } catch (InterruptedException ie) {
             }
 
@@ -603,15 +621,21 @@ public class Server implements IPathElement, Runnable {
     /**
      *  A primitive method to check whether a server is already running on our port.
      */
-    private void checkRunning(int portNumber) throws Exception {
+    private void checkRunning(InetAddrPort addrPort) throws Exception {
+        InetAddress addr = addrPort.getInetAddress();
+        if (addr == null) {
+            addr = InetAddress.getLocalHost();
+        }
         try {
-            java.net.Socket socket = new java.net.Socket("localhost", portNumber);
-        } catch (Exception x) {
+            new Socket(addr, addrPort.getPort());
+        } catch (IOException x) {
+            // we couldn't connect to the socket because no server
+            // is running on it yet. Everything's ok.
             return;
         }
 
         // if we got so far, another server is already running on this port and db
-        throw new Exception("Error: Server already running on this port: " + portNumber);
+        throw new Exception("Error: Server already running on this port: " + addrPort);
     }
 
     /**

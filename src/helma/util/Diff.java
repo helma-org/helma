@@ -1,4 +1,14 @@
-/* $Log$
+/* 
+ * $Log$
+ * Revision 1.2  2003/07/08 13:52:35  hannes
+ * Checked in patch from Stefan Matthias Aust:
+ * * Don't call static methods as instance methods
+ * * Remove unused imports
+ * * Remove variables that are never read
+ *
+ * Revision 1.1  2002/10/31 08:39:34  hannes
+ * Added GNU Diff class from http://www.bmsi.com/java/#diff
+ *
  * Revision 1.3  2000/03/03  21:58:03  stuart
  * move discard_confusing_lines and shift_boundaries to class file_data
  *
@@ -312,7 +322,7 @@ public class Diff {
 
 	int d = diag (xoff, xlim, yoff, ylim);
 	int c = cost;
-	int f = fdiag[fdiagoff + d];
+	//int f = fdiag[fdiagoff + d];
 	int b = bdiag[bdiagoff + d];
 
 	if (c == 1)

@@ -91,7 +91,7 @@ public class Replicator implements Runnable {
 
             try {
                 if (runner != null) {
-                    runner.sleep(1000L);
+                    Thread.sleep(1000L);
                 }
             } catch (InterruptedException ir) {
                 runner = null;

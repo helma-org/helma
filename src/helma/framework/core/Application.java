@@ -439,7 +439,7 @@ public final class Application implements IPathElement, Runnable {
         // give it 3 more tries, waiting 3 seconds each time.
         for (int i = 0; i < 4; i++) {
             try {
-                Thread.currentThread().sleep(3000);
+                Thread.sleep(3000);
 
                 return (RequestEvaluator) freeThreads.pop();
             } catch (EmptyStackException nothreads) {
@@ -1434,12 +1434,15 @@ public final class Application implements IPathElement, Runnable {
 
             long sleepInterval = CronJob.millisToNextFullMinute();
             try {
-                sleepInterval = Integer.parseInt(props.getProperty("schedulerInterval"))*1000;
+                String sleepProp = props.getProperty("schedulerInterval");
+                if (sleepProp != null) {
+                    sleepInterval = Math.max(1000, Integer.parseInt(sleepProp)*1000);
+                }
             } catch (Exception ignore) {}
 
             // sleep until the next full minute
             try {
-                worker.sleep(sleepInterval);
+                Thread.sleep(sleepInterval);
             } catch (InterruptedException x) {
                 logEvent("Scheduler for " + name + " interrupted");
                 worker = null;

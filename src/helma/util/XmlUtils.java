@@ -64,7 +64,7 @@ public class XmlUtils {
         if (obj instanceof String) {
             try {
                 // first try to interpret string as URL
-                URL url = new URL(obj.toString());
+                new URL(obj.toString());
 
                 doc = parser.parse(obj.toString());
             } catch (MalformedURLException nourl) {

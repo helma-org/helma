@@ -184,63 +184,23 @@ public final class Node implements INode, Serializable {
 
             String rawParentID = null;
 
-            id = in.readUTF();
-            name = in.readUTF();
-
-            if (version < 5) {
-                rawParentID = (String) in.readObject();
-            } else {
-                parentHandle = (NodeHandle) in.readObject();
+            if (version < 9) {
+                throw new IOException("Can't read pre 1.3.0 HopObject");
             }
 
+            id = (String) in.readObject();
+            name = (String) in.readObject();
+            state = in.readInt();
+            parentHandle = (NodeHandle) in.readObject();
             created = in.readLong();
             lastmodified = in.readLong();
 
-            if (version < 4) {
-                // read away content and contentType, which were dropped
-                in.readObject();
-                in.readObject();
-            }
-
             subnodes = (ExternalizableVector) in.readObject();
             links = (ExternalizableVector) in.readObject();
-
-            if (version < 6) {
-                // read away obsolete proplinks list
-                in.readObject();
-            }
-
             propMap = (Hashtable) in.readObject();
             anonymous = in.readBoolean();
+            prototype = (String) in.readObject();
 
-            if (version == 2) {
-                prototype = in.readUTF();
-            } else if (version >= 3) {
-                prototype = (String) in.readObject();
-            }
-
-            // if the input version is < 5, we have to do some conversion to make this object work
-            if (version < 5) {
-                if (rawParentID != null) {
-                    parentHandle = new NodeHandle(new DbKey(null, rawParentID));
-                }
-
-                if (subnodes != null) {
-                    for (int i = 0; i < subnodes.size(); i++) {
-                        String s = (String) subnodes.get(i);
-
-                        subnodes.set(i, new NodeHandle(new DbKey(null, s)));
-                    }
-                }
-
-                if (links != null) {
-                    for (int i = 0; i < links.size(); i++) {
-                        String s = (String) links.get(i);
-
-                        links.set(i, new NodeHandle(new DbKey(null, s)));
-                    }
-                }
-            }
         } catch (ClassNotFoundException x) {
             throw new IOException(x.toString());
         }
@@ -250,9 +210,10 @@ public final class Node implements INode, Serializable {
      * Write out this instance to a stream
      */
     private void writeObject(ObjectOutputStream out) throws IOException {
-        out.writeShort(7); // serialization version
-        out.writeUTF(id);
-        out.writeUTF(name);
+        out.writeShort(9); // serialization version
+        out.writeObject(id);
+        out.writeObject(name);
+        out.writeInt(state);
         out.writeObject(parentHandle);
         out.writeLong(created);
         out.writeLong(lastmodified);
@@ -479,7 +440,6 @@ public final class Node implements INode, Serializable {
      * @return ...
      */
     public String getFullName(INode root) {
-        String fullname = "";
         String divider = null;
         StringBuffer b = new StringBuffer();
         INode p = this;
@@ -834,8 +794,6 @@ public final class Node implements INode, Serializable {
             node.makePersistentCapable();
         }
 
-        String n = node.getName();
-
         // if (n.indexOf('/') > -1)
         //     throw new RuntimeException ("\"/\" found in Node name.");
         // only mark this node as modified if subnodes are not in relational db
@@ -1148,11 +1106,13 @@ public final class Node implements INode, Serializable {
             return null;
         }
 
+        /*
         DbMapping smap = null;
 
         if (dbmap != null) {
             smap = dbmap.getSubnodeMapping();
         }
+        */
 
         Node retval = null;
 
@@ -1286,9 +1246,11 @@ public final class Node implements INode, Serializable {
 
         // check if the subnode is in relational db and has a link back to this
         // which needs to be unset
+        /*
         if (dbmap != null) {
             Relation srel = dbmap.getSubnodeRelation();
         }
+        */
 
         // check if subnodes are also accessed as properties. If so, also unset the property
         if ((dbmap != null) && (node.dbmap != null)) {
@@ -1696,9 +1658,13 @@ public final class Node implements INode, Serializable {
             } else if (propRel != null && propRel.isVirtual()) {
                 // prop was found and explicit property relation is collection -
                 // this is a collection node containing objects stored in the embedded db
-                INode pn = prop.getNodeValue();
+                Node pn = (Node) prop.getNodeValue();
                 if (pn != null) {
+                    // do set DbMapping for embedded db collection nodes
                     pn.setDbMapping(propRel.getVirtualMapping());
+                    // also set node manager in case this is a mountpoint node
+                    // that came in through replication
+                    pn.nmgr = nmgr;
                 }
             }
         }

@@ -162,7 +162,7 @@ public abstract class AbstractServletClient extends HttpServlet {
                         }
                     }
                 } catch (Exception upx) {
-                    sendError(response, response.SC_REQUEST_ENTITY_TOO_LARGE,
+                    sendError(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
                               "Sorry, upload size exceeds limit of " + uploadLimit +
                               "kB.");
 
@@ -256,8 +256,6 @@ public abstract class AbstractServletClient extends HttpServlet {
             ResponseTrans restrans = execute(reqtrans);
 
             // set cookies
-            int ncookies = restrans.countCookies();
-
             if (restrans.countCookies() > 0) {
                 CookieTrans[] resCookies = restrans.getCookies();
 
@@ -275,11 +273,11 @@ public abstract class AbstractServletClient extends HttpServlet {
         } catch (Exception x) {
             try {
                 if (debug) {
-                    sendError(response, response.SC_INTERNAL_SERVER_ERROR,
+                    sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                               "Error in request handler:" + x);
                     x.printStackTrace();
                 } else {
-                    sendError(response, response.SC_INTERNAL_SERVER_ERROR,
+                    sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                               "The server encountered an error while processing your request. " +
                               "Please check back later.");
                 }
@@ -403,9 +401,9 @@ public abstract class AbstractServletClient extends HttpServlet {
 
         // send status code 303 for HTTP 1.1, 302 otherwise
         if (isOneDotOne(req.getProtocol())) {
-            res.setStatus(res.SC_SEE_OTHER);
+            res.setStatus(HttpServletResponse.SC_SEE_OTHER);
         } else {
-            res.setStatus(res.SC_MOVED_TEMPORARILY);
+            res.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
         }
 
         res.setContentType("text/html");
@@ -517,9 +515,13 @@ public abstract class AbstractServletClient extends HttpServlet {
         HashMap parameters = new HashMap();
 
         // Parse any query string parameters from the request
-        try {
-            parseParameters(parameters, request.getQueryString().getBytes(), encoding);
-        } catch (Exception e) {
+        String queryString = request.getQueryString();
+        if (queryString != null) {
+            try {
+                parseParameters(parameters, queryString.getBytes(), encoding);
+            } catch (Exception e) {
+                System.err.println("Error parsing query string: "+e);
+            }
         }
 
         // Parse any posted parameters in the input stream
@@ -573,7 +575,6 @@ public abstract class AbstractServletClient extends HttpServlet {
     public static void parseParameters(Map map, byte[] data, String encoding)
                                 throws UnsupportedEncodingException {
         if ((data != null) && (data.length > 0)) {
-            int pos = 0;
             int ix = 0;
             int ox = 0;
             String key = null;
