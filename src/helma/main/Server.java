@@ -8,11 +8,8 @@ import java.rmi.*;
 import java.rmi.server.*;
 import java.rmi.registry.*;
 import java.net.*;
-import java.util.Hashtable;
-import java.util.StringTokenizer;
-import java.util.TimeZone;
-import java.util.Locale;
-import helma.objectmodel.*;
+import java.util.*;
+// import helma.objectmodel.*;
 import helma.objectmodel.db.DbSource;
 import helma.framework.*;
 import helma.framework.core.*;
@@ -25,7 +22,7 @@ import com.sleepycat.db.*;
  * Helma server main class.
  */
  
- public class Server implements Runnable {
+ public class Server {
 
 
     public static boolean useTransactions = true;
@@ -179,10 +176,17 @@ import com.sleepycat.db.*;
 
 	// nmgr = new NodeManager (this, sysProps);
 
-	mainThread = new Thread (this);
-	mainThread.start ();
+	// Start running, finishing setup and then entering a loop to check changes
+	// in the apps.properties file.
+	mainThread = Thread.currentThread ();
+	run ();
     }
 
+    /**
+     *  The main method of the Server. Basically, we set up Applications and than
+     *  periodically check for changes in the apps.properties file, shutting down
+     *  apps or starting new ones.
+     */
     public void run () {
 
 	try {
@@ -261,6 +265,16 @@ import com.sleepycat.db.*;
 
     }
 
+    /**
+     *  Get an Iterator over the applications currently running on this Server.
+     */
+    public Object[] getApplications () {
+	return appManager.getApplications ();
+    }
+
+    /**
+     *  Get a logger to use for output in this server.
+     */
     protected static Logger getLogger () {
 	if (logger == null) {
 	    String logDir = sysProps.getProperty ("logdir");
@@ -283,15 +297,23 @@ import com.sleepycat.db.*;
 	return logger;
     }
 
+    /**
+     *  Get the Home directory of this server.
+     */
     public static File getHopHome () {
 	return hopHome;
     }
 
+    /**
+    *  Get the Server's  XML-RPC web server.
+    */
     public static WebServer getXmlRpcServer() {
 	return xmlrpc;
     }
 
-
+    /**
+     *  A primitive method to check whether a server is already running on our port.
+     */
     private void checkRunning () throws Exception {
 	try {
 	    java.net.Socket socket = new java.net.Socket ("localhost", port);

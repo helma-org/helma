@@ -47,9 +47,10 @@ public class ApplicationManager {
 	    try {
 	        for (Enumeration e = props.keys(); e.hasMoreElements (); ) {
 	            String appName = (String) e.nextElement ();
+	            boolean self = "self".equalsIgnoreCase (props.getProperty (appName));
 	            if (applications.get (appName) == null) {
-	                start (appName);
-	                register (appName);
+	                start (appName, self);
+	                register (appName, self);
 	            }
 	        }
 	        // then stop deleted ones
@@ -67,15 +68,18 @@ public class ApplicationManager {
 	}
     }
 
-    private void start (String appName) {
+    private void start (String appName, boolean self) {
 	Server.getLogger().log ("Building application "+appName);
 	try {
 	    Application app = new Application (appName, hopHome, Server.sysProps, Server.dbProps);
 	    applications.put (appName, app);
 	    // if we're running with the embedded web server, set app base uri to /appname
-	    if (server.websrv != null)
+	    if (server.websrv != null && !self)
 	        app.setBaseURI ("/"+java.net.URLEncoder.encode (appName));
-	    // the application is initialized later in the register method, when it's bound
+	    // check if the root object of the application is the Server itself
+	    if (self)
+	        app.setDataRoot (server);
+	    // the application is started later in the register method, when it's bound
 	    app.init ();
 	} catch (Exception x) {
 	    Server.getLogger().log ("Error creating application "+appName+": "+x);
@@ -101,7 +105,7 @@ public class ApplicationManager {
 	applications.remove (appName);
     }
 
-    private void register (String appName) {
+    private void register (String appName, boolean self) {
 	try {
 	    Server.getLogger().log ("Binding application "+appName);
 	    Application app = (Application) applications.get (appName);
@@ -110,8 +114,12 @@ public class ApplicationManager {
 	        Naming.rebind ("//:"+port+"/"+appName, app);
 	    } else {
 	        AcmeServletClient servlet = new AcmeServletClient (app);
-	        server.websrv.addServlet ("/"+appName+"/", servlet);
-	        server.websrv.addServlet ("/"+appName+"/*", servlet);
+	        if (self)
+	            server.websrv.setDefaultServlet (servlet);
+	        else {
+	            server.websrv.addServlet ("/"+appName+"/", servlet);
+	            server.websrv.addServlet ("/"+appName+"/*", servlet);
+	        }
 	    }
 	    app.start ();
 	} catch (Exception x) {
@@ -123,11 +131,13 @@ public class ApplicationManager {
 	try {
 	    for (Enumeration e = props.keys(); e.hasMoreElements (); ) {
 	        String appName = (String) e.nextElement ();
-	        start (appName);
+	        boolean self = "self".equalsIgnoreCase (props.getProperty (appName));
+	        start (appName, self);
 	    }
 	    for (Enumeration e = props.keys(); e.hasMoreElements (); ) {
 	        String appName = (String) e.nextElement ();
-	        register (appName);
+	        boolean self = "self".equalsIgnoreCase (props.getProperty (appName));
+	        register (appName, self);
 	    }
 	    if (server.websrv != null) {
 	        File staticContent = new File (server.getHopHome(), "static");
@@ -141,6 +151,13 @@ public class ApplicationManager {
 	    Server.getLogger().log ("Error starting applications: "+mx);
 	    mx.printStackTrace ();
 	}
+    }
+
+    /**
+     *  Get an enumeration of all currently running applications.
+     */
+    public Object[] getApplications () {
+	return applications.values ().toArray ();
     }
 
 }
