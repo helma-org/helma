@@ -9,9 +9,9 @@ package helma.servlet;
 import javax.servlet.*;
 import javax.servlet.http.*;
 import java.io.*;
-import java.rmi.Naming;
-import java.rmi.RemoteException;
 import java.util.*;
+import java.net.URLEncoder;
+import java.net.URLDecoder;
 import helma.framework.*;
 import helma.util.*;
 
@@ -57,7 +57,7 @@ public abstract class AbstractServletClient extends HttpServlet {
     }
 
 
-    abstract ResponseTrans execute (RequestTrans req, String reqPath) throws Exception;
+    abstract ResponseTrans execute (RequestTrans req) throws Exception;
 
 
     public void doGet (HttpServletRequest request, HttpServletResponse response)
@@ -174,8 +174,8 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    if ( authorization != null )
 	        reqtrans.set ("authorization", authorization );
 
-	    String pathInfo = request.getPathInfo ();
-	    ResponseTrans restrans = execute (reqtrans, pathInfo);
+	    reqtrans.path = getPathInfo (request);
+	    ResponseTrans restrans = execute (reqtrans);
 
 	    writeResponse (request, response, restrans);
 
@@ -473,6 +473,26 @@ public abstract class AbstractServletClient extends HttpServlet {
 	if (protocol.endsWith ("1.1"))
 	    return true;
 	return false;
+    }
+
+    String getPathInfo (HttpServletRequest req) {
+	StringTokenizer t = new StringTokenizer (req.getContextPath(), "/");
+	int prefixTokens = t.countTokens();
+	t = new StringTokenizer (req.getServletPath(), "/");
+	prefixTokens += t.countTokens();
+	
+	t = new StringTokenizer (req.getRequestURI(), "/");
+	int uriTokens = t.countTokens();
+	StringBuffer pathbuffer = new StringBuffer ();
+	for (int i=0; i<uriTokens; i++) {
+	    String token = t.nextToken ();
+	    if (i < prefixTokens)
+	        continue;
+	    if (i > prefixTokens)
+	        pathbuffer.append ("/");
+	    pathbuffer.append (URLDecoder.decode (token));
+	}
+	return pathbuffer.toString ();
     }
 
     public String getServletInfo(){

@@ -47,8 +47,7 @@ public final class StandaloneServletClient extends AbstractServletClient {
 	    throw new ServletException ("dbdir parameter not specified");
 }
 
-    ResponseTrans execute (RequestTrans req, String reqPath) throws Exception {
-	req.path = getRequestPath (reqPath);
+    ResponseTrans execute (RequestTrans req) throws Exception {
 	if (app == null)
 	    createApp ();
 	return app.execute (req);
@@ -90,41 +89,6 @@ public final class StandaloneServletClient extends AbstractServletClient {
 	}
 	app = null;
     }
-
-
-    String getAppID (String path) {
-	return appName;
-    }
-
-    String getRequestPath (String path) {
-	// get request path
-	if (path != null)
-	    return trim (path);
-	else
-	    return "";
-    }
-
-    String trim (String str) {
-	char[] val = str.toCharArray ();
-	int len = val.length;
-	int st = 0;
-
-	while ((st < len) && (val[st] <= ' ' || val[st] == '/'))
-	    st++;
-
-	while ((st < len) && (val[len - 1] <= ' ' || val[len - 1] == '/'))
-	    len--;
-
-	return ((st > 0) || (len < val.length)) ? new String (val, st, len-st) : str;
-    }
-
-    // for testing
-      public static void main (String args[]) {
-	StandaloneServletClient client = new StandaloneServletClient ();
-	String path = "///appname/some/random/path///";
-	System.out.println (client.getAppID (path));
-	System.out.println (client.getRequestPath (path));
-      }
 
 }
 

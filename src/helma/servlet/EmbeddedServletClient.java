@@ -39,34 +39,10 @@ public final class EmbeddedServletClient extends AbstractServletClient {
 	    mountpoint = "/"+appName;
     }
 
-    ResponseTrans execute (RequestTrans req, String reqPath) throws Exception {
-	req.path = getRequestPath (reqPath);
+    ResponseTrans execute (RequestTrans req) throws Exception {
 	if (app == null)
 	    app = Server.getServer().getApplication (appName);
 	return app.execute (req);
-    }
-
-
-    String getRequestPath (String path) {
-	if (path == null)
-	    return "";
-	// We already get the correct request path
-	// from the servlet container.
-	return trim (path);
-    }
-
-    String trim (String str) {
-	char[] val = str.toCharArray ();
-	int len = val.length;
-	int st = 0;
-
-	while ((st < len) && (val[st] <= ' ' || val[st] == '/'))
-	    st++;
-
-	while ((st < len) && (val[len - 1] <= ' ' || val[len - 1] == '/'))
-	    len--;
-
-	return ((st > 0) || (len < val.length)) ? new String (val, st, len-st) : str;
     }
 
 }

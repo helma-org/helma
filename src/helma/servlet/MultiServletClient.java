@@ -40,10 +40,21 @@ public class MultiServletClient extends AbstractServletClient {
 	}
     }
 
-    ResponseTrans execute (RequestTrans req, String reqPath) throws Exception {
-	String appId = getAppID (reqPath);
+    ResponseTrans execute (RequestTrans req) throws Exception {
+	// the app-id is the first element in the request path
+	// so we have to first get than and than rewrite req.path.
+	int slash = req.path.indexOf ("/");
+	String appId = null;
+	if (slash == -1) {
+	    // no slash found, path equals app-id
+	    appId = req.path;
+	    req.path = "";
+	} else {
+	    // cut path into app id and rewritten path
+	    appId = req.path.substring (0, slash);
+	    req.path = req.path.substring (slash+1);
+	}
 	IRemoteApp app = getApp (appId);
-	req.path = getRequestPath (reqPath);
 	try {
 	    return app.execute (req);
 	} catch (Exception x) {
@@ -66,59 +77,6 @@ public class MultiServletClient extends AbstractServletClient {
 	apps.remove (appId);
     }
 
-    String getAppID (String path) {
-	if (path == null)
-	    throw new RuntimeException ("Invalid request path: "+path);
-
-	char[] val = path.toCharArray ();
-	int len = val.length;
-	int st = 0;
-
-	// advance to start of path
-	while ((st < len) && (val[st] <= ' ' || val[st] == '/'))
-	    st++;
-
-	// eat characters of first path element
-	int end = st;
-	while (end < len && val[end] != '/' && val[end] > 20)
-	    end++;
-
-	return new String (val, st, end -st);
-    }
-
-    String getRequestPath (String path) {
-	if (path == null)
-	    return "";
-
-	char[] val = path.toCharArray ();
-	int len = val.length;
-	int st = 0;
-
-	// advance to start of path, eating up any slashes
-	while ((st < len) && (val[st] <= ' ' || val[st] == '/'))
-	    st++;
-
-	// advance until slash ending the first path element
-	while (st < len && val[st] != '/')
-	    st++;
-	if (st < len && val[st] == '/')
-	    st++;
-
-	// eat away spaces and slashes at end of path
-	while ((st < len) && (val[len - 1] <= ' ' || val[len - 1] == '/'))
-	    len--;
-
-	return ((st > 0) || (len < val.length)) ? new String (val, st, len-st) : path;
-    }
-
-    // for testing
-      public static void main (String args[]) {
-	MultiServletClient client = new MultiServletClient ();
-	// String path = "///appname/do/it/for/me///";
-	String path = "appname";
-	System.out.println (client.getAppID (path));
-	System.out.println (client.getRequestPath (path));
-      }
 
 }
 
