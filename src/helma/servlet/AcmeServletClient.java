@@ -171,9 +171,9 @@ public class AcmeServletClient extends HttpServlet{
 	    res.setContentLength (trans.getContentLength ());			
 	    res.setContentType (trans.contentType);
 	    try {
-	        Writer writer = res.getWriter ();
-	        writer.write (trans.getContentString ());
-	        writer.flush ();
+	        OutputStream out = new BufferedOutputStream (res.getOutputStream ());
+	        out.write (trans.getContent ());
+	        out.flush ();
 	    } catch(Exception io_e) { System.out.println ("Error in writeResponse: "+io_e); }
 	}
     }
