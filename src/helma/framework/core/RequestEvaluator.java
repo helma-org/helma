@@ -72,13 +72,11 @@ public final class RequestEvaluator implements Runnable {
 	if (scriptingEngine == null) {
 	    String engineClassName = app.getProperty (
 	            "scripting.engine.factory",
-	            "helma.scripting.fesi.FesiEngineFactory");
+	            "helma.scripting.fesi.FesiEngine");
 	    try {
 	        Class clazz = app.typemgr.loader.loadClass (engineClassName);
-	        Class[] argClasses = {app.getClass(), getClass()};
-	        Method method = clazz.getMethod ("getEngine", argClasses);
-	        Object[] args = {app, this};
-	        scriptingEngine = (ScriptingEngine) method.invoke (null, args);
+	        scriptingEngine = (ScriptingEngine) clazz.newInstance ();
+	        scriptingEngine.init (app, this);
 	    } catch (Exception x) {
 	        Throwable t = x;
 	        if (x instanceof InvocationTargetException)
