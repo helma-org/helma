@@ -1646,12 +1646,12 @@ public final class Node implements INode, Serializable {
         }
 
         // the property does not exist in our propmap - see if we should create it on the fly,
-        // either because it is mapped to an object from relational database or defined as 
+        // either because it is mapped to an object from relational database or defined as
         // collection aka virtual node
         if ((prop == null) && (dbmap != null)) {
             Relation propRel = dbmap.getPropertyRelation(propname);
 
-            // if no property relation is defined for this specific property name, 
+            // if no property relation is defined for this specific property name,
             // use the generic property relation, if one is defined.
             if (propRel == null) {
                 propRel = dbmap.getPropertyRelation();
@@ -1668,12 +1668,8 @@ public final class Node implements INode, Serializable {
 
                     pn.setDbMapping(propRel.getVirtualMapping());
                     pn.setParent(this);
-                    if (propRel.needsPersistence()) {
-                        setNode(propname, pn);
-                        prop = (Property) propMap.get(propname);
-                    } else {
-                        prop = new Property(propname, this, pn);
-                    }
+                    setNode(propname, pn);
+                    prop = (Property) propMap.get(propname);
                 }
                 // if this is from relational database only fetch if this node
                 // is itself persistent.
@@ -2408,6 +2404,14 @@ public final class Node implements INode, Serializable {
                 IProperty next = get((String) e.nextElement());
 
                 if ((next != null) && (next.getType() == IProperty.NODE)) {
+                    // check if this property actually needs to be persisted.
+                    if (dbmap != null) {
+                        Relation rel = dbmap.getExactPropertyRelation(next.getName());
+                        if (rel != null && !rel.needsPersistence()) {
+                            continue;
+                        }
+                    }
+
                     Node n = (Node) next.getNodeValue();
 
                     if ((n != null) && (n.state == TRANSIENT)) {
