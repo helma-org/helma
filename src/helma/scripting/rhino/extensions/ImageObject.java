@@ -121,7 +121,7 @@ public class ImageObject {
         public Object call(Context cx, Scriptable scope,
                            Scriptable thisObj, Object[] args) {
             if (args.length != 1) {
-                throw new IllegalArgumentException("Image.getImageInfo() expects one argument");
+                throw new IllegalArgumentException("Image.getInfo() expects one argument");
             }
 
             Object arg = args[0];
@@ -139,6 +139,18 @@ public class ImageObject {
             } else if (arg instanceof File) {
                 try {
                     in = new FileInputStream((File) arg);
+                } catch (FileNotFoundException fnf) {
+                    return null;
+                }
+            } else if (arg instanceof File) {
+                try {
+                    in = new FileInputStream((File) arg);
+                } catch (FileNotFoundException fnf) {
+                    return null;
+                }
+            } else if (arg instanceof FileObject) {
+                try {
+                    in = new FileInputStream(((FileObject)arg).getFile());
                 } catch (FileNotFoundException fnf) {
                     return null;
                 }
@@ -165,7 +177,7 @@ public class ImageObject {
             }
 
             if (in == null) {
-                String msg = "Unrecognized argument in Image.getImageInfo(): ";
+                String msg = "Unrecognized argument in Image.getInfo(): ";
                 msg += arg == null ? "null" : arg.getClass().toString();
                 throw new IllegalArgumentException(msg);
             }
