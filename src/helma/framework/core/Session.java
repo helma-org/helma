@@ -192,7 +192,7 @@ public class Session implements Serializable {
      * @param reval the request evaluator that handled the request
      */
     public void commit(RequestEvaluator reval) {
-        lastModified = Math.max(lastModified, cacheNode.lastModified());
+        // nothing to do
     }
 
     /**
