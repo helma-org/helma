@@ -34,6 +34,9 @@ public class AcmeServletClient extends HttpServlet {
 	this.uploadLimit = 1024; // generous 1mb upload limit
     }
 
+    public void init (ServletConfig config) {
+	// do nothing
+    }
 
     public void service (HttpServletRequest request, HttpServletResponse response)
 		throws ServletException, IOException {
@@ -234,6 +237,7 @@ public class AcmeServletClient extends HttpServlet {
     }
 
 }
+
 
 
 

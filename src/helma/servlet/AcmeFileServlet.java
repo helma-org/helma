@@ -60,6 +60,11 @@ public class AcmeFileServlet extends FileServlet
 	this.root = root;
 	}
 
+    public void init (ServletConfig config) {
+	// do nothing
+    }
+
+
      /// Services a single request from the client.
     // @param req the servlet request
     // @param req the servlet response
@@ -206,3 +211,4 @@ public class AcmeFileServlet extends FileServlet
 
     
     }
+
