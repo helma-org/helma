@@ -160,6 +160,10 @@ public abstract class AbstractServletClient extends HttpServlet {
 	        if (ifModifiedSince > -1)
 	            reqtrans.setIfModifiedSince (ifModifiedSince);
 	    } catch (IllegalArgumentException ignore) {}
+	    
+	    String ifNoneMatch = request.getHeader ("If-None-Match");
+	    if (ifNoneMatch != null)
+	        reqtrans.setETags (ifNoneMatch);
 
 	    String remotehost = request.getRemoteAddr ();
 	    if (remotehost != null)
@@ -214,6 +218,9 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    res.addCookie(c);
 	} catch (Exception ign) {}
 
+	if (hopres.getETag() != null) {
+	    res.setHeader ("ETag", hopres.getETag());
+	}
 	if (hopres.getRedirect () != null) {
 	    sendRedirect(req, res, hopres.getRedirect ());
 	} else if (hopres.getNotModified ()) {
