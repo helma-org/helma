@@ -284,10 +284,10 @@ public class RequestEvaluator implements Runnable {
 	                                }
 	
 	                                if (action == null) {
-	
+
 	                                    if (pathItems[i].length () == 0)
 	                                        continue;
-	
+
 	                                    currentElement = app.getChildElement (currentElement, pathItems[i]);
 
 	                                    // add object to request path if suitable
@@ -319,7 +319,7 @@ public class RequestEvaluator implements Runnable {
 	                        if (action == null)
 	                            throw new FrameworkException ("Action not found");
 	                    }
-	
+
 	                } catch (FrameworkException notfound) {
 	                    if (error != null)
 	                        // we already have an error and the error template wasn't found,
@@ -340,8 +340,12 @@ public class RequestEvaluator implements Runnable {
 
 	                try {
 	                    localrtx.timer.beginEvent (requestPath+" execute");
+
+	                    // set the req.action property
+	                    req.action = action.getName ();
+	                    // do the actual action invocation
 	                    current.doIndirectCall (evaluator, current, action.getFunctionName (), new ESValue[0]);
-	
+
 	                    // check if the script set the name of a skin to render in res.skin
 	                    if (res.skin != null) {
 	                        int dot = res.skin.indexOf (".");
@@ -362,7 +366,7 @@ public class RequestEvaluator implements Runnable {
 	                        else
 	                            throw new RuntimeException ("Skin "+res.skin+" not found in path.");
 	                    }
-	
+
 	                    localrtx.timer.endEvent (requestPath+" execute");
 	                } catch (RedirectException redirect) {
 	                    // res.redirect = redirect.getMessage ();
