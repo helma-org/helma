@@ -42,6 +42,7 @@ public class DbMapping implements Updatable {
 
     String idField;
     String nameField;
+    String extendsProto;
     
     // descriptor for key generation method
     private String idgen;
@@ -102,10 +103,11 @@ public class DbMapping implements Updatable {
 
 	this.table = props.getProperty ("_tablename");
 	this.idgen = props.getProperty ("_idgen");
+	this.extendsProto = props.getProperty ("_extends");
 
 	String sourceName = props.getProperty ("_datasource");
 	if (sourceName != null) {
-	    source = (DbSource) IServer.dbSources.get (sourceName.toLowerCase ());
+	    source = app.getDbSource (sourceName);
 	    if (source == null) {
 	        // what we really want to do here is mark the DbMapping as invalid, so no data can be saved to it.
 	        // throw new RuntimeException ("DbSource \""+sourceName+"\" not found for prototype "+typename);
@@ -230,6 +232,10 @@ public class DbMapping implements Updatable {
 
     public String getTypeName () {
 	return typename;
+    }
+
+    public String getExtends () {
+	return extendsProto;
     }
 
     /**
