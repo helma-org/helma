@@ -709,10 +709,51 @@ public final class NodeManager {
         node.setState(Node.INVALID);
     }
 
+
+    /**
+     * Generate a new ID for a given type, delegating to our IDGenerator if set.
+     */
+    public String generateID(DbMapping map) throws Exception {
+        if (idgen != null) {
+            // use our custom IDGenerator
+            return idgen.generateID(map);
+        } else {
+            return doGenerateID(map);
+        }
+    }
+
+    /**
+     * Actually generates an ID, using a method matching the given DbMapping.
+     */
+    public String doGenerateID(DbMapping map) throws Exception {
+        if ((map == null) || !map.isRelational()) {
+            // use embedded db id generator
+            return generateEmbeddedID(map);
+        }
+        String idMethod = map.getIDgen();
+        if (idMethod == null || "[max]".equalsIgnoreCase(idMethod)) {
+            // use select max as id generator
+            return generateMaxID(map);
+        } else if ("[hop]".equalsIgnoreCase(idMethod)) {
+            // use embedded db id generator
+            return generateEmbeddedID(map);
+        } else  {
+            // use db sequence as id generator
+            return generateSequenceID(map);
+        }
+    }
+
+    /**
+     * Gererates an ID for use with the embedded database.
+     */
+    synchronized String generateEmbeddedID(DbMapping map) throws Exception {
+        return db.nextID();
+    }
+
     /**
      * Generates an ID for the table by finding out the maximum current value
      */
-    public synchronized String generateMaxID(DbMapping map)
+    synchronized String generateMaxID(DbMapping map)
                                       throws Exception {
         // Transactor tx = (Transactor) Thread.currentThread ();
         // tx.timer.beginEvent ("generateID "+map);
@@ -762,28 +803,7 @@ public final class NodeManager {
         return retval;
     }
 
-    /**
-     * Generate a new ID for a given type.
-     */
-    public String generateID(DbMapping map) throws Exception {
-        if (idgen != null) {
-            // use our custom IDGenerator
-            return idgen.generateID(map);
-        } else if ((map == null) || !map.isRelational() ||
-                   "[hop]".equalsIgnoreCase(map.getIDgen())) {
-            // use embedded db id generator
-            return db.nextID();
-        } else if ((map.getIDgen() == null) ||
-                   "[max]".equalsIgnoreCase(map.getIDgen())) {
-            // use select max as id generator
-            return generateMaxID(map);
-        } else {
-            // use db sequence as id generator
-            return generateSequenceID(map);
-        }
-    }
-
-    public String generateSequenceID(DbMapping map) throws Exception {
+    String generateSequenceID(DbMapping map) throws Exception {
         // Transactor tx = (Transactor) Thread.currentThread ();
         // tx.timer.beginEvent ("generateID "+map);
         Statement stmt = null;
