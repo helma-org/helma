@@ -18,7 +18,6 @@ package helma.objectmodel.db;
 
 import helma.framework.core.Application;
 import helma.objectmodel.*;
-import helma.util.CacheMap;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -513,10 +512,6 @@ public final class NodeManager {
         String nameField = dbm.getNameField();
         String prototypeField = dbm.getPrototypeField();
 
-        if (logSql) {
-            app.logEvent("### insertNode: " + insertString);
-        }
-
         try {
             int stmtNumber = 1;
 
@@ -553,7 +548,15 @@ public final class NodeManager {
                 }
             }
 
+            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+
             stmt.executeUpdate();
+
+            if (logSql) {
+                long logTimeStop = java.lang.System.currentTimeMillis();
+                logSqlStatement("SQL INSERT", dbm.getTableName(),
+                                logTimeStart, logTimeStop, insertString);
+            }
         } finally {
             if (stmt != null) {
                 try {
@@ -651,10 +654,6 @@ public final class NodeManager {
             Connection con = dbm.getConnection();
             PreparedStatement stmt = con.prepareStatement(b.toString());
 
-            if (logSql) {
-                app.logEvent("### updateNode: " + b.toString());
-            }
-
             int stmtNumber = 0;
 
             try {
@@ -677,7 +676,16 @@ public final class NodeManager {
                     }
                 }
 
+                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+
                 stmt.executeUpdate();
+
+                if (logSql) {
+                    long logTimeStop = System.currentTimeMillis();
+                    logSqlStatement("SQL UPDATE", dbm.getTableName(),
+                                    logTimeStart, logTimeStop, b.toString());
+                }
+
             } finally {
                 if (stmt != null) {
                     try {
@@ -723,11 +731,17 @@ public final class NodeManager {
                                                              .toString();
 
                 st = con.createStatement();
+
+                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+
                 st.executeUpdate(str);
 
                 if (logSql) {
-                    app.logEvent("### deleteNode: " + str);
+                    long logTimeStop = System.currentTimeMillis();
+                    logSqlStatement("SQL DELETE", dbm.getTableName(),
+                                    logTimeStart, logTimeStop, str);
                 }
+
             } finally {
                 if (st != null) {
                     try {
@@ -761,7 +775,15 @@ public final class NodeManager {
 
             stmt = con.createStatement();
 
+            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+
             ResultSet rs = stmt.executeQuery(q);
+
+            if (logSql) {
+                long logTimeStop = System.currentTimeMillis();
+                logSqlStatement("SQL SELECT_MAX", map.getTableName(),
+                                logTimeStart, logTimeStop, q);
+            }
 
             // check for empty table
             if (!rs.next()) {
@@ -803,7 +825,15 @@ public final class NodeManager {
 
             stmt = con.createStatement();
 
+            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+
             ResultSet rs = stmt.executeQuery(q);
+
+            if (logSql) {
+                long logTimeStop = System.currentTimeMillis();
+                logSqlStatement("SQL SELECT_NEXTVAL", map.getTableName(),
+                                logTimeStart, logTimeStop, q);
+            }
 
             if (!rs.next()) {
                 throw new SQLException("Error creating ID from Sequence: empty recordset");
@@ -876,17 +906,21 @@ public final class NodeManager {
                                                 true)).toString();
                 }
 
-                if (logSql) {
-                    app.logEvent("### getNodeIDs: " + q);
-                }
-
                 stmt = con.createStatement();
 
                 if (rel.maxSize > 0) {
                     stmt.setMaxRows(rel.maxSize);
                 }
 
+                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+
                 ResultSet result = stmt.executeQuery(q);
+
+                if (logSql) {
+                    long logTimeStop = System.currentTimeMillis();
+                    logSqlStatement("SQL SELECT_IDS", table,
+                                    logTimeStart, logTimeStop, q);
+                }
 
                 // problem: how do we derive a SyntheticKey from a not-yet-persistent Node?
                 Key k = (rel.groupby != null) ? home.getKey() : null;
@@ -969,15 +1003,19 @@ public final class NodeManager {
                                             true));
                 }
 
-                if (logSql) {
-                    app.logEvent("### getNodes: " + q.toString());
-                }
-
                 if (rel.maxSize > 0) {
                     stmt.setMaxRows(rel.maxSize);
                 }
 
+                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+
                 ResultSet rs = stmt.executeQuery(q.toString());
+
+                if (logSql) {
+                    long logTimeStop = System.currentTimeMillis();
+                    logSqlStatement("SQL SELECT_ALL", dbm.getTableName(),
+                                    logTimeStart, logTimeStop, q.toString());
+                }
 
                 while (rs.next()) {
                     // create new Nodes.
@@ -1078,13 +1116,15 @@ public final class NodeManager {
                         }
                     }
 
-                    if (logSql) {
-                        app.logEvent("### prefetchNodes: " + q.toString());
-                    }
+                    long logTimeStart = logSql ? System.currentTimeMillis() : 0;
 
                     ResultSet rs = stmt.executeQuery(q.toString());
 
-                    ;
+                    if (logSql) {
+                        long logTimeStop = System.currentTimeMillis();
+                        logSqlStatement("SQL SELECT_PREFETCH", dbm.getTableName(),
+                                        logTimeStart, logTimeStop, q.toString());
+                    }
 
                     String groupbyProp = null;
                     HashMap groupbySubnodes = null;
@@ -1231,13 +1271,17 @@ public final class NodeManager {
                                                 false)).toString();
                 }
 
-                if (logSql) {
-                    app.logEvent("### countNodes: " + q);
-                }
-
                 stmt = con.createStatement();
 
+                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+
                 ResultSet rs = stmt.executeQuery(q);
+
+                if (logSql) {
+                    long logTimeStop = System.currentTimeMillis();
+                    logSqlStatement("SQL SELECT_COUNT", table,
+                                    logTimeStart, logTimeStop, q);
+                }
 
                 if (!rs.next()) {
                     retval = 0;
@@ -1306,11 +1350,15 @@ public final class NodeManager {
 
                 stmt = con.createStatement();
 
-                if (logSql) {
-                    app.logEvent("### getPropertyNames: " + q);
-                }
+                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
 
                 ResultSet rs = stmt.executeQuery(q.toString());
+
+                if (logSql) {
+                    long logTimeStop = System.currentTimeMillis();
+                    logSqlStatement("SQL SELECT_ACCESSNAMES", table,
+                                    logTimeStart, logTimeStop, q.toString());
+                }
 
                 while (rs.next()) {
                     String n = rs.getString(1);
@@ -1378,11 +1426,15 @@ public final class NodeManager {
 
                 dbm.addJoinConstraints(q, " AND ");
 
-                if (logSql) {
-                    app.logEvent("### getNodeByKey: " + q.toString());
-                }
+                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
 
                 ResultSet rs = stmt.executeQuery(q.toString());
+
+                if (logSql) {
+                    long logTimeStop = System.currentTimeMillis();
+                    logSqlStatement("SQL SELECT_BYKEY", dbm.getTableName(),
+                                    logTimeStart, logTimeStop, q.toString());
+                }
 
                 if (!rs.next()) {
                     return null;
@@ -1476,13 +1528,17 @@ public final class NodeManager {
                                             false));
                 }
 
-                if (logSql) {
-                    app.logEvent("### getNodeByRelation: " + q.toString());
-                }
-
                 stmt = con.createStatement();
 
+                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+
                 ResultSet rs = stmt.executeQuery(q.toString());
+
+                if (logSql) {
+                    long logTimeStop = System.currentTimeMillis();
+                    logSqlStatement("SQL SELECT_BYRELATION", dbm.getTableName(),
+                                    logTimeStart, logTimeStop, q.toString());
+                }
 
                 if (!rs.next()) {
                     return null;
@@ -1978,5 +2034,17 @@ public final class NodeManager {
                     break;
             }
         }
+    }
+
+    private void logSqlStatement(String type, String table,
+                                 long logTimeStart, long logTimeStop, String statement) {
+        app.logEvent(new StringBuffer().append(type)
+                                       .append(" ")
+                                       .append(table)
+                                       .append(" ")
+                                       .append((logTimeStop - logTimeStart))
+                                       .append(": ")
+                                       .append(statement.toString())
+                                       .toString());
     }
 }
