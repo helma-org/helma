@@ -810,9 +810,9 @@ public final class DbMapping implements Updatable {
                                    this);
         }
 
-        if ((dbSource == null) && (parentMapping != null)) {
+        /* if ((dbSource == null) && (parentMapping != null)) {
             return parentMapping.getColumns();
-        }
+        } */
 
         // Use local variable cols to avoid synchronization (schema may be nulled elsewhere)
         if (columns == null) {
@@ -845,9 +845,7 @@ public final class DbMapping implements Updatable {
                 Relation rel = columnNameToRelation(colName);
 
                 DbColumn col = new DbColumn(colName, meta.getColumnType(i + 1), rel, this);
-                // if (col.isMapped()) {
-                    list.add(col);
-                // }
+                list.add(col);
             }
             columns = new DbColumn[list.size()];
             columns = (DbColumn[]) list.toArray(columns);
