@@ -166,7 +166,7 @@ public final class TypeManager {
                     if (zipped == null) {
                         File f = new File(appDir, list[i]);
 
-                        if (!f.isDirectory()) {
+                        if (!f.isDirectory() && f.exists()) {
                             zipped = new ZippedAppFile(f, app);
                             zipfiles.put(list[i], zipped);
                         }
