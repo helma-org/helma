@@ -14,8 +14,6 @@ public interface IRemoteApp extends Remote {
 
     public ResponseTrans execute (RequestTrans param) throws RemoteException;
 
-    public void replicateCache (Vector add, Vector delete) throws RemoteException;
-
     public void ping () throws RemoteException;
  
   }
