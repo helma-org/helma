@@ -393,9 +393,7 @@ public class Node implements INode, Serializable {
 	// node.setState (TRANSIENT);
 	// make a db mapping good enough that the virtual node finds its subnodes
 	DbMapping dbm = new DbMapping ();
-	dbm.setSubnodeMapping (rel.other);
 	dbm.setSubnodeRelation (rel);
-	dbm.setPropertyMapping (rel.other);
 	dbm.setPropertyRelation (rel);
 	node.setDbMapping (dbm);
 	setNode (propname, node);

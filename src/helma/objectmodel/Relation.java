@@ -13,15 +13,27 @@ import java.util.Properties;
  */
 public class Relation {
 
-    // TODO: explain hop mapping types
+    // these constants define different type of property-to-db-mappings
+
+    // there is an error in the description of this relation
     public final static int INVALID = -1;
+     // a mapping of a non-object, scalar type
     public final static int PRIMITIVE = 0;
+     // a 1-to-1 relation, i.e. a field in the table is a foreign key to another object
     public final static int FORWARD = 1;
+    // a 1-to-many relation, a field in another table points to objects of this type
     public final static int BACKWARD = 2;
+    // direct mapping is a very powerful feature: objects of some types can be directly accessed
+    // by one of their properties/db fields.
     public final static int DIRECT = 3;
 
+    // the DbMapping of the type we come from
     public DbMapping home;
+    // the DbMapping of the prototype we link to, unless this is a "primitive" (non-object) relation
     public DbMapping other;
+    //  if this relation defines a virtual node, we need a DbMapping for these virtual nodes
+    DbMapping virtualMapping;
+
     public String propname;
     protected String localField, remoteField;
     public int direction;
@@ -34,31 +46,39 @@ public class Relation {
     public String order;
     public String groupbyorder;
     public String groupby;
+    public String dogroupby;
     public String prototype;
     public String groupbyprototype;
     public String filter;
 
-    Relation subnoderelation = null; // additional relation used to filter subnodes
+    Relation subnoderelation = null; // additional relation used to filter subnodes for virtual nodes
 
     /**
-     * This constructor is used to directly construct a Relation, as opposed to reading it from a proerty file
+     * This constructor makes a copy of an existing relation. Not all fields are copied, just those
+     * which are needed in groupby- and virtual nodes defined by this relation.
      */
-    public Relation (DbMapping other, String localField, String remoteField, int direction, boolean subnodesAreProperties) {
-	this.other = other;
-	this.localField = localField;
-	this.remoteField = remoteField;
-	this.direction = direction;
-	this.subnodesAreProperties = subnodesAreProperties;
+    public Relation (Relation rel) {
+	this.home = rel.home;
+	this.other = rel.other;
+	this.localField = rel.localField;
+	this.remoteField = rel.remoteField;
+	this.direction = rel.direction;
+	this.subnodesAreProperties = rel.subnodesAreProperties;
     }
 
     /**
      * Reads a relation entry from a line in a properties file.
      */
     public Relation (String desc, String propname, DbMapping home, Properties props) {
-
 	this.home = home;
 	this.propname = propname;
 	other = null;
+	
+	update (desc, props);
+    }
+
+    public void update (String desc, Properties props) {
+	
 	Application app = home.getApplication ();
 	boolean mountpoint = false;
 
@@ -179,6 +199,12 @@ public class Relation {
 	                subnoderelation.order = order;
 	            }
 	        }
+	        // update virtual mapping, if it already exists
+	        if (virtualMapping != null) {
+	            virtualMapping.subnodesRel = getVirtualSubnodeRelation ();
+	            virtualMapping.propertiesRel = getVirtualPropertyRelation ();
+	            virtualMapping.lastTypeChange = home.lastTypeChange;
+	        }
 	    }
 	}
     }
@@ -200,23 +226,6 @@ public class Relation {
 	return subnoderelation;
     }
 
-    /**
-     * Gets a key string to cache a node with a specific value for this relation. If the
-     * Relation uses the primary key return just the key value, otherwise include info on the
-     * used column or even the base node to avoid collisions.
-     */
-    /* public String getKeyID (INode home, String kval) {
-	// if the column is not the primary key, we add the column name to the key
-	if ((direction == DIRECT || direction == FORWARD) && !usesPrimaryKey ()) {
-	    // check if the subnode relation also has to be considered
-	    if (subnodesAreProperties)
-	        return "["+home.getID()+"]"+remoteField+"="+kval; // HACK
-	    else
-	        return remoteField+"="+kval;
-	} else {
-	    return kval;
-	}
-    } */
 
     /**
      * Get the local column name for this relation to use in where clauses of select statements.
@@ -247,18 +256,29 @@ public class Relation {
 	return remoteField;
     }
 
+    public DbMapping getVirtualMapping () {
+	if (!virtual)
+	    return null;
+	if (virtualMapping == null) {
+	    virtualMapping = new DbMapping ();
+	    virtualMapping.subnodesRel = getVirtualSubnodeRelation ();
+	    virtualMapping.propertiesRel = getVirtualPropertyRelation ();
+	}
+	return virtualMapping;
+    }
+
 
     /**
      * Return a Relation that defines the subnodes of a virtual node.
      */
-    public Relation getVirtualSubnodeRelation () {
+    Relation getVirtualSubnodeRelation () {
 	if (!virtual)
 	    throw new RuntimeException ("getVirtualSubnodeRelation called on non-virtual relation");
 	Relation vr = null;
 	if (subnoderelation != null)
-	    vr = subnoderelation.makeClone ();
+	    vr = new Relation (subnoderelation);
 	else
-	    vr = makeClone ();
+	    vr = new Relation (this);
 	vr.groupby = groupby;
 	vr.groupbyorder = groupbyorder;
 	vr.groupbyprototype = groupbyprototype;
@@ -273,10 +293,10 @@ public class Relation {
     /**
      * Return a Relation that defines the properties of a virtual node.
      */
-    public Relation getVirtualPropertyRelation () {
+    Relation getVirtualPropertyRelation () {
 	if (!virtual)
 	    throw new RuntimeException ("getVirtualPropertyRelation called on non-virtual relation");
-	Relation vr = makeClone ();
+	Relation vr = new Relation (this);
 	vr.groupby = groupby;
 	vr.groupbyorder = groupbyorder;
 	vr.groupbyprototype = groupbyprototype;
@@ -289,35 +309,33 @@ public class Relation {
     /**
      * Return a Relation that defines the subnodes of a group-by node.
      */
-    public Relation getGroupbySubnodeRelation () {
+    Relation getGroupbySubnodeRelation () {
 	if (groupby == null)
 	    throw new RuntimeException ("getGroupbySubnodeRelation called on non-group-by relation");
 	Relation vr = null;
 	if (subnoderelation != null)
-	    vr =  subnoderelation.makeClone ();
+	    vr =  new Relation (subnoderelation);
 	else
-	    vr =  makeClone ();
+	    vr =  new Relation (this);
 	vr.order = order;
 	vr.prototype = groupbyprototype;
 	vr.filter = filter;
+	vr.dogroupby = groupby;
 	return vr;
     }
 
     /**
      * Return a Relation that defines the properties of a group-by node.
      */
-    public Relation getGroupbyPropertyRelation () {
+    Relation getGroupbyPropertyRelation () {
 	if (groupby == null)
 	    throw new RuntimeException ("getGroupbyPropertyRelation called on non-group-by relation");
-	Relation vr = makeClone ();
+	Relation vr = new Relation (this);
 	vr.order = order;
 	vr.prototype = groupbyprototype;
 	vr.filter = filter;
+	vr.dogroupby = groupby;
 	return vr;
-    }
-
-    public Relation makeClone () {
-	return new Relation (other, localField, remoteField, direction, subnodesAreProperties);
     }
 
 

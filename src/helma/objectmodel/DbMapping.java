@@ -37,10 +37,13 @@ public class DbMapping implements Updatable {
 
     ParentInfo[] parent;  // list of properties to try for parent
 
-    DbMapping subnodes;
-    DbMapping properties;
+    // DbMapping subnodes;
+    // DbMapping properties;
     Relation subnodesRel;
     Relation propertiesRel;
+
+    // if this defines a subnode mapping with groupby layer, we need a DbMapping for those groupby nodes
+    DbMapping groupbyMapping;
 
      // Map of property names to Relations objects
     Hashtable prop2db;
@@ -88,8 +91,8 @@ public class DbMapping implements Updatable {
 	db2prop = new Hashtable ();
 
 	parent = null;
-	subnodes = null;
-	properties = null;
+	// subnodes = null;
+	// properties = null;
 	idField = "id";
     }
 
@@ -105,8 +108,8 @@ public class DbMapping implements Updatable {
 	db2prop = new Hashtable ();
 
 	parent = null;
-	subnodes = null;
-	properties = null;
+	// subnodes = null;
+	// properties = null;
 	idField = "id";
 
 	this.props = props;
@@ -191,9 +194,16 @@ public class DbMapping implements Updatable {
 	    try {
 	        if (!propName.startsWith ("_") && propName.indexOf (".") < 0) {
 	            String dbField = props.getProperty (propName);
-	            Relation rel = new Relation (dbField, propName, this, props);
+	            // check if a relation for this propery already exists. If so, reuse it
+	            Relation rel = propertyToRelation (propName);
+	            if (rel == null)
+	                rel = new Relation (dbField, propName, this, props);
+	            else
+	                rel.update (dbField, props);
 	            p2d.put (propName, rel);
-	            if (rel.localField != null)
+	            if (rel.localField != null &&
+	            		(rel.direction == Relation.PRIMITIVE ||
+	            		rel.direction == Relation.FORWARD))
 	                d2p.put (rel.localField, rel);
 	            // app.logEvent ("Mapping "+propName+" -> "+dbField);
 	        }
@@ -208,14 +218,18 @@ public class DbMapping implements Updatable {
 	String subnodeMapping = props.getProperty ("_subnodes");
 	if (subnodeMapping != null) {
 	    try {
-	        subnodesRel = new Relation (subnodeMapping, "_subnodes", this, props);
-	        if (subnodesRel.isReference ())
-	            subnodes = subnodesRel.other;
+	        // check if subnode relation already exists. If so, reuse it
+	        if (subnodesRel == null)
+	            subnodesRel = new Relation (subnodeMapping, "_subnodes", this, props);
 	        else
-	            subnodes = (DbMapping) app.getDbMapping (subnodeMapping);
+	            subnodesRel.update (subnodeMapping, props);
+	        // if (subnodesRel.isReference ())
+	            // subnodes = subnodesRel.other;
+	        // else
+	        //     subnodes = (DbMapping) app.getDbMapping (subnodeMapping);
 	    } catch (Exception x) {
-	        app.logEvent ("Error in type.properties: "+x.getMessage ());
-	        subnodesRel = null;
+	        app.logEvent ("Error reading _subnodes relation for "+typename+": "+x.getMessage ());
+	        // subnodesRel = null;
 	    }
 	} else
 	    subnodesRel = null;
@@ -223,22 +237,30 @@ public class DbMapping implements Updatable {
 	String propertiesMapping = props.getProperty ("_properties");
 	if (propertiesMapping != null) {
 	    try {
-	        propertiesRel = new Relation (propertiesMapping, "_properties", this, props);
-	        if (propertiesRel.isReference ())
-	            properties = propertiesRel.other;
+	        // check if property relation already exists. If so, reuse it
+	        if (propertiesRel == null)
+	            propertiesRel = new Relation (propertiesMapping, "_properties", this, props);
 	        else
-	            properties = (DbMapping) app.getDbMapping (propertiesMapping);
+	            propertiesRel.update (propertiesMapping, props);
+	        // if (propertiesRel.isReference ())
+	        //     properties = propertiesRel.other;
+	        // else
+	        //     properties = (DbMapping) app.getDbMapping (propertiesMapping);
 	        // take over groupby flag from subnodes, if properties are subnodes
 	        if (propertiesRel.subnodesAreProperties && subnodesRel != null)
 	            propertiesRel.groupby = subnodesRel.groupby;
 	    } catch (Exception x) {
-	        app.logEvent ("Error in type.properties: "+x.getMessage ());
-	        propertiesRel = null;
+	        app.logEvent ("Error reading _properties relation for "+typename+": "+x.getMessage ());
+	        // propertiesRel = null;
 	    }
 	} else
 	    propertiesRel = null;
 
-	// app.logEvent ("rewiring: "+this);
+	if (groupbyMapping != null) {
+	    groupbyMapping.subnodesRel = subnodesRel == null ? null : subnodesRel.getGroupbySubnodeRelation ();
+	    groupbyMapping.propertiesRel = propertiesRel == null ? null : propertiesRel.getGroupbyPropertyRelation ();
+	    groupbyMapping.lastTypeChange = this.lastTypeChange;
+	}
     }
 
 
@@ -323,20 +345,45 @@ public class DbMapping implements Updatable {
     /**
      * Translate a database column name to an object property name according to this mapping.
      */
-    public Relation columnNameToProperty (String columnName) {
+    public String columnNameToProperty (String columnName) {
 	if (table == null && parentMapping != null)
 	    return parentMapping.columnNameToProperty (columnName);
+	Relation rel = (Relation) db2prop.get (columnName);
+	if (rel != null  && (rel.direction == Relation.PRIMITIVE || rel.direction == Relation.FORWARD))
+	    return rel.propname;
+	return null;
+    }
+
+    /**
+     * Translate an object property name to a database column name according to this mapping.
+     */
+    public String propertyToColumnName (String propName) {
+	if (table == null && parentMapping != null)
+	    return parentMapping.propertyToColumnName (propName);
+	Relation rel = (Relation) prop2db.get (propName);
+	if (rel != null  && (rel.direction == Relation.PRIMITIVE || rel.direction == Relation.FORWARD))
+	    return rel.localField;
+	return null;
+    }
+
+    /**
+     * Translate a database column name to an object property name according to this mapping.
+     */
+    public Relation columnNameToRelation (String columnName) {
+	if (table == null && parentMapping != null)
+	    return parentMapping.columnNameToRelation (columnName);
 	return (Relation) db2prop.get (columnName);
     }
 
     /**
      * Translate an object property name to a database column name according to this mapping.
      */
-    public Relation propertyToColumnName (String propName) {
+    public Relation propertyToRelation (String propName) {
 	if (table == null && parentMapping != null)
-	    return parentMapping.propertyToColumnName (propName);
+	    return parentMapping.propertyToRelation (propName);
 	return (Relation) prop2db.get (propName);
     }
+
 
     public synchronized ParentInfo[] getParentInfo () {
     	if (parent == null && parentMapping != null)
@@ -346,14 +393,13 @@ public class DbMapping implements Updatable {
 
 
     public DbMapping getSubnodeMapping () {
-    	if (subnodes == null && parentMapping != null)
+	if (subnodesRel != null)
+	    return subnodesRel.other;
+    	if (parentMapping != null)
     	    return parentMapping.getSubnodeMapping ();
-	return subnodes;
+	return null;
     }
 
-    public void setSubnodeMapping (DbMapping sm) {
-	subnodes = sm;
-    }
 
     public DbMapping getExactPropertyMapping (String propname) {
 	if (propname == null)
@@ -365,8 +411,13 @@ public class DbMapping implements Updatable {
     }
 
     public DbMapping getPropertyMapping (String propname) {
-	if (propname == null)
-	    return properties;
+	if (propname == null) {
+	    if (propertiesRel != null)
+	        return propertiesRel.other;
+	    if (parentMapping != null)
+	        return parentMapping.getPropertyMapping (null);
+	}
+	
 	Relation rel = (Relation) prop2db.get (propname.toLowerCase());
 	if (rel != null) {
 	    // if this is a virtual node, it doesn't have a dbmapping
@@ -376,15 +427,31 @@ public class DbMapping implements Updatable {
 	        return rel.other;
 	}
 	
-	if (properties == null && parentMapping != null)
+	if (propertiesRel != null)
+	    return propertiesRel.other;
+	if (parentMapping != null)
 	    return parentMapping.getPropertyMapping (propname);
-	
-	return properties;
+	return null;
     }
 
-    public void setPropertyMapping (DbMapping pm) {
-	properties = pm;
+    public DbMapping getGroupbyMapping () {
+	if (subnodesRel == null || subnodesRel.groupby == null)
+	    return null;
+	if (groupbyMapping == null) {
+	    groupbyMapping = new DbMapping ();
+	    groupbyMapping.subnodesRel = subnodesRel.getGroupbySubnodeRelation ();
+	    if (propertiesRel != null)
+	        groupbyMapping.propertiesRel = propertiesRel.getGroupbyPropertyRelation ();
+	    else
+	        groupbyMapping.propertiesRel = subnodesRel.getGroupbyPropertyRelation ();
+	    groupbyMapping.typename = subnodesRel.prototype;
+	}
+	return groupbyMapping;
     }
+
+    /* public void setPropertyMapping (DbMapping pm) {
+	properties = pm;
+    } */
 
     public void setSubnodeRelation (Relation rel) {
 	subnodesRel = rel;

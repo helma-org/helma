@@ -44,6 +44,15 @@ public class DbSource {
 	    // false here and make commit/rollback invocations in Transactor methods;
 	    IServer.getLogger().log ("Created new Connection to "+url);
 	    tx.registerConnection (this, con);
+	    //////////////////////////////////////////////
+	   /*  DatabaseMetaData meta = con.getMetaData ();
+	    ResultSet tables = meta.getCatalogs ();
+	    while (tables.next())
+	        System.err.println ("********* TABLE: "+ tables.getObject (1));
+	    ResultSet types = meta.getTypeInfo ();
+	    while (types.next())
+	        System.err.println ("******* TYPE: "+types.getObject(1) +" - "+types.getObject(2)+" - "+types.getObject(6));
+	    */
 	}
 	return con;
     }
