@@ -1,93 +1,97 @@
 This is the README file for version 1.2 of Helma Object Publisher.
 
-============================
-ABOUT HELMA OBJECT PUBLISHER
-============================
+===========
+ABOUT HELMA
+===========
 
-Helma Object Publisher is a web application server.
+Helma is a scriptable platform for creating dynamic, database backed 
+web sites.
 
-With Helma Object Publisher (sometimes simply refered to as Helma or
-Hop) you can define Objects and map them to a relational database
-table. These so-called HopObjects can be created, modified and deleted
-using a comfortable object/container model. Hence, no manual fiddling
-around with database code is necessary.
+Helma provides an easy way to map relational database tables to objects.
+These objects are wrapped with a layer of scripts and skins that allow
+them to be presented and manipulated over the web. The clue here is that
+both functions and skins work in an object oriented manner and force
+a clear separation between content, functionality and presentation.
+Actions are special functions that are callable over the web. Macros are
+special functions that expose functionality to the presentation layer. 
+Skins are pieces of layout that do not contain any application logic, 
+only macro tags as placeholders for parts that are dynamically provided 
+by the application.
 
-HopObjects are extended JavaScript objects which can be scripted using
-server-side JavaScript. Beyond the common JavaScript features, Helma
-provides special "skin" and template functionalities which facilitate
-the rendering of objects via a web interface.
-
-Thanks to Helma's relational database mapping technology, HopObjects
-create a hierarchical structure, the Url space of a Helma site. The
-parts between slashes in a Helma Url represent HopObjects (similar to
-the document tree in static sites). The Helma Url space can be thought
-of as an analogy to the Document Object Model (Dom) in client-side
-JavaScript.
-
+In short, Helma provides a one stop framework to create web applications 
+with less code and in shorter time than most of the other software out 
+there.
 
 ===================
 SYSTEM REQUIREMENTS
 ===================
 
-Windows: 1) On Windows Helma won't run with Microsoft's version of
-Java (jview). You can get a compatible Java runtime from Sun or IBM:
-http://java.sun.com/j2se/1.3/jre/download-windows.html
-http://www.ibm.com/java/jdk/download/ 2) In the Windows start script
-I've hardcoded c:\java\lib\classes.zip  in the CLASSPATH argument. Not
-good.
+You need a Java virtual machine 1.3 or higher to run Helma.
 
-Macintosh: 1) If you are using the Mac version you should own a G3 CPU
-and/or  have MRJ 2.2 (http://www.apple.com/java) installed. Other
-platforms  have less frustration potential. The Mac OS version
-currently is not up-to-date (version 0.1).
+For Windows, Linux and Solaris you can get a Java runtime or development 
+kit from http://java.sun.com/j2se/downloads.html.
 
-Linux: The recomended virtual machine for running Helma on Linux is
-Blackdown's  port of JDK 1.2.2 RC4
-(http://www.blackdown.org/java-linux/mirrors.html).  JDK 1.1.7v3 will
-work, but much slower and show a lot of CPU activity  even when the
-Helma is idle. IBM's version of JDK 1.1.8 also works well,  but this
-JVM has some problems of its own with thread handling.
+If you are on Mac OS X, you already have a Java runtime that will work 
+well with Helma.
 
+Unfortunately, there is no Java 2 interpreter for Mac OS Classic, so
+you can't use Helma on Mac OS 9.
 
 ============================
 INSTALLING AND RUNNING HELMA
 ============================
 
-Simply unzip the contents of the archive file into any place on your
-hard disk. Start Helma by opening the file hop.bat or hop.sh,
-respectively.
+Simply unzip or untar the contents of the archive file into any place 
+on your hard disk. Start Helma by invoking hop.bat or hop.sh from the 
+command line, depending on whether you are on Windows or 
+Linux/Unix/MacOSX. If the java command is not found, try setting the
+JAVA_HOME variable in the start script to the location of your Java
+installation. 
+
+You may also want to have a look at the start script for other settings.
+You can adjust server wide settings in the server.properties file. For
+example, you should set the smtp property to the name of the SMTP server
+that Helma should use to send Email. Applications can be started or
+stopped by editing the apps.properties file through the web interface
+using the Management application that is part of Helma.
 
 If you manage to get it running you should be able to connect your
-browser to http://127.0.0.1:8080/ (port 8080, that is).
+browser to http://localhost:8080/ or http://127.0.0.1:8080/ 
+(port 8080 on the local machine, that is).
 
-This version is set up to use its own embedded Web server and a very
-basic embedded object database. For this reason it is able to run
-virtually without installation on any platform with a Java 1.1 virtual
-machine.
+Helma comes with a version of Jetty, a lightweight yet industrial strenth
+web server developed by Mortbay Consulting. See http://jetty.mortbay.com/
+for more information. While Jetty works well for deploying real web sites,
+you may want to run Helma behind an existing web server. This is most
+easily done by running Helma with the AJPv13 listener which allows you to
+plug Helma into any web server using the Apache mod_jk module. See
+http://jakarta.apache.org/tomcat/tomcat-4.1-doc/jk2/index.html for more
+information on mod_jk and AJPv13.
 
-On the other hand, the embedded Web server and object db are meant for
-development work and not ready for prime time deployment. For that
-you'd probably use an external relational database, the Berkeley DB
-package and a full featured Web server like Apache.
+Finally, Helma can be plugged into Servlet containers using Servlet
+classes that communicate with Helma either directly or via Java RMI.
+(Be warned that these options may be harder to set up and maintain though,
+since most of the recent development efforts have been geared towards the
+mod_jk/AJPv13 setup.)
 
 
 =====================================
 DOCUMENTATION AND FURTHER INFORMATION
 =====================================
 
-Currently, a documentation-in-progress is available online only.
-Please refer to http://helma.org/docs/.
+Currently, documentation-in-progress is available online at
+http://helma.org/. We know that it sucks and hope to do some substantial
+improvments within the coming weeks and months.
 
-For further information http://helma.org generally is a good place.
-There is also a mailing-list about Helma-related stuff available at
-http://helma.org/lists/listinfo/hop.
+Your input is highly welcome. There is a mailing-list to discuss Helma at
+http://helma.org/lists/listinfo/hop. Don't hesitate to voice any questions,
+proposals, complaints, praise you may have on the list. We know we have
+a lot to do and to learn, and we're open to suggestions.
 
-For questions, comments or suggestions feel free to contact
-tobi@helma.at.
-
+For questions, comments or suggestions also feel free to contact
+hannes@helma.at.
 
 
 --
 
-This document was last modified on Friday 22 June 2001 by
-tobi@helma.at
+Last modified on December 5, 2002 by Hannes Wallnoefer <hannes@helma.at>
