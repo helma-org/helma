@@ -28,10 +28,6 @@ public final class EmbeddedServletClient extends AbstractServletClient {
 	super ();
     }
 
-    /* public EmbeddedServletClient (String appName, String servletPath) {
-	this.appName = appName;
-	this.servletPath = servletPath;
-    } */
 
     public void init (ServletConfig init) throws ServletException {
 	super.init (init);
