@@ -25,7 +25,7 @@ import FESI.Exceptions.*;
 /**
  * This is the implementation of ScriptingEnvironment for the FESI EcmaScript interpreter.
  */
-public final class FesiEngine implements ScriptingEngine {
+public class FesiEngine implements ScriptingEngine {
 
     // the application we're running in
     Application app;
@@ -80,8 +80,7 @@ public final class FesiEngine implements ScriptingEngine {
 	wrappercache = new CacheMap (200, .75f);
 	prototypes = new Hashtable ();
 	try {
-	    evaluator = new Evaluator();
-	    evaluator.engine = this;
+	    evaluator = new Evaluator(this);
 	    global = evaluator.getGlobalObject();
 	    for (int i=0; i<extensions.length; i++)
 	        evaluator.addExtension (extensions[i]);
@@ -751,6 +750,13 @@ public final class FesiEngine implements ScriptingEngine {
      */
     public void putNodeWrapper (INode n, ESNode esn) {
 	wrappercache.put (n, esn);
+    }
+
+    /**
+     *  Return the application's classloader
+     */
+    public ClassLoader getClassLoader () {
+	return app.getClassLoader ();
     }
 
     /**

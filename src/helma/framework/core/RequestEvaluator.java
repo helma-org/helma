@@ -72,9 +72,9 @@ public final class RequestEvaluator implements Runnable {
 	if (scriptingEngine == null) {
 	    String engineClassName = app.getProperty (
 	            "scriptingEngine",
-	            "helma.scripting.fesi.FesiEngine");
+	            "helma.scripting.fesi.PhantomEngine");
 	    try {
-	        Class clazz = app.typemgr.loader.loadClass (engineClassName);
+	        Class clazz = app.getClassLoader().loadClass (engineClassName);
 	        scriptingEngine = (ScriptingEngine) clazz.newInstance ();
 	        scriptingEngine.init (app, this);
 	    } catch (Exception x) {
@@ -666,6 +666,7 @@ public final class RequestEvaluator implements Runnable {
 	if (rtx == null || !rtx.isAlive()) {
 	    // app.logEvent ("Starting Thread");
 	    rtx = new Transactor (this, app.threadgroup, app.nmgr);
+	    rtx.setContextClassLoader (app.getClassLoader ());
 	    rtx.start ();
 	} else {
 	    notifyAll ();
