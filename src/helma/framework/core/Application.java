@@ -117,6 +117,8 @@ public final class Application
 
     // DocApplication used for introspection
     public DocApplication docApp;
+    
+    private long lastPropertyRead = 0l;
 
     /**
      *  Zero argument constructor needed for RMI
@@ -209,18 +211,7 @@ public final class Application
 	// get class name of root object if defined. Otherwise native Helma objectmodel will be used.
 	rootObjectClass = classMapping.getProperty ("root");
 
-	// character encoding to be used for responses
-	charset = props.getProperty ("charset", "ISO-8859-1");
-
-	debug = "true".equalsIgnoreCase (props.getProperty ("debug"));
-	// checkSubnodes = !"false".equalsIgnoreCase (props.getProperty ("subnodeChecking"));
-
-
-	try {
-	    requestTimeout = Long.parseLong (props.getProperty ("requestTimeout", "60"))*1000l;
-	} catch (Exception ignore) {
-	    // go with default value
-	}
+	updateProperties ();
 
 	sessions = new Hashtable ();
 	dbSources = new Hashtable ();
@@ -256,15 +247,17 @@ public final class Application
 	freeThreads = new Stack ();
 	allThreads = new Vector ();
 	// allThreads.addElement (eval);
-	/* int maxThreads = 12;
+	
+	// preallocate minThreads request evaluators
+	int minThreads = 0;
 	try {
-	    maxThreads = Integer.parseInt (props.getProperty ("maxThreads"));
+	    minThreads = Integer.parseInt (props.getProperty ("minThreads"));
 	} catch (Exception ignore) {}
-	for (int i=0; i<maxThreads; i++) {
+	for (int i=0; i<minThreads; i++) {
 	    RequestEvaluator ev = new RequestEvaluator (this);
 	    freeThreads.push (ev);
 	    allThreads.addElement (ev);
-	} */
+	}
 	activeRequests = new Hashtable ();
 
 	skinmgr = new SkinManager (this);
@@ -275,7 +268,6 @@ public final class Application
 	String usernameField = userMapping.getNameField ();
 	if (usernameField == null)
 	    usernameField = "name";
-	p.put ("_version","1.2");
 	p.put ("_children", "collection(user)");
 	p.put ("_children.accessname", usernameField);
 	userRootMapping = new DbMapping (this, "__userroot__", p);
@@ -458,6 +450,10 @@ public final class Application
 	        primaryRequest = true;
 	        // if attachRequest returns null this means we came too late
 	        // and the other request was finished in the meantime
+
+	        // check if the properties file has been updated
+	        updateProperties ();
+	        // get evaluator and invoke 
 	        ev = getEvaluator ();
 	        res = ev.invoke (req, session);
 	    }
@@ -830,18 +826,10 @@ public final class Application
      * Return a path to be used in a URL pointing to the given element  and action
      */
     public String getNodeHref (Object elem, String actionName) {
-	// FIXME: will fail for non-node roots
 	Object root = getDataRoot ();
-	INode users = getUserRoot ();
 
-	// check base uri and optional root prototype from app.properties
-	String base = props.getProperty ("baseURI");
+	// check optional root prototype from app.properties
 	String rootproto = props.getProperty ("rootPrototype");
-
-	if (base != null || baseURI == null)
-	    setBaseURI (base);
-
-	// String href = n.getUrl (root, users, tmpname, siteroot);
 
 	String divider = "/";
 	StringBuffer b = new StringBuffer ();
@@ -1201,6 +1189,32 @@ public final class Application
     }
 
 
+    private synchronized void updateProperties () {
+	// if so property file has been updated, re-read props.
+	if (props.lastModified () > lastPropertyRead) {
+	    // character encoding to be used for responses
+	    charset = props.getProperty ("charset", "ISO-8859-1");
+	    // debug flag
+	    debug = "true".equalsIgnoreCase (props.getProperty ("debug"));
+	     try {
+	        requestTimeout = Long.parseLong (props.getProperty ("requestTimeout", "60"))*1000l;
+	    } catch (Exception ignore) {
+	        // go with default value
+	        requestTimeout = 60000l;
+	    }
+	    // set base URI
+	    String base = props.getProperty ("baseURI");
+	    if (base != null)
+	        setBaseURI (base);
+	    // if node manager exists, update it
+	    if (nmgr != null)
+	        nmgr.updateProperties (props);
+	    // set prop read timestamp
+	    lastPropertyRead = props.lastModified ();
+	}
+    }
+
+
     /**
      * Proxy method to get a property from the applications properties.
      */
@@ -1359,8 +1373,8 @@ class XmlRpcAccess {
 	    throw new Exception ("Method "+method+" is not callable via XML-RPC");
     }
 
-    /*
-     * create internal representation of  XML-RPC-Permissions. They're encoded in the app property
+   /*
+    * create internal representation of  XML-RPC-Permissions. They're encoded in the app property
     *  file like this:
     *
     *    xmlrpcAccess = root.sayHello, story.countMessages, user.login

@@ -73,6 +73,15 @@ public final class NodeManager {
 	logSql = "true".equalsIgnoreCase(props.getProperty ("logsql"));
     }
 
+    /**
+     *  app.properties file has been updated. Reread some settings.
+     */
+    public void updateProperties (Properties props) {
+	int cacheSize = Integer.parseInt (props.getProperty ("cachesize", "1000"));
+	cache.setCapacity (cacheSize);
+	logSql = "true".equalsIgnoreCase(props.getProperty ("logsql"));
+    }
+
    /**
     * Method used to create the root node and id-generator, if they don't exist already.
     */
