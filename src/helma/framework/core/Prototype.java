@@ -3,9 +3,7 @@
  
 package helma.framework.core;
 
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.*;
 import java.io.*;
 import helma.framework.*;
 import helma.scripting.*;
@@ -33,6 +31,10 @@ public final class Prototype {
     final HashMap skins;
     final HashMap updatables;
     
+    // a map of this prototype's skins as raw strings 
+    // used for exposing skins to application (script) code (via app.skinfiles).
+    SkinMap skinMap;
+    
     DbMapping dbmap;
 
     // lastCheck is the time the prototype's files were last checked
@@ -57,6 +59,8 @@ public final class Prototype {
 	actions = new HashMap ();
 	skins = new HashMap ();
 	updatables = new HashMap ();
+	
+	skinMap = new SkinMap ();
 
 	isJavaPrototype = app.isJavaPrototype (name);
 	lastUpdate = lastCheck = 0;
@@ -255,6 +259,139 @@ public final class Prototype {
     */
     public String toString () {
 	return "[Prototype "+ app.getName()+"/"+name+"]";
+    }
+
+
+    public SkinMap getSkinMap () {
+	return skinMap;
+    }
+
+    // not yet implemented
+    public SkinMap getSkinMap (Object[] skinpath) {
+	return new SkinMap (skinpath);
+    }
+
+    // a map that dynamically expands to all skins in this prototype
+    final class SkinMap extends HashMap {
+
+	long lastSkinmapLoad = 0;
+
+	Object[] skinpath;
+
+	SkinMap () {
+	    super ();
+	    skinpath = null;
+	}
+
+	SkinMap (Object[] path) {
+	    super ();
+	    skinpath = path;
+	}
+
+	public boolean containsKey (Object key) {
+	    checkForUpdates ();
+	    return super.containsKey (key);
+	}
+
+	public boolean containsValue (Object value) {
+	    checkForUpdates ();
+	    return super.containsValue (value);
+	}
+
+	public Set entrySet () {
+	    checkForUpdates ();
+	    return super.entrySet ();
+	}
+
+	public boolean equals (Object obj) {
+	    checkForUpdates ();
+	    return super.equals (obj);
+	}
+
+	public Object get (Object key) {
+	    if (key == null)
+	        return null;
+	    checkForUpdates ();
+	    SkinFile sf = (SkinFile) super.get (key);
+	    if (sf == null)
+	        return null;
+	    return sf.getSkin().getSource ();
+	}
+
+	public int hashCode () {
+	    checkForUpdates ();
+	    return super.hashCode ();
+	}
+
+	public boolean isEmpty () {
+	    checkForUpdates ();
+	    return super.isEmpty ();
+	}
+
+	public Set keySet () {
+	    checkForUpdates ();
+	    return super.keySet ();
+	}
+
+	public Object put (Object key, Object value) {
+	    // checkForUpdates ();
+	    return super.put (key, value);
+	}
+
+	public void putAll (Map t) {
+	    // checkForUpdates ();
+	    super.putAll (t);
+	}
+
+	public Object remove (Object key) {
+	    checkForUpdates ();
+	    return super.remove (key);
+	}
+
+	public int size () {
+	    checkForUpdates ();
+	    return super.size ();
+	}
+
+	public Collection values () {
+	    checkForUpdates ();
+	    return super.values ();
+	}
+
+
+	private void checkForUpdates () {
+	    if (lastCheck < System.currentTimeMillis()- 2000l)
+	        app.typemgr.updatePrototype (Prototype.this);
+	    if (lastUpdate > lastSkinmapLoad)
+	        load ();
+	}
+
+	private synchronized void load () {
+	    if (lastUpdate == lastSkinmapLoad)
+	        return;
+	    super.clear ();
+	    // System.err.println ("LOADING SKIN VALUES: "+Prototype.this);
+	    for (Iterator i = skins.entrySet().iterator(); i.hasNext(); ) {
+	        Map.Entry e = (Map.Entry) i.next ();
+	        super.put (e.getKey(), e.getValue());
+	    }
+	    // if skinpath is not null, overload/add skins from there
+	    if (skinpath != null) {
+	        for (int i=skinpath.length-1; i>=0; i--) {
+	            if (skinpath[i] != null && skinpath[i] instanceof String) {
+	                Map m = app.skinmgr.getSkinFiles ((String) skinpath[i], Prototype.this);
+	                if (m != null)
+	                    super.putAll (m);
+	            }
+	        }
+	    }
+	    lastSkinmapLoad = lastUpdate;
+	}
+	
+	public String toString () {
+	    return "[SkinMap "+name+"]";
+	}
+
     }
 
 }

@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.List;
@@ -167,19 +167,20 @@ public class ApplicationBean implements Serializable {
 	app.setNumberOfEvaluators (n+1);
     }
 
-    public Map getskinfiles () {
-	Map skinz = new Hashtable ();
+    public Map getSkinfiles () {
+	Map skinz = new HashMap ();
 	for (Iterator it = app.getPrototypes().iterator(); it.hasNext(); ) {
 	    Prototype p = (Prototype) it.next ();
-	    app.typemgr.updatePrototype (p);
-	    Map proto = new Hashtable ();
-	    for (Iterator it2 = p.skins.values().iterator(); it2.hasNext(); ) {
-	        SkinFile sf = (SkinFile) it2.next ();
-	        String name = sf.getName ();
-	        Skin skin = sf.getSkin ();
-	        proto.put (name, skin.getSource ());
-	    }
-	    skinz.put (p.getName (), proto);
+	    skinz.put (p.getName(), p.getSkinMap());
+	}
+	return skinz;
+    }
+
+    public Map getSkinfiles (Object[] skinpath) {
+	Map skinz = new HashMap ();
+	for (Iterator it = app.getPrototypes().iterator(); it.hasNext(); ) {
+	    Prototype p = (Prototype) it.next ();
+	    skinz.put (p.getName(), p.getSkinMap(skinpath));
 	}
 	return skinz;
     }
