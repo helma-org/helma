@@ -23,7 +23,7 @@ public final class RequestEvaluator implements Runnable {
 
     public Application app;
 
-    protected ScriptingEnvironment scriptingEngine;
+    protected ScriptingEngine scriptingEngine;
 
     public RequestTrans req;
     public ResponseTrans res;
@@ -75,7 +75,7 @@ public final class RequestEvaluator implements Runnable {
         Transactor localrtx = (Transactor) Thread.currentThread ();
 
         if (scriptingEngine == null)
-            scriptingEngine = helma.scripting.fesi.FesiEngineFactory.getEnvironment (app, this);
+            scriptingEngine = helma.scripting.fesi.FesiEngineFactory.getEngine (app, this);
 
         try {
 	do {
@@ -224,6 +224,9 @@ public final class RequestEvaluator implements Runnable {
 	                try {
 	                    localrtx.timer.beginEvent (txname+" execute");
 
+	                    // enter execution context
+	                    scriptingEngine.enterContext (globals);
+
 	                    int actionDot = action.lastIndexOf (".");
 	                    boolean isAction =  actionDot == -1;
 	                    // set the req.action property, cutting off the _action suffix
@@ -235,7 +238,7 @@ public final class RequestEvaluator implements Runnable {
 	                    // try calling onRequest() function on object before
 	                    // calling the actual action
 	                    try {
-	                        scriptingEngine.invoke (currentElement, "onRequest", new Object[0], globals);
+	                        scriptingEngine.invoke (currentElement, "onRequest", new Object[0]);
 	                    } catch (RedirectException redir) {
 	                        throw redir;
 	                    } catch (Exception ignore) {
@@ -244,7 +247,7 @@ public final class RequestEvaluator implements Runnable {
 
 	                    // do the actual action invocation
 	                    if (isAction) {
-	                        scriptingEngine.invoke (currentElement, action, new Object[0], globals);
+	                        scriptingEngine.invoke (currentElement, action, new Object[0]);
 	                    } else {
 	                        Skin skin = app.skinmgr.getSkinInternal (app.appDir, app.getPrototype(currentElement).getName(),
 	                                         action.substring (0, actionDot), action.substring (actionDot+1));
@@ -276,7 +279,7 @@ public final class RequestEvaluator implements Runnable {
 	                        }
 	                        Object[] skinNameArg = new Object[1];
 	                        skinNameArg[0] = skinName;
-	                        scriptingEngine.invoke (skinObject, "renderSkin", skinNameArg, globals);
+	                        scriptingEngine.invoke (skinObject, "renderSkin", skinNameArg);
 	                    }
 
 	                    localrtx.timer.endEvent (txname+" execute");
@@ -362,6 +365,8 @@ public final class RequestEvaluator implements Runnable {
 	            globals.put ("res", res);
 	            globals.put ("app", app.getAppNode());
 
+	            scriptingEngine.enterContext (globals);
+
 	            currentElement = root;
 
 	            if (method.indexOf (".") > -1) {
@@ -381,7 +386,7 @@ public final class RequestEvaluator implements Runnable {
 	            String proto = app.getPrototypeName (currentElement);
 	            app.checkXmlRpcAccess (proto, method);
 
-	            result = scriptingEngine.invoke (currentElement, method, args, globals);
+	            result = scriptingEngine.invoke (currentElement, method, args);
 	            commitTransaction ();
 
 	        } catch (Exception wrong) {
@@ -421,7 +426,9 @@ public final class RequestEvaluator implements Runnable {
 	            globals.put ("res", res);
 	            globals.put ("app", app.getAppNode());
 
-	            result = scriptingEngine.invoke (thisObject, method, args, globals);
+	            scriptingEngine.enterContext (globals);
+
+	            result = scriptingEngine.invoke (thisObject, method, args);
 	            commitTransaction ();
 
 	        } catch (Exception wrong) {
@@ -440,6 +447,9 @@ public final class RequestEvaluator implements Runnable {
 	        break;
 
 	    }
+
+	    // exit execution context
+	    scriptingEngine.exitContext ();
 
 	    // make sure there is only one thread running per instance of this class
 	    // if localrtx != rtx, the current thread has been aborted and there's no need to notify
@@ -489,14 +499,14 @@ public final class RequestEvaluator implements Runnable {
 
 	notifyAll ();
 	try {
-	    System.err.println ("PRE-wait "+this+" - "+reqtype);
 	    // wait for request, max 10 min
-	    wait (100*60*1);
-	    System.err.println ("POST-wait "+this+" - "+reqtype);
+	    wait (1000*60*10);
 	    //  if no request arrived, release ressources and thread
 	    if (reqtype == NONE && rtx == localrtx) {
-	        System.err.println ("      ***       Releasing engine and thread.");
-	        scriptingEngine = null;
+	        // comment this in to release not just the thread, but also the scripting engine.
+	        // currently we don't do this because of the risk of memory leaks (objects from
+	        // framework referencing into the scripting engine) 
+	        // scriptingEngine = null;
 	        rtx = null;
 	    }
 	} catch (InterruptedException ir) {}
@@ -559,7 +569,7 @@ public final class RequestEvaluator implements Runnable {
     }
 
     protected Object invokeDirectFunction (Object obj, String functionName, Object[] args) throws Exception {
-	return scriptingEngine.invoke (obj, functionName, args, null);
+	return scriptingEngine.invoke (obj, functionName, args);
     } 
 
     public synchronized Object invokeFunction (Object object, String functionName, Object[] args)
