@@ -1249,7 +1249,7 @@ public final class Node implements INode, Serializable {
 	            setNode (propname, node);
 	            prop = (Property) propMap.get (propname);
 	        // if this is from relational database only fetch if this node is itself persistent.
-	        } else if (state != TRANSIENT && (prel.accessor != null || prel.groupby != null)) {
+	        } else if (state != TRANSIENT && (prel.virtual || prel.accessor != null || prel.groupby != null)) {
 	            // this may be a relational node stored by property name
 	            try {
 	                Node pn = nmgr.getNode (this, propname, prel);
