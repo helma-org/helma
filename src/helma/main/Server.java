@@ -308,7 +308,7 @@ import helma.util.*;
     /**
      *  Get a logger to use for output in this server.
      */
-    protected static Logger getLogger () {
+    public static Logger getLogger () {
 	if (logger == null) {
 	    String logDir = sysProps.getProperty ("logdir");
 	    if (logDir == null || "console".equalsIgnoreCase (logDir)) {
