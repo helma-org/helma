@@ -18,7 +18,7 @@
 
 // Modified to use Helma database connections, Hannes Wallnöfer 2000-2003
 
-package helma.scripting.rhino;
+package helma.scripting.rhino.extensions;
 
 import helma.framework.core.Application;
 import helma.objectmodel.db.DbSource;
@@ -46,7 +46,7 @@ public class DatabaseObject {
      * @param dbsource The name of the DB source
      */
 
-    DatabaseObject(DbSource dbsource, int flag) {
+    public DatabaseObject(DbSource dbsource, int flag) {
         try {
             connection = dbsource.getConnection ();
             driverName = dbsource.getDriverName ();

@@ -14,7 +14,7 @@
  * $Date$
  */
 
-package helma.scripting.rhino;
+package helma.scripting.rhino.extensions;
 
 import com.oroinc.net.ftp.*;
 import java.io.*;

@@ -14,8 +14,9 @@
  * $Date$
  */
 
-package helma.scripting.rhino;
+package helma.scripting.rhino.extensions;
 
+import helma.scripting.rhino.*;
 import org.mozilla.javascript.*;
 import org.apache.xmlrpc.*;
 import java.io.*;
@@ -108,11 +109,11 @@ public class XmlRpcObject extends BaseFunction {
         }
 
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
-        RhinoCore c = engine.core;
+        RhinoCore c = engine.getCore();
         Scriptable retval = null;
 
         try {
-            retval = Context.getCurrentContext().newObject(c.global);
+            retval = Context.getCurrentContext().newObject(c.getScope());
             XmlRpcClient client = new XmlRpcClient(url);
 
             // long now = System.currentTimeMillis ();
