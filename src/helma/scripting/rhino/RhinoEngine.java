@@ -152,6 +152,7 @@ public class RhinoEngine implements ScriptingEngine {
         context.setApplicationClassLoader(app.getClassLoader());
         context.setWrapFactory(core.wrapper);
 
+        // if visual debugger is on let it know we're entering a context
         if (core.debugger != null) {
             core.debugger.contextCreated(context);
             core.debugger.contextEntered(context);
@@ -174,7 +175,6 @@ public class RhinoEngine implements ScriptingEngine {
         core.global.registerScope(global);
         // update prototypes
         core.updatePrototypes();
-        // if visual debugger is on let it know we're entering a context
         context.putThreadLocal("reval", reval);
         context.putThreadLocal("engine", this);
     }
