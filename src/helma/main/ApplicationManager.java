@@ -281,6 +281,7 @@ public class ApplicationManager implements XmlRpcHandler {
         String[] staticHome;
         String xmlrpcHandlerName;
         String cookieDomain;
+        String sessionCookieName;
         String uploadLimit;
         String debug;
         boolean encode;
@@ -291,25 +292,26 @@ public class ApplicationManager implements XmlRpcHandler {
          */
         AppDescriptor(String name) {
             appName = name;
-            mountpoint = getMountpoint(props.getProperty(name+".mountpoint",
+            mountpoint = getMountpoint(props.getProperty(name + ".mountpoint",
                                         appName));
             pathPattern = getPathPattern(mountpoint);
-            staticDir = props.getProperty(name+".static");
-            staticMountpoint = getPathPattern(props.getProperty(name+".staticMountpoint",
+            staticDir = props.getProperty(name + ".static");
+            staticMountpoint = getPathPattern(props.getProperty(name + ".staticMountpoint",
                                         joinMountpoint(mountpoint, "static")));
             staticIndex = "true".equalsIgnoreCase(props.getProperty(name+
                                                   ".staticIndex"));
-            String home = props.getProperty(name+".staticHome");
+            String home = props.getProperty(name + ".staticHome");
             if (home == null) {
                 staticHome = new String[] {"index.html", "index.htm"};
             } else {
                 staticHome = StringUtils.split(home, ",");
             }
-            protectedStaticDir = props.getProperty(name+".protectedStatic");
+            protectedStaticDir = props.getProperty(name + ".protectedStatic");
 
-            cookieDomain = props.getProperty(name+".cookieDomain");
-            uploadLimit = props.getProperty(name+".uploadLimit");
-            debug = props.getProperty(name+".debug");
+            cookieDomain = props.getProperty(name + ".cookieDomain");
+            sessionCookieName = props.getProperty(name + ".sessionCookieName");
+            uploadLimit = props.getProperty(name + ".uploadLimit");
+            debug = props.getProperty(name + ".debug");
             encode = "true".equalsIgnoreCase(props.getProperty(name +
                                         ".responseEncoding"));
             String appDirName = props.getProperty(name + ".appdir");
@@ -454,6 +456,10 @@ public class ApplicationManager implements XmlRpcHandler {
                         holder.setInitParameter("cookieDomain", cookieDomain);
                     }
 
+                    if (sessionCookieName != null) {
+                        holder.setInitParameter("sessionCookieName", sessionCookieName);
+                    }
+
                     if (uploadLimit != null) {
                         holder.setInitParameter("uploadLimit", uploadLimit);
                     }
@@ -551,6 +557,5 @@ public class ApplicationManager implements XmlRpcHandler {
         public String toString() {
             return "[AppDescriptor "+app+"]";
         }
-
     }
 }

@@ -48,6 +48,9 @@ public abstract class AbstractServletClient extends HttpServlet {
     // cookie domain to use
     String cookieDomain;
 
+    // cookie name for session cookies
+    String sessionCookieName = "HopSession";
+
     // allow caching of responses
     boolean caching;
 
@@ -74,6 +77,12 @@ public abstract class AbstractServletClient extends HttpServlet {
 
         if (cookieDomain != null) {
             cookieDomain = cookieDomain.toLowerCase();
+        }
+
+        sessionCookieName = init.getInitParameter("sessionCookieName");
+
+        if (sessionCookieName == null) {
+            sessionCookieName = "HopSession";
         }
 
         debug = ("true".equalsIgnoreCase(init.getInitParameter("debug")));
@@ -171,7 +180,7 @@ public abstract class AbstractServletClient extends HttpServlet {
                         String nextKey = reqCookies[i].getName();
                         String nextPart = reqCookies[i].getValue();
 
-                        if ("HopSession".equals(nextKey)) {
+                        if (sessionCookieName.equals(nextKey)) {
                             reqtrans.session = nextPart;
                         } else {
                             reqtrans.set(nextKey, nextPart);
@@ -502,7 +511,7 @@ public abstract class AbstractServletClient extends HttpServlet {
                         System.currentTimeMillis(), 36));
 
             reqtrans.session = b.toString();
-            Cookie c = new Cookie("HopSession", reqtrans.session);
+            Cookie c = new Cookie(sessionCookieName, reqtrans.session);
 
             c.setPath("/");
 
