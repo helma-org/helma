@@ -429,7 +429,7 @@ public final class NodeManager {
 	        }
 	    }
 
-	    b1.append (b2);
+	    b1.append (b2.toString());
 	    b1.append (" )");
 
 	    Connection con = dbm.getConnection ();
