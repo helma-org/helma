@@ -786,7 +786,8 @@ public final class Node implements INode, Serializable {
 	    }
 
 	    if (!"root".equalsIgnoreCase (node.getPrototype ())) {
-	        Node nparent = (Node) node.getParent ();
+	        // avoid calling getParent() because it would return bogus results for the not-anymore transient node
+	        Node nparent = node.parentHandle == null ? null : node.parentHanldle.getNode ();
 	        // if the node doesn't have a parent yet, or it has one but it's transient while we are
 	        // persistent, make this the nodes new parent.
 	        if (nparent == null || (state != TRANSIENT && nparent.getState () == TRANSIENT)) {
@@ -1135,14 +1136,6 @@ public final class Node implements INode, Serializable {
 	if (subnodes == null)
 	    return -1;
 	// if the node contains relational groupby subnodes, the subnodes vector contains the names instead of ids.
-	/* Relation srel = dbmap == null ? null : dbmap.getSubnodeRelation ();
-	if (srel != null && srel.groupby != null && srel.other != null && srel.other.isRelational ()) {
-	    if (n.getParent () != this)
-	        return -1;
-	    else
-	        return subnodes.indexOf (new SyntheticKey (getKey (), n.getID ());
-	} else
-	    return subnodes.indexOf (n.getKey ());*/
 	if (!(n instanceof Node))
 	    return -1;
 	Node node = (Node) n;
@@ -1317,7 +1310,7 @@ public final class Node implements INode, Serializable {
 	        }
 	    // }
 	}
-	if (prop == null && inherit && getParent () != null) {
+	if (prop == null && inherit && getParent () != null && state != TRANSIENT) {
 	    prop = ((Node) getParent ()).getProperty (propname, inherit);
 	}
 	return prop;
@@ -1603,8 +1596,7 @@ public final class Node implements INode, Serializable {
 	    n.setParent (this);
 	    n.name = propname;
 	    n.anonymous = false;
-	    // nmgr.logEvent ("adopted named node: "+n.getFullName ());
-	} // else nmgr.logEvent ("not adopted: "+n.getFullName ());
+	}
 
 	if (propMap == null)
 	    propMap = new Hashtable ();
@@ -1633,6 +1625,8 @@ public final class Node implements INode, Serializable {
 	}
 	
 	if (rel != null && rel.direction == Relation.FORWARD && !rel.usesPrimaryKey ()) {
+	    // if the relation for this property doesn't use the primary key of the value object, make a
+	    // secondary key object with the proper db column
 	    String kval = n.getString (rel.other.columnNameToProperty (rel.getRemoteField ()).propname, false);
 	    prop.nhandle = new NodeHandle (new DbKey (n.getDbMapping (), kval, rel.getRemoteField ()));
 	}
@@ -1703,6 +1697,9 @@ public final class Node implements INode, Serializable {
      */
     public String getUrl (INode root, INode users, String tmpname, String rootproto) {
 	
+	if (state == TRANSIENT)
+	    throw new RuntimeException ("Can't get URL for transient Object");
+
 	String divider = "/";
 	StringBuffer b = new StringBuffer ();
 	INode p = this;
