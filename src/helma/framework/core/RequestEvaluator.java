@@ -80,9 +80,12 @@ public final class RequestEvaluator implements Runnable {
 	        Object[] args = {app, this};
 	        scriptingEngine = (ScriptingEngine) method.invoke (null, args);
 	    } catch (Exception x) {
+	        Throwable t = x;
+	        if (x instanceof InvocationTargetException)
+	            t = ((InvocationTargetException) x).getTargetException ();
 	        app.logEvent ("******************************************");
 	        app.logEvent ("*** Error creating scripting engine: ");
-	        app.logEvent ("*** "+x.toString());
+	        app.logEvent ("*** "+t.toString());
 	        app.logEvent ("******************************************");
 	    }
 	}
@@ -516,7 +519,7 @@ public final class RequestEvaluator implements Runnable {
 	this.reqtype = HTTP;
 	this.req = req;
 	this.session = session;
-	this.res = new ResponseTrans ();
+	this.res = new ResponseTrans (req);
 
 	app.activeRequests.put (req, this);
 
