@@ -623,6 +623,87 @@ public final class RhinoCore {
         return esn;
     }
 
+    protected String postProcessHref(Object obj, String protoName, String basicHref) {
+
+        // check if the app.properties specify a href-function to post-process the
+        // basic href.
+        String hrefFunction = app.getProperty("hrefFunction", null);
+
+        if (hrefFunction != null) {
+
+            Object handler = obj;
+            String proto = protoName;
+
+            while (handler != null) {
+                if (hasFunction(proto, hrefFunction)) {
+
+                    // get the currently active rhino engine and invoke the function
+                    Context cx = Context.getCurrentContext();
+                    RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+                    Object result = null;
+
+                    try {
+                        result = engine.invoke(handler, hrefFunction,
+                                               new Object[] { basicHref }, false);
+                    } catch (ScriptingException x) {
+                        throw new RuntimeException("Error in hrefFunction: " + x);
+                    }
+
+                    if (result == null) {
+                        throw new RuntimeException("hrefFunction " + hrefFunction +
+                                                       " returned null");
+                    }
+
+                    basicHref = result.toString();
+                    break;
+                }
+                handler = app.getParentElement(handler);
+                proto = app.getPrototypeName(handler);
+
+            }
+        }
+
+        // check if the app.properties specify a href-skin to post-process the
+        // basic href.
+        String hrefSkin = app.getProperty("hrefSkin", null);
+
+        if (hrefSkin != null) {
+            // we need to post-process the href with a skin for this application
+            // first, look in the object href was called on.
+            Skin skin = null;
+            Object handler = obj;
+
+            while (handler != null) {
+                Prototype proto = app.getPrototype(handler);
+
+                if (proto != null) {
+                    skin = proto.getSkin(hrefSkin);
+                }
+
+                if (skin != null) {
+                    break;
+                }
+
+                handler = app.getParentElement(handler);
+            }
+
+            if (skin != null) {
+                // get the currently active rhino engine and render the skin
+                Context cx = Context.getCurrentContext();
+                RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+
+                engine.getResponse().pushStringBuffer();
+                HashMap param = new HashMap();
+                param.put("path", basicHref);
+                skin.render(engine.getRequestEvaluator(), handler, param);
+
+                basicHref = engine.getResponse().popStringBuffer().trim();
+            }
+        }
+
+        return basicHref;
+    }
+
     /////////////////////////////////////////////
     // skin related methods
     /////////////////////////////////////////////

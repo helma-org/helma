@@ -149,7 +149,9 @@ public class JavaObject extends NativeJavaObject {
             }
         }
 
-        return core.app.getNodeHref(javaObject, act);
+        String basicHref = core.app.getNodeHref(javaObject, act);
+
+        return core.postProcessHref(javaObject, protoName, basicHref);
     }
 
     public boolean has(String name, Scriptable start) {

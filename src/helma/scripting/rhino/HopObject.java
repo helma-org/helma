@@ -256,7 +256,9 @@ public class HopObject extends ScriptableObject implements Wrapper {
             }
         }
 
-        return core.app.getNodeHref(node, act);
+        String basicHref = core.app.getNodeHref(node, act);
+
+        return core.postProcessHref(node, className, basicHref);
     }
 
     /**
