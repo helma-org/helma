@@ -75,6 +75,7 @@ public final class RhinoCore implements WrapHandler {
             global = context.initStandardObjects(g);
             ScriptableObject.defineClass(global, HopObject.class);
             ScriptableObject.defineClass(global, FileObject.class);
+            ScriptableObject.defineClass(global, FtpObject.class);
             putPrototype("hopobject",
                          ScriptableObject.getClassPrototype(global, "HopObject"));
             putPrototype("global", global);
