@@ -808,6 +808,8 @@ public final class NodeManager {
 	            whereBuffer.append (')');
 	            if (rel.groupby != null) {
 	                whereBuffer.insert (0, rel.renderConstraints (home, home.getNonVirtualParent ()));
+	                if (rel.order != null)
+	                    whereBuffer.append (" ORDER BY "+rel.order);
 	            }
 	            tds.where (whereBuffer.toString ());
 
