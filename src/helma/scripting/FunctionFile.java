@@ -105,13 +105,11 @@ public class FunctionFile implements Updatable {
     }
 
 
-    public  synchronized void updateRequestEvaluator (RequestEvaluator reval) {
+    public  synchronized void updateRequestEvaluator (RequestEvaluator reval) throws IOException {
 	if (file != null) {
-	    try {
-	        FileReader fr = new FileReader (file);
-	        EvaluationSource es = new FileEvaluationSource (file.getPath (), null);
-	        updateRequestEvaluator (reval, fr, es);
-	    } catch (Exception ignore) {}
+	    FileReader fr = new FileReader (file);
+	    EvaluationSource es = new FileEvaluationSource (file.getPath (), null);
+	    updateRequestEvaluator (reval, fr, es);
 	} else {
 	    StringReader reader = new StringReader (content);
 	    StringEvaluationSource es = new StringEvaluationSource (content, null);
@@ -154,8 +152,7 @@ public class FunctionFile implements Updatable {
                 }
             } catch (Exception ignore) {}
 
-        } catch (Exception e) {
-            // app.logEvent ("Error parsing function file "+app.getName()+":"+prototype.getName()+"/"+file.getName()+": "+e);
+        } catch (Throwable e) {
             app.logEvent ("Error parsing function file "+source+": "+e);
         } finally {
             if (reader != null) {
