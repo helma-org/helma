@@ -95,7 +95,7 @@ public class ApplicationManager implements XmlRpcHandler {
                     }
                 }
             } catch (Exception mx) {
-                server.getLogger().error("Error checking applications: " + mx);
+                server.getLogger().error("Error checking applications", mx);
             }
 
             lastModified = System.currentTimeMillis();
@@ -159,7 +159,7 @@ public class ApplicationManager implements XmlRpcHandler {
 
             lastModified = System.currentTimeMillis();
         } catch (Exception mx) {
-            server.getLogger().error("Error starting applications: " + mx);
+            server.getLogger().error("Error starting applications", mx);
             mx.printStackTrace();
         }
     }
@@ -397,7 +397,7 @@ public class ApplicationManager implements XmlRpcHandler {
 
                 app.start();
             } catch (Exception x) {
-                server.getLogger().error("Error creating application " + appName + ": " + x);
+                server.getLogger().error("Error creating application " + appName, x);
                 x.printStackTrace();
             }
         }
@@ -413,7 +413,7 @@ public class ApplicationManager implements XmlRpcHandler {
                 app.stop();
                 server.getLogger().info("Stopped application " + appName);
             } catch (Exception x) {
-                server.getLogger().error("Couldn't stop app: " + x);
+                server.getLogger().error("Couldn't stop app", x);
             }
 
             descriptors.remove(appName);
@@ -514,7 +514,7 @@ public class ApplicationManager implements XmlRpcHandler {
                 xmlrpcHandlers.put(xmlrpcHandlerName, app);
                 // app.start();
             } catch (Exception x) {
-                server.getLogger().error("Couldn't bind app: " + x);
+                server.getLogger().error("Couldn't bind app", x);
                 x.printStackTrace();
             }
         }
@@ -548,9 +548,11 @@ public class ApplicationManager implements XmlRpcHandler {
                 }
 
                 // unregister as XML-RPC handler
-                xmlrpcHandlers.remove(xmlrpcHandlerName);
+                if (xmlrpcHandlerName != null) {
+                    xmlrpcHandlers.remove(xmlrpcHandlerName);
+                }
             } catch (Exception x) {
-                server.getLogger().error("Couldn't unbind app: " + x);
+                server.getLogger().error("Couldn't unbind app", x);
             }
 
         }
