@@ -115,7 +115,7 @@ public class ApplicationBean implements Serializable {
     // getter methods for readonly properties of this application
 
     public int getcacheusage () {
-    return app.nmgr.countCacheEntries ();
+    return app.getCacheUsage ();
     }
 
     public INode getdata() {
