@@ -15,59 +15,58 @@ public class SessionBean implements Serializable {
 	Session session;
 
 	public SessionBean(Session session)	{
-		this.session = session;
+	this.session = session;
 	}
 
 	public String toString()	{
-		return session.toString ();
+	return session.toString ();
 	}
 
 	public boolean login (String username, String password) {
-		boolean success = session.getApp().loginSession (username, password, session);
-		return success;
+	boolean success = session.getApp().loginSession (username, password, session);
+	return success;
 	}
 
 	public boolean logout ()	{
-		// FIXME: what about onLogout()?
-		return session.getApp().logoutSession (session);
+	return session.getApp().logoutSession (session);
 	}
 
 	public void touch () {
-		session.touch ();
+	session.touch ();
 	}
 
 	public Date lastActive() {
-		return new Date (session.lastTouched ());
+	return new Date (session.lastTouched ());
 	}
 
 	public Date onSince() {
-		return new Date (session.onSince ());
+	return new Date (session.onSince ());
 	}
 
 	// property-related methods:
 
 	public INode getdata() {
-		return session.getCacheNode ();
+	return session.getCacheNode ();
 	}
 
 	public INode getuser() {
-		return session.getUserNode();
+	return session.getUserNode();
 	}
 
 	public String get_id () {
-		return session.getSessionID ();
+	return session.getSessionID ();
 	}
 
 	public String getcookie() {
-		return session.getSessionID ();
+	return session.getSessionID ();
 	}
 
 	public Date getlastActive() {
-		return new Date (session.lastTouched ());
+	return new Date (session.lastTouched ());
 	}
 
 	public Date getonSince() {
-		return new Date (session.onSince ());
+	return new Date (session.onSince ());
 	}
 
 }

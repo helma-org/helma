@@ -14,179 +14,178 @@ public class ApplicationBean implements Serializable {
 	Application app;
 
 	public ApplicationBean(Application app)	{
-		this.app = app;
+	this.app = app;
 	}
 
 	public void clearCache () {
-		app.clearCache ();
+	app.clearCache ();
 	}
 
 	public void log (String msg) {
-		app.logEvent (msg);
+	app.logEvent (msg);
 	}
 	
 	public void log (String logname, String msg) {
-		app.getLogger (logname).log (msg);
+	app.getLogger (logname).log (msg);
 	}
 
 	public void debug (String msg) {
-		if (app.debug()) {
-			app.logEvent (msg);
-		}
+	if (app.debug()) {
+	    app.logEvent (msg);
+	}
 	}
 	
 	public void debug (String logname, String msg) {
-		if (app.debug()) {
-			app.getLogger (logname).log (msg);
-		}
+	if (app.debug()) {
+	    app.getLogger (logname).log (msg);
+	}
 	}
 
 	public int countSessions () {
-		return app.sessions.size();
+	return app.sessions.size();
 	}
 
 	public SessionBean getSession (String sessionID) {
-		if (sessionID==null)
-			return null;
-		Session session = app.getSession (sessionID.trim ());
-		if (session == null)
-			return null;
-		return new SessionBean (session);
+	if (sessionID==null)
+	    return null;
+	Session session = app.getSession (sessionID.trim ());
+	if (session == null)
+	    return null;
+	return new SessionBean (session);
 	}
 
 	public SessionBean createSession (String sessionID) {
-		if (sessionID==null)
-			return null;
-		Session session = session = app.checkSession (sessionID.trim ());
-		if (session == null)
-			return null;
-		return new SessionBean (session);
+	if (sessionID==null)
+	    return null;
+	Session session = session = app.checkSession (sessionID.trim ());
+	if (session == null)
+	    return null;
+	return new SessionBean (session);
 	}
 
 	public SessionBean[] getSessions () {
-		SessionBean[] theArray = new SessionBean[app.sessions.size()];
-        int i=0;
-        for (Enumeration e=app.sessions.elements(); e.hasMoreElements(); ) {
-        	SessionBean sb = new SessionBean ((Session) e.nextElement ());
-            theArray[i++] = sb;
-		}
-        return theArray;
+	SessionBean[] theArray = new SessionBean[app.sessions.size()];
+    int i=0;
+    for (Enumeration e=app.sessions.elements(); e.hasMoreElements(); ) {
+	    SessionBean sb = new SessionBean ((Session) e.nextElement ());
+	    theArray[i++] = sb;
+	}
+	return theArray;
 	}
 
 	public INode registerUser (String username, String password) {
-		if (username==null || password==null || "".equals (username.trim ()) || "".equals (password.trim ()) )
-			return null;
-		else
-			return app.registerUser (username, password);
+	if (username==null || password==null || "".equals (username.trim ()) || "".equals (password.trim ()) )
+	    return null;
+	else
+	    return app.registerUser (username, password);
 	}
 
 	public INode getUser (String username) {
-		if (username==null || "".equals (username.trim()) )
-			return null;
-		return app.getUserNode (username);
+	if (username==null || "".equals (username.trim()) )
+	    return null;
+	return app.getUserNode (username);
 	}
 
 	public INode[] getActiveUsers () {
-		INode[] theArray = new INode[app.activeUsers.size()];
-		int i=0;
-		for (Enumeration e=app.activeUsers.elements(); e.hasMoreElements(); ) {
-			User user = (User) e.nextElement ();
-			INode usernode = user.getUserNodeHandle().getNode(app.getWrappedNodeManager());
-			if (usernode==null)
-				theArray[i++] = null;
-			else
-				theArray[i++] = usernode;
-		}
-		return theArray;
+	INode[] theArray = new INode[app.activeUsers.size()];
+	int i=0;
+	for (Enumeration e=app.activeUsers.elements(); e.hasMoreElements(); ) {
+	    User user = (User) e.nextElement ();
+	    INode usernode = user.getUserNodeHandle().getNode(app.getWrappedNodeManager());
+	    if (usernode==null)
+	        theArray[i++] = null;
+	    else
+	        theArray[i++] = usernode;
+	}
+	return theArray;
 	}
 
 	public SessionBean[] getSessionsForUser (INode usernode)	{
-		return getSessionsForUser(usernode.getName());
+	return getSessionsForUser(usernode.getName());
 	}
 
 	public SessionBean[] getSessionsForUser (String username) {
-		if (username==null || "".equals (username.trim ()) )
-			return new SessionBean[0];
-		Hashtable userSessions = app.getSessionsForUsername(username);
-		if (userSessions==null)
-			return new SessionBean[0];
-		SessionBean[] theArray = new SessionBean[userSessions.size()];
-		int i=0;
-		for (Enumeration e=userSessions.elements(); e.hasMoreElements(); ) {
-        	SessionBean sb = new SessionBean ((Session) e.nextElement ());
-            theArray[i++] = sb;
-		}
-		return theArray;
-	}		
+	if (username==null || "".equals (username.trim ()) )
+	    return new SessionBean[0];
+	Hashtable userSessions = app.getSessionsForUsername(username);
+	if (userSessions==null)
+	    return new SessionBean[0];
+	SessionBean[] theArray = new SessionBean[userSessions.size()];
+	int i=0;
+	for (Enumeration e=userSessions.elements(); e.hasMoreElements(); ) {
+	    SessionBean sb = new SessionBean ((Session) e.nextElement ());
+	        theArray[i++] = sb;
+	}
+	return theArray;
+	}
 
 	// property related methods:
 
 	public INode getdata() {
-		return app.getCacheNode ();
+	return app.getCacheNode ();
 	}
 
 	public Date getupSince () {
-		return new Date (app.starttime);
+	return new Date (app.starttime);
 	}
 
 	public long getrequestCount ()	{
-		return app.getRequestCount ();
+	return app.getRequestCount ();
 	}
 
 	public long getxmlrpcCount ()	{
-		return app.getXmlrpcCount ();
+	return app.getXmlrpcCount ();
 	}
 
 	public long geterrorCount () {
-		return app.getErrorCount ();
+	return app.getErrorCount ();
 	}
 
 	public Application get__app__ () {
-		return app;
+	return app;
 	}
 
 	public Map getproperties () {
-		return app.getProperties ();
+	return app.getProperties ();
 	}
 
 	public int getfreeThreads () {
-		return app.countFreeEvaluators ();
+	return app.countFreeEvaluators ();
 	}
 	
 	public int getactiveThreads () {
-		return app.countActiveEvaluators ();
+	return app.countActiveEvaluators ();
 	}
 	
 	public int getmaxThreads () {
-		return app.countEvaluators ();
+	return app.countEvaluators ();
 	}
 
 	public void setmaxThreads (int n) {
-		// add one to the number to compensate for the internal scheduler.
-		app.setNumberOfEvaluators (n+1);
+	// add one to the number to compensate for the internal scheduler.
+	app.setNumberOfEvaluators (n+1);
 	}
 
 	public Map getskinfiles () {
-		Map skinz = new Hashtable ();
-		for (Iterator it = app.getPrototypes().iterator(); it.hasNext(); ) {
-			Prototype p = (Prototype) it.next ();
-			Map proto = new Hashtable ();
-			for (Iterator it2 = p.skins.values().iterator(); it2.hasNext(); ) {
-				SkinFile sf = (SkinFile) it2.next ();
-				String name = sf.getName ();
-				Skin skin = sf.getSkin ();
-				proto.put (name, skin.getSource ());
-			}
-			skinz.put (p.getName (), proto);
-		}
-		return skinz;
+	Map skinz = new Hashtable ();
+	for (Iterator it = app.getPrototypes().iterator(); it.hasNext(); ) {
+	    Prototype p = (Prototype) it.next ();
+	    Map proto = new Hashtable ();
+	    for (Iterator it2 = p.skins.values().iterator(); it2.hasNext(); ) {
+	        SkinFile sf = (SkinFile) it2.next ();
+	        String name = sf.getName ();
+	        Skin skin = sf.getSkin ();
+	        proto.put (name, skin.getSource ());
+	    }
+	    skinz.put (p.getName (), proto);
+	}
+	return skinz;
 	}
 
 
 	public String toString() {
-		return "[Application " + app.getName() + "]";
+	return "[Application " + app.getName() + "]";
 	}
-
 
 }
 
