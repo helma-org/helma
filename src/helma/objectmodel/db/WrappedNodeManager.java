@@ -63,7 +63,7 @@ public final class WrappedNodeManager {
         } catch (ObjectNotFoundException x) {
             return null;
         } catch (Exception x) {
-            nmgr.app.logEvent("Error retrieving Node via DbMapping: " + x);
+            nmgr.app.logEvent("Error retrieving Node for "+key+": " + x);
 
             if (nmgr.app.debug()) {
                 x.printStackTrace();
