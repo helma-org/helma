@@ -246,6 +246,9 @@ import org.mortbay.util.*;
 	    // start embedded web server if port is specified
 	    if (websrvPort > 0) {
 	        // websrv = new Acme.Serve.Serve (websrvPort, sysProps);
+	       // disable Jetty logging
+	       Log.instance().disableLog ();
+	       // create new Jetty server and bind it to the web server port
 	       http = new HttpServer ();
 	       http.addListener (new InetAddrPort (websrvPort));
 	    }
