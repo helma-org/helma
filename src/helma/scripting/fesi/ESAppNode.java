@@ -31,6 +31,7 @@ public class ESAppNode extends ESNode {
 	putHiddenProperty("getActiveThreads", new AppCountActiveEvaluators ("getActiveThreads", evaluator, fp));
 	putHiddenProperty("getMaxActiveThreads", new AppCountMaxActiveEvaluators ("getMaxActiveThreads", evaluator, fp));
 	putHiddenProperty("setMaxThreads", new AppSetNumberOfEvaluators ("setMaxThreads", evaluator, fp));
+	putHiddenProperty("clearCache", new AppClearCache ("clearCache", evaluator, fp));
     }
 
     /**
@@ -126,6 +127,16 @@ public class ESAppNode extends ESNode {
                 return ESBoolean.makeBoolean (false);
             // add one to the number to compensate for the internal scheduler.
             return ESBoolean.makeBoolean (app.setNumberOfEvaluators (1 + arguments[0].toInt32()));
+        }
+    }
+
+    class AppClearCache extends BuiltinFunctionObject {
+        AppClearCache (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 1);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+            app.clearCache ();
+            return ESBoolean.makeBoolean (true);
         }
     }
 
