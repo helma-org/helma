@@ -28,6 +28,9 @@ public class RequestTrans implements Externalizable {
     // when was execution started on this request?
     public transient long startTime;
 
+    // the name of the action being invoked
+    public transient String action;
+
     static final long serialVersionUID = 5398880083482000580L;
 
     /**
