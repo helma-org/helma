@@ -18,6 +18,7 @@ import java.text.*;
 public final class HtmlEncoder {
 
 
+    /*
     static final Hashtable convertor = new Hashtable (128);
 
     // conversion table
@@ -118,7 +119,7 @@ public final class HtmlEncoder {
      convertor.put(new Integer(253), "&yacute;");
      convertor.put(new Integer(254), "&thorn;");
      convertor.put(new Integer(255), "&yuml;");
-    }
+    }  */
 
     /**
      * 
@@ -198,8 +199,8 @@ public final class HtmlEncoder {
 	        default:
 	             if (c < 160)
 	                 ret.append ((char) c);
-	             else if (c >= 160 && c <= 255)
-	                 ret.append (convertor.get(new Integer(c)));
+	             // else if (c >= 160 && c <= 255)
+	             //     ret.append (convertor.get(new Integer(c)));
 	             else {
 	                 ret.append ("&#");
 	                 ret.append (c);
@@ -274,8 +275,8 @@ public final class HtmlEncoder {
 	         default:
 	             if (c < 160)
 	                 ret.append ((char) c);
-	             else if (c >= 160 && c <= 255)
-	                 ret.append (convertor.get(new Integer(c)));
+	             // else if (c >= 160 && c <= 255)
+	             //     ret.append (convertor.get(new Integer(c)));
 	             else {
 	                 ret.append ("&#");
 	                 ret.append (c);
@@ -308,8 +309,8 @@ public final class HtmlEncoder {
 	         default: 
 	             if (c < 160)
 	                 ret.append ((char) c);
-	             else if (c >= 160 && c <= 255)
-	                 ret.append (convertor.get(new Integer(c)));
+	             // else if (c >= 160 && c <= 255)
+	             //     ret.append (convertor.get(new Integer(c)));
 	             else {
 	                 ret.append ("&#");
 	                 ret.append (c);
