@@ -32,7 +32,7 @@ import java.util.*;
 /**
  * This is the implementation of ScriptingEnvironment for the Mozilla Rhino EcmaScript interpreter.
  */
-public final class RhinoCore implements WrapHandler {
+public final class RhinoCore {
     // the application we're running in
     public final Application app;
 
@@ -46,6 +46,9 @@ public final class RhinoCore implements WrapHandler {
     Hashtable prototypes;
     long lastUpdate = 0;
 
+    // the wrap factory
+    Wrapper wrapper;
+
     /**
      *  Create a Rhino evaluator for the given application and request evaluator.
      */
@@ -57,7 +60,8 @@ public final class RhinoCore implements WrapHandler {
         Context context = Context.enter();
 
         context.setCompileFunctionsWithDynamicScope(true);
-        context.setWrapHandler(this);
+        wrapper = new Wrapper();
+        context.setWrapFactory(wrapper);
 
         int optLevel = 0;
 
@@ -500,47 +504,6 @@ public final class RhinoCore implements WrapHandler {
         }
     }
 
-    /**
-     *
-     *
-     * @param scope ...
-     * @param obj ...
-     * @param staticType ...
-     *
-     * @return ...
-     */
-    public Object wrap(Scriptable scope, Object obj, Class staticType) {
-        if (obj instanceof INode) {
-            return getNodeWrapper((INode) obj);
-        }
-
-        if (obj instanceof IPathElement) {
-            return getElementWrapper(obj);
-        }
-
-        if (obj instanceof Map) {
-            return new MapWrapper((Map) obj, this);
-        }
-
-        return null;
-    }
-
-    /**
-     *  Get a Script wrapper for an object. In contrast to getElementWrapper, this is called for
-     * any Java object, not just the ones in the request path which we know are scripted.
-     * So what we do is check if the object belongs to a scripted class. If so, we call getElementWrapper()
-     * with the object, otherwise we return a generic unscripted object wrapper.
-     */
-    /* public Scriptable getObjectWrapper(Object e) {
-        if (app.getPrototypeName(e) != null) {
-            return getElementWrapper(e);
-        }
-        / else if (e instanceof INode)
-           return new ESNode ((INode) e, this); /
-        else {
-            return Context.getCurrentContext().toObject(e, global);
-        }
-    } */
 
     /**
      *  Get a Script wrapper for any given object. If the object implements the IPathElement
@@ -591,9 +554,10 @@ public final class RhinoCore implements WrapHandler {
                 // no prototype found for this node?
                 if (op == null) {
                     op = getPrototype("hopobject");
+                    protoname = "hopobject";
                 }
 
-                esn = new HopObject();
+                esn = new HopObject(protoname);
                 esn.init(this, n);
                 esn.setPrototype(op);
 
@@ -686,4 +650,51 @@ public final class RhinoCore implements WrapHandler {
             return ("TypeInfo[" + protoName + "," + new Date(lastUpdate) + "]");
         }
     }
+
+    class Wrapper extends WrapFactory {
+
+        public Object wrap(Context cx, Scriptable scope, Object obj, Class staticType)  {
+            // System.err.println ("Wrapping: "+obj);
+
+            if (obj instanceof INode) {
+                return getNodeWrapper((INode) obj);
+            }
+
+            if (obj instanceof IPathElement) {
+                return getElementWrapper(obj);
+            }
+
+            if (obj instanceof Map) {
+                return new MapWrapper((Map) obj, RhinoCore.this);
+            }
+
+            return super.wrap(cx, scope, obj, staticType);
+        }
+
+        /* public Scriptable wrapAsJavaObject(Context cx, Scriptable scope, Object javaObject) {
+            System.err.println ("J-Wrapping: "+javaObject);
+            return super.wrapAsJavaObject(cx, scope, javaObject);
+        } */
+
+        public Scriptable wrapNewObject(Context cx, Scriptable scope, Object obj) {
+            // System.err.println ("N-Wrapping: "+obj);
+
+            if (obj instanceof INode) {
+                return getNodeWrapper((INode) obj);
+            }
+
+            if (obj instanceof IPathElement) {
+                return getElementWrapper(obj);
+            }
+
+            if (obj instanceof Map) {
+                return new MapWrapper((Map) obj, RhinoCore.this);
+            }
+
+            return super.wrapNewObject(cx, scope, obj);
+        }
+    }
+
+
 }
+

@@ -136,7 +136,7 @@ public final class RhinoEngine implements ScriptingEngine {
     public void updatePrototypes() {
         context = Context.enter(context);
         context.setCompileFunctionsWithDynamicScope(true);
-        context.setWrapHandler(core);
+        context.setWrapFactory(core.wrapper);
 
         int optLevel = 0;
 
