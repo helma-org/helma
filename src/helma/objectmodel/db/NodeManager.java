@@ -668,19 +668,15 @@ public final class NodeManager {
 	    TableDataSet tds =  new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
 	    try {
 
-	        String q = null;
 	        if (home.getSubnodeRelation() != null) {
-	            // HACK: cut away the "where" part of manually set subnoderelation
-	            q = home.getSubnodeRelation().trim().substring(5);
+	            // HACK: cut off the "where" part of manually set subnoderelation
+	            tds.where (home.getSubnodeRelation().trim().substring(5));
 	        } else {
 	            // let relation object build the query
-	            q = rel.buildQuery (home, home.getNonVirtualParent (), null, "", false);
+	            tds.where (rel.buildQuery (home, home.getNonVirtualParent (), null, "", false));
+	            if (rel.getOrder () != null)
+	                tds.order (rel.getOrder ());
 	        }
-	
-	        tds.where (q);
-	
-	        if (rel.getOrder () != null)
-	            tds.order (rel.getOrder ());
 	
 	        if (logSql)
 	           app.logEvent ("### getNodes: "+tds.getSelectString());
