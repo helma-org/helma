@@ -161,6 +161,20 @@ public class HopObject extends ScriptableObject implements Wrapper {
     }
 
     /**
+     * Check if the node has been invalidated. If so, it has to be re-fetched
+     * from the db via the app's node manager.
+     */
+    private final void checkNode() {
+        if (node != null && node.getState() == INode.INVALID) {
+            if (node instanceof helma.objectmodel.db.Node) {
+                NodeHandle handle = ((helma.objectmodel.db.Node) node).getHandle();
+                node = handle.getNode(core.app.getWrappedNodeManager());
+            }
+        }
+    }
+
+
+    /**
      *
      *
      * @return ...
@@ -169,6 +183,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
         if (node == null) {
             return null;
         }
+
+        checkNode();
 
         return node.getCacheNode();
     }
@@ -248,6 +264,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
 
         String act = null;
 
+        checkNode();
+
         if (action != null) {
             if (action instanceof Wrapper) {
                 act = ((Wrapper) action).unwrap().toString();
@@ -269,23 +287,27 @@ public class HopObject extends ScriptableObject implements Wrapper {
      * @return ...
      */
     public Object jsFunction_get(Object id) {
-        if ((node == null) || (id == null) || id == Undefined.instance) {
+        if ((node == null) || (id == null)) {
             return null;
         }
 
         Object n = null;
 
         if (id instanceof Number) {
-            n = node.getSubnodeAt(((Number) id).intValue());
+            n = get(((Number) id).intValue(), this);
+        } else if (id instanceof String) {
+            n = getFromNode(id.toString());
         } else {
-            n = node.getChildElement(id.toString());
+            throw new RuntimeException("Invalid type for id argument in HopObject.get(): "+id);
         }
 
-        if (n == null) {
+        // since we're calling Scriptable.get() methods, we'll get NOT_FOUND rather
+        // than null if a property is not defined.
+        if (n == null || n == NOT_FOUND) {
             return null;
-        } else {
-            return Context.toObject(n, core.global);
         }
+
+        return n;
     }
 
     /**
@@ -300,6 +322,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
             return null;
         }
 
+        checkNode();
         Object n = node.getSubnode(id.toString());
 
         if (n == null) {
@@ -323,6 +346,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
         if ((node == null)) {
             return false;
         }
+
+        checkNode();
 
         if (id instanceof Number) {
 
@@ -354,6 +379,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
             return 0;
         }
 
+        checkNode();
+
         return node.numberOfNodes();
     }
 
@@ -381,6 +408,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
             return;
         }
 
+        checkNode();
+
         try {
             ((helma.objectmodel.db.Node) node).prefetchChildren(start, length);
         } catch (Exception x) {
@@ -391,6 +420,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
      *  Clear the node's cache node.
      */
     public void jsFunction_clearCache() {
+        checkNode();
+
         node.clearCacheNode();
     }
 
@@ -402,6 +433,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
     public Scriptable jsFunction_list() {
         Enumeration e = node.getSubnodes();
         ArrayList a = new ArrayList();
+
+        checkNode();
 
         while ((e != null) && e.hasMoreElements()) {
             a.add(Context.toObject(e.nextElement(), core.global));
@@ -421,6 +454,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
         if ((node == null) || (child == null)) {
             return false;
         }
+
+        checkNode();
 
         if (child instanceof HopObject) {
             node.addNode(((HopObject) child).node);
@@ -448,6 +483,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
             return false;
         }
 
+        checkNode();
+
         if (child instanceof HopObject) {
             node.addNode(((HopObject) child).node, index);
 
@@ -467,6 +504,9 @@ public class HopObject extends ScriptableObject implements Wrapper {
     public boolean jsFunction_remove(Object child) {
         // semantics: if called without arguments, remove self.
         // otherwise, remove given subnodes.
+
+        checkNode();
+
         if (child == Undefined.instance) {
             return node.remove();
         } else if (node != null) {
@@ -495,8 +535,16 @@ public class HopObject extends ScriptableObject implements Wrapper {
     public boolean jsFunction_invalidate(Object childId) {
         if (childId != null && node instanceof helma.objectmodel.db.Node) {
             if (childId == Undefined.instance) {
+
+                if (node.getState() == INode.INVALID) {
+                    return true;
+                }
+
                 ((helma.objectmodel.db.Node) node).invalidate();
             } else {
+
+                checkNode();
+
                 ((helma.objectmodel.db.Node) node).invalidateNode(childId.toString());
             }
         }
@@ -509,6 +557,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
      */
     public int jsFunction_contains(Object obj) {
         if ((node != null) && obj instanceof HopObject) {
+            checkNode();
+
             return node.contains(((HopObject) obj).node);
         }
 
@@ -526,6 +576,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
         if (node == null) {
             super.put(name, start, value);
         } else {
+
+            checkNode();
 
             if ("subnodeRelation".equals(name)) {
                 node.setSubnodeRelation(value == null ? null : value.toString());
@@ -586,8 +638,13 @@ public class HopObject extends ScriptableObject implements Wrapper {
             return true;
         }
 
-        if ((node != null) && (node.get(name) != null)) {
-            return true;
+        if (node != null) {
+
+            checkNode();
+
+            if  (node.get(name) != null) {
+                return true;
+            }
         }
 
         return false;
@@ -600,7 +657,11 @@ public class HopObject extends ScriptableObject implements Wrapper {
      */
     public void delete(String name) {
         super.delete(name);
+
         if ((node != null)) {
+
+            checkNode();
+
             node.unset(name);
         }
     }
@@ -629,7 +690,19 @@ public class HopObject extends ScriptableObject implements Wrapper {
             return retval;
         }
 
+        return getFromNode(name);
+    }
+
+    /**
+     *  Retrieve a property only from the node itself, not the underlying prototype object.
+     *  This is called directly when we call get(x) on a JS HopObject, since we don't want
+     *  to return the prototype functions in that case.
+     */
+    private Object getFromNode(String name) {
         if (node != null) {
+
+            checkNode();
+
             // Everything starting with an underscore is interpreted as internal property
             if (name.charAt(0) == '_') {
                 return getInternalProperty(name);
@@ -758,6 +831,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
         Enumeration enum = node.properties();
         ArrayList list = new ArrayList();
 
+        checkNode();
+
         while (enum.hasMoreElements())
             list.add(enum.nextElement());
 
@@ -774,6 +849,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
      */
     public boolean has(int idx, Scriptable start) {
         if (node != null) {
+            checkNode();
+
             return (0 <= idx && idx < node.numberOfNodes());
         }
 
@@ -790,7 +867,10 @@ public class HopObject extends ScriptableObject implements Wrapper {
      */
     public Object get(int idx, Scriptable start) {
         if (node != null) {
+            checkNode();
+
             INode n = node.getSubnodeAt(idx);
+
             if (n != null) {
                 return Context.toObject(n, core.global);
             }
