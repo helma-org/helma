@@ -301,7 +301,7 @@ public abstract class AbstractServletClient extends HttpServlet {
     void writeResponse(HttpServletRequest req, HttpServletResponse res,
                        ResponseTrans hopres) throws IOException {
         if (hopres.getForward() != null) {
-            sendForward(res, hopres.getForward());
+            sendForward(res, hopres);
             return;
         }
 
@@ -428,8 +428,9 @@ public abstract class AbstractServletClient extends HttpServlet {
      * Forward the request to a static file. The file must be reachable via
      * the context's protectedStatic resource base.
      */
-    void sendForward(ServletResponse res, String forward) throws IOException {
+    void sendForward(HttpServletResponse res, ResponseTrans hopres) throws IOException {
 
+        String forward = hopres.getForward();
         ServletContext cx = getServletConfig().getServletContext();
         String path = cx.getRealPath(forward);
         if (path == null)
@@ -438,6 +439,8 @@ public abstract class AbstractServletClient extends HttpServlet {
         File file = new File(path);
         int length = (int) file.length();
         res.setContentLength(length);
+        res.setContentType(hopres.getContentType());
+
         InputStream in = cx.getResourceAsStream(forward);
         if (in == null)
             throw new IOException("Can't read "+path);
