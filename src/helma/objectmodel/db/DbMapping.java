@@ -903,19 +903,27 @@ public final class DbMapping implements Updatable {
      *  Get a StringBuffer initialized to the first part of the select statement
      *  for objects defined by this DbMapping
      *
+     * @param rel the Relation we use to select. Currently only used for optimizer hints.
+     *            Is null if selecting by primary key.
      * @return the StringBuffer containing the first part of the select query
      *
      * @throws SQLException if the table meta data could not be retrieved
      * @throws ClassNotFoundException if the JDBC driver class was not found
      */
-    public StringBuffer getSelect() throws SQLException, ClassNotFoundException {
+    public StringBuffer getSelect(Relation rel) throws SQLException, ClassNotFoundException {
+        // assign to local variable first so we are thread safe
+        // (selectString may be reset by other threads)
         String sel = selectString;
 
-        if (sel != null) {
+        if (rel == null && sel != null) {
             return new StringBuffer(sel);
         }
 
         StringBuffer s = new StringBuffer("SELECT ");
+
+        if (rel != null && rel.queryHints != null) {
+            s.append(rel.queryHints).append(" ");
+        }
 
         String table = getTableName();
 
@@ -951,8 +959,11 @@ public final class DbMapping implements Updatable {
             joins[i].renderJoinConstraints(s);
         }
 
-        // cache rendered string for later calls.
-        selectString = s.toString();
+        // cache rendered string for later calls, but only if it wasn't
+        // built for a particular Relation
+        if (rel == null) {
+            selectString = s.toString();
+        }
 
         return s;
     }

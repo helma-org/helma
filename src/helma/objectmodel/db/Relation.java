@@ -93,6 +93,7 @@ public final class Relation {
     String groupbyPrototype;
     String filter;
     String additionalTables;
+    String queryHints;
     Vector filterFragments;
     Vector filterPropertyRefs;
     int maxSize = 0;
@@ -114,6 +115,7 @@ public final class Relation {
         this.filterFragments =     rel.filterFragments;
         this.filterPropertyRefs =  rel.filterPropertyRefs;
         this.additionalTables =    rel.additionalTables;
+        this.queryHints =          rel.queryHints;
         this.maxSize =             rel.maxSize;
         this.constraints =         rel.constraints;
         this.accessName =          rel.accessName;
@@ -291,6 +293,9 @@ public final class Relation {
         if (additionalTables != null && additionalTables.trim().length() == 0) {
                 additionalTables = null;
         }
+
+        // get query hints
+        queryHints = props.getProperty(propName + ".hints");
 
         // get max size of collection
         String max = props.getProperty(propName + ".maxSize");

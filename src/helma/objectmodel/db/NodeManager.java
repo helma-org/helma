@@ -994,9 +994,15 @@ public final class NodeManager {
                      tables.append(',').append(rel.additionalTables);
                 }
 
-                StringBuffer b = new StringBuffer("SELECT ").append(table).append('.')
-                                                   .append(idfield).append(" FROM ")
-                                                   .append(tables);
+                StringBuffer b = new StringBuffer("SELECT ");
+
+                if (rel != null && rel.queryHints != null) {
+                    b.append(rel.queryHints).append(" ");
+                }
+
+                b.append(table).append('.')
+                               .append(idfield).append(" FROM ")
+                               .append(tables);
 
                 if (home.getSubnodeRelation() != null) {
                     // subnode relation was explicitly set
@@ -1089,7 +1095,7 @@ public final class NodeManager {
             Statement stmt = con.createStatement();
             DbColumn[] columns = dbm.getColumns();
             Relation[] joins = dbm.getJoins();
-            StringBuffer q = dbm.getSelect();
+            StringBuffer q = dbm.getSelect(rel);
 
             if (rel.additionalTables != null) {
                  q.append(',').append(rel.additionalTables);
@@ -1171,7 +1177,7 @@ public final class NodeManager {
                 Statement stmt = con.createStatement();
                 DbColumn[] columns = dbm.getColumns();
                 Relation[] joins = dbm.getJoins();
-                StringBuffer q = dbm.getSelect();
+                StringBuffer q = dbm.getSelect(rel);
 
                 if (rel.additionalTables != null) {
                      q.append(',').append(rel.additionalTables);
@@ -1498,7 +1504,7 @@ public final class NodeManager {
 
                 DbColumn[] columns = dbm.getColumns();
                 Relation[] joins = dbm.getJoins();
-                StringBuffer q = dbm.getSelect().append("WHERE ")
+                StringBuffer q = dbm.getSelect(null).append("WHERE ")
                                                 .append(dbm.getTableName())
                                                 .append(".")
                                                 .append(idfield)
@@ -1582,7 +1588,7 @@ public final class NodeManager {
                 Connection con = dbm.getConnection();
                 DbColumn[] columns = dbm.getColumns();
                 Relation[] joins = dbm.getJoins();
-                StringBuffer q = dbm.getSelect();
+                StringBuffer q = dbm.getSelect(rel);
 
                 if (rel.additionalTables != null) {
                      q.append(',').append(rel.additionalTables);
