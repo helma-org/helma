@@ -132,10 +132,9 @@ function checkAuth(appObj)	{
 
 	if (appObj!=null && appObj.isActive())	{
 		// check against application
-		var appUsername = appObj.getProperty("adminusername");
-		var appPassword = appObj.getProperty("adminpassword");
-		if ( md5username==appUsername && md5password==appPassword )
-			return true;
+		adminAccess = appObj.getProperty("adminAccess");
+   	if (md5key==adminAccess)
+   		return true;
 	}
 	return forceAuth();
 }
