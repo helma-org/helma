@@ -123,7 +123,7 @@ public class Logging extends LogFactory {
     }
 
     public synchronized Log getInstance (Class clazz) {
-        return getInstance(clazz.toString());
+        return getInstance(clazz.getPackage().getName());
     }
 
     public void setAttribute(String name, Object value) {
