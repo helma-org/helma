@@ -460,6 +460,11 @@ public class HopObject extends ScriptableObject {
         if (node == null) {
             super.put(name, start, value);
         } else {
+
+            if ("subnodeRelation".equals(name)) {
+                node.setSubnodeRelation(value == null ? null : value.toString());
+            }
+
             if (value instanceof NativeJavaObject) {
                 value = ((NativeJavaObject) value).unwrap();
             }
@@ -528,6 +533,7 @@ public class HopObject extends ScriptableObject {
      * @param name ...
      */
     public void delete(String name) {
+        super.delete(name);
         if ((node != null)) {
             node.unset(name);
         }
@@ -561,6 +567,10 @@ public class HopObject extends ScriptableObject {
             // Everything starting with an underscore is interpreted as internal property
             if (name.charAt(0) == '_') {
                 return getInternalProperty(name);
+            }
+
+            if ("subnodeRelation".equals(name)) {
+                return node.getSubnodeRelation();
             }
 
             IProperty p = node.get(name);
