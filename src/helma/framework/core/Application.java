@@ -1112,7 +1112,8 @@ public final class Application implements IPathElement, Runnable {
 	                NodeHandle userhandle = session.userHandle;
 	                if (userhandle != null) {
 	                    try {
-	                        eval.invokeFunction (userhandle, "onLogout", new Object[0]);
+	                        Object[] param = { session.getSessionID() };
+	                        eval.invokeFunction (userhandle, "onLogout", param);
 	                    } catch (Exception ignore) {}
 	                }
 	                destroySession(session);
@@ -1141,7 +1142,7 @@ public final class Application implements IPathElement, Runnable {
 	    }
 
 	    // sleep until we have work to do
- 	    try {
+	    try {
 	        worker.sleep (Math.min (cleanupSleep, scheduleSleep));
 	    } catch (InterruptedException x) {
 	        logEvent ("Scheduler for "+name+" interrupted");
