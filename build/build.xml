@@ -334,7 +334,7 @@
     <!-- =================================================================== -->
     <target name="fullcleanup" depends="init">
       <delete dir="${build.work}"/>
-      <delete dir="${snapshot.src}"/>
+      <!-- delete dir="${snapshot.src}"/ -->
     </target>
 
     <!-- =================================================================== -->
