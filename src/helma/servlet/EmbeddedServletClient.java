@@ -57,11 +57,9 @@ public final class EmbeddedServletClient extends AbstractServletClient {
     String getRequestPath (String path) {
 	if (path == null)
 	    return "";
-	int pathMatch = path.indexOf (mountpoint);
-	if (pathMatch > -1)
-	    return trim (path.substring (pathMatch+mountpoint.length()));
-	else
-	    return trim (path);
+	// We already get the correct request path
+	// from the servlet container.
+	return trim (path);
     }
 
     String trim (String str) {
