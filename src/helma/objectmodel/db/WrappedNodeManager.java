@@ -23,8 +23,12 @@ import java.util.Vector;
     }
 
     public Node getNode (String id, DbMapping dbmap) {
+	return getNode (new Key (dbmap, id));
+    }
+
+    public Node getNode (Key key) {
 	try {
-	    return nmgr.getNode (id, dbmap);
+	    return nmgr.getNode (key);
 	} catch (ObjectNotFoundException x) {
 	    return null;
 	} catch (Exception x) {
