@@ -1550,7 +1550,7 @@ public final class Node implements INode, Serializable {
 	if (nmap != null && nmap != value.getDbMapping()) {
 	    if (value.getDbMapping () == null)
 	        value.setDbMapping (nmap);
-	    else
+	    else if (!nmap.isStorageCompatible (value.getDbMapping ()))
 	        throw new RuntimeException ("Can't set "+propname+" to object with prototype "+value.getPrototype()+", was expecting "+nmap.getTypeName());
 	}
 
@@ -1610,12 +1610,14 @@ public final class Node implements INode, Serializable {
 	    prop.nhandle = new NodeHandle (new DbKey (n.getDbMapping (), kval, rel.getRemoteField ()));
 	} */
 	
-	// don't check node in transactor cache -- this is done anyway when the node becomes persistent.
+	// don't check node in transactor cache if node is transient -
+	// this is done anyway when the node becomes persistent.
 	if (n.state != TRANSIENT) {
 	    // check node in with transactor cache
 	    String nID = n.getID();
+	    DbMapping dbm = n.getDbMapping ();
 	    Transactor tx = (Transactor) Thread.currentThread ();
-	    tx.visitCleanNode (new DbKey (nmap, nID), n);
+	    tx.visitCleanNode (new DbKey (dbm, nID), n);
 	    // if the field is not the primary key of the property, also register it
 	    if (rel != null && rel.accessor != null && state != TRANSIENT) {
 	        Key secKey = new SyntheticKey (getKey (), propname);
