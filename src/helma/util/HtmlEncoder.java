@@ -141,7 +141,9 @@ public final class HtmlEncoder {
 	StringReader in = new StringReader (what);
 	int c;
 	boolean closeTag=false, readTag=false, tagOpen=false;
-             boolean ignoreNewline = false, swallow = false;
+	// the difference between swallowOneNewline and ignoreNewline is that swallowOneNewline is just effective once (for the next newline)
+             boolean ignoreNewline = false;
+	boolean swallowOneNewline = false;
 	StringBuffer tag = new StringBuffer ();
 	try {
 	    while ((c = in.read()) != -1) {
@@ -154,26 +156,16 @@ public final class HtmlEncoder {
 	                 String t = tag.toString ();
 	                 // set ignoreNewline on some tags, depending on wheather they're
 	                 // being opened or closed.
-	                 if ("td".equalsIgnoreCase (t)) {
+	                 // what's going on here? we switch newline encoding on inside some tags, for
+	                 // others we switch it on when they're closed
+	                 if ("td".equalsIgnoreCase (t) || "th".equalsIgnoreCase (t) || "li".equalsIgnoreCase (t)) {
 	                     ignoreNewline = closeTag;
-	                     swallow = true; // for some reason, it's a good idea to swallow (ignore) newlines after some tags
-	                 } else if ("th".equalsIgnoreCase (t)) {
-	                     ignoreNewline = closeTag;
-	                     swallow = true;
-	                 } else if ("table".equalsIgnoreCase (t)) {
+	                     swallowOneNewline = true;
+	                 } else if ("table".equalsIgnoreCase (t) || "ul".equalsIgnoreCase (t) || "ol".equalsIgnoreCase (t) || "pre".equalsIgnoreCase (t)) {
 	                     ignoreNewline = !closeTag;
-	                     swallow = true;
-	                 } else if ("ul".equalsIgnoreCase (t)) {
-	                     ignoreNewline = !closeTag;
-	                     swallow = true;
-	                 } else if ("ol".equalsIgnoreCase (t)) {
-	                     ignoreNewline = !closeTag;
-	                     swallow = true;
-	                 } else if ("li".equalsIgnoreCase (t)) {
-	                     swallow = true;
-	                     ignoreNewline = closeTag;
+	                     swallowOneNewline = true;
 	                 } else if ("p".equalsIgnoreCase (t)) {
-	                     swallow = true;
+	                     swallowOneNewline = true;
 	                 }
 
 	                 readTag = false;
@@ -187,11 +179,11 @@ public final class HtmlEncoder {
                      //    ret.append ("&amp;");
 	        //    break;
 	        case  '\n':
-                         if (!ignoreNewline && !swallow)
+                         if (!ignoreNewline && !swallowOneNewline)
 	                ret.append ("<br>");
 	            ret.append ('\n');
 	            if (!tagOpen)
-	                swallow = false;
+	                swallowOneNewline = false;
 	            break;
 	        case '<':
 	            closeTag = false;
@@ -214,7 +206,7 @@ public final class HtmlEncoder {
 	                 ret.append (";");
 	             }
 	             if (!tagOpen && !Character.isWhitespace ((char)c))
-	                 swallow = false;
+	                 swallowOneNewline = false;
 	        }
 	    }
 	} catch (IOException e) {}
