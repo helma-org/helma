@@ -16,13 +16,13 @@ import java.util.*;
 
 
 /**
-  * An EcmaScript wrapper around a 'Node' object. This is the basic 
-  * HOP object type that can be stored in the internal or external databases. 
-  * All HOP types inherit from the Node object.
+  * An EcmaScript wrapper around a Node object. This is the basic
+  * HopObject that can be stored in the internal or external databases.
   */
 
 public class ESNode extends ObjectPrototype {
 
+    // the INode object wrapped by this ESObject
     INode node;
 
     // the cache node - persistent nodes have a transient property as a commodity to
@@ -36,7 +36,7 @@ public class ESNode extends ObjectPrototype {
     DbMapping dbmap;
     Throwable lastError = null;
     FesiEvaluator eval;
-    
+
     /**
      * Constructor used to create transient cache nodes
      */
