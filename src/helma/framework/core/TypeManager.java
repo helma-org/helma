@@ -19,7 +19,7 @@ public class TypeManager implements Runnable {
     Application app;
     File appDir;
     HashMap prototypes;
-    Prototype nodeProto;
+    HashMap zipfiles;
     long idleSeconds = 120; // if idle for longer than 5 minutes, slow down
     boolean rewire;
 
@@ -62,8 +62,8 @@ public class TypeManager implements Runnable {
 	if (!f.exists())	
 	    f.mkdir ();
 	prototypes = new HashMap ();
+	zipfiles = new HashMap ();
 	registeredEvaluators = Collections.synchronizedList (new ArrayList (30));
-	nodeProto = null;
     }
 
 
@@ -74,33 +74,38 @@ public class TypeManager implements Runnable {
 	if (list == null)
 	    throw new RuntimeException ("Can't read app directory "+appDir+" - check permissions");
 	for (int i=0; i<list.length; i++) {
-	    File protoDir = new File (appDir, list[i]);
+	    File fileOrDir = new File (appDir, list[i]);
 	    // cut out ".." and other directories that contain "."
-	    if (isValidTypeName (list[i]) && protoDir.isDirectory ()) {
+	    if (isValidTypeName (list[i]) && fileOrDir.isDirectory ()) {
 	        Prototype proto = getPrototype (list[i]);
 	        if (proto != null) {
 	            // check if existing prototype needs update
 	            // app.logEvent (protoDir.lastModified ());
-	            updatePrototype (list[i], protoDir, proto);
+	            updatePrototype (list[i], fileOrDir, proto);
 	        } else {
 	            // create new prototype
-	            proto = new Prototype (protoDir, app);
-	            registerPrototype (list[i], protoDir, proto);
+	            proto = new Prototype (fileOrDir, app);
+	            registerPrototype (list[i], fileOrDir, proto);
 	            prototypes.put (list[i], proto);
-	            if ("hopobject".equalsIgnoreCase (list[i]))
-	                nodeProto = proto;
 	            // give logger thread a chance to tell what's going on
 	            Thread.yield();
+	        }
+	    } else if (list[i].toLowerCase().endsWith (".zip") && !fileOrDir.isDirectory ()) {
+	        ZippedAppFile zipped = (ZippedAppFile) zipfiles.get (list[i]);
+	        if (zipped == null) {
+	            zipped = new ZippedAppFile (fileOrDir, app);
+	            zipfiles.put (list[i], zipped);
 	        }
 	    }
 	}
 
-	/* for (Iterator it=prototypes.values ().iterator (); it.hasNext (); ) {
-	    Prototype proto = (Prototype) it.next ();
-	    if (!proto.getCodeDir ().exists ()) {
-	        app.logEvent ("TypeManager: Can't remove prototype from running application. Restart for changes to take effect.");
+	// loop through zip files to check for updates
+	for (Iterator it=zipfiles.values ().iterator (); it.hasNext (); ) {
+	    ZippedAppFile zipped = (ZippedAppFile) it.next ();
+	    if (zipped.needsUpdate ()) {
+	        zipped.update ();
 	    }
-	} */
+	}
 
 	if (rewire) {
 	    // there have been changes @ DbMappings
