@@ -264,7 +264,7 @@ public abstract class ESLoader extends ESObject {
         //     return evaluator.reval.getElementWrapper ((helma.framework.IPathElement) obj);
         // }
         // return new ESWrapper(obj, evaluator);
-        return evaluator.reval.getElementWrapper (obj);
+        return evaluator.reval.getObjectWrapper (obj);
     }
     
     /**
@@ -386,6 +386,7 @@ public abstract class ESLoader extends ESObject {
                 if (targetClass.isPrimitive()) { // or: Object.class.isAssignableFrom(targetClass)
                     accepted = false;
                     debugInfo = " rejected (null cannot be assigned to primitive)";
+
                 } else {
                     accepted = true;
                     debugInfo = " accepted (null to Object)";
