@@ -36,8 +36,8 @@ public class DomExtension extends Extension  {
         globalXml.putHiddenProperty ("length",new ESNumber(1));
         globalXml.putHiddenProperty ("read", new XmlRead ("read", evaluator, fp, false));
         globalXml.putHiddenProperty ("readFromString", new XmlRead ("readFromString", evaluator, fp, true));
-        globalXml.putHiddenProperty ("write", new XmlWrite ("write", evaluator, fp, false));
-        globalXml.putHiddenProperty ("writeToString", new XmlWrite ("writeToString", evaluator, fp, true));
+        globalXml.putHiddenProperty ("write", new XmlWrite ("write", evaluator, fp));
+        globalXml.putHiddenProperty ("writeToString", new XmlWriteToString ("writeToString", evaluator, fp));
         globalXml.putHiddenProperty ("get", new XmlGet ("get", evaluator, fp));
         go.putHiddenProperty ("Xml", globalXml);
 	}
@@ -55,15 +55,11 @@ public class DomExtension extends Extension  {
 	}
 
 	class XmlWrite extends BuiltinFunctionObject {
-		boolean tostring;
-		XmlWrite(String name, Evaluator evaluator, FunctionPrototype fp, boolean tostring) {
+		XmlWrite(String name, Evaluator evaluator, FunctionPrototype fp) {
 			super(fp, evaluator, name, 1);
-			this.tostring = tostring;
 		}
 		public ESValue callFunction(ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-			if ( arguments==null ||
-					(tostring && arguments.length != 1) ||
-					(!tostring && arguments.length != 2))
+			if ( arguments==null || arguments.length != 2 )
 				throw new EcmaScriptException("wrong number of arguments");
 			INode node = null;
 			try	{
@@ -73,23 +69,14 @@ public class DomExtension extends Extension  {
 				throw new EcmaScriptException("first argument is not an hopobject");
 			}
 			try	{
-				if (tostring) {
-					ByteArrayOutputStream out = new ByteArrayOutputStream ();
-					XmlWriter writer = new XmlWriter (out, "UTF-8");
-					writer.setDatabaseMode(false);
-					boolean result = writer.write(node);
-					writer.close();
-					return new ESString (out.toString ("utf8"));
-				} else {
-					File tmpFile = new File(arguments[0].toString()+".tmp."+XmlWriter.generateID());
-					XmlWriter writer = new XmlWriter (tmpFile);
-					writer.setDatabaseMode(false);
-					boolean result = writer.write(node);
-					writer.close();
-					File finalFile = new File(arguments[0].toString());
-					tmpFile.renameTo (finalFile);
-					this.evaluator.reval.app.logEvent("wrote xml to " + finalFile.getAbsolutePath() );
-				}
+				File tmpFile = new File(arguments[1].toString()+".tmp."+XmlWriter.generateID());
+				XmlWriter writer = new XmlWriter (tmpFile);
+				writer.setDatabaseMode(false);
+				boolean result = writer.write(node);
+				writer.close();
+				File finalFile = new File(arguments[1].toString());
+				tmpFile.renameTo (finalFile);
+				this.evaluator.reval.app.logEvent("wrote xml to " + finalFile.getAbsolutePath() );
 			}	catch (IOException io)	{
 				throw new EcmaScriptException (io.toString());
 			}
@@ -101,8 +88,8 @@ public class DomExtension extends Extension  {
 	  * Xml.create() is used to get a string containing the xml-content.
 	  * Useful if Xml-content should be made public through the web.
 	  */
-    class XmlCreate extends BuiltinFunctionObject {
-		XmlCreate(String name, Evaluator evaluator, FunctionPrototype fp) {
+    class XmlWriteToString extends BuiltinFunctionObject {
+		XmlWriteToString(String name, Evaluator evaluator, FunctionPrototype fp) {
 			super(fp, evaluator, name, 1);
 		}
 		public ESValue callFunction(ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
@@ -117,11 +104,11 @@ public class DomExtension extends Extension  {
 			}
 			try	{
 				ByteArrayOutputStream out = new ByteArrayOutputStream();
-				XmlWriter writer = new XmlWriter (out);
+				XmlWriter writer = new XmlWriter (out, "UTF-8");
 				writer.setDatabaseMode(false);
 				boolean result = writer.write(node);
 				writer.flush();
-				return new ESString (out.toString());
+				return new ESString (out.toString("UTF-8"));
 			}	catch (IOException io)	{
 				throw new EcmaScriptException (io.toString());
 			}
