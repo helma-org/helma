@@ -625,7 +625,9 @@ public final class Skin {
             }
 
             if ((text != null) && (text.length() > 0)) {
-                if (prefix != null) {
+                // only write prefix/suffix if value is not null, if we write the default
+                // value provided by the macro tag, we assume it's already complete
+                if (prefix != null && value != null) {
                     buffer.append(prefix);
                 }
 
@@ -661,7 +663,7 @@ public final class Skin {
                         break;
                 }
 
-                if (suffix != null) {
+                if (suffix != null && value != null) {
                     buffer.append(suffix);
                 }
             }
