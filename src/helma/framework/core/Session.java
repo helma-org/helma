@@ -29,7 +29,7 @@ public class Session implements Serializable {
     // the handle to this user's persistent db node, if logged in
     NodeHandle userHandle;
 
-    // the transient session node that is exposed to javascript
+    // the transient cache node that is exposed to javascript
     // this stays the same across logins and logouts.
     public TransientNode cacheNode;
 
@@ -40,75 +40,86 @@ public class Session implements Serializable {
     String message;
 
     public Session (String sessionID, Application app) {
-		this.sessionID = sessionID;
-		this.app = app;
-		this.uid = null;
-		this.userHandle = null;
-		cacheNode = new TransientNode ("session");
-		onSince = System.currentTimeMillis ();
-		lastTouched = onSince;
+	this.sessionID = sessionID;
+	this.app = app;
+	this.uid = null;
+	this.userHandle = null;
+	cacheNode = new TransientNode ("session");
+	onSince = System.currentTimeMillis ();
+	lastTouched = onSince;
     }
     
-	public void login (INode usernode)	{
-		if (usernode==null)	{
-			userHandle = null;
-			uid = null;
-		}	else	{
-			userHandle = ((Node)usernode).getHandle();
-			uid = usernode.getElementName();
-		}
+    /**
+     * attach the given user node to this session.
+     */
+ 	public void login (INode usernode) {
+	if (usernode==null)	{
+	    userHandle = null;
+	    uid = null;
+	} else {
+	    userHandle = ((Node)usernode).getHandle();
+	    uid = usernode.getElementName();
+	}
 	}
 
-	public void logout()	{
-		userHandle = null;
-		uid = null;
+    /**
+     * remove this sessions's user node.
+     */
+	public void logout() {
+	userHandle = null;
+	uid = null;
 	}
 
-	public boolean isLoggedIn()	{
-		if (userHandle!=null && uid!=null)	{
-			return true;
-		}	else	{
-			return false;
-		}
+	public boolean isLoggedIn() {
+	if (userHandle!=null && uid!=null) {
+	    return true;
+	} else {
+	    return false;
+	}
 	}
 
-	public INode getUserNode()	{
-		if (userHandle!=null)	{
-			return userHandle.getNode (app.getWrappedNodeManager());
-		}	else	{
-			return null;
-		}
+    /**
+     * Gets the user Node from this Application's NodeManager.
+     */
+	public INode getUserNode() {
+	if (userHandle!=null)
+	    return userHandle.getNode (app.getWrappedNodeManager());
+	else
+	    return null;
 	}
 
+    /**
+     * Gets the transient cache node.
+     */
     public INode getCacheNode () {
-    	return cacheNode;
+    return cacheNode;
     }
 
-	public Application getApp ()	{
-		return app;
+	public Application getApp () {
+	return app;
 	}
 
     public String getSessionID () {
-		return sessionID;
+	return sessionID;
     }
     
     public void touch () {
-		lastTouched = System.currentTimeMillis ();
+	lastTouched = System.currentTimeMillis ();
     }
 
     public long lastTouched () {
-		return lastTouched;
+	return lastTouched;
     }
 
     public long onSince () {
-		return onSince;
+	return onSince;
     }
 
-	public String toString ()	{
-		if ( uid!=null )
-			return "[Session " + sessionID + ":" + uid + "]";
-		else
-			return "[Session " + sessionID + "]";
+	public String toString () {
+	if ( uid!=null )
+		return "[Session " + sessionID + ":" + uid + "]";
+	else
+		return "[Session " + sessionID + "]";
 	}
 
     /**
@@ -116,7 +127,7 @@ public class Session implements Serializable {
      * null if the user is not logged in.
      */
     public String getUID () {
-		return uid;
+	return uid;
     }
 
 }
