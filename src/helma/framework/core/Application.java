@@ -683,6 +683,15 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
+     * Returns the node manager for this application. The node manager is
+     * the gateway to the helma.objectmodel packages, which perform the mapping
+     * of objects to relational database tables or the embedded database.
+     */
+    public NodeManager getNodeManager() {
+        return nmgr;
+    }
+
+    /**
      * Returns a wrapper containing the node manager for this application. The node manager is
      * the gateway to the helma.objectmodel packages, which perform the mapping of objects to
      * relational database tables or the embedded database.
