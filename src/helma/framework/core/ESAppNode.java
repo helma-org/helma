@@ -23,6 +23,7 @@ public class ESAppNode extends ESNode {
 	app = eval.app;
 	createtime = new DatePrototype (eval.evaluator, node.created());
 	FunctionPrototype fp = (FunctionPrototype) eval.evaluator.getFunctionPrototype();
+	putHiddenProperty("getThreads", new AppCountThreads ("getThreads", evaluator, fp));
 	putHiddenProperty("getMaxThreads", new AppCountEvaluators ("getMaxThreads", evaluator, fp));
 	putHiddenProperty("getFreeThreads", new AppCountFreeEvaluators ("getFreeThreads", evaluator, fp));
 	putHiddenProperty("getActiveThreads", new AppCountBusyEvaluators ("getActiveThreads", evaluator, fp));
@@ -86,6 +87,15 @@ public class ESAppNode extends ESNode {
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
            return new ESNumber (app.typemgr.countRegisteredRequestEvaluators () -1);
+        }
+    }
+
+    class AppCountThreads extends BuiltinFunctionObject {
+        AppCountThreads (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 0);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+           return new ESNumber (app.threadgroup.activeCount() -1);
         }
     }
 
