@@ -3,6 +3,7 @@
 
 package helma.scripting;
 
+import helma.framework.IPathElement;
 import helma.framework.core.Application;
 import helma.framework.core.Prototype;
 import helma.framework.core.RequestEvaluator;
@@ -66,33 +67,13 @@ public interface ScriptingEngine {
      */
     public boolean hasFunction (Object thisObject, String functionName);
 
+    /**
+     *  Get an IPathElement that offers introspection services into the application.
+     *  If this method returns null, no introspection is available for this kind of engine.
+     *  In order to be compatible with the standard Helma management application, this 
+     *  class should be compatible with helma.doc.DocApplication.
+     */
+    public IPathElement getIntrospector ();
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

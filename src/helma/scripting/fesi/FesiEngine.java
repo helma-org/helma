@@ -9,6 +9,7 @@ import helma.extensions.HelmaExtension;
 import helma.extensions.ConfigurationException;
 import helma.framework.*;
 import helma.framework.core.*;
+import helma.doc.DocApplication;
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Relation;
@@ -62,6 +63,8 @@ public final class FesiEngine implements ScriptingEngine {
     // the global vars set by extensions
     HashMap extensionGlobals;
     
+    // the introspector that provides documentation for this application
+    DocApplication doc = null;
 
     /**
      *  Zero argument constructor.
@@ -501,6 +504,18 @@ public final class FesiEngine implements ScriptingEngine {
 	}
 	return null;
     }
+
+    /** 
+     *  Get a DocApplication object for a specific application.
+     */
+    public IPathElement getIntrospector () {
+	if (doc == null) {
+	    doc = new DocApplication (app.getName(), app.getAppDir().toString());
+	    doc.readApplication ();
+	}
+	return doc;
+    }
+
 
     /**
      *  Convert an input argument from Java to the scripting runtime
