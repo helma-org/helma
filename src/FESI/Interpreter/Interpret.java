@@ -21,7 +21,8 @@ import FESI.Parser.*;
 import FESI.AST.*;
 import FESI.Extensions.Extension;
 import FESI.Extensions.BasicIOInterface;
-import FESI.gui.*;
+// no GUI needed for Hop
+// import FESI.gui.*;
 import FESI.Data.*;
 import FESI.Exceptions.*;
 
@@ -39,7 +40,7 @@ import java.util.Properties;
  * evolve over time. It may be preferable to write interpreters from scratchs
  * using this one as an example.
  */
-public class Interpret implements InterpreterCommands {
+public class Interpret { // removed implements InterpreterCommands
   
 	// Most of the data is protected to allow subclassing the
 	// interpreter. They should NOT be used from other classses
@@ -312,6 +313,7 @@ public class Interpret implements InterpreterCommands {
       errorStream.println("      -v  display version even if not interactive");
       errorStream.println("      -e ext   Load the extension class ext");
       errorStream.println("      -T file   Process an estest file, exit 1 if any failure");
+
       errorStream.println("      -h file   Expand the script in an html file");
       errorStream.println("      -D  turnon all debug flags");
       errorStream.println("      -f file   Load and execute the specified file");
@@ -610,6 +612,7 @@ public class Interpret implements InterpreterCommands {
                   break OUTTHREE;
               }
             
+
             } // for
             continue OUTTHREE;
        } // starts with -
@@ -1380,6 +1383,7 @@ public class Interpret implements InterpreterCommands {
        };
        new Command("listAll", "List all properties of the object") {
            boolean doCommand(Interpret interpreter, String parameter) {
+
                 interpreter.listAllProperties(parameter);
                 return false;
           }
