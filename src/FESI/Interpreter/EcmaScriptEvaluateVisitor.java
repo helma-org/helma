@@ -250,7 +250,7 @@ public class EcmaScriptEvaluateVisitor
           
           // ESNode wrappers must be checked with equals() because
           // it's possible that different wrappers wrap the same node!
-          if (v1 instanceof helma.framework.core.ESNode) {
+          if (v1 instanceof helma.framework.IPathElement) {
             return v1.equals (v2);
           }
           
@@ -1362,3 +1362,4 @@ public class EcmaScriptEvaluateVisitor
   }
 
 }
+
