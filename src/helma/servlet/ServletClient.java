@@ -222,7 +222,7 @@ public class ServletClient extends HttpServlet{
 	    try {
 	        OutputStream out = new BufferedOutputStream (res.getOutputStream ());
 	        out.write (trans.getContent ());
-	        out.flush ();
+	        out.close ();
 	    } catch(Exception io_e) {}
 	}
     }
