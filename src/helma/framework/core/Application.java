@@ -9,7 +9,7 @@ import java.rmi.*;
 import java.rmi.server.*;
 import helma.framework.*;
 import helma.scripting.*;
-import helma.scripting.fesi.*;
+import helma.scripting.fesi.ESUser;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.xmlrpc.*;
@@ -742,7 +742,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	}
 	if (reval != null) try {
 	    return reval.invokeDirectFunction (obj, func, args);
-	} catch (Exception x) {}
+	} catch (Exception x) {
+	    if (debug)
+	        System.err.println ("ERROR invoking function "+func+": "+x);
+	}
 	return null;
     }
 
