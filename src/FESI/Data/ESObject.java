@@ -106,6 +106,16 @@ public abstract class ESObject extends ESValue {
     
 
     /**
+     *  Allow the prototype to be set, added 2001-04-05 by Hannes Wallnöfer
+     *
+     * @param prototype     The new prototype object
+     */
+    public void setPrototype(ESObject prototype) {
+        this.prototype = prototype;
+    }
+
+
+    /**
      * Return the name of the class of objects ([[class]]), as used in the default toString
      * method of objects (15.2.4.2)
      *
