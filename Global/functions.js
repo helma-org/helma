@@ -101,8 +101,8 @@ function checkAuth(appObj)	{
 	if ( uname==null || uname=="" || pwd==null || pwd=="" )
 		return forceAuth();
 
-	var md5password = calcMD5(uname);
-	var md5username = calcMD5(pwd);
+	var md5username = calcMD5(uname);
+	var md5password = calcMD5(pwd);
 
 	if ( md5username==rootUsername && md5password==rootPassword )
 		return true;
