@@ -148,20 +148,20 @@ public class AcmeServletClient extends HttpServlet {
     }
 
 
-    private void writeResponse (HttpServletResponse res, ResponseTrans trans, Cookie[] cookies, String protocol) {			
+    private void writeResponse (HttpServletResponse res, ResponseTrans trans, Cookie[] cookies, String protocol) {
 	for (int i = 0; i < trans.countCookies(); i++) try {
-	    Cookie c = new Cookie(trans.getKeyAt(i), trans.getValueAt(i));	
+	    Cookie c = new Cookie(trans.getKeyAt(i), trans.getValueAt(i));
 	    c.setPath ("/");
 	    if (cookieDomain != null)
-	        c.setDomain (cookieDomain);			
+	        c.setDomain (cookieDomain);
 	    int expires = trans.getDaysAt(i);
 	    if (expires > 0)
-	        c.setMaxAge(expires * 60*60*24);   // Cookie time to live, days -> seconds	
-	    res.addCookie(c);				
+	        c.setMaxAge(expires * 60*60*24);   // Cookie time to live, days -> seconds
+	    res.addCookie(c);
 	} catch (Exception ign) {}
 
 	if (trans.getRedirect () != null) {
-	    try { 
+	    try {
 	        res.sendRedirect(trans.getRedirect ());
 	    } catch(Exception io_e) {}
 
@@ -179,7 +179,7 @@ public class AcmeServletClient extends HttpServlet {
 	    if (trans.status > 0)
 	        res.setStatus (trans.status);
 	    res.setContentLength (trans.getContentLength ());			
-	    res.setContentType (trans.contentType);
+	    res.setContentType (trans.getContentType ());
 	    try {
 	        OutputStream out = res.getOutputStream ();
 	        out.write (trans.getContent ());

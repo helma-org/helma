@@ -218,12 +218,12 @@ public abstract class AbstractServletClient extends HttpServlet {
 	        else
 	            res.setHeader ("Cache-Control", "no-cache"); // for HTTP 1.1
 	    }
-		if ( trans.realm!=null )
-			res.setHeader( "WWW-Authenticate", "Basic realm=\"" + trans.realm + "\"" );
+	    if ( trans.realm!=null )
+	        res.setHeader( "WWW-Authenticate", "Basic realm=\"" + trans.realm + "\"" );
 	    if (trans.status > 0)
 	        res.setStatus (trans.status);
-	    res.setContentLength (trans.getContentLength ());			
-	    res.setContentType (trans.contentType);
+	    res.setContentLength (trans.getContentLength ());
+	    res.setContentType (trans.getContentType ());
 	    try {
 	        OutputStream out = res.getOutputStream ();
 	        out.write (trans.getContent ());
