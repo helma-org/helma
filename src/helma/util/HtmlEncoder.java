@@ -714,7 +714,8 @@ public final class HtmlEncoder {
                         if (str.charAt(i - 1) == '/') {
                             // this is to avoid misinterpreting tags like
                             // <a href=http://foo/> as empty
-                            if (htmlTagMode != TAG_ATT_VAL && htmlTagMode != TAG_ATT_NAME) {
+                            if (!openTags.empty() && htmlTagMode != TAG_ATT_VAL &&
+                                                     htmlTagMode != TAG_ATT_NAME) {
                                 openTags.pop();
                             }
                         }
