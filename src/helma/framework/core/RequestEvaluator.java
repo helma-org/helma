@@ -3,17 +3,14 @@
  
 package helma.framework.core;
 
-import java.util.Vector;
-import java.util.Hashtable;
-import java.util.Enumeration;
-import java.util.StringTokenizer;
-import java.io.*;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.framework.*;
 import helma.framework.extensions.*;
 import helma.xmlrpc.fesi.*;
 import helma.util.*;
+import java.util.*;
+import java.io.*;
 import Acme.LruHashtable;
 import FESI.Data.*;
 import FESI.Interpreter.*;
@@ -48,6 +45,9 @@ public class RequestEvaluator implements Runnable {
     Exception exception;
     protected ArrayPrototype reqPath;
     private ESRequestData reqData;
+
+    // Used to cache skins within one request evaluation
+    HashMap skincache;
 
     // vars for FESI EcmaScript support
     protected Evaluator evaluator;
@@ -87,8 +87,9 @@ public class RequestEvaluator implements Runnable {
      */
     public RequestEvaluator (Application app) {
     	this.app = app;
-	this.objectcache = new LruHashtable (100, .80f);
-	this.prototypes = new Hashtable ();
+	objectcache = new LruHashtable (100, .80f);
+	prototypes = new Hashtable ();
+	skincache = new HashMap ();
 	initEvaluator ();
 	initialized = false;
 	// startThread ();
@@ -144,6 +145,7 @@ public class RequestEvaluator implements Runnable {
 	    IPathElement root, currentElement;
 	    // reset skinManager
 	    skinmanagers = null;
+	    skincache.clear ();
 
 	    switch (reqtype) {
 	    case HTTP:
@@ -748,19 +750,30 @@ public class RequestEvaluator implements Runnable {
     public Skin getSkin (Prototype proto, String skinname) {
 	if (proto == null)
 	    return null;
+	// First check if the skin has been already used within the execution of this request
+	CompositeKey key = new CompositeKey (proto.getName(), skinname);
+	Skin skin = (Skin) skincache.get (key);
+	if (skin != null) {
+	    return skin;
+	}
+	// Skin skin = null;
 	if (skinmanagers == null)
 	    getSkinManagers ();
 	do {
 	    for (int i=0; i<skinmanagers.length; i++) {
-	        Skin skin = getSkinFromNode (skinmanagers[i], proto.getName (), skinname);
-	        if (skin != null)
+	        skin = getSkinFromNode (skinmanagers[i], proto.getName (), skinname);
+	        if (skin != null) {
+	            skincache.put (key, skin);
 	            return skin;
+	        }
 	    }
 	    // not found in node managers for this prototype.
 	    // the next step is to look if it is defined as skin file for this prototype
-	    Skin skin = proto.getSkin (skinname);
-	    if (skin != null)
+	    skin = proto.getSkin (skinname);
+	    if (skin != null) {
+	        skincache.put (key, skin);
 	        return skin;
+	    }
 	    // still not found. See if there is a parent prototype which might define the skin
 	    proto = proto.getPrototype ();
 	} while (proto != null);
@@ -777,18 +790,20 @@ public class RequestEvaluator implements Runnable {
 	    n = n.getNode (skinname, false);
 	    if (n != null) {
 	        String skin = n.getString ("skin", false);
-	        if (skin != null)
-	            return new Skin (skin, app);
+	        if (skin != null) {
+	            Skin s = (Skin) app.skincache.get (skin);
+	            if (s == null) {
+	                s = new Skin (skin, app);
+	                app.skincache.put (skin, s);
+	            }
+	            return s;
+	        }
 	    }
 	}
-	// if this is not for the global prototype, also check hopobject
 	
-	// NOT! inheritance is taken care of in the above getSkin method.
+	// Inheritance is taken care of in the above getSkin method.
 	// the sequence is prototype.skin-from-db, prototype.skin-from-file, parent.from-db, parent.from-file etc.
 	
-	// if (!"global".equalsIgnoreCase (prototype) && !"hopobject".equalsIgnoreCase (prototype)) {
-	//     return getSkinFromNode (node, "hopobject", skinname);
-	// }
 	return null;
     }
 
@@ -917,6 +932,27 @@ public class RequestEvaluator implements Runnable {
             prototypes.put (protoName, op);
     }
 
+    final class CompositeKey {
 
+	final String first, second;
+	
+	public CompositeKey (String first, String second) {
+	    this.first = first;
+	    this.second = second;
+	}
+	
+	public boolean equals (Object other) {
+	    try {
+	        CompositeKey key = (CompositeKey) other;
+	        return first.equals (key.first) && second.equals (key.second);
+	    } catch (Exception x) {
+	        return false;
+	    }
+	}
+	
+	public int hashCode () {
+	    return first.hashCode () + second.hashCode ();
+	}
+    }
 }
 

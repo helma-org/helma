@@ -15,12 +15,7 @@ import helma.util.*;
 import FESI.Data.*;
 import FESI.Interpreter.*;
 import com.sleepycat.db.DbException;
-import java.util.Hashtable;
-import java.util.Vector;
-import java.util.Enumeration;
-import java.util.Stack;
-import java.util.EmptyStackException;
-import java.util.StringTokenizer;
+import java.util.*;
 
 /**
  * The central class of a HOP application. This class keeps a pool of so-called
@@ -85,6 +80,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
     private CryptFile pwfile;
 
+    CacheMap skincache = new CacheMap (100, 0.75f);
 
     public Application () throws RemoteException {
 	super ();
