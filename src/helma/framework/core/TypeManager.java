@@ -39,8 +39,6 @@ public final class TypeManager {
     final static String skinExtension = ".skin";
 
     private Application app;
-    Repository[] repositories;
-    long[] modified;
     // map of prototypes
     private HashMap prototypes;
 
@@ -49,6 +47,7 @@ public final class TypeManager {
 
     private long lastCheck = 0;
     private long lastCodeUpdate;
+    private long lastRepositoryScan;
 
     // app specific class loader, includes jar files in the app directory
     private AppClassLoader loader;
@@ -62,9 +61,6 @@ public final class TypeManager {
      */
     public TypeManager(Application app) {
         this.app = app;
-        repositories = new Repository[app.repositories.size()];
-        app.repositories.toArray(repositories);
-        modified = new long[repositories.length];
         prototypes = new HashMap();
         jarfiles = new HashSet();
 
@@ -124,7 +120,10 @@ public final class TypeManager {
         for (int i = 0; i < list.length; i++) {
             if (list[i].isScriptRoot()) {
                 // this is an embedded top-level script repository 
-                checkRepository(list[i]);
+                if (app.addRepository(list[i])) {
+                    // repository is new, check it
+                    checkRepository(list[i]);
+                }
             } else {
                 // its an prototype
                 String name = null;
@@ -162,11 +161,14 @@ public final class TypeManager {
      */
     private void checkRepositories() throws IOException {
         // check if any files have been created/removed since last time we checked...
-        for (int i = 0; i < repositories.length; i++) {
-            if (repositories[i].lastModified() > modified[i]) {
-                modified[i] = repositories[i].lastModified();
+        Iterator it = app.getRepositories();
+        while (it.hasNext()) {
+            Repository repository = (Repository) it.next();
+            if (repository.lastModified() > lastRepositoryScan) {
+                lastRepositoryScan = Math.max(System.currentTimeMillis(),
+                                              repository.lastModified());
 
-                checkRepository(repositories[i]);
+                checkRepository(repository);
             }
         }
 

@@ -46,17 +46,20 @@ public final class Application implements IPathElement, Runnable {
     // the name of this application
     private String name;
 
+    // application sources
+    ArrayList repositories;
+
     // properties and db-properties
     ResourceProperties props;
 
     // properties and db-properties
     ResourceProperties dbProps;
 
-    // Helma server home directory
-    File home;
+    // This application's main directory
+    File appDir;
 
-    // application sources
-    ArrayList repositories;
+    // Helma server hopHome directory
+    File hopHome;
 
     // embedded db directory
     File dbDir;
@@ -138,7 +141,7 @@ public final class Application implements IPathElement, Runnable {
     private CryptResource pwfile;
 
     // Map of java class names to object prototypes
-   ResourceProperties classMapping;
+    ResourceProperties classMapping;
 
     // Map of extensions allowed for public skins
     Properties skinExtensions;
@@ -211,10 +214,10 @@ public final class Application implements IPathElement, Runnable {
         ResourceProperties sysDbProps;
 
         sysProps = sysDbProps = null;
-        home = null;
+        hopHome = null;
 
         if (server != null) {
-            home = server.getHopHome();
+            hopHome = server.getHopHome();
 
             if (dbDir == null) {
                 dbDir = new File(server.getDbHome(), name);
@@ -227,6 +230,13 @@ public final class Application implements IPathElement, Runnable {
 
         if (!dbDir.exists()) {
             dbDir.mkdirs();
+        }
+
+        for (int i=0; i<repositories.length; i++) {
+            if (repositories[i] instanceof FileRepository) {
+                appDir = new File(repositories[i].getName());
+                break;
+            }
         }
 
         // give the Helma Thread group a name so the threads can be recognized
@@ -245,8 +255,8 @@ public final class Application implements IPathElement, Runnable {
         // the passwd file, to be used with the authenticate() function
         CryptResource parentpwfile = null;
 
-        if (home != null) {
-            parentpwfile = new CryptResource(new FileResource(new File(home, "passwd")), null);
+        if (hopHome != null) {
+            parentpwfile = new CryptResource(new FileResource(new File(hopHome, "passwd")), null);
         }
 
         pwfile = new CryptResource(repositories[0].getResource("passwd"), parentpwfile);
@@ -435,18 +445,30 @@ public final class Application implements IPathElement, Runnable {
         sessionMgr.shutdown();        
     }
 
+    /**
+     * Returns true if this app is currently running
+     *
+     * @return
+     */
     public synchronized boolean isRunning() {
         return running;
     }
 
+    /**
+     * Get the application directory.
+     *
+     * @return
+     */
     public File getAppDir() {
-        try {
-            return new File(((FileRepository) getRepositories().next()).getName());
-        } catch (ClassCastException ex) {
-            return null;
-        }
+        return appDir;
     }
 
+    /**
+     * Get a comparator for comparing Resources according to the order of
+     * repositories they're contained in.
+     *
+     * @return
+     */
     public ResourceComparator getResourceComparator() {
         return resourceComparator;
     }
@@ -1570,6 +1592,33 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
+     * Add a repository to this app's repository list. This is used for
+     * ZipRepositories contained in top-level file repositories, for instance.
+     *
+     * @param rep
+     * @return if the repository was not yet contained
+     */
+    public boolean addRepository(Repository rep) {
+        if (rep != null && !repositories.contains(rep)) {
+            // Add the new repository before its parent repository.
+            // This establishes the order of compilation between FileRepositories
+            // and embedded ZipRepositories.
+            Repository parent = rep.getParentRepository();
+            if (parent != null) {
+                int idx = repositories.indexOf(parent);
+                if (idx > -1) {
+                    repositories.add(idx, rep);
+                    return true;
+                }
+            }
+            // no parent or parent not in app's repositories.
+            repositories.add(rep);
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Searches for the index of the given repository for this app.
      * The arguement must be a root argument, or -1 will be returned.
      *
@@ -1586,14 +1635,14 @@ public final class Application implements IPathElement, Runnable {
      * @return iterator through application repositories
      */
     public Iterator getRepositories() {
-        return repositories.iterator();
+        return ((List) repositories.clone()).iterator();
     }
 
     /**
      * Return the directory of the Helma server
      */
     public File getServerDir() {
-        return home;
+        return hopHome;
     }
 
     /**
