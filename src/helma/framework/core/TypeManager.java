@@ -193,11 +193,14 @@ public final class TypeManager {
 
         if (proto == null)
             return;
-        if (System.currentTimeMillis() - proto.getLastCheck() < 1000)
+        // if prototype has been checked in the last 1.5 seconds, return
+          if (System.currentTimeMillis() - proto.getLastCheck() < 1500)
             return;
 
         synchronized (proto) {
-        if (System.currentTimeMillis() - proto.getLastCheck() < 1000)
+        // check again because another thread may have checked the
+        // prototype while we were waiting for access to the synchronized section
+        if (System.currentTimeMillis() - proto.getLastCheck() < 1500)
             return;
 
         File dir = new File (appDir, proto.getName());
@@ -216,14 +219,8 @@ public final class TypeManager {
             }
         }
 
-        // fetch previous last-check timestamp and update it on prototype
-        // we do this here for the (not very likely but possible) case 
-        // where files are created in the exact moment we are doing this check.
-        long lastcheck = proto.getLastCheck ();
-        proto.markChecked ();
-
         // next we check if files have been created since last update
-        if (lastcheck < dir.lastModified ()) {
+        if (proto.getLastCheck() < dir.lastModified ()) {
             String[] list = dir.list();
             for (int i=0; i<list.length; i++) {
                 String fn = list[i];
@@ -238,9 +235,11 @@ public final class TypeManager {
             }
         }
 
-        // if nothing needs to be updated, return now
-        if (!needsUpdate)
+        // if nothing needs to be updated, mark prototype as checked and return
+        if (!needsUpdate) {
+            proto.markChecked ();
             return;
+        }
 
         // app.logEvent ("TypeManager: Updating prototypes for "+app.getName()+": "+updatables);
 
@@ -314,11 +313,13 @@ public final class TypeManager {
                 }
             }
         }
+
+        // mark prototype as checked and updated.
+        proto.markChecked ();
         proto.markUpdated();
 
         } // end of synchronized (proto)
 
-        // app.scriptingEngine.updatePrototype (proto);
     }
 
 }
