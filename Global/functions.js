@@ -107,6 +107,9 @@ function sortProps(a,b)	{
   * @arg appObj application object to check against (if adminUsername etc are set in app.properties)
   */
 function checkAuth(appObj)	{
+    if (res && res.data.noWeb==true) {
+        return true;
+    }
 	var ok = false;
 
 	// check against root
@@ -142,6 +145,9 @@ function checkAuth(appObj)	{
   * check access to the manage-app by ip-addresses
   */
 function checkAddress()	{
+    if (res && res.data.noWeb==true) {
+        return true;
+    }
 	// if allowadmin value in server.properties has changed,
 	// re-construct the addressFilter
 	if (app.data.addressString != root.getProperty ("allowadmin")){
