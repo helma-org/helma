@@ -2,11 +2,6 @@
 
 export JAVA_HOME=/usr/lib/j2sdk1.4.0
 
-export CVSHOME=:pserver:anonymous@coletta.helma.at:/opt/cvs
-
-# comment this out to log in to CVS server
-# cvs -d :pserver:anonymous@coletta.helma.at:/opt/cvs login
-
 #--------------------------------------------
 # No need to edit anything past here
 #--------------------------------------------
@@ -22,15 +17,15 @@ if test -f ${JAVA_HOME}/lib/tools.jar ; then
 fi
 
 if test -n "${2}" ; then
-	APPLICATION=-Dapplication=${2}
+	APPNAME=-Dapplication=${2}
 fi
 
-CP=${CLASSPATH}:ant.jar:jaxp.jar:../lib/crimson.jar:../lib/netcomponents.jar
+CP=${CLASSPATH}:ant.jar:jaxp.jar:../lib/crimson.jar
 
 echo "Classpath: ${CP}"
 echo "JAVA_HOME: ${JAVA_HOME}"
 
 BUILDFILE=build.xml
 
-${JAVA_HOME}/bin/java -classpath ${CP} ${APPLICATION} org.apache.tools.ant.Main -buildfile ${BUILDFILE} ${1}
+${JAVA_HOME}/bin/java -classpath ${CP} ${APPNAME} org.apache.tools.ant.Main -buildfile ${BUILDFILE} ${1}
 
