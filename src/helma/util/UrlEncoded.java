@@ -67,8 +67,6 @@ public final class UrlEncoded {
         int l = str.length();
         boolean needsSpaceEncoding = false;
 
-        System.out.println(str);
-
         for (int i = 0; i < l; i++) {
             char c = str.charAt(i);
 
