@@ -15,17 +15,25 @@ public final class SystemProperties extends Properties {
 
     private Properties props;        // wrapped properties
     private Properties newProps;    // used while building up props
-    private Properties defaultProps;
-    private File file;
-    private long lastread, lastcheck;
+    private Properties defaultProps;  // the default/fallback properties.
+    private File file;   // the underlying properties file from which we read.
+    private long lastread, lastcheck;  // time we last read/checked the underlying properties file
 
+    // the timespan for which we omit checking for changed files after we
+    // did a check, in milliseconds.
     final static long cacheTime = 1500l;
 
 
+    /** 
+     *  Construct an empty properties object.
+     */
     public SystemProperties () {
 	this (null, null);
     }
 
+    /**
+     *  Construct a properties object and read it from an input stream.
+     */
     public SystemProperties (InputStream in) {
 	this (null, null);
 	try {
@@ -38,54 +46,70 @@ public final class SystemProperties extends Properties {
 	    } catch (Exception ignore) {}
 	}
 	lastread = System.currentTimeMillis ();
-    }	
+    }
 
+    /**
+     *  Construct a properties object from a properties file.
+     */
     public SystemProperties (String filename) {
 	this (filename, null);
     }
 
+    /**
+     *  Contstruct a properties object with the given default properties.
+     */
     public SystemProperties (Properties defaultProps) {
 	this (null, defaultProps);
     }
 
+
+    /**
+     *  Construct a properties object from a file name with the given default properties
+     */
     public SystemProperties (String filename, Properties defaultProps) {
- 	// System.err.println ("building sysprops with file "+filename+" and node "+node);
+	// System.err.println ("building sysprops with file "+filename+" and node "+node);
 	this.defaultProps = defaultProps;
-	props = defaultProps == null ?
-	        new Properties () : new Properties (defaultProps);
-
-	if (filename != null) {
-	    file = new File (filename);
-	    checkFile ();
-	}
+	props = defaultProps == null ? new Properties () : new Properties (defaultProps);
+	file = filename == null ? null : new File (filename);
+	lastcheck = lastread = 0;
     }
 
-    public boolean wasModified () {
-	return file != null && file.exists() && file.lastModified () > lastread;
-    }
-
+   /**
+    *  Return the modify-time of the underlying properties file.
+    */
     public long lastModified () {
-	return file == null || !file.exists () ? 0 : file.lastModified ();
+	if (file == null || !file.exists ())
+	    return 0;
+	return file.lastModified ();
     }
 
-
-    private synchronized void checkFile () {
-	if (wasModified ()) {
-	    // IServer.getLogger().log ("Reading properties from file "+file);
-	    newProps = defaultProps == null ?
-	        new Properties () : new Properties (defaultProps);
-	    try {
-	        FileInputStream bpin = new FileInputStream (file);
-	        load (bpin);
-	        bpin.close ();
-	    } catch (Exception x) {
-	        System.err.println ("Error reading properties from file "+file+": "+x);
-	    }
-	    lastread = System.currentTimeMillis ();
-	    props = newProps;
-	    newProps = null;
-	}
+    /**
+     *  Private method to read file if it has been changed since the last time we did
+     */
+    private void checkFile () {
+	if (file != null && file.exists() && file.lastModified () > lastread)
+	    readFile ();
 	lastcheck = System.currentTimeMillis ();
+    }
+
+    /**
+     *  Private method to read the underlying properties file. Assumes that the
+     *  file exists and is readable.
+     */
+    private synchronized void readFile () {
+	// IServer.getLogger().log ("Reading properties from file "+file);
+	newProps = defaultProps == null ?
+	    new Properties () : new Properties (defaultProps);
+	try {
+	    FileInputStream bpin = new FileInputStream (file);
+	    load (bpin);
+	    bpin.close ();
+	} catch (Exception x) {
+	    System.err.println ("Error reading properties from file "+file+": "+x);
+	}
+	lastread = System.currentTimeMillis ();
+	props = newProps;
+	newProps = null;
     }
 
     /*
@@ -99,73 +123,116 @@ public final class SystemProperties extends Properties {
 	    return newProps.put (key.toString().toLowerCase(), value);
     }
 
+    /**
+     *  Overrides method to act on the wrapped properties object.
+     */
     public Object get (Object key) {
-	return props.get (key);
+	if (System.currentTimeMillis () - lastcheck > cacheTime)
+	    checkFile ();
+	return props.get (key.toString().toLowerCase());
     }
 
+    /**
+     *  Overrides method to act on the wrapped properties object.
+     */
     public Object remove (Object key) {
-	return props.remove (key);
+	return props.remove (key.toString().toLowerCase());
     }
 
+    /**
+     *  Overrides method to act on the wrapped properties object.
+     */
     public void clear () {
 	props.clear ();
     }
 
+    /**
+     *  Overrides method to act on the wrapped properties object.
+     */
     public boolean contains (Object obj) {
+	if (System.currentTimeMillis () - lastcheck > cacheTime)
+	    checkFile ();
 	return props.contains (obj);
     }
 
+    /**
+     *  Overrides method to act on the wrapped properties object.
+     */
     public boolean containsKey (Object key) {
-	return props.containsKey (key);
+	if (System.currentTimeMillis () - lastcheck > cacheTime)
+	    checkFile ();
+	return props.containsKey (key.toString().toLowerCase());
     }
 
+    /**
+     *  Overrides method to act on the wrapped properties object.
+     */
     public boolean isEmpty () {
+	if (System.currentTimeMillis () - lastcheck > cacheTime)
+	    checkFile ();
 	return props.isEmpty ();
     }
 
+    /**
+     *  Overrides method to act on the wrapped properties object.
+     */
     public String getProperty (String name) {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
 	return props.getProperty (name.toLowerCase());
     }
 
+    /**
+     *  Overrides method to act on the wrapped properties object.
+     */
     public String getProperty (String name, String defaultValue) {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
 	return props.getProperty (name.toLowerCase(), defaultValue);
     }
 
+    /**
+     *  Overrides method to act on the wrapped properties object.
+     */
     public Enumeration keys () {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
 	return props.keys();
     }
 
+    /**
+     *  Overrides method to act on the wrapped properties object.
+     */
     public Set keySet () {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
 	return props.keySet();
     }
 
+    /**
+     *  Overrides method to act on the wrapped properties object.
+     */
     public Enumeration elements () {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
 	return props.elements();
     }
 
-	public int size()	{
+    /**
+     *  Overrides method to act on the wrapped properties object.
+     */
+    public int size() {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
 	return props.size();
-	}	
+    }
 
+    /**
+     *  Overrides method to act on the wrapped properties object.
+     */
     public String toString () {
 	return props.toString ();
     }
 
 }
-
-
-
-
 
