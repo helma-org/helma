@@ -310,6 +310,7 @@ public final class HtmlEncoder {
         swallowTwo.add("ul");
 
         /// to be treated as block level elements
+        swallowTwo.add("br");
         swallowTwo.add("dd");
         swallowTwo.add("dt");
         swallowTwo.add("frameset");
@@ -321,6 +322,26 @@ public final class HtmlEncoder {
         swallowAll.add("thead");
         swallowAll.add("tr");
     }
+
+    // set of tags that are always empty
+    static final HashSet emptyTags = new HashSet();
+
+    static {
+        emptyTags.add("area");
+        emptyTags.add("base");
+        emptyTags.add("basefont");
+        emptyTags.add("br");
+        emptyTags.add("col");
+        emptyTags.add("frame");
+        emptyTags.add("hr");
+        emptyTags.add("img");
+        emptyTags.add("input");
+        emptyTags.add("isindex");
+        emptyTags.add("link");
+        emptyTags.add("meta");
+        emptyTags.add("param");
+    }
+
 
     /**
      *  Do "smart" encodging on a string. This means that valid HTML entities and tags,
@@ -470,9 +491,12 @@ public final class HtmlEncoder {
                                         continue;
                                     } else if (t > 1) {
                                         for (int k = 1; k < t; k++) {
-                                            ret.append("</");
-                                            ret.append(openTags.pop());
-                                            ret.append(">");
+                                            Object tag = openTags.pop();
+                                            if (!emptyTags.contains(tag)) {
+                                                ret.append("</");
+                                                ret.append(tag);
+                                                ret.append(">");
+                                            }
                                         }
                                     }
 
@@ -659,9 +683,12 @@ public final class HtmlEncoder {
 
         if (o > 0) {
             for (int k = 0; k < o; k++) {
-                ret.append("</");
-                ret.append(openTags.pop());
-                ret.append(">");
+                Object tag = openTags.pop();
+                if (!emptyTags.contains(tag)) {
+                    ret.append("</");
+                    ret.append(tag);
+                    ret.append(">");
+                }
             }
         }
 
