@@ -53,7 +53,6 @@ public class DocFunction extends DocFileElement {
 	}
 
 
-
 	/**
 	  * reads a function file and creates DocFunction objects of type FUNCTION
 	  * connected to another DocElement.
@@ -103,7 +102,9 @@ public class DocFunction extends DocFileElement {
 				func.parseSource (location, beginLine, beginColumn, endLine, endColumn);
 				vec.add (func);
 			}
-			tok = mgr.getNextToken();
+			if (tok.kind != EcmaScriptConstants.FUNCTION) {
+				tok = mgr.getNextToken();
+			}
 		}
 		return (DocFunction[]) vec.toArray (new DocFunction[0]);
 	}
