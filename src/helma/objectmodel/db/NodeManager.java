@@ -1702,14 +1702,6 @@ public final class NodeManager {
                 name = rs.getString(i+1+offset);
             }
 
-            // Relation rel = columns[i].getRelation();
-
-            /* if ((rel == null) ||
-                    ((rel.reftype != Relation.PRIMITIVE) &&
-                    (rel.reftype != Relation.REFERENCE))) {
-                continue;
-            } */
-
             Property newprop = new Property(node);
 
             switch (columns[i].getType()) {
@@ -1824,12 +1816,6 @@ public final class NodeManager {
 
             propBuffer.put(columns[i].getName(), newprop);
 
-            // if the property is a pointer to another node, change the property type to NODE
-            /* if ((rel.reftype == Relation.REFERENCE) && rel.usesPrimaryKey()) {
-                // FIXME: References to anything other than the primary key are not supported
-                newprop.convertToNodeReference(rel.otherType);
-            } */
-
             // mark property as clean, since it's fresh from the db
             newprop.dirty = false;
         }
@@ -1842,7 +1828,8 @@ public final class NodeManager {
         DbColumn[] columns2 = dbmap.getColumns();
         for (int i=0; i<columns2.length; i++) {
             Relation rel = columns2[i].getRelation();
-            if (rel != null) {
+            if (rel != null && (rel.reftype == Relation.PRIMITIVE ||
+                                rel.reftype == Relation.REFERENCE)) {
                 Property prop = (Property) propBuffer.get(columns2[i].getName());
 
                 if (prop == null) {
