@@ -123,8 +123,12 @@ public class FesiEvaluator {
 	        op.putProperty ("prototypename", new ESString (name), "prototypename".hashCode ());
 	    } catch (EcmaScriptException ignore) {}
 	    putPrototype (name, op);
+	} else {
+	    // set parent prototype just in case it has been changed
+	    op.setPrototype (opp);
 	}
 
+	resetPrototype (op);
 
 	// Register a constructor for all types except global.
 	// This will first create a node and then call the actual (scripted) constructor on it.
@@ -154,21 +158,25 @@ public class FesiEvaluator {
 	        adp.updateEvaluator (this);
 	    } catch (EcmaScriptException ignore) {}
 	}
-
-	    /* for (Iterator j=proto.updatables.values().iterator(); j.hasNext(); ) {
-	        Updatable upd = (Updatable) j.next ();
-	        if (upd instanceof ActionFile) try {
-	            new FesiActionAdapter ((ActionFile) upd).updateEvaluator (this);
-	        } catch (Exception x) {
-	            System.err.println ("DANG: "+x);
-		    x.printStackTrace ();
-	        } else if (upd instanceof FunctionFile) {
-	            // ((FunctionFile) upd).evaluate(this);
-	        } else
-		    System.err.println ("UNHANDLED: "+upd);
-	    }*/
-	// }
     }
+
+    /**
+     *  Return an object prototype to its initial state, removing all application specific
+     *  functions.
+     */
+    void resetPrototype (ObjectPrototype op) {
+	for (Enumeration en = op.getAllProperties(); en.hasMoreElements(); ) {
+	    String prop = en.nextElement ().toString ();
+	    try {
+	        ESValue esv = op.getProperty (prop, prop.hashCode ());
+	        // System.err.println (protoname+"."+obj+"   ->   "+esv.getClass());
+	        if (esv instanceof ConstructedFunctionObject || esv instanceof FesiActionAdapter.ThrowException)
+	            op.deleteProperty (prop, prop.hashCode());
+	    } catch (Exception x) {}
+	}
+    }
+
+
 
     /**
      * Invoke a function on some object, using the given arguments and global vars.
@@ -179,21 +187,40 @@ public class FesiEvaluator {
 	    eso = global;
 	else
 	    eso = getElementWrapper (thisObject);
+
+	GlobalObject global = evaluator.getGlobalObject ();
+
+	// if we are provided with global variables to set for this invocation,
+	// remember the global variables before invocation to be able to reset them afterwards.
+	Set globalVariables = null;
 	try {
 	    ESValue[] esv = args == null ? new ESValue[0] : new ESValue[args.length];
-	    for (int i=0; i<esv.length; i++)
+	    for (int i=0; i<esv.length; i++) {
 	        // for java.util.Map objects, we use the special "tight" wrapper
 	        // that makes the Map look like a native object
 	        if (args[i] instanceof Map)
 	            esv[i] = new ESMapWrapper (this, (Map) args[i]);
 	        else
 	            esv[i] = ESLoader.normalizeValue (args[i], evaluator);
+	    }
+
 	    if (globals != null) {
+	        // remember all global variables before invocation
+	        Set tmpGlobal = new HashSet ();
+	        for (Enumeration en = global.getAllProperties(); en.hasMoreElements(); ) {
+	            tmpGlobal.add (en.nextElement ().toString ());
+	        }
+	        globalVariables = tmpGlobal;
+
+	        // loop through global vars and set them
 	        for (Iterator i=globals.keySet().iterator(); i.hasNext(); ) {
 	            String k = (String) i.next();
 	            Object v = globals.get (k);
 	            ESValue sv = null;
-	            // set and mount the request and response data object
+	            // we do a lot of extra work to make access to global variables
+	            // comfortable to EcmaScript coders, i.e. we use a lot of custom wrappers
+	            // that expose properties and functions in a special way instead of just going
+	            // with the standard java object wrappers.
 	            if (v instanceof RequestTrans)
 	                ((RequestTrans) v).data = new ESMapWrapper (this, ((RequestTrans) v).getRequestData ());
 	            else if (v instanceof ResponseTrans)
@@ -217,7 +244,7 @@ public class FesiEvaluator {
 	            }
 	            else
 	                sv = ESLoader.normalizeValue (v, evaluator);
-	            evaluator.getGlobalObject ().putHiddenProperty (k, sv);
+	            global.putHiddenProperty (k, sv);
 	        }
 	    }
 	    evaluator.thread = Thread.currentThread ();
@@ -235,6 +262,22 @@ public class FesiEvaluator {
 	    // System.err.println ("INVOKE-ERROR: "+msg);
 	    // x.printStackTrace ();
 	    throw new ScriptingException (msg);
+	} finally {
+	    // remove global variables that have been added during invocation.
+	    // this are typically undeclared variables, and we don't want them to
+	    // endure from one request to the next since this leads to buggy code that
+	    // relies on requests being served by the same evaluator, which is typically the
+	    // case under development conditions but not in deployment.
+	    if (globalVariables != null) {
+	        for (Enumeration en = global.getAllProperties(); en.hasMoreElements(); ) {
+	            String g = en.nextElement ().toString ();
+	            if (!globalVariables.contains (g)) try {
+	                global.deleteProperty (g, g.hashCode());
+	            } catch (Exception x) {
+	                System.err.println ("Error resetting global property: "+g);
+	            }
+	        }
+	    }
 	}
     }
 
