@@ -221,11 +221,13 @@ public class FesiEvaluator {
 	            // comfortable to EcmaScript coders, i.e. we use a lot of custom wrappers
 	            // that expose properties and functions in a special way instead of just going
 	            // with the standard java object wrappers.
+
+	
 	            if (v instanceof RequestTrans)
-	                ((RequestTrans) v).data = new ESMapWrapper (this, ((RequestTrans) v).getRequestData ());
+	            	sv = new ESBeanWrapper (new RequestBean ((RequestTrans) v), this);
 	            else if (v instanceof ResponseTrans)
-	                ((ResponseTrans) v).data = new ESMapWrapper (this, ((ResponseTrans) v).getResponseData ());
-	            if (v instanceof Map)
+	            	sv = new ESBeanWrapper (new ResponseBean ((ResponseTrans) v), this);
+	            else if (v instanceof Map)
 	                sv = new ESMapWrapper (this, (Map) v);
 	            else if ("path".equals (k)) {
 	                ArrayPrototype parr = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
