@@ -754,8 +754,7 @@ public final class NodeManager {
 	            q.append (home.getSubnodeRelation());
 	        } else {
 	            // let relation object build the query
-	            q.append (" where ");
-	            q.append (rel.buildQuery (home, home.getNonVirtualParent (), null, "", false));
+	            q.append (rel.buildQuery (home, home.getNonVirtualParent (), null, " WHERE ", false));
 	            if (rel.getOrder () != null)
 	                q.append (" order by "+rel.getOrder ());
 	        }
@@ -1097,15 +1096,15 @@ public final class NodeManager {
 	        StringBuffer q = dbm.getSelect ();
 	        if (home.getSubnodeRelation () != null) {
 	            // combine our key with the constraints in the manually set subnode relation
-                    q.append (home.getSubnodeRelation ());
-	            q.append (" and ");
+	            q.append (" WHERE ");
 	            q.append (rel.accessor);
 	            q.append (" = '");
 	            q.append (escape(kstr));
 	            q.append ("'");
+	            q.append (" AND ");
+                    q.append (home.getSubnodeRelation().trim().substring(5));
 	        } else {
-	            q.append (" where ");
-	            q.append (rel.buildQuery (home, home.getNonVirtualParent (), kstr, "", false));
+	            q.append (rel.buildQuery (home, home.getNonVirtualParent (), kstr, " WHERE ", false));
 	        }
 	        if (logSql)
 	            app.logEvent ("### getNodeByRelation: "+q.toString());
