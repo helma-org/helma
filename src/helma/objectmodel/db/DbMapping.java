@@ -19,7 +19,7 @@ import com.workingdogs.village.*;
   * Database row bindings which are represented by instances of the Relation class.
   */
   
-public class DbMapping implements Updatable {
+public final class DbMapping implements Updatable {
 
     // DbMappings belong to an application
     Application app;

@@ -13,7 +13,7 @@ import helma.util.Updatable;
  */
 
 
-public class SkinFile implements Updatable {
+public final class SkinFile implements Updatable {
 
     String name;
     Prototype prototype;
