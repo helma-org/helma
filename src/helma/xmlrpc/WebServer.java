@@ -440,7 +440,7 @@ class Echo implements XmlRpcHandler {
 class AuthDemo implements AuthenticatedXmlRpcHandler {
     public Object execute (String method, Vector v, String user, String password) throws Exception {
       // our simplistic authentication guidelines never fail ;)
-      if (user == null || user.startsWith ("bad"))
+      if (user == null || user.startsWith ("script kiddie"))
         throw new XmlRpcException (5, "Sorry, you're not allowed in here!");
       return ("Hello "+user);
     }
