@@ -184,7 +184,7 @@ public class CacheMap  {
 	else {
 	    if (newTable.size() >= eachCapacity) {
 		// Rotate the tables.
-	             helma.objectmodel.IServer.getLogger().log ("Rotating Cache tables at "+newTable.size()+"/"+oldTable.size()+" (new/old)");
+	             helma.main.Server.getLogger().log ("Rotating Cache tables at "+newTable.size()+"/"+oldTable.size()+" (new/old)");
 		oldTable = newTable;
 		newTable = new HashMap (eachCapacity, loadFactor);
 	    }
