@@ -105,11 +105,15 @@ public class FunctionFile implements Updatable {
     }
 
 
-    public  synchronized void updateRequestEvaluator (RequestEvaluator reval) throws IOException {
+    public  synchronized void updateRequestEvaluator (RequestEvaluator reval) {
 	if (file != null) {
-	    FileReader fr = new FileReader (file);
-	    EvaluationSource es = new FileEvaluationSource (file.getPath (), null);
-	    updateRequestEvaluator (reval, fr, es);
+	    try {
+	        FileReader fr = new FileReader (file);
+	        EvaluationSource es = new FileEvaluationSource (file.getPath (), null);
+	        updateRequestEvaluator (reval, fr, es);
+	    } catch (IOException iox) {
+	        app.logEvent ("Error updating function file: "+iox);
+	    }
 	} else {
 	    StringReader reader = new StringReader (content);
 	    StringEvaluationSource es = new StringEvaluationSource (content, null);
