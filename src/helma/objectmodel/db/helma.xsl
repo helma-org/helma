@@ -78,7 +78,10 @@
    </xsl:if>
 
    <xsl:for-each select="/xmlroot/hopobject/*">
-      <xsl:sort select="@name"/>
+      <!-- FIXME: sorting doesn't work completely. What we ought to do  
+           is sort by (@propertyname OR name()). Don't know how to 
+           express that in XPath. --> 
+      <xsl:sort select="@propertyname"/>
       <xsl:sort select="name()"/>
       <xsl:choose>
          <xsl:when test="name() = 'hop:parent'"/>
@@ -86,7 +89,14 @@
          <xsl:when test="@idref">
             <xsl:call-template name="property">
                <xsl:with-param name="name">
-                  <xsl:value-of select="name()"/>
+                  <!-- if element name is "property", property name is in an attribute called
+                       "propertyname". Otherwise, the element name is the property name -->
+                  <xsl:if test="name() = 'property'">
+                     <xsl:value-of select="@propertyname"/>
+                  </xsl:if>
+                  <xsl:if test="name() != 'property'">
+                     <xsl:value-of select="name()"/>
+                  </xsl:if>
                </xsl:with-param>
                <xsl:with-param name="value">
                   HopObject <xsl:value-of select="@idref"/>
@@ -99,8 +109,10 @@
          <xsl:otherwise>
             <xsl:call-template name="property">
                <xsl:with-param name="name">
+                  <!-- if element name is "property", property name is in an attribute called
+                       "propertyname". Otherwise, the element name is the property name -->
                   <xsl:if test="name() = 'property'">
-                     <xsl:value-of select="@name"/>
+                     <xsl:value-of select="@propertyname"/>
                   </xsl:if>
                   <xsl:if test="name() != 'property'">
                      <xsl:value-of select="name()"/>
