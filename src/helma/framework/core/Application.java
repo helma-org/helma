@@ -1306,7 +1306,7 @@ public final class Application implements IPathElement, Runnable {
      *  Get a logger object to log events for this application.
      */
     protected Log getLogger(String logname) {
-        String logdir = props.getProperty("logdir");
+        String logdir = props.getProperty("logdir", "log");
 
         if ("console".equals(logdir) || "console".equals(logname)) {
             return Logging.getConsoleLog();
