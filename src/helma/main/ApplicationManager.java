@@ -99,7 +99,10 @@ public class ApplicationManager {
 	        Naming.unbind ("//:"+port+"/"+appName);
 	    } else {
 	        // server.websrv.removeServlet ("/"+appName+"/");
-	        server.websrv.removeServlet ("/"+appName+"/*");
+	        if ("base".equalsIgnoreCase (appName))
+	            server.websrv.removeDefaultServlet ();
+	        else
+	            server.websrv.removeServlet ("/"+appName+"/*");
 	    }
 	    app.stop ();
 	    Server.getLogger().log ("Unregistered application "+appName);
