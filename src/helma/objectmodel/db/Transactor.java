@@ -351,6 +351,9 @@ public class Transactor extends Thread {
                            " inserted, " + updated +
                            " updated, " + deleted + " deleted in " +
                            (now - tstart) + " millis");
+
+        // unset transaction name
+        tname = null;
     }
 
     /**
@@ -398,6 +401,9 @@ public class Transactor extends Thread {
             nmgr.app.logAccess(tname + " aborted after " +
                                (System.currentTimeMillis() - tstart) + " millis");
         }
+
+        // unset transaction name
+        tname = null;
     }
 
     /**
