@@ -25,6 +25,7 @@ import org.xml.sax.InputSource;
 public class HopExtension {
 
     protected Application app;
+    protected RequestEvaluator reval;
 
     public HopExtension () {
         super();
@@ -36,6 +37,7 @@ public class HopExtension {
      */
     public void initializeExtension (RequestEvaluator reval) throws EcmaScriptException {
 
+        this.reval = reval;
         this.app = reval.app;
         Evaluator evaluator = reval.evaluator;
         GlobalObject go = evaluator.getGlobalObject();
@@ -65,7 +67,7 @@ public class HopExtension {
         reval.esNodePrototype.putHiddenProperty ("addAt", new NodeAddAt ("addAt", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("remove", new NodeRemove ("remove", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("link", new NodeLink ("link", evaluator, fp));
-        reval.esNodePrototype.putHiddenProperty ("list", new NodeList ("list", evaluator, fp, reval));
+        reval.esNodePrototype.putHiddenProperty ("list", new NodeList ("list", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("set", new NodeSet ("set", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("get", new NodeGet ("get", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("count", new NodeCount ("count", evaluator, fp));
@@ -80,19 +82,19 @@ public class HopExtension {
         reval.esNodePrototype.putHiddenProperty ("href", new NodeHref ("href", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("setParent", new NodeSetParent ("setParent", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("invalidate", new NodeInvalidate ("invalidate", evaluator, fp));
-        reval.esNodePrototype.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, reval, false, false));
-        reval.esNodePrototype.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, reval, false, true));
+        reval.esNodePrototype.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, false, false));
+        reval.esNodePrototype.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, true));
 
         // methods that give access to properties and global user lists
         go.putHiddenProperty("Node", node); // register the constructor for a plain Node object.
         go.putHiddenProperty("HopObject", node); // HopObject is the new name for node.
         go.putHiddenProperty("getProperty", new GlobalGetProperty ("getProperty", evaluator, fp));
         go.putHiddenProperty("token", new GlobalGetProperty ("token", evaluator, fp));
-        go.putHiddenProperty("getUser", new GlobalGetUser ("getUser", evaluator, fp, reval));
-        go.putHiddenProperty("getUserBySession", new GlobalGetUserBySession ("getUserBySession", evaluator, fp, reval));
-        go.putHiddenProperty("getAllUsers", new GlobalGetAllUsers ("getAllUsers", evaluator, fp, reval));
-        go.putHiddenProperty("getActiveUsers", new GlobalGetActiveUsers ("getActiveUsers", evaluator, fp, reval));
-        go.putHiddenProperty("countActiveUsers", new GlobalCountActiveUsers ("countActiveUsers", evaluator, fp, reval));
+        go.putHiddenProperty("getUser", new GlobalGetUser ("getUser", evaluator, fp));
+        go.putHiddenProperty("getUserBySession", new GlobalGetUserBySession ("getUserBySession", evaluator, fp));
+        go.putHiddenProperty("getAllUsers", new GlobalGetAllUsers ("getAllUsers", evaluator, fp));
+        go.putHiddenProperty("getActiveUsers", new GlobalGetActiveUsers ("getActiveUsers", evaluator, fp));
+        go.putHiddenProperty("countActiveUsers", new GlobalCountActiveUsers ("countActiveUsers", evaluator, fp));
         go.putHiddenProperty("isActive", new GlobalIsActive ("isActive", evaluator, fp));
         go.putHiddenProperty("getAge", new GlobalGetAge ("getAge", evaluator, fp));
         go.putHiddenProperty("getURL", new GlobalGetURL ("getURL", evaluator, fp));
@@ -106,15 +108,15 @@ public class HopExtension {
         go.putHiddenProperty("jdomize", new GlobalJDOM ("jdomize", evaluator, fp));
         go.putHiddenProperty("getSkin", new GlobalGetSkin ("getSkin", evaluator, fp));
         go.putHiddenProperty("createSkin", new GlobalCreateSkin ("createSkin", evaluator, fp));
-        go.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, reval, true, false));
-        go.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, reval, true, true));
+        go.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, true, false));
+        go.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, true, true));
         go.putHiddenProperty("authenticate", new GlobalAuthenticate ("authenticate", evaluator, fp));
         go.deleteProperty("exit", "exit".hashCode());
 
         // and some methods for session management from JS...
         reval.esUserPrototype.putHiddenProperty("logon", new UserLogin ("logon", evaluator, fp));
         reval.esUserPrototype.putHiddenProperty("login", new UserLogin ("login", evaluator, fp));
-        reval.esUserPrototype.putHiddenProperty("register", new UserRegister ("register", evaluator, fp, reval));
+        reval.esUserPrototype.putHiddenProperty("register", new UserRegister ("register", evaluator, fp));
         reval.esUserPrototype.putHiddenProperty("logout", new UserLogout ("logout", evaluator, fp));
         reval.esUserPrototype.putHiddenProperty("onSince", new UserOnSince ("onSince", evaluator, fp));
         reval.esUserPrototype.putHiddenProperty("lastActive", new UserLastActive ("lastActive", evaluator, fp));
@@ -189,10 +191,8 @@ public class HopExtension {
     }
     
     class NodeList extends BuiltinFunctionObject {
-        RequestEvaluator reval;
-        NodeList (String name, Evaluator evaluator, FunctionPrototype fp, RequestEvaluator reval) {
+        NodeList (String name, Evaluator evaluator, FunctionPrototype fp) {
             super(fp, evaluator, name, 0);
-            this.reval = reval;
         }
         public ESValue callFunction(ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
            ESNode node = (ESNode) thisObject;
@@ -477,10 +477,8 @@ public class HopExtension {
     }
 
     class UserRegister extends BuiltinFunctionObject {
-        RequestEvaluator reval;
-        UserRegister (String name, Evaluator evaluator, FunctionPrototype fp, RequestEvaluator reval) {
+        UserRegister (String name, Evaluator evaluator, FunctionPrototype fp) {
             super (fp, evaluator, name, 2);
-            this.reval = reval;
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
             if (arguments.length < 2) 
@@ -609,13 +607,10 @@ public class HopExtension {
      * Render a skin
      */
     class RenderSkin extends BuiltinFunctionObject {
-        RequestEvaluator reval;
         boolean global;
         boolean asString;
-        RenderSkin (String name, Evaluator evaluator, FunctionPrototype fp,
-                                 RequestEvaluator reval, boolean global, boolean asString) {
+        RenderSkin (String name, Evaluator evaluator, FunctionPrototype fp, boolean global, boolean asString) {
             super (fp, evaluator, name, 1);
-            this.reval = reval;
             this.global = global;
             this.asString = asString;
         }
@@ -657,10 +652,8 @@ public class HopExtension {
 
 
     class GlobalGetUser extends BuiltinFunctionObject {
-        RequestEvaluator reval;
-        GlobalGetUser (String name, Evaluator evaluator, FunctionPrototype fp, RequestEvaluator reval) {
+        GlobalGetUser (String name, Evaluator evaluator, FunctionPrototype fp) {
             super (fp, evaluator, name, 1);
-            this.reval = reval;
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
         	INode user = null;
@@ -675,10 +668,8 @@ public class HopExtension {
     }
 
     class GlobalGetUserBySession extends BuiltinFunctionObject {
-        RequestEvaluator reval;
-        GlobalGetUserBySession (String name, Evaluator evaluator, FunctionPrototype fp, RequestEvaluator reval) {
+        GlobalGetUserBySession (String name, Evaluator evaluator, FunctionPrototype fp) {
             super (fp, evaluator, name, 1);
-            this.reval = reval;
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
         	User user = null;
@@ -695,10 +686,8 @@ public class HopExtension {
 
 
     class GlobalGetAllUsers extends BuiltinFunctionObject {
-        RequestEvaluator reval;
-        GlobalGetAllUsers (String name, Evaluator evaluator, FunctionPrototype fp, RequestEvaluator reval) {
+        GlobalGetAllUsers (String name, Evaluator evaluator, FunctionPrototype fp) {
             super (fp, evaluator, name, 1);
-            this.reval = reval;
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
         	INode users = app.getUserRoot ();
@@ -714,17 +703,13 @@ public class HopExtension {
     }
 
     class GlobalGetActiveUsers extends BuiltinFunctionObject {
-        RequestEvaluator reval;
-        GlobalGetActiveUsers (String name, Evaluator evaluator, FunctionPrototype fp, RequestEvaluator reval) {
+        GlobalGetActiveUsers (String name, Evaluator evaluator, FunctionPrototype fp) {
             super (fp, evaluator, name, 1);
-            this.reval = reval;
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
            Hashtable sessions = (Hashtable) app.sessions.clone ();
-           int l = sessions.size ();
            ESObject ap = this.evaluator.getArrayPrototype();
            ArrayPrototype theArray = new ArrayPrototype (ap, this.evaluator);
-           theArray.setSize(l);
            int i=0;
            Hashtable visited = new Hashtable ();
            for (Enumeration e=sessions.elements(); e.hasMoreElements(); ) {
@@ -739,10 +724,8 @@ public class HopExtension {
     }
 
     class GlobalCountActiveUsers extends BuiltinFunctionObject {
-        RequestEvaluator reval;
-        GlobalCountActiveUsers (String name, Evaluator evaluator, FunctionPrototype fp, RequestEvaluator reval) {
+        GlobalCountActiveUsers (String name, Evaluator evaluator, FunctionPrototype fp) {
             super (fp, evaluator, name, 1);
-            this.reval = reval;
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
            return new ESNumber (app.sessions.size ());
@@ -1000,7 +983,27 @@ public class HopExtension {
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
             INode n = ((ESNode) thisObject).getNode ();
             String tmpname = arguments.length == 0 ? "" : arguments[0].toString ();
-            return new ESString (app.getNodeHref (n, tmpname));
+            String basicHref =app.getNodeHref (n, tmpname);
+            String hrefSkin = app.props.getProperty ("hrefSkin");
+            if (hrefSkin != null) {
+                // we need to post-process the href with a skin for this application
+                for (int i=reval.reqPath.size()-1; i>=0; i--) {
+                    ESNode esn = (ESNode) reval.reqPath.getProperty (i);
+                    INode sn = esn.getNode ();
+                    Prototype p = app.getPrototype (sn);
+                    if (p != null) {
+                        Skin s = p.getSkin (hrefSkin);
+                        if (s != null) {
+                            reval.res.pushStringBuffer ();
+                            ESObject param = new ObjectPrototype (null, reval.evaluator);
+                            param.putProperty ("path", new ESString (basicHref), "path".hashCode ());
+                            s.render (reval, esn, param);
+                            return new ESString (reval.res.popStringBuffer ());
+                        }
+                    }
+                }
+            }
+            return new ESString (basicHref);
                 
         }
     }
