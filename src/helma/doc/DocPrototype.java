@@ -84,20 +84,25 @@ public class DocPrototype extends DocDirElement	{
 			File f = new File (location.getAbsolutePath (), arr[i]);
 			if (f.isDirectory ())
 				continue;
-			if (arr[i].endsWith (".skin")) {
-				addChild (DocSkin.newInstance (f, this));
-			} else if (arr[i].endsWith (".properties")) {
-				continue;
-			} else if (arr[i].endsWith (".hac")) {
-				addChild (DocFunction.newAction (f, this));
-			} else if (arr[i].endsWith (".hsp")) {
-				addChild (DocFunction.newTemplate (f, this));
-			} else if (arr[i].endsWith (".js")) {
-				DocElement[] elements = DocFunction.newFunctions (f, this);
-				for (int j=0; j<elements.length; j++) {
-					addChild (elements[j]);
-				}
-			}
+         try {
+			   if (arr[i].endsWith (".skin")) {
+				   addChild (DocSkin.newInstance (f, this));
+			   } else if (arr[i].endsWith (".properties")) {
+				   continue;
+   			} else if (arr[i].endsWith (".hac")) {
+				   addChild (DocFunction.newAction (f, this));
+			   } else if (arr[i].endsWith (".hsp")) {
+   				addChild (DocFunction.newTemplate (f, this));
+	   		} else if (arr[i].endsWith (".js")) {
+		   		DocElement[] elements = DocFunction.newFunctions (f, this);
+			   	for (int j=0; j<elements.length; j++) {
+				   	addChild (elements[j]);
+				   }
+			   }
+         } catch (Exception ex) {
+            System.out.println ("couldn't parse file " + f.getAbsolutePath () + ": " + ex.toString ());
+            ex.printStackTrace ();
+         }
 		}
 	}
 

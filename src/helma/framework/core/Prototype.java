@@ -25,7 +25,7 @@ public final class Prototype {
     String name;
     Application app;
     File directory;
-    
+
     File [] files;
     long lastDirectoryListing;
     long checksum;
@@ -132,6 +132,26 @@ public final class Prototype {
      */
     public Prototype getParentPrototype () {
 	return parent;
+    }
+    
+    /**
+     * Check if the given prototype is within this prototype's parent chain.
+     */
+    public final boolean isInstanceOf (String pname) {
+	if (name.equals (pname))
+	   return true;
+	if (parent != null && !"hopobject".equalsIgnoreCase (parent.getName()))
+	   return parent.isInstanceOf (pname);
+	return false;
+    }
+    
+    /**
+     * Register an object as handler for this prototype and all our parent prototypes.
+     */
+    public final void addToHandlerMap (Map handlers, Object obj) {
+	if (parent != null && !"hopobject".equalsIgnoreCase (parent.getName()))
+	   parent.addToHandlerMap (handlers, obj);
+	handlers.put (name, obj);
     }
 
     public void setDbMapping (DbMapping dbmap) {

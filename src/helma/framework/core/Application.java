@@ -73,6 +73,9 @@ public final class Application implements IPathElement, Runnable {
     Hashtable sessions;
     Hashtable dbSources;
 
+    // map of app modules reflected at app.modules
+    Hashtable modules;
+
     // internal worker thread for scheduler, session cleanup etc.
     Thread worker;
     long requestTimeout = 60000; // 60 seconds for request timeout.
@@ -207,6 +210,7 @@ public final class Application implements IPathElement, Runnable {
 
 	sessions = new Hashtable ();
 	dbSources = new Hashtable ();
+	modules = new Hashtable ();
 
 	cachenode = new TransientNode ("app");
     }
@@ -215,8 +219,6 @@ public final class Application implements IPathElement, Runnable {
      * Get the application ready to run, initializing the evaluators and type manager.
      */
     public void init () throws DatabaseException, ScriptingException, MalformedURLException {
-	// scriptingEngine = new helma.scripting.fesi.FesiScriptingEnvironment ();
-	// scriptingEngine.init (this, props);
 
 	Vector extensions = Server.getServer ().getExtensions ();
 	for (int i=0; i<extensions.size(); i++) {

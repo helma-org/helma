@@ -8,7 +8,7 @@
     <target name="init">
         <property name="Name" value="helma"/>
         <property name="year" value="1998-${year}"/>
-        <property name="version" value="1.2.2"/>
+        <property name="version" value="1.2.3"/>
         <property name="project" value="helma"/>
         <property name="build.compiler" value="classic"/>
 
@@ -246,7 +246,7 @@
         <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="base" dest="${build.work}/apps" />
         <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="bloggerapi" dest="${build.work}/apps" />
         <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="himp" dest="${build.work}/apps" />
-        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="hopblog" dest="${build.work}/apps" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="gong" dest="${build.work}/apps" />
         <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="lillebror" dest="${build.work}/apps" />
 
         <antcall target="package-manage" />
@@ -258,7 +258,7 @@ base
 base.mountpoint = /
 bloggerapi
 himp
-hopblog
+gong
 lillebror
 manage
 </echo>

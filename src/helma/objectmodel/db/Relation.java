@@ -52,10 +52,9 @@ public final class Relation {
     boolean readonly;
     boolean aggressiveLoading;
     boolean aggressiveCaching;
-    boolean subnodesAreProperties;
     boolean isPrivate;
 
-    String accessor; // db column used to access objects through this relation
+    String accessName; // db column used to access objects through this relation
     String order;
     String groupbyOrder;
     String groupby;
@@ -76,9 +75,8 @@ public final class Relation {
 	this.columnName = rel.columnName;
 	this.reftype = rel.reftype;
 	this.constraints = rel.constraints;
-	this.accessor = rel.accessor;
+	this.accessName = rel.accessName;
 	this.maxSize = rel.maxSize;
-	this.subnodesAreProperties = rel.subnodesAreProperties;
     }
 
     /**
@@ -199,10 +197,8 @@ public final class Relation {
 	    aggressiveLoading = aggressiveCaching = false;
 	}
 	// check if subnode condition should be applied for property relations
-	accessor = props.getProperty (propName+".accessname");
-	if (accessor != null)
-	    subnodesAreProperties = true;
-        // parse contstraints
+	accessName = props.getProperty (propName+".accessname");
+	// parse contstraints
 	String local = props.getProperty (propName+".local");
 	String foreign = props.getProperty (propName+".foreign");
 	if (local != null && foreign != null) {
@@ -257,7 +253,7 @@ public final class Relation {
      *  and never stored to a persistent storage.
      */
     public boolean createPropertyOnDemand () {
-	return virtual || accessor != null || groupby != null;
+	return virtual || accessName != null || groupby != null;
     }
 
     /**
@@ -321,13 +317,17 @@ public final class Relation {
 	    if (reftype == REFERENCE)
 	        return constraints.length == 1 && constraints[0].foreignKeyIsPrimary ();
 	    if (reftype == COLLECTION)
-	        return accessor == null || accessor.equalsIgnoreCase (otherType.getIDField ());
+	        return accessName == null || accessName.equalsIgnoreCase (otherType.getIDField ());
 	}
 	return false;
     }
 
-    public String getAccessor () {
-	return accessor;
+    public boolean hasAccessName () {
+	return accessName != null;
+    }
+
+    public String getAccessName () {
+	return accessName;
     }
 
     public Relation getSubnodeRelation () {
@@ -344,9 +344,20 @@ public final class Relation {
     }
 
 
+    /**
+     *  get a DbMapping to use for virtual aka collection nodes.
+     */
     public DbMapping getVirtualMapping () {
+	// return null unless this relation describes a virtual/collection node.
 	if (!virtual)
 	    return null;
+	// if the collection node is prototyped, return the app's DbMapping 
+	// for that prototype
+	if (prototype != null) {
+	    return otherType;
+	}
+	// create a synthetic DbMapping that describes how to fetch the 
+	// collection's child objects.
 	if (virtualMapping == null) {
 	    virtualMapping = new DbMapping (ownType.app);
 	    virtualMapping.subRelation = getVirtualSubnodeRelation ();
@@ -434,7 +445,7 @@ public final class Relation {
 	String prefix = pre;
 	if (kstr != null) {
 	    q.append (prefix);
-	    String accessColumn = accessor == null ? otherType.getIDField () : accessor;
+	    String accessColumn = accessName == null ? otherType.getIDField () : accessName;
 	    q.append (accessColumn);
 	    q.append (" = ");
 	    // check if column is string type and value needs to be quoted

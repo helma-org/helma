@@ -502,8 +502,8 @@ public final class Node implements INode, Serializable {
 	        Node p = parentHandle.getNode (nmgr);
 	        DbMapping parentmap = p.getDbMapping ();
 	        Relation prel = parentmap.getPropertyRelation();
-	        if (prel != null && prel.subnodesAreProperties && prel.accessor != null) {
-	            String propname = dbmap.columnNameToProperty (prel.accessor);
+	        if (prel != null && prel.hasAccessName()) {
+	            String propname = dbmap.columnNameToProperty (prel.accessName);
 	            String propvalue = getString (propname);
 	            if (propvalue != null && propvalue.length() > 0) {
 	                setName (propvalue);
@@ -664,9 +664,9 @@ public final class Node implements INode, Serializable {
 	    if (parentmap != null) {
 	        // first try to retrieve name via generic property relation of parent
 	        Relation prel = parentmap.getPropertyRelation ();
-	        if (prel != null && prel.otherType == dbmap && prel.accessor != null) {
+	        if (prel != null && prel.otherType == dbmap && prel.accessName != null) {
 	            // reverse look up property used to access this via parent
-	            Relation proprel = dbmap.columnNameToRelation (prel.accessor);
+	            Relation proprel = dbmap.columnNameToRelation (prel.accessName);
 	            if (proprel != null && proprel.propName != null)
 	                newname = getString (proprel.propName);
 	        }
@@ -773,17 +773,18 @@ public final class Node implements INode, Serializable {
 	        checkWriteLock ();
 	    node.checkWriteLock ();
 	}
-	
+
 	// if subnodes are defined via realation, make sure its constraints are enforced.
-	if (dbmap != null && dbmap.getSubnodeRelation () != null)
+	if (dbmap != null && dbmap.getSubnodeRelation () != null) {
 	    dbmap.getSubnodeRelation ().setConstraints (this, node);
-	
+	}
+
 	// if the new node is marked as TRANSIENT and this node is not, mark new node as NEW
 	if (state != TRANSIENT && node.state == TRANSIENT)
 	    node.makePersistentCapable ();
 
 	String n = node.getName();
-	
+
 	// if (n.indexOf('/') > -1)
 	//     throw new RuntimeException ("\"/\" found in Node name.");
 
@@ -809,7 +810,7 @@ public final class Node implements INode, Serializable {
 	        if (groupbyNode == null)
 	            groupbyNode = getGroupbySubnode (groupbyValue, true);
 	        groupbyNode.addNode (node);
-	
+
 	        return node;
 	    } catch (Exception x) {
 	        System.err.println ("Error adding groupby: "+x);
@@ -836,10 +837,10 @@ public final class Node implements INode, Serializable {
 	    // check if properties are subnodes (_properties.aresubnodes=true)
 	    if (dbmap != null && node.dbmap != null) {
 	        Relation prel = dbmap.getPropertyRelation();
-	        if (prel != null && prel.accessor != null) {
-	            Relation localrel = node.dbmap.columnNameToRelation (prel.accessor);
+	        if (prel != null && prel.accessName != null) {
+	            Relation localrel = node.dbmap.columnNameToRelation (prel.accessName);
 	            // if no relation from db column to prop name is found, assume that both are equal
-	            String propname = localrel == null ? prel.accessor : localrel.propName;
+	            String propname = localrel == null ? prel.accessName : localrel.propName;
 	            String prop = node.getString (propname);
 	            if (prop != null && prop.length() > 0) {
 	                INode old = getNode (prop);
@@ -932,7 +933,7 @@ public final class Node implements INode, Serializable {
 	    if (rel != null)
 	        return (IPathElement) getNode (name);
 	    rel = dbmap.getSubnodeRelation ();
-	    if (rel != null && rel.groupby == null && rel.accessor != null) {
+	    if (rel != null && rel.groupby == null && rel.accessName != null) {
 	        if (rel.otherType != null && rel.otherType.isRelational ())
 	            return (IPathElement) nmgr.getNode (this, name, rel);
 	        else
@@ -1112,10 +1113,10 @@ public final class Node implements INode, Serializable {
 	// check if subnodes are also accessed as properties. If so, also unset the property
 	if (dbmap != null && node.dbmap != null) {
 	    Relation prel = dbmap.getPropertyRelation();
-	    if (prel != null && prel.accessor != null) {
-	        Relation localrel = node.dbmap.columnNameToRelation (prel.accessor);
+	    if (prel != null && prel.accessName != null) {
+	        Relation localrel = node.dbmap.columnNameToRelation (prel.accessName);
 	        // if no relation from db column to prop name is found, assume that both are equal
-	        String propname = localrel == null ? prel.accessor : localrel.propName;
+	        String propname = localrel == null ? prel.accessName : localrel.propName;
 	        String prop = node.getString (propname);
 	        if (prop != null && getNode (prop) == node)
 	            unset (prop);
@@ -1309,17 +1310,13 @@ public final class Node implements INode, Serializable {
      */
     public Enumeration properties () {
 
-	if (dbmap != null && dbmap.isRelational() && dbmap.getProp2DB ().size() > 0)
+	if (dbmap != null && dbmap.isRelational())
 	    // return the properties defined in type.properties, if there are any
-	    return new Enumeration () {
-	        Iterator i = dbmap.getProp2DB().keySet().iterator();
-	        public boolean hasMoreElements() {return i.hasNext();}
-	        public Object nextElement () {return i.next();}
-	    };
+	    return dbmap.getPropertyEnumeration();
 
 	Relation prel = dbmap == null ? null : dbmap.getPropertyRelation ();
-	if (prel != null && prel.accessor != null && !prel.subnodesAreProperties
-			&& prel.otherType != null && prel.otherType.isRelational ())
+	if (prel != null && prel.hasAccessName()
+	                 && prel.otherType != null && prel.otherType.isRelational ())
 	    // return names of objects from a relational db table
 	    return nmgr.getPropertyNames (this, prel).elements ();
 	else if (propMap != null)
@@ -1493,7 +1490,7 @@ public final class Node implements INode, Serializable {
 	    propMap.put (p2, prop);
 	}
 
-	// check if this may have an effect on the node's URL when using subnodesAreProperties
+	// check if this may have an effect on the node's URL when using accessname
 	// but only do this if we already have a parent set, i.e. if we are already stored in the db
 	Node parent = parentHandle == null ? null : (Node) getParent ();
 
@@ -1504,7 +1501,7 @@ public final class Node implements INode, Serializable {
 	    Relation propRel = parentmap.getPropertyRelation ();
 	    String dbcolumn = dbmap.propertyToColumnName (propname);
 
-	    if (propRel != null && propRel.accessor != null && propRel.accessor.equals (dbcolumn)) {
+	    if (propRel != null && propRel.accessName != null && propRel.accessName.equals (dbcolumn)) {
 	        INode n = parent.getNode (value);
 	        if (n != null && n != this) {
 	            parent.unset (value);
@@ -1748,7 +1745,7 @@ public final class Node implements INode, Serializable {
 	    // UPDATE: using n.getKey() instead of manually constructing key. HW 2002/09/13
 	    tx.visitCleanNode (n.getKey(), n);
 	    // if the field is not the primary key of the property, also register it
-	    if (rel != null && rel.accessor != null && state != TRANSIENT) {
+	    if (rel != null && rel.accessName != null && state != TRANSIENT) {
 	        Key secKey = new SyntheticKey (getKey (), propname);
 	        nmgr.evictKey (secKey);
 	        tx.visitCleanNode (secKey, n);

@@ -347,10 +347,11 @@ public final class Skin {
 	                    // was called with this object - check it or its parents for matching prototype
 	                    if (!handler.equals ("this") && !handler.equals (app.getPrototypeName (thisObject))) {
 	                        // the handler object is not what we want
-	                        Object n = app.getParentElement (thisObject);
+	                        Object n = thisObject;
 	                        // walk down parent chain to find handler object
 	                        while (n != null) {
-	                            if (handler.equals (app.getPrototypeName (n))) {
+	                            Prototype proto = app.getPrototype (n);
+	                            if (proto != null && proto.isInstanceOf (handler)) {
 	                                handlerObject = n;
 	                                break;
 	                            }

@@ -238,7 +238,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	// check if the property node is also a subnode
 	// BUG: this doesn't work because properties for subnode/properties are never stored and therefore
 	// never reused.
-	if (nvrel != null && nvrel.subnodesAreProperties) {
+	if (nvrel != null && nvrel.hasAccessName()) {
 	    node.removeNode (nvalue);
 	}
 	// only need to call unregisterPropLink if the value node is not stored in a relational db
