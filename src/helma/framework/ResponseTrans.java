@@ -435,10 +435,11 @@ public final class ResponseTrans implements Externalizable {
 	realm = (String) s.readObject ();
 	lastModified = s.readLong ();
 	notModified = s.readBoolean ();
+	charset = (String) s.readObject ();
     }
 
     public void writeExternal (ObjectOutput s) throws IOException {
-	s.writeObject (getContentType()); // append charset to contentType
+	s.writeObject (contentType);
 	s.writeObject (response);
 	s.writeObject (redir);
 	s.writeObject (cookieKeys);
@@ -450,6 +451,7 @@ public final class ResponseTrans implements Externalizable {
 	s.writeObject (realm);
 	s.writeLong (lastModified);
 	s.writeBoolean (notModified);
+	s.writeObject (charset);
     }
 
 }
