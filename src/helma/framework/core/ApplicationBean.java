@@ -443,7 +443,9 @@ public class ApplicationBean implements Serializable {
         for (Iterator it = app.getPrototypes().iterator(); it.hasNext();) {
             Prototype p = (Prototype) it.next();
 
-            skinz.put(p.getName(), p.getSkinMap());
+            Object skinmap = p.getSkinMap();
+            skinz.put(p.getName(), skinmap);
+            skinz.put(p.getLowerCaseName(), skinmap);
         }
 
         return skinz;
@@ -462,7 +464,9 @@ public class ApplicationBean implements Serializable {
         for (Iterator it = app.getPrototypes().iterator(); it.hasNext();) {
             Prototype p = (Prototype) it.next();
 
-            skinz.put(p.getName(), p.getSkinMap(skinpath));
+            Object skinmap = p.getSkinMap(skinpath);
+            skinz.put(p.getName(), skinmap);
+            skinz.put(p.getLowerCaseName(), skinmap);
         }
 
         return skinz;
