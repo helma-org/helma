@@ -17,16 +17,13 @@
 package helma.scripting.rhino;
 
 import helma.scripting.rhino.extensions.*;
-import helma.framework.*;
 import helma.framework.core.*;
-import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.util.HtmlEncoder;
 import helma.util.MimePart;
 import helma.util.XmlUtils;
 import org.mozilla.javascript.*;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Date;
 import java.util.Locale;
@@ -87,8 +84,8 @@ public class GlobalObject extends ScriptableObject {
     /**
      *
      *
-     * @param skin ...
-     * @param param ...
+     * @param skinobj ...
+     * @param paramobj ...
      *
      * @return ...
      */
@@ -116,8 +113,8 @@ public class GlobalObject extends ScriptableObject {
     /**
      *
      *
-     * @param skin ...
-     * @param param ...
+     * @param skinobj ...
+     * @param paramobj ...
      *
      * @return ...
      */
@@ -187,7 +184,7 @@ public class GlobalObject extends ScriptableObject {
     /**
      * Get a Helma DB connection specified in db.properties
      *
-     * @param str the db source name
+     * @param dbsource the db source name
      *
      * @return a DatabaseObject for the specified DbConnection
      */
@@ -331,7 +328,7 @@ public class GlobalObject extends ScriptableObject {
     /**
      *
      *
-     * @param str ...
+     * @param obj ...
      *
      * @return ...
      */
@@ -342,7 +339,7 @@ public class GlobalObject extends ScriptableObject {
     /**
      *
      *
-     * @param str ...
+     * @param obj ...
      *
      * @return ...
      */
@@ -353,7 +350,7 @@ public class GlobalObject extends ScriptableObject {
     /**
      *
      *
-     * @param str ...
+     * @param obj ...
      *
      * @return ...
      */
@@ -364,7 +361,7 @@ public class GlobalObject extends ScriptableObject {
     /**
      *
      *
-     * @param str ...
+     * @param obj ...
      *
      * @return ...
      */
@@ -375,7 +372,7 @@ public class GlobalObject extends ScriptableObject {
     /**
      *
      *
-     * @param str ...
+     * @param obj ...
      *
      * @return ...
      */
@@ -404,8 +401,6 @@ public class GlobalObject extends ScriptableObject {
      *
      *
      * @param str ...
-     *
-     * @return ...
      */
     public void write(String str) {
         System.out.print(str);
@@ -415,8 +410,6 @@ public class GlobalObject extends ScriptableObject {
      *
      *
      * @param str ...
-     *
-     * @return ...
      */
     public void writeln(String str) {
         System.out.println(str);

@@ -16,8 +16,6 @@
 
 package helma.scripting.rhino;
 
-import java.io.Serializable;
-
 /**
  *  A helper class to serve as Map key for two strings
  */

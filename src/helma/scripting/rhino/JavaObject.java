@@ -16,15 +16,9 @@
 
 package helma.scripting.rhino;
 
-import helma.framework.*;
 import helma.framework.core.*;
-import helma.objectmodel.*;
-import helma.objectmodel.db.*;
 import org.mozilla.javascript.*;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -69,8 +63,8 @@ public class JavaObject extends NativeJavaObject {
     /**
      *
      *
-     * @param skin ...
-     * @param param ...
+     * @param skinobj ...
+     * @param paramobj ...
      *
      * @return ...
      */
@@ -98,8 +92,8 @@ public class JavaObject extends NativeJavaObject {
     /**
      *
      *
-     * @param skin ...
-     * @param param ...
+     * @param skinobj ...
+     * @param paramobj ...
      *
      * @return ...
      */

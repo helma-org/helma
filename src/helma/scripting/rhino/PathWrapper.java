@@ -18,7 +18,6 @@ package helma.scripting.rhino;
 
 import helma.framework.core.RequestPath;
 import org.mozilla.javascript.*;
-import java.lang.reflect.*;
 
 /**
  * This class wraps around instances of helma.framework.core.RequestPath and

@@ -27,11 +27,8 @@ import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Relation;
 import helma.scripting.*;
 import helma.scripting.rhino.debug.Tracer;
-import helma.util.CacheMap;
-import helma.util.Updatable;
 import org.mozilla.javascript.*;
 
-import java.io.*;
 import java.util.*;
 
 /**

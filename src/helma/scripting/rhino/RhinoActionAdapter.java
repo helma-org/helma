@@ -18,14 +18,6 @@ package helma.scripting.rhino;
 
 import helma.scripting.*;
 
-// import java.util.Vector;
-// import java.util.Iterator;
-import java.io.*;
-
-// import helma.framework.*;
-// import helma.framework.core.*;
-// import helma.util.Updatable;
-
 /**
  *  An class that updates fesi interpreters with actionfiles and templates.
  */
