@@ -536,7 +536,7 @@ public final class NodeManager {
 	            }
 	            // set order, if specified and if not using subnode's relation
 	            if (rel.groupby != null)
-	                q += " GROUP BY "+rel.groupby+" ORDER BY "+rel.groupby;
+	                q += " GROUP BY "+rel.groupby+" ORDER BY "+(rel.groupbyorder == null ? rel.groupby : rel.groupbyorder);
 	            else if (rel.order != null)
 	                q += " ORDER BY "+rel.order;
 	            qds = new QueryDataSet (con, q);
@@ -749,13 +749,19 @@ public final class NodeManager {
 	    }
 
 	} else if (rel != null && rel.groupby != null) {
-	    return home.getGroupbySubnode (kstr);
+	    node = home.getGroupbySubnode (kstr, false);
+	    if (node == null && (rel.other == null || !rel.other.isRelational ())) {
+	        node = db.getNode (txn, kstr);
+	        node.nmgr = safe;
+	    }
+	    return node;
 
 	} else if (rel == null || rel.other == null || !rel.other.isRelational ()) {
 	    node = db.getNode (txn, kstr);
 	    node.nmgr = safe;
 	    node.setDbMapping (rel.other);
 	    return node;
+
 	} else {
 	    TableDataSet tds = null;
 	    try {

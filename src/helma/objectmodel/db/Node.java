@@ -621,6 +621,29 @@ public class Node implements INode, Serializable {
 
 	loadNodes ();
 
+	// check if this node has a group-by subnode-relation
+	if (dbmap != null) {
+	    Relation srel = dbmap.getSubnodeRelation ();
+	    if (srel != null && srel.groupby != null) try {
+	        Relation groupbyRel = (Relation) srel.other.db2prop.get (srel.groupby);
+	        String groupbyProp = (groupbyRel != null) ?
+	            groupbyRel.propname : srel.groupby;
+	        String groupbyValue = node.getString (groupbyProp, false);
+	        INode groupbyNode = getNode (groupbyValue, false);
+	        // if group-by node doesn't exist, we'll create it
+	        if (groupbyNode == null)
+	            groupbyNode = getGroupbySubnode (groupbyValue, true);
+	        groupbyNode.addNode (node);
+	        checkBackLink (node);
+	        return node;
+	    } catch (Exception x) {
+	        System.err.println ("Error adding groupby: "+x);
+	        // x.printStackTrace ();
+	        return null;
+	    }
+	}
+
+
 	if (where < 0 || where > numberOfNodes ())
 	    where = numberOfNodes ();
 	if (node.getParent () != null) {
@@ -666,6 +689,15 @@ public class Node implements INode, Serializable {
 	    }
 	}
 
+	checkBackLink (node);
+
+	lastmodified = System.currentTimeMillis ();
+	lastSubnodeChange = lastmodified;
+	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.SUBNODE_ADDED, node));
+	return node;
+    }
+
+    private void checkBackLink (Node node) {
 	// check if the subnode is in relational db and needs to link back to this
 	// in order to make it a subnode
 	if (dbmap != null) {
@@ -675,18 +707,13 @@ public class Node implements INode, Serializable {
 	        if (backlink != null && backlink.propname != null) {
 	            if (node.get (backlink.propname, false) == null) {
 	                if (this.state == VIRTUAL)
-	                    node.setString (backlink.propname, getParent().getID());
+	                    node.setString (backlink.propname, getNonVirtualHomeID());
 	                else
 	                    node.setString (backlink.propname, getID());
 	            }
 	        }
 	    }
 	}
-
-	lastmodified = System.currentTimeMillis ();
-	lastSubnodeChange = lastmodified;
-	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.SUBNODE_ADDED, node));
-	return node;
     }
 
     public INode createNode () {
@@ -796,30 +823,43 @@ public class Node implements INode, Serializable {
 	return retval;
     }
 
-    public Node getGroupbySubnode (String sid) {
+    public Node getGroupbySubnode (String sid, boolean create) {
 	loadNodes ();
-	if (subnodes.contains (sid)) try {
-	    Node node = new Node (this, sid, nmgr, null);
-	    // set "groupname" property to value of groupby field
-	    node.setString ("groupname", sid);
+	if (subnodes == null)
+	    subnodes = new ExternalizableVector ();
+
+	if (subnodes.contains (sid) || create) try {
 	    Relation srel = dbmap.getSubnodeRelation ();
 	    Relation prel = dbmap.getPropertyRelation ();
-	    DbMapping dbm = new DbMapping ();
-	    Relation gsrel = srel.getGroupbySubnodeRelation();
-	    dbm.setSubnodeMapping (srel.other);
-	    dbm.setSubnodeRelation (gsrel);
-	    if (prel != null) {
-	        dbm.setPropertyMapping (prel.other);
-	        dbm.setPropertyRelation (prel.getGroupbyPropertyRelation());
+	    boolean relational = srel.other != null && srel.other.isRelational ();
+
+	    if (relational || create) {
+	        Node node = relational ? new Node (this, sid, nmgr, null) : new Node ("groupby-"+sid, nmgr);
+	        // set "groupname" property to value of groupby field
+	        node.setString ("groupname", sid);
+
+	        if (relational) {
+	            DbMapping dbm = new DbMapping ();
+	            Relation gsrel = srel.getGroupbySubnodeRelation();
+	            dbm.setSubnodeMapping (srel.other);
+	            dbm.setSubnodeRelation (gsrel);
+	            if (prel != null) {
+	                dbm.setPropertyMapping (prel.other);
+	                dbm.setPropertyRelation (prel.getGroupbyPropertyRelation());
+	            }
+	            node.setDbMapping (dbm);
+	            String snrel = "WHERE "+srel.groupby +"='"+sid+"'";
+	            if (gsrel.direction == Relation.BACKWARD)
+	                snrel += " AND "+gsrel.getRemoteField()+"='"+getNonVirtualHomeID()+"'";
+	            if (gsrel.order != null)
+	                snrel += " ORDER BY "+gsrel.order;
+	            node.setSubnodeRelation (snrel);
+	        } else {
+	            subnodes.addElement (node.getID ());
+	            setNode (sid, node);
+	        }
+	        return node;
 	    }
-	    node.setDbMapping (dbm);
-	    String snrel = "WHERE "+srel.groupby +"='"+sid+"'";
-	    if (gsrel.direction == Relation.BACKWARD)
-	        snrel += " AND "+gsrel.getRemoteField()+"='"+getNonVirtualHomeID()+"'";
-	    if (gsrel.order != null)
-	        snrel += " ORDER BY "+gsrel.order;
-	    node.setSubnodeRelation (snrel);
-	    return node;
 	} catch (Exception noluck) {
 	    IServer.getLogger ().log ("Error creating group-by node for "+sid+": "+noluck);
 	}
@@ -1042,7 +1082,7 @@ public class Node implements INode, Serializable {
 	// return true if a change in subnodes can be ignored because it is
 	// stored in the subnodes themselves.
 	Relation rel = dbmap == null ? null : dbmap.getSubnodeRelation();
-	return (rel != null && rel.direction == Relation.BACKWARD);
+	return (rel != null && rel.other != null && rel.other.isRelational() && rel.direction == Relation.BACKWARD);
     }
 
     /**
