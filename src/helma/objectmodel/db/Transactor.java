@@ -141,7 +141,7 @@ public class Transactor extends Thread {
 	        nmgr.insertNode (nmgr.db, txn, node);
 	        node.setState (Node.CLEAN);
 	        ins++;
-	        // IServer.getLogger().log ("inserted: "+node.getFullName ());
+	        IServer.getLogger().log ("inserted: Node "+node.getName ()+"/"+node.getID ());
 	    } else if (nstate == Node.MODIFIED) {
 	        nmgr.updateNode (nmgr.db, txn, node);
 	        node.setState (Node.CLEAN);
