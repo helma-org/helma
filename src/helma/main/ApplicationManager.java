@@ -273,6 +273,7 @@ public class ApplicationManager implements XmlRpcHandler {
         String cookieDomain;
         String uploadLimit;
         String debug;
+        String charset;
         boolean encode;
 
         /**
@@ -379,6 +380,8 @@ public class ApplicationManager implements XmlRpcHandler {
                     if (debug != null) {
                         holder.setInitParameter("debug", debug);
                     }
+
+                    holder.setInitParameter("charset", app.getCharset());
 
                     context.start();
 
