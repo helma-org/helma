@@ -24,6 +24,8 @@ import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Relation;
 import helma.scripting.*;
 import helma.util.CacheMap;
+import helma.util.SystemMap;
+import helma.util.SystemProperties;
 import helma.util.Updatable;
 import org.mozilla.javascript.*;
 import java.io.*;
@@ -40,7 +42,7 @@ public final class RhinoCore {
     Scriptable global;
 
     // caching table for JavaScript object wrappers
-    CacheMap wrappercache;
+    WeakHashMap wrappercache;
 
     // table containing JavaScript prototypes
     Hashtable prototypes;
@@ -54,7 +56,8 @@ public final class RhinoCore {
      */
     public RhinoCore(Application app) {
         this.app = app;
-        wrappercache = new CacheMap(500, .75f);
+        // wrappercache = new CacheMap(500, .75f);
+        wrappercache = new WeakHashMap();
         prototypes = new Hashtable();
 
         Context context = Context.enter();
@@ -510,24 +513,33 @@ public final class RhinoCore {
      *  interface, the getPrototype method will be used to retrieve the name of the prototype
      * to use. Otherwise, a Java-Class-to-Script-Prototype mapping is consulted.
      */
-    public Scriptable getElementWrapper(Object e) {
-        // Gotta find out the prototype name to use for this object...
-        String prototypeName = app.getPrototypeName(e);
+    protected Scriptable getElementWrapper(Object e) {
 
-        Scriptable op = getPrototype(prototypeName);
+        Scriptable w = (Scriptable) wrappercache.get(e);
 
-        if (op == null) {
-            op = getPrototype("hopobject");
+        if (e == null) {
+            // Gotta find out the prototype name to use for this object...
+            String prototypeName = app.getPrototypeName(e);
+
+            Scriptable op = getPrototype(prototypeName);
+
+            if (op == null) {
+                op = getPrototype("hopobject");
+            }
+
+            w = new JavaObject(global, e, op, this);
+
+            wrappercache.put(e, w);
         }
 
-        return new JavaObject(global, e, op, this);
+        return w;
     }
 
     /**
      *  Get a script wrapper for an instance of helma.objectmodel.INode
      */
-    public Scriptable getNodeWrapper(INode n) {
-        // FIXME: should this return ESNull.theNull?
+    protected Scriptable getNodeWrapper(INode n) {
+        // FIXME: is this needed? should this return ESNull.theNull?
         if (n == null) {
             return null;
         }
@@ -577,9 +589,9 @@ public final class RhinoCore {
      *  Register a new Node wrapper with the wrapper cache. This is used by the
      * Node constructor.
      */
-    public void putNodeWrapper(INode n, Scriptable esn) {
+    /* public void putNodeWrapper(INode n, Scriptable esn) {
         wrappercache.put(n, esn);
-    }
+    } */
 
     private synchronized void evaluate(Prototype prototype, Object code) {
         if (code instanceof FunctionFile) {
@@ -664,8 +676,12 @@ public final class RhinoCore {
                 return getElementWrapper(obj);
             }
 
-            if (obj instanceof Map) {
+            if (obj instanceof SystemMap) {
                 return new MapWrapper((Map) obj, RhinoCore.this);
+            }
+
+            if (obj instanceof String) {
+                return obj;
             }
 
             return super.wrap(cx, scope, obj, staticType);
@@ -678,17 +694,12 @@ public final class RhinoCore {
 
         public Scriptable wrapNewObject(Context cx, Scriptable scope, Object obj) {
             // System.err.println ("N-Wrapping: "+obj);
-
             if (obj instanceof INode) {
                 return getNodeWrapper((INode) obj);
             }
 
             if (obj instanceof IPathElement) {
                 return getElementWrapper(obj);
-            }
-
-            if (obj instanceof Map) {
-                return new MapWrapper((Map) obj, RhinoCore.this);
             }
 
             return super.wrapNewObject(cx, scope, obj);
