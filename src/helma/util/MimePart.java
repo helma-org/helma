@@ -30,7 +30,7 @@ public class MimePart implements Serializable {
 
     public String getText () {
 	if (contentType == null || contentType.startsWith ("text/")) {
-	    // todo: check for encoding
+	    // FIXME: check for encoding
 	    return new String (content);
 	} else {
 	    return null;
