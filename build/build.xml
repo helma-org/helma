@@ -102,7 +102,11 @@
     <target name="jar" depends="compile">
         <jar jarfile="${build.lib}/${jar.name}-${DSTAMP}.jar"
             basedir="${build.classes}"
-            excludes="**/package.html"/>
+            excludes="**/package.html,**/main/launcher/**"/>
+        <jar jarfile="${home.dir}/launcher.jar"
+            basedir="${build.classes}"
+            includes="**/main/launcher/**"
+            manifest="${build.src}/helma/main/launcher/manifest.txt"/>
     </target>
 
 
