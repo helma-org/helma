@@ -111,12 +111,12 @@ public class DocWriter extends DocHtmlWriter	{
 		DocFunction[] df = app.listFunctions();
 		for ( int i=0;i<df.length; i++ )	{
 			try	{
-				File d = new File ( docDir, df[i].getPrototype().getName().toLowerCase() );
+				File d = new File ( docDir, df[i].getDocPrototype().getName().toLowerCase() );
 				if ( !d.exists() )
 					d.mkdir();
-				DocWriter dw = new DocWriter( df[i].getPrototype().getName().toLowerCase() + "/" + df[i].getDocFileName() );
-				dw.printHeader( app.getName() + "." + df[i].getPrototype().getName() + "." + df[i].getName() );
-				dw.printNavBar( app.getName(), df[i].getPrototype(), DocHtmlWriter.METHOD);
+				DocWriter dw = new DocWriter( df[i].getDocPrototype().getName().toLowerCase() + "/" + df[i].getDocFileName() );
+				dw.printHeader( app.getName() + "." + df[i].getDocPrototype().getName() + "." + df[i].getName() );
+				dw.printNavBar( app.getName(), df[i].getDocPrototype(), DocHtmlWriter.METHOD);
 				dw.printFunction( df[i] );
 				dw.close();
 			}	catch ( FileNotFoundException e )	{	DocRun.log( e.getMessage() );	}

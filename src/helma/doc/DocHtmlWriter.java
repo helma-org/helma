@@ -129,9 +129,9 @@ public class DocHtmlWriter extends PrintWriter	{
 		StringBuffer buf = new StringBuffer ();
 		buf.append("<CODE><B>");
 		if ( DocRun.getOption("-f").equals("true") )
-			buf.append("<a href=\"" + func.getPrototype().getName().toLowerCase()+"/"+func.getDocFileName() + "\">" );
+			buf.append("<a href=\"" + func.getDocPrototype().getName().toLowerCase()+"/"+func.getDocFileName() + "\">" );
 		if ( func.isMacro() )	{
-			buf.append( func.getPrototype().getName()+"."+func.getName().substring(0,func.getName().length()-6) );
+			buf.append( func.getDocPrototype().getName()+"."+func.getName().substring(0,func.getName().length()-6) );
 		}	else	{
 			buf.append(func.getName().trim());
 			if( func.isTemplate() || func.isFunction() )	{
@@ -161,9 +161,9 @@ public class DocHtmlWriter extends PrintWriter	{
 		String name = tag.getName();
 		switch (kind)	{
 			case DocTag.ARG:
-				return( "<b>arg" + i + ":</b> " + text );
+				return( "<b>Argument " + i + ":</b> " + text );
 			case DocTag.PARAM:
-				return( "<b>" + name + "</b> " + text );
+				return( "<b>Parameter " + name + "</b> " + text );
 			case DocTag.RETURNS:
 			case DocTag.AUTHOR:
 			case DocTag.VERSION:
@@ -178,7 +178,7 @@ public class DocHtmlWriter extends PrintWriter	{
 					StringBuffer buf = new StringBuffer();
 					StringTokenizer tok = new StringTokenizer (text.trim(),".");
 					if ( tok.countTokens()==0 )	return text;
-					DocPrototype dp = app.getPrototype( tok.nextToken() );
+					DocPrototype dp = app.getDocPrototype( tok.nextToken() );
 					if ( dp==null )	return text;
 					buf.append("<a href=\"" );
 					DocFunction df = null;
@@ -240,7 +240,7 @@ public class DocHtmlWriter extends PrintWriter	{
 				print ( "</DL><h2>" + name.substring(0,1).toUpperCase() + "</h2><dl>");
 				curChar = name.substring(0,1).toLowerCase();
 			}
-			print("<DT><a href=\"" + link(dl[i]) + "\">" + dl[i].getName() + "</a> - " + dl[i].getTypeName() + " in <a href=\"" + link(dl[i].getPrototype()) + "\">" + dl[i].getPrototype().getName() + "</a>" );
+			print("<DT><a href=\"" + link(dl[i]) + "\">" + dl[i].getName() + "</a> - " + dl[i].getTypeName() + " in <a href=\"" + link(dl[i].getDocPrototype()) + "\">" + dl[i].getDocPrototype().getName() + "</a>" );
 		}
 		print("</DL>");
 	}
@@ -249,7 +249,7 @@ public class DocHtmlWriter extends PrintWriter	{
 		if ( pt.getName().equalsIgnoreCase("hopobject") )
 			return;
 		DocApplication app = pt.getApplication();
-		DocPrototype hopobject = (DocPrototype)app.getPrototype("hopobject");
+		DocPrototype hopobject = (DocPrototype)app.getDocPrototype("hopobject");
 		if ( hopobject==null || hopobject.countFunctions()==0 )
 			return;
 		print("<TABLE BORDER=1 CELLPADDING=3 CELLSPACING=0 WIDTH=100%>");
@@ -283,7 +283,7 @@ public class DocHtmlWriter extends PrintWriter	{
 	}
 
 	public void printFunction(DocFunction func)	{
-		print( "<br><br><small><i>in " + func.getPrototype().getName() + "/" + (new File(func.getLocation())).getName() + ":</i></small>" );
+		print( "<br><br><small><i>in " + func.getDocPrototype().getName() + "/" + (new File(func.getLocation())).getName() + ":</i></small>" );
 		print( "<br><pre>");
 		print( HtmlEncoder.encodeAll(func.getSource()) );
 		print( "</pre>" );
@@ -318,7 +318,7 @@ public class DocHtmlWriter extends PrintWriter	{
 			return "prototype_" + docEl.getName() + ".html";
 		}	else if ( docEl.isMethod() )	{
 			DocFunction df = (DocFunction)docEl;
-			return "prototype_" + df.getPrototype().getName() + ".html#" + df.getName();
+			return "prototype_" + df.getDocPrototype().getName() + ".html#" + df.getName();
 		}	else	{
 			return "";
 		}
