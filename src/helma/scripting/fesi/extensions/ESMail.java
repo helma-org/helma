@@ -4,8 +4,17 @@
 
 package helma.scripting.fesi.extensions;
 
-import javax.mail.*;
-import javax.mail.internet.*;
+import javax.mail.Session;
+import javax.mail.Multipart;
+import javax.mail.Address;
+import javax.mail.Transport;
+import javax.mail.Message;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeUtility;
+import javax.mail.internet.MimeMultipart;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.AddressException;
 import javax.activation.*;
 import java.io.*;
 import java.util.*;
@@ -86,21 +95,29 @@ public class ESMail extends ESObject implements Serializable {
     }
 
     public void addPart (ESValue val[]) throws Exception {
-	if (val == null || val.length == 0) return;
+	if (val == null || val.length == 0 || val.length > 2) 
+	    throw new IOException ("mail.addPart called with wrong number of arguments.");
 	if (multipart == null) {
 	    multipart = new MimeMultipart ();
 	}
-	for (int i=0; i<val.length; i++) {
-	    MimeBodyPart part = new MimeBodyPart ();
-	    Object obj = val[i].toJavaObject ();
-	    if (obj instanceof String) {
-	        part.setContent (obj.toString (), "text/plain");
-	    } else if (obj instanceof File) {
-	        FileDataSource source = new FileDataSource ((File) obj);
-	        part.setDataHandler (new DataHandler (source));
-	    }
-	    multipart.addBodyPart (part);
+	MimeBodyPart part = new MimeBodyPart ();
+	Object obj = val[0].toJavaObject ();
+	if (obj instanceof String) {
+	    part.setContent (obj.toString (), "text/plain");
+	} else if (obj instanceof File) {
+	    FileDataSource source = new FileDataSource ((File) obj);
+	    part.setDataHandler (new DataHandler (source));
+	} else if (obj instanceof MimePart) {
+	    MimePartDataSource source = new MimePartDataSource ((MimePart) obj);
+	    part.setDataHandler (new DataHandler (source));
 	}
+	// check if an explicit file name was given for this part
+	if (val.length == 2) try {
+	    part.setFileName (val[1].toString());
+	} catch (Exception x) {
+	    // FIXME: error setting file name ... should we ignore this or throw an exception?
+	}
+	multipart.addBodyPart (part);
     }
 
     public void setSubject (ESValue val) throws Exception {
@@ -167,9 +184,18 @@ public class ESMail extends ESObject implements Serializable {
     }
 
     public void send () throws Exception {
-	if (buffer != null)
-	    message.setText (buffer.toString ());
-	else if (multipart != null)
+	if (buffer != null) {
+	    // if we also have a multipart body, add
+	    // plain string as first part to it.
+	    if (multipart != null) {
+	        MimeBodyPart part = new MimeBodyPart ();
+	        part.setContent (buffer.toString (), "text/plain");
+	        multipart.addBodyPart (part, 0);
+	        message.setContent (multipart);
+	    } else {
+	        message.setText (buffer.toString ());
+	    }
+	} else if (multipart != null)
 	    message.setContent (multipart);
 	else
 	    message.setText ("");
