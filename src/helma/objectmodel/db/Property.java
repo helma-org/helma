@@ -171,12 +171,19 @@ public final class Property implements IProperty, Serializable, Cloneable {
     }
 
     /**
+     *  Get the name of the property
      *
-     *
-     * @return ...
+     * @return this property's name
      */
     public String getName() {
         return propname;
+    }
+
+    /**
+     *  Set the name of the property
+     */
+    protected void setName(String name) {
+        this.propname = name;
     }
 
     /**
