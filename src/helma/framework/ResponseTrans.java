@@ -61,7 +61,7 @@ public class ResponseTrans implements Externalizable {
     private transient Stack buffers;
 
     // the path used to resolve skin names
-    public transient String skinpath = null;
+    public transient Object skinpath = null;
 
     static final long serialVersionUID = -8627370766119740844L;
 
