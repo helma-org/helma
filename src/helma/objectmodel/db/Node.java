@@ -417,7 +417,7 @@ public final class Node implements INode, Serializable {
         if (isRelational()) {
             long lastmod = Math.max(lastmodified, dbmap.getLastTypeChange());
 
-            if ((parentHandle != null) && (lastNameCheck < lastmod)) {
+            if ((parentHandle != null) && (lastNameCheck <= lastmod)) {
                 try {
                     Node p = parentHandle.getNode(nmgr);
                     DbMapping parentmap = p.getDbMapping();
@@ -703,7 +703,7 @@ public final class Node implements INode, Serializable {
         ParentInfo[] parentInfo = null;
 
         if (isRelational() &&
-                (lastParentSet < Math.max(dbmap.getLastTypeChange(), lastmodified))) {
+                (lastParentSet <= Math.max(dbmap.getLastTypeChange(), lastmodified))) {
             parentInfo = dbmap.getParentInfo();
         }
 
@@ -756,6 +756,9 @@ public final class Node implements INode, Serializable {
                         }
                     } catch (Exception ignore) {
                     }
+                } else if (i == parentInfo.length-1) {
+                    setParent(null);
+                    lastParentSet = System.currentTimeMillis();
                 }
             }
         }
