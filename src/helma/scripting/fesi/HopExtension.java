@@ -132,6 +132,7 @@ public class HopExtension {
         // register object prototypes with FesiEvaluator
         fesi.putPrototype ("global", go);
         fesi.putPrototype ("hopobject", esNodePrototype);
+        fesi.putPrototype ("__javaobject__", esObjectPrototype);
         fesi.putPrototype ("user", esUserPrototype);
     }
 

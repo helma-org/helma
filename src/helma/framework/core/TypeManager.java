@@ -262,7 +262,7 @@ public class TypeManager {
             RequestEvaluator reval = (RequestEvaluator) evals.next ();
             proto.initRequestEvaluator (reval);
         }*/
-        app.scriptingEngine.applyPrototype (proto);
+        app.scriptingEngine.updatePrototype (proto);
 
     }
 
@@ -304,9 +304,9 @@ public class TypeManager {
 
         if (!needsUpdate)
 	return;
-	
+
         proto.lastUpdate = System.currentTimeMillis ();
-	
+
         // let the thread know we had to do something.
         idleSeconds = 0;
         // app.logEvent ("TypeManager: Updating prototypes for "+app.getName()+": "+updatables);
@@ -363,24 +363,25 @@ public class TypeManager {
         }
 
         // next go through existing updatables
-        if (updatables == null)
-            return;
-        for (Iterator i = updatables.iterator(); i.hasNext(); ) {
-            Updatable upd = (Updatable) i.next();
+        if (updatables != null) {
+            for (Iterator i = updatables.iterator(); i.hasNext(); ) {
+                Updatable upd = (Updatable) i.next();
 
-            if (upd.needsUpdate ()) {
-                if (upd instanceof DbMapping)
-                    rewire = true;
-                try {
-                    upd.update ();
-                } catch (Exception x) {
-                     if (upd instanceof DbMapping)
-	            app.logEvent ("Error updating db mapping for type "+name+": "+x);
-                     else
-	            app.logEvent ("Error updating "+upd+" of prototye type "+name+": "+x);
+                if (upd.needsUpdate ()) {
+                    if (upd instanceof DbMapping)
+                        rewire = true;
+                    try {
+                        upd.update ();
+                    } catch (Exception x) {
+                         if (upd instanceof DbMapping)
+                            app.logEvent ("Error updating db mapping for type "+name+": "+x);
+                         else
+                            app.logEvent ("Error updating "+upd+" of prototye type "+name+": "+x);
+                    }
                 }
             }
         }
+        app.scriptingEngine.updatePrototype (proto);
     }
 
 

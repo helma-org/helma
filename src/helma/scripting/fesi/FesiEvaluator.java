@@ -9,6 +9,7 @@ import helma.framework.*;
 import helma.framework.core.*;
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
+import helma.util.Updatable;
 import java.util.*;
 import java.io.*;
 import FESI.Data.*;
@@ -23,7 +24,7 @@ import Acme.LruHashtable;
 public class FesiEvaluator {
 
     // the application we're running in
-    Application app;
+    public Application app;
 
     // The FESI evaluator
     Evaluator evaluator;
@@ -60,7 +61,7 @@ public class FesiEvaluator {
 	prototypes = new Hashtable ();
 	try {
 	    evaluator = new Evaluator();
-	    // evaluator.reval = this;
+	    evaluator.reval = this;
 	    global = evaluator.getGlobalObject();
 	    for (int i=0; i<extensions.length; i++)
 	        evaluator.addExtension (extensions[i]);
@@ -87,7 +88,102 @@ public class FesiEvaluator {
 
     private void initialize () {
 	Collection prototypes = app.getPrototypes();
+	for (Iterator i=prototypes.iterator(); i.hasNext(); ) {
+	    Prototype proto = (Prototype) i.next ();
+	    System.err.println ("      "+proto);
+	    evaluatePrototype (proto);
+	}
 	initialized = true;
+    }
+
+    void evaluatePrototype (Prototype prototype) {
+
+	ObjectPrototype op = null;
+
+	// get the prototype's prototype if possible and necessary
+	ObjectPrototype opp = null;
+	Prototype parent = prototype.getParentPrototype ();
+	if (parent != null) {
+	    // see if parent prototype is already registered. if not, register it
+	    opp = getPrototype (parent.getName ());
+	    if (opp == null) {
+	        evaluatePrototype (parent);
+	        opp = getPrototype (parent.getName ());
+	    }
+	}
+	String name = prototype.getName ();
+	if (!"global".equalsIgnoreCase (name) && !"hopobject".equalsIgnoreCase (name) && opp == null) {
+	    if (app.isJavaPrototype (name))
+	        opp = getPrototype ("__javaobject__");
+	    else
+	        opp = getPrototype ("hopobject");
+	}
+
+	/* if ("user".equalsIgnoreCase (name)) {
+	    op = reval.esUserPrototype;
+	    op.setPrototype (opp);
+	} else if ("global".equalsIgnoreCase (name))
+	    op = reval.global;
+	else if ("hopobject".equalsIgnoreCase (name))
+	    op = reval.esNodePrototype;
+	else {
+	    op = new ObjectPrototype (opp, reval.evaluator);
+	    try {
+	        op.putProperty ("prototypename", new ESString (name), "prototypename".hashCode ());
+	    } catch (EcmaScriptException ignore) {}
+	}
+	reval.putPrototype (name, op); */
+
+	op = getPrototype (name);
+	if (op == null) {
+	    op = new ObjectPrototype (opp, evaluator);
+	    try {
+	        op.putProperty ("prototypename", new ESString (name), "prototypename".hashCode ());
+	    } catch (EcmaScriptException ignore) {}
+	    putPrototype (name, op);
+	}
+
+
+	// Register a constructor for all types except global.
+	// This will first create a node and then call the actual (scripted) constructor on it.
+	if (!"global".equalsIgnoreCase (name)) {
+	    try {
+	        FunctionPrototype fp = (FunctionPrototype) evaluator.getFunctionPrototype();
+	        evaluator.getGlobalObject().putHiddenProperty (name, new NodeConstructor (name, fp, this));
+	    } catch (EcmaScriptException ignore) {}
+	}
+	for (Iterator it = prototype.functions.values().iterator(); it.hasNext(); ) {
+	    FunctionFile ff = (FunctionFile) it.next ();
+	    // ff.updateRequestEvaluator (reval);
+	}
+	/* for (Iterator it = prototype.templates.values().iterator(); it.hasNext(); ) {
+	    Template tmp = (Template) it.next ();
+	    try {
+	        tmp.updateRequestEvaluator (reval);
+	    } catch (EcmaScriptException ignore) {}
+	} */
+	for (Iterator it = prototype.actions.values().iterator(); it.hasNext(); ) {
+	    ActionFile act = (ActionFile) it.next ();
+	    try {
+	        FesiActionAdapter adp = new FesiActionAdapter (act);
+	        adp.updateEvaluator (this);
+	    } catch (EcmaScriptException ignore) {}
+	}
+
+	    /* for (Iterator j=proto.updatables.values().iterator(); j.hasNext(); ) {
+	        Updatable upd = (Updatable) j.next ();
+	        System.err.println ("           "+upd);
+	        if (upd instanceof ActionFile) try {
+	            new FesiActionAdapter ((ActionFile) upd).updateEvaluator (this);
+	        } catch (Exception x) {
+	            System.err.println ("DANG: "+x);
+		    x.printStackTrace ();
+	        } else if (upd instanceof FunctionFile) {
+	            // ((FunctionFile) upd).evaluate(this);
+	        } else
+		    System.err.println ("UNHANDLED: "+upd);
+	    }*/
+	// }
     }
 
     /**
@@ -110,12 +206,31 @@ public class FesiEvaluator {
 	            esv[i] = new ESMapWrapper (this, (Map) args[i]);
 	        else
 	            esv[i] = ESLoader.normalizeValue (args[i], evaluator);
+	    for (Iterator i=globals.keySet().iterator(); i.hasNext(); ) {
+	        String k = (String) i.next();
+	        Object v = globals.get (k);
+	        ESValue sv = null;
+	        // set and mount the request and response data object
+	        if (v instanceof RequestTrans)
+	            ((RequestTrans) v).data = new ESMapWrapper (this, ((RequestTrans) v).getRequestData ());
+	        else if (v instanceof ResponseTrans)
+	            ((ResponseTrans) v).data = new ESMapWrapper (this, ((ResponseTrans) v).getResponseData ());
+	        if (v instanceof Map)
+	            sv = new ESMapWrapper (this, (Map) v);
+	        else
+	            sv = ESLoader.normalizeValue (v, evaluator);
+	        evaluator.getGlobalObject ().putHiddenProperty (k, sv);
+	    }
+	    evaluator.thread = Thread.currentThread ();
 	    ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
+	    System.err.println ("INVOKE-RESULT: "+ (retval == null ? null : retval.toJavaObject ()));
 	    return retval == null ? null : retval.toJavaObject ();
 	} catch (Exception x) {
 	    String msg = x.getMessage ();
 	    if (msg == null || msg.length() < 10)
 	        msg = x.toString ();
+	    System.err.println ("INVOKE-ERROR: "+msg);
+	    x.printStackTrace ();
 	    throw new ScriptingException (msg);
 	}
     }

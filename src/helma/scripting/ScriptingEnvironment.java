@@ -31,6 +31,11 @@ public interface ScriptingEnvironment {
     public void evaluateString (Prototype prototype, String code);
 
     /**
+     * A prototype has been updated and must be re-evaluated.
+     */
+    public void updatePrototype (Prototype prototype);
+
+    /**
      * Invoke a function on some object, using the given arguments and global vars.
      */
     public Object invoke (Object thisObject, String functionName, Object[] args,

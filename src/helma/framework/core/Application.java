@@ -568,7 +568,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      *  to use for the object, then looking up the skin for the prototype.
      */
     public Skin getSkin (Object object, String skinname, Object[] skinpath) {
-	return null; // not yet implemented
+	return new SkinManager (this).getSkin (object, skinname, skinpath); // not yet implemented
     }
 
     /**
@@ -1047,7 +1047,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Check whether a prototype is for scripting a java class, i.e. if there's an entry
      * for it in the class.properties file.
      */
-    protected boolean isJavaPrototype (String typename) {
+    public boolean isJavaPrototype (String typename) {
 	for (Enumeration en = classMapping.elements(); en.hasMoreElements(); ) {
 	    String value = (String) en.nextElement ();
 	    if (typename.equals (value))
