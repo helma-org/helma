@@ -97,8 +97,15 @@ public final class SkinFile implements Updatable {
     }
 
     private void read() {
+        String encoding = app.getProperty("skinCharset");
         try {
-            FileReader reader = new FileReader(file);
+            Reader reader;
+            if (encoding == null) {
+                reader = new FileReader(file);
+            } else {
+                FileInputStream in = new FileInputStream(file);
+                reader = new InputStreamReader(in, encoding);
+            }
             char[] c = new char[(int) file.length()];
             int length = reader.read(c);
 
