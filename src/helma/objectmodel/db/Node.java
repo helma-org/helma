@@ -762,7 +762,7 @@ public class Node implements INode, Serializable {
 	        }
 	    }
 
-	    if (node.getParent () == null  && !"root".equalsIgnoreCase (node.getPrototype ())) {
+	    if (node.parentID == null  && !"root".equalsIgnoreCase (node.getPrototype ())) {
 	        node.setParent (this);
 	        node.anonymous = true;
 	    }
