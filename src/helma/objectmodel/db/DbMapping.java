@@ -199,7 +199,6 @@ public class DbMapping implements Updatable {
      * completed on all other mappings in this application
      */
     public synchronized void rewire () {
-
 	if (extendsProto != null) {
 	    parentMapping = app.getDbMapping (extendsProto);
 	}
@@ -236,42 +235,61 @@ public class DbMapping implements Updatable {
 	prop2db = p2d;
 	db2prop = d2p;
 
-	String subnodeMapping = props.getProperty ("_subnodes");
-	if (subnodeMapping != null) {
-	    try {
-	        // check if subnode relation already exists. If so, reuse it
-	        if (subnodesRel == null)
-	            subnodesRel = new Relation (subnodeMapping, "_subnodes", this, props);
-	        subnodesRel.update (subnodeMapping, props, version);
+	if (version == 1) {
+	    String subnodeMapping = props.getProperty ("_children");
+	    if (subnodeMapping != null) {
+	        try {
+	            // check if subnode relation already exists. If so, reuse it
+	            if (subnodesRel == null)
+	                subnodesRel = new Relation (subnodeMapping, "_children", this, props);
+	            subnodesRel.update (subnodeMapping, props, version);
+	            if (subnodesRel.accessor != null)
+	                propertiesRel = subnodesRel;
 
-	    } catch (Exception x) {
-	        app.logEvent ("Error reading _subnodes relation for "+typename+": "+x.getMessage ());
-	        // subnodesRel = null;
-	    }
-	} else
-	    subnodesRel = null;
-
-	String propertiesMapping = props.getProperty ("_properties");
-	if (propertiesMapping != null) {
-	    try {
-	        // check if property relation already exists. If so, reuse it
-	        if (propertiesRel == null)
-	            propertiesRel = new Relation (propertiesMapping, "_properties", this, props);
-	        propertiesRel.update (propertiesMapping, props, version);
-
-	        // take over groupby flag from subnodes, if properties are subnodes
-	        if (propertiesRel.subnodesAreProperties && subnodesRel != null) {
-	            propertiesRel.groupby = subnodesRel.groupby;
-	            propertiesRel.constraints = subnodesRel.constraints;
-	            propertiesRel.filter = subnodesRel.filter;
+	        } catch (Exception x) {
+	            app.logEvent ("Error reading _subnodes relation for "+typename+": "+x.getMessage ());
+	            // subnodesRel = null;
 	        }
+	    } else
+	        subnodesRel = null;
+	} else {
+	    String subnodeMapping = props.getProperty ("_subnodes");
+	    if (subnodeMapping != null) {
+	        try {
+	            // check if subnode relation already exists. If so, reuse it
+	            if (subnodesRel == null)
+	                subnodesRel = new Relation (subnodeMapping, "_subnodes", this, props);
+	            subnodesRel.update (subnodeMapping, props, version);
 
-	    } catch (Exception x) {
-	        app.logEvent ("Error reading _properties relation for "+typename+": "+x.getMessage ());
-	        // propertiesRel = null;
-	    }
-	} else
-	    propertiesRel = null;
+	        } catch (Exception x) {
+	            app.logEvent ("Error reading _subnodes relation for "+typename+": "+x.getMessage ());
+	            // subnodesRel = null;
+	        }
+	    } else
+	        subnodesRel = null;
+
+	    String propertiesMapping = props.getProperty ("_properties");
+	    if (propertiesMapping != null) {
+	        try {
+	            // check if property relation already exists. If so, reuse it
+	            if (propertiesRel == null)
+	                propertiesRel = new Relation (propertiesMapping, "_properties", this, props);
+	            propertiesRel.update (propertiesMapping, props, version);
+
+	            // take over groupby flag from subnodes, if properties are subnodes
+	            if (propertiesRel.subnodesAreProperties && subnodesRel != null) {
+	                propertiesRel.groupby = subnodesRel.groupby;
+	                propertiesRel.constraints = subnodesRel.constraints;
+	                propertiesRel.filter = subnodesRel.filter;
+	            }
+
+	        } catch (Exception x) {
+	            app.logEvent ("Error reading _properties relation for "+typename+": "+x.getMessage ());
+	            // propertiesRel = null;
+	        }
+	    } else
+	        propertiesRel = null;
+	}
 
 	if (groupbyMapping != null) {
 	    initGroupbyMapping ();
@@ -358,7 +376,7 @@ public class DbMapping implements Updatable {
      * Get the primary key column name for objects using this mapping.
      */
     public String getIDField () {
-    	if (idField == null && parentMapping != null)
+	if (idField == null && parentMapping != null)
 	    return parentMapping.getIDField ();
 	return idField;
     }
