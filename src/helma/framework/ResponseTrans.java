@@ -99,6 +99,17 @@ public class ResponseTrans implements Externalizable {
     }
 
     /**
+     * Utility function that appends a <br> to whatever is written
+     */
+    public void writeln (Object what) {
+	if (buffer == null)
+	    buffer = new StringBuffer (512);
+	if (what != null)
+	    buffer.append (what.toString ());
+	buffer.append ("<br>\r\n");
+    }
+
+    /**
      * Replace special characters with entities, including <, > and ", thus allowing
      * no HTML tags.
      */
