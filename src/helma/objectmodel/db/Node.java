@@ -1671,8 +1671,7 @@ public final class Node implements INode, Serializable {
         if (rel == null && dbmap != null && state != TRANSIENT) {
             rel = dbmap.getSubnodeRelation();
 
-            if (rel != null && rel.otherType != null &&
-                (rel.groupby != null || rel.accessName != null)) {
+            if (rel != null && rel.createOnDemand()) {
                 Node n = nmgr.getNode(this, propname, rel);
 
                 if (n != null) {
