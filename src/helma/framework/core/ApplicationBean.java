@@ -118,6 +118,10 @@ public class ApplicationBean implements Serializable {
 	return app.getCacheNode ();
     }
 
+    public String getdir () {
+    return app.getAppDir ().getAbsolutePath ();
+    }
+
     public Date getupSince () {
 	return new Date (app.starttime);
     }
