@@ -117,9 +117,13 @@ public class Node implements INode, Serializable {
     // transient String nameProp; // the name of the property which defines the name of this node.
     transient boolean adoptName = true;  // little helper to know if this node is being converted
 
-    static final long serialVersionUID = -3740339688506633675L;
 
-
+    /**
+     * This constructor is only used for instances of the NullNode subclass. Do not use for ordinary Nodes!
+     */
+    public Node () {
+	created = lastmodified = System.currentTimeMillis ();
+    }
 
     /**
      * Constructor used for virtual nodes.
@@ -418,8 +422,10 @@ public class Node implements INode, Serializable {
     public String getNameOrID () {
 	// if subnodes are also mounted as properties, try to get the "nice" prop value
 	// instead of the id by turning the anonymous flag off.
-
-	if (parentmap != null) {
+	// HACK: work around this for user objects to alsways return a URL like /users/username
+             if ("user".equalsIgnoreCase (prototype)) {
+	    anonymous = false;
+	} else if (parentmap != null) {
 	    Relation prel = parentmap.getPropertyRelation();
 	    if (prel != null && prel.subnodesAreProperties && !prel.usesPrimaryKey ()) try {
 	        Relation localrel = dbmap.columnNameToProperty (prel.getRemoteField ());
