@@ -47,7 +47,7 @@ public class WebServer implements Runnable {
     }
     // XmlRpc.setDebug (true);
     XmlRpc.setKeepAlive (true);
-    // XmlRpc.setEncoding ("UTF-8");
+    XmlRpc.setEncoding ("UTF-8");
     try {
       WebServer webserver = new WebServer (p);
       // webserver.setParanoid (true);
@@ -172,8 +172,9 @@ public class WebServer implements Runnable {
   public void run() {
     try {
       while (listener != null) {
+        Socket socket = null;
         try {
-          Socket socket = serverSocket.accept();
+          socket = serverSocket.accept();
           if (!paranoid || checkSocket (socket)) {
             Runner runner = getRunner ();
             runner.handle (socket);
@@ -182,8 +183,10 @@ public class WebServer implements Runnable {
             socket.close ();
         } catch (Exception ex) {
             System.err.println("Exception in XML-RPC listener loop (" + ex + ").");
+            try { socket.close (); } catch (Exception ignore) {}
         } catch (Error err) {
             System.err.println("Error in XML-RPC listener loop (" + err + ").");
+            try { socket.close (); } catch (Exception ignore) {}
         }
       }
     } catch (Exception exception) {
@@ -274,7 +277,6 @@ class Connection implements Runnable {
   private Socket  socket;
   private BufferedInputStream  input;
   private BufferedOutputStream output;
-  // private Thread responder;
   private long lastRequest;
   private String user, password;
 
@@ -283,10 +285,8 @@ class Connection implements Runnable {
     socket.setSoTimeout (30000);
 
     this.socket = socket;
-    input  = new BufferedInputStream (socket.getInputStream());
+    input = new BufferedInputStream (socket.getInputStream());
     output = new BufferedOutputStream (socket.getOutputStream());
-    // responder = new Thread (this, "xmlrpc-worker");
-    // responder.start();
   }
 
 
@@ -312,7 +312,7 @@ class Connection implements Runnable {
         String method = tokens.nextToken();
         String uri = tokens.nextToken ();
         String httpversion = tokens.nextToken ();
-        keepalive = XmlRpc.getKeepAlive() &&  "HTTP/1.1".equals (httpversion);
+        keepalive = XmlRpc.getKeepAlive() &&  "HTTP/1.1".equalsIgnoreCase (httpversion);
         do {	
           line = readLine();
           if (line != null) {
