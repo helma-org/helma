@@ -76,8 +76,6 @@ public class HopExtension {
         reval.esNodePrototype.putHiddenProperty ("editor", new NodeEditor ("editor", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("chooser", new NodeChooser ("chooser", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("multiChooser", new MultiNodeChooser ("multiChooser", evaluator, fp));
-        reval.esNodePrototype.putHiddenProperty ("getContent", new NodeGetContent ("getContent", evaluator, fp));
-        reval.esNodePrototype.putHiddenProperty ("setContent", new NodeSetContent ("setContent", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("path", new NodePath ("path", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("href", new NodeHref ("href", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("setParent", new NodeSetParent ("setParent", evaluator, fp));
@@ -124,31 +122,6 @@ public class HopExtension {
 
     }
 
-
-    class NodeSetContent extends BuiltinFunctionObject {
-        NodeSetContent (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            ESNode node = (ESNode) thisObject;
-            return ESBoolean.makeBoolean (node.setContent (arguments));
-        }
-    }
-    
-    class NodeGetContent extends BuiltinFunctionObject {
-        NodeGetContent (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            ESNode node = (ESNode) thisObject;
-            Object content = node.getContent ();
-            if (content == null) 
-                return ESNull.theNull;
-            else 
-                return ESLoader.normalizeValue (content, this.evaluator);
-        }
-    }
-        
     class NodeAdd extends BuiltinFunctionObject {
         NodeAdd (String name, Evaluator evaluator, FunctionPrototype fp) {
             super (fp, evaluator, name, 1);
@@ -264,7 +237,7 @@ public class HopExtension {
             if (node instanceof helma.objectmodel.db.Node) {
                 ((helma.objectmodel.db.Node) node).invalidate ();
 	   try {
-                    node = app.nmgr.getNode (node.getID (), node.getDbMapping ());
+                    node = app.nmgr.getNode (new Key (node.getDbMapping (), node.getID ()));
                     esn.setNode (node);
 	    } catch (Exception x) {}
             }

@@ -33,35 +33,35 @@ public class ESNode extends ObjectPrototype {
     
     // used to create cache nodes
     protected ESNode (INode node, RequestEvaluator eval) {
-        super (eval.esNodePrototype, eval.evaluator);
-        this.eval = eval;
-        this.node = node;
-        cache = null;
+	super (eval.esNodePrototype, eval.evaluator);
+	this.eval = eval;
+	this.node = node;
+	cache = null;
 
-        cacheWrapper = null;
-        nodeID = node.getID ();
-        dbmap = node.getDbMapping ();
+	cacheWrapper = null;
+	nodeID = node.getID ();
+	dbmap = node.getDbMapping ();
     }
     
     public ESNode (ESObject prototype, Evaluator evaluator, Object obj, RequestEvaluator eval) {
-        super (prototype, evaluator);
-        // eval.app.logEvent ("in ESNode constructor: "+o.getClass ());
-        this.eval = eval;
-        if (obj == null)
-            node = new Node ();
-        else if (obj instanceof ESWrapper) 
-            node = (INode) ((ESWrapper) obj).getJavaObject ();
-        else if (obj instanceof INode)
-            node = (INode) obj;
-        else
-            node = new Node (obj.toString ());
-        // set nodeID to id of wrapped node
-        nodeID = node.getID ();
-        dbmap = node.getDbMapping ();
+	super (prototype, evaluator);
+	// eval.app.logEvent ("in ESNode constructor: "+o.getClass ());
+	this.eval = eval;
+	if (obj == null)
+	    node = new Node (null);
+	else if (obj instanceof ESWrapper)
+	    node = (INode) ((ESWrapper) obj).getJavaObject ();
+	else if (obj instanceof INode)
+	    node = (INode) obj;
+	else
+	    node = new Node (obj.toString ());
+	// set nodeID to id of wrapped node
+	nodeID = node.getID ();
+	dbmap = node.getDbMapping ();
 
-        // get transient cache Node
-        cache = node.getCacheNode ();
-        cacheWrapper = new ESNode (cache, eval);
+	// get transient cache Node
+	cache = node.getCacheNode ();
+	cacheWrapper = new ESNode (cache, eval);
     }
 
     /**
@@ -70,100 +70,56 @@ public class ESNode extends ObjectPrototype {
      */
     private void checkNode () {
 	if (node.getState () == INode.INVALID) try {
-	    setNode (eval.app.nmgr.getNode (node.getID (), node.getDbMapping ()));
+	    setNode (eval.app.nmgr.getNode (new Key (node.getDbMapping (), node.getID ())));
 	} catch (Exception nx) {}
     }
 
-    public INode getNode () {
-        checkNode ();
-        return node;
+   public INode getNode () {
+	checkNode ();
+	return node;
     }
 
     public void setNode (INode node) {
-        if (node != null) {
-            this.node = node;
-            nodeID = node.getID ();
-            dbmap = node.getDbMapping ();
-            eval.objectcache.put (node, this);
-            // get transient cache Node
-            cache = node.getCacheNode ();
-            cacheWrapper = new ESNode (cache, eval);
-        }
+	if (node != null) {
+	    this.node = node;
+	    nodeID = node.getID ();
+	    dbmap = node.getDbMapping ();
+	    eval.objectcache.put (node, this);
+	    // get transient cache Node
+	    cache = node.getCacheNode ();
+	    cacheWrapper = new ESNode (cache, eval);
+	}
     }
 
     public void setPrototype (String protoName) {
-        checkNode ();
-        node.setPrototype (protoName);
+	checkNode ();
+	node.setPrototype (protoName);
     }
 
     public String getPrototypeName () {
-        return node.getPrototype ();
+	return node.getPrototype ();
     }
 
     public String getESClassName () {
-        return "HopObject";
+	return "HopObject";
     }
     
     public String toString () {
-         if (node == null)
-             return "<null>";
-         return node.toString ();
+	if (node == null)
+	    return "<null>";
+	return node.toString ();
     }
     
     public String toDetailString () {
-        return "ES:[Object: builtin " + this.getClass().getName() + ":" + 
-            ((node == null) ? "null" : node.toString()) + "]";
+	return "ES:[Object: builtin " + this.getClass().getName() + ":" +
+			((node == null) ? "null" : node.toString()) + "]";
     }
 
     protected void setError (Throwable e) {
-        lastError = e;
+	lastError = e;
     }
     
 
-    public boolean setContent (ESValue what[]) {
-        checkNode ();
-        if (what.length > 0) {
-            if (what[0] instanceof ESString) {
-                node.setContent (what[0].toString ());
-                return true;
-            }
-            if (what[0] instanceof ESWrapper) {
-                Object o =  ((ESWrapper) what[0]).toJavaObject ();
-                if (o instanceof INode) {
-                    try {
-                        INode p = (INode) o;
-                        node.setContent (p.getContent (), p.getContentType ());
-                        return true;
-                    } catch (Exception x) {
-                        eval.app.logEvent ("error in ESNode.setContent: "+x);
-                    }
-                }
-            }
-            if (what[0] instanceof ESNode) {
-                INode i = ((ESNode) what[0]).getNode ();
-                try {
-                    node.setContent (i.getContent (), i.getContentType ());
-                    return true;
-                } catch (Exception x) {
-                    eval.app.logEvent ("error in ESNode.setContent: "+x);
-                }
-            }
-        }
-        return false;
-    }
-
-    public Object getContent () {
-        checkNode ();
-        if (node.getContentLength () == 0)
-            return null;
-        String contentType = node.getContentType ();
-        if (contentType != null && contentType.startsWith ("text/")) {
-            return node.getText ();
-        } else {
-            return node.getContent ();
-        }
-    }
-    
     public boolean add (ESValue what[]) {
         checkNode ();
         for (int i=0; i<what.length; i++)
@@ -215,7 +171,7 @@ public class ESNode extends ObjectPrototype {
      *  when they go from transient to persistent state.
      */
     protected void rewrap (INode newnode) {
-        // eval.app.logEvent ("rewrapping "+this+" from "+node+" to "+newnode);
+        eval.app.logEvent ("##### rewrapping "+this+" from "+node+" to "+newnode);
         if (newnode == null)
             throw new RuntimeException ("Non-consistent check-in detected in rewrap ()");
         INode oldnode = node;
@@ -318,7 +274,7 @@ public class ESNode extends ObjectPrototype {
              checkNode ();
 	// eval.app.logEvent ("put property called: "+propertyName+", "+propertyValue.getClass());
 	if ("lastmodified".equalsIgnoreCase (propertyName) || "created".equalsIgnoreCase (propertyName) ||
-	        "contentlength".equalsIgnoreCase (propertyName) || "cache".equalsIgnoreCase (propertyName))
+	        "cache".equalsIgnoreCase (propertyName))
 	    throw new EcmaScriptException ("Can't modify read-only property \""+propertyName+"\".");
 
 	if ("subnodeRelation".equalsIgnoreCase (propertyName)) {
@@ -326,9 +282,7 @@ public class ESNode extends ObjectPrototype {
 	    return;
 	}
 
-	if ("contenttype".equalsIgnoreCase (propertyName))
-	    node.setContentType (propertyValue.toString ());
-	else if (propertyValue instanceof ESNull)
+	if (propertyValue instanceof ESNull)
 	    node.unset (propertyName);
 	else if (propertyValue instanceof ESString)
 	    node.setString (propertyName, propertyValue.toString ());
@@ -397,10 +351,6 @@ public class ESNode extends ObjectPrototype {
 	    return new DatePrototype (evaluator, node.created ());	
 	if ("lastmodified".equalsIgnoreCase (propertyName))
 	    return new DatePrototype (evaluator, node.lastModified ());
-	if ("contenttype".equalsIgnoreCase (propertyName))
-	    return new ESString (node.getContentType ());
-	if ("contentlength".equalsIgnoreCase (propertyName))
-	    return new ESNumber (node.getContentLength ());
 
 	if ("subnodeRelation".equalsIgnoreCase (propertyName)) {
 	    String rel = node.getSubnodeRelation ();
