@@ -222,10 +222,12 @@ public final class NodeManager {
 	// we need further checks for subnodes fetched by name if the subnodes were changed.
 	if (rel.subnodesAreProperties && node != null && node.getState() != Node.INVALID) {
 	    // check if node is null node (cached null)
-	    if (node instanceof NullNode && node.created() < rel.other.lastDataChange)
-	        node = null; //  cached null not valid anymore
-	    else if (home.contains (node) < 0)
+	    if (node instanceof NullNode) {
+	        if (node.created() < rel.other.lastDataChange)
+	            node = null; //  cached null not valid anymore
+	    } else if (home.contains (node) < 0) {
 	        node = null;
+	    }
 	}
 
 	if (node == null || node.getState() == Node.INVALID) {
