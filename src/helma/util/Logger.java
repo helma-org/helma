@@ -188,7 +188,7 @@ public class Logger implements Log {
     public void trace(Object parm1, Throwable parm2) {
         if (logLevel <= TRACE)
             log(parm1.toString() + "\n" + 
-                parm2.getStackTrace().toString());
+                getStackTrace(parm2));
     }
 
     public void debug(Object parm1) {
@@ -199,7 +199,7 @@ public class Logger implements Log {
     public void debug(Object parm1, Throwable parm2) {
         if (logLevel <= DEBUG)
             log(parm1.toString() + "\n" + 
-                parm2.getStackTrace().toString());
+                getStackTrace(parm2));
     }
 
     public void info(Object parm1) {
@@ -210,7 +210,7 @@ public class Logger implements Log {
     public void info(Object parm1, Throwable parm2) {
         if (logLevel <= INFO)
             log(parm1.toString() + "\n" + 
-                parm2.getStackTrace().toString());
+                getStackTrace(parm2));
     }
 
     public void warn(Object parm1) {
@@ -221,7 +221,7 @@ public class Logger implements Log {
     public void warn(Object parm1, Throwable parm2) {
         if (logLevel <= WARN)
             log(parm1.toString() + "\n" + 
-                parm2.getStackTrace().toString());
+                getStackTrace(parm2));
     }
 
     public void error(Object parm1) {
@@ -232,7 +232,7 @@ public class Logger implements Log {
     public void error(Object parm1, Throwable parm2) {
         if (logLevel <= ERROR)
             log(parm1.toString() + "\n" + 
-                parm2.getStackTrace().toString());
+                getStackTrace(parm2));
     }
 
     public void fatal(Object parm1) {
@@ -243,7 +243,16 @@ public class Logger implements Log {
     public void fatal(Object parm1, Throwable parm2) {
         if (logLevel <= FATAL)
             log(parm1.toString() + "\n" + 
-                parm2.getStackTrace().toString());
+                getStackTrace(parm2));
+    }
+
+    // utility method to get the stack trace from a Throwable as string
+    public static String getStackTrace(Throwable t) {
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter writer = new PrintWriter(stringWriter);
+        t.printStackTrace(writer);
+        writer.close();
+        return stringWriter.toString();
     }
 
 }
