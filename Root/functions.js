@@ -1,5 +1,11 @@
 
 /**
+  * of no use, just to avoid error message
+  */
+function onRequest () {
+}
+
+/**
   * lists all applications in appdir.
   * for active apps use this.getApplications() = helma.main.Server.getApplications()
   */

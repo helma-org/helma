@@ -1,3 +1,4 @@
+
 /**
   * construct an application object so that we can use
   * skins for non-active applications too
@@ -7,6 +8,12 @@ function constructor(name)	{
 	this.name = name;
 }
 
+
+/**
+  * of no use, just to avoid error message
+  */
+function onRequest () {
+}
 
 
 /**
