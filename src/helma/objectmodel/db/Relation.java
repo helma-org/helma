@@ -18,11 +18,13 @@ package helma.objectmodel.db;
 
 import helma.framework.core.Application;
 import helma.objectmodel.INode;
+import helma.objectmodel.IProperty;
 
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Enumeration;
 import java.util.Vector;
 
 /**
@@ -91,6 +93,8 @@ public final class Relation {
     String groupbyPrototype;
     String filter;
     String additionalTables;
+    Vector filterFragments;
+    Vector filterPropertyRefs;
     int maxSize = 0;
 
     /**
@@ -107,6 +111,8 @@ public final class Relation {
         this.reftype =             rel.reftype;
         this.order =               rel.order;
         this.filter =              rel.filter;
+        this.filterFragments =     rel.filterFragments;
+        this.filterPropertyRefs =  rel.filterPropertyRefs;
         this.additionalTables =    rel.additionalTables;
         this.maxSize =             rel.maxSize;
         this.constraints =         rel.constraints;
@@ -262,17 +268,27 @@ public final class Relation {
         if (filter != null) {
             if (filter.trim().length() == 0) {
                 filter = null;
+                filterFragments = filterPropertyRefs = null;
             } else {
                 // parenthesise filter
-                filter = "("+filter+")";
+                Vector fragments = new Vector();
+                Vector propertyRefs = new Vector();
+                parsePropertyString(filter, fragments, propertyRefs);
+                // if no references where found, just use the filter string
+                // otherwise use the filter fragments and proeprty refs instead
+                if (propertyRefs.size() > 0) {
+                    filterFragments = fragments;
+                    filterPropertyRefs = propertyRefs;
+                } else {
+                    filterFragments = filterPropertyRefs = null;
+                }
             }
         }
 
         // get additional tables
         additionalTables = props.getProperty(propName + ".filter.additionalTables");
 
-        if (additionalTables != null) {
-            if (additionalTables.trim().length() == 0)
+        if (additionalTables != null && additionalTables.trim().length() == 0) {
                 additionalTables = null;
         }
 
@@ -561,6 +577,77 @@ public final class Relation {
     }
 
     /**
+     * This is taken from org.apache.tools.ant ProjectHelper.java
+     * distributed under the Apache Software License, Version 1.1
+     *
+     * Parses a string containing <code>${xxx}</code> style property
+     * references into two lists. The first list is a collection
+     * of text fragments, while the other is a set of string property names.
+     * <code>null</code> entries in the first list indicate a property
+     * reference from the second list.
+     *
+     * @param value     Text to parse. Must not be <code>null</code>.
+     * @param fragments List to add text fragments to.
+     *                  Must not be <code>null</code>.
+     * @param propertyRefs List to add property names to.
+     *                     Must not be <code>null</code>.
+     */
+    protected void parsePropertyString(String value, Vector fragments, Vector propertyRefs) {
+        int prev = 0;
+        int pos;
+        //search for the next instance of $ from the 'prev' position
+        while ((pos = value.indexOf("$", prev)) >= 0) {
+
+            //if there was any text before this, add it as a fragment
+            //TODO, this check could be modified to go if pos>prev;
+            //seems like this current version could stick empty strings
+            //into the list
+            if (pos > 0) {
+                fragments.addElement(value.substring(prev, pos));
+            }
+            //if we are at the end of the string, we tack on a $
+            //then move past it
+            if (pos == (value.length() - 1)) {
+                fragments.addElement("$");
+                prev = pos + 1;
+            } else if (value.charAt(pos + 1) != '{') {
+                //peek ahead to see if the next char is a property or not
+                //not a property: insert the char as a literal
+                /*
+                fragments.addElement(value.substring(pos + 1, pos + 2));
+                prev = pos + 2;
+                */
+                if (value.charAt(pos + 1) == '$') {
+                    //backwards compatibility two $ map to one mode
+                    fragments.addElement("$");
+                    prev = pos + 2;
+                } else {
+                    //new behaviour: $X maps to $X for all values of X!='$'
+                    fragments.addElement(value.substring(pos, pos + 2));
+                    prev = pos + 2;
+                }
+
+            } else {
+                //property found, extract its name or bail on a typo
+                int endName = value.indexOf('}', pos);
+                if (endName < 0) {
+                    throw new RuntimeException("Syntax error in property: "
+                                                 + value);
+                }
+                String propertyName = value.substring(pos + 2, endName);
+                fragments.addElement(null);
+                propertyRefs.addElement(propertyName);
+                prev = endName + 1;
+            }
+        }
+        //no more $ signs found
+        //if there is any tail to the file, append it
+        if (prev < value.length()) {
+            fragments.addElement(value.substring(prev));
+        }
+    }
+
+    /**
      *  get a DbMapping to use for virtual aka collection nodes.
      */
     public DbMapping getVirtualMapping() {
@@ -701,8 +788,7 @@ public final class Relation {
         }
 
         if (filter != null) {
-            q.append(prefix);
-            q.append(filter);
+            appendFilter(q, nonvirtual, prefix);
         }
 
         if (groupby != null) {
@@ -718,6 +804,75 @@ public final class Relation {
         return q.toString();
     }
 
+    /**
+     *  Build the filter.
+     */
+    protected void appendFilter(StringBuffer q, INode nonvirtual, String prefix) throws SQLException {
+        q.append(prefix);
+        q.append('(');
+        if (filterFragments == null) {
+            q.append(filter);
+        } else {
+            Enumeration i = filterFragments.elements();
+            Enumeration j = filterPropertyRefs.elements();
+            while (i.hasMoreElements()) {
+                String fragment = (String) i.nextElement();
+                if (fragment == null) {
+                    /*
+                    // begin property version
+                    String propertyName = (String) j.nextElement();
+                    Object value = null;
+                    if (propertyName != null) {
+                        if (propertyName.equals("__id__") || propertyName.equals("_id")) {
+                            value = nonvirtual.getID();
+                        } else if (propertyName.equals("__name__")) {
+                            value = nonvirtual.getName();
+                        } else if (propertyName.equals("__prototype__") || propertyName.equals("_prototype")) {
+                            value = nonvirtual.getPrototype();
+                        } else {
+                            IProperty property = nonvirtual.get(propertyName);
+                            if (property != null) {
+                                value = property.getValue();
+                            }
+                        }
+                    }
+                    // end property version
+                    */
+                    // begin column version
+                    String columnName = (String) j.nextElement();
+                    Object value = null;
+                    if (columnName != null) {
+                        DbMapping dbmap = nonvirtual.getDbMapping();
+                        if (columnName.equals(dbmap.getIDField())) {
+                            value = nonvirtual.getID();
+                        } else if (columnName.equals(dbmap.getNameField())) {
+                            value = nonvirtual.getName();
+                        } else if (columnName.equals(dbmap.getPrototypeField())) {
+                            value = nonvirtual.getPrototype();
+                        } else {
+                            String propertyName = dbmap.columnNameToProperty(columnName);
+                            if (propertyName != null) {
+                                IProperty property = nonvirtual.get(propertyName);
+                                if (property != null) {
+                                    value = property.getValue();
+                                }
+                            }
+                        }
+                    }
+                    // end column version
+                    if (value != null) {
+                        q.append(escape(value.toString()));
+                    } else {
+                        q.append("NULL");
+                    }
+                } else {
+                    q.append(fragment);
+                }
+            }
+        }
+        q.append(')');
+    }
+	
     /**
      *
      *
@@ -739,10 +894,9 @@ public final class Relation {
         }
 
         if (filter != null) {
-            q.append(prefix);
-            q.append(filter);
+            appendFilter(q, nonvirtual, prefix);
         }
-
+		
         return q.toString();
     }
 
