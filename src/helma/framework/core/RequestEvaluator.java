@@ -86,7 +86,7 @@ public class RequestEvaluator implements Runnable {
 	this.objectcache = new LruHashtable (100, .80f);
 	this.prototypes = new Hashtable ();
 	initEvaluator ();
-	startThread ();
+	// startThread ();
     }
 
 
@@ -119,30 +119,25 @@ public class RequestEvaluator implements Runnable {
     }
 
 
-    private void startThread () {
+    /* private void startThread () {
 	rtx = new Transactor (this, app.nmgr);
 	evaluator.thread = rtx;
 	rtx.start ();
 	// yield to make sure the transactor thread reaches waiting status before the first
 	// invocation request comes in
 	Thread.yield ();
-    }
+    }  */
 
     public void run () {
 
         int txcount = 0;
 
-        while (evaluator.thread == Thread.currentThread () && evaluator.thread == rtx) {
+        if (prototypes.size() == 0)
+	app.typemgr.initRequestEvaluator (this);
 
-	synchronized (this) {
-	    notifyAll ();
-	    try {
-	        wait ();
-	    } catch (InterruptedException ir) {
-	        Thread.currentThread().interrupt();
-	    }
-	}
+        do {
 
+	// make sure there is only one thread running per instance of this class
 	if (Thread.currentThread () != rtx)
 	    return;
 
@@ -166,11 +161,6 @@ public class RequestEvaluator implements Runnable {
 	        rtx.timer.beginEvent (requestPath+" init");
 	        rtx.begin (requestPath);
 
-	        if (app.debug) {
-	            IServer.getLogger().log ("request transactor = "+this);
-	            IServer.getLogger().log ("user = "+user);
-	        }
-
 	        Action action = null;
 
 	        root = app.getDataRoot ();
@@ -186,11 +176,6 @@ public class RequestEvaluator implements Runnable {
 	        // set and mount the request data object
 	        reqData.setData (req.getReqData());
 	        req.data = reqData;
-
-	        if (app.debug) {
-	            IServer.getLogger().log ("root = "+root);
-	            IServer.getLogger().log ("usernode = "+esu);
-	        }
 
 	        try {
 
@@ -454,33 +439,35 @@ public class RequestEvaluator implements Runnable {
 
 	// create a new Thread every 1000 requests. The current one will fade out
 	if (txcount++ > 1000) {
-	    rtx.cleanup (); // close sql connections held by this thread
-	    startThread ();
+	    stopThread (); // stop thread - a new one will be created when needed
+	    break;
 	}
-        }
 
-        // IServer.getLogger().log (this+ " exiting.");
+	synchronized (this) {
+	    notifyAll ();
+	    try {
+	        wait ();
+	    } catch (InterruptedException ir) {
+	        Thread.currentThread ().interrupt ();
+	    }
+	}
+
+        }  while (evaluator.thread == Thread.currentThread () && evaluator.thread == rtx);
     }
 
     public synchronized ResponseTrans invoke (RequestTrans req, User user)  throws Exception {
-	checkThread ();
 	this.reqtype = HTTP;
 	this.req = req;
 	this.user = user;
 	this.res = new ResponseTrans ();
 
-	notifyAll ();
+	checkThread ();
 	wait (app.requestTimeout);
  	if (reqtype > 0) {
 	    IServer.getLogger().log ("Stopping Thread for Request "+app.getName()+"/"+req.path);
-	    evaluator.thread = null;
-	    rtx.kill ();
+	    stopThread ();
 	    res.reset ();
 	    res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>Request timed out.</pre>");
-	    rtx = new Transactor (this, app.nmgr);
-	    evaluator.thread = rtx;
-	    rtx.start ();
-	    Thread.yield ();
 	}
 
 	return res;
@@ -488,7 +475,6 @@ public class RequestEvaluator implements Runnable {
 
 
     public synchronized Object invokeXmlRpc (String method, Vector args) throws Exception {
-	checkThread ();
 	this.reqtype = XMLRPC;
 	this.user = null;
 	this.method = method;
@@ -496,16 +482,10 @@ public class RequestEvaluator implements Runnable {
 	result = null;
 	exception = null;
 
-	notifyAll ();
+	checkThread ();
 	wait (app.requestTimeout);
  	if (reqtype > 0) {
-	    IServer.getLogger().log ("Stopping Thread");
-	    evaluator.thread = null;
-	    rtx.kill ();
-	    rtx = new Transactor (this, app.nmgr);
-	    evaluator.thread = rtx;
-	    rtx.start ();
-	    Thread.yield ();
+	    stopThread ();
 	}
 
 	if (exception != null)
@@ -525,7 +505,6 @@ public class RequestEvaluator implements Runnable {
 
     public synchronized ESValue invokeFunction (ESObject obj, String functionName, ESValue[] args)
 		throws Exception {
-	checkThread ();
 	this.reqtype = INTERNAL;
 	this.user = null;
 	this.current = obj;
@@ -534,17 +513,11 @@ public class RequestEvaluator implements Runnable {
              esresult = ESNull.theNull;
 	exception = null;
 
-	notifyAll ();
+	checkThread ();
 	wait (60000l*15); // give internal call more time (15 minutes) to complete
 
  	if (reqtype > 0) {
-	    IServer.getLogger().log ("Stopping Thread");
-	    evaluator.thread = null;
-	    rtx.kill ();
-	    rtx = new Transactor (this, app.nmgr);
-	    evaluator.thread = rtx;
-	    rtx.start ();
-	    Thread.yield ();
+	    stopThread ();
 	}
 
 	if (exception != null)
@@ -554,7 +527,6 @@ public class RequestEvaluator implements Runnable {
 
     public synchronized ESValue invokeFunction (User user, String functionName, ESValue[] args)
 		throws Exception {
-	checkThread ();
 	this.reqtype = INTERNAL;
 	this.user = user;
 	this.current = null;
@@ -563,17 +535,11 @@ public class RequestEvaluator implements Runnable {
              esresult = ESNull.theNull;
 	exception = null;
 
-	notifyAll ();
+	checkThread ();
 	wait (app.requestTimeout);
 
  	if (reqtype > 0) {
-	    IServer.getLogger().log ("Stopping Thread");
-	    evaluator.thread = null;
-	    rtx.kill ();
-	    rtx = new Transactor (this, app.nmgr);
-	    evaluator.thread = rtx;
-	    rtx.start ();
-	    Thread.yield ();
+	    stopThread ();
 	}
 
 	if (exception != null)
@@ -583,24 +549,32 @@ public class RequestEvaluator implements Runnable {
 
 
     /**
-     *  Stop this request evaluator. If currently active kill the request, otherwise just
+     *  Stop this request evaluator's current thread. If currently active kill the request, otherwise just
      *  notify.
      */
-    public synchronized void stop () {
+    public synchronized void stopThread () {
+	// IServer.getLogger().log ("Stopping Thread");
 	evaluator.thread = null;
- 	if (reqtype != NONE) {
-	    rtx.kill ();
-	} else {
-                 notifyAll ();
+	Transactor t = rtx;
+	rtx = null;
+	if (t != null) {
+	    if (reqtype != NONE) {
+	        t.kill ();
+	    } else {
+                     notifyAll ();
+	    }
+	    t.cleanup ();
 	}
     }
 
-    private void checkThread () {
+    private synchronized void checkThread () throws InterruptedException {
 	if (rtx == null || !rtx.isAlive()) {
+	    // IServer.getLogger().log ("Starting Thread");
 	    rtx = new Transactor (this, app.nmgr);
 	    evaluator.thread = rtx;
 	    rtx.start ();
-	    Thread.yield ();
+	} else {
+	    notifyAll ();
 	}
     }
 	

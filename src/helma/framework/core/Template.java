@@ -7,6 +7,7 @@ import java.util.*;
 import java.io.*;
 import helma.framework.*;
 import FESI.Data.*;
+import FESI.Exceptions.*;
 
 
 /**
@@ -21,6 +22,9 @@ import FESI.Data.*;
  */
 
 public class Template extends Action {
+
+    ParsedFunction psfunc;
+
 
     public Template (File file, String name, Prototype proto) {
 	super (file, name, proto);
@@ -128,25 +132,21 @@ public class Template extends Action {
 	}
 	// templateBody.append ("\r\nreturn null;\r\n");
 
-
-	functionName = name;
 	String fname = name+"_as_string";
 	String body = templateBody.toString ();
 
              try {
-	    app.typemgr.readFunction (name,
+	    pfunc = parseFunction (name,
 		"arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10",
-		body+"\r\nreturn null;\r\n",
-		prototype.getName ());
+		body+"\r\nreturn null;\r\n");
              } catch (Exception x) {
                  String message = x.getMessage ();
                  app.typemgr.generateErrorFeedback (name, message, prototype.getName ());
              }
              try {
-	    app.typemgr.readFunction (fname,
+	    psfunc = parseFunction (fname,
 		"arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10",
-		"res.pushStringBuffer(); "+body+"\r\nreturn res.popStringBuffer();\r\n",
-		prototype.getName ());
+		"res.pushStringBuffer(); "+body+"\r\nreturn res.popStringBuffer();\r\n");
              } catch (Exception x) {
                  String message = x.getMessage ();
                  app.typemgr.generateErrorFeedback (fname, message, prototype.getName ());
@@ -154,6 +154,12 @@ public class Template extends Action {
 
    }
 
+    public void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException {
+        if (pfunc != null)
+            pfunc.updateRequestEvaluator (reval);
+        if (psfunc != null)
+            psfunc.updateRequestEvaluator (reval);
+    }
 
     class Part {
 

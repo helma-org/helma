@@ -151,34 +151,6 @@ public class TypeManager implements Runnable, EcmaScriptTreeConstants {
     public void registerPrototype (String name, File dir, Prototype proto) {
         // IServer.getLogger().log ("registering prototype "+name);
 
-        int size = app.allThreads.size ();
-        for (int i=0; i<size; i++) {
-            RequestEvaluator reval = (RequestEvaluator) app.allThreads.elementAt (i);
-            ObjectPrototype op = null;
-            if ("user".equalsIgnoreCase (name))
-                op = reval.esUserPrototype;
-            else if ("global".equalsIgnoreCase (name))
-                op = reval.global;
-            else if ("hopobject".equalsIgnoreCase (name))
-                op = reval.esNodePrototype;
-            else {
-                op = new ObjectPrototype (reval.esNodePrototype, reval.evaluator);
-                try {
-                    op.putProperty ("prototypename", new ESString (name), "prototypename".hashCode ());
-                } catch (EcmaScriptException ignore) {}
-            }
-            reval.putPrototype (name, op);
-
-            // Register a constructor for all types except global.
-            // This will first create a node and then call the actual (scripted) constructor on it.
-            if (!"global".equalsIgnoreCase (name)) {
-                try {
-                    FunctionPrototype fp = (FunctionPrototype) reval.evaluator.getFunctionPrototype();
-                    reval.global.putHiddenProperty (name, new NodeConstructor (name, fp, reval));
-                } catch (EcmaScriptException ignore) {}
-            }
-        }
-
         // show the type checker thread that there has been type activity
         idleSeconds = 0;
 
@@ -202,7 +174,6 @@ public class TypeManager implements Runnable, EcmaScriptTreeConstants {
                     ntemp.put (tmpname, t);
                 } catch (Throwable x) {
                     IServer.getLogger().log ("Error creating prototype: "+x);
-                    // broadcaster.broadcast ("Error creating prototype "+list[i]+":<br>"+x+"<br><hr>");
                 }
 
             } else if (list[i].endsWith (app.scriptExtension) && tmpfile.length () > 0) {
@@ -211,7 +182,6 @@ public class TypeManager implements Runnable, EcmaScriptTreeConstants {
                     nfunc.put (tmpname, ff);
                 } catch (Throwable x) {
                     IServer.getLogger().log ("Error creating prototype: "+x);
-                    // broadcaster.broadcast ("Error creating prototype "+list[i]+":<br>"+x+"<br><hr>");
                 }
             } else if (list[i].endsWith (app.actionExtension) && tmpfile.length () > 0) {
                 try {
@@ -219,7 +189,6 @@ public class TypeManager implements Runnable, EcmaScriptTreeConstants {
                     nact.put (tmpname, af);
                 } catch (Throwable x) {
                     IServer.getLogger().log ("Error creating prototype: "+x);
-                    // broadcaster.broadcast ("Error creating prototype "+list[i]+":<br>"+x+"<br><hr>");
                 }
            }
         }
@@ -257,7 +226,6 @@ public class TypeManager implements Runnable, EcmaScriptTreeConstants {
                     }
                 } catch (Throwable x) {
                     IServer.getLogger().log ("Error updating prototype: "+x);
-                    // broadcaster.broadcast ("Error updating prototype "+list[i]+":<br>"+x+"<br><hr>");
                 }
                 ntemp.put (tmpname, t);
 
@@ -273,7 +241,6 @@ public class TypeManager implements Runnable, EcmaScriptTreeConstants {
                     }
                 } catch (Throwable x) {
                     IServer.getLogger().log ("Error updating prototype: "+x);
-                    // broadcaster.broadcast ("Error updating prototype "+list[i]+":<br>"+x+"<br><hr>");
                 }
                 nfunc.put (tmpname, ff);
 
@@ -289,7 +256,6 @@ public class TypeManager implements Runnable, EcmaScriptTreeConstants {
                     }
                 } catch (Throwable x) {
                     IServer.getLogger().log ("Error updating prototype: "+x);
-                    // broadcaster.broadcast ("Error updating prototype "+list[i]+":<br>"+x+"<br><hr>");
                 }
                 nact.put (tmpname, af);
 
@@ -309,100 +275,6 @@ public class TypeManager implements Runnable, EcmaScriptTreeConstants {
         proto.actions = nact;
     }
 
-    protected void readFunctionFile (File f, String protoname) {
-
-        EvaluationSource es = new FileEvaluationSource(f.getPath(), null);
-        FileReader fr = null;
-
-        int size = app.allThreads.size ();
-        for (int i=0; i<size; i++) {
-            RequestEvaluator reval = (RequestEvaluator) app.allThreads.elementAt (i);
-
-            try {
-            	    fr = new FileReader(f);
-                 ObjectPrototype op = reval.getPrototype (protoname);
-                 reval.evaluator.evaluate(fr, op, es, false);
-            } catch (IOException e) {
-                IServer.getLogger().log ("*** Error reading function file "+f+": "+e);
-            } catch (EcmaScriptException e) {
-                IServer.getLogger().log ("*** Error reading function file "+f+": "+e);
-            } finally {
-                if (fr!=null) {
-                    try {
-                        fr.close();
-                    } catch (IOException ignore) {}
-                }
-            }
-        }
-
-    }
-
-    protected void readFunction (String funcname, String params, String body, String protoname)
-		throws EcmaScriptException {
-
-        // ESObject fp = app.eval.evaluator.getFunctionPrototype();
-        ConstructedFunctionObject function = null;
-        ASTFormalParameterList fpl = null;
-        ASTStatementList sl = null;
-
-        if (body == null || "".equals (body.trim()))
-            body = ";\r\n";
-        else
-            body = body + "\r\n";
-        if (params == null) params = "";
-        else params = params.trim ();
-
-        String fullFunctionText = "function "+funcname+" (" + params + ") {\n" + body + "\n}";
-
-        EcmaScript parser;
-        StringReader is;
-
-        // Special case for empty parameters
-        if (params.length()==0) {
-            fpl = new ASTFormalParameterList(JJTFORMALPARAMETERLIST);
-        } else {
-            is = new java.io.StringReader(params);
-            parser = new EcmaScript(is);
-            try {
-                fpl = (ASTFormalParameterList) parser.FormalParameterList();
-                is.close();
-            } catch (ParseException x) {
-                throw new EcmaScriptParseException (x, new StringEvaluationSource(fullFunctionText, null));
-            }
-        }
-        // this is very very very strange: without the toString, lots of obscure exceptions
-        // deep inside the parser...
-        is = new java.io.StringReader(body.toString ());
-        try {
-            parser = new EcmaScript (is);
-            sl = (ASTStatementList) parser.StatementList();
-            is.close();
-        } catch (ParseException x) {
-            x.printStackTrace ();
-            throw new EcmaScriptParseException (x, new StringEvaluationSource(fullFunctionText, null));
-        } catch (Exception x) {
-            x.printStackTrace ();
-            throw new RuntimeException (x.getMessage ());
-        }
-
-        FunctionEvaluationSource fes = new FunctionEvaluationSource (
-        new StringEvaluationSource(fullFunctionText,null), funcname);
-
-        DbMapping dbmap = null;
-
-        int size = app.allThreads.size ();
-        for (int i=0; i<size; i++) {
-            RequestEvaluator reval = (RequestEvaluator) app.allThreads.elementAt (i);
-
-            ObjectPrototype op = reval.getPrototype (protoname);
-
-            EcmaScriptVariableVisitor vdvisitor = reval.evaluator.getVarDeclarationVisitor();
-            Vector vnames = vdvisitor.processVariableDeclarations(sl, fes);
-
-            FunctionPrototype fp = ConstructedFunctionObject.makeNewConstructedFunction(reval.evaluator, funcname, fes, fullFunctionText, fpl.getArguments(), vnames, sl);
-            op.putHiddenProperty (funcname, fp);
-        }
-    }
 
 
     protected void generateErrorFeedback (String funcname, String message, String protoname)
@@ -413,6 +285,7 @@ public class TypeManager implements Runnable, EcmaScriptTreeConstants {
             RequestEvaluator reval = (RequestEvaluator) app.allThreads.elementAt (i);
 
             ObjectPrototype op = reval.getPrototype (protoname);
+if (op == null) return;
 
             FunctionPrototype fp = (FunctionPrototype) reval.evaluator.getFunctionPrototype ();
             FunctionPrototype func = new ThrowException (funcname, reval.evaluator, fp, message);
@@ -432,6 +305,38 @@ public class TypeManager implements Runnable, EcmaScriptTreeConstants {
         }
         public ESObject doConstruct (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
             throw new EcmaScriptException (message);
+        }
+    }
+
+    public void initRequestEvaluator (RequestEvaluator reval) {
+        for (Enumeration en = prototypes.elements(); en.hasMoreElements(); ) {
+            Prototype p = (Prototype) en.nextElement ();
+            String name = p.getName ();
+            ObjectPrototype op = null;
+            if ("user".equalsIgnoreCase (name))
+                op = reval.esUserPrototype;
+            else if ("global".equalsIgnoreCase (name))
+                op = reval.global;
+            else if ("hopobject".equalsIgnoreCase (name))
+                op = reval.esNodePrototype;
+            else {
+                op = new ObjectPrototype (reval.esNodePrototype, reval.evaluator);
+                try {
+                    op.putProperty ("prototypename", new ESString (name), "prototypename".hashCode ());
+                } catch (EcmaScriptException ignore) {}
+            }
+            reval.putPrototype (name, op);
+
+            // Register a constructor for all types except global.
+            // This will first create a node and then call the actual (scripted) constructor on it.
+            if (!"global".equalsIgnoreCase (name)) {
+                try {
+                    FunctionPrototype fp = (FunctionPrototype) reval.evaluator.getFunctionPrototype();
+                    reval.global.putHiddenProperty (name, new NodeConstructor (name, fp, reval));
+                } catch (EcmaScriptException ignore) {}
+            }
+
+            p.initRequestEvaluator (reval);
         }
     }
 

@@ -75,19 +75,52 @@ public class XmlRpcClientLite extends XmlRpcClient {
     }
     
 
-    class Worker extends XmlRpc {
+    class Worker extends XmlRpc implements Runnable {
     
     boolean fault;
     Object result = null; 
     HttpClient client = null;
     StringBuffer strbuf;
-   
+    String method;
+    Vector params;
+    AsyncCallback callback = null;
+
     public Worker () {
     	super ();
     }
 
 
     public Object execute (String method, Vector params) throws XmlRpcException, IOException {
+	this.method = method;
+	this.params = params;
+	return executeCall ();
+    }
+
+    public void executeAsync (String method, Vector params, AsyncCallback callback) {
+	this.method = method;
+	this.params = params;
+	this.callback = callback;
+	Thread t = new Thread (this);
+	t.start ();
+    }
+
+    public void run () {
+	Object res = null;
+	try {
+	    res = executeCall ();
+	    // notify callback object
+	    if (callback != null)
+	        callback.handleResult (res, url, method);
+	} catch (Exception x) {
+                 if (callback != null)
+	        callback.handleError (x, url, method);
+	} finally {
+	    reset ();
+	}
+	System.err.println ("GOT: "+result);
+    }
+
+    private Object executeCall () throws XmlRpcException, IOException {
 	long now = System.currentTimeMillis ();
 	fault = false;
     	try {
@@ -194,6 +227,20 @@ public class XmlRpcClientLite extends XmlRpcClient {
 	    fault = true;
 	else
 	    super.startElement (name, atts);
+    }
+
+    /**
+     * Release possibly big per-call object references to allow them to be garbage collected
+     */
+    public void reset () {
+	result = null;
+	params = null;
+	callback = null;
+	if (workers < 20 && !fault)
+	    pool.push (this);
+	else
+	    workers -= 1;
+
     }
 
     } // end of class Worker

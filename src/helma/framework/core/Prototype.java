@@ -7,6 +7,7 @@ import java.util.*;
 import java.io.*;
 import helma.framework.*;
 import helma.objectmodel.*;
+import FESI.Exceptions.EcmaScriptException;
 
 
 /**
@@ -119,6 +120,24 @@ public class Prototype {
     }
 
 
+    public void initRequestEvaluator (RequestEvaluator reval) {
+	for (Enumeration en = functions.elements(); en.hasMoreElements(); ) {
+	    FunctionFile ff = (FunctionFile) en.nextElement ();
+	    ff.updateRequestEvaluator (reval);
+	}
+	for (Enumeration en = templates.elements(); en.hasMoreElements(); ) {
+	    Template tmp = (Template) en.nextElement ();
+	    try {
+	        tmp.updateRequestEvaluator (reval);
+	    } catch (EcmaScriptException ignore) {}
+	}
+	for (Enumeration en = actions.elements(); en.hasMoreElements(); ) {
+	    Action act = (Action) en.nextElement ();
+	    try {
+	        act.updateRequestEvaluator (reval);
+	    } catch (EcmaScriptException ignore) {}
+	}
+    }
 }
 
 

@@ -38,7 +38,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     TypeManager typemgr;
 
     RequestEvaluator eval;
-    private Stack freeThreads;
+    protected Stack freeThreads;
     protected Vector allThreads;
 
     Hashtable sessions;
@@ -154,7 +154,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	if (allThreads != null) {
 	    for (Enumeration e=allThreads.elements (); e.hasMoreElements (); ) {
 	        RequestEvaluator ev = (RequestEvaluator) e.nextElement ();
-	        ev.stop ();
+	        ev.stopThread ();
 	    }
 	}
 	allThreads.removeAllElements ();
@@ -166,18 +166,47 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	}
     }
 
-    public synchronized RequestEvaluator getEvaluator () {
+    protected RequestEvaluator getEvaluator () {
 	if (freeThreads == null)
 	    throw new ApplicationStoppedException ();
-	if (freeThreads.empty ())
+	try {
+	    return (RequestEvaluator) freeThreads.pop ();
+	} catch (EmptyStackException nothreads) {
 	    throw new RuntimeException ("Maximum Thread count reached.");
-	RequestEvaluator ev = (RequestEvaluator) freeThreads.pop ();
-	return ev;
+	}
     }
 
-    public synchronized void releaseEvaluator (RequestEvaluator ev) {
+    protected void releaseEvaluator (RequestEvaluator ev) {
 	if (ev != null)
 	    freeThreads.push (ev);
+    }
+
+    protected boolean setNumberOfEvaluators (int n) {
+	if (n < 1 || n > 512)
+	    return false;
+	int current = allThreads.size();
+	synchronized (allThreads) {
+	    if (n > current) {
+	        int toBeCreated = n - current;
+	        for (int i=0; i<toBeCreated; i++) {
+	            RequestEvaluator ev = new RequestEvaluator (this);
+	            freeThreads.push (ev);
+	            allThreads.addElement (ev);
+	        }
+	    } else if (n < current) {
+	        int toBeDestroyed = current - n;
+	        for (int i=0; i<toBeDestroyed; i++) {
+	            try {
+	                RequestEvaluator re = (RequestEvaluator) freeThreads.pop ();
+	                allThreads.removeElement (re);
+	                re.stopThread ();
+	            } catch (EmptyStackException empty) {
+	                return false;
+	            }
+	        }
+	    }
+	}
+	return true;
     }
 
     public ResponseTrans execute (RequestTrans req) {
@@ -243,8 +272,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     }
 
     public Prototype getPrototype (String str) {
-	if (debug) 
-	    IServer.getLogger().log ("retrieving prototype for name "+str);
 	return typemgr.getPrototype (str);
     }
 

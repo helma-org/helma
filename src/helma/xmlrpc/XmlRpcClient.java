@@ -76,10 +76,6 @@ public class XmlRpcClient implements XmlRpcHandler {
 	    return retval;
 	} finally {
 	    worker.reset ();
-	    if (workers < 20 && !worker.fault)
-	        pool.push (worker);
-	    else
-	        workers -= 1;
 	}
     }
 
@@ -153,6 +149,8 @@ public class XmlRpcClient implements XmlRpcHandler {
 	} catch (Exception x) {
                  if (callback != null)
 	        callback.handleError (x, url, method);
+	} finally {
+	    reset ();
 	}
 	System.err.println ("GOT: "+result);
     }
@@ -255,6 +253,11 @@ public class XmlRpcClient implements XmlRpcHandler {
 	result = null;
 	params = null;
 	callback = null;
+	if (workers < 20 && !fault)
+	    pool.push (this);
+	else
+	    workers -= 1;
+
     }
 
     } // end of inner class Worker
@@ -274,7 +277,7 @@ public class XmlRpcClient implements XmlRpcHandler {
 	    } catch (NumberFormatException nfx) {
 	        v.addElement (args[i]);
 	    }
-	    XmlRpcClient client = new XmlRpcClient (url);
+	    XmlRpcClient client = new XmlRpcClientLite (url);
 	    try {
 	        /* System.err.println (*/client.executeAsync (method, v, null);
 	    } catch (Exception ex) {

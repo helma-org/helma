@@ -201,7 +201,7 @@ public class Transactor extends Thread {
 	// The thread is told to stop by setting the thread flag in the EcmaScript
 	// evaluator, so we can hope that it stops without doing anything else.
 	try {
-	    join (1000);
+	    join (500);
 	} catch (InterruptedException ir) {
 	    Thread.currentThread().interrupt();
 	}
@@ -222,6 +222,7 @@ public class Transactor extends Thread {
     }
 
     public void cleanup () {
+	// IServer.getLogger().log("Cleaning up Transactor thread");
 	if (sqlCon != null) {
 	    for (Iterator i=sqlCon.values().iterator(); i.hasNext(); ) {
 	        try {
