@@ -340,14 +340,15 @@ public final class Skin {
 	                if (handlerObject == null) {
 	                    // eiter because thisObject == null or the right object wasn't found in the object's parent path
 	                    // go check request path for an object with matching prototype
-	                    int l = reval.requestPath.size();
+	                    /* int l = reval.requestPath.size();
 	                    for (int i=l-1; i>=0; i--) {
 	                        Object pathelem = reval.requestPath.get (i);
 	                        if (handler.equals (app.getPrototypeName (pathelem))) {
 	                            handlerObject = pathelem;
 	                            break;
 	                        }
-	                    }
+	                    } */
+	                    handlerObject = reval.res.getMacroHandlers().get (handler);
 	                }
 
 	                // the macro handler object couldn't be found
@@ -417,8 +418,11 @@ public final class Skin {
 	    } catch (TimeoutException timeout) {
 	        throw timeout;
 	    } catch (Exception x) {
-	        x.printStackTrace();
-	        String msg = "[HopMacro error in "+getFullName()+": "+x+"]";
+	        // x.printStackTrace();
+	        String msg = x.getMessage();
+	        if (msg == null || msg.length() < 10)
+	            msg = x.toString();
+	        msg = "[HopMacro error in "+getFullName()+": "+msg+"]";
 	        reval.res.write (" "+msg+" ");
 	        app.logEvent (msg);
 	    }
