@@ -92,7 +92,7 @@
             optimize="${optimize}">
             <classpath refid="build.class.path" />
         </javac>
-        <rmic classname="helma.framework.core.Application" base="${build.classes}"/>
+        <rmic classname="helma.framework.core.RemoteApplication" base="${build.classes}"/>
     </target>
 
 

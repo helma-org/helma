@@ -27,9 +27,7 @@ import java.rmi.server.*;
  * requests from the Web server or XML-RPC port and dispatches them to
  * the evaluators.
  */
-public final class Application
-		extends UnicastRemoteObject
-		implements IRemoteApp, IPathElement, IReplicatedApp, Runnable {
+public final class Application implements IPathElement, Runnable {
 
     // the name of this application
     private String name;
@@ -424,8 +422,8 @@ public final class Application
     }
 
     /**
-    *  Execute a request coming in from a web client.
-    */
+     *  Execute a request coming in from a web client.
+     */
     public ResponseTrans execute (RequestTrans req) {
 
 	requestCount += 1;
@@ -453,7 +451,7 @@ public final class Application
 
 	        // check if the properties file has been updated
 	        updateProperties ();
-	        // get evaluator and invoke 
+	        // get evaluator and invoke
 	        ev = getEvaluator ();
 	        res = ev.invoke (req, session);
 	    }
@@ -484,20 +482,6 @@ public final class Application
 	return res;
     }
 
-
-    /**
-     * Update HopObjects in this application's cache. This is used to replicate
-     * application caches in a distributed app environment
-     */
-    public void replicateCache (Vector add, Vector delete) {
-	if (!"true".equalsIgnoreCase (props.getProperty ("allowReplication")))
-	    return;
-	nmgr.replicateCache (add, delete);
-    }
-
-    public void ping () {
-	// do nothing
-    }
 
     /**
      * Reset the application's object cache, causing all objects to be refetched from
