@@ -185,13 +185,13 @@
     <!-- Packages the distribution with TAR-GZIP                             -->
     <!-- =================================================================== -->
     <target name="package-tgz" depends="package">
-        <tar tarfile="../${Name}-${version}.tar">
-             <tarfileset dir="../" mode="755">
-                  <include name="hop.sh"/>
+        <tar tarfile="../${Name}-${version}.tar" basedir=".." excludes="**">
+             <tarfileset dir=".." mode="755">
+                  <include name="${final.name}/hop.sh"/>
              </tarfileset>
-             <tarfileset dir="../">
-                  <include name="**/${final.name}/**"/>
-                  <exclude name="hop.sh"/>
+             <tarfileset dir="..">
+                  <include name="${final.name}/**"/>
+                  <exclude name="${final.name}/hop.sh"/>
 	     </tarfileset>
         </tar>
         <gzip zipfile="../${Name}-${version}.tar.gz" src="../${Name}-${version}.tar"/>
@@ -236,5 +236,6 @@
 
 
 </project>
+
 
 
