@@ -146,7 +146,29 @@ public class CacheMap  {
 	return false;
     }
 
-    /// Gets the object associated with the specified key in the 
+    /// Returns the number of keys in object array <code>keys</code> that 
+    //  were not found in the Map.
+    //  Those keys that are contained in the Map are nulled out in the array.
+    // @param keys an array of key objects we are looking for
+    // @see LruHashtable#contains
+    public synchronized int containsKeys (Object[] keys) {
+	int notfound = 0;
+	for (int i=0; i<keys.length; i++) {
+	    if (newTable.containsKey(keys[i]))
+	       keys[i] = null;
+	    else if (oldTable.containsKey (keys[i])) {
+	        // Move object from old table to new table.
+	        Object value = oldTable.get (keys[i]);
+	        newTable.put (keys[i], value);
+	        oldTable.remove (keys[i]);
+	        keys[i] = null;
+	   } else
+	       notfound++;
+	}
+	return notfound;
+    }
+
+    /// Gets the object associated with the specified key in the
     // hashtable.
     // @param key the specified key
     // @returns the element for the key or null if the key
