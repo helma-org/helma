@@ -205,7 +205,7 @@ public class Transactor extends Thread {
 	        nmgr.db.abortTransaction (txn);
 	        txn = null;
 	    }
-	    nmgr.app.logEvent (tname+" aborted after "+(System.currentTimeMillis()-tstart)+" millis");
+	    nmgr.app.logAccess (tname+" aborted after "+(System.currentTimeMillis()-tstart)+" millis");
 	}
     }
 
