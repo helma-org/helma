@@ -98,7 +98,8 @@ public final class Application implements IPathElement, Runnable {
 
     // internal worker thread for scheduler, session cleanup etc.
     Thread worker;
-    long requestTimeout = 60000; // 60 seconds for request timeout.
+    // request timeout defaults to 60 seconds
+    long requestTimeout = 60000;
     ThreadGroup threadgroup;
 
     // Map of requesttrans -> active requestevaluators
@@ -1616,7 +1617,11 @@ public final class Application implements IPathElement, Runnable {
             // debug flag
             debug = "true".equalsIgnoreCase(props.getProperty("debug"));
 
-            String reqTimeout = props.getProperty("requesttimeout", "60");
+            // if rhino debugger is enabled use higher (10 min) default request timeout
+            String defaultReqTimeout =
+                    "true".equalsIgnoreCase(props.getProperty("rhino.debug")) ?
+                        "600" : "60";
+            String reqTimeout = props.getProperty("requesttimeout", defaultReqTimeout);
             try {
                 requestTimeout = Long.parseLong(reqTimeout) * 1000L;
             } catch (Exception ignore) {
