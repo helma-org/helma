@@ -7,31 +7,32 @@ import java.io.*;
 import java.util.*;
 import java.net.URLEncoder;
 import helma.objectmodel.*;
+import helma.objectmodel.db.NodeHandle;
 
 /**
- * This represents a user who is currently using the HOP application. This does 
- * not just comprend registered users, but anybody who happens to surf the site. 
+ * This represents a user who is currently using the Hop application. This does
+ * not just comprend registered users, but anybody who happens to surf the site.
+ * Depending on whether the user is logged in or not, the user object holds a
+ * persistent user node or just a transient cache node
  */
  
 public class User implements Serializable {
 
     Application app;
     String sessionID;
-    String uid, nid;
+    String uid; // the unique id (login name) for the user, if logged in
+    NodeHandle nhandle;
     long onSince, lastTouched;
     Node cache;
-    DbMapping umap;
     String message;
 
     public User (String sid, Application app) {
 	this.uid = null;
-	this.nid = null;
+	this.nhandle = null;
     	this.app = app;
     	setNode (null);
-    	umap = app.getDbMapping ("user");
 	cache = new Node ("[session cache]");
 	cache.setPrototype ("user");
-	cache.setDbMapping (umap);
 	sessionID = sid;
 	onSince = System.currentTimeMillis ();
 	lastTouched = onSince;
@@ -45,19 +46,19 @@ public class User implements Serializable {
     public void setNode (INode n) {
 	// IServer.getLogger().log ("esn = "+esn);
 	if (n == null) {
-	    nid = null;
+	    nhandle = null;
 	    uid = null;
 	} else {
 	    uid = n.getNameOrID ();
-	    nid = n.getID ();
+	    nhandle = ((helma.objectmodel.db.Node) n).getHandle ();
 	}
     }
 
     public INode getNode () {
-	if (uid == null) {
+	if (nhandle == null) {
 	    return cache;
 	} else {
-	    return app.nmgr.safe.getNode (nid, umap);
+	    return nhandle.getNode (app.nmgr.safe);
 	}
     }
 

@@ -5,6 +5,7 @@
 package helma.framework.core;
 
 import helma.objectmodel.*;
+import helma.objectmodel.db.NodeHandle;
 import helma.util.*;
 import FESI.Interpreter.*;
 import FESI.Exceptions.*;
@@ -24,8 +25,8 @@ public class ESNode extends ObjectPrototype {
     INode node;
     INode cache;
 
-    // The ID of the wrapped Node. Makes ESNodes comparable without accessing the wrapped node.
-    String nodeID;
+    // The handle of the wrapped Node. Makes ESNodes comparable without accessing the wrapped node.
+    NodeHandle handle;
     DbMapping dbmap;
     ESObject cacheWrapper;
     Throwable lastError = null;
@@ -37,10 +38,11 @@ public class ESNode extends ObjectPrototype {
 	this.eval = eval;
 	this.node = node;
 	cache = null;
-
 	cacheWrapper = null;
-	nodeID = node.getID ();
-	dbmap = node.getDbMapping ();
+	
+	// set node handle to wrapped node
+	if (node instanceof helma.objectmodel.db.Node)
+	    handle = ((helma.objectmodel.db.Node) node).getHandle ();
     }
     
     public ESNode (ESObject prototype, Evaluator evaluator, Object obj, RequestEvaluator eval) {
@@ -55,9 +57,9 @@ public class ESNode extends ObjectPrototype {
 	    node = (INode) obj;
 	else
 	    node = new Node (obj.toString ());
-	// set nodeID to id of wrapped node
-	nodeID = node.getID ();
-	dbmap = node.getDbMapping ();
+	// set node handle to wrapped node
+	if (node instanceof helma.objectmodel.db.Node)
+	    handle = ((helma.objectmodel.db.Node) node).getHandle ();
 
 	// get transient cache Node
 	cache = node.getCacheNode ();
@@ -68,9 +70,9 @@ public class ESNode extends ObjectPrototype {
      * Check if the node has been invalidated. If so, it has to be re-fetched
      * from the db via the app's node manager.
      */
-    private void checkNode () {
+    protected void checkNode () {
 	if (node.getState () == INode.INVALID) try {
-	    setNode (eval.app.nmgr.getNode (new Key (node.getDbMapping (), node.getID ())));
+	    node = handle.getNode (eval.app.nmgr.safe);
 	} catch (Exception nx) {}
     }
 
@@ -82,8 +84,9 @@ public class ESNode extends ObjectPrototype {
     public void setNode (INode node) {
 	if (node != null) {
 	    this.node = node;
-	    nodeID = node.getID ();
-	    dbmap = node.getDbMapping ();
+	    // set node handle to wrapped node
+	    if (node instanceof helma.objectmodel.db.Node)
+	        handle = ((helma.objectmodel.db.Node) node).getHandle ();
 	    eval.objectcache.put (node, this);
 	    // get transient cache Node
 	    cache = node.getCacheNode ();
@@ -126,10 +129,6 @@ public class ESNode extends ObjectPrototype {
             if (what[i] instanceof ESNode) {
             	   ESNode esn = (ESNode) what[i];
                 INode added = node.addNode (esn.getNode ());
-                // only rewrap if a transient node was addet to a persistent one.
-                if (esn.getNode () instanceof helma.objectmodel.Node && 
-                            !(node instanceof helma.objectmodel.Node))
-                    esn.rewrap (added);
             }
         return true;
     }
@@ -159,51 +158,9 @@ public class ESNode extends ObjectPrototype {
             throw new EcmaScriptException ("Can ony add Node objects as subnodes");
         ESNode esn = (ESNode) what[1];
         INode added = node.addNode (esn.getNode (), (int) what[0].toInt32 ());
-        // only rewrap if a transient node was addet to a persistent one.
-        if (esn.getNode () instanceof helma.objectmodel.Node && 
-                            !(node instanceof helma.objectmodel.Node))
-            esn.rewrap (added);
         return true;
     }
     
-    /** 
-     * This is necessary to remap ESNodes to their new peers
-     *  when they go from transient to persistent state.
-     */
-    protected void rewrap (INode newnode) {
-        eval.app.logEvent ("##### rewrapping "+this+" from "+node+" to "+newnode);
-        if (newnode == null)
-            throw new RuntimeException ("Non-consistent check-in detected in rewrap ()");
-        INode oldnode = node;
-        if (oldnode == newnode) {
-            // eval.app.logEvent ("loop detected or new peers unchanged in rewrap");
-            return;
-        }
-        // set node and nodeID to new node
-        node = newnode;
-        nodeID = node.getID ();
-        dbmap = node.getDbMapping ();
-
-        int l = oldnode.numberOfNodes ();
-        for (int i=0; i<l; i++) {
-            INode next = oldnode.getSubnodeAt (i);
-            ESNode esn = eval.getNodeWrapperFromCache (next);
-            // eval.app.logEvent ("rewrapping node: "+next+" -> "+esn);
-            if (esn != null) {
-                esn.rewrap (newnode.getSubnodeAt (i));
-            }
-        }
-        for (Enumeration e=oldnode.properties (); e.hasMoreElements (); ) {
-            IProperty p = oldnode.get ((String) e.nextElement (), false);
-            if (p != null && p.getType () == IProperty.NODE) {
-            	   INode next = p.getNodeValue ();
-                ESNode esn = eval.getNodeWrapperFromCache (next);
-                if (esn != null) {
-                    esn.rewrap (newnode.getNode (p.getName (), false));
-                }
-            }
-        }
-    }
 
    /**
     *  Remove one or more subnodes.
@@ -296,11 +253,6 @@ public class ESNode extends ObjectPrototype {
 	    // long now = System.currentTimeMillis ();
 	    ESNode esn = (ESNode) propertyValue;
 	    node.setNode (propertyName, esn.getNode ());
-	    if (esn.getNode () instanceof helma.objectmodel.Node &&
-                            !(node instanceof helma.objectmodel.Node)) {
-	        INode newnode = node.getNode (propertyName, false);
-	        esn.rewrap (newnode);
-	    }
 	    // eval.app.logEvent ("*** spent "+(System.currentTimeMillis () - now)+" ms to set property "+propertyName);
 	} else {
 	    // eval.app.logEvent ("got "+propertyValue.getClass ());
@@ -463,7 +415,7 @@ public class ESNode extends ObjectPrototype {
             return true;
         if (what instanceof ESNode) {
             ESNode other = (ESNode) what;
-            return (other.nodeID.equals (nodeID)  && other.dbmap == dbmap);
+            return (other.handle.equals (handle));
         }
         return false;
     }	

@@ -407,7 +407,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	    if (unode != null) 
 	        return null;
 	    
-	    unode = new Node (uname);
+	    unode = users.createNode (uname);
 	    String usernameField = userMapping.getNameField ();
 	    String usernameProp = null;
 	    if (usernameField != null) {
@@ -422,8 +422,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	    unode.setString ("password", password);
 	    unode.setPrototype ("user");
 	    unode.setDbMapping (userMapping);
-	    users.setNode (uname, unode);
-	    return users.getNode (uname, false);	
+	    // users.setNode (uname, unode);
+	    // return users.getNode (uname, false);	
+	    return unode;
 	} catch (Exception x) {
 	    logEvent ("Error registering User: "+x);
 	    return null;

@@ -67,20 +67,22 @@ public class ESUser extends ESNode {
 	    // it will user the original transient cache node again.
 	    this.node = user.getNode ();
 	}
-	nodeID = this.node.getID ();
-	dbmap = this.node.getDbMapping ();
+	// set node handle to wrapped node
+	if (node instanceof helma.objectmodel.db.Node)
+	    handle = ((helma.objectmodel.db.Node) node).getHandle ();
 	// we don't take over the transient cache from the node,
 	// because we always use the one from the user object.
     }
 
     public void updateNodeFromUser () {
 	node = user.getNode ();
-	nodeID = node.getID ();
-	dbmap = node.getDbMapping ();
+	// set node handle to wrapped node
+	if (node instanceof helma.objectmodel.db.Node)
+	    handle = ((helma.objectmodel.db.Node) node).getHandle ();
     }	
 
     public String toString () {
-	return ("UserObject "+node.getNameOrID ());
+	return ("UserObject "+node.getName ());
     }
 
 }
