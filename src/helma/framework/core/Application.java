@@ -1070,7 +1070,7 @@ public final class Application implements IPathElement, Runnable {
         composeHref(elem, b, 0);
 
         if (actionName != null) {
-            b.append(UrlEncoded.smartEncode(actionName, charset));
+            b.append(UrlEncoded.encode(actionName, charset));
         }
 
         return b.toString();
@@ -1098,7 +1098,7 @@ public final class Application implements IPathElement, Runnable {
         // append ourselves
         String ename = getElementName(elem);
         if (ename != null) {
-            b.append(UrlEncoded.smartEncode(ename, charset));
+            b.append(UrlEncoded.encode(ename, charset));
             b.append("/");
         }
     }

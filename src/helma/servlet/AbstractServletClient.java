@@ -737,7 +737,7 @@ public abstract class AbstractServletClient extends HttpServlet {
                 pathbuffer.append('/');
             }
 
-            pathbuffer.append(UrlEncoded.smartDecode(token, defaultEncoding));
+            pathbuffer.append(UrlEncoded.decode(token, defaultEncoding));
         }
         
         // append trailing "/" if it is contained in original URI

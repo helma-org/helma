@@ -123,12 +123,12 @@ public class RequestPath {
         }
 
         for (int i=start; i<ids.size(); i++) {
-            buffer.append(UrlEncoded.smartEncode(ids.get(i).toString(), app.charset));
+            buffer.append(UrlEncoded.encode(ids.get(i).toString(), app.charset));
             buffer.append("/");
         }
 
         if (action != null) {
-            buffer.append(UrlEncoded.smartEncode(action, app.charset));
+            buffer.append(UrlEncoded.encode(action, app.charset));
         }
 
         return buffer.toString();

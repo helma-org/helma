@@ -657,7 +657,7 @@ public final class Skin {
                         break;
 
                     case ENCODE_URL:
-                        buffer.append(UrlEncoded.smartEncode(text, app.charset));
+                        buffer.append(UrlEncoded.encode(text, app.charset));
 
                         break;
 
