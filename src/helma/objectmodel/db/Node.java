@@ -183,7 +183,7 @@ public final class Node implements INode, Serializable {
 	this.nmgr = nmgr;
 	setParent (home);
 	// this.dbmap = null;
-	// generate a key for the virtual node that can't be mistaken for a JDBC-URL
+	// generate a key for the virtual node that can't be mistaken for a Database Key
 	primaryKey = new SyntheticKey (home.getKey (), propname);
 	this.id = primaryKey.getID ();
 	this.name = propname;
@@ -201,12 +201,10 @@ public final class Node implements INode, Serializable {
 	dbmap = nmgr.getDbMapping (prototype);
 	// the id is only generated when the node is actually checked into db.
 	// id = nmgr.generateID (dbmap);
-	// checkWriteLock ();
 	this.name = n == null ? "" : n;
 	created = lastmodified = System.currentTimeMillis ();
 	adoptName = true;
 	state = TRANSIENT;
-	// markAs (TRANSIENT);
     }
 
 
@@ -235,7 +233,7 @@ public final class Node implements INode, Serializable {
 	this.dbmap = m;
 	
 	id = rec.getValue (dbmap.getIDField ()).asString ();
-	checkWriteLock ();
+	// checkWriteLock ();
 	String nameField =  dbmap.getNameField ();
 	name = nameField == null ? id : rec.getValue (nameField).asString ();
 	if (name == null || name.length() == 0)
