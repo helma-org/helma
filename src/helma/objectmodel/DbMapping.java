@@ -20,12 +20,17 @@ import com.workingdogs.village.*;
   
 public class DbMapping implements Updatable {
 
+    // DbMappings belong to an application
     Application app;
+    // prototype name of this mapping
     String typename;
 
+    // properties from where the mapping is read
     SystemProperties props;
 
+    // name of data source to which this mapping writes
     DbSource source;
+    // name of db table
     String table;
 
     ParentInfo[] parent;  // list of properties to try for parent
@@ -40,22 +45,35 @@ public class DbMapping implements Updatable {
      // Map of db columns to Relations objects
     public Hashtable db2prop;
 
+    // db field used as primary key
     String idField;
+    // db field used as object name
     String nameField;
+
+    // name of parent prototype, if any
     String extendsProto;
+    // dbmapping of parent prototype, if any
+    DbMapping extendsMapping;
     
     // descriptor for key generation method
     private String idgen;
     // remember last key generated for this table
     public long lastID;
 
-
+    // the (village) schema of the database table
     Schema schema = null;
+    // the (village) keydef of the db table
     KeyDef keydef = null;
 
+    // timestamp of last modification of the mapping (type.properties)
     private long lastTypeChange;
+    // timestamp of last modification of an object of this type
     public long lastDataChange;
 
+
+    /**
+     * Create an empty DbMapping
+     */
     public DbMapping () {
 
 	prop2db = new Hashtable ();
@@ -67,6 +85,9 @@ public class DbMapping implements Updatable {
 	idField = "id";
     }
 
+    /**
+     * Create a DbMapping from a type.properties property file
+     */
     public DbMapping (Application app, String typename, SystemProperties props) {
 
 	this.app = app;
@@ -101,9 +122,12 @@ public class DbMapping implements Updatable {
      */
     public synchronized void update () {
 
-	this.table = props.getProperty ("_tablename");
-	this.idgen = props.getProperty ("_idgen");
-	this.extendsProto = props.getProperty ("_extends");
+	table = props.getProperty ("_tablename");
+	idgen = props.getProperty ("_idgen");
+	// see if this prototype extends (inherits from) any other prototype
+	extendsProto = props.getProperty ("_extends");
+	if (extendsProto != null)
+	    extendsMapping = app.getDbMapping (extendsProto);
 
 	String sourceName = props.getProperty ("_datasource");
 	if (sourceName != null) {
