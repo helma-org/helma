@@ -20,6 +20,11 @@ public final class SystemProperties extends Properties {
     private File file;
     private long lastread, lastcheck;
 
+
+    public SystemProperties () {
+	this (null, null);
+    }
+
     public SystemProperties (String filename) {
 	this (filename, null);
     }
