@@ -494,6 +494,10 @@ public class FileObject extends ScriptableObject {
            return null;
        }
     }
+
+    protected File getFile() {
+        return file;
+    }
   
 } //class FileObject
 
