@@ -161,9 +161,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     }
 
     /**
-     * Finish initializing the application and start requestors and type manager.
+     * Finish initializing the application
      */
-    public void start () throws DbException {
+    public void init () throws DbException {
 
 	eval = new RequestEvaluator (this);
 	logEvent ("Starting evaluators for "+name);
@@ -197,11 +197,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
 	nmgr = new NodeManager (this, dbDir.getAbsolutePath (), props);
 	
-	// worker = new Thread (this, "Worker-"+name);
-	// worker.setPriority (Thread.NORM_PRIORITY+2);
-	// worker.start ();
-	// logEvent ("session cleanup and scheduler thread started");
-	
 	String xmlrpcHandlerName = props.getProperty ("xmlrpcHandlerName", this.name);
 	if (xmlrpc != null)
 	    xmlrpc.addHandler (xmlrpcHandlerName, new XmlRpcInvoker (this));
@@ -209,6 +204,15 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	// typemgr.start ();
     }
 
+    /**
+     *  Create request evaluators and start scheduler and cleanup thread
+     */
+    public void start () {
+	worker = new Thread (this, "Worker-"+name);
+	worker.setPriority (Thread.NORM_PRIORITY+2);
+	worker.start ();
+	// logEvent ("session cleanup and scheduler thread started");
+    }
 
     /**
      * This is called to shut down a running application.
@@ -307,7 +311,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     public ResponseTrans execute (RequestTrans req) {
 
 	requestCount += 1;
-	// long reqstart = System.currentTimeMillis ();
+	
+	// get user for this request's session
 	User u = getUser (req.session);
 
 	ResponseTrans res = null;
@@ -350,7 +355,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	        res.waitForClose ();
 	    }
 	}
-	// System.err.println ("********************** ABSOLUTE TIME: "+(System.currentTimeMillis() - reqstart));
+	
 	return res;
     }
 
@@ -435,6 +440,13 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	if (protoname == null)
 	    return typemgr.getPrototype ("hopobject");
 	return typemgr.getPrototype (protoname);
+    }
+
+    /**
+     * Return a collection containing all prototypes defined for this application
+     */
+    public Collection getPrototypes () {
+	return typemgr.prototypes.values ();
     }
 
 
@@ -835,6 +847,62 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
      */
     public String getProperty (String propname, String defvalue) {
 	return props.getProperty (propname, defvalue);
+    }
+
+    /**
+     *
+     */
+    public int countThreads () {
+	return threadgroup.activeCount() -1;
+    }
+
+    /**
+     *
+     */
+    public int countEvaluators () {
+	return allThreads.size()-1 ;
+    }
+
+    /**
+     *
+     */
+    public int countFreeEvaluators () {
+	return freeThreads.size ();
+    }
+
+    /**
+     *
+     */
+    public int countActiveEvaluators () {
+	return allThreads.size() - freeThreads.size () -1;
+    }
+
+    /**
+     *
+     */
+    public int countMaxActiveEvaluators () {
+	return typemgr.countRegisteredRequestEvaluators () -1;
+    }
+
+    /**
+     *
+     */
+    public long getRequestCount () {
+	return requestCount;
+    }
+
+    /**
+     *
+     */
+    public long getXmlrpcCount () {
+	return xmlrpcCount;
+    }
+
+    /**
+     *
+     */
+    public long getErrorCount () {
+	return errorCount;
     }
 
     /**
