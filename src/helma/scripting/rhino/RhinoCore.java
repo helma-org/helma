@@ -67,6 +67,10 @@ public final class RhinoCore implements ScopeProvider {
 
     HelmaDebugger debugger = null;
 
+    // dynamic portion of the type check sleep that grows
+    // as the app remains unchanged
+    long updateSnooze = 500;
+
     /**
      *  Create a Rhino evaluator for the given application and request evaluator.
      */
@@ -311,12 +315,12 @@ public final class RhinoCore implements ScopeProvider {
      *  before. Others will be updated/compiled on demand.
      */
     public void updatePrototypes() throws IOException {
-        if ((System.currentTimeMillis() - lastUpdate) < 1000L) {
+        if ((System.currentTimeMillis() - lastUpdate) < 1000L + updateSnooze) {
             return;
         }
 
         synchronized(this) {
-            if ((System.currentTimeMillis() - lastUpdate) < 1000L) {
+            if ((System.currentTimeMillis() - lastUpdate) < 1000L + updateSnooze) {
                 return;
             }
 
@@ -358,6 +362,9 @@ public final class RhinoCore implements ScopeProvider {
             }
 
             lastUpdate = System.currentTimeMillis();
+            // max updateSnooze is 4 seconds, reached after 66.6 idle minutes
+            long newSnooze = (lastUpdate - app.typemgr.getLastCodeUpdate()) / 1000;
+            updateSnooze = Math.min(4000, Math.max(0, newSnooze));
         }
     }
 
