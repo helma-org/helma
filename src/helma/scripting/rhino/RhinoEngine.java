@@ -396,12 +396,11 @@ public class RhinoEngine implements ScriptingEngine {
         try {
             Object prop = so.get(propname, so);
 
-            if ((prop == null) || (prop == Undefined.instance)) {
+            if ((prop == null) || (prop == Undefined.instance) 
+	                       || (prop == ScriptableObject.NOT_FOUND)) {
                 return null;
             } else if (prop instanceof Wrapper) {
                 return ((Wrapper) prop).unwrap();
-            } else if (prop == Undefined.instance || prop == ScriptableObject.NOT_FOUND) {
-                return null;
             } else {
                 // not all Rhino types convert to a string as expected
                 // when calling toString() - try to do better by using
