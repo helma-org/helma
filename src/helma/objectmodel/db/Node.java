@@ -390,22 +390,28 @@ public final class Node implements INode, Serializable {
 	this.state = s;
     }
 
-    /* Mark node as invalid so it is re-fetched from the database */
+    /**
+     *  Mark node as invalid so it is re-fetched from the database
+     */
     public void invalidate () {
+	// This doesn't make sense for transient nodes
+	if (state == TRANSIENT || state == NEW)
+	    return;
 	checkWriteLock ();
 	nmgr.evictNode (this);
     }
 
 
     /** 
-     *  navigation-related
+     *  Get the ID of this Node. This is the primary database key and used as part of the
+     *  key for the internal node cache.
      */
-
     public String getID () {
 	// if we are transient, we generate an id on demand. It's possible that we'll never need
 	// it, but if we do it's important to keep the one we have.
-	if (state == TRANSIENT && id == null)
-	    id = nmgr.generateID (dbmap);
+	if (state == TRANSIENT && id == null) {
+	    id = TransientNode.generateID ();
+	}
 	return id;
     }
 
@@ -1235,20 +1241,29 @@ public final class Node implements INode, Serializable {
 	        prel = srel;
 	    if (prel == null)
 	        prel = dbmap.getPropertyRelation ();
-	    if (prel != null && (prel.accessor != null || prel.virtual || prel.groupby != null)) {
-	        // this may be a relational node stored by property name
-	        try {
-	            Node pn = nmgr.getNode (this, propname, prel);
-	            if (pn != null) {
-	                if (pn.parentHandle == null && !"root".equalsIgnoreCase (pn.getPrototype ())) {
-	                    pn.setParent (this);
-	                    pn.name = propname;
-	                    pn.anonymous = false;
+	    if (prel != null) {
+	        // if what we want is a virtual node, fetch anyway.
+	        if (state == TRANSIENT && prel.virtual) {
+	            INode node = new Node (propname, prel.getPrototype (), nmgr);
+	            node.setDbMapping (prel.getVirtualMapping ());
+	            setNode (propname, node);
+	            prop = (Property) propMap.get (propname);
+	        // if this is from relational database only fetch if this node is itself persistent.
+	        } else if (state != TRANSIENT && (prel.accessor != null || prel.groupby != null)) {
+	            // this may be a relational node stored by property name
+	            try {
+	                Node pn = nmgr.getNode (this, propname, prel);
+	                if (pn != null) {
+	                    if (pn.parentHandle == null && !"root".equalsIgnoreCase (pn.getPrototype ())) {
+	                        pn.setParent (this);
+	                        pn.name = propname;
+	                        pn.anonymous = false;
+	                    }
+	                    prop = new Property (propname, this, pn);
 	                }
-	                prop = new Property (propname, this, pn);
+	            } catch (RuntimeException nonode) {
+	                // wasn't a node after all
 	            }
-	        } catch (RuntimeException nonode) {
-	            // wasn't a node after all
 	        }
 	    }
 	}
@@ -1663,9 +1678,8 @@ public final class Node implements INode, Serializable {
     protected void makePersistentCapable () {
 	if (state == TRANSIENT) {
 	    state = NEW;
-	    // generate a real, persistent ID for this object, if it doesn't have one already.
-	    if (id == null)
-	        id = nmgr.generateID (dbmap);
+	    // generate a real, persistent ID for this object
+	    id = nmgr.generateID (dbmap);
 	    getHandle ().becomePersistent ();
 	    Transactor current = (Transactor) Thread.currentThread ();
 	    current.visitNode (this);
