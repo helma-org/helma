@@ -35,6 +35,11 @@ public class ResponseTrans implements Externalizable {
      */
     public int status = 0;
 
+	/**
+	 * Used for HTTP authentication
+	 */
+	public String realm;
+
     // name of the skin to be rendered  after completion, if any
     public transient String skin = null;
 
@@ -343,6 +348,7 @@ public class ResponseTrans implements Externalizable {
 	nCookies = s.readInt ();
 	cache = s.readBoolean ();
 	status = s.readInt ();
+	realm = (String) s.readObject ();
     }
 
     public void writeExternal (ObjectOutput s) throws IOException {
@@ -355,6 +361,7 @@ public class ResponseTrans implements Externalizable {
 	s.writeInt (nCookies);
 	s.writeBoolean (cache);
 	s.writeInt (status);
+	s.writeObject (realm);
     }
 
 }
