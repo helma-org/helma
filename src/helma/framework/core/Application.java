@@ -575,7 +575,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      *  to use for the object, then looking up the skin for the prototype.
      */
     public Skin getSkin (Object object, String skinname, Object[] skinpath) {
-	return skinmgr.getSkin (object, skinname, skinpath); // not yet implemented
+	return skinmgr.getSkin (object, skinname, skinpath); 
     }
 
     /**
