@@ -97,48 +97,12 @@ public class FunctionFile implements Updatable {
     }
 
 
-    void remove () {
+    public void remove () {
 	prototype.removeFunctionFile (name);
-	prototype.removeUpdatable (file.getName());
-
-	// if we did not add anything to any evaluator, we're done
-	/* if (declaredProps == null || declaredProps.size() == 0)
-	    return;
-
-	removeProperties (declaredProps); */
+	if (file != null)
+	    prototype.removeUpdatable (file.getName());
     }
 
-    /**
-     * Remove the properties in the HashMap iff they're still the same as declared by this file.
-     * This method is called by remove() with the latest props, and by update with the prior props
-     * after the file has been reevaluated.
-     */
-    void removeProperties (HashSet props) {
-	// first loop through other function files in this prototype to make a set of properties
-	// owned by other files.
-/*	HashSet otherFiles = new HashSet ();
-	for (Iterator it=prototype.functions.values ().iterator (); it.hasNext (); ) {
-	    FunctionFile other = (FunctionFile) it.next ();
-	    if (other != this && other.declaredProps != null)
-	        otherFiles.addAll (other.declaredProps);
-	}
-
-	Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
-	while (evals.hasNext ()) {
-	    try {
-	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
-	        ObjectPrototype op = reval.getPrototype (prototype.getName());
-	        for (Iterator it = props.iterator ();  it.hasNext (); ) {
-	            String fname = (String) it.next ();
-	            // check if this property has been declared by some other function file in the meantime
-	            if (otherFiles.contains (fname))
-	                continue;
-	            op.deleteProperty (fname, fname.hashCode());
-	            // System.err.println ("REMOVING PROP: "+fname);
-	        }
-	    } catch (Exception ignore) {}
-	} */
-    }
 
     public String toString () {
 	if (file == null)

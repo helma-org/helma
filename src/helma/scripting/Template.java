@@ -26,9 +26,6 @@ import helma.framework.core.*;
 
 public class Template extends ActionFile {
 
-    // this is the *_as_string function, which is in addition to the normal one
-    // TypeUpdater psfunc;
-
 
     public Template (File file, String name, Prototype proto) {
 	super (file, name, proto);
@@ -42,7 +39,6 @@ public class Template extends ActionFile {
 
 
     public String getContent () {
-	// IServer.getLogger().log ("Reading text template " + name);
 
 	Vector partBuffer = new Vector ();
 	int l = content.length ();
@@ -147,67 +143,15 @@ public class Template extends ActionFile {
 
 	return templateBody.toString ();
 
-	/*
-	String fname = name+"_as_string";
-	String body = templateBody.toString ();
-
-             try {
-	    pfunc = parseFunction (name,
-		"arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10",
-		body+"\r\nreturn null;\r\n");
-             } catch (Throwable x) {
-                 String message = x.getMessage ();
-                 pfunc =  new ErrorFeedback (name, message);
-             }
-             try {
-	    psfunc = parseFunction (fname,
-		"arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10",
-		"res.pushStringBuffer(); "+body+"\r\nreturn res.popStringBuffer();\r\n");
-             } catch (Throwable x) {
-                 String message = x.getMessage ();
-                 psfunc =  new ErrorFeedback (fname, message);
-             }
-
-	Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
-	while (evals.hasNext ()) {
-	    try {
-	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
-	        updateRequestEvaluator (reval);
-	    } catch (Exception ignore) {}
-	} */
     }
 
-    protected void remove () {
+    public void remove () {
 	prototype.removeTemplate (name);
 	if (file != null)
 	    prototype.removeUpdatable (file.getName());
-
-	/* Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
-	while (evals.hasNext ()) {
-	    try {
-	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
-	        ObjectPrototype op = reval.getPrototype (prototype.getName());
-	        functionName = name;
-	        ESValue esv = (ESValue) op.getProperty (functionName, functionName.hashCode());
-	        if (esv instanceof ConstructedFunctionObject || esv instanceof ThrowException) {
-	            op.deleteProperty (functionName, functionName.hashCode());
-	        }
-	        String fname = name+"_as_string";
-	        esv = (ESValue) op.getProperty (fname, fname.hashCode());
-	        if (esv instanceof ConstructedFunctionObject || esv instanceof ThrowException) {
-	            op.deleteProperty (fname, fname.hashCode());
-	        }
-	    } catch (Exception ignore) {}
-	} */
     }
 
 
-    /* public synchronized void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException {
-        if (pfunc != null)
-            pfunc.updateRequestEvaluator (reval);
-        if (psfunc != null)
-            psfunc.updateRequestEvaluator (reval);
-    } */
 
     class Part {
 
