@@ -29,13 +29,24 @@ SYSTEM REQUIREMENTS
 You need a Java virtual machine 1.3 or higher to run Helma.
 
 For Windows, Linux and Solaris you can get a Java runtime or development 
-kit from http://java.sun.com/j2se/downloads.html.
+kit from http://java.sun.com/j2se/downloads.html. If you are on Mac OS X, 
+you already have a Java runtime that will work well with Helma.
 
-If you are on Mac OS X, you already have a Java runtime that will work 
-well with Helma.
+For other operating systems, please consult the documentation about the 
+availabilty of a Java 1.3 (or higher) runtime.
 
-Unfortunately, there is no Java 2 interpreter for Mac OS Classic, so
-you can't use Helma on Mac OS 9.
+=======================
+HELMA IMAGING EXTENSION
+=======================
+
+As of version 1.4.1, Helma uses a new Imaging extension contributed by 
+Juerg Lehni that is based on the javax.imageio.* package introduced with 
+Java 1.4.0. 
+
+Users of Java 1.3 who wish to use Helma's imaging features need to get the 
+JIMI Software Development Kit <http://java.sun.com/products/jimi/>
+and add the Jimi classes to Helma's classpath. The most convenient way 
+to do this is by installing the Helma source package.
 
 ============================
 INSTALLING AND RUNNING HELMA
