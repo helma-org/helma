@@ -69,6 +69,7 @@ public final class RhinoCore {
         Context context = Context.enter();
 
         context.setCompileFunctionsWithDynamicScope(true);
+        context.setApplicationClassLoader(app.getClassLoader());
         wrapper = new WrapMaker();
         wrapper.setJavaPrimitiveWrap(false);
         context.setWrapFactory(wrapper);

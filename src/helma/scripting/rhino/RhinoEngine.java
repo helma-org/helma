@@ -79,6 +79,7 @@ public class RhinoEngine implements ScriptingEngine {
         core = getRhinoCore(app);
         context = Context.enter();
         context.setCompileFunctionsWithDynamicScope(true);
+        context.setApplicationClassLoader(app.getClassLoader());
 
         try {
             global = new GlobalObject(core, app); // context.newObject(core.global);
@@ -144,6 +145,7 @@ public class RhinoEngine implements ScriptingEngine {
     public void updatePrototypes() {
         context = Context.enter();
         context.setCompileFunctionsWithDynamicScope(true);
+        context.setApplicationClassLoader(app.getClassLoader());
         context.setWrapFactory(core.wrapper);
 
         boolean trace = "true".equals(app.getProperty("rhino.trace"));
