@@ -30,7 +30,7 @@ public class ApplicationManager {
     private SystemProperties props;
     private Server server;
     private long lastModified;
-    EmbeddedTomcat tomcat;
+    // EmbeddedTomcat tomcat;
 
     public ApplicationManager (int port, File hopHome, SystemProperties props, Server server) {
 	this.port = port;
