@@ -226,14 +226,14 @@
     <!-- =================================================================== -->
     <target name="package-apps" depends="init">
 
-      	<mkdir dir="${build.work}/apps" />
+        <mkdir dir="${build.work}/apps" />
 
         <!-- get demo apps -->
-      	<cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="base" dest="${build.work}/apps" />
-      	<cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="bloggerapi" dest="${build.work}/apps" />
-      	<cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="himp" dest="${build.work}/apps" />
-      	<cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="hopblog" dest="${build.work}/apps" />
-      	<cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="lillebror" dest="${build.work}/apps" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="base" dest="${build.work}/apps" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="bloggerapi" dest="${build.work}/apps" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="himp" dest="${build.work}/apps" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="hopblog" dest="${build.work}/apps" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="lillebror" dest="${build.work}/apps" />
 
         <antcall target="package-manage" />
 
@@ -255,7 +255,7 @@ manage
     <!-- Checkout and zip manage application                                 -->
     <!-- =================================================================== -->
     <target name="package-manage" depends="init">
-      	<cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="manage" dest="${build.work}" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="manage" dest="${build.work}" />
         <mkdir dir="${build.work}/apps/manage"/>
         <zip zipfile="${build.work}/apps/manage/manage.zip" basedir="${build.work}/manage/" includes="**" excludes="**/properties,readme/**" />
             <copy todir="${build.work}/apps/manage">
@@ -304,7 +304,7 @@ manage
     <!-- =================================================================== -->
     <target name="antclick" depends="init">
         <mkdir dir="${build.work}"/>
-        
+
         <!-- create the main part of helma -->
         <antcall target="package-raw">
             <param name="distribution" value="antclick" />
@@ -348,27 +348,27 @@ manage
     <!-- =================================================================== -->
     <!-- Gets an application from the cvs and zips/targzs it                 -->
     <!-- =================================================================== -->
-	<target name="app" depends="init">
+    <target name="app" depends="init">
         <mkdir dir="${build.dist}" />
         <mkdir dir="${build.work}" />
 
         <!-- to retrieve special versions of an application insert
         additional attributes: tag="TAGNAME" or date="1972-09-24 20:05" -->
-      	<cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="${application}" dest="${build.work}" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="${application}" dest="${build.work}" />
 
         <fixcrlf srcdir="${build.work}" eol="crlf" eof="add"  includes="**/*.txt, **/*.properties, **/*.hac, **/*.js, **/*.skin, **/*.xml" />
         <zip zipfile="${build.dist}/${application}-${DSTAMP}.zip" basedir="${build.work}" includes="**"/>
 
         <fixcrlf srcdir="${build.work}" eol="lf" eof="remove" includes="**/*.txt, **/*.properties, **/*.hac, **/*.js, **/*.skin" />
         <tar tarfile="${build.dist}/${application}-${DSTAMP}.tar" basedir="${build.work}">
-			<tarfileset dir="${build.work}">
-                <include name="${build.work}/**"/>
-            </tarfileset>
+        <tarfileset dir="${build.work}">
+            <include name="${build.work}/**"/>
+        </tarfileset>
         </tar>
         <gzip zipfile="${build.dist}/${application}-${DSTAMP}.tar.gz" src="${build.dist}/${application}-${DSTAMP}.tar" />
 
         <delete file="${build.dist}/${application}-${DSTAMP}.tar" />
         <delete dir="${build.work}" />
-	</target>
+    </target>
 
 </project>
