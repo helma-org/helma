@@ -8,7 +8,7 @@
     <target name="init">
         <property name="Name" value="helma"/>
         <property name="year" value="1998-${year}"/>
-        <property name="version" value="1.2pre3"/>
+        <property name="version" value="1.2pre4"/>
         <property name="project" value="helma"/>
         <property name="build.compiler" value="classic"/>
 
@@ -162,7 +162,7 @@
         <antcall target="package-apps" />
 
         <!-- zip up the whole thing -->
-		<antcall target="package-zip">
+        <antcall target="package-zip">
             <param name="filename" value="${package.name}"/>
         </antcall>
         <antcall target="package-tgz">
@@ -184,6 +184,9 @@
         <copy todir="${build.work}">
             <fileset dir="${build.dir}/${distribution}" excludes="**/CVS**"/>
         </copy>
+
+        <!-- copy the launcher jar file -->
+        <copy file="${home.dir}/launcher.jar" todir="${build.work}/"/>
 
         <!-- copy the whole docs-directory -->
         <copy todir="${build.work}/docs">
