@@ -103,7 +103,7 @@ function sortProps(a,b)	{
   * properties of base-app or the particular application. if username or password aren't set
   * go into stealth-mode and return a 404. if username|password are wrong, prepare response-
   * object for http-auth and return false.
-  * @arg application-object
+  * @arg appObj application object to check against (if adminUsername etc are set in app.properties)
   */
 function checkAuth(appObj)	{
 	var ok = false;
@@ -113,8 +113,7 @@ function checkAuth(appObj)	{
 	var rootPassword = root.getProperty("adminpassword");
 
 	if ( rootUsername==null || rootUsername=="" || rootPassword==null || rootPassword=="" )	{
-		app.__app__.logEvent("adminUsername or adminPassword not set in server.properties!");
-		return forceStealth();
+		return createAuth();
 	}
 
 	var uname = req.getUsername();
@@ -157,11 +156,12 @@ function checkAddress()	{
 
 /**
   * response is reset to 401 / authorization required
+  * @arg realm realm for http-auth
   */
-function forceAuth(appObj)	{
-	res.status = 401;
-	res.realm  = (appObj==null) ? "helma" : appObj.name;
+function forceAuth(realm)	{
 	res.reset();
+	res.status = 401;
+	res.realm = (realm!=null) ? realm : "helma";
 	res.write ("Authorization Required. The server could not verify that you are authorized to access the requested page.");
 	return false;
 }
@@ -176,4 +176,49 @@ function forceStealth()	{
 }
 
 
+/** 
+  * response is either a html form to enter auth data or input from
+  * html form is saved to server.properties
+  * access is only allowed if remote host is in the list of friendly
+  * ip-adresses in server.properties
+  */
+function createAuth()	{
+	if ( checkAddress()!=true )	{
+		// double check
+		return false;
+	}
+	var obj = new Object();
+	obj.msg = "";
+	
+	if ( req.data.username!=null && req.data.password!=null && req.data.password2!=null )	{
+		// we have input from webform
+		if ( req.data.username=="" )
+			obj.msg += "username can't be left empty!<br>";
+		if ( req.data.password=="" )
+			obj.msg += "password can't be left empty!<br>";
+		else if ( req.data.password!=req.data.password2 )
+			obj.msg += "password and re-typed password don't match!<br>";
+		if ( obj.msg!="" )	{
+			obj.username = req.data.username;
+			res.reset();
+			renderSkin("pwdform",obj);
+			return false;
+		}
+		var props = root.getProperties();
+		props.put("adminUsername", Packages.helma.util.MD5Encoder.encode(req.data.username) );
+		props.put("adminPassword", Packages.helma.util.MD5Encoder.encode(req.data.password) );
+		props.store( new java.io.FileOutputStream( new java.io.File(root.getHopHome(),"server.properties") ), "# properties saved from application 'manage'" );
+		app.__app__.logEvent( req.data.http_remotehost + " saved new adminUsername/adminPassword to server.properties");
+		res.redirect ( root.href("main") );
+	
+	}	else	{
+		// no input from webform, so print it
+		res.reset();
+		res.skin = "basic";
+		res.title = "username & password on " + root.hostname_macro();
+		res.head = renderSkinAsString("head");
+		res.body = renderSkinAsString("pwdform",obj);
+		return false;
+	}
+}
 
