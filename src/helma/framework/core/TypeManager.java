@@ -5,13 +5,7 @@ package helma.framework.core;
 
 import helma.objectmodel.*;
 import helma.util.*;
-import FESI.Parser.*;
-import FESI.AST.ASTFormalParameterList;
-import FESI.AST.ASTStatementList;
-import FESI.AST.EcmaScriptTreeConstants;
-import FESI.Interpreter.*;
 import FESI.Exceptions.*;
-import FESI.Extensions.*;
 import FESI.Data.*;
 import java.util.*;
 import java.io.*;
@@ -22,7 +16,7 @@ import java.io.*;
  * applications and updates the evaluators if anything has changed.
  */
 
-public class TypeManager implements Runnable, EcmaScriptTreeConstants {
+public class TypeManager implements Runnable {
 
     Application app;
     File appDir;
