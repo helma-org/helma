@@ -2,7 +2,7 @@ package helma.objectmodel.dom;
 
 import java.io.InputStream;
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.WeakHashMap;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
@@ -21,22 +21,23 @@ import helma.objectmodel.TransientNode;
 public class XmlUtil	{
 
 	private static final DocumentBuilderFactory domBuilderFactory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
-	private static final HashMap                domBuilders       = new HashMap();
+	private static final WeakHashMap  domBuilders  = new WeakHashMap();
 
-	private static synchronized DocumentBuilder getDocumentBuilder()	{
-		if ( domBuilders.containsKey (Thread.currentThread()) )	{
-			return (DocumentBuilder)domBuilders.get (Thread.currentThread());
-		}	else	{
-			try	{
-				DocumentBuilder d = domBuilderFactory.newDocumentBuilder();
-				domBuilders.put (Thread.currentThread(),d);
-				return d;
-			}	catch ( ParserConfigurationException e )	{
+	private static synchronized DocumentBuilder getDocumentBuilder() {
+		DocumentBuilder domBuilder = (DocumentBuilder) domBuilders.get (Thread.currentThread());
+		if (domBuilder != null) {
+			return domBuilder;
+		} else {
+			try {
+				domBuilder = domBuilderFactory.newDocumentBuilder();
+				domBuilders.put (Thread.currentThread(), domBuilder);
+				return domBuilder;
+			} catch ( ParserConfigurationException e ) {
 				throw new RuntimeException ("Cannot build parser: "+e.toString());
 			}
 		}
 	}
-	
+
 	public static Document newDocument() {
 		DocumentBuilder d = getDocumentBuilder();
 		return d.newDocument();
