@@ -16,6 +16,7 @@
 
 package helma.scripting.rhino;
 
+import helma.doc.DocApplication;
 import helma.extensions.ConfigurationException;
 import helma.extensions.HelmaExtension;
 import helma.framework.*;
@@ -57,6 +58,9 @@ public final class RhinoEngine implements ScriptingEngine {
 
     // the global vars set by extensions
     HashMap extensionGlobals;
+
+    // the introspector that provides documentation for this application
+    DocApplication doc = null;
 
     /**
      *  Zero argument constructor.
@@ -412,10 +416,14 @@ public final class RhinoEngine implements ScriptingEngine {
     }
 
     /**
-     * Get an introspector to this engine. FIXME: not yet implemented for the rhino engine.
+     * Get an introspector to this engine.
      */
     public IPathElement getIntrospector() {
-        return null;
+        if (doc == null) {
+            doc = new DocApplication(app.getName(), app.getAppDir().toString());
+            doc.readApplication();
+        }
+        return doc;
     }
 
     /**
