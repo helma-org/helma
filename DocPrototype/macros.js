@@ -113,10 +113,28 @@ function parentPrototype_macro (param) {
 function typeProperties_macro (param) {
 	var props = this.getTypeProperties ();
 	if (props!=null && props.getContent ()!="" ) {
+		var sb = new java.lang.StringBuffer ();
+		// map of all mappings....
+		var mappings = props.getMappings ();
+		// parse type.properties linewise:
+		var arr = props.getContent ().split ("\n");
+		for (var i=0; i<arr.length; i++) {
+			arr [i] = arr[i].trim ();
+			// look up in mappings table if line matches:
+			for (var e = mappings.keys (); e.hasMoreElements (); ) {
+				var key = e.nextElement ();
+				var reg = new RegExp ('^' + key + '\\W');
+				if (arr[i].match (reg)) {
+					// it matched, wrap line in a link to that prototype:
+					var docProtoObj = this.getApplication ().getPrototype (mappings.getProperty (key));
+					arr[i] = '<a href="' + docProtoObj.href ("main") + '#typeproperties">' + arr[i] + '</a>';
+				}
+			}
+			sb.append (arr[i] + "\n");
+		}
 		var tmp = new Object ();
-		tmp.content = props.getContent ();
+		tmp.content = sb.toString ();
 		var skinname = (param.skinname) ? param.skinname : "typeproperties";
 		this.renderSkin (skinname, tmp);
 	}
 }
-
