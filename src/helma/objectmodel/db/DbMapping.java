@@ -84,7 +84,9 @@ public final class DbMapping implements Updatable {
     long lastID;
 
     // timestamp of last modification of the mapping (type.properties)
-    long lastTypeChange;
+    // init value is -1 so we know we have to run update once even if 
+    // the underlying properties file is non-existent
+    long lastTypeChange = -1;
     // timestamp of last modification of an object of this type
     long lastDataChange;
 
