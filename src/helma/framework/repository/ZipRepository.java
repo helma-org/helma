@@ -91,12 +91,12 @@ public final class ZipRepository extends AbstractRepository {
 
             try {
                 zipfile = getZipFile();
-                Enumeration enum = zipfile.entries();
+                Enumeration en = zipfile.entries();
                 ArrayList newRepositories = new ArrayList();
                 HashMap newResources = new HashMap();
 
-                while (enum.hasMoreElements()) {
-                    ZipEntry entry = (ZipEntry) enum.nextElement();
+                while (en.hasMoreElements()) {
+                    ZipEntry entry = (ZipEntry) en.nextElement();
                     String entryname = entry.getName();
                     String[] entrypath = StringUtils.split(entryname, "/");
 
