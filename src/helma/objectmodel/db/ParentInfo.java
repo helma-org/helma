@@ -23,7 +23,6 @@ package helma.objectmodel.db;
 public class ParentInfo {
     public final String propname;
     public final String virtualname;
-    public final boolean named;
     public final boolean isroot;
 
     /**
@@ -32,11 +31,10 @@ public class ParentInfo {
      * @param desc ...
      */
     public ParentInfo(String desc) {
+
+        // [named] isn't used anymore, we just want to keep the parsing compatible.
         int n = desc.indexOf("[named]");
-
-        named = n > -1;
-
-        String d = named ? desc.substring(0, n) : desc;
+        String d = n>-1 ? desc.substring(0, n) : desc;
 
         int dot = d.indexOf(".");
 
@@ -59,6 +57,6 @@ public class ParentInfo {
      * @return ...
      */
     public String toString() {
-        return "ParentInfo[" + propname + "," + virtualname + "," + named + "]";
+        return "ParentInfo[" + propname + "," + virtualname + "]";
     }
 }
