@@ -16,15 +16,18 @@
 
 package helma.doc;
 
-import FESI.Parser.*;
 import helma.framework.IPathElement;
+import java.awt.Point;
+import java.lang.reflect.Constructor;
 import java.io.*;
-import java.util.*;
+import java.util.Vector;
+import org.mozilla.javascript.TokenStream;
 
 /**
  * 
  */
 public class DocFunction extends DocFileElement {
+
     protected DocFunction(String name, File location, DocElement parent, int type) {
         super(name, location, type);
         this.parent = parent;
@@ -41,30 +44,20 @@ public class DocFunction extends DocFileElement {
      * creates a new DocFunction object of type ACTION connected to another DocElement
      */
     public static DocFunction newAction(File location, DocElement parent) {
-        String name = nameFromFile(location, ".hac");
+        String name = Util.nameFromFile(location, ".hac");
         DocFunction func = new DocFunction(name, location, parent, ACTION);
-
-        func.parseActionFile();
-
-        return func;
-    }
-
-    /**
-     * creates a new independent DocFunction object of type TEMPLATE
-     */
-    public static DocFunction newTemplate(File location) {
-        return newTemplate(location, null);
-    }
-
-    /**
-     * creates a new DocFunction object of type TEMPLATE connected to another DocElement
-     */
-    public static DocFunction newTemplate(File location, DocElement parent) {
-        String name = nameFromFile(location, ".hsp");
-        DocFunction func = new DocFunction(name, location, parent, TEMPLATE);
-
-        func.parseTemplateFile();
-
+        String rawComment = "";
+        try {
+            TokenStream ts = getTokenStream (location);
+            Point p = getPoint (ts);
+            ts.getToken();
+            rawComment = Util.getStringFromFile(location, p, getPoint(ts));
+        } catch (IOException io) {
+            io.printStackTrace();
+            throw new DocException (io.toString());
+        }
+        func.parseComment(rawComment);
+        func.content = Util.readFile(location);
         return func;
     }
 
@@ -75,105 +68,125 @@ public class DocFunction extends DocFileElement {
         return newFunctions(location, null);
     }
 
+
     /**
      * reads a function file and creates DocFunction objects of type FUNCTION
      * connected to another DocElement.
      */
     public static DocFunction[] newFunctions(File location, DocElement parent) {
         Vector vec = new Vector();
-        EcmaScriptTokenManager mgr = createTokenManager(location);
-        Token tok = mgr.getNextToken();
+        try {
+            // the function file:
+            TokenStream ts = getTokenStream (location);
+            DocFunction curFunction = null;
+            Point curFunctionStart = null;
+            while (!ts.eof()) {
 
-        while (tok.kind != 0) {
-            if (tok.kind == EcmaScriptConstants.FUNCTION) {
-                // store the start position of the function:
-                int beginLine = tok.beginLine;
-                int beginColumn = tok.beginColumn;
+                // store the position of the last token 
+                Point endOfLastToken = getPoint (ts);
+                // new token
+                int tok = ts.getToken();
 
-                // the name is stored in the next token:
-                String funcName = mgr.getNextToken().toString();
-
-                // create the function object
-                DocFunction func;
-
-                if (funcName.endsWith("_action")) {
-                    func = new DocFunction(funcName, location, parent, ACTION);
-                } else if (funcName.endsWith("_macro")) {
-                    func = new DocFunction(funcName, location, parent, MACRO);
-                } else {
-                    func = new DocFunction(funcName, location, parent, FUNCTION);
+                // if we're currently parsing a functionbody and come to the start
+                // of the next function or eof -> read function body
+                if (curFunction != null && (tok== ts.FUNCTION || ts.eof())) {
+                    curFunction.content = "function " + Util.getStringFromFile(location, curFunctionStart, endOfLastToken);
                 }
 
-                // parse the comment from the special token(s) before this token:
-                func.parseCommentFromToken(tok);
-
-                // find the parameters of this function, but only if it's
-                // neither macro nor action:
-                if (func.type == FUNCTION) {
-                    while ((tok.kind != 0) && (tok.kind != EcmaScriptConstants.RPAREN)) {
-                        if (tok.kind == EcmaScriptConstants.IDENTIFIER) {
-                            func.addParameter(tok.image);
-                        }
-
-                        tok = mgr.getNextToken();
+                if (tok == ts.FUNCTION) {
+                    // store the function start for parsing the function body later
+                    curFunctionStart = getPoint (ts); 
+                    // get and chop the comment
+                    String rawComment = Util.getStringFromFile(location, endOfLastToken, getPoint (ts)).trim ();
+                    if (rawComment.endsWith("function")) {
+                        rawComment = rawComment.substring (0, rawComment.length()-8).trim();
                     }
-                } else {
-                    tok = mgr.getNextToken();
-                }
+                    // position stream at function name token
+                    tok = ts.getToken();
+                    // get the name and create the function object
+                    String name = ts.getString();
+                    curFunction = newFunction (name, location, parent);
+                    curFunction.parseComment (rawComment);
+                    vec.add (curFunction);
 
-                // now find the end of the function:
-                int endLine = 0;
+                    // subloop on the tokenstream: find the parameters of a function
+                    // only if it's a function (and not a macro or an action)
+                    if (curFunction.type == FUNCTION) {
+                        while (!ts.eof() && tok != ts.RP) {
+                            // store the position of the last token 
+                            endOfLastToken = getPoint (ts);
+                            // new token
+                            tok = ts.getToken();
+                            if (tok==ts.NAME) {
+                                curFunction.addParameter (ts.getString());
+                            }
+                        }
+                    }
+                } // end if
 
-                // now find the end of the function:
-                int endColumn = 0;
-
-                while ((tok.kind != 0) && (tok.kind != EcmaScriptConstants.FUNCTION)) {
-                    endLine = tok.endLine;
-                    endColumn = tok.endColumn;
-                    tok = mgr.getNextToken();
-                }
-
-                // now we know the exact position of the function in the file,
-                // re-read it and extract the source code:
-                func.parseSource(location, beginLine, beginColumn, endLine, endColumn);
-                vec.add(func);
             }
 
-            if (tok.kind != EcmaScriptConstants.FUNCTION) {
-                tok = mgr.getNextToken();
-            }
+        } catch (IOException io) {
+            io.printStackTrace();
+            throw new DocException (io.toString());
         }
-
         return (DocFunction[]) vec.toArray(new DocFunction[0]);
     }
 
-    /**
-     * reads the content of a .hac file and parses the comment before the first
-     * javascript element
-     */
-    private void parseActionFile() {
-        EcmaScriptTokenManager mgr = createTokenManager(location);
-        Token tok = mgr.getNextToken();
 
-        parseCommentFromToken(tok);
-        content = readFile(location);
+    private static DocFunction newFunction (String funcName, File location, DocElement parent) {
+        if (funcName.endsWith("_action")) {
+            return new DocFunction(funcName, location, parent, ACTION);
+        } else if (funcName.endsWith("_macro")) {
+            return new DocFunction(funcName, location, parent, MACRO);
+        } else {
+            return new DocFunction(funcName, location, parent, FUNCTION);
+        }
     }
 
+
     /**
-     * reads the content of a .hsp file and parses the comment before the first
-     * javascript element (only if file starts with &gt;%-tag!).
+     * creates a rhino token stream for a given file
      */
-    private void parseTemplateFile() {
-        content = readFile(location);
+    protected static TokenStream getTokenStream (File f) {
+        FileReader reader = null;
+        try {
+            reader = new FileReader(f);
+        } catch (FileNotFoundException fnfe) {
+            fnfe.printStackTrace();
+            throw new DocException (fnfe.toString());
+        }
+        String name = f.getName();
+        int line = 0;
 
-        StringReader str = new StringReader(content.substring(content.indexOf("<%") + 2,
-                                                              content.indexOf("%>")));
-        ASCII_CharStream ascii = new ASCII_CharStream(str, 1, 1);
-        EcmaScriptTokenManager mgr = new EcmaScriptTokenManager(ascii);
-        Token tok = mgr.getNextToken();
+        // FIXME for some reason this doesn't compile with winxp/j2sdk141_03
+        // return new TokenStream (reader, null, name, line);
 
-        parseCommentFromToken(tok);
+        // so we have to use reflection:
+        try {
+            Class c = Class.forName ("org.mozilla.javascript.TokenStream");
+            Constructor[] constr = c.getDeclaredConstructors();
+            Object[] params = new Object[4];
+            params[0] = reader;
+            params[1] = null;
+            params[2] = name;
+            params[3] = new Integer(line);
+            return (TokenStream) constr[0].newInstance(params);
+        } catch (Exception anything) {
+            anything.printStackTrace();
+            throw new DocException (anything.toString());
+        }
     }
+
+
+    /**
+     * returns a pointer to the current position in the TokenStream
+     */
+    protected static Point getPoint (TokenStream ts) {
+        return new Point (ts.getOffset(), ts.getLineno());
+    }
+
+
 
     /**
      * from helma.framework.IPathElement. All macros, templates, actions etc

@@ -27,7 +27,7 @@ public class DocSkin extends DocFileElement {
     protected DocSkin(String name, File location, DocElement parent) {
         super(name, location, SKIN);
         this.parent = parent;
-        content = readFile(location);
+        content = Util.readFile(location);
         parseHandlers();
     }
 
@@ -42,7 +42,7 @@ public class DocSkin extends DocFileElement {
      * creates a new DocSkin object connected to another DocElement
      */
     public static DocSkin newInstance(File location, DocElement parent) {
-        String skinname = nameFromFile(location, ".skin");
+        String skinname = Util.nameFromFile(location, ".skin");
         DocSkin skin = new DocSkin(skinname, location, parent);
 
         return skin;

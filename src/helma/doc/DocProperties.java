@@ -31,7 +31,7 @@ public class DocProperties extends DocFileElement {
                      throws DocException {
         super(location.getName(), location, PROPERTIES);
         this.parent = parent;
-        content = readFile(location);
+        content = Util.readFile(location);
         props = new SystemProperties();
 
         try {

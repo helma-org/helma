@@ -16,7 +16,6 @@
 
 package helma.doc;
 
-import FESI.Parser.*;
 import helma.framework.IPathElement;
 import java.io.*;
 import java.util.*;
@@ -128,8 +127,6 @@ public class DocPrototype extends DocDirElement {
                     continue;
                 } else if (arr[i].endsWith(".hac")) {
                     addChild(DocFunction.newAction(f, this));
-                } else if (arr[i].endsWith(".hsp")) {
-                    addChild(DocFunction.newTemplate(f, this));
                 } else if (arr[i].endsWith(".js")) {
                     DocElement[] elements = DocFunction.newFunctions(f, this);
 

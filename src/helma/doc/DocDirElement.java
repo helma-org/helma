@@ -16,7 +16,6 @@
 
 package helma.doc;
 
-import FESI.Parser.*;
 import java.io.*;
 import java.util.*;
 
@@ -42,7 +41,7 @@ public abstract class DocDirElement extends DocElement {
             File f = new File(location, DOCFILES[i]);
 
             if (f.exists()) {
-                String rawComment = readFile(f);
+                String rawComment = Util.readFile(f);
 
                 parseComment(rawComment);
 

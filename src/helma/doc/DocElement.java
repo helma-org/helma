@@ -184,11 +184,13 @@ public abstract class DocElement implements IPathElement {
         parameters.add(param);
     }
 
+
     /**
      * parse rawComment, render DocTags
      */
     void parseComment(String rawComment) {
         try {
+            rawComment = rawComment.trim();
             StringTokenizer tok = new StringTokenizer(rawComment, "\n", true);
             int BLANK = 0;
             int TEXT = 1;
@@ -239,7 +241,7 @@ public abstract class DocElement implements IPathElement {
 
             // store the last element, if there was at least one element ...
             if (mode == TEXT) {
-                comment = buf.toString();
+                comment = buf.toString().trim();
             } else if (mode == TAGS) {
                 addTag(buf.toString());
             }
@@ -248,27 +250,6 @@ public abstract class DocElement implements IPathElement {
         }
     }
 
-    /**
-     * utility: read a complete file into a string
-     */
-    protected static String readFile(File file) {
-        try {
-            StringBuffer buf = new StringBuffer();
-            BufferedReader in = new BufferedReader(new FileReader(file));
-            String line = in.readLine();
-
-            while (line != null) {
-                buf.append(line + "\n");
-                line = in.readLine();
-            }
-
-            in.close();
-
-            return buf.toString();
-        } catch (IOException e) {
-            return ("");
-        }
-    }
 
     /**
      *

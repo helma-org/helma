@@ -21,7 +21,7 @@ import helma.main.Server;
 import helma.util.SystemProperties;
 import java.io.*;
 import java.util.*;
-
+import java.awt.*;
 /**
  * 
  */
@@ -60,18 +60,34 @@ public class DocApplication extends DocDirElement {
      * @param args ...
      */
     public static void main(String[] args) {
-        //		DocApplication app;
-        //		app = new DocApplication (args[0], args[1]);
-        //		app.readApplication ();
+        System.out.println("this is helma.doc");
+        DocApplication app;
+        app = new DocApplication (args[0], args[1]);
+        app.readApplication ();
+
         //		DocPrototype el = DocPrototype.newInstance (new File(args[0]));
         //		el.readFiles ();
         //		DocFunction func = DocFunction.newTemplate (new File(args[0]));
-        //		DocFunction func = DocFunction.newAction (new File(args[0]));
-        DocFunction[] func = DocFunction.newFunctions(new File(args[0]));
 
-        //		DocSkin skin = DocSkin.newInstance (new File (args[0]));
-        //		System.out.println (func.getContent ());
-        //		System.out.println ("\n\n\ncomment = " + func.getComment ());
+//        DocFunction func = DocFunction.newAction (new File(args[0]));
+
+//        DocFunction[] func = DocFunction.newFunctions(new File(args[0]));
+//        for (int i=0; i<func.length; i++) {
+//            System.out.println("=============================================");     
+//            System.out.println("function " + func[i].name);
+//            System.out.println("comment = " + func[i].comment + "<<<");
+//            String[] arr = func[i].listParameters();
+//            for (int j=0; j<arr.length; j++) {
+//                System.out.println (arr[j]);
+//            }
+//            System.out.println ("\ncontent:\n" + func[i].content + "<<<");
+//            System.out.println ("\n");
+//        }
+
+//		  DocSkin skin = DocSkin.newInstance (new File (args[0]));
+
+//        System.out.println (func.getContent ());
+//        System.out.println ("\n\n\ncomment = " + func.getComment ());
     }
 
     /**
@@ -79,7 +95,10 @@ public class DocApplication extends DocDirElement {
      */
     private void readProps() {
         File propsFile = new File(location, "app.properties");
-        SystemProperties serverProps = Server.getServer().getProperties();
+        SystemProperties serverProps = null;
+        if (Server.getServer()!=null) {
+            serverProps = Server.getServer().getProperties();
+        }
         SystemProperties appProps = new SystemProperties(propsFile.getAbsolutePath(),
                                                          serverProps);
 
