@@ -1,6 +1,6 @@
 package helma.doc;
 
-public class DocException extends Exception {
+public class DocException extends RuntimeException {
 
     String str;
 
