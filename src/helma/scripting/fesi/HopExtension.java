@@ -12,10 +12,7 @@ import FESI.Exceptions.*;
 import FESI.Extensions.*;
 import FESI.Data.*;
 import java.io.*;
-import java.util.Hashtable;
-import java.util.Enumeration;
-import java.util.TimeZone;
-import java.util.Date;
+import java.util.*;
 import java.text.*;
 import org.xml.sax.InputSource;
 
@@ -574,9 +571,15 @@ public class HopExtension {
             try {
                 Skin skin = null;
                 ESObject thisObject = global ? null : thisObj;
-                ESObject paramObject = null;
-                if (arguments.length > 1 && arguments[1] instanceof ESObject)
-                    paramObject = (ESObject) arguments[1];
+                HashMap params = null;
+                if (arguments.length > 1 && arguments[1] instanceof ESObject) {
+                    ESObject paramObject = (ESObject) arguments[1];
+                    params = new HashMap ();
+                    for (Enumeration en=paramObject.getProperties(); en.hasMoreElements(); ) {
+                        String propname = (String) en.nextElement();
+                        params.put (propname, paramObject.getProperty (propname, propname.hashCode()).toJavaObject());
+                    }
+                }
 
                 // first, see if the first argument already is a skin object. If not, it's the name of the skin to be called
                 if (arguments[0] instanceof ESWrapper) {
@@ -590,7 +593,7 @@ public class HopExtension {
                 if (asString)
                     reval.res.pushStringBuffer ();
                 if (skin != null)
-                    skin.render (reval, thisObject, paramObject);
+                    skin.render (reval, thisObject.toJavaObject (), params);
                 else
                     reval.res.write ("[Skin not found: "+arguments[0]+"]");
                 if (asString)
@@ -937,7 +940,7 @@ public class HopExtension {
             super (fp, evaluator, name, 1);
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            IPathElement elem = (IPathElement) thisObject.toJavaObject ();
+            Object elem = thisObject.toJavaObject ();
             String tmpname = arguments.length == 0 ? "" : arguments[0].toString ();
             String basicHref =app.getNodeHref (elem, tmpname);
             String hrefSkin = app.getProperty ("hrefSkin", null);
@@ -946,28 +949,27 @@ public class HopExtension {
             if (hrefSkin != null) {
                 // we need to post-process the href with a skin for this application
                 // first, look in the object href was called on.
-                IPathElement skinElem = elem;
+                Object skinElem = elem;
                 Skin skin = null;
                 while (skin == null && skinElem != null) {
                     Prototype proto = app.getPrototype (skinElem);
                     if (proto != null)
                         skin = proto.getSkin (hrefSkin);
                     if (skin == null)
-                        skinElem = skinElem.getParentElement ();
+                        skinElem = app.getParentElement (skinElem);
                 }
 
                 if (skin != null) {
-                    ESObject eso = reval.getElementWrapper (skinElem);
-                    return renderSkin (skin, basicHref, eso);
+                    return renderSkin (skin, basicHref, skinElem);
                 }
             }
             return new ESString (basicHref);
         }
-        private ESString renderSkin (Skin skin, String path, ESObject obj) throws EcmaScriptException {
+        private ESString renderSkin (Skin skin, String path, Object skinElem) throws EcmaScriptException {
             reval.res.pushStringBuffer ();
-            ESObject param = new ObjectPrototype (null, reval.evaluator);
-            param.putProperty ("path", new ESString (path), "path".hashCode ());
-            skin.render (reval, obj, param);
+            HashMap param = new HashMap ();
+            param.put ("path", path);
+            skin.render (reval, skinElem, param);
             return new ESString (reval.res.popStringBuffer ().trim ());
         }
     }
