@@ -46,26 +46,6 @@ public final class SystemProperties extends Properties {
     }
 
     /**
-     *  Construct a properties object and read it from an input stream.
-     */
-    public SystemProperties(InputStream in) {
-        this(null, null);
-
-        try {
-            load(in);
-        } catch (Exception x) {
-            System.err.println("Error reading properties from file " + file + ": " + x);
-        } finally {
-            try {
-                in.close();
-            } catch (Exception ignore) {
-            }
-        }
-
-        lastread = System.currentTimeMillis();
-    }
-
-    /**
      *  Construct a properties object from a properties file.
      */
     public SystemProperties(String filename) {
@@ -124,44 +104,41 @@ public final class SystemProperties extends Properties {
      */
     private void checkFile() {
         if ((file != null) && (file.lastModified() > lastread)) {
-            readFile();
+            reload();
         }
 
         lastcheck = System.currentTimeMillis();
     }
 
     /**
-     *  Private method to read the underlying properties file. Assumes that the
-     *  file exists and is readable.
+     * Reload properties. This clears out the existing entries,
+     * loads the main properties file and then adds any additional
+     * properties there may be (usually from zip files). This is used
+     * internally by addProps() and removeProps().
      */
-    private synchronized void readFile() {
-        // IServer.getLogger().log ("Reading properties from file "+file);
-        FileInputStream bpin = null;
+    private synchronized void reload() {
+        // clear out old entries
+        clear();
 
-        try {
-            bpin = new FileInputStream(file);
-            load(bpin);
-        } catch (Exception x) {
-            System.err.println("Error reading properties from file " + file + ": " + x);
-        } finally {
+        // read from the primary file
+        if (file != null) {
+            FileInputStream bpin = null;
+
             try {
-                bpin.close();
-            } catch (Exception ignore) {
+                bpin = new FileInputStream(file);
+                load(bpin);
+            } catch (Exception x) {
+                System.err.println("Error reading properties from file " + file + ": " + x);
+            } finally {
+                try {
+                    bpin.close();
+                } catch (Exception ignore) {
+                    // ignored
+                }
             }
         }
-    }
 
-    /**
-     *
-     *
-     * @param in ...
-     *
-     * @throws IOException ...
-     */
-    public synchronized void load(InputStream in) throws IOException {
-        clear();
-        super.load(in);
-
+        // read additional properties from zip files, if available
         if (additionalProps != null) {
             for (Iterator i = additionalProps.values().iterator(); i.hasNext();)
                 putAll((Properties) i.next());
@@ -176,16 +153,16 @@ public final class SystemProperties extends Properties {
      */
     public synchronized void addProps(String key, InputStream in)
                                throws IOException {
-        Properties p = new SystemProperties();
-
-        p.load(in);
+        Properties newProps = new SystemProperties();
+        newProps.load(in);
 
         if (additionalProps == null) {
             additionalProps = new HashMap();
         }
+        additionalProps.put(key, newProps);
 
-        additionalProps.put(key, p);
-        putAll(p);
+        // fully reload properties and mark as updated
+        reload();
         lastadd = System.currentTimeMillis();
     }
 
@@ -199,6 +176,8 @@ public final class SystemProperties extends Properties {
             Object p = additionalProps.remove(key);
 
             if (p != null) {
+                // fully reload properties and mark as updated
+                reload();
                 lastadd = System.currentTimeMillis();
             }
         }
