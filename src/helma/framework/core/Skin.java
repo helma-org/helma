@@ -264,11 +264,7 @@ public class Skin {
 	        boolean objectFound = true;
 
 	        if (handler != null) {
-	            if ("currentuser".equalsIgnoreCase (handler)) {
-	                // as a special convention, we use "currentuser" to access macros in the current user object
-	                // FIXME: this will return null on anonymous users!
-	                handlerObject = reval.session.getNode ();
-	            } else if (thisObject != null) {
+	            if (thisObject != null) {
 	                // not a global macro - need to find handler object
 	                // was called with this object - check it or its parents for matching prototype
 	                if (!handler.equalsIgnoreCase ("this") && !handler.equalsIgnoreCase (app.getPrototypeName (thisObject))) {
