@@ -311,6 +311,13 @@ public class HopObject extends ScriptableObject {
     }
 
     /**
+     *  Clear the node's cache node.
+     */
+    public void jsFunction_clearCache() {
+        node.clearCacheNode();
+    }
+
+    /**
      *
      *
      * @return ...
@@ -456,6 +463,8 @@ public class HopObject extends ScriptableObject {
                     node.setDate(name, new Date((long) ScriptRuntime.toNumber(s)));
                 } else if (s instanceof MapWrapper) {
                     node.setJavaObject(name, ((MapWrapper) s).unwrap());
+                } else if (s instanceof HopObject) {
+                    node.setNode(name, ((HopObject) value).node);
                 } else {
                     node.setJavaObject(name, s);
                 }
