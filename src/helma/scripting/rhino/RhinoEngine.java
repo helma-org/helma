@@ -336,6 +336,13 @@ public class RhinoEngine implements ScriptingEngine {
      */
     public boolean hasFunction(Object obj, String fname) {
         // System.err.println ("HAS_FUNC: "+obj+"."+fname);
+        if (obj instanceof Scriptable) {
+            Scriptable scrpt = (Scriptable) obj;
+            Object func = scrpt.get(fname, scrpt);
+            if (func != null && func instanceof Function) {
+                return true;
+            }
+        }
         return core.hasFunction(app.getPrototypeName(obj), fname.replace('.', '_'));
     }
 
