@@ -105,6 +105,9 @@ public class DomExtension extends Extension  {
 			try	{
 				ByteArrayOutputStream out = new ByteArrayOutputStream();
 				XmlWriter writer = new XmlWriter (out, "UTF-8");
+				//  in case we ever want to limit serialization depth...
+				// if (arguments.length > 1 && arguments[1] instanceof ESNumber)
+				// 	writer.setMaxLevels(arguments[1].toInt32());
 				writer.setDatabaseMode(false);
 				boolean result = writer.write(node);
 				writer.flush();
