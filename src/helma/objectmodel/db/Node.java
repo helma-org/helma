@@ -184,68 +184,23 @@ public final class Node implements INode, Serializable {
 
             String rawParentID = null;
 
-            if (version < 8) {
-                id = in.readUTF();
-                name = in.readUTF();
-            } else {
-                id = (String) in.readObject();
-                name = (String) in.readObject();
+            if (version < 9) {
+                throw new IOException("Can't read pre 1.3.0 HopObject");
             }
 
-            if (version < 5) {
-                rawParentID = (String) in.readObject();
-            } else {
-                parentHandle = (NodeHandle) in.readObject();
-            }
-
+            id = (String) in.readObject();
+            name = (String) in.readObject();
+            state = in.readInt();
+            parentHandle = (NodeHandle) in.readObject();
             created = in.readLong();
             lastmodified = in.readLong();
 
-            if (version < 4) {
-                // read away content and contentType, which were dropped
-                in.readObject();
-                in.readObject();
-            }
-
             subnodes = (ExternalizableVector) in.readObject();
             links = (ExternalizableVector) in.readObject();
-
-            if (version < 6) {
-                // read away obsolete proplinks list
-                in.readObject();
-            }
-
             propMap = (Hashtable) in.readObject();
             anonymous = in.readBoolean();
+            prototype = (String) in.readObject();
 
-            if (version == 2) {
-                prototype = in.readUTF();
-            } else if (version >= 3) {
-                prototype = (String) in.readObject();
-            }
-
-            // if the input version is < 5, we have to do some conversion to make this object work
-            if (version < 5) {
-                if (rawParentID != null) {
-                    parentHandle = new NodeHandle(new DbKey(null, rawParentID));
-                }
-
-                if (subnodes != null) {
-                    for (int i = 0; i < subnodes.size(); i++) {
-                        String s = (String) subnodes.get(i);
-
-                        subnodes.set(i, new NodeHandle(new DbKey(null, s)));
-                    }
-                }
-
-                if (links != null) {
-                    for (int i = 0; i < links.size(); i++) {
-                        String s = (String) links.get(i);
-
-                        links.set(i, new NodeHandle(new DbKey(null, s)));
-                    }
-                }
-            }
         } catch (ClassNotFoundException x) {
             throw new IOException(x.toString());
         }
@@ -255,9 +210,10 @@ public final class Node implements INode, Serializable {
      * Write out this instance to a stream
      */
     private void writeObject(ObjectOutputStream out) throws IOException {
-        out.writeShort(8); // serialization version
+        out.writeShort(9); // serialization version
         out.writeObject(id);
         out.writeObject(name);
+        out.writeInt(state);
         out.writeObject(parentHandle);
         out.writeLong(created);
         out.writeLong(lastmodified);

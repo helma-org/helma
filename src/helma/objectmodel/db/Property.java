@@ -79,13 +79,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 
             switch (type) {
                 case STRING:
-
-                    // try to convert from old format
-                    if (node.version < 7) {
-                        value = in.readUTF();
-                    } else {
-                        value = in.readObject();
-                    }
+                    value = in.readObject();
 
                     break;
 
@@ -110,13 +104,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
                     break;
 
                 case NODE:
-
-                    // try to convert from old format
-                    if (node.version > 4) {
-                        value = (NodeHandle) in.readObject();
-                    } else {
-                        value = new NodeHandle(new DbKey(null, in.readUTF()));
-                    }
+                    value = (NodeHandle) in.readObject();
 
                     break;
 
