@@ -16,10 +16,10 @@
 
 package helma.util;
 
-import java.io.UnsupportedEncodingException;
-import org.apache.commons.codec.net.URLCodec;
 import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.net.URLCodec;
 
+import java.io.UnsupportedEncodingException;
 import java.util.BitSet;
 
 /**
@@ -32,13 +32,11 @@ import java.util.BitSet;
  */
 public final class UrlEncoded extends URLCodec {
 
-    public static final String defaultEncoding = "ISO8859_1";
-
     /**
      * URL-encode a string using the given encoding, or return it
      * unchanged if no encoding was necessary.
      *
-     * @param str The string to be URL-encoded
+     * @param str      The string to be URL-encoded
      * @param encoding the encoding to use
      * @return the URL-encoded string, or str if no encoding necessary
      */
@@ -54,8 +52,7 @@ public final class UrlEncoded extends URLCodec {
             if (c == ' ') {
                 needsSpaceEncoding = true;
             } else if (!urlsafe.get(c)) {
-                URLCodec codec = new URLCodec();
-                return codec.encode(str, encoding);
+                return new URLCodec().encode(str, encoding);
             }
         }
 
@@ -70,7 +67,7 @@ public final class UrlEncoded extends URLCodec {
      * URL-decode a string using the given encoding,
      * or return it unchanged if no encoding was necessary.
      *
-     * @param str The string to be URL-decoded
+     * @param str      The string to be URL-decoded
      * @param encoding the encoding to use
      * @return the URL-decoded string, or str if no decoding necessary
      */
