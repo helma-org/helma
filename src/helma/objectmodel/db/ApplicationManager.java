@@ -3,7 +3,8 @@
  
 package helma.objectmodel.db;
 
-import java.util.*;
+import java.util.Hashtable;
+import java.util.Enumeration;
 import java.io.*;
 import java.lang.reflect.*;
 import java.rmi.*;
