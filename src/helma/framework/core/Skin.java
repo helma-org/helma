@@ -242,13 +242,13 @@ public class Skin {
 	}
 
 	private void renderFromResponse (RequestEvaluator reval) {
-	    if ("title".equals (name))
+	    if ("title".equals (name) && reval.res.title != null)
 	        reval.res.write (reval.res.title);
-	    else if ("head".equals (name))
+	    else if ("head".equals (name) && reval.res.head != null)
 	        reval.res.write (reval.res.head);
-	    else if ("body".equals (name))
+	    else if ("body".equals (name) && reval.res.body != null)
 	        reval.res.write (reval.res.body);
-	    else if ("message".equals (name))
+	    else if ("message".equals (name) && reval.res.message != null)
 	        reval.res.write (reval.res.message);
 	}
 
