@@ -241,7 +241,7 @@ public final class RhinoCore {
                 continue;
             }
             Object prop = op.get(key, op);
-            if (oldFunctions.contains(prop) && prop instanceof NativeFunction) {
+            if (oldFunctions.contains(prop)) {
                 // if this is a function compiled from script, it's from the
                 // old generation and wasn't renewed -- delete it.
                 // System.err.println("DELETING OLD FUNC: "+key);
