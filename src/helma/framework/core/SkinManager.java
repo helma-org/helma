@@ -3,7 +3,8 @@
  
 package helma.framework.core;
 
-import java.util.HashMap;
+import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.Iterator;
 import helma.objectmodel.INode;
 import java.io.*;
@@ -17,35 +18,42 @@ import java.io.*;
 public class SkinManager {
 
     Application app;
-
+    Map skincache;
 
     public SkinManager (Application app) {
 	this.app = app;
+	skincache = new WeakHashMap ();
     }
 
     public Skin getSkin (Object object, String skinname, Object[] skinpath) {
 	Prototype proto = app.getPrototype (object);
-	return getSkin (proto, skinname, "skin", skinpath);
+	String key = new StringBuffer(proto.getName()).append ("/").append (skinname)
+			.append ("#").append (skinpath.hashCode()).toString ();
+	// System.err.print ("SKINKEY: "+key);
+	Skin skin = (Skin) skincache.get (key);
+	if (skin != null) {
+	    // System.err.println (" ... cached");
+	    return skin;
+	}
+	// System.err.println (" ... uncached");
+	skin = getSkin (proto, skinname, "skin", skinpath);
+	if (skin != null)
+	    skincache.put (key, skin);
+	return skin;
     }
 
 
-    public Skin getSkin (Prototype proto, String skinname, String extension, Object[] skinpath) {
+    protected Skin getSkin (Prototype proto, String skinname, String extension, Object[] skinpath) {
 	if (proto == null)
 	    return null;
 	Skin skin = null;
 	// First check if the skin has been already used within the execution of this request
-	/* SkinKey key = new SkinKey (proto.getName(), skinname, extension);
-	Skin skin = (Skin) skincache.get (key);
-	if (skin != null) {
-	    return skin;
-	} */
 	// check for skinsets set via res.skinpath property
 	do {
 	    if (skinpath != null) {
 	        for (int i=0; i<skinpath.length; i++) {
 	            skin = getSkinInternal (skinpath[i], proto.getName (), skinname, extension);
 	            if (skin != null) {
-	                // skincache.put (key, skin);
 	                return skin;
 	            }
 	        }
@@ -54,7 +62,6 @@ public class SkinManager {
 	    // the next step is to look if it is defined as skin file in the application directory
 	    skin = proto.getSkin (skinname);
 	    if (skin != null) {
-	        // skincache.put (key, skin);
 	        return skin;
 	    }
 	    // still not found. See if there is a parent prototype which might define the skin.
