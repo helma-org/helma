@@ -25,8 +25,8 @@ import org.apache.xmlrpc.*;
 
  public class Server implements IPathElement, Runnable {
 
-    public static final String version = "1.2pre3+ 2002/10/24";
-    public long starttime;
+    public static final String version = "1.2pre3+ 2002/11/21";
+    public final long starttime;
 
     // if true we only accept RMI and XML-RPC connections from 
     // explicitly listed hosts.
@@ -141,13 +141,46 @@ import org.apache.xmlrpc.*;
 	        usageError = true;
 	}
 
+	// get main property file from home dir or vice versa, depending on what we have.
+	// get property file from hopHome
+	if (propfile == null) {
+	    if (homeDir != null)
+	        propfile = new File (homeDir, "server.properties").getAbsolutePath ();
+	    else
+	        propfile = new File ("server.properties").getAbsolutePath ();
+	}
+	// create system properties
+	sysProps = new SystemProperties (propfile);
+
+	// check if there's a property setting for those ports not specified via command line
+	if (websrvPort == 0 && sysProps.getProperty ("webPort") != null) try {
+	    websrvPort = Integer.parseInt (sysProps.getProperty ("webPort"));
+	} catch (NumberFormatException fmt) {
+	    System.err.println ("Error parsing web server port property: "+fmt);
+	}
+	if (ajp13Port == 0 && sysProps.getProperty ("ajp13Port") != null) try {
+	    ajp13Port = Integer.parseInt (sysProps.getProperty ("ajp13Port"));
+	} catch (NumberFormatException fmt) {
+	    System.err.println ("Error parsing AJP1.3 server port property: "+fmt);
+	}
+	if (rmiPort == 0 && sysProps.getProperty ("rmiPort") != null) try {
+	    rmiPort = Integer.parseInt (sysProps.getProperty ("rmiPort"));
+	} catch (NumberFormatException fmt) {
+	    System.err.println ("Error parsing RMI server port property: "+fmt);
+	}
+	if (xmlrpcPort == 0 && sysProps.getProperty ("xmlrpcPort") != null) try {
+	    xmlrpcPort = Integer.parseInt (sysProps.getProperty ("xmlrpcPort"));
+	} catch (NumberFormatException fmt) {
+	    System.err.println ("Error parsing XML-RPC server port property: "+fmt);
+	}
+
 	// check server ports. If no port is set, issue a warning and exit.
 	if (!usageError && (websrvPort | ajp13Port | rmiPort | xmlrpcPort) == 0) {
 	    System.out.println ("  Error: No server port specified.");
 	    usageError = true;
 	}
 
-
+	// if there's a usage error, output message and exit
 	if (usageError ) {
 	    System.out.println ("usage: java helma.main.Server [-h dir] [-f file] [-p port] [-w port] [-x port]");
 	    System.out.println ("  -h dir     Specify hop home directory");
@@ -160,7 +193,7 @@ import org.apache.xmlrpc.*;
 	    System.exit (0);
 	}
 
-	// check if servers are already running on the given ports
+	// check if any of the specified server ports is in use already
 	try {
 	    if (websrvPort > 0)
 	        checkRunning (websrvPort);
@@ -174,18 +207,6 @@ import org.apache.xmlrpc.*;
 	    System.out.println (running.getMessage ());
 	    System.exit (1);
 	}
-
-
-	// get main property file from home dir or vice versa, depending on what we have.
-	// get property file from hopHome
-	if (propfile == null) {
-	    if (homeDir != null)
-	        propfile = new File (homeDir, "server.properties").getAbsolutePath ();
-	    else
-	        propfile = new File ("server.properties").getAbsolutePath ();
-	}
-	// create system properties
-	sysProps = new SystemProperties (propfile);
 
 	// get hopHome from property file
 	if (homeDir == null)
@@ -343,7 +364,7 @@ import org.apache.xmlrpc.*;
 
 	    if (rmiPort > 0) {
 	        if (paranoid) {
-	            HopSocketFactory factory = new HopSocketFactory ();
+	            HelmaSocketFactory factory = new HelmaSocketFactory ();
 	            String rallow = sysProps.getProperty ("allowWeb");
 	            if (rallow != null) {
 	                StringTokenizer st = new StringTokenizer (rallow, " ,;");
@@ -368,6 +389,19 @@ import org.apache.xmlrpc.*;
 	    getLogger().log ("Error initializing embedded database: "+gx);
 	    gx.printStackTrace ();
 	    return;
+	}
+
+	// set the security manager. 
+	// the default implementation is helma.main.HelmaSecurityManager.
+	try {
+	    String secManClass = sysProps.getProperty ("securityManager");
+	    if (secManClass != null) {
+	        SecurityManager secMan = (SecurityManager) Class.forName(secManClass).newInstance ();
+	        System.setSecurityManager (secMan);
+	        getLogger().log ("Setting security manager to "+secManClass);
+	    }
+	} catch (Exception x) {
+	    getLogger().log ("Error setting security manager: "+x);
 	}
 
 	// start applications
