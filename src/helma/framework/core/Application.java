@@ -69,7 +69,10 @@ public final class Application implements IPathElement, Runnable {
     Object rootObject = null;
     String rootObjectClass;
 
-    /**
+    // The session manager
+    SessionManager sessionMgr;
+
+     /**
      *  The type manager checks if anything in the application's prototype definitions
      * has been updated prior to each evaluation.
      */
@@ -88,7 +91,6 @@ public final class Application implements IPathElement, Runnable {
     boolean running = false;
     boolean debug;
     long starttime;
-    Hashtable sessions;
     Hashtable dbSources;
 
     // map of app modules reflected at app.modules
@@ -257,7 +259,6 @@ public final class Application implements IPathElement, Runnable {
 
         updateProperties();
 
-        sessions = new Hashtable();
         dbSources = new Hashtable();
         modules = new SystemMap();
 
@@ -270,6 +271,17 @@ public final class Application implements IPathElement, Runnable {
     public synchronized void init()
             throws DatabaseException, IllegalAccessException,
                    InstantiationException, ClassNotFoundException {
+
+        // create and init session manager
+        String sessionMgrImpl = props.getProperty("sessionManagerImpl",
+                                                  "helma.framework.core.SessionManager");
+        sessionMgr = (SessionManager) Class.forName(sessionMgrImpl).newInstance();
+        sessionMgr.setApplication(this);
+
+        // read the sessions if wanted
+        if ("true".equalsIgnoreCase(getProperty("persistentSessions"))) {
+            sessionMgr.loadSessionData(null);
+        }
 
         // create and init type mananger
         typemgr = new TypeManager(this);
@@ -293,11 +305,6 @@ public final class Application implements IPathElement, Runnable {
                              e.toString());
                 }
             }
-        }
-
-        // read the sessions if wanted
-        if ("true".equalsIgnoreCase(getProperty("persistentSessions"))) {
-            loadSessionData(null);
         }
 
         // create and init evaluator/thread lists
@@ -406,9 +413,6 @@ public final class Application implements IPathElement, Runnable {
             System.err.println("Error shutting down embedded db: " + dbx);
         }
 
-        // null out type manager
-        typemgr = null;
-
         // tell the extensions that we're stopped.
         if (Server.getServer() != null) {
             Vector extensions = Server.getServer().getExtensions();
@@ -422,7 +426,7 @@ public final class Application implements IPathElement, Runnable {
 
         // store the sessions if wanted
         if ("true".equalsIgnoreCase(getProperty("persistentSessions"))) {
-            storeSessionData(null);
+            sessionMgr.storeSessionData(null);
         }
 
     }
@@ -564,7 +568,7 @@ public final class Application implements IPathElement, Runnable {
         requestCount += 1;
 
         // get user for this request's session
-        Session session = checkSession(req.session);
+        Session session = createSession(req.session);
 
         session.touch();
 
@@ -829,40 +833,8 @@ public final class Application implements IPathElement, Runnable {
      * Return the session currently associated with a given Hop session ID.
      * Create a new session if necessary.
      */
-    public Session checkSession(String sessionID) {
-        Session session = getSession(sessionID);
-
-        if (session == null) {
-            session = new Session(sessionID, this);
-            sessions.put(sessionID, session);
-        }
-
-        return session;
-    }
-
-    /**
-     * Remove the session from the sessions-table and logout the user.
-     */
-    public void destroySession(String sessionID) {
-        logoutSession(getSession(sessionID));
-        sessions.remove(sessionID);
-    }
-
-    /**
-     * Remove the session from the sessions-table and logout the user.
-     */
-    public void destroySession(Session session) {
-        logoutSession(session);
-        sessions.remove(session.getSessionID());
-    }
-
-    /**
-     *  Return the whole session map. We return a clone of the table to prevent
-     * actual changes from the table itself, which is managed by the application.
-     * It is safe and allowed to manipulate the session objects contained in the table, though.
-     */
-    public Map getSessions() {
-        return (Map) sessions.clone();
+    public Session createSession(String sessionId) {
+        return sessionMgr.createSession(sessionId);
     }
 
     /**
@@ -870,33 +842,7 @@ public final class Application implements IPathElement, Runnable {
      *  not the session object) representing currently logged in users.
      */
     public List getActiveUsers() {
-        ArrayList list = new ArrayList();
-
-        // used to keep track of already added users - we only return
-        // one object per user, and users may have multiple sessions
-        HashSet usernames = new HashSet();
-
-        for (Enumeration e = sessions.elements(); e.hasMoreElements();) {
-            Session s = (Session) e.nextElement();
-
-            if (s == null) {
-                continue;
-            } else if (s.isLoggedIn() && !usernames.contains(s.getUID())) {
-                // returns a session if it is logged in and has not been
-                // returned before (so for each logged-in user we get one
-                // session object, even if this user is logged in several
-                // times (used to retrieve the active users list).
-                INode node = s.getUserNode();
-
-                // we check again because user may have been logged out between the first check
-                if (node != null) {
-                    usernames.add(s.getUID());
-                    list.add(node);
-                }
-            }
-        }
-
-        return list;
+        return sessionMgr.getActiveUsers();
     }
 
     /**
@@ -923,39 +869,32 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
-     * Return an array of <code>SessionBean</code> objects currently associated with a given
-     * Helma user.
+     * Return an array of <code>SessionBean</code> objects currently associated
+     * with a given Helma user.
      */
     public List getSessionsForUsername(String username) {
-        ArrayList list = new ArrayList();
-
-        if (username == null) {
-            return list;
-        }
-
-        for (Enumeration e = sessions.elements(); e.hasMoreElements();) {
-            Session s = (Session) e.nextElement();
-
-            if (s == null) {
-                continue;
-            } else if (username.equals(s.getUID())) {
-                // append to list if session is logged in and fits the given username
-                list.add(new SessionBean(s));
-            }
-        }
-
-        return list;
+        return sessionMgr.getSessionsForUsername(username);
     }
 
     /**
      * Return the session currently associated with a given Hop session ID.
      */
-    public Session getSession(String sessionID) {
-        if (sessionID == null) {
-            return null;
-        }
+    public Session getSession(String sessionId) {
+        return sessionMgr.getSession(sessionId);
+    }
 
-        return (Session) sessions.get(sessionID);
+    /**
+     *  Return the whole session map.
+     */
+    public Map getSessions() {
+        return sessionMgr.getSessions();
+    }
+
+    /**
+     * Returns the number of currenty active sessions.
+     */
+    public int countSessions() {
+        return sessionMgr.countSessions();
     }
 
     /**
@@ -1027,11 +966,14 @@ public final class Application implements IPathElement, Runnable {
         try {
             INode users = getUserRoot();
             Node unode = (Node) users.getChildElement(uname);
+            if (unode == null)
+                return false;
+
             String pw = unode.getString("password");
 
             if ((pw != null) && pw.equals(password)) {
                 // let the old user-object forget about this session
-                logoutSession(session);
+                session.logout();
                 session.login(unode);
 
                 return true;
@@ -1439,10 +1381,11 @@ public final class Application implements IPathElement, Runnable {
 
                     thisEvaluator = getEvaluator();
 
-                    Hashtable cloned = (Hashtable) sessions.clone();
+                    Map sessions = sessionMgr.getSessions();
 
-                    for (Enumeration e = cloned.elements(); e.hasMoreElements();) {
-                        Session session = (Session) e.nextElement();
+                    Iterator it = sessions.values().iterator();
+                    while (it.hasNext()) {
+                        Session session = (Session) it.next();
 
                         if ((now - session.lastTouched()) > (sessionTimeout * 60000)) {
                             NodeHandle userhandle = session.userHandle;
@@ -1456,7 +1399,7 @@ public final class Application implements IPathElement, Runnable {
                                 }
                             }
 
-                            destroySession(session);
+                            sessionMgr.discardSession(session);
                         }
                     }
                 } catch (Exception cx) {
@@ -1888,85 +1831,6 @@ public final class Application implements IPathElement, Runnable {
         // XML-RPC access items are case insensitive and stored in lower case
         if (!xmlrpcAccess.contains(key.toLowerCase())) {
             throw new Exception("Method " + key + " is not callable via XML-RPC");
-        }
-    }
-
-    /**
-     *
-     *
-     * @param f ...
-     */
-    public void storeSessionData(File f) {
-        if (f == null) {
-            f = new File(dbDir, "sessions");
-        }
-
-        try {
-            OutputStream ostream = new BufferedOutputStream(new FileOutputStream(f));
-            ObjectOutputStream p = new ObjectOutputStream(ostream);
-
-            synchronized (sessions) {
-                p.writeInt(sessions.size());
-
-                for (Enumeration e = sessions.elements(); e.hasMoreElements();) {
-                    p.writeObject(e.nextElement());
-                }
-            }
-
-            p.flush();
-            ostream.close();
-            logEvent("stored " + sessions.size() + " sessions in file");
-        } catch (Exception e) {
-            logEvent("error storing session data: " + e.toString());
-        }
-    }
-
-    /**
-     * loads the serialized session table from a given file or from dbdir/sessions
-     */
-    public void loadSessionData(File f) {
-        if (f == null) {
-            f = new File(dbDir, "sessions");
-        }
-
-        // compute session timeout value
-        int sessionTimeout = 30;
-
-        try {
-            sessionTimeout = Math.max(0,
-                                      Integer.parseInt(props.getProperty("sessionTimeout",
-                                                                         "30")));
-        } catch (Exception ignore) {
-            System.out.println(ignore.toString());
-        }
-
-        long now = System.currentTimeMillis();
-
-        try {
-            // load the stored data:
-            InputStream istream = new BufferedInputStream(new FileInputStream(f));
-            ObjectInputStream p = new ObjectInputStream(istream);
-            int size = p.readInt();
-            int ct = 0;
-            Hashtable newSessions = new Hashtable();
-
-            while (ct < size) {
-                Session session = (Session) p.readObject();
-
-                if ((now - session.lastTouched()) < (sessionTimeout * 60000)) {
-                    session.setApp(this);
-                    newSessions.put(session.getSessionID(), session);
-                }
-
-                ct++;
-            }
-
-            p.close();
-            istream.close();
-            sessions = newSessions;
-            logEvent("loaded " + newSessions.size() + " sessions from file");
-        } catch (Exception e) {
-            logEvent("error loading session data: " + e.toString());
         }
     }
 

@@ -108,7 +108,7 @@ public class ApplicationBean implements Serializable {
      * @return ...
      */
     public int countSessions() {
-        return app.sessions.size();
+        return app.countSessions();
     }
 
     /**
@@ -144,7 +144,7 @@ public class ApplicationBean implements Serializable {
             return null;
         }
 
-        Session session = app.checkSession(sessionID.trim());
+        Session session = app.createSession(sessionID.trim());
 
         if (session == null) {
             return null;
@@ -159,16 +159,9 @@ public class ApplicationBean implements Serializable {
      * @return ...
      */
     public SessionBean[] getSessions() {
-        SessionBean[] theArray = new SessionBean[app.sessions.size()];
-        int i = 0;
-
-        for (Enumeration e = app.sessions.elements(); e.hasMoreElements();) {
-            SessionBean sb = new SessionBean((Session) e.nextElement());
-
-            theArray[i++] = sb;
-        }
-
-        return theArray;
+        Map sessions = app.getSessions();
+        Object[] array = new SessionBean[sessions.size()];
+        return (SessionBean[]) sessions.values().toArray(array);
     }
 
     /**
