@@ -17,109 +17,146 @@ import java.text.*;
 
 public final class HtmlEncoder {
 
+    // transformation table for characters 128 to 255. These actually fall into two 
+	// groups, put together for efficiency: "Windows" chacacters 128-159 such as 
+	// "smart quotes", which are encoded to valid Unicode entities, and 
+	// valid ISO-8859 caracters 160-255, which are encoded to the symbolic HTML
+	// entity. Everything >= 256 is encoded to a numeric entity.
+	// 
+    // for mor on HTML entities see http://www.pemberley.com/janeinfo/latin1.html  and
+	// ftp://ftp.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/WINDOWS/CP1252.TXT
+	//
+    static final String[] transform =  {
+        "&euro;",   // 128
+        "",           // empty string means character is undefined in unicode
+        "&#8218;", 
+        "&#402;",
+        "&#8222;",
+        "&#8230;",
+        "&#8224;",
+        "&#8225;",
+        "&#710;",
+        "&#8240;",
+        "&#352;",
+        "&#8249;",
+        "&#338;",
+        "",
+        "&#381;",
+        "",
+        "",
+        "&#8216;",
+        "&#8217;",
+        "&#8220;",
+        "&#8221;",
+        "&#8226;",
+        "&#8211;",
+        "&#8212;",
+        "&#732;",
+        "&#8482;",
+        "&#353;",
+        "&#8250;",
+        "&#339;",
+        "",
+        "&#382;",
+        "&#376;",  // 159
+        "&nbsp;",    // 160
+        "&iexcl;",
+        "&cent;",
+        "&pound;",
+        "&curren;",
+        "&yen;",
+        "&brvbar;",
+        "&sect;",
+        "&uml;",
+        "&copy;",
+        "&ordf;",
+        "&laquo;",
+        "&not;",
+        "&shy;",
+        "&reg;",
+        "&macr;",
+        "&deg;",
+        "&plusmn;",
+        "&sup2;",
+        "&sup3;",
+        "&acute;",
+        "&micro;",
+        "&para;",
+        "&middot;",
+        "&cedil;",
+        "&sup1;",
+        "&ordm;",
+        "&raquo;",
+        "&frac14;",
+        "&frac12;",
+        "&frac34;",
+        "&iquest;",
+        "&Agrave;",
+        "&Aacute;",
+        "&Acirc;",
+        "&Atilde;",
+        "&Auml;",
+        "&Aring;",
+        "&AElig;",
+        "&Ccedil;",
+        "&Egrave;",
+        "&Eacute;",
+        "&Ecirc;",
+        "&Euml;",
+        "&Igrave;",
+        "&Iacute;",
+        "&Icirc;",
+        "&Iuml;",
+        "&ETH;",
+        "&Ntilde;",
+        "&Ograve;",
+        "&Oacute;",
+        "&Ocirc;",
+        "&Otilde;",
+        "&Ouml;",
+        "&times;",
+        "&Oslash;",
+        "&Ugrave;",
+        "&Uacute;",
+        "&Ucirc;",
+        "&Uuml;",
+        "&Yacute;",
+        "&THORN;",
+        "&szlig;",
+        "&agrave;",
+        "&aacute;",
+        "&acirc;",
+        "&atilde;",
+        "&auml;",
+        "&aring;",
+        "&aelig;",
+        "&ccedil;",
+        "&egrave;",
+        "&eacute;",
+        "&ecirc;",
+        "&euml;",
+        "&igrave;",
+        "&iacute;",
+        "&icirc;",
+        "&iuml;",
+        "&eth;",
+        "&ntilde;",
+        "&ograve;",
+        "&oacute;",
+        "&ocirc;",
+        "&otilde;",
+        "&ouml;",
+        "&divide;",
+        "&oslash;",
+        "&ugrave;",
+        "&uacute;",
+        "&ucirc;",
+        "&uuml;",
+        "&yacute;",
+        "&thorn;",
+        "&yuml;"    // 255
+    };
 
-    /*
-    static final Hashtable convertor = new Hashtable (128);
-
-    // conversion table
-    static {
-     convertor.put(new Integer(160), "&nbsp;");
-     convertor.put(new Integer(161), "&iexcl;");
-     convertor.put(new Integer(162), "&cent;");
-     convertor.put(new Integer(163), "&pound;");
-     convertor.put(new Integer(164), "&curren;");
-     convertor.put(new Integer(165), "&yen;");
-     convertor.put(new Integer(166), "&brvbar;");
-     convertor.put(new Integer(167), "&sect;");
-     convertor.put(new Integer(168), "&uml;");
-     convertor.put(new Integer(169), "&copy;");
-     convertor.put(new Integer(170), "&ordf;");
-     convertor.put(new Integer(171), "&laquo;");
-     convertor.put(new Integer(172), "&not;");
-     convertor.put(new Integer(173), "&shy;");
-     convertor.put(new Integer(174), "&reg;");
-     convertor.put(new Integer(175), "&macr;");
-     convertor.put(new Integer(176), "&deg;");
-     convertor.put(new Integer(177), "&plusmn;");
-     convertor.put(new Integer(178), "&sup2;");
-     convertor.put(new Integer(179), "&sup3;");
-     convertor.put(new Integer(180), "&acute;");
-     convertor.put(new Integer(181), "&micro;");
-     convertor.put(new Integer(182), "&para;");
-     convertor.put(new Integer(183), "&middot;");
-     convertor.put(new Integer(184), "&cedil;");
-     convertor.put(new Integer(185), "&sup1;");
-     convertor.put(new Integer(186), "&ordm;");
-     convertor.put(new Integer(187), "&raquo;");
-     convertor.put(new Integer(188), "&frac14;");
-     convertor.put(new Integer(189), "&frac12;");
-     convertor.put(new Integer(190), "&frac34;");
-     convertor.put(new Integer(191), "&iquest;");
-     convertor.put(new Integer(192), "&Agrave;");
-     convertor.put(new Integer(193), "&Aacute;");
-     convertor.put(new Integer(194), "&Acirc;");
-     convertor.put(new Integer(195), "&Atilde;");
-     convertor.put(new Integer(196), "&Auml;");
-     convertor.put(new Integer(197), "&Aring;");
-     convertor.put(new Integer(198), "&AElig;");
-     convertor.put(new Integer(199), "&Ccedil;");
-     convertor.put(new Integer(200), "&Egrave;");
-     convertor.put(new Integer(201), "&Eacute;");
-     convertor.put(new Integer(202), "&Ecirc;");
-     convertor.put(new Integer(203), "&Euml;");
-     convertor.put(new Integer(204), "&Igrave;");
-     convertor.put(new Integer(205), "&Iacute;");
-     convertor.put(new Integer(206), "&Icirc;");
-     convertor.put(new Integer(207), "&Iuml;");
-     convertor.put(new Integer(208), "&ETH;");
-     convertor.put(new Integer(209), "&Ntilde;");
-     convertor.put(new Integer(210), "&Ograve;");
-     convertor.put(new Integer(211), "&Oacute;");
-     convertor.put(new Integer(212), "&Ocirc;");
-     convertor.put(new Integer(213), "&Otilde;");
-     convertor.put(new Integer(214), "&Ouml;");
-     convertor.put(new Integer(215), "&times;");
-     convertor.put(new Integer(216), "&Oslash;");
-     convertor.put(new Integer(217), "&Ugrave;");
-     convertor.put(new Integer(218), "&Uacute;");
-     convertor.put(new Integer(219), "&Ucirc;");
-     convertor.put(new Integer(220), "&Uuml;");
-     convertor.put(new Integer(221), "&Yacute;");
-     convertor.put(new Integer(222), "&THORN;");
-     convertor.put(new Integer(223), "&szlig;");
-     convertor.put(new Integer(224), "&agrave;");
-     convertor.put(new Integer(225), "&aacute;");
-     convertor.put(new Integer(226), "&acirc;");
-     convertor.put(new Integer(227), "&atilde;");
-     convertor.put(new Integer(228), "&auml;");
-     convertor.put(new Integer(229), "&aring;");
-     convertor.put(new Integer(230), "&aelig;");
-     convertor.put(new Integer(231), "&ccedil;");
-     convertor.put(new Integer(232), "&egrave;");
-     convertor.put(new Integer(233), "&eacute;");
-     convertor.put(new Integer(234), "&ecirc;");
-     convertor.put(new Integer(235), "&euml;");
-     convertor.put(new Integer(236), "&igrave;");
-     convertor.put(new Integer(237), "&iacute;");
-     convertor.put(new Integer(238), "&icirc;");
-     convertor.put(new Integer(239), "&iuml;");
-     convertor.put(new Integer(240), "&eth;");
-     convertor.put(new Integer(241), "&ntilde;");
-     convertor.put(new Integer(242), "&ograve;");
-     convertor.put(new Integer(243), "&oacute;");
-     convertor.put(new Integer(244), "&ocirc;");
-     convertor.put(new Integer(245), "&otilde;");
-     convertor.put(new Integer(246), "&ouml;");
-     convertor.put(new Integer(247), "&divide;");
-     convertor.put(new Integer(248), "&oslash;");
-     convertor.put(new Integer(249), "&ugrave;");
-     convertor.put(new Integer(250), "&uacute;");
-     convertor.put(new Integer(251), "&ucirc;");
-     convertor.put(new Integer(252), "&uuml;");
-     convertor.put(new Integer(253), "&yacute;");
-     convertor.put(new Integer(254), "&thorn;");
-     convertor.put(new Integer(255), "&yuml;");
-    }  */
 
     /**
      * 
@@ -197,16 +234,16 @@ public final class HtmlEncoder {
 	            ret.append ('>');
 	            break;
 	        default:
-	             ret.append (c);
-	             // if (c < 160)
-	             //     ret.append ((char) c);
-	             // else if (c >= 160 && c <= 255)
-	             //     ret.append (convertor.get(new Integer(c)));
-	             // else {
-	             //     ret.append ("&#");
-	             //     ret.append (c);
-	             //     ret.append (";");
-	             // }
+	             // ret.append (c);
+	             if (c < 128)
+	                 ret.append (c);
+	             else if (c >= 128 && c < 256)
+	                 ret.append (transform[c-128]);
+	             else { 
+	                 ret.append ("&#");
+	                 ret.append ((int) c);
+	                 ret.append (";");
+	             }
 	             if (!tagOpen && !Character.isWhitespace (c))
 	                 swallowOneNewline = false;
 	    }
@@ -271,16 +308,16 @@ public final class HtmlEncoder {
 	            }
 	            break;
 	        default:
-	             ret.append (c);
-	             // if (c < 160)
-	             //     ret.append ((char) c);
-	             // else if (c >= 160 && c <= 255)
-	             //     ret.append (convertor.get(new Integer(c)));
-	             // else {
-	             //     ret.append ("&#");
-	             //     ret.append (c);
-	             //     ret.append (";");
-	             // }
+	             // ret.append (c);
+	             if (c < 128)
+	                 ret.append (c);
+	             else if (c >= 128 && c < 256)
+	                 ret.append (transform[c-128]);
+	             else {
+	                 ret.append ("&#");
+	                 ret.append ((int) c);
+	                 ret.append (";");
+	             }
 	    }
 	}
      }
@@ -315,5 +352,26 @@ public final class HtmlEncoder {
 	}
      }
 
+    // test method
+	public static String printCharRange (int from, int to) {
+	    StringBuffer response = new StringBuffer();
+		for (int i=from;i<to;i++) {
+			response.append (i);
+			response.append ("      ");
+			response.append ((char) i);
+			response.append ("      ");
+	        if (i < 128)
+	            response.append ((char) i);
+	        else if (i >= 128 && i < 256)
+	            response.append (transform[i-128]);
+	        else {
+	            response.append ("&#");
+	            response.append (i);
+	            response.append (";");
+	        }
+			response.append ("\r\n");
+		}
+		return response.toString();
+	}
 
 } // end of class
