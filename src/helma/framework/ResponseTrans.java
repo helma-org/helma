@@ -185,18 +185,14 @@ public final class ResponseTrans implements Externalizable {
     }
 
     /**
-     * Returns the number of characters written to the response buffer so far.
+     *  Get the response buffer, creating it if it doesn't exist
      */
-    public int getBufferLength() {
+    public StringBuffer getBuffer () {
 	if (buffer == null)
-	    return 0;
-	return buffer.length ();
+	    buffer = new StringBuffer (INITIAL_BUFFER_SIZE);
+	return buffer;
     }
-    
-    public void setBufferLength(int l) {
-	if (buffer != null)
-	    buffer.setLength (l);
-    }
+
 
     /**
      * Append a string to the response unchanged. This is often called 
