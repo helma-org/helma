@@ -154,8 +154,7 @@ public class RhinoEngine implements ScriptingEngine {
 
         // if visual debugger is on let it know we're entering a context
         if (core.debugger != null) {
-            core.debugger.contextCreated(context);
-            core.debugger.contextEntered(context);
+            core.initDebugger(context);
         }
 
         if ("true".equals(app.getProperty("rhino.trace"))) {
