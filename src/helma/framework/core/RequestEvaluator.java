@@ -285,6 +285,7 @@ public class RequestEvaluator implements Runnable {
 	                        throw new RuntimeException ();
 	                    // The path could not be resolved. Check if there is a "not found" action
 	                    // specified in the property file.
+	                    res.status = 404;
 	                    String notFoundAction = app.props.getProperty ("notFound", "notfound");
 	                    Prototype p = app.getPrototype (root);
 	                    action = p.getActionOrTemplate (notFoundAction);
@@ -305,7 +306,7 @@ public class RequestEvaluator implements Runnable {
 	                    }
 	                    localrtx.timer.endEvent (requestPath+" execute");
 	                } catch (RedirectException redirect) {
-	                    res.redirect = redirect.getMessage ();
+	                    // res.redirect = redirect.getMessage ();
 	                    // if there is a message set, save it on the user object for the next request
 	                    if (res.message != null)
 	                        user.message = res.message;
