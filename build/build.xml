@@ -28,7 +28,6 @@
 
         <property name="jar.name" value="${project}"/>
         <property name="package.name" value="${project}-${version}"/>
-        <property name="antclick.name" value="antclick-1.1pre2"/>
 
         <property name="debug" value="on"/>
         <property name="optimize" value="on"/>
@@ -67,8 +66,6 @@
         <echo message=" docs       --> tries to retrieve the HTML documentation "/>
         <echo message="                (may need proxy settings in startscript)"/>
         <echo message=" package    --> generates the distribution (zip and tar.gz)"/>
-        <echo message=" antclick   --> generates the distribution (zip and tar.gz)"/>
-        <echo message="                with antville preconfigured"/>
         <echo message=" app [name] --> gets an application from the cvs and zips it"/>
         <echo message=""/>
         <echo message=" usage      --> provides help on using the build tool (default)"/>
@@ -187,7 +184,7 @@
 
     <!-- =================================================================== -->
     <!-- Compile Helma and prepare the skeleton in a temporary directory.    -->
-    <!-- Used by package and antclick.                                       -->
+    <!-- Used by package             .                                       -->
     <!-- =================================================================== -->
     <target name="package-raw" depends="init, jar">
 
@@ -333,52 +330,6 @@
              includes="src/**,build/**,license.txt,licenses/**" />
         </zip>
     </target>
-
-
-    <!-- =================================================================== -->
-    <!-- Make Antclick package (helma plus Antville and manage apps)         -->
-    <!-- =================================================================== -->
-    <target name="antclick" depends="init">
-        <mkdir dir="${build.work}"/>
-
-        <!-- create the main part of helma -->
-        <antcall target="package-raw">
-            <param name="distribution" value="antclick" />
-        </antcall>
-
-        <!-- get antville -->
-        <mkdir dir="${build.work}/apps" />
-        <!-- to retrieve special versions of antville insert additional attributes:
-             tag="TAGNAME", date="1972-09-24" or date="1972-09-24 20:05" -->
-        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="antville" dest="${build.work}/apps" />
-
-        <!-- unzip images -->
-        <unzip src="${build.work}/apps/antville/images.zip" dest="${build.work}/static">
-            <patternset>
-                <include name="**"/>
-            </patternset>
-        </unzip>
-
-        <!-- delete antville's mysql-scripts, image-zip etc -->
-        <delete>
-            <fileset dir="${build.work}/apps/antville" includes="images.zip,*.sql" />
-        </delete>
-
-        <!-- get and zip manage-app -->
-        <antcall target="package-manage" />
-
-        <!-- zip up the whole thing -->
-        <antcall target="package-zip">
-            <param name="filename" value="${antclick.name}"/>
-        </antcall>
-        <antcall target="package-tgz">
-            <param name="filename" value="${antclick.name}"/>
-        </antcall>
-
-        <!-- clean up -->
-        <delete dir="${build.work}"/>
-    </target>
-
 
     <!-- =================================================================== -->
     <!-- Gets an application from the cvs and zips/targzs it                 -->
