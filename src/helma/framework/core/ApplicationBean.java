@@ -1,215 +1,448 @@
+/*
+ * Helma License Notice
+ *
+ * The contents of this file are subject to the Helma License
+ * Version 2.0 (the "License"). You may not use this file except in
+ * compliance with the License. A copy of the License is available at
+ * http://adele.helma.org/download/helma/license.txt
+ *
+ * Copyright 1998-2003 Helma Software. All Rights Reserved.
+ *
+ * $RCSfile$
+ * $Author$
+ * $Revision$
+ * $Date$
+ */
+
 package helma.framework.core;
 
-import java.io.Serializable;
+import helma.objectmodel.INode;
 import java.io.File;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
-import helma.objectmodel.INode;
-
+/**
+ * 
+ */
 public class ApplicationBean implements Serializable {
-
     Application app;
 
+    /**
+     * Creates a new ApplicationBean object.
+     *
+     * @param app ...
+     */
     public ApplicationBean(Application app) {
-	this.app = app;
+        this.app = app;
     }
 
-    public void clearCache () {
-	app.clearCache ();
+    /**
+     *
+     */
+    public void clearCache() {
+        app.clearCache();
     }
 
-    public void log (Object msg) {
-	String str = msg == null ? "null" : msg.toString();
-	app.logEvent (str);
+    /**
+     *
+     *
+     * @param msg ...
+     */
+    public void log(Object msg) {
+        String str = (msg == null) ? "null" : msg.toString();
+
+        app.logEvent(str);
     }
 
-    public void log (String logname, Object msg) {
-	String str = msg == null ? "null" : msg.toString();
-	app.getLogger (logname).log (str);
+    /**
+     *
+     *
+     * @param logname ...
+     * @param msg ...
+     */
+    public void log(String logname, Object msg) {
+        String str = (msg == null) ? "null" : msg.toString();
+
+        app.getLogger(logname).log(str);
     }
 
-    public void debug (Object msg) {
-	if (app.debug()) {
-	    String str = msg == null ? "null" : msg.toString();
-	    app.logEvent (str);
-	}
+    /**
+     *
+     *
+     * @param msg ...
+     */
+    public void debug(Object msg) {
+        if (app.debug()) {
+            String str = (msg == null) ? "null" : msg.toString();
+
+            app.logEvent(str);
+        }
     }
 
-    public void debug (String logname, Object msg) {
-	if (app.debug()) {
-	    String str = msg == null ? "null" : msg.toString();
-	    app.getLogger (logname).log (str);
-	}
+    /**
+     *
+     *
+     * @param logname ...
+     * @param msg ...
+     */
+    public void debug(String logname, Object msg) {
+        if (app.debug()) {
+            String str = (msg == null) ? "null" : msg.toString();
+
+            app.getLogger(logname).log(str);
+        }
     }
 
-    public int countSessions () {
-	return app.sessions.size();
+    /**
+     *
+     *
+     * @return ...
+     */
+    public int countSessions() {
+        return app.sessions.size();
     }
 
-    public SessionBean getSession (String sessionID) {
-	if (sessionID==null)
-	    return null;
-	Session session = app.getSession (sessionID.trim ());
-	if (session == null)
-	    return null;
-	return new SessionBean (session);
+    /**
+     *
+     *
+     * @param sessionID ...
+     *
+     * @return ...
+     */
+    public SessionBean getSession(String sessionID) {
+        if (sessionID == null) {
+            return null;
+        }
+
+        Session session = app.getSession(sessionID.trim());
+
+        if (session == null) {
+            return null;
+        }
+
+        return new SessionBean(session);
     }
 
-    public SessionBean createSession (String sessionID) {
-	if (sessionID==null)
-	    return null;
-	Session session = session = app.checkSession (sessionID.trim ());
-	if (session == null)
-	    return null;
-	return new SessionBean (session);
+    /**
+     *
+     *
+     * @param sessionID ...
+     *
+     * @return ...
+     */
+    public SessionBean createSession(String sessionID) {
+        if (sessionID == null) {
+            return null;
+        }
+
+        Session session = session = app.checkSession(sessionID.trim());
+
+        if (session == null) {
+            return null;
+        }
+
+        return new SessionBean(session);
     }
 
-    public SessionBean[] getSessions () {
-	SessionBean[] theArray = new SessionBean[app.sessions.size()];
-	int i=0;
-	for (Enumeration e=app.sessions.elements(); e.hasMoreElements(); ) {
-	    SessionBean sb = new SessionBean ((Session) e.nextElement ());
-	    theArray[i++] = sb;
-	}
-	return theArray;
+    /**
+     *
+     *
+     * @return ...
+     */
+    public SessionBean[] getSessions() {
+        SessionBean[] theArray = new SessionBean[app.sessions.size()];
+        int i = 0;
+
+        for (Enumeration e = app.sessions.elements(); e.hasMoreElements();) {
+            SessionBean sb = new SessionBean((Session) e.nextElement());
+
+            theArray[i++] = sb;
+        }
+
+        return theArray;
     }
 
-    public INode registerUser (String username, String password) {
-	if (username==null || password==null || "".equals (username.trim ()) || "".equals (password.trim ()) )
-	    return null;
-	else
-	    return app.registerUser (username, password);
+    /**
+     *
+     *
+     * @param username ...
+     * @param password ...
+     *
+     * @return ...
+     */
+    public INode registerUser(String username, String password) {
+        if ((username == null) || (password == null) || "".equals(username.trim()) ||
+                "".equals(password.trim())) {
+            return null;
+        } else {
+            return app.registerUser(username, password);
+        }
     }
 
-    public INode getUser (String username) {
-	if (username==null || "".equals (username.trim()) )
-	    return null;
-	return app.getUserNode (username);
+    /**
+     *
+     *
+     * @param username ...
+     *
+     * @return ...
+     */
+    public INode getUser(String username) {
+        if ((username == null) || "".equals(username.trim())) {
+            return null;
+        }
+
+        return app.getUserNode(username);
     }
 
-    public INode[] getActiveUsers () {
-	List activeUsers = app.getActiveUsers ();
-	return (INode[]) activeUsers.toArray (new INode[0]);
+    /**
+     *
+     *
+     * @return ...
+     */
+    public INode[] getActiveUsers() {
+        List activeUsers = app.getActiveUsers();
+
+        return (INode[]) activeUsers.toArray(new INode[0]);
     }
 
-	public INode[] getRegisteredUsers () {
-	List registeredUsers = app.getRegisteredUsers ();
-	return (INode[]) registeredUsers.toArray (new INode[0]);
-	}
+    /**
+     *
+     *
+     * @return ...
+     */
+    public INode[] getRegisteredUsers() {
+        List registeredUsers = app.getRegisteredUsers();
 
-    public SessionBean[] getSessionsForUser (INode usernode)	{
-	if (usernode==null)
-	    return new SessionBean[0];
-	else
-	    return getSessionsForUser(usernode.getName());
+        return (INode[]) registeredUsers.toArray(new INode[0]);
     }
 
-    public SessionBean[] getSessionsForUser (String username) {
-	if (username==null || "".equals (username.trim ()) )
-	    return new SessionBean[0];
-	List userSessions = app.getSessionsForUsername (username);
-	return (SessionBean[]) userSessions.toArray (new SessionBean[0]);
+    /**
+     *
+     *
+     * @param usernode ...
+     *
+     * @return ...
+     */
+    public SessionBean[] getSessionsForUser(INode usernode) {
+        if (usernode == null) {
+            return new SessionBean[0];
+        } else {
+            return getSessionsForUser(usernode.getName());
+        }
+    }
+
+    /**
+     *
+     *
+     * @param username ...
+     *
+     * @return ...
+     */
+    public SessionBean[] getSessionsForUser(String username) {
+        if ((username == null) || "".equals(username.trim())) {
+            return new SessionBean[0];
+        }
+
+        List userSessions = app.getSessionsForUsername(username);
+
+        return (SessionBean[]) userSessions.toArray(new SessionBean[0]);
     }
 
     // getter methods for readonly properties of this application
-
-    public int getcacheusage () {
-	return app.getCacheUsage ();
+    public int getcacheusage() {
+        return app.getCacheUsage();
     }
 
+    /**
+     *
+     *
+     * @return ...
+     */
     public INode getdata() {
-	return app.getCacheNode ();
+        return app.getCacheNode();
     }
-    
+
+    /**
+     *
+     *
+     * @return ...
+     */
     public Map getmodules() {
-	return app.modules;
+        return app.modules;
     }
 
-    public String getdir () {
-	return app.getAppDir ().getAbsolutePath ();
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getdir() {
+        return app.getAppDir().getAbsolutePath();
     }
 
-    public Date getupSince () {
-	return new Date (app.starttime);
+    /**
+     *
+     *
+     * @return ...
+     */
+    public Date getupSince() {
+        return new Date(app.starttime);
     }
 
-    public long getrequestCount ()	{
-	return app.getRequestCount ();
+    /**
+     *
+     *
+     * @return ...
+     */
+    public long getrequestCount() {
+        return app.getRequestCount();
     }
 
-    public long getxmlrpcCount ()	{
-	return app.getXmlrpcCount ();
+    /**
+     *
+     *
+     * @return ...
+     */
+    public long getxmlrpcCount() {
+        return app.getXmlrpcCount();
     }
 
-    public long geterrorCount () {
-	return app.getErrorCount ();
+    /**
+     *
+     *
+     * @return ...
+     */
+    public long geterrorCount() {
+        return app.getErrorCount();
     }
 
-    public Application get__app__ () {
-	return app;
+    /**
+     *
+     *
+     * @return ...
+     */
+    public Application get__app__() {
+        return app;
     }
 
-    public Map getproperties () {
-	return app.getProperties ();
+    /**
+     *
+     *
+     * @return ...
+     */
+    public Map getproperties() {
+        return app.getProperties();
     }
 
-    public int getfreeThreads () {
-	return app.countFreeEvaluators ();
+    /**
+     *
+     *
+     * @return ...
+     */
+    public int getfreeThreads() {
+        return app.countFreeEvaluators();
     }
 
-    public int getactiveThreads () {
-	return app.countActiveEvaluators ();
+    /**
+     *
+     *
+     * @return ...
+     */
+    public int getactiveThreads() {
+        return app.countActiveEvaluators();
     }
 
-    public int getmaxThreads () {
-	return app.countEvaluators ();
+    /**
+     *
+     *
+     * @return ...
+     */
+    public int getmaxThreads() {
+        return app.countEvaluators();
     }
 
-    public void setmaxThreads (int n) {
-	// add one to the number to compensate for the internal scheduler.
-	app.setNumberOfEvaluators (n+1);
+    /**
+     *
+     *
+     * @param n ...
+     */
+    public void setmaxThreads(int n) {
+        // add one to the number to compensate for the internal scheduler.
+        app.setNumberOfEvaluators(n + 1);
     }
 
-    public Map getSkinfiles () {
-	Map skinz = new HashMap ();
-	for (Iterator it = app.getPrototypes().iterator(); it.hasNext(); ) {
-	    Prototype p = (Prototype) it.next ();
-	    skinz.put (p.getName(), p.getSkinMap());
-	}
-	return skinz;
+    /**
+     *
+     *
+     * @return ...
+     */
+    public Map getSkinfiles() {
+        Map skinz = new HashMap();
+
+        for (Iterator it = app.getPrototypes().iterator(); it.hasNext();) {
+            Prototype p = (Prototype) it.next();
+
+            skinz.put(p.getName(), p.getSkinMap());
+        }
+
+        return skinz;
     }
 
-    public Map getSkinfiles (Object[] skinpath) {
-	Map skinz = new HashMap ();
-	for (Iterator it = app.getPrototypes().iterator(); it.hasNext(); ) {
-	    Prototype p = (Prototype) it.next ();
-	    skinz.put (p.getName(), p.getSkinMap(skinpath));
-	}
-	return skinz;
+    /**
+     *
+     *
+     * @param skinpath ...
+     *
+     * @return ...
+     */
+    public Map getSkinfiles(Object[] skinpath) {
+        Map skinz = new HashMap();
+
+        for (Iterator it = app.getPrototypes().iterator(); it.hasNext();) {
+            Prototype p = (Prototype) it.next();
+
+            skinz.put(p.getName(), p.getSkinMap(skinpath));
+        }
+
+        return skinz;
     }
 
-    public String getAppDir () {
-	return app.getAppDir().getAbsolutePath();
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getAppDir() {
+        return app.getAppDir().getAbsolutePath();
     }
 
-    public String getServerDir () {
-	File f = app.getServerDir();
-	if (f == null)
-	    f = app.getAppDir();
-	return f.getAbsolutePath();
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getServerDir() {
+        File f = app.getServerDir();
+
+        if (f == null) {
+            f = app.getAppDir();
+        }
+
+        return f.getAbsolutePath();
     }
 
+    /**
+     *
+     *
+     * @return ...
+     */
     public String toString() {
-	return "[Application " + app.getName() + "]";
+        return "[Application " + app.getName() + "]";
     }
-
 }
-
-
-

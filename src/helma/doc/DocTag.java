@@ -1,108 +1,176 @@
+/*
+ * Helma License Notice
+ *
+ * The contents of this file are subject to the Helma License
+ * Version 2.0 (the "License"). You may not use this file except in
+ * compliance with the License. A copy of the License is available at
+ * http://adele.helma.org/download/helma/license.txt
+ *
+ * Copyright 1998-2003 Helma Software. All Rights Reserved.
+ *
+ * $RCSfile$
+ * $Author$
+ * $Revision$
+ * $Date$
+ */
+
 package helma.doc;
 
 import java.util.*;
 
-public final class DocTag	{
+/**
+ * 
+ */
+public final class DocTag {
+    // for public use we have less types than
+    // internally. eg, we're combining "return" and "returns"
+    // or "arg" and "param".
+    // the values here have to match the index of
+    // the tags-array!
+    public static final int PARAMETER = 0;
+    public static final int RETURN = 2;
+    public static final int AUTHOR = 4;
+    public static final int VERSION = 5;
+    public static final int SEE = 6;
+    public static final int DEPRECATED = 7;
+    public static final int OVERRIDES = 8;
+    public static final String[][] tags = {
+                                              { "@arg", "Argument" },
+                                              { "@param", "Parameter" },
+                                              { "@return", "Returns" },
+                                              { "@returns", "Returns" },
+                                              { "@author", "Author" },
+                                              { "@version", "Version" },
+                                              { "@see", "See also" },
+                                              { "@deprecated", "Deprecated" },
+                                              { "@overrides", "Overrides" }
+                                          };
+    private String name;
 
-	// for public use we have less types than
-	// internally. eg, we're combining "return" and "returns"
-	// or "arg" and "param".
-	// the values here have to match the index of
-	// the tags-array!
-	public static final int PARAMETER	= 0;
-	public static final int RETURN		= 2;
-	public static final int AUTHOR		= 4;
-	public static final int VERSION		= 5;
-	public static final int SEE			= 6;
-	public static final int DEPRECATED  = 7;
-	public static final int OVERRIDES   = 8;
+    // "kind" is for internal use, "type" is external
+    private int kind;
+    private String text;
 
-	public static final String[][] tags = {
-		{"@arg","Argument"},
-		{"@param","Parameter"},
-		{"@return","Returns"},
-		{"@returns","Returns"},
-		{"@author","Author"},
-		{"@version","Version"},
-		{"@see","See also"},
-		{"@deprecated", "Deprecated"},
-		{"@overrides", "Overrides"}
-	};
+    private DocTag(int kind, String name, String text) {
+        this.kind = kind;
+        this.name = (name != null) ? name : "";
+        this.text = (text != null) ? text : "";
+    }
 
-	private String	name;
-	// "kind" is for internal use, "type" is external
-	private int		kind; 
-	private String	text;
+    /**
+     *
+     *
+     * @param rawTag ...
+     *
+     * @return ...
+     */
+    public static boolean isTagStart(String rawTag) {
+        if (getTagNumber(rawTag) > -1) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 
-	public static boolean isTagStart (String rawTag) {
-		if (getTagNumber(rawTag) > -1)
-			return true;
-		else
-			return false;
-	}
+    /**
+     *
+     *
+     * @param rawTag ...
+     *
+     * @return ...
+     *
+     * @throws DocException ...
+     */
+    public static DocTag parse(String rawTag) throws DocException {
+        int kind = getTagNumber(rawTag);
 
-	public static DocTag parse (String rawTag) throws DocException {
-		int kind = getTagNumber (rawTag);
-		if (kind == -1)
-			throw new DocException ("unsupported tag type: " + rawTag);
-		String content = rawTag.substring (tags[kind][0].length ()+1).trim ();
-		if (kind == 0 || kind==1) {
-			StringTokenizer tok = new StringTokenizer (content);
-			String name = "";
-			if (tok.hasMoreTokens ())
-				name = tok.nextToken ();
-			String comment = "";
-			try {
-				comment = content.substring (name.length ()+1).trim ();
-			} catch (StringIndexOutOfBoundsException e) { }
-			return new DocTag (kind, name, comment);
-		} else {
-			return new DocTag (kind, "", content);
-		}
-	}
+        if (kind == -1) {
+            throw new DocException("unsupported tag type: " + rawTag);
+        }
 
-	private static int getTagNumber (String rawTag) {
-		rawTag = rawTag.trim ().toLowerCase ();
-		for (int i=0; i<tags.length; i++) {
-			if (rawTag.startsWith (tags[i][0])) {
-				return i;
-			}
-		}
-		return -1;
-	}
+        String content = rawTag.substring(tags[kind][0].length() + 1).trim();
 
+        if ((kind == 0) || (kind == 1)) {
+            StringTokenizer tok = new StringTokenizer(content);
+            String name = "";
 
-	private DocTag (int kind, String name, String text) {
-		this.kind = kind;
-		this.name = (name!=null) ? name : "";
-		this.text = (text!=null) ? text : "";
-	}
+            if (tok.hasMoreTokens()) {
+                name = tok.nextToken();
+            }
 
-	public String getName ()	{
-		return name;
-	}
+            String comment = "";
 
-	public int getType ()	{
-		if (kind==0 || kind==1)
-			return PARAMETER;
-		else if (kind==2 || kind==3)
-			return RETURN;
-		else
-			return kind;
-	}
+            try {
+                comment = content.substring(name.length() + 1).trim();
+            } catch (StringIndexOutOfBoundsException e) {
+            }
 
+            return new DocTag(kind, name, comment);
+        } else {
+            return new DocTag(kind, "", content);
+        }
+    }
 
-	public String getTag () {
-		return tags[kind][0];
-	}
+    private static int getTagNumber(String rawTag) {
+        rawTag = rawTag.trim().toLowerCase();
 
-	public String getText ()	{
-		return text;
-	}
+        for (int i = 0; i < tags.length; i++) {
+            if (rawTag.startsWith(tags[i][0])) {
+                return i;
+            }
+        }
 
-	public String toString()	{
-		return tags [kind][1] + ": " + name + " " + text;
-	}
+        return -1;
+    }
 
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     *
+     *
+     * @return ...
+     */
+    public int getType() {
+        if ((kind == 0) || (kind == 1)) {
+            return PARAMETER;
+        } else if ((kind == 2) || (kind == 3)) {
+            return RETURN;
+        } else {
+            return kind;
+        }
+    }
+
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getTag() {
+        return tags[kind][0];
+    }
+
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getText() {
+        return text;
+    }
+
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String toString() {
+        return tags[kind][1] + ": " + name + " " + text;
+    }
 }
-

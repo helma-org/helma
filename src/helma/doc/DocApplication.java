@@ -1,3 +1,19 @@
+/*
+ * Helma License Notice
+ *
+ * The contents of this file are subject to the Helma License
+ * Version 2.0 (the "License"). You may not use this file except in
+ * compliance with the License. A copy of the License is available at
+ * http://adele.helma.org/download/helma/license.txt
+ *
+ * Copyright 1998-2003 Helma Software. All Rights Reserved.
+ *
+ * $RCSfile$
+ * $Author$
+ * $Revision$
+ * $Date$
+ */
+
 package helma.doc;
 
 import helma.framework.IPathElement;
@@ -6,128 +22,176 @@ import helma.util.SystemProperties;
 import java.io.*;
 import java.util.*;
 
-public class DocApplication extends DocDirElement	{
+/**
+ * 
+ */
+public class DocApplication extends DocDirElement {
+    HashSet excluded;
 
-	HashSet excluded;
+    /**
+     * Creates a new DocApplication object.
+     *
+     * @param name ...
+     * @param location ...
+     *
+     * @throws DocException ...
+     */
+    public DocApplication(String name, File location) throws DocException {
+        super(name, location, APPLICATION);
+        readProps();
+    }
 
-   public static void main (String args[]) {
-//		DocApplication app;
-//		app = new DocApplication (args[0], args[1]);
-//		app.readApplication ();
+    /**
+     * Creates a new DocApplication object.
+     *
+     * @param name ...
+     * @param appDir ...
+     *
+     * @throws DocException ...
+     */
+    public DocApplication(String name, String appDir) throws DocException {
+        super(name, new File(appDir), APPLICATION);
+        readProps();
+    }
 
-//		DocPrototype el = DocPrototype.newInstance (new File(args[0]));
-//		el.readFiles ();
+    /**
+     *
+     *
+     * @param args ...
+     */
+    public static void main(String[] args) {
+        //		DocApplication app;
+        //		app = new DocApplication (args[0], args[1]);
+        //		app.readApplication ();
+        //		DocPrototype el = DocPrototype.newInstance (new File(args[0]));
+        //		el.readFiles ();
+        //		DocFunction func = DocFunction.newTemplate (new File(args[0]));
+        //		DocFunction func = DocFunction.newAction (new File(args[0]));
+        DocFunction[] func = DocFunction.newFunctions(new File(args[0]));
 
-//		DocFunction func = DocFunction.newTemplate (new File(args[0]));
-//		DocFunction func = DocFunction.newAction (new File(args[0]));
+        //		DocSkin skin = DocSkin.newInstance (new File (args[0]));
+        //		System.out.println (func.getContent ());
+        //		System.out.println ("\n\n\ncomment = " + func.getComment ());
+    }
 
-		DocFunction[] func = DocFunction.newFunctions (new File (args[0]));
+    /**
+     * reads the app.properties file and parses for helma.excludeDocs
+     */
+    private void readProps() {
+        File propsFile = new File(location, "app.properties");
+        SystemProperties serverProps = Server.getServer().getProperties();
+        SystemProperties appProps = new SystemProperties(propsFile.getAbsolutePath(),
+                                                         serverProps);
 
-//		DocSkin skin = DocSkin.newInstance (new File (args[0]));
-//		System.out.println (func.getContent ());
-//		System.out.println ("\n\n\ncomment = " + func.getComment ());
-   }
+        excluded = new HashSet();
+        addExclude("cvs");
+        addExclude(".docs");
 
+        String excludeProps = appProps.getProperty("helma.excludeDocs");
 
-	public DocApplication (String name, File location) throws DocException	{
-		super (name, location, APPLICATION);
-		readProps ();
-	}
+        if (excludeProps != null) {
+            StringTokenizer tok = new StringTokenizer(excludeProps, ",");
 
-	public DocApplication (String name, String appDir) throws DocException	{
-		super (name, new File (appDir), APPLICATION);
-		readProps ();
-	}
+            while (tok.hasMoreTokens()) {
+                String str = tok.nextToken().trim();
 
-	/**
-	  * reads the app.properties file and parses for helma.excludeDocs
-	  */
-	private void readProps () {
-		File propsFile = new File (location, "app.properties");
-		SystemProperties serverProps = Server.getServer ().getProperties ();
-		SystemProperties appProps = new SystemProperties(propsFile.getAbsolutePath (), serverProps);
+                addExclude(str);
+            }
+        }
+    }
 
-		excluded = new HashSet ();
-		addExclude ("cvs");
-		addExclude (".docs");
-		String excludeProps = appProps.getProperty ("helma.excludeDocs");
-		if (excludeProps != null) {
-			StringTokenizer tok = new StringTokenizer (excludeProps, ",");
-			while (tok.hasMoreTokens ()) {
-				String str = tok.nextToken ().trim ();
-				addExclude (str);
-			}
-		}
-	}
+    /**
+     *
+     *
+     * @param str ...
+     */
+    public void addExclude(String str) {
+        excluded.add(str.toLowerCase());
+    }
 
-	public void addExclude (String str) {
-		excluded.add (str.toLowerCase ());
-	}
+    /**
+     *
+     *
+     * @param str ...
+     *
+     * @return ...
+     */
+    public boolean isExcluded(String str) {
+        return (excluded.contains(str.toLowerCase()));
+    }
 
-	public boolean isExcluded (String str) {
-		return (excluded.contains (str.toLowerCase ()));
-	}
+    /**
+     * reads all prototypes and files of the application
+     */
+    public void readApplication() {
+        readProps();
 
+        String[] arr = location.list();
 
-	/**
-	  * reads all prototypes and files of the application
-	  */
-	public void readApplication () {
-      readProps ();
-		String arr[] = location.list ();
-		children.clear ();
-		for (int i=0; i<arr.length; i++) {
-			if (isExcluded (arr[i]))
-				continue;
-			File f = new File (location.getAbsolutePath (), arr[i]);
-			if (!f.isDirectory ())
-				continue;
-			try {
-				DocPrototype pt = DocPrototype.newInstance (f, this);
-				addChild (pt);
-				pt.readFiles ();
-			} catch (DocException e) {
-				debug ("Couldn't read prototype " + arr[i] + ": " + e.getMessage ());
-			}				
-			System.out.println (f);
-		}
-		for (Iterator i=children.values ().iterator (); i.hasNext ();) {
-			((DocPrototype) i.next ()).checkInheritance ();
-		}
-	}
+        children.clear();
 
-	public DocElement[] listFunctions ()	{
-		Vector allFunctions = new Vector ();
-		for (Iterator i = children.values ().iterator (); i.hasNext ();) {
-			DocElement proto = (DocElement) i.next ();
-			allFunctions.addAll (proto.children.values ());
-		}
-		Collections.sort (allFunctions, new DocComparator (DocComparator.BY_NAME, this));
-		return (DocElement[]) allFunctions.toArray (new DocElement[allFunctions.size ()]);
-	}
+        for (int i = 0; i < arr.length; i++) {
+            if (isExcluded(arr[i])) {
+                continue;
+            }
 
+            File f = new File(location.getAbsolutePath(), arr[i]);
 
-	/**
-	  * from helma.framework.IPathElement, overridden with "api"
-	  * to work in manage-application
-	  */
-	public String getElementName()	{
-		return "api";
-	}
+            if (!f.isDirectory()) {
+                continue;
+            }
 
+            try {
+                DocPrototype pt = DocPrototype.newInstance(f, this);
 
-	/**
-	  * from helma.framework.IPathElement, overridden with
-	  * Server.getServer() to work in manage-application
-	  */
-	public IPathElement getParentElement()	{
-		Server s = helma.main.Server.getServer();
-		return s.getChildElement(this.name);
-	}
+                addChild(pt);
+                pt.readFiles();
+            } catch (DocException e) {
+                debug("Couldn't read prototype " + arr[i] + ": " + e.getMessage());
+            }
 
+            System.out.println(f);
+        }
 
+        for (Iterator i = children.values().iterator(); i.hasNext();) {
+            ((DocPrototype) i.next()).checkInheritance();
+        }
+    }
+
+    /**
+     *
+     *
+     * @return ...
+     */
+    public DocElement[] listFunctions() {
+        Vector allFunctions = new Vector();
+
+        for (Iterator i = children.values().iterator(); i.hasNext();) {
+            DocElement proto = (DocElement) i.next();
+
+            allFunctions.addAll(proto.children.values());
+        }
+
+        Collections.sort(allFunctions, new DocComparator(DocComparator.BY_NAME, this));
+
+        return (DocElement[]) allFunctions.toArray(new DocElement[allFunctions.size()]);
+    }
+
+    /**
+     * from helma.framework.IPathElement, overridden with "api"
+     * to work in manage-application
+     */
+    public String getElementName() {
+        return "api";
+    }
+
+    /**
+     * from helma.framework.IPathElement, overridden with
+     * Server.getServer() to work in manage-application
+     */
+    public IPathElement getParentElement() {
+        Server s = helma.main.Server.getServer();
+
+        return s.getChildElement(this.name);
+    }
 }
-
-
-
-
