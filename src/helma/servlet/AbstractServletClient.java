@@ -283,7 +283,7 @@ public abstract class AbstractServletClient extends HttpServlet {
             try {
                 if (debug) {
                     sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                              "Error in request handler:" + x);
+                              "Server error: " + x);
                     x.printStackTrace();
                 } else {
                     sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
@@ -299,7 +299,12 @@ public abstract class AbstractServletClient extends HttpServlet {
     }
 
     void writeResponse(HttpServletRequest req, HttpServletResponse res,
-                       ResponseTrans hopres) {
+                       ResponseTrans hopres) throws IOException {
+        if (hopres.getForward() != null) {
+            sendForward(res, hopres.getForward());
+            return;
+        }
+
         if (hopres.getETag() != null) {
             res.setHeader("ETag", hopres.getETag());
         }
@@ -417,6 +422,44 @@ public abstract class AbstractServletClient extends HttpServlet {
 
         res.setContentType("text/html");
         res.setHeader("Location", location);
+    }
+
+    /**
+     * Forward the request to a static file. The file must be reachable via
+     * the context's protectedStatic resource base.
+     */
+    void sendForward(ServletResponse res, String forward) throws IOException {
+
+        ServletContext cx = getServletConfig().getServletContext();
+        String path = cx.getRealPath(forward);
+        if (path == null)
+            throw new IOException("Resource "+forward+" not found");
+
+        File file = new File(path);
+        int length = (int) file.length();
+        res.setContentLength(length);
+        InputStream in = cx.getResourceAsStream(forward);
+        if (in == null)
+            throw new IOException("Can't read "+path);
+
+        OutputStream out = res.getOutputStream();
+
+        int bufferSize = 4096;
+        byte buffer[] = new byte[bufferSize];
+        int l = bufferSize;
+
+        while (length>0) {
+            if (length < bufferSize)
+                l = in.read(buffer, 0, length);
+            else
+                l=in.read(buffer, 0, bufferSize);
+
+            if (l == -1)
+                break;
+
+            length -= l;
+            out.write(buffer, 0, l);
+        }
     }
 
     FileUpload getUpload(HttpServletRequest request, String encoding) throws Exception {
