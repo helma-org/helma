@@ -450,7 +450,7 @@ public class ApplicationBean implements Serializable {
      *
      * @return ...
      */
-    public Map getSkinfiles(Object[] skinpath) {
+    public Map getSkinfilesInPath(Object[] skinpath) {
         Map skinz = new HashMap();
 
         for (Iterator it = app.getPrototypes().iterator(); it.hasNext();) {
