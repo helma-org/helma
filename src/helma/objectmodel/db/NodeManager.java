@@ -527,6 +527,7 @@ public final class NodeManager {
         try {
             int stmtNumber = 1;
 
+            // first column of insert statement is always the primary key
             stmt.setString(stmtNumber, node.getID());
 
             Hashtable propMap = node.getPropMap();
