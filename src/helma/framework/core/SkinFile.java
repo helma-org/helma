@@ -157,6 +157,6 @@ public final class SkinFile implements Updatable {
      * @return ...
      */
     public String toString() {
-        return prototype.getName() + "/" + file.getName();
+        return "[SkinFile "+prototype.getName() + "/" + name+"]";
     }
 }
