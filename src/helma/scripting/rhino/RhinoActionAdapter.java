@@ -38,7 +38,7 @@ public class RhinoActionAdapter {
         String functionName = action.getShortName().replace('.', '_');
 
         sourceName = action.toString();
-        function = composeFunction(functionName,
+        function = composeFunction(functionName + "_action",
                                    "arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10",
                                    content);
 
