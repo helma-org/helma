@@ -378,6 +378,8 @@ public class RhinoEngine implements ScriptingEngine {
                 return null;
             } else if (prop instanceof Wrapper) {
                 return ((Wrapper) prop).unwrap();
+            } else if (prop == Undefined.instance || prop == ScriptableObject.NOT_FOUND) {
+                return null;
             } else {
                 return prop;
             }
