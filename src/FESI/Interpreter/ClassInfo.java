@@ -168,7 +168,13 @@ public class ClassInfo {
                 if (indexedReadMethod != null && indexedReadMethod.getParameterTypes().length != 1) {
                     throw new ProgrammingError("Indexed getter of property ' " + propertyName + "' should have 1 parameter!");
                 }
+                // Work around reflection bug, Hannes Wallnoefer 11/2002
+                if (indexedReadMethod != null && Modifier.isPublic (indexedReadMethod.getModifiers ()))
+                    indexedReadMethod.setAccessible (true);
                 if (indexedWriteMethod != null) {
+                    // Work around reflection bug, Hannes Wallnoefer 11/2002
+                    if (Modifier.isPublic (indexedWriteMethod.getModifiers ()))
+                        indexedWriteMethod.setAccessible (true);
                     Class [] paramCls = indexedWriteMethod.getParameterTypes();
                     if (paramCls == null || paramCls.length != 2) {
                         throw new ProgrammingError("Indexed setter of property ' " + propertyName + "' should have 2 parameter!");
@@ -188,7 +194,13 @@ public class ClassInfo {
                     if (readMethod != null && readMethod.getParameterTypes().length != 0) {
                         throw new ProgrammingError("Non indexed getter of indxed property ' " + propertyName + "' is not supposed to have a parameter!");
                     }
+                    // Work around reflection bug, Hannes Wallnoefer 11/2002
+                    if (readMethod != null && Modifier.isPublic (readMethod.getModifiers ()))
+                        readMethod.setAccessible (true);
                     if (writeMethod != null) {
+                        // Work around reflection bug, Hannes Wallnoefer 11/2002
+                        if (Modifier.isPublic (writeMethod.getModifiers ()))
+                            writeMethod.setAccessible (true);
                         Class [] paramCls = writeMethod.getParameterTypes();
                         if (paramCls == null || paramCls.length != 1) {
                             throw new ProgrammingError("Non indexed setter of indexed property ' " + propertyName + "' should have 1 parameter!");
@@ -208,7 +220,13 @@ public class ClassInfo {
                 if (readMethod != null && readMethod.getParameterTypes().length != 0) {
                     throw new ProgrammingError("Non indexed getter of property ' " + propertyName + "' is not supposed to have a parameter!");
                 }
+                // Work around reflection bug, Hannes Wallnoefer 11/2002
+                if (readMethod != null && Modifier.isPublic (readMethod.getModifiers ()))
+                    readMethod.setAccessible (true);
                 if (writeMethod != null) {
+                    // Work around reflection bug, Hannes Wallnoefer 11/2002
+                    if (Modifier.isPublic (writeMethod.getModifiers ()))
+                        writeMethod.setAccessible (true);
                     Class [] paramCls = writeMethod.getParameterTypes();
                     if (paramCls == null || paramCls.length != 1) {
                         throw new ProgrammingError("Non indexed setter of property ' " + propertyName + "' should have 1 parameter!");
@@ -218,8 +236,8 @@ public class ClassInfo {
                     }
                 }
             }
-            
-           // Add to cache 
+
+           // Add to cache
            if (debug) System.out.println("** property '" + propertyName + "' + found, add to cache");
            if (beanProperties==null) {
                 beanProperties = new Hashtable();
@@ -230,7 +248,7 @@ public class ClassInfo {
         }
         return descriptor;
    }
-   
+
 
     /**
      * Get the list of public method in this class or superclass, by name (the
@@ -399,6 +417,7 @@ public class ClassInfo {
                }
                
             } // if class not public
+            // Work around reflection bug, Hannes Wallnoefer 11/2002
             if (Modifier.isPublic (method.getModifiers ()))
                 method.setAccessible (true);
             //  save it
@@ -518,6 +537,7 @@ public class ClassInfo {
                     }
                } // for
             } // if class not public
+            // Work around reflection bug, Hannes Wallnoefer 11/2002
             if (Modifier.isPublic (method.getModifiers ()))
                 method.setAccessible (true);
             //  save it
