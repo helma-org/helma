@@ -9,6 +9,7 @@ import java.io.*;
 import java.lang.reflect.*;
 import java.rmi.*;
 import java.rmi.server.*;
+import java.net.URLEncoder;
 import helma.framework.*;
 import helma.framework.core.*;
 import helma.objectmodel.*;
@@ -78,11 +79,13 @@ public class ApplicationManager {
     void start (String appName) {
 	Server.getLogger().log ("Building application "+appName);
 	try {
+	    String mountpoint = props.getProperty (appName+".mountpoint",
+				"/"+URLEncoder.encode(appName));
 	    Application app = new Application (appName, hopHome, Server.sysProps, Server.dbProps);
 	    applications.put (appName, app);
 	    // if we're running with the embedded web server, set app base uri to /appname
-	    if (server.websrv != null && !"base".equalsIgnoreCase (appName))
-	        app.setBaseURI ("/"+java.net.URLEncoder.encode (appName));
+	    if (server.websrv != null)
+	        app.setBaseURI (mountpoint);
 	    // the application is started later in the register method, when it's bound
 	    app.init ();
 	} catch (Exception x) {
@@ -98,11 +101,13 @@ public class ApplicationManager {
 	    if (server.websrv == null) {
 	        Naming.unbind ("//:"+port+"/"+appName);
 	    } else {
+	        String mountpoint = props.getProperty (appName+".mountpoint",
+				"/"+URLEncoder.encode(appName));
 	        // server.websrv.removeServlet ("/"+appName+"/");
-	        if ("base".equalsIgnoreCase (appName))
+	        if ("/".equals (mountpoint))
 	            server.websrv.removeDefaultServlet ();
 	        else
-	            server.websrv.removeServlet ("/"+appName+"/*");
+	            server.websrv.removeServlet (mountpoint+"/*");
 	    }
 	    app.stop ();
 	    Server.getLogger().log ("Unregistered application "+appName);
@@ -119,12 +124,14 @@ public class ApplicationManager {
 	    if (server.websrv == null) {
 	        Naming.rebind ("//:"+port+"/"+appName, app);
 	    } else {
-	        boolean isRoot = "base".equalsIgnoreCase (appName);
+	        String mountpoint = props.getProperty (appName+".mountpoint",
+				"/"+URLEncoder.encode(appName));
+	        boolean isRoot = "/".equals (mountpoint);
 	        EmbeddedServletClient servlet = new EmbeddedServletClient (appName, isRoot);
 	        if (isRoot)
 	            server.websrv.setDefaultServlet (servlet);
 	        else {
-	            server.websrv.addServlet ("/"+appName+"/*", servlet);
+	            server.websrv.addServlet (mountpoint+"/*", servlet);
 	        }
 	        // tomcat.addApplication (appName);
 	    }
@@ -138,11 +145,13 @@ public class ApplicationManager {
 	try {
 	    for (Enumeration e = props.keys(); e.hasMoreElements (); ) {
 	        String appName = (String) e.nextElement ();
-	        start (appName);
+	        if (appName.indexOf (".") == -1)
+	            start (appName);
 	    }
 	    for (Enumeration e = props.keys(); e.hasMoreElements (); ) {
 	        String appName = (String) e.nextElement ();
-	        register (appName);
+	        if (appName.indexOf (".") == -1)
+	            register (appName);
 	    }
 	    if (server.websrv != null) {
 	        File staticContent = new File (server.getHopHome(), "static");
