@@ -239,7 +239,8 @@ public final class RequestEvaluator implements Runnable {
 	                    // try calling onRequest() function on object before
 	                    // calling the actual action
 	                    try {
-	                        scriptingEngine.invoke (currentElement, "onRequest", new Object[0], false);
+	                        if (scriptingEngine.hasFunction (currentElement, "onRequest"))
+	                            scriptingEngine.invoke (currentElement, "onRequest", new Object[0], false);
 	                    } catch (RedirectException redir) {
 	                        throw redir;
 	                    } catch (Exception ignore) {
