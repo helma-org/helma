@@ -277,7 +277,15 @@ public final class Node implements INode, Serializable {
                     break;
 
                 case Types.DATE:
+                    newprop.setDateValue(rs.getDate(columns[i].getName()));
+
+                    break;
+
                 case Types.TIME:
+                    newprop.setDateValue(rs.getTime(columns[i].getName()));
+
+                    break;
+
                 case Types.TIMESTAMP:
                     newprop.setDateValue(rs.getTimestamp(columns[i].getName()));
 
@@ -1986,6 +1994,41 @@ public final class Node implements INode, Serializable {
     }
 
     /**
+     * Directly set a property on this node
+     *
+     * @param propname ...
+     * @param value ...
+     */
+    protected void set(String propname, Object value, int type) {
+        checkWriteLock();
+
+        if (propMap == null) {
+            propMap = new Hashtable();
+        }
+
+        propname = propname.trim();
+
+        String p2 = propname.toLowerCase();
+
+        Property prop = (Property) propMap.get(p2);
+
+        if (prop != null) {
+            prop.setValue(value, type);
+        } else {
+            prop = new Property(propname, this);
+            prop.setValue(value, type);
+            propMap.put(p2, prop);
+        }
+
+        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
+        lastmodified = System.currentTimeMillis();
+
+        if (state == CLEAN) {
+            markAs(MODIFIED);
+        }
+    }
+
+    /**
      *
      *
      * @param propname ...
@@ -2538,8 +2581,8 @@ public final class Node implements INode, Serializable {
      * This method walks down node path to the first non-virtual node and return it.
      *  limit max depth to 3, since there shouldn't be more then 2 layers of virtual nodes.
      */
-    public INode getNonVirtualParent() {
-        INode node = this;
+    public Node getNonVirtualParent() {
+        Node node = this;
 
         for (int i = 0; i < 5; i++) {
             if (node == null) {
@@ -2550,7 +2593,7 @@ public final class Node implements INode, Serializable {
                 return node;
             }
 
-            node = node.getParent();
+            node = (Node) node.getParent();
         }
 
         return null;
