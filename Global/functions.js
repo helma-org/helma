@@ -204,10 +204,15 @@ function createAuth()	{
 			renderSkin("pwdform",obj);
 			return false;
 		}
-		var props = root.getProperties();
-		props.put("adminUsername", Packages.helma.util.MD5Encoder.encode(req.data.username) );
-		props.put("adminPassword", Packages.helma.util.MD5Encoder.encode(req.data.password) );
-		props.store( new java.io.FileOutputStream( new java.io.File(root.getHopHome(),"server.properties") ), "# properties saved from application 'manage'" );
+		var f = new File(root.getHopHome().toString, "server.properties");
+		var str = f.readAll();
+		var sep = java.lang.System.getProperty("line.separator");
+		str += sep + "adminUsername=" + Packages.helma.util.MD5Encoder.encode(req.data.username) + sep;
+		str += "adminPassword=" + Packages.helma.util.MD5Encoder.encode(req.data.password) + sep;
+		f.remove();
+		f.open();
+		f.write(str);
+		f.close();
 		app.__app__.logEvent( req.data.http_remotehost + " saved new adminUsername/adminPassword to server.properties");
 		res.redirect ( root.href("main") );
 	
