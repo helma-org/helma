@@ -22,6 +22,7 @@ import java.util.Vector;
 import org.mozilla.javascript.TokenStream;
 import org.mozilla.javascript.Token;
 import org.mozilla.javascript.Context;
+import org.mozilla.javascript.CompilerEnvirons;
 
 /**
  * 
@@ -157,8 +158,9 @@ public class DocFunction extends DocFileElement {
         }
         String name = f.getName();
         int line = 0;
-        return new TokenStream (Context.getCurrentContext(), reader, null, false, name,
-                                line, null);
+        CompilerEnvirons compilerEnv = new CompilerEnvirons();
+        compilerEnv.initFromContext(Context.getCurrentContext(), null);
+        return new TokenStream (compilerEnv, reader, null, name, line);
     }
 
 
