@@ -40,7 +40,7 @@ public final class NodeManager {
     public final WrappedNodeManager safe;
 
     // an instance of Node that's used to cache null values
-    private Node nullNode;
+    // private Node nullNode;
 
     public NodeManager (Application app, String dbHome, Properties props) throws DbException {
 	this.app = app;
@@ -51,7 +51,7 @@ public final class NodeManager {
 	app.logEvent ("set up node cache ("+cacheSize+")");
 
 	safe = new WrappedNodeManager (this);
-	nullNode = new Node ("nullNode", "nullNode", null, safe);
+	// nullNode = new Node ("nullNode", "nullNode", null, safe);
 
 	String replicationUrl = props.getProperty ("replicationUrl");
 	if (replicationUrl != null)
@@ -172,7 +172,7 @@ public final class NodeManager {
 	    if (node != null) {
 	        synchronized (cache) {
 	            Node oldnode = (Node) cache.put (node.getKey (), node);
-	            if (oldnode != null && oldnode.getState () != Node.INVALID && oldnode != nullNode) {
+	            if (oldnode != null && oldnode.getState () != Node.INVALID && !(oldnode instanceof NullNode)) {
 	                cache.put (node.getKey (), oldnode);
 	                node = oldnode;
 	            }
@@ -222,8 +222,8 @@ public final class NodeManager {
 	// we need further checks for subnodes fetched by name if the subnodes were changed.
 	if (rel.subnodesAreProperties && node != null && node.getState() != Node.INVALID) {
 	    // check if node is null node (cached null)
-	    if (node == nullNode)
-	        ; // TODO: perform null validity test
+	    if (node instanceof NullNode && node.created() < rel.other.lastDataChange)
+	        node = null; //  cached null not valid anymore
 	    else if (home.contains (node) < 0)
 	        node = null;
 	}
@@ -243,7 +243,7 @@ public final class NodeManager {
 	            // check if node is already in cache with primary key
 	            Node oldnode = (Node) cache.put (primKey, node);
 	            // no need to check for oldnode != node because we fetched a new node from db
-	            if (oldnode != null && oldnode != nullNode && oldnode.getState () != Node.INVALID) {
+	            if (oldnode != null && !(oldnode instanceof NullNode) && oldnode.getState () != Node.INVALID) {
 	                cache.put (primKey, oldnode);
 	                if (!keyIsPrimary) {
 	                    cache.put (key, oldnode);
@@ -257,9 +257,9 @@ public final class NodeManager {
 	    } else {
 	        // node fetched from db is null, cache result using nullNode
 	        synchronized (cache) {
-	            Node oldnode = (Node) cache.put (key, nullNode);
+	            Node oldnode = (Node) cache.put (key, new NullNode ());
 	            // for the rare case that some other thread created the node in the meantime
-	            if (oldnode != null && oldnode != nullNode && oldnode.getState () != Node.INVALID) {
+	            if (oldnode != null && !(oldnode instanceof NullNode) && oldnode.getState () != Node.INVALID) {
 	                Key primKey = oldnode.getKey ();
 	                boolean keyIsPrimary = primKey.equals (key);
 	                cache.put (oldnode.getKey (), oldnode);
@@ -272,7 +272,7 @@ public final class NodeManager {
 	            }
 	        }
 	    }
-	} else if (node == nullNode) {
+	} else if (!(node instanceof NullNode)) {
 	    // the nullNode caches a null value, i.e. an object that doesn't exist
 	    return null;
 	} else {
@@ -619,7 +619,7 @@ public final class NodeManager {
 	            // if these are groupby nodes, evict nullNode keys
 	            if (rel.groupby != null) {
 	                Key key = new Key ((String) null,  home.getKey ().getVirtualID (kstr));
-	                if (cache.get (key) == nullNode)
+	                if (cache.get (key) instanceof NullNode)
 	                    evictKey (key);
 	            }
 	        }
@@ -983,6 +983,7 @@ public final class NodeManager {
 	        DbMapping dbm = app.getDbMapping (n.getPrototype ());
 	        if (dbm != null)
 	            dbm.lastDataChange = System.currentTimeMillis ();
+	        n.lastParentSet = -1;
 	        n.setDbMapping (dbm);
 	        n.nmgr = safe;
 	        cache.put (n.getKey(), n);
