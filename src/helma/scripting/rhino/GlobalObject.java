@@ -150,7 +150,7 @@ public class GlobalObject extends ScriptableObject {
         if (defvalue == Undefined.instance) {
             return app.getProperty(propname);
         } else {
-            return app.getProperty(propname, defvalue.toString());
+            return app.getProperty(propname, toString(defvalue));
         }
     }
 
@@ -260,8 +260,8 @@ public class GlobalObject extends ScriptableObject {
                 mime.eTag = etag;
 
                 return Context.toObject(mime, this);
-            } catch (Exception ignore) {
-                System.err.println ("EXCEPT: "+ignore);
+            } catch (Exception xcept) {
+                System.err.println ("Error in getURL(): "+xcept);
             }
 
             return null;
@@ -274,8 +274,8 @@ public class GlobalObject extends ScriptableObject {
      *
      * @return ...
      */
-    public String encode(String str) {
-        return HtmlEncoder.encodeAll(str);
+    public String encode(Object obj) {
+        return HtmlEncoder.encodeAll(toString(obj));
     }
 
     /**
@@ -285,8 +285,8 @@ public class GlobalObject extends ScriptableObject {
      *
      * @return ...
      */
-    public String encodeXml(String str) {
-        return HtmlEncoder.encodeXml(str);
+    public String encodeXml(Object obj) {
+        return HtmlEncoder.encodeXml(toString(obj));
     }
 
     /**
@@ -296,8 +296,8 @@ public class GlobalObject extends ScriptableObject {
      *
      * @return ...
      */
-    public String encodeForm(String str) {
-        return HtmlEncoder.encodeFormValue(str);
+    public String encodeForm(Object obj) {
+        return HtmlEncoder.encodeFormValue(toString(obj));
     }
 
     /**
@@ -307,8 +307,8 @@ public class GlobalObject extends ScriptableObject {
      *
      * @return ...
      */
-    public String format(String str) {
-        return HtmlEncoder.encode(str);
+    public String format(Object obj) {
+        return HtmlEncoder.encode(toString(obj));
     }
 
     /**
@@ -374,5 +374,14 @@ public class GlobalObject extends ScriptableObject {
         }
 
         return str;
+    }
+
+    private static String toString(Object obj) {
+        if (obj == null || obj == Undefined.instance) {
+            // Note: we might return "" here in order
+            // to handle null/undefined as empty string
+            return null;
+        }
+        return Context.toString(obj);
     }
 }
