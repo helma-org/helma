@@ -1,0 +1,2472 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN""http://www.w3.org/TR/REC-html40/loose.dtd>
+<head>
+  <title>Printer-friendly Output</title>
+</head>
+<body bgcolor="white">
+
+<img src="http://helma.org/images/helma.gif" title="helma" border="0" width="60" height="35">
+
+<h1>Reference</h1>
+
+<p>
+
+<p>This is a growing collection of Helma documentation categorized by functionality.
+<h2>Application Object</h2>
+
+<p>
+
+<p><tt>app</tt> represents the Application object in Hop. By adding variables to this object it is possible to store temporary global variables, which are independent from request evaluator threads, i.e. they are shared by all threads. But be aware that they are not persistent and lost as soon as you restart the application.
+<h3>errorCount</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>app.errorCount</tt><p><b><small>Description</small></b>
+<br>Returns the number of Errors which occured due to User Requests since the application has been started.
+<br>
+<br><i>Note:</i> "File Not Found" Errors are not counted.<p><b><small>Example</small></b>
+<br><tt>res.write(app.errorCount);
+<br><i>8</i></tt>
+<h3>getActiveThreads()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>app.getActiveThreads()</tt><p><b><small>Description</small></b>
+<br>This function returns the number of currently working Request Evaluator Threads.
+<br>
+<br>If this number reaches the maximum allowed Treads Hop returns a "maximum thread count reached" error page.<p><b><small>Example</small></b>
+<br><tt>res.write(app.getMaxThreads());
+<br><i>12</i></tt>
+<h3>getFreeThreads()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>app.getFreeThreads()</tt><p><b><small>Description</small></b>
+<br>This function returns the number of additional of Request Evaluator Threads, which could be created at the current moment.
+<br>
+<br>This is equivalent to the number of current Threads deducted from the number of maximum THreads.<p><b><small>Example</small></b>
+<br><tt>res.write(app.getActiveThreads());
+<br><i>2</i>
+<br>
+<br>res.write(app.getMaxThreads());
+<br><i>12</i>
+<br>
+<br>res.write(app.getFreeThreads());
+<br><i>10</i></tt>
+<h3>getMaxActiveThreads()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>app.getMaxActiveThreads()</tt><p><b><small>Description</small></b>
+<br>This function returns the historic maximum number of Request Evaluator Threads, which occured at some point since the application has been started.<p><b><small>Example</small></b>
+<br><tt>res.write(app.getMaxActiveThreads());
+<br><i>6</i></tt>
+<h3>getMaxThreads()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>app.getMaxActiveThreads()</tt><p><b><small>Description</small></b>
+<br>This function returns the historic maximum number of Request Evaluator Threads, which occured at some point since the application has been started.<p><b><small>Example</small></b>
+<br><tt>res.write(app.getMaxActiveThreads());
+<br><i>6</i></tt>
+<h3>requestCount</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>app.requestCount</tt><p><b><small>Description</small></b>
+<br>Returns the number of HTTP-Requests since the application has been started.<p><b><small>Example</small></b>
+<br><tt>res.write(app.requestCount);
+<br><i>231</i></tt>
+<h3>setMaxThreads()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>app.setMaxThreads(<i>Number</i>)</tt><p><b><small>Description</small></b>
+<br>This function enables the programmer to adjust the number of maximum allowed Request Evaluator Threads without having to restart the application.<p><b><small>Example</small></b>
+<br><tt>app.setMaxThreads(10);
+<br>res.write(app.getMaxThreads());
+<br><i>10</i></tt>
+<h3>skinfiles</h3>
+
+<p>Array containing the skins of an application.
+
+<p><b><small>Syntax</small></b>
+<br><tt>app.skinfiles</tt><p><b><small>Description</small></b>
+<br>To access the actual content of a skin file in the inner loop you'd say <tt>app.skinfiles[a][b]</tt>. To access a skin file by name, you'd say something like <tt>app.skinfiles.root.test</tt>.<p><b><small>Example</small></b>
+<br><tt>for (var a in app.skinfiles) {
+<br>&nbsp;&nbsp;res.write(a + "&lt;br&gt;");
+<br>&nbsp;&nbsp;for (var b in app.skinfiles[a]) {
+<br>&nbsp;&nbsp;&nbsp;&nbsp;res.write("&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;" + b + "&lt;br&gt;");
+<br>&nbsp;&nbsp;}
+<br>}</tt>
+<h3>upSince</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>app.upSince</tt><p><b><small>Description</small></b>
+<br>Returns the createtime of the Application object, i.e. the time when the application was started.<p><b><small>Example</small></b>
+<br><tt>res.write(app.upSince.format("dd.MMM yyyy HH:mm"));
+<br><i>06.Sep 2001 13:09</i></tt>
+<h3>xmlrpcCount</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>app.xmlrpcCount</tt><p><b><small>Description</small></b>
+<br>Returns the number of XML-RPC-Requests since the application has been started.<p><b><small>Example</small></b>
+<br><tt>res.write(app.xmlrpcCount);
+<br><i>12</i></tt>
+<h2>Date Object</h2>
+
+<p>
+
+<p>
+<h3>format()</h3>
+
+<p>Formatting a date string for custom output.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>Date</i>.format(<i>String</i>)</tt><p><b><small>Description</small></b>
+<br>Formats the date string of a date object for custom output. The function's string parameter is used as a pattern to describe the desired format. Most common are the following pattern letters:<pre>
+Symbol Meaning              Presentation   Example
+------ -------              ------------   -------
+y      year                 (Number)       1996
+M      month in year        (Text, Number) July, 07
+d      day in month         (Number)       10
+h      hour in am/pm (1~12) (Number)       12
+H      hour in day (0~23)   (Number)       0
+m      minute in hour       (Number)       30
+s      second in minute     (Number)       55
+E      day in week          (Text)         Tuesday
+a      am/pm marker         (Text)         PM</pre>
+Please note that the output is depending on the locale settings of the Helma server. For further reference refer to the examples below or directly to the documentation of the <a href="http://java.sun.com/j2se/1.3/docs/api/java/text/SimpleDateFormat.html">Java SimpleDateFormat class</a>.<p><b><small>Example</small></b>
+<br><tt>var d = new Date();
+<br>res.write(d.format("EEE d.M.y, HH:mm'h'"));
+<br><i>Thu 9.8.01, 15:15h</i>
+<br>
+<br>res.write(d.format("dd. MMM. yyyy, hh:mm:ss aa"));
+<br><i>09. Aug. 2001, 03:15:44 PM</i>
+<br>
+<br>res.write(d.format("hh:mm:ss,SS"));
+<br><i>03:15:44,609</i>
+<br>
+<br>res.write(d.format("EEEEE d MMMMM yyyy"));
+<br><i>Thursday 9 August 2001</i>
+<br>
+<br>res.write(d.format("EEE, d MMM yyyy HH:mm:ss z"));
+<br><i>Thu, 9 Aug 2001 15:15:44 CET</i></tt>
+<h2>Direct Database Interface</h2>
+
+<p>
+
+<p>The Direct Db interface allows the developer to directly access relational databases defined in the <tt>db.properties</tt> file without going through the Helma objectmodel layer.
+<br>
+<br><tt>var con = getDBConnection("db_source_name");</tt>
+<br>
+<br>This returns a Connection object from the Helma connection pool that can be used as specified by the <a href="http://home.worldcom.ch/jmlugrin/fesi/dbext.html">Fesi DbAccess protocol</a>, except that it is not necessary to call the <tt>connect()</tt> and <tt>disconnect()</tt> functions.
+<br>
+<br><tt>var rows = con.executeRetrieval("select title from dummy");
+<br>while (rows.next())
+<br>&nbsp;&nbsp;res.write(rows.getColumnItem("title")+"&lt;br>");
+<br></tt>
+<br>
+<h2>FESI Extensions</h2>
+
+<p>
+
+<p>FESI (pronounced like <i>fuzzy</i>) is a full implementation of the ECMAScript language as defined in the <a href="http://www.ecma.ch/">ECMA</a> technical standard specification <a href="http://developer.netscape.com/docs/javascript/e262-pdf.pdf">ECMA-262</a> (June 97 edition).
+<br>
+<br>ECMAScript is largely equivalent to the JavaScript language version 1.1 or to the core part of JScript, but without the extensions specific to Netscape Navigator. Instead, FESI comes with its own extensions as listed below.
+<br>
+<br>These parts of the documentation are adapted from the <a href="http://home.worldcom.ch/jmlugrin/fesi/">FESI Homepage</a> courtesy by <a href="mailto:jmlugrin@worldcom.ch">Jean-Marc Lugrin</a>.
+<h3>throwError()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>throwError(<i>stringOrException</i>)</tt><p><b><small>Description</small></b>
+<br>This function throws an exception, ie. the script interpreter aborts, the <tt>stringOrException</tt> parameter is converted to a string and immediately written to the response object for output.<p><b><small>Example</small></b>
+<br><tt>throwError("Aborting without any reason");
+<br><i>Runtime error Aborting without any reason
+<br>detected at line 1 of function 'main_action' in string starting with: 'function main_action (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10) {'...</i></tt>
+<h3>tryEval()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>tryEval(<i>functionString, defaultValue</i>) </tt><p><b><small>Description</small></b>
+<br><tt>tryEval()</tt> evaluates the <tt>functionString</tt> parameter just like the standard ECMAScript function <tt>eval()</tt> does, but returns an object with two properties, <tt>value</tt> and <tt>error</tt>.
+<br>
+<br>If the evaluation is successful, the <tt>value</tt> property contains the result of the evaluation and the <tt>error</tt> property equals to <tt>null</tt> (which tests as <tt>false</tt>).
+<br>
+<br>If the evaluation results in an error, the <tt>value</tt> property has either the value of the optional <tt>defaultValue</tt> parameter (if specified) or <tt>undefined</tt>, and the <tt>error</tt> property contains an object describing the error, which is guaranteed to test as <tt>true</tt>.
+<br>
+<br>The <tt>error</tt> object string representation is some description of the error. In the future more detailed error information may be available.<p><b><small>Example</small></b>
+<br><tt>var trial = tryEval("undefinedFunction()", -1)
+<br>if (trial.error)
+<br>&nbsp;&nbsp;&nbsp;res.writeln(trial.error);
+<br>res.writeln(trial.value);
+<br>
+<br><i>FESI.Exceptions.EcmaScriptException: Runtime error no global function named 'undefinedFunction' detected at line 1 in string: 'undefinedFunction()'
+<br>-1</i></tt>
+<h2>FTP Client</h2>
+
+<p>
+
+<p>This object represents an Ftp client object for sending and receiving files from an Ftp server. The constructor is called FtpServer and invoked as follows:
+<br>
+<br><code>var ftp = new FtpClient("ftp.mydomain.com");</code>
+<br>
+<br>The Ftp client needs Daniel Savarese's <a href="http://www.savarese.org/oro/software/NetComponents.html">NetComponents</a> library in the classpath in order to work.
+<br>
+<br><b>Functions and Properties</b>
+<h3>ascii()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>FtpObject</i>.ascii();</tt><p><b><small>Description</small></b>
+<br>Set transfermodus to Ascii for transmitting text.<p><b><small>Example</small></b>
+<br><tt>var ftp = new FtpClient("ftp.host.dom");
+<br>ftp.login("user", "pass");
+<br>ftp.ascii();</tt>
+<h3>binary()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>FtpObject</i>.binary();</tt><p><b><small>Description</small></b>
+<br>Set transfer mode to binary for transmitting images and other non-text files.<p><b><small>Example</small></b>
+<br><tt>var ftp = new FtpClient("ftp.host.dom");
+<br>ftp.login("user", "pass");
+<br>ftp.binary();</tt>
+<h3>cd()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>FtpObject</i>.cd(<i>Path</i>);</tt><p><b><small>Description</small></b>
+<br>Change the current path on the FTP server.<p><b><small>Example</small></b>
+<br><tt>var ftp = new FtpClient("ftp.host.dom");
+<br>ftp.login("user", "pass");
+<br>
+<br>// use absolute pathname
+<br>ftp.cd("/home/users/fred/www");
+<br>
+<br>// change to parent directory
+<br>ftp.cd("..");
+<br>
+<br>// use relative pathname
+<br>ftp.cd("images");</tt>
+<h3>getFile()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>FtpObject</i>.getFile(<i>RemoteFile</i>, <i>LocalFile</i>);</tt><p><b><small>Description</small></b>
+<br>Transfer a file from the server to the local file system.<p><b><small>Example</small></b>
+<br><tt>var ftp = new FtpClient("ftp.host.dom");
+<br>ftp.login("user", "pass");
+<br>ftp.getFile(".htaccess", "htaccess.txt");</tt>
+<h3>getString()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>FtpObject</i>.getString(<i>RemoteFile</i>);</tt><p><b><small>Description</small></b>
+<br>Retrieves a file from the remote server and returns it as string.<p><b><small>Example</small></b>
+<br><tt>var ftp = new FtpClient("ftp.host.dom");
+<br>ftp.login("user", "pass");
+<br>var str = ftp.getString("messages.txt");</tt>
+<h3>lcd()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>FtpObject</i>.lcd(<i>LocalPath</i>);</tt><p><b><small>Description</small></b>
+<br>Change the local path of the FTP client.<p><b><small>Example</small></b>
+<br><tt>var ftp = new FtpClient("ftp.host.dom");
+<br>ftp.login("user", "pass");
+<br>
+<br>// use absolute pathname
+<br>ftp.lcd("/home/users/fred/www");
+<br>
+<br>// change to parent directory
+<br>ftp.lcd("..");
+<br>
+<br>// use relative pathname
+<br>ftp.lcd("images");</tt>
+<h3>login()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>FtpObject</i>.login(<i>UserName</i>, <i>Password</i>);</tt><p><b><small>Description</small></b>
+<br>Log in to the FTP server. The function returns <code>true</code> if successful, <code>false</code> otherwise.<p><b><small>Example</small></b>
+<br><tt>var ftp = new FtpClient("ftp.host.dom");
+<br>if (ftp.login("user", "pass"))
+<br>&nbsp;&nbsp;&nbsp;res.write("User logged in.");
+<br>else
+<br>&nbsp;&nbsp;&nbsp;res.write("Unable to log in.");
+<br>
+<br><i>User logged in.</i></tt>
+<h3>logout()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>FtpObject</i>.logout();</tt><p><b><small>Description</small></b>
+<br>Terminate the current FTP session.<p><b><small>Example</small></b>
+<br><tt>var ftp = new FtpClient("ftp.host.dom");
+<br>ftp.login("user", "pass");
+<br>ftp.putFile("htaccess.txt", ".htaccess");
+<br>ftp.logout();</tt>
+<h3>mkdir()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>FtpObject</i>.mkdir(<i>String</i>);</tt><p><b><small>Description</small></b>
+<br>Creates a new directory on the server. The name of the directory is determined as the function's string parameter. Returns <tt>false</tt> when an error occured (e.g. due to access restrictions, directory already exists etc.), otherwise <tt>true</tt>.<p><b><small>Example</small></b>
+<br><tt>var ftp = new FtpClient("ftp.host.dom");
+<br>ftp.login("user", "pass");
+<br>if (ftp.mkdir("testdir"))
+<br>&nbsp;&nbsp;&nbsp;ftp.cd("testdir")
+<br>else
+<br>&nbsp;&nbsp;&nbsp;ftp.logout();</tt>
+<h3>putFile()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>FtpObject</i>.putFile(<i>LocalFile</i>, <i>RemoteFile</i>);</tt><p><b><small>Description</small></b>
+<br>Transfers a file from the local file system to the remote server. Returns <tt>true</tt> if the transmission was successful, otherwise <tt>false</tt>.<p><b><small>Example</small></b>
+<br><tt>var ftp = new FtpClient("ftp.host.dom");
+<br>ftp.login("user", "pass");
+<br>if (ftp.putFile("testfile"))
+<br>&nbsp;&nbsp;&nbsp;res.write("File transfered successfully.");
+<br>else
+<br>&nbsp;&nbsp;&nbsp;res.write("Transfer error.");
+<br>
+<br><i>File transfered successfully.</i></tt>
+<h3>putString()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>FtpObject</i>.putString(<i>String</i>, <i>RemoteFile</i>);</tt><p><b><small>Description</small></b>
+<br>Transfer text from a string to a file on the remote server.<p><b><small>Example</small></b>
+<br><tt>var ftp = new FtpClient("ftp.host.dom");
+<br>ftp.login("user", "pass");
+<br>ftp.putString("Hello, World!", "message.txt");</tt>
+<h2>Global Functions</h2>
+
+<p>
+
+<p>These are the global functions that are added to the Hop interpreter in addition to the standard global functions found in a JavaScript interpreter.
+<h3>authenticate()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>authenticate(<i>UserNameString, PasswordString</i>)</tt><p><b><small>Description</small></b>
+<br>This function authenticates against a standard Unix password file, which is both secure (encrypted using CRYPT) and can be managed using the <tt><a href="http://httpd.apache.org/docs/programs/htpasswd.html">htpasswd</a></tt> utility which is included in the <a href="http://httpd.apache.org/">Apache web server</a> distribution.
+<br>
+<br>The function just returns <tt>true</tt> or <tt>false</tt>, so you have to make sure yourself you remember the result in the user object by setting some cache flag.
+<br>
+<br>The function compares the two arguments with the data in the file called "passwd", stored in the Helma installation directory. This can be overridden by a file with the same name in the application directory.
+<br>
+<br>Please note that this function is currently not working under Windows because the Windows version of Apache's <tt>htpasswd</tt> can use a special type of MD5 encryption only.<p><b><small>Example</small></b>
+<br><tt>var login = authenticate("user", "pass");
+<br>if (login)
+<br>&nbsp;&nbsp;&nbsp;res.write("Welcome back!");
+<br>else
+<br>&nbsp;&nbsp;&nbsp;res.write("Oops, please try again...");
+<br>
+<br><i>Welcome back!</i></tt>
+<h3>countActiveUsers()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>countActiveUsers()</tt><p><b><small>Description</small></b>
+<br>Returns the number of currently active users.<p><b><small>Example</small></b>
+<br><tt>var nr = countActiveUsers();
+<br>res.write(nr);
+<br><i>18</i></tt>
+<h3>createSkin()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>createSkin(<i>String</i>)</tt><p><b><small>Description</small></b>
+<br>Turns a string into a Skin object ready for rendering with <tt><a href="http://helma.org/docs/reference/global/renderSkinFunc">renderSkin()</a></tt> and <tt><a href="http://helma.org/docs/reference/global/renderSkinAsStringFunc">renderSkinAsString()</a></tt>.<p><b><small>Example</small></b>
+<br><tt>var str = "Hello, &lt;% response.body %&gt;!";
+<br>var skin = createSkin(str);
+<br>res.body = "World";
+<br>renderSkin(skin);
+<br>
+<br><i>Hello, World!</i></tt>
+<h3>encode()</h3>
+
+<p>Preparing a string for smooth html output.
+
+<p><b><small>Syntax</small></b>
+<br><tt>encode(<i>string</i>)</tt><p><b><small>Description</small></b>
+<br>Encodes a string by replacing linebreaks with <tt>&lt;br&gt;</tt> tags and diacritical characters as well as html tags with their equivalent html entities.<p><b><small>Example</small></b>
+<br><tt>var str = encode("&lt;b&gt;Bananer v&auml;xer\n minsann inte p&aring; tr&auml;d.&lt;b&gt;");
+<br>res.write(str);
+<br><i>&amp;lt;b&amp;gt;Bananer v&amp;auml;xer
+<br>&lt;br&gt; minsann inte p&amp;aring; tr&amp;auml;d.&amp;lt;/b&amp;gt;</i></tt>
+<h3>encodeForm()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>encodeForm(<i>String</i>)</tt><p><b><small>Description</small></b>
+<br>Similar to <tt><a href="http://helma.org/docs/reference/global/encodeFunc/">encode()</a></tt> this functions substitutes html entities but leaves newlines untouched. This is what you usually want to do for encoding form content (esp. with textarea values).<p><b><small>Example</small></b>
+<br><tt>var str = encodeForm("&lt;b&gt;Bananer v&auml;xer\n minsann inte p&aring; tr&auml;d.&lt;b&gt;");
+<br>res.write(str);
+<br><i>&amp;lt;b&amp;gt;Bananer v&amp;auml;xer
+<br> minsann inte p&amp;aring; tr&amp;auml;d.&amp;lt;/b&amp;gt;</i></tt>
+<h3>encodeXml()</h3>
+
+<p>Preparing a string for smooth xml output.
+
+<p><b><small>Syntax</small></b>
+<br><tt>encodeXml(<i>string</i>)</tt><p><b><small>Description</small></b>
+<br>Encodes a string by replacing <tt><</tt> and <tt>></tt> with <tt>&amp;lt;</tt> and <tt>&amp;gt;</tt> as well as <tt>&</tt> with its html entity <tt>&amp;amp;</tt>.<p><b><small>Example</small></b>
+<br><tt>var str = encodeXml("&lt;title&gt;Sm&oslash;rebr&oslash;d&lt;/title&gt;");
+<br>res.write(str);
+<br><i>&amp;lt;title&amp;gt;Sm&amp;amp;oslash;rebr&amp;amp;oslash;d&amp;lt;/title&amp;gt;</i></tt>
+<h3>format()</h3>
+
+<p>Preparing a string for smooth html output.
+
+<p><b><small>Syntax</small></b>
+<br><tt>format(<i>string</i>)</tt><p><b><small>Description</small></b>
+<br>Encodes a string similar to <tt><a href="../encodeFunc">encode()</a></tt> but keeping the markup tags and trying to avoid <tt>&lt;br&gt;</tt> tags where possible (e.g. in table structures).<p><b><small>Example</small></b>
+<br><tt>var str = encode("&lt;b&gt;Bananer v&auml;xer\n minsann inte p&aring; tr&auml;d.&lt;b&gt;");
+<br>res.write(str);
+<br><i>&lt;b&gt;Bananer v&amp;auml;xer
+<br>&lt;br&gt; minsann inte p&amp;aring; tr&amp;auml;d.&lt;/b&gt;</i></tt>
+<h3>getActiveUsers()</h3>
+
+<p>Retrieving active Users.
+
+<p><b><small>Syntax</small></b>
+<br><tt>getActiveUsers()</tt><p><b><small>Description</small></b>
+<br>Returns an array that contains all User Objects of users who are currently browsing the Hop application. This includes users who are logged in as well as anonymous users.<p><b><small>Example</small></b>
+<br><tt>var myUsers = getActiveUsers();
+<br>res.write(myUsers);
+<br><i>UserNode 6df1869674117400@e4042e487b, UserNode Snoopy, UserNode Woodstock</i></tt>
+<h3>getAllUsers()</h3>
+
+<p>Retrieving the names of all registered users.
+
+<p><b><small>Syntax</small></b>
+<br><tt>getAllUsers()</tt><p><b><small>Description</small></b>
+<br>Returns an array that contains the names of all registered users. Use the getUser() function to retrieve the actual user object. This is to be used with caution with large amounts of users.<p><b><small>Example</small></b>
+<br><tt>var myUsers = getAllUsers();
+<br>res.write(myUsers);
+<br><i>Snoopy, Lucy, Linux, Woodstock</i>
+<br>
+<br>res.write(getUser(myUsers[1]));
+<br><i>UserObject Lucy</i></tt>
+<br>
+<h3>getProperty()</h3>
+
+<p>Retrieving a global Property.
+
+<p><b><small>Syntax</small></b>
+<br><tt>getProperty(<i>string</i>)</tt><p><b><small>Description</small></b>
+<br>Returns a Property named <tt><i>string</i></tt> stored in one of the files app.properties or server.properties. If the Property exists in both of the files, app.properties overwrites server.properties. This way server.properties defines Properties for all applications which app.properties can refine for a particular application. app.properties is located in the top directory of a Hop application. server.properties is located in the Hop installation directory.
+<br>
+<br>There is a complete <a href="/docs/parameters/#serverprops">list of Hop's System Properties</a><p><b><small>Example</small></b>
+<br><tt>var smtp = getProperty("smtp");
+<br>res.write(smtp);
+<br><i>mail.helma.org</i></tt>
+<h3>getURL()</h3>
+
+<p>Retrieving the content behind a URL.
+
+<p><b><small>Syntax</small></b>
+<br><tt>getURL(<i>url</i>)</tt><p><b><small>Description</small></b>
+<br>Allocates and retrieves a remote file from a url.<p><b><small>Example</small></b>
+<br><tt>var url = getURL("http://helma.org/");
+<br>res.write(url);</tt>
+<br>...see <a href="http://helma.org/">helma.org</a> :-&gt;
+<br>
+<br><tt>var url = getURL("ftp://user:pass@ftp.server.dom/welcome.txt");
+<br>res.write(url);
+<br><i>Welcome on the FTP server of server.dom!</i></tt>
+<br>
+<br><tt>var url = getURL("file:///home/snoopy/www/title.txt");
+<br>res.write(url);
+<br><i>The Nudist on the Late Shift</i></tt>
+<h3>getUser()</h3>
+
+<p>Retrieving a User Object.
+
+<p><b><small>Syntax</small></b>
+<br><tt>getUser(<i>string</i>)</tt><p><b><small>Description</small></b>
+<br>Returns a Hop Object describing the user referred to with <tt><i>string</i></tt>.<p><b><small>Example</small></b>
+<br><tt>var myUser = getUser("Snoopy");
+<br>res.write(myUser.email);
+<br><i>atomicdog@helma.org</i></tt>
+<h3>getUserBySession()</h3>
+
+<p>Retrieving a User Object.
+
+<p><b><small>Syntax</small></b>
+<br><tt>getUserBySession(<i>sessionId</i>)</tt><p><b><small>Description</small></b>
+<br>Returns a user object with a certain session id (= Helma session cookie).<p><b><small>Example</small></b>
+<br><tt>
+<br>var id = user.sessionID;
+<br>var user = getUserBySession(id);
+<br>res.write(user.name);
+<br><i>Snoopy</i></tt>
+<br>(quite recursive, isn't it?)
+<h3>isActive()</h3>
+
+<p>Determining whether a user is logged in.
+
+<p><b><small>Syntax</small></b>
+<br><tt>isActive(<i>userObject</i>)</tt><p><b><small>Description</small></b>
+<br>Returns <tt>true</tt> if the user referred to by the user object is logged in.<p><b><small>Example</small></b>
+<br><tt>var user = getUser("Snoopy");
+<br>res.write(isActive(user));
+<br><i>false</i></tt>
+<h3>renderSkin()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>renderSkin(<i>String</i>, <i>ParameterObject</i>)</tt><p><b><small>Description</small></b>
+<br>Renders a global skin (ie. a skin file inside the <tt>global</tt> directory). The name of the skin is defined by the string parameter.
+<br>
+<br>A skin is a file that only contains markup (e.g. Html or Xml) and macros. Macros are references to Helma functions wrapped in special tags (<tt>&lt;%</tt> and <tt>%&gt;</tt>). For more information about skin and macro techniques please refer to the section about <a href="http://helma.org/docs/guide/skins/">Helma Skins</a>.
+<br>
+<br>Optionally, a JavaScript object can be assigned to the function call as second argument. This object's properties later can be accessed from the skin via pseudo-macro calls of the kind <tt>&lt;% param.<i>PropertyName</i> %&gt;</tt>
+<br>
+<br>If a <tt>param</tt> property is not set but referred to in the skin file, it will be replaced with an empty string. Please note that this behaviour is different from generic macro calls.<p><b><small>Example</small></b>
+<br>Contents of the file <tt>global/example.skin</tt>:<tt>
+<br>&lt;html&gt;
+<br>&lt;head&gt;
+<br>&nbsp;&nbsp;&nbsp;&lt;title&gt;Hello, &lt;% param.title %&gt;!&lt;/title&gt;
+<br>&lt;/head&gt;
+<br>&lt;body bgcolor="&lt;% param.bgcolor %&gt;"&gt;
+<br>I greet you &lt;% param.amount %&gt; times.
+<br>&lt;/body&gt;
+<br>&lt;/html&gt;</tt>
+<br>
+<br>Rendering the skin:<tt>
+<br>var param = new Object();
+<br>param.bgcolor = "#ffcc00";
+<br>param.title = "World";
+<br>param.amount = "12345";
+<br>renderSkin("example", param);
+<br>
+<br><i>&lt;html&gt;
+<br>&lt;head&gt;
+<br>&nbsp;&nbsp;&nbsp;&lt;title&gt;Hello, World!&lt;/title&gt;
+<br>&lt;/head&gt;
+<br>&lt;body bgcolor="#ffcc00"&gt;
+<br>I greet you 12345 times.
+<br>&lt;/body&gt;</i></tt>
+<h3>renderSkinAsString()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>renderSkinAsString(<i>String</i>, <i>ParameterObject</i>)</tt><p><b><small>Description</small></b>
+<br>Renders a global skin just the same way as <tt><a href="http://helma.org/docs/reference/global/renderSkinFunc">renderSkin()</a></tt> does. The only difference is though, that this function returns the result as string instead of immediately writing it to the response object.<p><b><small>Example</small></b>
+<br><tt>var str = renderSkinAsString("example", param);
+<br>res.write(str);</tt>
+<br>
+<br>which is equivalent to
+<br>
+<br><tt>renderSkin("example", param);</tt>
+<h3>stripTags()</h3>
+
+<p>Removing markup tags from a string.
+
+<p><b><small>Syntax</small></b>
+<br><tt>stripTags(<i>string</i>)</tt><p><b><small>Description</small></b>
+<br>Removes any <tt><</tt> and <tt>></tt> as well as everyhing between both of these two characters. In other words: extracts the essence of the text from a string without anything that looks like markup.<p><b><small>Example</small></b>
+<br><tt>var str = "&lt;html&gt;&lt;b&gt;The Nudist on the Late Shift&lt;/b&gt;&lt;/html&gt;";
+<br>res.write(str);
+<br><i>The Nudist on the Late Shift</i></tt>
+<h3>write()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>write(<i>String</i>)</tt><p><b><small>Description</small></b>
+<br>This function echoes the string parameter on the console display. Very useful for debugging purposes.<p><b><small>Example</small></b>
+<br><tt>write("Hello, Console!");
+<br><i>Hello, Console!</i></tt>
+<h3>writeln()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>writeln(<i>String</i>)</tt><p><b><small>Description</small></b>
+<br>This function echoes the string parameter on the console display and additionally a newline character. Very useful for debugging purposes.<p><b><small>Example</small></b>
+<br><tt>writeln("Hello,");
+<br>writeln("Console!");
+<br><i>Hello,
+<br>Console!</i></tt>
+<h2>Hop Object</h2>
+
+<p>
+
+<p>The HopObject is the basic building block of a Hop applications. The website root object, the user object, as well as any custom type defined by the application are HopObjects and inherit all functionality described below.
+<br>
+<br>In addition to defining and scripting special types of HopObjects it is possible to extend all HopObjects at once by defining a prototype called <tt>hopobject</tt>.
+<br>
+<br><b>Functions and Properties</b>
+<h3>add()</h3>
+
+<p>Adding a Subnode to a Hop Object.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>hopObject</i>.add(<i>hopObject</i>)</tt><p><b><small>Description</small></b>
+<br>Adds a Hop Object as new Subnode to another Hop Object. The new Subnode is added after the last Subnode already contained in the Hop Object.<p><b><small>Example</small></b>
+<br><tt>res.write(root.size());
+<br><i>0</i>
+<br>var myStory= new story();
+<br>root.add(myStory);
+<br>res.write(root.size());
+<br><i>1</i></tt>
+<br>
+<br>It is also possible to add a bunch of Subnodes with only one function call:
+<br><tt>var myAuthor= new author();
+<br>var myTitle= "The Nudist On The Late Shift";
+<br>var myStory= new story();
+<br>root.add(myAuthor, myTitle, myStory);
+<br>res.write(root.size());
+<br><i>3</i></tt>
+<h3>addAt()</h3>
+
+<p>Adding a Subnode to a Hop Object.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>hopObject</i>.addAt(<i>number, hopObject</i>)</tt><p><b><small>Description</small></b>
+<br>Adds a Subnode to a Hop Object. Unlike <tt><a href="../addFunc">add()</a></tt> the position of the Subnode is determined by a number as first parameter in the function call.
+<br>
+<br>Using addAt() instead of add() usually only has an effect with the embedded database, since the order of objects stored in a relational database depends on the value of some column. Thus when adding objects stored in a relational database, one may as well use add().<p><b><small>Example</small></b>
+<br><tt>res.write(root.get(23));
+<br><i>null</i>
+<br>var myStory= new story();
+<br>root.addAt(23, myStory);
+<br>res.write(root.get(23));
+<br><i>hopObject story</i></tt>
+<h3>cache</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>HopObject</i>.cache</tt><p><b><small>Description</small></b>
+<br>Each HopObject contains a <tt>cache</tt> object to store temporary properties (e.g. strings, numbers or other objects) in. These properties can be accessed in any thread until the application is restarted or the HopObject is invalidated, either manually using the <a href="http://helma.org/docs/reference/hopobject/invalidateFunc">invalidate()</a> function or whenever Helma is fetching the HopObject's data from a remote database.
+<br>
+<br>There is no way to make the <tt>cache</tt> object persistent.<p><b><small>Example</small></b>
+<br><tt>user.cache.message = "This is a temporary message."</tt>
+<h3>contains()</h3>
+
+<p>Determining if a Hop Object contains a certain Subnode.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>hopObject</i>.contains(<i>hopObject</i>)</tt><p><b><small>Description</small></b>
+<br>Returns the index position of a Subnode contained by a Hop Object (as usual for JavaScript starting with <tt>0</tt> referring to the first position). The index position is a relative value inside a Hop Object (not to be confused with a Hop ID which is unique for each Hop Object). If there is no appropriate Subnode inside the Hop Object the returned value equals <tt>-1</tt><p><b><small>Example</small></b>
+<br><tt>var obj = root.get("myObject");
+<br>res.write(root.contains(obj));
+<br><i>23</i>
+<br>
+<br>obj = root.get("blobject");
+<br>res.write(root.contains(obj));
+<br><i>-1</i></tt>
+<h3>count()</h3>
+
+<p>Counting Subnodes.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>hopObject</i>.count()</tt><p><b><small>Description</small></b>
+<br>Returns the amount of Subnodes contained in a Hop Object.<p><b><small>Example</small></b>
+<br><tt>res.write(root.count());
+<br><i>5</i></tt>
+<h3>editor()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>hopObject</i>.editor(<i>string</i>, <i>width</i>, <i>height</i>)</tt><p><b><small>Description</small></b>
+<br>Returns an input element for the object's property defined by the string parameter. The result can be used inside an Html form. The property's value is set to the form elements value. If the optional height parameter is set, a text area is used instead of a one-line text field.<p><b><small>Example</small></b>
+<br><tt>var editor = this.editor("title", 20);
+<br>res.write("&lt;form&gt;" + editor + "&lt;/form&gt;");
+<br>
+<br><i>&lt;form&gt;&lt;input type="text" name="title" size="20" value="Hello, World"&gt;&lt;/form&gt;</i>
+<br>
+<br>var editor = this.editor("bodytext", 20, 5);
+<br>res.write("&lt;form&gt;" + editor + "&lt;/form&gt;");
+<br>
+<br><i>&lt;form&gt;&lt;textarea name="bodytext" cols="20" rows="5" wrap="virtual"&gt;When the going gets tough, the tough goes shopping.&lt;/textarea&gt;&lt;/form&gt;</i></tt>
+<h3>get()</h3>
+
+<p>Retrieving Properties and Subnodes.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>hopObject</i>.get(<i>stringOrNumber</i>)</tt><p><b><small>Description</small></b>
+<br>Retrieves a Property or a Subnode of a known Hop Object. The type of the result depends on the type of the submitted parameter: a number will retrieve the Subnode of the Hop Object at the corresponding index position, a string the corresponding Property of the Hop Object. Finally, a number as string retrieves the subnode with the corresponding Hop ID.<p><b><small>Example</small></b>
+<br><tt>root.get(0);
+<br><i>HopObject author</i>
+<br>root.get(1);
+<br><i>HopObject story</i> 
+<br>
+<br>root.get("date");
+<br><i>Wed Oct 18 02:01:41 GMT+01:00 1971</i>
+<br>root.get("title");
+<br><i>The Nudist On The Late Shift</i>
+<br>
+<br>root.get("1");
+<br><i>HopObject author</i></tt>
+<h3>href()</h3>
+
+<p>Getting a Hop Object's url-compatible reference.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>hopObject</i>.href()
+<br><i>hopObject</i>.href(string)</tt><p><b><small>Description</small></b>
+<br>Returns the absoulte url path of a Hop Object relative to the application's root. Any string parameter is simply appended to the return value. Useful to refer to a Hop Object in a markup tag (e.g. with a <tt>href</tt> parameter in an html <tt>&lt;a></tt> tag).<p><b><small>Example</small></b>
+<br><tt>var obj = root.get(0);
+<br>
+<br>res.write("&lt;a href=\"" + obj.href() + "\">");
+<br><i>&lt;a href="/main/"></i>
+<br>
+<br>res.write("&lt;a href=\"" + obj.href("edit") + "\">");
+<br><i>&lt;a href="/main/edit"></i>
+<br>
+<br></tt>
+<h3>invalidate()</h3>
+
+<p>Delete a Hop Object from the cache.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>hopObject.</i>invalidate()</tt><p><b><small>Description</small></b>
+<br>Marks a HopObject as invalid so that it is fetched again from the database the next time it's accessed. In other words, use this function to kick an object out of Helma's database cache.<p><b><small>Example</small></b>
+<br><tt>var obj = this.get(0);
+<br>obj.invalidate();</tt>
+<h3>list()</h3>
+
+<p>Listing Hop Objects.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>hopObject</i>.list()</tt><p><b><small>Description</small></b>
+<br>Returns an array including all Subnodes of a Hop Object. Useful if array data is required, however general use should be avoided in favor of the method described below.<p><b><small>Example</small></b>
+<br><tt>var objectList = root.list();
+<br>for (var i=0; i&lt;objectList.length; i++){
+<br>&nbsp;var myObject = objectList[i];
+<br>&nbsp;res.write(myObject.created + "&lt;br>");
+<br>}
+<br><i>Wed Oct 18 02:01:41 GMT+01:00 1971
+<br>Fri Nov 03 13:25:15 GMT+01:00 2000
+<br>Mon May 29 07:43:09 GMT+01:00 1999</i></tt>
+<br>
+<br>With increasing amounts of Subnodes tied to a Hop Object the use of <tt>list()</tt> becomes seriously inefficient – as long as not <i>all</i> Subnodes really need to be read out. This is due to the creation of a JavaScript Array containing the whole bunch of Subnodes each time the <tt>list()</tt> function is called. Instead, it is recommended to determine the amount of Subnodes using the <tt><a href="../countFunc">count()</a></tt> function and looping through them using <tt><a href="../getFunc">get()</a></tt>:
+<br>
+<br><tt>var amount = root.size();
+<br>for (var i=0; i&lt;amount; i++){
+<br>&nbsp;var myObject = root.get(i);
+<br>&nbsp;res.write(myObject.created + "&lt;br>");
+<br>}
+<br><i>Wed Oct 18 02:01:41 GMT+01:00 1971
+<br>Fri Nov 03 13:25:15 GMT+01:00 2000
+<br>Mon May 29 07:43:09 GMT+01:00 1999</i></tt>
+<h3>remove()</h3>
+
+<p>Removing a Subnode.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>hopObject</i>.remove()</tt><p><b><small>Description</small></b>
+<br>Removes a known Subnode from a Hop Object. The subnode can be determined e.g. via the <tt><a href="../getFunc">get()</a></tt> function.<p><b><small>Example</small></b>
+<br><tt>res.write(root.size());
+<br><i>24</i>
+<br>var myObject = root.get(5);
+<br>root.remove(myObject);
+<br>res.write(root.size());
+<br><i>23</i></tt>
+<h3>renderSkin()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>HopObject</i>.renderSkin(<i>String</i>, <i>ParameterObject</i>)</tt><p><b><small>Description</small></b>
+<br>Renders a skin of this object. The name of the skin is defined by the string parameter.
+<br>
+<br>A skin is a file that only contains markup (e.g. Html or Xml) and macros. Macros are references to Helma functions wrapped in special tags (<tt>&lt;%</tt> and <tt>%&gt;</tt>). For more information about skin and macro techniques please refer to the section about <a href="http://helma.org/docs/guide/skins/">Helma Skins</a>.
+<br>
+<br>Optionally, a JavaScript object can be assigned to the function call as second argument. This object's properties later can be accessed from the skin via pseudo-macro calls of the kind <tt>&lt;% param.<i>PropertyName</i> %&gt;</tt>
+<br>
+<br>If a <tt>param</tt> property is not set but referred to in the skin file, it will be replaced with an empty string. Please note that this behaviour is different from generic macro calls.<p><b><small>Example</small></b>
+<br>Contents of the file <tt>root/example.skin</tt>:<tt>
+<br>&lt;html&gt;
+<br>&lt;head&gt;
+<br>&nbsp;&nbsp;&nbsp;&lt;title&gt;Hello, &lt;% param.title %&gt;!&lt;/title&gt;
+<br>&lt;/head&gt;
+<br>&lt;body bgcolor="&lt;% param.bgcolor %&gt;"&gt;
+<br>I greet you &lt;% param.amount %&gt; times.
+<br>&lt;/body&gt;
+<br>&lt;/html&gt;</tt>
+<br>
+<br>Rendering the skin:<tt>
+<br>var param = new Object();
+<br>param.bgcolor = "#ffcc00";
+<br>param.title = "World";
+<br>param.amount = "12345";
+<br>root.renderSkin("example", param);
+<br>
+<br><i>&lt;html&gt;
+<br>&lt;head&gt;
+<br>&nbsp;&nbsp;&nbsp;&lt;title&gt;Hello, World!&lt;/title&gt;
+<br>&lt;/head&gt;
+<br>&lt;body bgcolor="#ffcc00"&gt;
+<br>I greet you 12345 times.
+<br>&lt;/body&gt;</i></tt>
+<h3>renderSkinAsString()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>HopObject</i>.renderSkinAsString(<i>String</i>, <i>ParameterObject</i>)</tt><p><b><small>Description</small></b>
+<br>Renders a skin of this object just the same way as <tt><a href="http://helma.org/docs/reference/hopobject/renderSkinFunc">renderSkin()</a></tt> does. The only difference is though, that this function returns the result as string instead of immediately writing it to the response object.<p><b><small>Example</small></b>
+<br><tt>var str = root.renderSkinAsString("example", param);
+<br>res.write(str);</tt>
+<br>
+<br>which is equivalent to
+<br>
+<br><tt>root.renderSkin("example", param);</tt>
+<h3>set()</h3>
+
+<p>Changing Properties and Subnodes.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>hopObject</i>.set(<i>stringOrNumber</i>, <i>value</i>)</tt><p><b><small>Description</small></b>
+<br>Replaces the value of a Property or Subnode with a new value. <p><b><small>Example</small></b>
+<br><tt>res.write(root.get(23));
+<br><i>null</i>
+<br>var myAuthor = new author();
+<br>root.set(23, myAuthor);
+<br>res.write(root.get(23));
+<br><i>hopObject author</i>
+<br>
+<br>res.write(root.title);
+<br><i>null</i>
+<br>var myTitle = "The Nudist On The Late Shift";
+<br>root.set("title", myTitle);
+<br>res.write(root.title);
+<br><i>The Nudist On The Late Shift</i></tt>
+<h3>setParent()</h3>
+
+<p>Defining a Hop Object as parent for a Subnode.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>hopObject.</i>setParent(<i>hopObject</i>)</tt><p><b><small>Description</small></b>
+<br>Sometimes it is necessary to set a Subnode's parent to a certain Hop Object. This is caused by the way Hop caches Subnodes. Especially if you are retrieving a Subnode from a relational database through different ways (e.g. by using <tt>subnoderelation</tt>) and you want to remove this Subnode or apply the <tt>href()</tt> function on it.<p><b><small>Example</small></b>
+<br><tt>var trash = user.stories.get(23);
+<br>trash.setParent(root);
+<br>root.remove(trash);</tt>
+<h3>size()</h3>
+
+<p>Counting Subnodes.
+
+<p><i>Please refer to <tt><a href="/docs/reference/hopobject/countFunc/">count()</a></tt>.</i>
+<h3>_id</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>hopObject</i>._id</tt><p><b><small>Description</small></b>
+<br>Returns the internal id of the object. This property is assigned by Helma and cannot be set.<p><b><small>Example</small></b>
+<br><tt>var obj = root.get(0);
+<br>res.write(obj._id);
+<br><i>43</i></tt>
+<h3>_parent</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>hopObject</i>._parent</tt><p><b><small>Description</small></b>
+<br>Returns the parent object of this object.<p><b><small>Example</small></b>
+<br><tt>var obj = root.get(0);
+<br>res.write(obj._parent);
+<br><i>HopObject root</i></tt>
+<h2>Image Processing</h2>
+
+<p>
+
+<p>The image object allows you to read, manipulate, and save images. An image object is created using the <tt>Image()</tt> constructor.
+<br>
+<br><code>var img = new Image(<i>imageUrl</i>);
+<br>var img = new Image(<i>imageUrl, imageFilter</i>);</code>
+<br>
+<br>For this to work, you must have Sun's <a href="http://java.sun.com/products/jimi/">Jimi</a> library in your classpath.
+<br>
+<br><small><b>Example:</b></small>
+<br><tt>var img = new Image("http://helma.org/image.gif");
+<br>var img = new Image("file:///home/images/image.jpg");
+<br>
+<br>var filter = new Packages.com.sun.jimi.core.filters.Rotate(90);
+<br>var img = new Image("http://helma.org/image.gif", filter);</tt>.
+<br>
+<br>Please refer to the <tt><a href="http://helma.org/docs/reference/image/getSourceFunc">getSource()</a></tt> function for details and examples of the <tt>imageFilter</tt> parameter.
+<br>
+<h3>crop()</h3>
+
+<p>Cutting out a rectangular area of an image.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>imageObject</i>.crop(<i>x, y, width, height</i>)</tt><p><b><small>Description</small></b>
+<br>Cuts out (crops) a rectanglular area of an image. The dimensions of the area are calculated from the <i>x</i>- and <i>y</i>-offset from the top left corner of the image as upper left reference point to <i>x + width</i> and <i>y + height</i> as lower right reference point.<p><b><small>Example</small></b>
+<br><tt>var img = new Image("http://helma.org/images/original.gif");
+<br>res.write("&lt;img src=\"/images/original.gif\"&gt;");
+<br>
+<br><img src="/images/hopcrop_anim.gif"></img>
+<br>
+<br>img.crop(58,9,48,21);
+<br>img.saveAs("/www/images/processed.gif");
+<br>res.write("&lt;img src=\"/images/processed.gif\"&gt;");
+<br>
+<br><img src="/images/crop.gif"></img></tt>
+<h3>drawLine()</h3>
+
+<p>Adding a drawn line to an image.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>imageObject</i>.drawLine(x1, x2, y1, y2)</tt><p><b><small>Description</small></b>
+<br>Draws a line onto an image. The line starts at the reference point defined by the offsets <i>x1</i> and <i>y1</i> from the top left corner of the image and ends at the reference point defined by the offsets <i>x2</i> and <i>y2</i>.<p><b><small>Example</small></b>
+<br><tt>var img = new Image("http://helma.org/images/originalgif");
+<br>res.write("&lt;img src=\"/images/original.gif\"&gt;");
+<br>
+<br><img src="/images/hop.gif"></img>
+<br>
+<br>img.setColor(204,0,0);
+<br>img.drawLine(58,26,100,26);
+<br>img.saveAs("/www/images/processed.gif");
+<br>res.write("&lt;img src=\"/images/processed.gif\"&gt;");
+<br>
+<br><img src="/images/drawLine.gif"></img></tt>
+<h3>drawRect()</h3>
+
+<p>Adding a drawn rectangle to an image.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>imageObject</i>.drawRect(<i>x, y, width, height</i>)</tt><p><b><small>Description</small></b>
+<br>Draws a rectangle onto an image. The rectangle's dimensions are calculated from the <i>x</i>- and <i>y</i>-offset from the top left corner of the image as upper left reference point to <i>x + width</i> and <i>y + height</i> as lower right reference point.<p><b><small>Example</small></b>
+<br><tt>var img = new Image("http://helma.org/images/originalgif");
+<br>res.write("&lt;img src=\"/images/original.gif\"&gt;");
+<br>
+<br><img src="/images/hop.gif"></img>
+<br>
+<br>img.setColor(204,0,0);
+<br>img.drawRect(57,8,46,20);
+<br>img.saveAs("/www/images/processed.gif");
+<br>res.write("&lt;img src=\"/images/processed.gif\"&gt;");
+<br>
+<br><img src="/images/drawRect.gif"></img></tt>
+<h3>drawString()</h3>
+
+<p>Adding text to an image.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>imageObject</i>.drawString(<i>string, x, y</i>)</tt><p><b><small>Description</small></b>
+<br>Draws a string onto an image. The string will be drawn starting at the <i>x</i>- and <i>y</i>-offset from the top left corner of the imaget.<p><b><small>Example</small></b>
+<br><tt>var img = new Image("http://helma.org/images/original.gif");
+<br>res.write("&lt;img src=\"/images/original.gif\"&gt;");
+<br>
+<br><img src="/images/hop.gif"></img>
+<br>
+<br>img.setColor(204,0,0);
+<br>img.drawString("rocks!",82,35);
+<br>img.saveAs("/www/images/processed.gif");
+<br>res.write("&lt;img src=\"/images/processed.gif\"&gt;");
+<br>
+<br><img src="/images/drawString.gif"></img></tt>
+<h3>fillRect()</h3>
+
+<p>Adding a filled rectangle to an image.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>imageObject</i>.fillRect(<i>x, y, width, height</i>)</tt><p><b><small>Description</small></b>
+<br>Draws a filled rectangle onto an image. The rectangle's dimensions are calculated from the <i>x</i>- and <i>y</i>-offset from the top left corner of the image as upper left reference point to <i>(x + width)</i> and <i>(y + height)</i> as lower right reference point.<p><b><small>Example</small></b>
+<br><tt>var img = new Image("http://helma.org/images/original.gif");
+<br>res.write("&lt;img src=\"/images/original.gif\"&gt;");
+<br>
+<br><img src="/images/hop.gif"></img>
+<br>
+<br>img.setColor(204,0,0);
+<br>img.fillRect(58,27,43,29);
+<br>img.saveAs("/www/images/processed.gif");
+<br>res.write("&lt;img src=\"/images/processed.gif\"&gt;");
+<br>
+<br><img src="/images/fillRect.gif"></img></tt>
+<h3>getHeight()</h3>
+
+<p>Determining the height of an image.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>imageObject</i>.getHeight()</tt><p><b><small>Description</small></b>
+<br>Returns the height of an image measured in pixels.<p><b><small>Example</small></b>
+<br><tt>var img = new Image("http://helma.org/images/hop.gif");
+<br>res.write("&lt;img src=\"/images/hop.gif\"&gt;");
+<br>
+<br><img src="/images/hop.gif"></img>
+<br>
+<br>var height = img.getHeight();
+<br>res.write(height);
+<br><i>35</i></tt>
+<h3>getSource()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>Image</i>.getSource()</tt><p><b><small>Description</small></b>
+<br>To use the image filters provided by the Jimi java image processing package <tt>Packages.com.sun.jimi.core.filters</tt>, a specific class of image objects is needed. Helma wraps the <tt>sun.awt.image</tt> objects into a custom class. To use Helma image objects with Jimi's filters these have to be "unwrapped" using the <tt>getSource()</tt> function.
+<br>
+<br>The following filter functions have been successfully applied the way as described in the examples above:<ul><li><tt>Rotate(<i>degreeNumber</i>)</tt></li>
+<li><tt>Gray()</tt></li>
+<li><tt>Flip(<i>typeNumber</i>)</tt></li>
+<li><tt>Oil(<i>intensityNumber</i>)</tt></li>
+<li><tt>Invert()</tt></li>
+<li><tt>Smooth(<i>intensityNumber</i>)</tt></li>
+<li><tt>Shear(<i>degreeNumber</i>)</tt></li>
+<li><tt>Edges()</tt></li>
+<li><tt>Shrink(<i>multiplyNumber</i>)</tt></li>
+<li><tt>Enlarge(<i>divisionNumber</i>)</tt></li></ul>
+Please take into account that the quality might suffer depending on the type and amount of filters applied to the image.<p><b><small>Example</small></b>
+<br><tt>var img = new Image("http://helma.org/static/original.jpg"); 
+<br>var rotator = new Packages.com.sun.jimi.core.filters.Rotate(45); 
+<br>var processed = new Image(img, rotator); 
+<br>processed.saveAs("/path/to/static/processed.jpg"); 
+<br>res.write("&amp;lt;img src=\"/static/processed.jpg\&amp;gt;");
+<br>
+<br><img src="http://helma.org/images/rotated45.jpg">
+<br>
+<br>var img = new Image("http://helma.org/static/original.jpg"); 
+<br>var filter = Packages.com.sun.jimi.core.filters; 
+<br>var oil = new filter.Oil(img.getSource(), 3); 
+<br>var processed = new Image(img, oil); 
+<br>processed.saveAs("/path/to/static/processed.jpg"); 
+<br>res.write("&amp;lt;img src=\"/static/processed.jpg\&amp;gt;");
+<br>
+<br><img src="http://helma.org/images/oilfiltered.jpg"></tt>
+<h3>getWidth()</h3>
+
+<p>Determining the width of an image.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>imageObject</i>.getWidth()</tt><p><b><small>Description</small></b>
+<br>Returns the width of an image measured in pixels.<p><b><small>Example</small></b>
+<br><tt>var img = new Image("http://helma.org/images/hop.gif");
+<br>res.write("&lt;img src=\"/images/hop.gif\"&gt;");
+<br>
+<br><img src="/images/hop.gif"></img>
+<br>
+<br>var width = img.getWidth();
+<br>res.write(width);
+<br><i>174</i></tt>
+<h3>reduceColors()</h3>
+
+<p>Setting the color depth of an image.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>imageObject</i>.reduceColors(<i>number</i>)</tt><p><b><small>Description</small></b>
+<br>Reduces the number of colors used in an image to the amount specified with <i>number</i>. Use with caution, generally. Gif images need a color depth of max. 256 colors maximum.<p><b><small>Example</small></b>
+<br><tt>var img = new Image("http://helma.org/images/original.jpg");
+<br>res.write("&lt;img src=\"/images/original.jpg\"&gt;");
+<br>
+<br><img src="/images/hawatosch.jpg"></img>
+<br>
+<br>img.reduceColors(8);
+<br>img.saveAs("/www/images/processed.jpg");
+<br>res.write("&lt;img src=\"/images/processed.jpg\"&gt;");
+<br>
+<br><img src="/images/reduceColors.jpg"></img></tt>
+<h3>resize()</h3>
+
+<p>Setting the dimensions of an image.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>imageObject</i>.resize(<i>width, heigth</i>)</tt><p><b><small>Description</small></b>
+<br>Sets the height and width of an image to new values. The new width and height have to be integers, so be careful to round the new values eventually. In case of a gif image be sure to reduce the image to 256 colors after resizing by using the <tt><a href="../reduceColorsFunc">reduceColors()</a></tt> function.<p><b><small>Example</small></b>
+<br><tt>var img = new Image("http://helma.org/images/original.jpg");
+<br>res.write("&lt;img src=\"/images/original.jpg\"&gt;");
+<br>
+<br><img src="/images/hawatosch.jpg"></img>
+<br>
+<br>var factor = 0.66;
+<br>var wd = Math.round(img.getWidth() * factor);
+<br>var ht = Math.round(img.getHeight() * factor);
+<br>img.resize(wd, ht);
+<br>img.saveAs("/www/images/processed.jpg");
+<br>
+<br>res.write("&lt;img src=\"/images/processed.jpg\"&gt;");
+<br>
+<br><img src="/images/resize.jpg"></img></tt>
+<h3>saveAs()</h3>
+
+<p>Storing an image on the hard disk.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>imageObject</i>.saveAs(<i>path</i>)</tt><p><b><small>Description</small></b>
+<br>Stores the binary data of an image on the hard disk. Before the image is converted into the appropriate image format determined by the file extension (please refer to the <a href="http://java.sun.com/products/jimi/">JIMI</a> documentation for a detailed overview of the available formats).<p><b><small>Example</small></b>
+<br><tt>var img = new Image("http://helma.org/images/original.jpg");
+<br>res.write("&lt;img src=\"/images/original.jpg\"&gt;");
+<br>
+<br><img src="/images/hawatosch.jpg"></img>
+<br>
+<br>img.saveAs("/www/images/processed.png");
+<br>res.write("&lt;img src=\"/images/processed.png\"&gt;");
+<br>
+<br><img src="/images/saveAs.png"></img></tt>
+<h3>setColor()</h3>
+
+<p>Selecting a drawing color.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>imageObject</i>.setColor(<i>colorOrRgbValues</i>)</tt><p><b><small>Description</small></b>
+<br>Determines the color of the following drawing actions either by a 24-bit integer (0–16777215) or by an rgb-tuple (each element ranging from 0 to 255).<p><b><small>Example</small></b>
+<br><tt>var img = new Image("http://helma.org/images/original.jpg");
+<br>res.write("&lt;img src=\"/images/original.jpg\"&gt;");
+<br>
+<br><img src="/images/hawatosch.jpg"></img>
+<br>
+<br>img.setColor(16777215);
+<br>img.fillRect(80, 50, 30, 30);
+<br>img.setColor(255, 255, 0);
+<br>img.fillRect(65, 15, 30, 30);
+<br>img.saveAs("/www/images/processed.png");
+<br>res.write("&lt;img src=\"/images/processed.png\"&gt;");
+<br>
+<br><img src="/images/setColor.jpg"></img></tt>
+<h3>setFont()</h3>
+
+<p>Selecting a typeface for font setting.
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>imageObject</i>.setFont(<i>name, style, size</i>)</tt><p><b><small>Description</small></b>
+<br>Determines the font face, style and size of a font to be used in following <tt><a href="http://www.helma.org/docs/reference/image/drawStringFunc/">drawString()</a></tt> actions. <i>name</i> specifies the font face as string (e.g. "sansserif", "dialog").
+<br>
+<br>The integer <i>style</i> sets the font to normal (0), bold (1), italic (2) or bold and italic (3). <i>size</i>, also an integer, refers to the font size in pixels.
+<br>
+<br>Please take a look at this description about <a href="http://java.sun.com/products/jdk/1.2/docs/guide/internat/fontprop.html">adding fonts to the Java Runtime</a> for a detailed look onto Java's font mechanics.<p><b><small>Example</small></b>
+<br><tt>var img = new Image("http://helma.org/images/original.jpg");
+<br>res.write("&lt;img src=\"/images/original.jpg\"&gt;");
+<br>
+<br><img src="/images/hawatosch.jpg"></img>
+<br>
+<br>img.setColor(255, 255, 255);
+<br>img.setFont("serif", 0, 12);
+<br>img.drawString("I shot the serif.", 50, 15);
+<br>img.setFont("sansserif", 1, 14);
+<br>img.drawString("But I didn't shoot", 10, 100);
+<br>img.setFont("monospaced", 2, 16);
+<br>img.drawString("the monotype.", 15, 115);
+<br>img.saveAs("/www/images/processed.png");
+<br>res.write("&lt;img src=\"/images/processed.png\"&gt;");
+<br>
+<br><img src="/images/setFont.jpg"></img></tt>
+<h2>Java Object Access</h2>
+
+<p>
+
+<p>See the <a href="http://home.worldcom.ch/jmlugrin/fesi/jaext.html">Fesi documentation for Java object access</a>.
+<br>
+<br>For starters, objects from the core Java Api (in the java.* packages) can be instantiated directly, while other Java classes need the Packages prefix.
+<br>
+<br><tt>var buffer = new java.lang.StringBuffer();
+<br>var foo = new Packages.com.bar.util.Foo();</tt>
+<br>
+<br>Use Sun's <a href="http://java.sun.com/j2se/1.3/docs/api/">Api Specification</a> to find out more about Java objects.
+<br>
+<br><small><b>Example</b></small><tt>
+<br>/**
+<br> * This function returns a date string
+<br> * from a Date object formatted
+<br> * according to a custom locale.
+<br> */
+<br>function getLocaleDate(date) {
+<br>&nbsp;&nbsp;&nbsp;// Here the locale is set (english / Ireland):
+<br>&nbsp;&nbsp;&nbsp;var locale = new java.util.Locale("en", "IE");
+<br>&nbsp;&nbsp;&nbsp;// Creating the date formatter:
+<br>&nbsp;&nbsp;&nbsp;var dateFormat = new java.text.SimpleDateFormat("EEEE d MMMM yyyy, HH:mm", locale); 
+<br>&nbsp;&nbsp;&nbsp;// Formatting the Date object as date string:
+<br>&nbsp;&nbsp;&nbsp;var dateString = dateFormat.format(date); 
+<br>&nbsp;&nbsp;&nbsp;return(dateString); 
+<br>}</tt>
+<h2>Mail Client</h2>
+
+<p>
+
+<p>Mail objects are used to send email via Smtp and are created by using the Mail() constructor:
+<br>
+<br><code>var mail = new Mail();</code>
+<br>
+<br>The mail object can than be manipulated and sent using the functions listed below. 
+<br>
+<br>You'll need the <a href="http://java.sun.com/products/javamail/">JavaMail</a> library installed for this to work. Also, don't forget to set your mail server via the <a href="/docs/parameters/#serverprops"<code>smtp</code> property</a>.
+<br>
+<br>Note: Make sure that the Smtp server itself is well-configured, so that it accepts Mails coming from your server and does not deny relaying.
+<br>Best and fastest configuration is of course if you run your own Smtp server (e.g. sendmail), but which might be a bit tricky to set up.
+<h3>addBCC()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>mailObject</i>.addBCC(<i>EmailString, NameString</i>)</tt><p><b><small>Description</small></b>
+<br>Adds a recipient to the list of addresses to get a "blind carbon copy" of the message. The first argument specifies the receipient's e-mail address. The second argument is optional and specifies the name of the recipient.<p><b><small>Example</small></b>
+<br><tt>var mail = new Mail();
+<br>mail.addBCC("hop@helma.at");
+<br>mail.addBCC("tobi@helma.at", "Tobi Schaefer");</tt>
+<h3>addCC()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>mailObject</i>.addCC(<i>EmailString, NameString</i>)</tt><p><b><small>Description</small></b>
+<br>Adds an address to the list of carbon copy recipients. The first argument specifies the receipient's e-mail address. The second argument is optional and specifies the name of the recipient.<p><b><small>Example</small></b>
+<br><tt>var mail = new Mail();
+<br>mail.addCC("hop@helma.at");
+<br>mail.addCC("tobi@helma.at", "Tobi Schaefer");</tt>
+<h3>addPart()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>mailObject</i>.addPart(<i>Object</i>)</tt><p><b><small>Description</small></b>
+<br>Adds a mime-part to the message. The mime-part (e.g. a gif image or an rtf document) has to be wrapped into a <tt>java.io.File</tt> object.<p><b><small>Example</small></b>
+<br><tt>var file = new java.io.File("/home/snoopy/woodstock.jpg");
+<br>var mail = new Mail();
+<br>mail.setFrom("snoopy@doghouse.com");
+<br>mail.setTo("woodstock@birdcage.com");
+<br>mail.setSubject("Look at this!");
+<br>mail.addPart("I took a photograph from you. Neat, isn't it? -Snoop");
+<br>mail.addPart(file);
+<br>mail.send();</tt>
+<h3>addText()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>mailObject</i>.addText(<i>String</i>)</tt><p><b><small>Description</small></b>
+<br>Appends a string to the body text of the message. Note that this method will overwrite any multi-mime-parts already added to the message.<p><b><small>Example</small></b>
+<br><tt>var mail = new Mail();
+<br>mail.addText("Hello, World!");</tt>
+<h3>addTo()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>mailObject</i>.addTo(<i>EmailString, NameString</i>)</tt><p><b><small>Description</small></b>
+<br>Adds a receipient to the address list of the message. The first argument specifies the receipient's e-mail address. The second argument is optional and specifies the name of the recipient.<p><b><small>Example</small></b>
+<br><tt>var mail = new Mail();
+<br>mail.addTo("hop@helma.at");
+<br>mail.addTo("tobi@helma.at", "Tobi Schaefer");</tt>
+<h3>send()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>mailObject</i>.send()</tt><p><b><small>Description</small></b>
+<br>This function actually sends the message created with the mail object using the smtp server as specified in an appropriate <a href="http://helma.org/docs/parameters/#serverprops">property file</a>.<p><b><small>Example</small></b>
+<br><tt>var mail = new Mail();
+<br>mail.addTo("watching@michi.tv", "michi");
+<br>mail.addCC("franzi@home.at", "franzi");
+<br>mail.addBCC("monie@home.at");
+<br>mail.setFrom("chef@frischfleisch.at", "Hannes");
+<br>mail.setSubject("Registration Conformation");
+<br>mail.addText("Thanks for your Registration...");
+<br>mail.send();</tt>
+<br>
+<h3>setFrom()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>mailObject</i>.setFrom(<i>EmailString, NameString</i>)</tt><p><b><small>Description</small></b>
+<br>Sets the sender of the message. The first argument specifies the sender's e-mail address. The second argument is optional and specifies the name of the sender.<p><b><small>Example</small></b>
+<br><tt>var mail = new Mail();
+<br>mail.setFrom("tobi@helma.at", "Tobi Schaefer");</tt>
+<h3>setSubject()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>mailObject</i>.setSubject(<i>String</i>)</tt><p><b><small>Description</small></b>
+<br>Sets the subject of the message.<p><b><small>Example</small></b>
+<br><tt>var mail = new Mail();
+<br>mail.setSubject("Hello, World!");</tt>
+<h3>status</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>mailObject</i>.status</tt><p><b><small>Description</small></b>
+<br>Returns the current status of the message. If an error has occured the status is greater than zero. Here are the error codes:<pre>
+nr   error description
+--   -----------------
+ 0   no error
+10   error with setSubject()
+11   error with addText()
+12   error with addPart()
+20   error with addTo()
+21   error with addCC()
+22   error with addBCC()
+30   error while trying to send the Message</pre><p><b><small>Example</small></b>
+<br><tt>var mail = new Mail();
+<br>mail.addTo("idont@know@myemail.com");
+<br>res.write(mail.status);
+<br><i>20</i></tt>
+<h2>Number Object</h2>
+
+<p>
+
+<p>
+<h3>format()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>Number</i>.format(<i>PatternString</i>)</tt><p><b><small>Description</small></b>
+<br>Formats a number as string for custom output. The function's string parameter is used as a pattern to describe the desired format. In the pattern string you can use the following pattern letters:<pre>
+Symbol   Meaning
+------   -------
+  0      a digit
+  #      a digit, zero shows as absent
+  .      placeholder for decimal separator
+  ,      placeholder for grouping separator.
+  E      separates mantissa and exponent for
+         exponential formats.
+  ;      separates formats.
+  -      default negative prefix.
+  %      multiply by 100 and show as percentage
+  ?      multiply by 1000 and show as per mille
+  ¤      currency sign; replaced by currency symbol;
+         if doubled, replaced by international currency
+         symbol. If present in a pattern, the monetary
+         decimal separator is used instead of the decimal
+         separator.
+  X      any other characters can be used in the prefix
+         or suffix.
+  '      used to quote special characters in a prefix
+         or suffix.</pre>
+Please note that the output is depending on the locale settings of the Helma server. For further reference refer to the examples below or directly to the documentation of the <a href="http://java.sun.com/products/jdk/1.2/docs/api/java/text/DecimalFormat.html">Java DecimalFormat class</a><p><b><small>Example</small></b>
+<br><tt>var nr = 12345.67890;
+<br>res.write(nr.format("#.00 ¤"));
+<br><i>12345,68 öS</i>
+<br>
+<br>res.write(nr.format("###,####.00 ¤¤"));
+<br><i>1.2345,68 ATS</i>
+<br>
+<br>var nr = 0.0987654321;
+<br>res.write(nr.format("0.###%"));
+<br><i>9,877%</i>
+<br>
+<br>var nr = 7.9E-5
+<br>res.write(nr.format("0.######"));
+<br><i>0,000079</i></tt>
+<h2>Object-Relational Mapping</h2>
+
+<p>
+
+<p>The Hop comes with the ability to store Hop objects natively in its embedded object database. However, for many purposes it is advisable to use an external relational database product for object storage for reasons including features, accessability and reliability. 
+<br>
+<br>A prototype can specify how its data properties are stored in relational database tables by providing a types.properties file. This file is located in the prototype's directory along with the prototype code. It is basically a Java properties file that maps JavaScript properties to database columns. Unfortunately, the mapping rules have gone from clean and simple to rather obscure as features were added to the Hop.
+<br>
+<br>A basic type.properties file might look like this:
+<br><blockquote><pre>_datasource = my_data_source
+_tablename = my_table
+
+_subnodes = &lt;child.db_parent_id
+_id = id
+
+title = db_title
+createdate = db_createdate
+owner = db_owner_id&gt;user.id</pre></blockquote>
+The first thing we notice is that some properties begin with an underscore ("_") while others don't. This is a simple convention to separate those properties which are needed by Hop internally from those that specify script-accessible properties of this prototype.  
+<br>
+<br>In the following, we describe the different kinds of entries that can be used in type.properties files.
+<br><ul><li> <a href="/docs/reference/mapping/location/">Storage Location</a>: _datasource, _tablename
+<br><li> <a href="/docs/reference/mapping/hierarchy/"> Object Hierarchy</a>: _subnodes, _properties
+<br><li> <a href="/docs/reference/mapping/identity/">Object Identity</a>: _id, _name, _idgen
+<br><li> <a href="/docs/reference/mapping/prop/">Primitive Type Property Mappings</a> (string, number, date etc)
+<br><li> <a href="/docs/reference/mapping/objectProp/">Object Property mappings</a>
+<br><li> <a href="/docs/reference/mapping/virtual/">Virtual Subnodes</a>
+<br><li> <a href="/docs/reference/mapping/advanced/">Advanced Settings</a> (cachemode, loadmode, etc)
+<br></ul> 
+<h2>Path Object</h2>
+
+<p>
+
+<p><small><b>Description</b></small>
+<br>The objects in the uri path of a request are not only accessible as array members of the global <tt>path</tt> object, but also as named properties of <tt>path</tt> via the name of their prototype. For instance, if an object in the uri path has a prototype called "story", it will be accessible as <tt>path.story</tt>.
+<br>
+<br><small><b>Example</b></small>
+<br>Assumed the request path of an application is
+<br><tt>/h_files/myDocument/storyTitle/23
+<br>
+<br>for (var i=0; i&lt;path.length; i++)
+<br>&nbsp;&nbsp;&nbsp;res.writeln(path[i]);
+<br>
+<br><i>HopObject file
+<br>HopObject document
+<br>HopObject story
+<br>HopObject note</i>
+<br>
+<br>var obj = path.story;
+<br>res.write(obj);
+<br>
+<br><i>HopObject story</i></tt>
+<br>
+<h2>Property Files</h2>
+
+<p>
+
+<p>Helma's property files are simple text files containing information e.g. about which applications to start, about the database connection, server configuration etc.
+<br>
+<br>There is no general syntax of the various properties, however most of the time each line represents a property's assignment the way
+<br>
+<br><tt><i>propertyName</i> = <i>propertyValue(s)</i></tt>
+<br>
+<br>A line starting with a hash character # will be handled as comment:
+<br>
+<br><tt># This is a comment.
+<br>This is no comment. # This is no comment, either.</tt>
+<h3>app.properties</h3>
+
+<p>
+
+<p><small><b>Description</b></small>
+<br>This file is located in an application's directory (e.g. <tt>apps/myApp/</tt>). A wide variety of properties can be defined here. Generally, any imaginable name can be used as a property and assigned a string value the way
+<br>
+<br><tt><i>propertyName = propertyValue</i></tt>
+<br>
+<br>Properties defined in such a way can be evaluated from inside Helma's scripting environment by using the <tt>getProperty()</tt> function.
+<br>
+<br>However, there is a bunch of <a href="http://helma.org/docs/reference/propFiles/properties/">pre-defined properties</a> that are used internally by Helma. Be careful not to accidentally bend these special properties for your custom purposes or your application eventually could behave unexpectedly.
+<br>
+<br>Many of those pre-defined properties also can be defined server-wide in <tt><a href="http://helma.org/docs/reference/propFiles/server">server.properties</a></tt>. However, any property that is set there will be overwritten by an appropriate setting in <tt>app.properties</tt>.
+<br>
+<br><small><b>Example</b></small>
+<br><tt># Setting some properties:
+<br>backgroundColor = #3333ff
+<br>title = "Hello, World!"</tt>
+<br>
+<br>Accessing the properties e.g. from <tt>root/main.hac</tt>:
+<br><tt>var bgColor = getProperty("backgroundColor");
+<br>res.write(bgColor);
+<br><i>#3333ff</i>
+<br>
+<br>var title = getProperty("title");
+<br>res.write(title);
+<br><i>Hello, World!</i></tt>
+<h3>apps.properties</h3>
+
+<p>
+
+<p><small><b>Description</b></small>
+<br>This file is located in Helma's installation directory. It contains a list of applications that helma will handle (ie. start up, execute, update). The name of an application refers to a directory with the same name in helma's <tt>apps</tt> directory.
+<br>
+<br><small><b>Example</b></small>
+<br><tt>hopblog</tt>
+<br><tt>antville</tt>
+<br><tt>gong</tt>
+<br><tt>kolin</tt>
+<br>
+<br>Special case: <tt><i>appname</i> = self</tt>
+<br>
+<br>Using this syntax enables the application <tt><i>appname</i></tt> to script Helma herself. Currently, there can be only one application set-up this way:
+<br>
+<br><small><b>Example</b></small>
+<br><tt>hopblog
+<br>antville
+<br>base = self
+<br>gong</tt>
+<h3>db.properties</h3>
+
+<p>
+
+<p><small><b>Description</b></small>
+<br>This file is located in Helma's installation directory. It contains a list of data sources and data source properties setting up the basic connection between Helma and relational databases.
+<br>
+<br>To define data sources, the property <tt>sources</tt> is assigned a comma-separated list of names (certainly, the list can contain only one element):
+<br>
+<br><tt>sources = <i>dataSourceName</i></tt>
+<br>
+<br>In consequence the following properties of the data source(s) must be set:
+<br>
+<br><tt><i>dataSourceName</i>.url
+<br><i>dataSourceName</i>.driver
+<br><i>dataSourceName</i>.user
+<br><i>dataSourceName</i>.password</tt>
+<br>
+<br><small><b>Example</b></small>
+<br><tt>sources = mySqlDB, oracleDB, hsqlDB
+<br>
+<br>mySqlDB.url = jdbc:mysql://db.domain.com/mysql
+<br>mySqlDB.driver = org.gjt.mm.mysql.Driver
+<br>mySqlDB.user = username
+<br>mySqlDB.password = secretPassword
+<br>
+<br>oracleDB.url = jdbc:oracle://db.domain.com/oracle
+<br>oracleDB.driver = oracle.jdbc.driver.OracleDriver
+<br>oracleDB.user = username2
+<br>oracleDB.password = secretPassword2
+<br>
+<br>hsqlDB.url = jdbc:hsqldb:dbData
+<br>hsqlDB.driver=org.hsqldb.jdbcDriver
+<br>hsqlDB.user=sa
+<br>hsqlDB.password=</tt>
+<h3>server.properties</h3>
+
+<p>
+
+<p><small><b>Description</b></small>
+<br>This file is located in Helma's installation directory. It contains <a href="http://helma.org/docs/reference/propFiles/properties/">pre-defined properties</a> that are used internally by Helma for configuring the server.
+<br>
+<br>Many of these properties also can be defined in an <tt><a href="http://helma.org/docs/reference/propFiles/server">app.properties</a></tt> file. Any property that is set there will overwrite the appropriate setting in <tt>server.properties</tt>.
+<br>
+<br><small><b>Example</b></small>
+<br><tt># Setting a custom locale:
+<br>country = AT
+<br>language = de
+<br>
+<br># Defining a mail server:
+<br>smtp = mail.domain.dom</tt>
+<h3>type.properties</h3>
+
+<p>
+
+<p>This file is located in a prototype's directory (e.g. <tt>apps/myApp/myProto</tt>). It contains definitions that specify the way Helma maps the relational database tables to hierarchical objects.
+<h4>Basic Mappings</h4>
+
+<p>
+
+<p>The <tt>_db</tt> entry describes the database to use for storing objects of this type. <tt>dbname</tt> is the name of a database as defined in the <tt>db.properties</tt> file. 
+<br>
+<br><tt style="background-color: #ccccff;">_db = dbname</tt>
+<br>
+<br>The <tt>_table</tt> entry tells Helma which table to use for objects of this type within the database. 
+<br>
+<br><tt style="background-color: #ccccff;">_table = TABLENAME</tt> 
+<br>
+<br>The <tt>_id</tt> entry defines the column to use as primary key. Helma requires a single primary key with no other functionality. 
+<br>
+<br><tt style="background-color: #ccccff;">_id = ID_COLUMN</tt>
+<br>
+<br>The optional <tt>_name</tt> entry tells Helma which database column to use as object name. This is important for the user prototype, since it defines which column constitutes the user name. 
+<br>
+<br><tt style="background-color: #ccccff;">_name = NAME_COLUMN</tt>
+<br>
+<br>The <tt>_parent</tt> entry contains a list of properties of objects of this type to be used as parent. Objects must know their parent in order to generate correct URLs in their <tt>href()</tt> function. 
+<br>
+<br><tt style="background-color: #ccccff;">_parent = property1, property2</tt>
+<h4>Simple Property Mappings</h4>
+
+<p>
+
+<p>The mappings for simple (non-object) properties simple map a property name of the specified object type to a column of the relational database table. The type of the property or column need not be specified. Helma does all necessary conversion when reading or writing a property value. 
+<br>
+<br><tt style="background-color: #ccccff;">prop1 = DB_COLUMN_1
+<br>prop2 = DB_COLUMN_2</tt>
+<br>
+<br>To prevent a property from being overwritten by the application it can be made readonly.
+<br>
+<br><tt style="background-color: #ccccff;">prop1.readonly = true</tt>
+<h4>Mountpoint Mappings</h4>
+
+<p>
+
+<p>Mountpoints provide a simple way to directly attach a prototype to the URL path. If the path contains the name of a mountpoint the prototype's objects are accessible simply by adding their id (or a property defined by <tt>._accessname</tt>) to the URL string.
+<br>
+<br><tt style="background-color: #ccccff;">myMountpoint = mountpoint(myProto)</tt>
+<br>
+<br>In the example above, the path <tt>/myMountpoint/23/test</tt> refers to the action <tt>test.hac</tt> of the object with id 23, which is derived from the <tt>myProto</tt> prototype.
+<h4>Object Property Mappings</h4>
+
+<p>
+
+<p>Properties that contain other objects are defined by the object keyword and the prototype name of the referenced object in brackets. The object reference is resolved via two entries: 
+<br>
+<br><tt style="background-color: #ccccff;">prop3 = object (protoype) 
+<br>prop3.local = LOCAL_DB_COLUMN 
+<br>prop3.foreign = FOREIGN_DB_COLUMN</tt>
+<br>
+<br><tt>prop3.local</tt> specifies the part of the reference in the local database-table, <tt>prop3.foreign</tt> the column in the table where objects of the referenced prototype are stored. By executing the assignment <tt>obj.prop3 = someObject</tt>, the database-column specified by <tt>prop3.local</tt> will be set to the value of <tt>FOREIGN_DB_COLUMN</tt>, or <tt>null</tt> if <tt>someObject == null</tt>. 
+<h4>Collection Mappings</h4>
+
+<p>
+
+<p>The following section describes the entries used to define collections of objects. There are two kinds of collections: First, every object can itself act as a collection, and second, it can define additional properties to be used as collections. Direct descendents are defined with entries starting with <tt>_children</tt>, while additional collections are defined using their property name. Otherwise the syntax for the two is the same. 
+<br>
+<br>The following are examples for simple collection mappings for both the direct descendants and those contained in a collection-property called <tt>prop4</tt>. The <tt>.foreign</tt> entry is used in both cases to specify a column in the foreign table used to collect the objects. Exactly those objects will be collected whose <tt>FOREIGN_DB_COLUMN</tt> value equals the <tt>LOCAL_DB_COLUMN</tt> value of the object holding the collection. Leaving away <tt>.local</tt> and <tt>.foreign</tt> creates a collection of all available objects of the specified prototype. 
+<br>
+<br><tt style="background-color: #ccccff;">_children = collection (protoype) 
+<br>_children.local = LOCAL_DB_COLUMN 
+<br>_children.foreign = FOREIGN_DB_COLUMN 
+<br>
+<br>prop4 = collection (protoype) 
+<br>prop4.local = LOCAL_DB_COLUMN 
+<br>prop4.foreign = FOREIGN_DB_COLUMN</tt>
+<br>
+<br>By executing <tt>obj.add(otherObj)</tt> resp. <tt>obj.prop4.add(otherObj)</tt>, the <tt>FOREIGN_DB_COLUMN</tt> will be set to the value of <tt>LOCAL_DB_COLUMN</tt>. 
+<br>
+<br>By default, child objects can be accessed from the containing parent object through their index-position or <tt>ID</tt> value. Additionally the entry <tt>.accessname</tt> can be used to specify a database column in the child table. The value of this column will be used as name of the objects contained in this collection. 
+<br>
+<br><tt style="background-color: #ccccff;">prop4.accessname = DB_COLUMN</tt>  
+<br>
+<br>With the above mapping, an object contained in the <tt>prop4</tt> collection with a <tt>DB_COLUMN</tt> value of "xyz" would be reachable as <tt>this.prop4.xyz</tt> from the containing object. 
+<br>
+<br><tt>filter</tt> can be used to add an additional condition for the selection of objects which is not dependent on the object holding the collection. <tt>order</tt> contains the sorting to be applied to the child objects. <tt>group</tt> tells Helma to group the objects in the collection according to the value in <tt>DB_GROUPCOLUMN</tt>. 
+<br>
+<br><tt style="background-color: #ccccff;">prop4.filter = DB_FILTERCOLUMN is not null 
+<br>prop4.order = DB_ORDERCOLUMN desc 
+<br>prop4.group = DB_GROUPCOLUMN 
+<br>prop4.group.order = DB_GROUPORDERCOLUMN</tt>
+<br> 
+<br>Notice the two appearences of <tt>order</tt> above. The first one, <tt>prop4.order</tt> sorts the objects, the second, <tt>prop4.group.order</tt> sorts the grouped objects, that Helma will create as a result of the <tt>group</tt> entry. With this it's also possible to sort the grouped objects ascending, but the contents of the grouped objects descending.
+<h4>Additional Join Conditions</h4>
+
+<p>
+
+<p>For both object and collection mappings, it is possible to provide any number of additional restraints used to join the local with the other table to further limit the selected objects. 
+<br>
+<br><tt style="background-color: #ccccff;">prop4.local.1 = FIRST_LOCAL_COLUMN 
+<br>prop4.foreign.1 = FIRST_FOREIGN_COLUMN 
+<br>prop4.local.2 = SECOND_LOCAL_COLUMN 
+<br>prop4.foreign.2 = SECOND_FOREIGN_COLUMN</tt>
+<br>
+<br>Whenever one specifies more than one restraint, the use of <tt>.[Number]</tt> is mandatory.
+<h3>List of All Properties</h3>
+
+<p>
+
+<p>This is a list of all pre-defined properties that can be set in one of the files <tt>server.properties</tt>, <tt>db.properties</tt> and <tt>app.properties</tt> (<tt>type.properties</tt> coming soon). Which property is available in which file is displayed in the "Range" column.
+<br>
+<br><table border="0" cellspacing="0" cellpadding="0"  bgcolor="black">
+<tr><td><table border="0" cellspacing="1" cellpadding="5">
+<tr bgcolor="white">
+	<th>Property</th>
+	<th>Range</th>
+	<th>Description</th>
+</tr>
+
+<a name="actionExtension"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>actionExtension</tt></td>
+	<td valign="top">server, app</td>
+	<td valign="top">Sets the extension for Helma action files. Default setting is <tt>actionExtension = .hac</tt>. Changing this setting is not recommended. Use with caution and at your own risk.</td>
+</tr>
+
+<a name="allowWeb"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>allowWeb</tt></td>
+	<td valign="top">server</td>
+	<td valign="top">Specifies ip adresses (or networks) that are allowed to connect to the Helma rmi servlet server (port 5055). For more than one ip adress put a comma between the entries, subnets should be written as i.e. <tt>192.168.0.*</tt>.</td>
+</tr>
+
+<a name="allowXmlRpc"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>allowXmlRpc</tt></td>
+	<td valign="top">server, app</td>
+	<td valign="top">Same as <tt>allowWeb</tt>, but for the xml-rpc server (port 5056).</td>
+</tr>
+
+<a name="appHome"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>appHome</tt></td>
+	<td valign="top">server</td>
+	<td valign="top">Defines the path to the location of Helma applications. If not specified, <tt>[hopHome]/apps</tt> will be used.</td>
+</tr>
+
+<a name="appsPropFile"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>appsPropFile</tt></td>
+	<td valign="top">server</td>
+	<td valign="top">Sets the location of the <tt>apps.properties</tt> file (i.e. for security reasons). The default is the <tt>root</tt> directory of your Helma installation.</td>
+</tr>
+
+<a name="baseURI"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>baseURI</tt></td>
+	<td valign="top">server, app</td>
+	<td valign="top">Specifies the prefix to add to urls generated by a Helma application. For example, if your application is "mounted" at <tt>/myapp</tt> in the server's document tree, you'd set <tt>baseURI = /myapp</tt>.</td>
+</tr>
+
+<a name="cachesize"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>cachesize</tt></td>
+	<td valign="top">server</td>
+	<td valign="top">Defines the size of the node cache in bytes.</td>
+</tr>
+
+<a name="charset"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>charset<tt></td>
+	<td valign="top">server</td>
+	<td valign="top">Defines the character encoding. The default is ISO-8859-1 (Western) encoding. You can use any of the <a href="http://java.sun.com/products/jdk/1.2/docs/guide/internat/encoding.doc.html">encodings supported by Java</a>.</td>
+</tr>
+
+<a name="country"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>country</tt></td>
+	<td valign="top">server</td>
+	<td valign="top">Like language, this is used to set the country for proper localisation. For details you can refer to this <a href="http://userpage.chemie.fu-berlin.de/diverse/doc/ISO_3166.html">list of country codes</a>.</td>
+</tr>
+
+<a name="dbHome"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>dbHome</tt></td>
+	<td valign="top">server</td>
+	<td valign="top">Defines the path to the location of the embedded database files. If not specified, <tt>[hopHome]/db</tt> will be used</td>
+</tr>
+
+<a name="debug"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>debug</tt></td>
+	<td valign="top">server, app</td>
+	<td valign="top">Switches between "normal" logging output (<tt>debug = false</tt>) and the extensive "debug" output (<tt>debug = true</tt>) which may be useful when developing. Default setting is <tt>false</tt>.</td>
+</tr>
+
+<a name="exposeTemplates"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>exposeTemplates</tt></td>
+	<td valign="top">server, app</td>
+	<td valign="top">To directly call a <tt>.hsp</tt> (instead of a <tt>.hac</tt>) file via the http interface it is necessary to set <tt>exposeTemplates = true</tt>. Default setting is <tt>false</tt>.</td>
+</tr>
+
+<a name="hopHome"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>hopHome</tt></td>
+	<td valign="top">server</td>
+	<td valign="top">This property defines the Helma working directory, e.g. <tt>hopHome = /hop/apps</tt>. If not specified, the current directory is used.</td>
+</tr>
+
+<a name="hrefSkin"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>hrefSkin</tt></td>
+	<td valign="top">app</td>
+	<td valign="top">The name of the skin that is assigned to this property is used to extend the <tt>href()</tt> function. E.g. setting <tt>hrefSkin = customLink</tt> will cause Helma to set <tt>param.path</tt> to the result of <tt>href()</tt> and to render the skinfile <tt>customLink.skin</tt> as if the function <tt>renderSkin("customLink", param)</tt> was invoked. Take a look at the <a href=""><tt>hrefSkin</tt> example</a> for the whole picture.</td>
+</tr>
+
+<a name="idBaseValue"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>idBaseValue</tt></td>
+	<td valign="top">server, app</td>
+	<td valign="top">Used to set the current value of the internal ID generator. This is useful when starting a new internal db (where the id value would normally start at 1), but relational dbs are used that already contain data. Only applied if the current counter value is smaller than <tt>idBaseValue</tt>.</td>
+</tr>
+
+<a name="language"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>language</tt></td>
+	<td valign="top">server</td>
+	<td valign="top">Used to set the language on systems where the Java runtime doesn't recognize it by itself (e.g. Linux), which may be important for date formatting and the like. Refer to this <a href="http://www.ics.uci.edu/pub/ietf/http/related/iso639.txt">list of language codes</a> for details.</td>
+</tr>
+
+<a name="linkMethod"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>linkMethod</tt></td>
+	<td valign="top">server, app</td>
+	<td valign="top"><tt>linkMethod = query | path</tt><br><i>Deprecated.</i></td>
+</tr>
+
+<a name="logDir"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>logDir</tt></td>
+	<td valign="top">server, app</td>
+	<td valign="top"></td>
+</tr>
+
+<a name="logSQL"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>logSQL</tt></td>
+	<td valign="top">server, app</td>
+	<td valign="top">With this option set to "true", Helma writes out all sql <tt>select</tt> statements to the logging device (and just those, so you won't find any <tt>insert</tt>, <tt>update</tt> or <tt>delete</tt> statements in there).</td>
+</tr>
+
+<a name="maxThreads"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>maxThreads</tt></td>
+	<td valign="top">server</td>
+	<td valign="top">Sets the maximum number of Helma's Java threads, e.g. <tt>maxThreads = 12</tt>. This is one of the parameters you should adjust for each server depending on the applications you run. If you see an error like "maximum thread count reached" you should increase the value of this property.</td>
+</tr>
+
+<a name="paranoid"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>paranoid</tt></td>
+	<td valign="top">server</td>
+	<td valign="top">If set to <tt>true</tt>, switches Helma to "paranoid" mode, which means that it won't accept connections from servers with unknown ip adresses >you can specify allowed ip adresses with the <tt>allowWeb</tt> and <tt>allowXmlRpc</tt> properties. Default setting is <tt>paranoid = false</tt>.</td>
+</tr>
+
+<a name="requestTimeout"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>requestTimeout</tt></td>
+	<td valign="top">server</td>
+	<td valign="top">Defines the time in seconds after which a request receives a timeout. Normally there is no need to change this value, but if you have tasks in your Helma application that take a longer time, you should increase this value.</td>
+</tr>
+
+<a name="scriptExtension"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>scriptExtension</tt></td>
+	<td valign="top">server, app</td>
+	<td valign="top">Used to change the extension of script files. Default setting is <tt>scriptingExtension = .js</tt>. Changing this setting is not recommended. Use with caution and at your own risk.</td>
+</tr>
+
+<a name="sessionTimeout"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>sessionTimeout</tt></td>
+	<td valign="top">server, app</td>
+	<td valign="top">This determines the time (in minutes) after which an inactive session becomes invalid.</td>
+</tr>
+
+<a name="skinPath"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>skinPath</tt></td>
+	<td valign="top">app</td>
+	<td valign="top"></td>
+</tr>
+
+<a name="smtp"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>smtp</tt></td>
+	<td valign="top">server, app</td>
+	<td valign="top">Specifies an smtp server, e.g. <tt>smtp = mail.server.dom</tt>. If you want Helma to send e-mail you should define this property.</td>
+</tr>
+
+<a name="sources"</a> 
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>sources</tt></td>
+	<td valign="top">db</td>
+	<td valign="top">Defines the name of one or more data sources to be used in an application, e.g. <tt>sources = mySqlDB, oracleDB</tt>. Each data source has then to be specified in detail by assigning values to its properties <tt>url</tt>, <tt>driver</tt>, <tt>user</tt> and <tt>password</tt>. Refer to the description of <tt><a href="/docs/reference/propFiles/db">db.properties</a></tt> for further information.</td>
+</tr>
+
+<a name="templateExtension"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>templateExtension</tt></td>
+	<td valign="top">server, app</td>
+	<td valign="top">Used to change the extension of Helma template files. Changing this setting is not recommended. Use with caution and at your own risk.</td>
+</tr>
+
+<a name="timezone"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>timezone</tt></td>
+	<td valign="top">server</td>
+	<td valign="top">It might be necessary to explicitly set the timezone for Helma. If <code>new Date()</code> puts out the wrong date, check if this option was set correctly. For details, refer to this <a href="http://greenwichmeantime.com/info/timezone.htm">list of timezones</a></td>
+</tr>
+
+<a name="xmlParser"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>xmlparser</tt></td>
+	<td valign="top">server, app</td>
+	<td valign="top">Can be used to specify a different Xml parser, e.g. <tt>xmlparser = minml</tt>. The default value is <tt>openxml</tt>.</td>
+</tr>
+
+<a name="xmlRpcAccess"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>XmlRpcAccess</tt></td>
+	<td valign="top">server, app</td>
+	<td valign="top">Functions which should be callable via Xml-Rpc need to be listed in this property on a per-application basis. The list contains entries of the kind <tt>prototype.function</tt> for each exposed function separated by commata, e.g. <tt>XmlRpcAccess = weblog.getStory, weblog.showStatus</tt>.</td>
+</tr>
+
+<a name="xmlRpcAccess"></a>
+<tr bgcolor="white">
+	<td valign="top" nowrap><tt>xmlRpcHandlerName</tt></td>
+	<td valign="top">app</td>
+	<td valign="top">Setting this property makes it possible to change the name under which an application is registered with the XML-RPC server. This means that the functions exposed via XML-RPC will have a "blogger" prefix. For instance a function called "newPost" will be XML-RPC callable as <tt>blogger.newPost</tt> instead of <tt>antville.newPost</tt>.</td>
+</tr>
+</table></td></tr></table>
+
+<h3>Example Files</h3>
+
+<p>
+
+<p><a name="server"></a><small><b>server.properties</b></small>
+<br><tt># Setting the extension for Helma action files:
+<br>actionExtension = .hac
+<br>
+<br># Allowing some ip addreses for web access:
+<br>allowWeb = 192.168.0.*, 194.152.169.160
+<br>
+<br># Allowing some ip addreses for xml-rpc access:
+<br>allowXmlRpc = 192.168.0.*
+<br>
+<br># Setting the directory where Helma applications reside:
+<br>appHome = /helma-1.2/apps
+<br>
+<br># Setting the location of apps.properties:
+<br>appsPropFile = /helma-1.2/propFiles
+<br>
+<br># Setting the application's base uri:
+<br>baseURI = /apps/testApp
+<br>
+<br># Setting the size of Helma's cache memory:
+<br>cachesize = 1000
+<br>
+<br># Setting the character encoding:
+<br>charset = UTF8
+<br>
+<br># Setting the country code:
+<br>country = AT
+<br>
+<br># Setting the location of database files:
+<br>dbHome = /etc/db/helma
+<br>
+<br># Enabling debugging:
+<br>debug = true
+<br>
+<br># Enabling web access to .hsp templates:
+<br>exposeTemplates = true
+<br>
+<br># Setting the Helma working directory
+<br>hopHome = /helma-1.2
+<br>
+<br># Setting the base value to create id numbers from:
+<br>idBaseValue = 5000
+<br>
+<br># Setting the language code:
+<br>language = de
+<br>
+<br># Enabling database logging
+<br>logSQL = true
+<br>
+<br># Setting the maximum number of server threads:
+<br>maxThreads = 12
+<br>
+<br># Enabling restricted web access to the Helma server:
+<br>paranoid = true
+<br>
+<br># Setting the duration after a request times out:
+<br>requestTimeout = 60
+<br>
+<br># Setting the extension of JavaScript files:
+<br>scriptExtension = .js
+<br>
+<br># Setting the duration after an inactive session times out:
+<br>sessionTimeout = 10
+<br>
+<br># Setting a smtp server:
+<br>smtp = mail.server.dom
+<br>
+<br># Setting a relational data source:
+<br>sources = mySqlDB
+<br>
+<br># Setting the extension of Helma templates:
+<br>templateExtension = .hsp
+<br>
+<br># Setting the server's timezone:
+<br>timezone = GMT
+<br>
+<br># Enabling the MinML xml parser:
+<br>xmlparser = minml
+<br>
+<br># Defining which application functions should be accessible via xml-rpc:
+<br>XmlRpcAccess = weblog.getStory, weblog.showStatus
+<br></tt>
+<h2>Request Object</h2>
+
+<p>
+
+<p>The request object represents the request coming from the client. It is accessible as a global variable called <code>req</code>.
+<h3>data</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>req.data.<i>String</i>;</tt><p><b><small>Description</small></b>
+<br>Retrieves the corresponding value from the http request. The value can either come from a cookie, or from a "post" or "get" http request. Hop does not make any difference here.
+<br>
+<br>The following variables are automatically set by Helma if they are available:<ul><li><tt>HopSession</tt>
+<br>The id of the current hop session cookie</li>
+<li><tt>http_browser</tt>
+<br>Name and version of the client Browser</li>
+<li><tt>http_host</tt>
+<br>Name of the local server</li>
+<li><tt>http_remotehost</tt>
+<br>Internet address of the user</li>
+<li><tt>http_referer</tt>
+<br>URL of the page which linked the user to the current page</li></ul>
+<tt><a href="/docs/reference/req/getFunc">req.get()</a></tt> provides exactly the same functionality in a what we think not as comfortable way (gotta type brackets and quotes). But it's just a matter of taste which one to use.<p><b><small>Example</small></b>
+<br>Here we see all three methods of setting a name, value pair:
+<br><tt>res.write("&lt;form action=" + root.href("showValues") + " method="post">&lt;input name="city">&lt;input type="submit">&lt;/form>");
+<br>
+<br>res.write("&lt;form action=" + root.href("showValues") + " method="get">&lt;input name="district">&lt;input type="submit">&lt;/form>");
+<br>
+<br>res.setCookie("street", "Lindengasse");</tt>
+<br>
+<br>root/showValues.hac:
+<br><tt>res.write(req.data.city);
+<br>res.write(req.data.district);
+<br>res.write(req.data.street);</tt>
+<br>
+<br><i>Note:</i> If you have got a cookie and a form element with the same name sent by "get" or "post", the cookie value will be overridden by the form value.
+<br>
+<br>If you are very curious and want to see all the values sent by the http request, you can use the <tt><a href="/docs/reference/req/getReqDataFunc">getReqData()</a></tt> function.
+<h3>get()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>req.get(<i>String</i>)</tt><p><b><small>Description</small></b>
+<br>Retrieves the corresponding value from the http request. The value can either come from a cookie, or from a "post" or "get" http request. Hop does not make any difference here.
+<br>
+<br>This is an alternative way of accessing request data to the <tt><a href="/docs/reference/req/dataProp">req.data</a></tt> object. Please see the req.data documentation for more information.<p><b><small>Example</small></b>
+<br><tt>res.write(req.get("http_remotehost"));
+<br><i>127.0.0.1</i></tt>
+<h3>path</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>req.path</tt><p><b><small>Description</small></b>
+<br>returns the path of the current request<p><b><small>Example</small></b>
+<br><tt>res.write(req.path);
+<br><i>docs/reference/req/path</i></tt>
+<h3>session</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>req.session</tt><p><b><small>Description</small></b>
+<br>returns the Session ID of the current user<p><b><small>Example</small></b>
+<br><tt>res.write(req.session);
+<br><i>717163f187abf800@e4b40a0e88</i></tt>
+<h2>Response Object</h2>
+
+<p>
+
+<p>The response object represents the response to be sent back to the client. It is accessible as a global variable called <code>res</code>.
+<h3>body</h3>
+
+<p>Deprectated property.
+
+<p>This property is deprecated and will not be supported in future releases of Helma.
+<br>
+<br>Use <tt><a href="http://helma.org/docs/reference/res/dataProp">res.data</a></tt> instead, by attaching the appropriate property to it.<!-- tt>res.title</tt>, <tt>res.head</tt>, <tt>res.body</tt> and <tt>res.message</tt> are predefined properties. -->
+<h3>cache</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>res.cache = <i>Boolean</i></tt><p><b><small>Description</small></b>
+<br>Specifies on a per-response base whether to allow client-side caching of the response or not. The default value is set to <tt>true</tt>, but can be changed globally by passing <tt>caching=false</tt> to the initial Helma java call. Please refer to the section about <a href="http://www.helma.org/docs/parameters/">servlet properties</a> for more details.<p><b><small>Example</small></b>
+<br><tt>res.cache = true;</tt>
+<h3>charset</h3>
+
+<p>Setting character encoding.
+
+<p><b><small>Syntax</small></b>
+<br><tt>res.charset = <i>CharsetString</i></tt><p><b><small>Description</small></b>
+<br>Sets Helma's character encoding according to the <a href="http://java.sun.com/products/jdk/1.2/docs/guide/internat/encoding.doc.html">list of supported encodings</a>. By default, Helma uses ISO-8859-1 (western) encoding. It is also possible to set the encoding server or application wide using the <a href="http://helma.org/docs/parameters/#serverprops">charset property</a> in the appropriate file.<p><b><small>Example</small></b>
+<br><tt>res.charset = "UTF8";
+<br>res.write("ÄÖÜäöüß");
+<br>// this is displayed if the brower's encoding is set to "Western"
+<br><i>&Atilde;&bdquo;&Atilde;&ndash;&Atilde;&oelig;&Atilde;&curren;&Atilde;&para;&Atilde;&frac14;&Atilde;&Yuml;</i></tt>
+<h3>contentType</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>res.contentType = <i>ContentTypeString</i></tt><p><b><small>Description</small></b>
+<br>The contentType of the http response can be set manually by changing the value of this Property. The default value is "text/html".<p><b><small>Example</small></b>
+<br><tt>res.contentType="text/plain";</tt>
+<br><tt>res.contentType="text/xml";</tt>
+<h3>data</h3>
+
+<p>
+
+<p><tt>res.data</tt> can be used to attach any property <tt><i>propertyName</i></tt> onto it to make it available in a skin via <tt>&lt;% response.<i>propertyName</i> %&gt;</tt>.
+<br>
+<br><small><b>Example</b></small>
+<br>
+<br>== root/main.hac
+<br><tt>res.data.title = "Test";
+<br>res.data.body = "Hello, World!";
+<br>root.renderSkin("main");</tt>
+<br>
+<br>== root/main.skin
+<br><tt>&lt;html&gt;
+<br>&lt;head&gt;
+<br>&nbsp;&nbsp;&lt;title&gt;&lt;% response.title %&gt;&lt;/title&gt;
+<br>&lt;/head&gt;
+<br>&lt;body&gt;
+<br>
+<br>&lt;% response.body %&gt;
+<br>
+<br>&lt;/body&gt;
+<br>&lt;/html&gt;</tt>
+<h3>encode()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>res.encode(<i>String</i>)</tt><p><b><small>Description</small></b>
+<br>Works similar to the global function <tt><a href="http://helma.org/docs/reference/global/encodeFunc/">encode()</a></tt> but writes the result directly to the response string buffer. Encodes a string by replacing linebreaks with <tt>&lt;br&gt;</tt> tags and diacritical characters as well as html tags with their equivalent html entities.<p><b><small>Example</small></b>
+<br><tt>res.encode("&lt;b&gt;Bananer v&auml;xer\n minsann inte p&aring; tr&auml;d.&lt;b&gt;");
+<br><i>&amp;lt;b&amp;gt;Bananer v&amp;auml;xer
+<br>&lt;br&gt; minsann inte p&amp;aring; tr&amp;auml;d.&amp;lt;/b&amp;gt;</i></tt>
+<h3>encodeXml()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>res.encodeXml(<i>String</i>)</tt><p><b><small>Description</small></b>
+<br>Works the same way as the global Function <a href="http://helma.org/docs/reference/global/encodeXmlFunc/">encodeXml()</a>, but writes the result directly to the response string buffer.<p><b><small>Example</small></b>
+<br><tt>res.encodeXml("&lt;title&gt;Sm&oslash;rebr&oslash;d&lt;/title&gt;");
+<br><i>&amp;lt;title&amp;gt;Sm&amp;amp;oslash;rebr&amp;amp;oslash;d&amp;lt;/title&amp;gt;</i></tt>
+<h3>error</h3>
+
+<p>Contains an internal Helma error message.
+
+<p><b><small>Syntax</small></b>
+<br><tt>res.error</tt><p><b><small>Description</small></b>
+<br>Contains a string describing an error if one should occur. If no error was detected, <tt>res.error</tt> contains an empty string. A good place for this function is a custom error page to display errors in a pretty layout.<p><b><small>Example</small></b>
+<br><tt>res.write(res.error);
+<br><i>Runtime error Syntax error detected near line 1, column 24, after in string starting with: 'function main_action (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10) {'...</i></tt>
+<h3>format()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>res.format(<i>String</i>);</tt><p><b><small>Description</small></b>
+<br>Encodes a string similar to <tt><a href="../encodeFunc">encode()</a></tt> but keeping the markup tags and trying to avoid <tt>&lt;br&gt;</tt> tags where possible (e.g. in table structures).<p><b><small>Example</small></b>
+<br><tt>res.encode("&lt;b&gt;Bananer v&auml;xer\n minsann inte p&aring; tr&auml;d.&lt;b&gt;");
+<br><i>&lt;b&gt;Bananer v&amp;auml;xer
+<br>&lt;br&gt; minsann inte p&amp;aring; tr&amp;auml;d.&lt;/b&gt;</i></tt>
+<h3>head</h3>
+
+<p>Deprectated property.
+
+<p>This property is deprecated and will not be supported in future releases of Helma.
+<br>
+<br>Use <tt><a href="http://helma.org/docs/reference/res/dataProp">res.data</a></tt> instead, by attaching the appropriate property to it.<!-- tt>res.title</tt>, <tt>res.head</tt>, <tt>res.body</tt> and <tt>res.message</tt> are predefined properties. -->
+<h3>message</h3>
+
+<p>Buffer a string for output.
+
+<p>When this property is set, its value can be retrieved either by <tt>res.message</tt> from within an action or a JavaScript file or by <tt>&lt;% response.message %&gt;</tt> from within a skin file.
+<br>
+<br>Additionally, it will survive an HTTP redirect which can be necessary to display warnings or error messages to the user. The property's value will be cleared at latest after a redirected response was output.
+<h3>redirect()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>res.redirect(<i>UrlString</i>);</tt><p><b><small>Description</small></b>
+<br>Redirects the user to the specified url immediately. The JavaScript code following this command will not be processed anymore.<p><b><small>Example</small></b>
+<br>Here is a simple check using a hypothetic <tt>isAdmin()</tt> function to grant access to authorized people only:
+<br>
+<br><tt>if (!user.isAdmin())
+<br>&nbsp;&nbsp;&nbsp;res.redirect("/main");</tt>
+<h3>reset()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>res.reset();</tt><p><b><small>Description</small></b>
+<br>Resets the current Response StringBuffer.<p><b><small>Example</small></b>
+<br><tt>res.write("Writing something to the response");
+<br>// changing my mind (e.g. an error occured somewhere)
+<br>res.reset();
+<br>res.write("Actually this is what I wanted to tell you: ...");
+<br>
+<br><i>Actually this is what I wanted to tell you: ...</i></tt>
+<h3>setCookie()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>res.setCookie(<i>KeyString, ValueString, NumberOfDays</i>);</tt><p><b><small>Description</small></b>
+<br>Sets a Cookie on the client machine. The third number argument is optional and specifies the number of days until the cookie expires.<p><b><small>Example</small></b>
+<br>The following can be used to "remember" users, and automatically log them in, when they return to your site.
+<br>
+<br><tt>res.setCookie("username", "michi", 10);
+<br>res.setCookie("password", "strenggeheim", 10);</tt>
+<h3>title</h3>
+
+<p>Deprectated property.
+
+<p>This property is deprecated and will not be supported in future releases of Helma.
+<br>
+<br>Use <tt><a href="http://helma.org/docs/reference/res/dataProp">res.data</a></tt> instead, by attaching the appropriate property to it.<!-- tt>res.title</tt>, <tt>res.head</tt>, <tt>res.body</tt> and <tt>res.message</tt> are predefined properties. -->
+<h3>write()</h3>
+
+<p>Writes to the Response StringBuffer
+
+<p><b><small>Syntax</small></b>
+<br><tt>res.write(<i>String</i>);</tt><p><b><small>Description</small></b>
+<br>Transforms the passed argument to a string (only if necessary) and appends the result to the response string buffer. Throws an error if no argument or an undefined argument is passed.<p><b><small>Example</small></b>
+<br><tt>var now = new Date(); 
+<br>res.write("current time: " + now);
+<br>
+<br><i>current time: Thu Feb 15 23:34:29 GMT+01:00 2001</i></tt>
+<h3>writeBinary()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>res.writeBinary(<i>javaByteArray</i>);</tt><p><b><small>Description</small></b>
+<br>This function takes one argument, which must be a Java byte array. Useful when handling binary data retrieved via http file upload.<p><b><small>Example</small></b>
+<br><tt>var upload = req.data.fileUpload;
+<br>res.writeBinary(upload);</tt>
+<h3>writeln()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>res.writeln(<i>string</i>)</tt><p><b><small>Description</small></b>
+<br>Transforms the passed argument to a string (only if necessary), appends an Html break <tt>&lt;br&gt;</tt> and appends the result to the response string buffer. Throws an error if no argument or an undefined argument is passed. Useful for debugging tasks.<p><b><small>Example</small></b>
+<br><tt>res.writeln("Hello,");
+<br>res.write("World!");
+<br><i>Hello,&lt;br&gt;
+<br>World!</i></tt>
+<h2>Skin Object</h2>
+
+<p>
+
+<p>
+<h3>allowMacro()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>allowMacro(<i>String</i>)</tt><p><b><small>Description</small></b>
+<br>This function is necessary to limit the range of allowed macros to be rendered to an explicit set. This is useful when text entered by non-trusted users is interpreted as skins to provide macro functions on a user-level.<p><b><small>Example</small></b>
+<br>Two macro functions defined in a JavaScript file:
+<br><tt>function isAllowed_macro() {
+<br>&nbsp;&nbsp;return("Hello");
+<br>}
+<br>
+<br>function isForbidden_macro() {
+<br>&nbsp;&nbsp;return("World");
+<br>}</tt>
+<br>
+<br>The action that enables one of the macros:
+<br><tt>var str = "&lt;% root.isAllowed %&gt;, &lt;% root.isForbidden %&gt;!";
+<br>var skin = createSkin(str);
+<br>// as soon as we call allowMacro() on a skin, only those
+<br>// macros explicitely set are allowed to be evaluated. 
+<br>// all others will result in an error msg.
+<br>skin.allowMacro("root.isAllowed");
+<br>renderSkin(skin);
+<br>
+<br><i>Hello, [Macro root.isForbidden not allowed in sandbox]!</i></tt>
+<h3>containsMacro()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>containsMacro(<i>String</i>)</tt><p><b><small>Description</small></b>
+<br>This function checks whether a skin does contain the macro specified by the string parameter. This is thus useful to make sure a user-edited skin does not contain any macro with which the application would break.<p><b><small>Example</small></b>
+<br><tt>var skin1 = createSkin("myMacro");
+<br>var skin2 = createSkin("&lt;% myMacro %&gt;");
+<br>res.writeln(skin1.containsMacro("myMacro"));
+<br><i>false</i>
+<br>
+<br>res.writeln(skin2.containsMacro("myMacro"));
+<br><i>true</i></tt>
+<h2>User Object</h2>
+
+<p>
+
+<p>
+<h3>lastActive()</h3>
+
+<p>Determine the last time of a certain user being logged in.
+
+<p><b><small>Syntax</small></b>
+<br><tt>user.lastActive()</tt><p><b><small>Description</small></b>
+<br>Returns a Date Object of the timestamp the current user was logged in the last time. Please note that you can use this function with the <tt>user</tt> prototype only, not with any user HopObject.<p><b><small>Example</small></b>
+<br><tt>res.write(user.lastActive())
+<br><i>Thu Nov 02 16:12:13 GMT+01:00 2000</i></tt>
+<h3>login()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>UserObject</i>.login(<i>UserNameString, PasswordString</i>)</tt><p><b><small>Description</small></b>
+<br>Returns <tt>true</tt> if the user name / password pair match the stored values in the database. Otherwise it returns <tt>false</tt>.<p><b><small>Example</small></b>
+<br><tt>var login = user.login("user", "pass");
+<br>if (login)
+<br>&nbsp;&nbsp;&nbsp;res.write("Welcome back!");
+<br>else
+<br>&nbsp;&nbsp;&nbsp;res.write("Oops, please try again...");
+<br>
+<br><i>Welcome back!</i></tt>
+<h3>onSince()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>userObject</i>.onSince()</tt><p><b><small>Description</small></b>
+<br>Returns the date string of the time the user's session was started.<p><b><small>Example</small></b>
+<br><tt>var usr = getUser("Tobi");
+<br>res.write(usr.onSince());
+<br><i>Fri Aug 10 16:36:36 GMT+02:00 2001</i></tt>
+<h3>register()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>userObject</i>.register(<i>usernameString, passwordString</i>)</tt><p><b><small>Description</small></b>
+<br>Stores this user in the database using two arguments as user name and password phrase. Returns a valid user HopObject if the transaction was successful, <tt>false</tt> otherwise (e.g. if a user HopObject with the same name already exists). Additional properties can be attached to the user HopObject the usual way, then.<p><b><small>Example</small></b>
+<br><tt>var newUser = user.register("snoopy", "woodstock");
+<br>res.write(newUser);
+<br><i>HopObject snoopy</i>
+<br>
+<br>newUser.email = "snoopy@peanuts.com";
+<br>newUser.fullname = "Snoop Doggy Dogg";</tt>
+<h3>touch()</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>UserObject</i>.touch()</tt><p><b><small>Description</small></b>
+<br>Refreshes the user's session, moving its expiration date to <i>now  plus session timeout</i> unless it is "touched" again either by the user requesting a page or calling <tt>touch()</tt>.<p><b><small>Example</small></b>
+<br><tt>var usr = getUser("tobi");
+<br>usr.touch();</tt>
+<h3>uid</h3>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt><i>UserObject</i>.uid</tt><p><b><small>Description</small></b>
+<br>Returns the database-internal id of the current user. If the user is logged into the application <tt>uid</tt> is set, otherwise it is null.<p><b><small>Example</small></b>
+<br><tt>res.writeln(user);
+<br>res.writeln(user.uid);
+<br><i>TransientNode [session cache]
+<br>null</i>
+<br>
+<br>res.writeln(user);
+<br>res.writeln(user.uid);
+<br><i>HopObject tobi
+<br>tobi</i></tt>
+<h2>XML and HTML Parsing</h2>
+
+<p>
+
+<p><b><small>Syntax</small></b>
+<br><tt>getXmlDocument(<i>XmlString</i>)
+<br>getXmlDocument(<i>UrlString</i>)
+<br>getXmlDocument(<i>java.io.InputStream</i>)
+<br>getXmlDocument(<i>java.io.Reader</i>)
+<br>
+<br>getHtmlDocument(<i>HtmlString</i>)
+<br>getHtmlDocument(<i>UrlString</i>)
+<br>getHtmlDocument(<i>java.io.InputStream</i>)
+<br>getHtmlDocument(<i>java.io.Reader</i>)
+<br>
+<br>jdomize(<i>DomDocument</i>)</tt><p><b><small>Description</small></b>
+<br>The Xml and Html parsing functions take one parameter and try to parse it into a Dom document object. If the document could not be retrieved or contains invalid markup, the functions return null. 
+<br>
+<br>The Dom object can be processed according to the <a href="http://www.w3.org/TR/REC-DOM-Level-1/java-language-binding.html">Java language binding</a> for Dom Level 1.
+<br>
+<br>Be sure to update your Helma 1.x installation with the patched <a href="http://helma.org/download/snapshots/">openxml.jar</a> file for this to work.
+<br>
+<br>As an alternative to the W3C Dom Api, Dom documents may be transformed into <a href="http://www.jdom.org/">JDOM</a> documents using the global <tt>jdomize()</tt> function. JDom documents are far <a href="http://www.jdom.org/docs/apidocs/org/jdom/package-summary.html">easier to handle</a> than Dom documents. Be sure to have the <tt>jdom.jar</tt> file in your classpath for this to work.<p><b><small>Example</small></b>
+<br>This <tt>.hac</tt> file fetches an Xml document containing news headlines and generates some <a href="http://www.salon.at/news/testxml">simple Html</a> output.
+<br>
+<br><tt>var xmltext = getXmlDocument("http://www.salon.at/news/lxml");
+<br>if (xmltext == null)
+<br>&nbsp;res.write("Error retrieving Xml document!");
+<br>else {
+<br>&nbsp;var newslist = xmltext.firstChild.childNodes;
+<br>&nbsp;for (var i=0; i&lt;newslist.length; i++) {
+<br>&nbsp;&nbsp;var newsitem = newslist.item(i);
+<br>&nbsp;&nbsp;// make sure we only look at &lt;headline> elements, 
+<br>&nbsp;&nbsp;// ignoring whitespace CDATA
+<br>&nbsp;&nbsp;if (newsitem.nodeName == "headline") {
+<br>&nbsp;&nbsp;&nbsp;// get the &lt;title> element
+<br>&nbsp;&nbsp;&nbsp;var titleElem = newsitem.getElementsByTagName("title").item(0);
+<br>&nbsp;&nbsp;&nbsp;// get the character data contained in it
+<br>&nbsp;&nbsp;&nbsp;var title = titleElem.firstChild.nodeValue;
+<br>&nbsp;&nbsp;&nbsp;// get the &lt;url> element
+<br>&nbsp;&nbsp;&nbsp;var urlElem = newsitem.getElementsByTagName("url").item(0);
+<br>&nbsp;&nbsp;&nbsp;// get the actual url character data
+<br>&nbsp;&nbsp;&nbsp;var url = urlElem.firstChild.nodeValue
+<br>&nbsp;&nbsp;&nbsp;res.write ("&lt;a href='"+url+"'>"+encode(title)+"&lt;/a>&lt;br>");
+<br>&nbsp;&nbsp;}
+<br>&nbsp;}
+<br>}</tt>
+<h2>XML-RPC</h2>
+
+<p>
+
+<p>Remote procedure calls via <a href="http://www.xmlrpc.com">Xml-Rpc</a> are very straightforward with the Hop for both client and server side. 
+<h3>XML-RPC Client</h3>
+
+<p>
+
+<p><small><b>Description</b></small>
+<br><a href="http://www.xmlrpc.com/">Xml-Rpc</a> calls are performed using a  <tt>Remote</tt> object. <tt>Remote</tt> objects are created with the Url of the Xml-Rpc service. Functions of the remote Xml-Rpc service can then be called just like local functions.
+<br>
+<br>To compensate for the missing exception handling, <tt>Remote</tt> objects return result wrappers which contain either the result of the remote function, or a description of the error if one occurred.
+<br>
+<br><small><b>Example</b></small>
+<br><tt>var xr = new Remote("http://helma.domain.tld:5056/");
+<br>var msg1 = xr.helmaorg.getXmlRpcMessage();
+<br>if (msg1.error)
+<br>&nbsp;&nbsp;&nbsp;res.write(msg1.error);
+<br>else
+<br>&nbsp;&nbsp;&nbsp;res.write(msg1.result);
+<br>
+<br><i>Hello, Xml-Rpc World!</i>
+<br>
+<br>var msg2 = xr.hotelGuide.hotels.grandimperial.getXmlRpcMessage();
+<br>if (!msg2.error)
+<br>&nbsp;&nbsp;&nbsp;res.write(msg2.result);
+<br>
+<br><i>Welcome to the Grand Imperial Hotel, Vienna!</i>
+<br>
+<br>var msg3 = xr.kolin.document.comments["23"].getXmlRpcMessage();
+<br>if (!msg3.error)
+<br>&nbsp;&nbsp;&nbsp;res.write(msg3.result);
+<br>
+<br><i>Here you can write your comments.</i>
+<br>
+<br>var xr = new Remote("http://betty.userland.com/RPC2");
+<br>var state = xr.examples.getStateName(23);
+<br>if (!state.error)
+<br>&nbsp;&nbsp;&nbsp;res.write(state.result);
+<br>
+<br><i>Minnesota</i></tt>
+<br>
+<h3>XML-RPC Server</h3>
+
+<p>
+
+<p><small><b>Description</b></small>
+<br>The Helma Xml-Rpc server is running on port 5056 by default, or <i>port+1</i> if the <tt>-p</tt> command line parameter is specified. 
+<br>
+<br>You can make any Helma function callable via Xml-Rpc. To do so, the function needs to be added to the <a href="http://helma.org/docs/parameters/#XmlRpcAccess">XmlRpcAccess property</a> in the <tt>app.properties</tt> file.
+<br>
+<br>For example, if you have two functions, <tt>listThings()</tt> and <tt>addThing()</tt>, in the <tt>root</tt> prototype you want to call via Xml-Rpc, add the following line to the <tt>app.properties</tt> file of your application:
+<br>
+<br><tt>XmlRpcAccess = root.listThings, myprototype.addThing</tt>
+<br>
+<br>Xml-Rpc function names have the application name as first element followed by an optional object path within the application and the actual function name. Thus, a function called <tt>sayHello()</tt> in the <tt>root</tt> directory of an application called <tt>myapp</tt> would result in an Xml-Rpc function name of <tt>myapp.sayHello</tt>.
+<br>
+<br>There are a few things to consider when working with server side Xml-Rpc:<ul><li> There is no Helma user object associated with an Xml-Rpc request.<p></li>
+<li>There is no request object associated with an Xml-Rpc request.<p></li>
+<li>You can pass any primitive Javascript types as parameters as well as objects and arrays, but should not pass a persistent HopObject directly as parameter or return value. Xml-Rpc can't handle objects with circular references, i.e. if <tt>obj1</tt> has a reference to <tt>obj2</tt>, <tt>obj2</tt> must not have a reference to <tt>obj1</tt>.</li></ul>
+
+
+
+</body>
+</html>
+
