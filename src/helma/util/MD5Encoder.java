@@ -21,7 +21,7 @@ public class MD5Encoder {
         System.out.println( "adminPassword=" + encode(args[1]) );
     }
 
-    public static String encode(String str) throws Exception    {
+    public static String encode(String str) throws NoSuchAlgorithmException {
         md = MessageDigest.getInstance("MD5");
         byte[] b = md.digest(str.getBytes());
         StringBuffer buf = new StringBuffer();
