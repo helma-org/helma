@@ -57,9 +57,7 @@ public class SessionBean implements Serializable {
      * @return true if the user exists and the password matches the user's password property.
      */
     public boolean login(String username, String password) {
-        boolean success = session.getApp().loginSession(username, password, session);
-
-        return success;
+        return session.login(username, password);
     }
 
     /**

@@ -80,6 +80,17 @@ public class Session implements Serializable {
     }
 
     /**
+     * Try logging in this session given the userName and password.
+     *
+     * @param userName
+     * @param password
+     * @return true if session was logged in.
+     */
+    public boolean login(String userName, String password) {
+        return app.loginSession(userName, password, this);
+    }
+
+    /**
      * remove this sessions's user node.
      */
     public void logout() {
