@@ -23,7 +23,6 @@ public final class TypeManager {
     HashMap prototypes;
     HashMap zipfiles;
     long lastCheck = 0;
-    long idleSeconds = 120; // if idle for longer than 5 minutes, slow down
     boolean rewire;
 
     static String[] standardTypes = {"user", "global", "root", "hopobject"};
@@ -118,13 +117,12 @@ public final class TypeManager {
 	        zipped.update ();
 	    }
 	}
-		
+
 	if (rewire) {
 	    // there have been changes in the  DbMappings
 	    app.rewireDbMappings ();
 	    rewire = false;
 	}
-	// app.logEvent (" ...done @ "+ (System.currentTimeMillis () - now)+ "--- "+idleSeconds);
     }
 
 
@@ -152,11 +150,6 @@ public final class TypeManager {
 	Prototype p = getPrototype (typename);
 	if (p == null) {
 	    p = new Prototype (typename, app);
-	    p.templates = new HashMap ();
-	    p.functions = new HashMap ();
-	    p.actions = new HashMap ();
-	    p.skins = new HashMap ();
-	    p.updatables = new HashMap ();
 	    prototypes.put (typename, p);
 	}
 	return p;
@@ -170,26 +163,11 @@ public final class TypeManager {
         // System.err.println ("REGISTER PROTO: "+app.getName()+"/"+name);
         // app.logEvent ("registering prototype "+name);
 
-        // show the type checker thread that there has been type activity
-        idleSeconds = 0;
-
-        HashMap ntemp = new HashMap ();
-        HashMap nfunc = new HashMap ();
-        HashMap nact = new HashMap ();
-        HashMap nskins = new HashMap ();
-        HashMap updatables = new HashMap ();
-
         // Create and register type properties file
         File propfile = new File (dir, "type.properties");
         SystemProperties props = new SystemProperties (propfile.getAbsolutePath ());
         DbMapping dbmap = new DbMapping (app, name, props);
-        updatables.put ("type.properties", dbmap);
-
-        proto.templates = ntemp;
-        proto.functions = nfunc;
-        proto.actions = nact;
-        proto.skins = nskins;
-        proto.updatables = updatables;
+        proto.updatables.put ("type.properties", dbmap);
 
         // app.scriptingEngine.updatePrototype (proto);
     }
@@ -214,7 +192,8 @@ public final class TypeManager {
         boolean needsUpdate = false;
         HashSet updatables = null;
 
-        // our plan is to do as little as possible, so first check if anything has changed at all...
+        // our plan is to do as little as possible, so first check if
+        // anything the prototype knows about has changed on disk
         for (Iterator i = proto.updatables.values().iterator(); i.hasNext(); ) {
             Updatable upd = (Updatable) i.next();
             if (upd.needsUpdate ()) {
@@ -225,8 +204,14 @@ public final class TypeManager {
             }
         }
 
-        // check if file have been created since last update
-        if (proto.lastUpdate < dir.lastModified ()) {
+        // fetch previous last-check timestamp and update it on prototype
+        // we do this here for the (not very likely but possible) case 
+        // where files are created in the exact moment we are doing this check.
+        long lastcheck = proto.getLastCheck ();
+        proto.markChecked ();
+
+        // next we check if files have been created since last update
+        if (lastcheck < dir.lastModified ()) {
             String[] list = dir.list();
             for (int i=0; i<list.length; i++) {
                 String fn = list[i];
@@ -241,13 +226,10 @@ public final class TypeManager {
             }
         }
 
-        if (!needsUpdate) {
-            proto.markChecked ();
+        // if nothing needs to be updated, return now
+        if (!needsUpdate)
             return;
-        }
 
-        // let the thread know we had to do something.
-        idleSeconds = 0;
         // app.logEvent ("TypeManager: Updating prototypes for "+app.getName()+": "+updatables);
 
         // first go through new files and create new items
