@@ -272,7 +272,7 @@ public final class NodeManager {
 	            }
 	        }
 	    }
-	} else if (!(node instanceof NullNode)) {
+	} else if (node instanceof NullNode) {
 	    // the nullNode caches a null value, i.e. an object that doesn't exist
 	    return null;
 	} else {
