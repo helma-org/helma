@@ -261,7 +261,7 @@ public final class NodeManager {
 	        synchronized (cache) {
 	            Node oldnode = (Node) cache.put (key, new NullNode ());
 	            // for the rare case that some other thread created the node in the meantime
-	            if (oldnode != null && !(oldnode instanceof NullNode) && oldnode.getState () != Node.INVALID) {
+	            /* if (oldnode != null && !(oldnode instanceof NullNode) && oldnode.getState () != Node.INVALID) {
 	                Key primKey = oldnode.getKey ();
 	                boolean keyIsPrimary = primKey.equals (key);
 	                cache.put (oldnode.getKey (), oldnode);
@@ -269,9 +269,9 @@ public final class NodeManager {
 	                    cache.put (key, oldnode);
 	                }
 	                node = oldnode;
-	            } else {
+	            } else { */
 	                return null;
-	            }
+	            // }
 	        }
 	    }
 	} else if (node instanceof NullNode) {
