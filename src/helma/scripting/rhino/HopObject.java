@@ -341,7 +341,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
      *
      * @return ...
      */
-    public NativeArray jsFunction_list() {
+    public Scriptable jsFunction_list() {
         Enumeration e = node.getSubnodes();
         ArrayList a = new ArrayList();
 
@@ -349,7 +349,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
             a.add(e.nextElement());
         }
 
-        return new NativeArray(a.toArray());
+        return Context.getCurrentContext().newArray(core.global, a.toArray());
     }
 
     /**
