@@ -17,7 +17,6 @@
 package helma.framework.core;
 
 import helma.objectmodel.INode;
-import helma.scripting.fesi.*;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
