@@ -164,7 +164,7 @@ public final class RhinoCore {
         TypeInfo type = (TypeInfo) prototypes.get(lowerCaseName);
 
         // check if the prototype info exists already
-        ScriptableObject op = (type == null) ? null : type.objectPrototype;
+        ScriptableObject op = (type == null) ? null : type.objProto;
 
         // if prototype info doesn't exist (i.e. is a standard prototype
         // built by HopExtension), create it.
@@ -201,8 +201,8 @@ public final class RhinoCore {
      */
     private synchronized void evaluatePrototype(TypeInfo type) {
 
-        Scriptable op = type.objectPrototype;
-        Prototype prototype = type.frameworkPrototype;
+        type.prepareCompilation();
+        Prototype prototype = type.frameworkProto;
 
         // set the parent prototype in case it hasn't been done before
         // or it has changed...
@@ -228,47 +228,7 @@ public final class RhinoCore {
             evaluate(type, code);
         }
 
-        // loop through function properties defined for this proto and
-        // remove those which are left over from the previous generation
-        // and haven't been renewed in this pass.
-        Set oldFunctions = type.compiledFunctions;
-        Set newFunctions = new HashSet();
-        Object[] keys = ((ScriptableObject) op).getAllIds();
-        for (int i = 0; i < keys.length; i++) {
-            String key = keys[i].toString();
-            if (type.predefinedProperties.contains(key)) {
-                // don't mess with properties we didn't set
-                continue;
-            }
-            Object prop = op.get(key, op);
-            if (oldFunctions.contains(prop)) {
-                // if this is a function compiled from script, it's from the
-                // old generation and wasn't renewed -- delete it.
-                // System.err.println("DELETING OLD FUNC: "+key);
-                try {
-                    ((ScriptableObject) op).setAttributes(key, 0);
-                    op.delete(key);
-                } catch (Exception px) {
-                    System.err.println("Error unsetting property "+key+" on "+prototype);
-                }
-            } else {
-                newFunctions.add(prop);
-            }
-        }
-
-        type.compiledFunctions = newFunctions;
-        type.lastUpdate = prototype.getLastUpdate();
-
-        // If this prototype defines a postCompile() function, call it
-        Context cx = Context.getCurrentContext();
-        try {
-            Object fObj = ScriptableObject.getProperty(op, "onCodeUpdate");
-            if (fObj instanceof Function) {
-                ((Function) fObj).call(cx, global, op, new Object[0]);
-            }
-        } catch (Exception x) {
-            app.logError("Exception in "+prototype.getName()+".onCodeUpdate(): " + x, x);
-        }
+        type.commitCompilation();
     }
 
     /**
@@ -379,15 +339,15 @@ public final class RhinoCore {
      */
     private void updatePrototype(TypeInfo type, HashSet checked) {
         // first, remember prototype as updated
-        checked.add(type.frameworkPrototype);
+        checked.add(type.frameworkProto);
 
         if (type.parentType != null &&
-                !checked.contains(type.parentType.frameworkPrototype)) {
+                !checked.contains(type.parentType.frameworkProto)) {
             updatePrototype(type.getParentType(), checked);
         }
 
         // let the type manager scan the prototype's directory
-        app.typemgr.updatePrototype(type.frameworkPrototype);
+        app.typemgr.updatePrototype(type.frameworkProto);
 
         // and re-evaluate if necessary
         if (type.needsUpdate()) {
@@ -408,7 +368,7 @@ public final class RhinoCore {
         if (type != null && type.hasError()) {
             throw new EvaluatorException(type.getError());
         }
-        return type == null ? null : type.objectPrototype;
+        return type == null ? null : type.objProto;
     }
 
     /**
@@ -419,7 +379,7 @@ public final class RhinoCore {
      */
     public Scriptable getPrototype(String protoName) {
         TypeInfo type = getPrototypeInfo(protoName);
-        return type == null ? null : type.objectPrototype;
+        return type == null ? null : type.objProto;
     }
 
     /**
@@ -438,7 +398,7 @@ public final class RhinoCore {
         // otherwise, it has already been evaluated for this request by updatePrototypes(),
         // which is called before a request is handled.
         if ((type != null) && (type.lastUpdate == -1)) {
-            app.typemgr.updatePrototype(type.frameworkPrototype);
+            app.typemgr.updatePrototype(type.frameworkProto);
 
             if (type.needsUpdate()) {
                 evaluatePrototype(type);
@@ -832,7 +792,7 @@ public final class RhinoCore {
             // get the current context
             Context cx = Context.getCurrentContext();
 
-            Scriptable op = type.objectPrototype;
+            Scriptable op = type.tmpObjProto;
 
             // do the update, evaluating the file
             // Script script = cx.compileReader(reader, sourceName, firstline, null);
@@ -850,7 +810,7 @@ public final class RhinoCore {
                 if (type.error == null || e instanceof EcmaError) {
                     type.error = e.toString();
                 }
-                if ("global".equals(type.frameworkPrototype.getLowerCaseName())) {
+                if ("global".equals(type.frameworkProto.getLowerCaseName())) {
                     globalError = type.error;
                 }
                 wrappercache.clear();
@@ -883,10 +843,13 @@ public final class RhinoCore {
     class TypeInfo {
 
         // the framework prototype object
-        Prototype frameworkPrototype;
+        Prototype frameworkProto;
 
         // the JavaScript prototype for this type
-        ScriptableObject objectPrototype;
+        ScriptableObject objProto;
+
+        // temporary JS prototype used for compilation
+        ScriptableObject tmpObjProto;
 
         // timestamp of last update. This is -1 so even an empty prototype directory
         // (with lastUpdate == 0) gets evaluated at least once, which is necessary
@@ -897,7 +860,7 @@ public final class RhinoCore {
         TypeInfo parentType;
 
         // a set of property values that were defined in last script compliation
-        Set compiledFunctions;
+        Set compiledProperties;
 
         // a set of property keys that were present before first script compilation
         final Set predefinedProperties;
@@ -905,9 +868,9 @@ public final class RhinoCore {
         String error;
 
         public TypeInfo(Prototype proto, ScriptableObject op) {
-            frameworkPrototype = proto;
-            objectPrototype = op;
-            compiledFunctions = new HashSet(0);
+            frameworkProto = proto;
+            objProto = op;
+            compiledProperties = new HashSet(0);
             // remember properties already defined on this object prototype
             predefinedProperties = new HashSet();
             Object[] keys = op.getAllIds();
@@ -915,17 +878,102 @@ public final class RhinoCore {
                 predefinedProperties.add(keys[i].toString());
             }
         }
+        
+        /**
+         * Set up an empty temporary object prototype to compile this type's 
+         * code against.
+         */
+        public void prepareCompilation() {
+            tmpObjProto = new ScriptableObject() {
+                public String getClassName() {
+                    return frameworkProto.getName();
+                }
+            };
+            tmpObjProto.setPrototype(objProto);
+            if (!"global".equals(frameworkProto.getLowerCaseName()))
+                tmpObjProto.setParentScope(global);
+        }
+
+        /**
+         * Compilation has been completed successfully - switch over to code
+         * from temporary prototype, removing properties that haven't been 
+         * renewed.
+         */
+        public void commitCompilation() {
+            // loop through properties defined on the temporary proto and
+            // copy them over to the actual prototype object. Then, remove 
+            // those properties that haven't been renewed in this compilation
+            Set newProperties = new HashSet();
+            Object[] keys = tmpObjProto.getAllIds();
+
+            for (int i = 0; i < keys.length; i++) {
+                if (! (keys[i] instanceof String)) {
+                    System.err.println("JUMP: "+keys[i]);
+                    continue;
+                }
+                
+                String key = (String) keys[i];
+                if (predefinedProperties.contains(key)) {
+                    // don't mess with properties we didn't set
+                    continue;
+                }
+
+                // add properties to newProperties set
+                newProperties.add(key);
+                // copy them over to the actual prototype object
+                int attributes = tmpObjProto.getAttributes(key);
+                Object value = tmpObjProto.get(key, tmpObjProto);
+                objProto.defineProperty(key, value, attributes); 
+            }
+
+            // switch property set over to new version and 
+            // get a set of those old properties that weren't renewed
+            Set oldProperties = compiledProperties;
+            compiledProperties = newProperties;
+            oldProperties.removeAll(newProperties);
+
+            for (Iterator it = oldProperties.iterator(); it.hasNext(); ) {
+                // remove those properties that weren't renewed, meaning 
+                // their definition has gone from the source files
+                String key = (String) it.next();
+                try {
+                    objProto.setAttributes(key, 0);
+                    objProto.delete(key);
+                } catch (Exception px) {
+                    System.err.println("Error unsetting property "+key+" on "+
+                                       frameworkProto.getName());
+                }
+
+            }
+            
+            // mark this type as updated
+            lastUpdate = frameworkProto.getLastUpdate();
+
+            // If this prototype defines a postCompile() function, call it
+            Context cx = Context.getCurrentContext();
+            try {
+                Object fObj = ScriptableObject.getProperty(objProto, 
+                                                           "onCodeUpdate");
+                if (fObj instanceof Function) {
+                    Object[] args = {frameworkProto.getName()};
+                    ((Function) fObj).call(cx, global, objProto, args);
+                }
+            } catch (Exception x) {
+                app.logError("Exception in "+frameworkProto.getName()+
+                             ".onCodeUpdate(): " + x, x);
+            }
+        }
 
         public boolean needsUpdate() {
-            return frameworkPrototype.getLastUpdate() > lastUpdate;
+            return frameworkProto.getLastUpdate() > lastUpdate;
         }
 
         public void setParentType(TypeInfo type) {
             parentType = type;
             if (type == null) {
-                objectPrototype.setPrototype(null);
+                objProto.setPrototype(null);
             } else {
-                objectPrototype.setPrototype(type.objectPrototype);
+                objProto.setPrototype(type.objProto);
             }
         }
 
@@ -954,7 +1002,7 @@ public final class RhinoCore {
         }
 
         public String toString() {
-            return ("TypeInfo[" + frameworkPrototype + "," + new Date(lastUpdate) + "]");
+            return ("TypeInfo[" + frameworkProto + "," + new Date(lastUpdate) + "]");
         }
     }
 
