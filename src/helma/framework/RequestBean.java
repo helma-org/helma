@@ -16,6 +16,7 @@
 
 package helma.framework;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.Serializable;
 import java.util.Map;
 
@@ -70,6 +71,14 @@ public class RequestBean implements Serializable {
      */
     public boolean isPost() {
         return req.isPost();
+    }
+
+    /**
+     * Returns the Servlet request represented by this RequestTrans instance.
+     * Returns null for internal and XML-RPC requests.
+     */
+    public HttpServletRequest getServletRequest() {
+        return req.getServletRequest();
     }
 
     /**
