@@ -190,11 +190,11 @@ public class GlobalObject extends ScriptableObject {
      */
     public Object getDBConnection(String dbsource) throws Exception {
         if (dbsource == null)
-            throw new RuntimeException ("Wrong number of arguments in getDBConnection(dbsource)");
+            throw new EvaluatorException("Wrong number of arguments in getDBConnection(dbsource)");
         DbSource dbsrc = app.getDbSource (dbsource.toLowerCase ());
         if (dbsrc == null)
-            throw new RuntimeException ("DbSource "+dbsource+" does not exist");
-        DatabaseObject db = new DatabaseObject (dbsrc, 0);
+            throw new EvaluatorException("DbSource "+dbsource+" does not exist");
+        DatabaseObject db = new DatabaseObject (dbsrc);
         return Context.toObject(db, this);
     }
 
