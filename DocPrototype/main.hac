@@ -1,8 +1,0 @@
-if ( checkAddress()==false )	return;
-if ( checkAuth(this)==false )	return;
-
-res.data.body = this.renderSkinAsString("main");
-res.data.title = "Application " + this.name;
-renderSkin ("api");
-
-

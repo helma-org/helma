@@ -1,0 +1,37 @@
+
+/**
+  * prints server-stats for mrtg-tool.
+  * doesn't check username or password, so that we don't have
+  * to write them cleartext in a mrtg-configfile but checks the
+  * remote address.
+  */
+
+if ( checkAddress()==false )
+   return;
+
+
+if (req.data.action=="memory") {
+
+   res.write (this.jvmTotalMemory_macro () + "\n");
+   res.write (this.jvmFreeMemory_macro () + "\n");
+   res.write ("0\n0\n");
+
+} else if (req.data.action=="netstat" && isLinux ()) {
+
+   var str = (new File("/proc/net/tcp")).readAll();
+   var arr = str.split("\n");
+   res.write (arr.length-2 + "\n");
+   res.write ("0\n0\n0\n");
+
+} else if (req.data.action=="loadavg" && isLinux ()) {
+   
+   // load average of last 5 minutes:
+   var str = (new File("/proc/loadavg")).readAll();
+   var arr = str.split(" ");
+   res.write (arr[1]*100 + "\n");
+   res.write ("0\n0\n0\n");
+
+} else {
+   res.write ( "0\n0\n0\n0\n");
+}
+

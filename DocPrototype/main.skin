@@ -1,8 +1,82 @@
-<% this.head %>
+<table width="90%" border="0" cellspacing="1" cellpadding="5">
+<tr>
+	<td class="headline">
+	<big><tt>Prototype <% this.headline %></tt></big><br>
+	<% this.inheritance deep="true" hopobject="true" action="main" target="main" onClick="parent.changePrototypeList(this);" separator=", " prefix="extends: " suffix="<br>" %>
+	</td>
+</tr>
+</table>
 
-<% this.actions %>
-<% this.skins %>
-<% this.macros %>
-<% this.functions %>
-<% this.templates %>
+<a class="navig" href="#actions">ACTIONS</a> | 
+<a class="navig" href="#functions">FUNCTIONS</a> | 
+<a class="navig" href="#macros">MACROS</a> | 
+<a class="navig" href="#skins">SKINS</a> | 
+<a class="navig" href="#templates">TEMPLATES</a> | 
+<a class="navig" href="#typeproperties">TYPE.PROPERTIES</a>
+
+
+
+<table width="90%" border="0" cellspacing="1" cellpadding="5">
+<tr>
+	<td class="mainbox">
+	<% this.comment suffix="<br><br>" %>
+	<ul>
+		<% this.tags type="author" skin="author" %>
+		<% this.tags type="see"    skin="see" %>
+		<% this.tags type="deprecated" skin="deprecated" %>
+		<% this.tags type="overrides"  skin="overrides" %>
+	</ul>
+	</td>
+</tr>
+</table>
+
+<table width="90%" border="0" cellspacing="1" cellpadding="3">
+
+	<% this.methods separator="<tr><td class='mainbox'><img src='' width=0 height=0></td></tr>"
+		filter="actions"
+		skin="asLargeListItem"
+		prefix="<tr><td class='headline'>Actions<a name='actions'><!-- --></a></td></tr>"
+	%>
+
+	<% this.methods separator="<tr><td class='mainbox'><img src='' width=0 height=0></td></tr>"
+		filter="functions"
+		skin="asLargeListItem"
+		prefix="<tr><td class='headline'>Functions<a name='functions'><!-- --></a></td></tr>"
+	%>
+
+	<% this.methods separator="<tr><td class='mainbox'><img src='' width=0 height=0></td></tr>"
+		filter="macros"
+		skin="asLargeListItem"
+		prefix="<tr><td class='headline'>Macros<a name='macros'><!-- --></a></td></tr>"
+	%>
+
+	<% this.methods separator="<tr><td class='mainbox'><img src='' width=0 height=0></td></tr>"
+		filter="skins"
+		skin="asLargeListItemSkin"
+		prefix="<tr><td class='headline'>Skins<a name='skins'><!-- --></a></td></tr>"
+	%>
+
+	<% this.methods separator="<tr><td class='mainbox'><img src='' width=0 height=0></td></tr>"
+		filter="templates"
+		skin="asLargeListItem"
+		prefix="<tr><td class='headline'>Templates<a name='templates'><!-- --></a></td></tr>"
+	%>
+
+	<% this.parentPrototype skin="asParentList" %>
+</table>
+
+<br/><br/><a name='typeproperties'><!-- --></a><table width='90%' border='0' cellspacing='1' cellpadding='5'><tr>
+	<td class="headline">type.properties</td>
+</tr>
+<tr>
+	<td class="mainbox"><% this.typeProperties prefix="<pre>" suffix="</pre>" %></td>
+</tr>
+</table>
+
+
+
+
+
+
+
 

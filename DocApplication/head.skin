@@ -1,8 +1,0 @@
-<P><big>AppDoc <% this.name %><br/></big></p>
-<p><% param.path %></p>
-<p>	-&gt;
-	<a href="<% this.parentlink %>">AppManager</a> |
-	<a href="<% this.parentlink action="redirectpublic" %>">public</a>
-</p>
-
-

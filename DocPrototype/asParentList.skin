@@ -1,0 +1,17 @@
+
+<tr><td class='headline'><b>Inherited from prototype <% this.link %>:</b><br></td></tr>
+
+<tr><td>
+
+<% this.methods separator=", " filter="actions" skin="asParentListItem" prefix="<b>Actions: </b>" suffix="<br/>" %>
+<% this.methods separator=", " filter="functions" skin="asParentListItem" prefix="<b>Functions: </b>" suffix="<br/>" %>
+<% this.methods separator=", " filter="macros" skin="asParentListItem" prefix="<b>Macros: </b>" suffix="<br/>" %>
+<% this.methods separator=", " filter="skins" skin="asParentListItem" prefix="<b>Skins: </b>" suffix="<br/>" %>
+<% this.methods separator=", " filter="templates" skin="asParentListItem" prefix="<b>Templates: </b>" suffix="<br/>" %>
+
+</td></tr>
+
+
+
+
+

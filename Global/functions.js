@@ -10,11 +10,10 @@ function scheduler() {
 
 
 /**
-  * initializes app.data.requestStat storage on startup,
+  * initializes app.data.stat storage on startup,
   * creates app.data.addressFilter
   */
 function onStart() {
-	app.data.requestStat = new HopObject();
 	app.data.addressFilter = createAddressFilter();
 }
 
@@ -47,29 +46,28 @@ function createAddressFilter()	{
 
 
 /** 
-  * updates the request stats in app.data.requestStat every 5 minutes
+  * updates the stats in app.data.stat every 5 minutes
   */
-function appStat()	{
-	if ( app.data.requestStat==null )	{
-		app.data.requestStat = new HopObject();
-	}
-	if( (new Date()-300000) < app.data.requestStat.lastRun )	{
+function appStat ()	{
+	if (app.data.stat==null)
+		app.data.stat = new HopObject ();
+	if ((new Date()-300000) < app.data.stat.lastRun)
 		return;
-	}
-	var arr = root.getApplications();
-	for ( var i=0; i<arr.length; i++ )	{
-		var tmp = app.data.requestStat.get(arr[i].getName());
-		if ( tmp==null )	{
+	var arr = root.getApplications ();
+	for (var i=0; i<arr.length; i++) {
+		var tmp = app.data.stat.get (arr[i].getName());
+		if (tmp==null) {
 			tmp = new HopObject();
-			tmp.lastTotal = 0;
-			tmp.last5Min  = 0;
-		}
-		var ct = arr[i].getRequestCount();
-		tmp.last5Min = ct - tmp.lastTotal;
-		tmp.lastTotal = ct;
-		app.data.requestStat.set(arr[i].getName(), tmp);
+			tmp.lastTotalRequestCount = 0;
+			tmp.lastTotalErrorCount   = 0;
+      }
+		tmp.requestCount = arr[i].getRequestCount () - tmp.lastTotalRequestCount;
+		tmp.lastTotalRequestCount = arr[i].getRequestCount ();
+		tmp.errorCount   = arr[i].getErrorCount () - tmp.lastTotalErrorCount;
+		tmp.lastTotalErrorCount = arr[i].getErrorCount ();
+		app.data.stat.set (arr[i].getName(), tmp);
 	}
-	app.data.requestStat.lastRun = new Date();
+	app.data.stat.lastRun = new Date();
 }
 
 
@@ -77,7 +75,7 @@ function appStat()	{
   * utility function to sort object-arrays by name
   */
 function sortByName(a,b)	{
-	if ( a.name>b.name )
+	if ( a.name>b.name)
 		return 1;
 	else if ( a.name==b.name )
 		return 0;
@@ -132,8 +130,6 @@ function checkAuth(appObj)	{
 		// check against application
 		var appUsername = appObj.getProperty("adminusername");
 		var appPassword = appObj.getProperty("adminpassword");
-		if ( appUsername==null || appUsername=="" || appPassword==null || appPassword=="" )
-			return forceStealth();
 		if ( md5username==appUsername && md5password==appPassword )
 			return true;
 	}
@@ -149,7 +145,7 @@ function checkAddress()	{
 		app.log("denied request from " + req.data.http_remotehost );
 		// forceStealth seems a bit like overkill here.
 		// display a message that the ip address must be added to server.properties
-		res.write ("Access to address "+req.data.http_remotehost+" denied.");
+		res.write ("Access from address "+req.data.http_remotehost+" denied.");
 		return false;
 	}	else	{
 		return true;
@@ -169,14 +165,7 @@ function forceAuth(realm)	{
 	return false;
 }
 
-/**
-  * response is reset to 404 / notfound
-  */
-function forceStealth()	{
-	res.reset();
-	res.status = 404;
-	return false;
-}
+
 
 
 /** 
@@ -302,3 +291,16 @@ function formatCount(ct, par)	{
 	else
 		return par.plural;
 }
+
+
+/**
+  * tries to make out if this server is running linux from java's system properties
+  */
+function isLinux () {
+   var str = java.lang.System.getProperty("os.name");
+   return (str!=null && str.toLowerCase().indexOf("linux")!=-1);
+}
+
+
+
+

@@ -1,7 +1,0 @@
-<tr>
-	<td class="list_property" align="right" valign="top" width="70" height="40"><font size=-1><a name="<% this.name %>"><!----></a>
-	<code>&nbsp;<% param.group %></code></font></td>
-	<td class="list_property" valign="top"><dl><dt><code><b>
-	<a href="<% this.href action="main" %>"><% docprototype.name %>.<% this.name %></a></B></CODE><DT><DL><% this.comment %><br><small><% this.tags %></small></dt></dl></td>
-</tr>
-

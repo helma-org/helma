@@ -2,14 +2,15 @@
 	<b><a href="<% this.href action="main" %>"><% this.title %></a></b><br />
 	<small><% this.countSessions singular=" Session" plural=" Sessions" %>, <% this.getRequestAvg singular=" Request" plural=" Requests" %>/5min</small>
 	<div align="right">
-	<!--<table border="0" cellspacing="0" cellpadding="0">
+	<table border="0" cellspacing="0" cellpadding="0">
 	<tr>
 		<td align="right" valign="top"><small>
+			<a href="<% this.href action="api" %>/render">render AppDoc</a>
 			<a href="<% this.href action="api" %>/main">AppDoc</a>
 			<a href="<% root.href action="main" %>?app=<% this.title %>&action=flush">flush</a>
 			<a href="<% root.href action="main" %>?app=<% this.title %>&action=restart">restart</a>
 		</small></td>
 	</tr>
-	</table>-->
+	</table>
 	</div>
 </div>

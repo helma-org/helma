@@ -149,18 +149,51 @@ function countFreeEvaluators_macro()	{
 
 
 /**
-  * Macro formatting the 5min average of requests.
+  * Macro returning the current number of objects in the cache
   */
-function getRequestAvg_macro(par)	{
-	if ( app.requestStat==null || app.requestStat.get(this.name)==null )
-		return 0;
-	if ( this.isActive() )	{
-		var obj = app.requestStat.get(this.name);
-		return obj.last5Min + formatCount(obj.last5Min,par);
+function cacheusage_macro (param) {
+   return this.getCacheUsage ();
+}
+
+
+/**
+  * Macro returning the number of objects allowed in the cache
+  */
+function cachesize_macro (param) {
+   return this.getProperty ("cachesize", "1000");
+}
+
+
+/**
+  * Macro formatting the number of requests in the last 5 minutes
+  */
+function requestCount_macro(par)	{
+	if (app.data.stat==null || app.data.stat.get (this.name)==null)
+		return "not available";
+	if (this.isActive()) {
+		var obj = app.data.stat.get (this.name);
+		return obj.requestCount + formatCount (obj.requestCount, par);
 	}	else	{
-		return 0 + formatCount(0,par);
+		return 0 + formatCount (0,par);
 	}
 }
+
+
+/**
+  * Macro formatting the number of errors in the last 5 minutes
+  */
+function errorCount_macro(par)	{
+	if (app.data.stat==null || app.data.stat.get (this.name)==null)
+		return "not available";
+	if (this.isActive()) {
+		var obj = app.data.stat.get (this.name);
+		return obj.errorCount + formatCount (obj.errorCount, par);
+	}	else	{
+		return 0 + formatCount (0,par);
+	}
+}
+
+
 
 
 /**
@@ -168,5 +201,10 @@ function getRequestAvg_macro(par)	{
   */
 function properties_macro(par)	{
 	formatProperties( this.getProperties(), par );
+}
+
+
+function appdir_macro (param) {
+   return this.getAppDir ().toString ();
 }
 

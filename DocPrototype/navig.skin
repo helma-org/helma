@@ -1,2 +1,0 @@
-
-<a href="<% this.href action="main" %>"><% this.name %></a><br>

@@ -1,0 +1,4 @@
+<h2>Application <% this.headline %></h2>
+
+<% this.comment encoding="html" %>
+

@@ -35,25 +35,48 @@ function countSessions_macro(par)	{
 
 
 /**
-  * macro returning the total number of sessions on this server
+  * macro returning the number of requests during the last 5 minutes
   * @see global.formatCount
   */
-function countRequests_macro(par)	{
-	if ( app.requestStat==null )	{
+function requestCount_macro(par)	{
+	if (app.data.stat==null)	{
 		return;
 	}
-	var arr = this.getApplications();
+	var arr = this.getApplications ();
 	var sum = 0;
-	for ( var i=0; i<arr.length; i++ )	{
-		if ( arr[i].getName()!=app.__app__.getName() )	{
-			var obj = app.requestStat.get(arr[i].name);
+	for (var i=0; i<arr.length; i++) {
+		if (arr[i].getName() != app.__app__.getName() ) {  // don't include manage app
+			var obj = app.data.stat.get (arr[i].name);
 			if ( obj!=null )	{
-				sum += obj.last5Min;
+				sum += obj.requestCount;
 			}
 		}
 	}
-	return sum + formatCount(sum,par);
+	return sum + formatCount (sum,par);
 }
+
+
+/**
+  * macro returning the number of errors during the last 5 minutes
+  * @see global.formatCount
+  */
+function errorCount_macro(par)	{
+	if (app.data.stat==null)	{
+		return;
+	}
+	var arr = this.getApplications ();
+	var sum = 0;
+	for (var i=0; i<arr.length; i++) {
+		if (arr[i].getName() != app.__app__.getName() ) {  // don't include manage app
+			var obj = app.data.stat.get (arr[i].name);
+			if ( obj!=null )	{
+				sum += obj.errorCount;
+			}
+		}
+	}
+	return sum + formatCount (sum,par);
+}
+
 
 
 function extensions_macro (par) {
@@ -65,7 +88,7 @@ function extensions_macro (par) {
 			str += (par && par.separator) ? par.separator : ", ";
 		}
 	}
-	return str;
+	return (str=="") ? null : str;
 }
 
 /**
@@ -163,28 +186,31 @@ function home_macro()	{
 
 /**
   * Macro that returns the free memory in the java virtual machine
+  * @param format if "hr", value will be printed human readable
   */
-function jvmFreeMemory_macro()	{
-	var m = java.lang.Runtime.getRuntime().freeMemory();
-	return formatBytes(m);
+function jvmFreeMemory_macro (param)	{
+	var m = java.lang.Runtime.getRuntime ().freeMemory ();
+	return (param && param.hr) ? formatBytes (m) : m;
 }
 
 
 /**
   * Macro that returns the total memory available to the java virtual machine
+  * @param format if "hr", value will be printed human readable
   */
-function jvmTotalMemory_macro()	{
+function jvmTotalMemory_macro (param)	{
 	var m = java.lang.Runtime.getRuntime().totalMemory();
-	return formatBytes(m);
+	return (param && param.hr) ? formatBytes (m) : m;
 }
 
 
 /**
   * Macro that returns the used memory in the java virtual machine
+  * @param format if "hr", value will be printed human readable
   */
-function jvmUsedMemory_macro()	{
-	var m = java.lang.Runtime.getRuntime().totalMemory() - java.lang.Runtime.getRuntime().freeMemory();
-	return formatBytes(m);
+function jvmUsedMemory_macro(param)	{
+	var m = java.lang.Runtime.getRuntime ().totalMemory () - java.lang.Runtime.getRuntime ().freeMemory ();
+	return (param && param.hr) ? formatBytes (m) : m;
 }
 
 

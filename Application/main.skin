@@ -1,42 +1,62 @@
 <% this.skin name="head" %>
-
 <table width="100%" border="0" cellspacing="0" cellpadding="3">
 <tr>
 	<td class="list_separator" colspan="3">application</td>
 </tr>
+</table>
+
+<table border="0" cellspacing="0" cellpadding="3">
 <tr>
-	<td class="list_property" align="right" width="200">active sessions:</td>
+	<td class="list_property" align="left">active sessions</td>
 	<td class="list_property" width="5">&nbsp;</td>
 	<td class="list_property" align="left"><% this.countSessions %></td>
 </tr>
 <tr>
-	<td class="list_property" align="right" width="200"><a href="<% this.href action="main" %>?showusers=true">logged-in users:</a></td>
+	<td class="list_property" align="left"><a href="<% this.href action="main" %>?showusers=true">logged-in users</a></td>
 	<td class="list_property" width="5">&nbsp;</td>
 	<td class="list_property" align="left"><% this.users %>&nbsp;</td>
 </tr>
 <tr>
-	<td class="list_property" align="right" width="200">active evaluators:</td>
+	<td class="list_property" align="left">active evaluators</td>
 	<td class="list_property" width="5">&nbsp;</td>
 	<td class="list_property" align="left"><% this.countActiveEvaluators %></td>
 </tr>
 <tr>
-	<td class="list_property" align="right" width="200">free evaluators:</td>
+	<td class="list_property" align="left">free evaluators</td>
 	<td class="list_property" width="5">&nbsp;</td>
 	<td class="list_property" align="left"><% this.countFreeEvaluators %></td>
 </tr>
 <tr>
-	<td class="list_property" align="right" width="200">requests / 5 min:</td>
+	<td class="list_property" align="left">requests / 5 min</td>
 	<td class="list_property" width="5">&nbsp;</td>
-	<td class="list_property" align="left"><% this.getRequestAvg %></td>
+	<td class="list_property" align="left"><% this.requestCount %></td>
 </tr>
 <tr>
-	<td class="list_property" align="right" width="200">uptime:</td>
+	<td class="list_property" align="left">errors / 5 min</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.errorCount %></td>
+</tr>
+<tr>
+	<td class="list_property" align="left">cache usage</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.cacheusage %> objects of <% this.cachesize %></td>
+</tr>
+<tr>
+	<td class="list_property" align="left">uptime</td>
 	<td class="list_property" width="5">&nbsp;</td>
 	<td class="list_property" align="left"><% this.uptime %></td>
 </tr>
 <tr>
+	<td class="list_property" align="left">app directory</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.appdir %></td>
+</tr>
+</table>
+
+<table width="100%" border="0" cellspacing="0" cellpadding="3">
+<tr>
 	<td class="list_separator" colspan="3">app.properties</td>
 </tr>
-<% this.properties itemprefix='<tr><td class="list_property" align="right" valign="top" width="200">' separator='</td><td class="list_property" width="5">&nbsp;</td><td class="list_property" align="left" valign="top">' itemsuffix='</td></tr>' % -->
+<% this.properties itemprefix='<tr><td class="list_property" valign="top">' separator='</td><td class="list_property" width="5">&nbsp;</td><td class="list_property" valign="top">' itemsuffix='</td></tr>' %>
 </table>
 

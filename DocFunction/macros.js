@@ -1,3 +1,4 @@
+
 /**
   * macro rendering a skin
   * @param name name of skin
@@ -8,112 +9,75 @@ function skin_macro(par)	{
 	}
 }
 
-
 /**
   * macro-wrapper for href-function
   * @param action name of action to call on this prototype, default main
   */
-function href_macro(par)	{
-	return this.href( (par&&par.action)?par.action:"main" );
-}
+function href_macro(param)			{	return this.href ((param && param.action) ? param.action : "main");	}
+
+function comment_macro (param)	{	return renderComment (this, param);		}
+function content_macro (param)	{	return this.getContent ();					}
+function tags_macro (param) 		{	return renderTags (this, param);			}
+function location_macro (param)	{	return renderLocation (this, param);	}
+function link_macro (param) 		{	return renderLink (this, param);			}
+
+//// END OF COPIED FUNCTIONS
 
 
-/**
-  * macro rendering page head
-  */
-function head_macro(par)	{
-	var obj = new Object();
-	obj.path = this.getPath();
-	var appObj = this.getApplication();
-	appObj.renderSkin("head",obj);
-}
-
-
-/**
-  * utility function for head_macro, rendering link to app and to prototype
-  */
-function getPath()	{
-	var protoObj = this.getDocPrototype();
-	var str = protoObj.getPath() + "/" + this.getFullName();
-	return( str );
-}
-
-
-/** 
-  * macro returning name of file this method resides in
-  */
-function location_macro(par)	{
-	var f = new File ( this.getLocation() );
-	return f.getName();
-}
-
-
-/**
-  * macro returning the type of this method (Action, Template, Skin, Macro, Function)
-  */
-function typename_macro(par)	{
-	return this.getTypeName();
-}
-
-
-/**
-  * macro returning a link to the prototype page
-  * @param action name of action to call on this prototype, default main
-  */
-function prototypehref_macro(par)	{
-	return this.getDocPrototype().href( (par&&par.action)?par.action:"main" )
-}
-
-
-/**
-  * macro returning the name of the prototype this method belongs to
-  */
-function prototypename_macro(par)	{
-	return this.getDocPrototype().getName();
-}
-
-
-/**
-  * macro returning the comment text of this method
-  * (excluding the tags!)
-  * @param size (optional) text is cutoff after a number of chars
-  */
-function comment_macro(par)	{
-	var str = this.getComment();
-	if ( par && par.length && str.length > par.size )	{
-		return ( str.substring(0,par.size) );
-	}	else	{
-		return ( str );
+function headline_macro (param)	{
+	var p = this.getParentElement ();
+	var handler = (p!=null) ? p.getName () : "";
+	if (this.getType () == this.ACTION) {
+		res.write ("/" + this.getName ());
+	} else if (this.getType () == this.FUNCTION) {
+		if (handler!="" && handler!="global")
+			res.write (handler + ".");
+		res.write (this.getName () + "&nbsp;(");
+		var arr = this.listParameters ();
+		for (var i=0; i<arr.length; i++) {
+			res.write (arr[i]);
+			if (i<arr.length-1) {
+				res.write (",&nbsp");
+			}
+		}
+		res.write (")");
+	} else if (this.getType () == this.MACRO) {
+		res.write ("&lt;%&nbsp;");
+		if (handler!="" && handler!="global")
+			res.write (handler + ".");
+		var name = this.getName ();
+		if (name.indexOf("_macro")>-1)
+			name = name.substring (0, name.length-6);
+		res.write (name);
+		res.write ("&nbsp;%&gt;");
+	}	else if (this.getType () == this.SKIN) {
+		if (handler!="" && handler!="global")
+			res.write (handler + "/");
+		res.write (this.getName ());
+		res.write (".skin");
 	}
 }
 
 
-/**
-  * macro rendering the list of tags
-  */
-function tags_macro()	{
-	var arr = this.listTags();
-	var argCt = 0;
-	for ( var i in arr )	{
-		if ( arr[i].getKind()==Packages.helma.doc.DocTag.ARG )
-			argCt++;
-		res.write( arr[i].render(argCt,this) );
+function skinparameters_macro (param) {
+	if (this.getType () == this.SKIN) {
+		this.parameters_macro (param);
 	}
 }
 
 
-/**
-  * macro rendering sequence of arg1, arg2 etc
-  * according to number of arguments in doctags.
-  */
-function args_macro()	{
-	var ct = this.countTags(Packages.helma.doc.DocTag.ARG);
-	for ( var i=0; i<ct; i++)	{
-		res.write ( "arg" + (i+1) );
-		if ( i<(ct-1) )	res.write (", ");
-		else	res.write ("");
+function parameters_macro (param) {
+	var separator = (param.separator) ? param.separator : ", ";
+	var arr = this.listParameters ();
+	for (var i=0; i<arr.length ;i++) {
+		res.write (arr[i]);
+		if (i<arr.length-1)
+			res.write (separator);
 	}
 }
+
+
+
 
 
 /**
@@ -121,7 +85,7 @@ function args_macro()	{
   * code is encoded, &gt% %&lt;-tags are colorcoded, line numbers are added
   */
 function source_macro(par)	{
-	var str = this.getSource();
+	var str = this.getContent ();
 	var arr = str.split("<%");
 	var str2 = "";
 	for ( var i=0; i<arr.length; i++ )	{
@@ -140,18 +104,12 @@ function source_macro(par)	{
 	var str4 = "";
 	for ( var i=0; i<arr.length; i++ )	{
 		str4 += '<font color="#aaaaaa">' + (i+1) + ':</font> '
-		if ( i<100 )	str4+=' ';
+		if (i<99)	str4+=' ';
+		if (i<9)	str4+=' ';
 		str4 += arr[i] + "<br>";
 	}
 	return ( str4 );
 }
 
-
-/**
-  * macro returning the fullname of this method
-  */
-function fullname_macro(par)	{
-	return this.getFullName();
-}
 
 

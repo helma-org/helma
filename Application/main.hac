@@ -2,8 +2,10 @@
   * renders AppManager
   */
 
-if ( checkAddress()==false )	return;
-if ( checkAuth(this)==false )	return;
+if (checkAddress()==false)
+   return;
+if (checkAuth(this)==false)
+   return;
 
 res.data.body = this.renderSkinAsString("main");
 renderSkin ("global");

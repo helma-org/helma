@@ -1,0 +1,10 @@
+
+<a href="<% this.href action="main" %>" onClick="parent.changePrototypeList(this);" target="main"><% this.name %></a>
+
+<% 
+	this.inheritance action="main" target="main"
+	onClick="parent.changePrototypeList(this);" hopobject="false"
+	prefix=" (extends " suffix=")"
+%>
+
+<br />

@@ -1,11 +1,12 @@
 
-// strictly limit access to localhost:
-if ( req.data.http_remotehost!="localhost" && req.data.http_remotehost!="127.0.0.1" )	{
-	app.__app__.logEvent( req.data.http_remotehost + " tried to access makekey");
-	return;
-}
+//// strictly limit access to localhost:
+//if ( req.data.http_remotehost!="localhost" && req.data.http_remotehost!="127.0.0.1" )	{
+//	app.logEvent( req.data.http_remotehost + " tried to access makekey");
+//	return;
+//}
 
-if ( checkAuth()==false )		return;
+if ( checkAuth()==false )
+   return;
 
 createAuth();
 
