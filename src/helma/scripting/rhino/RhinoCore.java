@@ -143,11 +143,11 @@ public final class RhinoCore {
     }
 
     /**
-     *   Initialize a prototype without fully parsing its script files.
+     *   Initialize a prototype info without compiling its script files.
      *
      *  @param prototype the prototype to be created
      */
-    synchronized TypeInfo initPrototype(Prototype prototype) {
+    private synchronized void initPrototype(Prototype prototype) {
 
         String name = prototype.getName();
         String lowerCaseName = prototype.getLowerCaseName();
@@ -182,17 +182,15 @@ public final class RhinoCore {
                 ignore.printStackTrace();
             }
         }
-
-        return type;
     }
 
     /**
-     *   Set up a prototype, parsing and compiling all its script files.
+     *  Set up a prototype, parsing and compiling all its script files.
      *
      *  @param type the info, containing the object proto, last update time and
      *         the set of compiled functions properties
      */
-    synchronized void evaluatePrototype(TypeInfo type) {
+    private synchronized void evaluatePrototype(TypeInfo type) {
 
         Scriptable op = type.objectPrototype;
         Prototype prototype = type.frameworkPrototype;
@@ -291,7 +289,7 @@ public final class RhinoCore {
      * @param name the name of the constructor
      * @param op the object prototype
      */
-    void installConstructor(String name, Scriptable op) {
+    private void installConstructor(String name, Scriptable op) {
         FunctionObject fo = new FunctionObject(name, HopObject.hopObjCtor, global);
 
         ScriptRuntime.setFunctionProtoAndParent(global, fo);
@@ -317,32 +315,61 @@ public final class RhinoCore {
 
         Collection protos = app.getPrototypes();
 
+        // in order to respect inter-prototype dependencies, we try to update
+        // the global prototype before all other prototypes, and parent 
+        // prototypes before their descendants.
+
+        HashSet checked = new HashSet(protos.size()*2);
+
+        TypeInfo type = (TypeInfo) prototypes.get("global");
+
+        updatePrototype(type, checked);
+
         for (Iterator i = protos.iterator(); i.hasNext();) {
             Prototype proto = (Prototype) i.next();
-            TypeInfo type = (TypeInfo) prototypes.get(proto.getLowerCaseName());
+
+            if (checked.contains(proto)) {
+                continue;
+            }
+
+            type = (TypeInfo) prototypes.get(proto.getLowerCaseName());
 
             if (type == null) {
                 // a prototype we don't know anything about yet. Init local update info.
-                type = initPrototype(proto);
-            }
-
-            // only update prototype if it has already been initialized.
-            // otherwise, this will be done on demand
-            // System.err.println ("CHECKING PROTO "+proto+": "+type);
-            if (type.lastUpdate > -1) {
-                // let the type manager scan the prototype's directory
-                app.typemgr.updatePrototype(proto);
-
-                // and re-evaluate if necessary
-                if (type.needsUpdate()) {
-                    evaluatePrototype(type);
-                }
+                initPrototype(proto);
+            } else if (type.lastUpdate > -1) {
+                // only need to update prototype if it has already been initialized.
+                // otherwise, this will be done on demand.
+                updatePrototype(type, checked);
             }
         }
 
         lastUpdate = System.currentTimeMillis();
     }
 
+    /**
+     * Check one prototype for updates. Used by <code>upatePrototypes()</code>.
+     *
+     * @param type the type info to check
+     * @param checked a set of prototypes that have already been checked
+     */
+    private void updatePrototype(TypeInfo type, HashSet checked) {
+        // first, remember prototype as updated
+        checked.add(type.frameworkPrototype);
+
+        if (type.parentType != null &&
+                !checked.contains(type.parentType.frameworkPrototype)) {
+            updatePrototype(type.getParentType(), checked);
+        }
+
+        // let the type manager scan the prototype's directory
+        app.typemgr.updatePrototype(type.frameworkPrototype);
+
+        // and re-evaluate if necessary
+        if (type.needsUpdate()) {
+            evaluatePrototype(type);
+        }
+    }
 
     /**
      * A version of getPrototype() that retrieves a prototype and checks
@@ -775,7 +802,7 @@ public final class RhinoCore {
             // mark prototype as broken
             if (type.error == null) {
                 type.error = e.getMessage();
-                if (type.error == null) {
+                if (type.error == null || e instanceof EcmaError) {
                     type.error = e.toString();
                 }
                 if ("global".equals(type.frameworkPrototype.getLowerCaseName())) {
@@ -855,6 +882,10 @@ public final class RhinoCore {
             } else {
                 objectPrototype.setPrototype(type.objectPrototype);
             }
+        }
+
+        public TypeInfo getParentType() {
+            return parentType;
         }
 
         public boolean hasError() {
