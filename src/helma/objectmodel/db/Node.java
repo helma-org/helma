@@ -977,16 +977,20 @@ public final class Node implements INode, Serializable {
 
     public boolean remove () {
 	checkWriteLock ();
-    	if (anonymous)
-    	    getParent ().unset (name);
-    	else 
-	    getParent ().removeNode (this);
+	try {
+	    if (!anonymous)
+	        getParent ().unset (name);
+	    else
+	        getParent ().removeNode (this);
+	} catch (Exception x) {
+	    return false;
+	}
 	return true;
     }
 
 
     public void removeNode (INode node) {
-	nmgr.logEvent ("removing: "+ node);
+	// nmgr.logEvent ("removing: "+ node);
 	Node n = (Node) node;
 	checkWriteLock ();
 	n.checkWriteLock ();
