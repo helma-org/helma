@@ -44,28 +44,38 @@ public class SunImageWrapper extends ImageWrapper {
     }
 
     /**
+     * Reduce the colors used in this image. Useful and necessary before saving
+     * the image as GIF file.
      *
-     *
-     * @param colors ...
+     * @param colors the number of colors to use, usually <= 256.
      */
     public void reduceColors(int colors) {
         try {
-            int[][] pixels = getPixels();
-            int[] palette = Quantize.quantizeImage(pixels, colors);
-            int w = pixels.length;
-            int h = pixels[0].length;
-            int[] pix = new int[w * h];
+            // first, try to use JIMI's ColorReducer class. It is able to
+            // preserve transparency on GIF files, but does throw exceptions on some GIFs.
+            img = new ColorReducer(colors, false).getColorReducedImage(img);
+        } catch (Exception excpt) {
+            // JIMI sometimes fails to reduce colors, throwing an exception.
+            // Use our alternative Quantizer in this case.
+            System.err.println("Using alternative color reducer ("+excpt+")");
+            try {
+                int[][] pixels = getPixels();
+                int[] palette = Quantize.quantizeImage(pixels, colors);
+                int w = pixels.length;
+                int h = pixels[0].length;
+                int[] pix = new int[w * h];
 
-            // convert to RGB
-            for (int x = w; x-- > 0;) {
-                for (int y = h; y-- > 0;) {
-                    pix[(y * w) + x] = palette[pixels[x][y]];
+                // convert to RGB
+                for (int x = w; x-- > 0;) {
+                    for (int y = h; y-- > 0;) {
+                        pix[(y * w) + x] = palette[pixels[x][y]];
+                    }
                 }
-            }
 
-            img = imggen.createImage(new MemoryImageSource(w, h, pix, 0, w));
-        } catch (Exception x) {
-            // throw new RuntimeException (x.getMessage ());
+                img = imggen.createImage(new MemoryImageSource(w, h, pix, 0, w));
+            } catch (IOException ioxcpt) {
+                System.err.println("Error in reduceColors(): "+ioxcpt);
+            }
         }
     }
 
