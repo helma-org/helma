@@ -24,34 +24,34 @@ public class ESAppNode extends ESNode {
 	super (eval.esNodePrototype, eval.evaluator, node, eval);
 	app = eval.app;
 	createtime = new DatePrototype (eval.evaluator, node.created());
-	/* FunctionPrototype fp = (FunctionPrototype) eval.evaluator.getFunctionPrototype();
+	FunctionPrototype fp = (FunctionPrototype) eval.evaluator.getFunctionPrototype();
 	putHiddenProperty("getThreads", new AppCountThreads ("getThreads", evaluator, fp));
-	putHiddenProperty("getMaxThreads", new AppCountMaxThreads ("getMaxThreads", evaluator, fp));
+	putHiddenProperty("getMaxThreads", new AppCountEvaluators ("getMaxThreads", evaluator, fp));
 	putHiddenProperty("getFreeThreads", new AppCountFreeEvaluators ("getFreeThreads", evaluator, fp));
 	putHiddenProperty("getActiveThreads", new AppCountActiveEvaluators ("getActiveThreads", evaluator, fp));
 	putHiddenProperty("getMaxActiveThreads", new AppCountMaxActiveEvaluators ("getMaxActiveThreads", evaluator, fp));
-	putHiddenProperty("setMaxThreads", new AppSetNumberOfEvaluators ("setMaxThreads", evaluator, fp)); */
+	putHiddenProperty("setMaxThreads", new AppSetNumberOfEvaluators ("setMaxThreads", evaluator, fp));
     }
 
     /**
      * Overrides getProperty to return some app-specific properties
      */
     public ESValue getProperty (String propname, int hash) throws EcmaScriptException {
-	/* if ("requestCount".equals (propname)) {
-	    return new ESNumber (app.requestCount);
+	if ("requestCount".equals (propname)) {
+	    return new ESNumber (app.getRequestCount ());
 	}
 	if ("xmlrpcCount".equals (propname)) {
-	    return new ESNumber (app.xmlrpcCount);
+	    return new ESNumber (app.getXmlrpcCount ());
 	}
 	if ("errorCount".equals (propname)) {
-	    return new ESNumber (app.errorCount);
+	    return new ESNumber (app.getErrorCount ());
 	}
 	if ("upSince".equals (propname)) {
 	    return createtime;
 	}
 	if ("skinfiles".equals (propname)) {
 	    ESObject skinz = new ObjectPrototype (null, evaluator);
-	    for (Iterator it = app.typemgr.prototypes.values().iterator(); it.hasNext(); ) {
+	    for (Iterator it = app.getPrototypes().iterator(); it.hasNext(); ) {
 	        Prototype p = (Prototype) it.next ();
 	        ESObject  proto = new ObjectPrototype (null, evaluator);
 	        for (Iterator it2 = p.skins.values().iterator(); it2.hasNext(); ) {
@@ -63,7 +63,7 @@ public class ESAppNode extends ESNode {
 	        skinz.putProperty (p.getName (), proto, p.getName ().hashCode ());
 	    }
 	    return skinz;
-	} */
+	}
 	if ("__app__".equals (propname)) {
 	    return new ESWrapper (app, evaluator);
 	}
@@ -71,12 +71,12 @@ public class ESAppNode extends ESNode {
     }
 
 
-/*    class AppCountEvaluators extends BuiltinFunctionObject {
+    class AppCountEvaluators extends BuiltinFunctionObject {
         AppCountEvaluators (String name, Evaluator evaluator, FunctionPrototype fp) {
             super (fp, evaluator, name, 0);
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-           return new ESNumber (app.allThreads.size()-1);
+           return new ESNumber (app.countEvaluators ());
         }
     }
 
@@ -85,16 +85,16 @@ public class ESAppNode extends ESNode {
             super (fp, evaluator, name, 0);
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-           return new ESNumber (app.freeThreads.size());
+           return new ESNumber (app.countFreeEvaluators ());
         }
     }
 
     class AppCountActiveEvaluators extends BuiltinFunctionObject {
-        AppCountBusyEvaluators (String name, Evaluator evaluator, FunctionPrototype fp) {
+        AppCountActiveEvaluators (String name, Evaluator evaluator, FunctionPrototype fp) {
             super (fp, evaluator, name, 0);
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-           return new ESNumber (app.allThreads.size() - app.freeThreads.size() -1);
+           return new ESNumber (app.countActiveEvaluators ());
         }
     }
 
@@ -103,7 +103,7 @@ public class ESAppNode extends ESNode {
             super (fp, evaluator, name, 0);
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-           return new ESNumber (app.typemgr.countRegisteredRequestEvaluators () -1);
+           return new ESNumber (app.countMaxActiveEvaluators ());
         }
     }
 
@@ -112,7 +112,7 @@ public class ESAppNode extends ESNode {
             super (fp, evaluator, name, 0);
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-           return new ESNumber (app.threadgroup.activeCount() -1);
+           return new ESNumber (app.countThreads ());
         }
     }
 
@@ -124,11 +124,11 @@ public class ESAppNode extends ESNode {
             RequestEvaluator ev = new RequestEvaluator (app);
             if (arguments.length != 1)
                 return ESBoolean.makeBoolean (false);
+            // add one to the number to compensate for the internal scheduler.
             return ESBoolean.makeBoolean (app.setNumberOfEvaluators (1 + arguments[0].toInt32()));
         }
     }
 
-*/
 
     public String toString () {
 	return ("AppNode "+node.getElementName ());
