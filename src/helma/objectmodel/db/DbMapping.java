@@ -568,10 +568,10 @@ public final class DbMapping implements Updatable {
     }
 
     /**
-     *  Return true if the column identified by the parameter is a string type. This is
-     *  used in query building to determine if a value needs to be quoted.
+     *  Return true if values for the column identified by the parameter need
+     *  to be quoted in SQL queries.
      */
-    public boolean isStringColumn (String columnName) throws SQLException {
+    public boolean needsQuotes (String columnName) throws SQLException {
 	try {
 	    Schema s = getSchema ();
 	    if (s == null)
@@ -579,7 +579,20 @@ public final class DbMapping implements Updatable {
 	    Column c = s.getColumn (columnName);
 	    if (c == null)
 	        throw new SQLException ("Column "+columnName+" not found in "+this);
-	    return c.isString () || c.isVarBinary () || c.isLongVarBinary ();
+	    switch (c.typeEnum()) {
+	        case Types.CHAR:
+	        case Types.VARCHAR:
+	        case Types.LONGVARCHAR:
+	        case Types.BINARY:
+	        case Types.VARBINARY:
+	        case Types.LONGVARBINARY:
+	        case Types.DATE:
+	        case Types.TIME:
+	        case Types.TIMESTAMP:
+	            return true;
+	        default:
+	            return false;
+	    }
 	} catch (Exception x) {
 	    throw new SQLException (x.getMessage ());
 	}

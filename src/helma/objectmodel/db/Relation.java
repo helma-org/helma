@@ -367,7 +367,7 @@ public final class Relation {
 	    q.append (accessColumn);
 	    q.append (" = ");
 	    // check if column is string type and value needs to be quoted
-	    if (otherType.isStringColumn (accessColumn)) {
+	    if (otherType.needsQuotes (accessColumn)) {
 	        q.append ("'");
 	        q.append (escape (kstr));
 	        q.append ("'");
@@ -554,7 +554,7 @@ public final class Relation {
     	    }
     	    q.append (foreignName);
     	    q.append (" = ");
-    	    if (otherType.isStringColumn (foreignName)) {
+    	    if (otherType.needsQuotes (foreignName)) {
     	        q.append ("'");
     	        q.append (escape (local));
     	        q.append ("'");
