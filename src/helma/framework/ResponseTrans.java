@@ -358,8 +358,7 @@ public final class ResponseTrans implements Externalizable {
 	    }
 	}
 	// if etag is not set, calc MD5 digest and check it
-	if (etag == null && lastModified == -1 &&
-	        redir == null && cache && error == null) try {
+	if (etag == null && lastModified == -1 && redir == null) try {
 	    digest = MessageDigest.getInstance("MD5");
 	    // if (contentType != null)
 	    //     digest.update (contentType.getBytes());
