@@ -57,7 +57,7 @@ public class FesiActionAdapter {
 
         Reader reader = null;
 
-        functionName = action.getFunctionName();
+        functionName = action.getFunctionName().replace('.', '_');
         sourceName = action.getSourceName();
 
         try {

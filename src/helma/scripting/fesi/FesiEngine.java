@@ -505,6 +505,8 @@ public class FesiEngine implements ScriptingEngine {
                 }
             }
 
+            functionName = functionName.replace('.', '_');
+
             ESValue retval = eso.doIndirectCall(evaluator, eso, functionName, esv);
 
             if (xmlrpc) {
@@ -571,6 +573,9 @@ public class FesiEngine implements ScriptingEngine {
             if (op == null) {
                 return false;
             }
+
+            // replace '.' with '_' in function name
+            fname = fname.replace('.', '_');
 
             ESValue func = op.getProperty(fname, fname.hashCode());
 
