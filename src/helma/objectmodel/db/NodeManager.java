@@ -535,7 +535,7 @@ public final class NodeManager {
                 Relation rel = columns[i].getRelation();
                 Property p = null;
 
-                if ((rel != null) && (rel.isPrimitive() || rel.isReference())) {
+                if (rel != null && propMap != null && (rel.isPrimitive() || rel.isReference())) {
                     p = (Property) propMap.get(rel.getPropName());
                 }
 
