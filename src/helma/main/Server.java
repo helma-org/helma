@@ -143,8 +143,10 @@ import org.apache.xmlrpc.*;
 	    } else if (args[i].equals ("-i") && i+1<args.length) {
 	        // eat away the -i parameter which is meant for helma.main.launcher.Main
 	        i++;
-	    } else
+	    } else {
+	        System.err.println ("Unknown command line token: "+args[i]);
 	        usageError = true;
+	    }
 	}
 
 	// get main property file from home dir or vice versa, depending on what we have.
