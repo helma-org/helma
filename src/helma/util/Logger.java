@@ -202,13 +202,14 @@ public final class Logger {
      *  start a new one.
      */
     private void rotateLogFile () throws IOException {
-	// if the logger is not file based do nothing
+	// if the logger is not file based do nothing.
 	if (logfile == null)
 	    return;
 	if (writer != null) try {
 	    writer.close();
 	} catch (Exception ignore) {}
-	if (logfile.exists()) {
+	// only backup/rotate if the log file is not empty,
+	if (logfile.exists() && logfile.length() > 0) {
 	    String today = aformat.format(new Date());
 	    int ct=0;
 	    File archive = null;
