@@ -166,7 +166,7 @@ public class Server implements IPathElement, Runnable {
       * parse the command line arguments, read a given server.properties file
       * and check the values given for server ports
       * @return Config if successfull
-      * @throews Exception on any configuration error
+      * @throws Exception on any configuration error
       */
     public static Config getConfig(String[] args) throws Exception {
 
