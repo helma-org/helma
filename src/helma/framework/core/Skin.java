@@ -197,8 +197,11 @@ public class Skin {
 	        arguments[0] = par;
 
 	        if (handler != null) {
-	            // not a global macro - need to find handler object
-	            if (thisNode != null) {
+	            if ("currentuser".equalsIgnoreCase (handler)) {
+	                // as a special convention, we use "currentuser" to access macros in the current user object
+	                handlerObject = reval.getNodeWrapper (reval.user.getNode ());
+	            } else if (thisNode != null) {
+	                // not a global macro - need to find handler object
 	                // was called with this object - check it or its parents for matching prototype
 	                if (!handler.equalsIgnoreCase ("this") && !handler.equalsIgnoreCase (thisNode.getPrototypeName ())) {
 	                    // the handler object is not what we want
@@ -273,7 +276,7 @@ public class Skin {
 	    else {
 	        try {
 	            ESValue value = paramObject.getProperty (name, name.hashCode());
-	            if (value != null && value != ESUndefined.theUndefined)
+	            if (value != null && value != ESUndefined.theUndefined && value != ESNull.theNull)
 	                reval.res.write (value);
 	        } catch (EcmaScriptException ignore) {}
 	    }
