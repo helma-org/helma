@@ -21,18 +21,19 @@ import helma.util.SystemProperties;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Enumeration;
+import java.util.Properties;
 
 /**
  *  This class describes a releational data source (URL, driver, user and password).
  */
 public class DbSource {
     private static SystemProperties defaultProps = null;
+    private Properties conProps;
     private String name;
     private SystemProperties props;
     protected String url;
     private String driver;
-    protected String user;
-    private String password;
     private boolean isOracle;
     private long lastRead = 0L;
 
@@ -71,7 +72,8 @@ public class DbSource {
         if ((con == null) || con.isClosed() || fileUpdated) {
             init();
             Class.forName(driver);
-            con = DriverManager.getConnection(url, user, password);
+            con = DriverManager.getConnection(url, conProps);
+            // con = DriverManager.getConnection(url, user, password);
 
             // If we wanted to use SQL transactions, we'd set autoCommit to
             // false here and make commit/rollback invocations in Transactor methods;
@@ -86,12 +88,23 @@ public class DbSource {
         lastRead = (defaultProps == null) ? props.lastModified()
                                           : Math.max(props.lastModified(),
                                                      defaultProps.lastModified());
-        url = props.getProperty(name + ".url");
-        driver = props.getProperty(name + ".driver");
-        isOracle = driver != null && driver.startsWith("oracle.jdbc.driver");
-        Class.forName(driver);
-        user = props.getProperty(name + ".user");
-        password = props.getProperty(name + ".password");
+        conProps=new Properties();
+        for (Enumeration e = props.keys(); e.hasMoreElements(); ) {
+            String key = (String) e.nextElement();
+            if (!key.startsWith(name))
+                continue;
+            if (key.equals(name + ".url")) {
+                url = props.getProperty(name + ".url");
+                continue;
+            }
+            if (key.equals(name + ".driver")) {
+                driver = props.getProperty(name + ".driver");
+                isOracle = driver != null && driver.startsWith("oracle.jdbc");
+                Class.forName(driver);
+                continue;
+            }
+            conProps.setProperty(key.substring(name.length()+1), props.getProperty(key));
+        }
     }
 
     /**
