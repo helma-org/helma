@@ -423,9 +423,12 @@ public final class Relation {
      */
     public boolean needsPersistence() {
         if (!virtual) {
-            return false;
+            // ordinary object references always need to be persisted
+            return true;
         }
 
+        // collections/mountpoints need to be persisted if the
+        // child object type is non-relational.
         if (prototype == null) {
             return !otherType.isRelational();
         }
