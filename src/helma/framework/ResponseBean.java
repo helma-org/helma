@@ -16,6 +16,8 @@
 
 package helma.framework;
 
+import helma.objectmodel.db.Transactor;
+
 import java.io.Serializable;
 import java.util.Date;
 import java.util.Map;
@@ -434,6 +436,30 @@ public class ResponseBean implements Serializable {
      */
     public String popStringBuffer() {
         return res.popStringBuffer();
+    }
+
+    /**
+     * Commit changes made during the course of the current transaction
+     * and start a new one
+     *
+     * @throws Exception
+     */
+    public void commit() throws Exception {
+        if (Thread.currentThread() instanceof Transactor) {
+            Transactor tx = (Transactor) Thread.currentThread();
+            String tname = tx.getTransactionName();
+            tx.commit();
+            tx.begin(tname);
+        }
+    }
+
+    /**
+     * Abort the current transaction by throwing an Error
+     *  
+     * @throws AbortException
+     */
+    public void abort() throws AbortException {
+        throw new AbortException();
     }
 
 }
