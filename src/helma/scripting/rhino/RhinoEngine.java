@@ -461,16 +461,21 @@ public class RhinoEngine implements ScriptingEngine {
      * @throws java.io.IOException
      */
     public void serialize(Object obj, OutputStream out) throws IOException {
-        // use a special ScriptableOutputStream that unwraps Wrappers
-        ScriptableOutputStream sout = new ScriptableOutputStream(out, core.global) {
-            protected Object replaceObject(Object obj) throws IOException {
-                if (obj instanceof Wrapper)
-                    obj = ((Wrapper) obj).unwrap();
-                return super.replaceObject(obj);
-            }
-        };
-        sout.writeObject(obj);
-        sout.flush();
+        Context.enter();
+        try {
+            // use a special ScriptableOutputStream that unwraps Wrappers
+            ScriptableOutputStream sout = new ScriptableOutputStream(out, core.global) {
+                protected Object replaceObject(Object obj) throws IOException {
+                    if (obj instanceof Wrapper)
+                        obj = ((Wrapper) obj).unwrap();
+                    return super.replaceObject(obj);
+                }
+            };
+            sout.writeObject(obj);
+            sout.flush();
+        } finally {
+            Context.exit();
+        }
     }
 
     /**
@@ -483,9 +488,13 @@ public class RhinoEngine implements ScriptingEngine {
      * @throws java.io.IOException
      */
     public Object deserialize(InputStream in) throws IOException, ClassNotFoundException {
-        ObjectInputStream sin = new ScriptableInputStream(in, core.global);
-        Object deserialized = sin.readObject();
-        return Context.toObject(deserialized, core.global);
+        Context.enter();
+        try {
+            ObjectInputStream sin = new ScriptableInputStream(in, core.global);
+            return sin.readObject();
+        } finally {
+            Context.exit();
+        }
     }
 
     /**
