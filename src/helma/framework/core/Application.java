@@ -607,67 +607,64 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	sessions.remove (session.getSessionID ());
     }
 
-    public Enumeration getActiveUsers () {
-	return new SessionFilter (null);
+    /**
+     *  Return the whole session map. We return a clone of the table to prevent
+     * actual changes from the table itself, which is managed by the application.
+     * It is safe and allowed to manipulate the session objects contained in the table, though.
+     */
+    public Map getSessions () {
+	return (Map) sessions.clone ();
+    }
+
+
+    /**
+     * Return a list of Helma nodes (HopObjects -  the database object representing the user,
+     *  not the session object) representing currently logged in users.
+     */
+    public List getActiveUsers () {
+	ArrayList list = new ArrayList();
+	// used to keep track of already added users - we only return
+	// one object per user, and users may have multiple sessions
+	HashSet usernames = new HashSet ();
+	for (Enumeration e=sessions.elements(); e.hasMoreElements(); ) {
+	    Session s = (Session) e.nextElement ();
+	    if(s==null) {
+	        continue;
+	    } else if (s.isLoggedIn() && !usernames.contains (s.getUID ()) ) {
+	        // returns a session if it is logged in and has not been
+	        // returned before (so for each logged-in user we get one
+	        // session object, even if this user is logged in several
+	        // times (used to retrieve the active users list).
+	        INode node = s.getUserNode ();
+	        // we check again because user may have been logged out between the first check
+	        if (node != null) {
+	            usernames.add (s.getUID ());
+	            list.add(node);
+	        }
+	    }
+	}
+	return list;
     }
 
     /**
-     * Return an array of session currently associated with a given Hop user object.
+     * Return an array of <code>SessionBean</code> objects currently associated with a given
+     * Helma user.
      */
-    public Enumeration getSessionsForUsername (String username)	{
-	return new SessionFilter (username);
+    public List getSessionsForUsername (String username)	{
+	ArrayList list = new ArrayList();
+	if (username == null)
+	    return list;
+	for (Enumeration e=sessions.elements(); e.hasMoreElements(); ) {
+	    Session s = (Session) e.nextElement ();
+	    if(s==null) {
+	        continue;
+	    } else if (username.equals (s.getUID ())) {
+	        // append to list if session is logged in and fits the given username
+	        list.add (new SessionBean (s));
+	    }
+	}
+	return list;
     }
-
-    class SessionFilter implements Enumeration {
-	String username;
-	Session nextSession;
-	Enumeration sessionEnum;
-	Vector usernames;
-
-	SessionFilter (String username) {
-	    this.username = username;
-	    if (username==null)
-	        usernames = new Vector();
-	    sessionEnum = sessions.elements ();
-	    nextSession = nextValidSession ();
-	}
-
-	public boolean hasMoreElements () {
-	    if (nextSession==null)
-	        return false;
-	    else
-	        return true;
-	}
-
-	public Object nextElement () {
-	    Session thisSession = nextSession;
-	    nextSession = nextValidSession ();
-	    return thisSession;
-	}
-
-	private Session nextValidSession () {
-	    while( sessionEnum.hasMoreElements () ) {
-	        Session s = (Session)sessionEnum.nextElement ();
-	            if(s==null) {
-	                continue;
-	            } else {
-	                if (username!=null && username.equals(s.getUID ())) {
-	                    // returns a session if it is logged in and fits
-	                    // the given username
-	                    return s;
-	                } else if (username==null && s.isLoggedIn()==true && !usernames.contains (s.getUID ()) ) {
-	                    // returns a session if it is logged in and has not been
-	                   // returned before (so for each logged-in user we get one
-	                   // session object, even if this user is logged in several
-	                   // times (used to retrieve the active users list).
-	                   usernames.add (s.getUID ());
-	                   return s;
-	               }
-	           }
-	       }
-	       return null;
-	   }
-	}
 
 
     /**
@@ -1237,6 +1234,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      */
     public long getErrorCount () {
 	return errorCount;
+    }
+
+    public long getStarttime () {
+	return starttime;
     }
 
     /**

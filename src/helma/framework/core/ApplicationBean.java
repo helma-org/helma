@@ -7,6 +7,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.List;
 
 import helma.objectmodel.INode;
 
@@ -88,16 +89,8 @@ public class ApplicationBean implements Serializable {
     }
 
     public INode[] getActiveUsers () {
-	Enumeration loggedInSessions = app.getActiveUsers ();
-	if (loggedInSessions.hasMoreElements ()==false)
-	    return new INode[0];
-	ArrayList theArray = new ArrayList();
-	while (loggedInSessions.hasMoreElements ()) {
-	    INode usernode = ((Session) loggedInSessions.nextElement ()).getUserNode ();
-	    if (usernode!=null)
-	        theArray.add (usernode);
-	}
-	return (INode[]) theArray.toArray (new INode[0]);
+	List activeUsers = app.getActiveUsers ();
+	return (INode[]) activeUsers.toArray (new INode[0]);
     }
 
     public SessionBean[] getSessionsForUser (INode usernode)	{
@@ -110,15 +103,8 @@ public class ApplicationBean implements Serializable {
     public SessionBean[] getSessionsForUser (String username) {
 	if (username==null || "".equals (username.trim ()) )
 	    return new SessionBean[0];
-	Enumeration userSessions = app.getSessionsForUsername (username);
-	if (userSessions.hasMoreElements()==false )
-	    return new SessionBean[0];
-	ArrayList theArray = new ArrayList();
-	while (userSessions.hasMoreElements() ) {
-	    SessionBean sb = new SessionBean ((Session) userSessions.nextElement ());
-	    theArray.add(sb);
-	}
-	return (SessionBean[]) theArray.toArray (new SessionBean[0]);
+	List userSessions = app.getSessionsForUsername (username);
+	return (SessionBean[]) userSessions.toArray (new SessionBean[0]);
     }
 
     // getter methods for readonly properties of this application
