@@ -1702,9 +1702,13 @@ public final class Node implements INode, Serializable {
             } else if (propRel != null && propRel.isVirtual()) {
                 // prop was found and explicit property relation is collection -
                 // this is a collection node containing objects stored in the embedded db
-                INode pn = prop.getNodeValue();
+                Node pn = (Node) prop.getNodeValue();
                 if (pn != null) {
+                    // do set DbMapping for embedded db collection nodes
                     pn.setDbMapping(propRel.getVirtualMapping());
+                    // also set node manager in case this is a mountpoint node
+                    // that came in through replication
+                    pn.nmgr = nmgr;
                 }
             }
         }
