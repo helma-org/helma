@@ -359,6 +359,8 @@ import org.apache.xmlrpc.*;
 
 	    // create application manager
 	    appManager = new ApplicationManager (rmiPort, hopHome, appsProps, this);
+	    if (xmlrpc != null)
+	        xmlrpc.addHandler ("$default", appManager);
 
 
 	} catch (Exception gx) {

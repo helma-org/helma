@@ -3,9 +3,7 @@
  
 package helma.main;
 
-import java.util.Hashtable;
-import java.util.Enumeration;
-import java.util.Properties;
+import java.util.*;
 import java.io.*;
 import java.lang.reflect.*;
 import java.rmi.*;
@@ -21,15 +19,17 @@ import org.mortbay.http.handler.*;
 import org.mortbay.jetty.servlet.*;
 import org.mortbay.util.*;
 import javax.servlet.Servlet;
+import org.apache.xmlrpc.XmlRpcHandler;
 
 
 /**
  * This class is responsible for starting and stopping Helma applications.
  */
- 
-public class ApplicationManager {
+
+public class ApplicationManager implements XmlRpcHandler {
 
     private Hashtable applications;
+    private Hashtable xmlrpcHandlers;
     private Properties mountpoints;
     private int port;
     private File hopHome;
@@ -43,6 +43,7 @@ public class ApplicationManager {
 	this.props = props;
 	this.server = server;
 	applications = new Hashtable ();
+	xmlrpcHandlers = new Hashtable ();
 	mountpoints = new Properties ();
 	lastModified = 0;
     }
@@ -93,7 +94,7 @@ public class ApplicationManager {
 	                    if (cookieDomain != null)
 	                        holder.setInitParameter ("cookieDomain", cookieDomain);
 	                    String uploadLimit = props.getProperty (appName+".uploadLimit");
-	                       if (uploadLimit != null)
+	                    if (uploadLimit != null)
 	                        holder.setInitParameter ("uploadLimit", uploadLimit);
 	                    // holder.start ();
 	                    context.start ();
@@ -146,6 +147,8 @@ public class ApplicationManager {
 	            context.destroy ();
 	        }
 	    }
+	    // unregister as XML-RPC handler
+	    xmlrpcHandlers.remove (app.getXmlRpcHandlerName());
 	    app.stop ();
 	    Server.getLogger().log ("Unregistered application "+appName);
 	} catch (Exception x) {
@@ -189,6 +192,8 @@ public class ApplicationManager {
 	        context.start ();
 	        mountpoints.setProperty (appName, pattern);
 	    }
+	    // register as XML-RPC handler
+	    xmlrpcHandlers.put (app.getXmlRpcHandlerName(), app);
 	    app.start ();
 	} catch (Exception x) {
 	    Server.getLogger().log ("Couldn't register and start app: "+x);
@@ -238,6 +243,24 @@ public class ApplicationManager {
     public Application getApplication(String name)	{
 	return (Application)applications.get(name);
     }
+
+    /**
+     * Implements org.apache.xmlrpc.XmlRpcHandler.execute()
+     */
+    public Object execute (String method, Vector params) throws Exception {
+	int dot = method.indexOf (".");
+	if (dot == -1)
+	    throw new Exception ("Method name \""+method+"\" does not specify a handler application");
+	if (dot == 0 || dot == method.length()-1)
+	    throw new Exception ("\""+method+"\" is not a valid XML-RPC method name");
+	String handler = method.substring (0, dot);
+	String method2 = method.substring (dot+1);
+	Application app = (Application) xmlrpcHandlers.get (handler);
+	if (app == null)
+	    throw new Exception ("Handler \""+handler+"\" not found for "+method);
+	return app.executeXmlRpc (method2, params);
+    }
+
 
     private String getMountpoint (String appName) {
 	String mountpoint = props.getProperty (appName+".mountpoint");

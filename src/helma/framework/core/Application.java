@@ -93,9 +93,6 @@ public final class Application implements IPathElement, Runnable {
     protected volatile long xmlrpcCount = 0;
     protected volatile long errorCount = 0;
 
-    protected static WebServer xmlrpc;
-    protected XmlRpcAccess xmlrpcAccess;
-    private String xmlrpcHandlerName;
 
     // the URL-prefix to use for links into this application
     private String baseURI;
@@ -117,6 +114,13 @@ public final class Application implements IPathElement, Runnable {
     public DocApplication docApp;
     
     private long lastPropertyRead = 0l;
+    
+    // the set of prototype/function pairs which are allowed to be called via XML-RPC
+    private HashSet xmlrpcAccess;
+
+    // the name under which this app serves XML-RPC requests. Defaults to the app name
+    private String xmlrpcHandlerName;
+
 
     /**
      *  Zero argument constructor needed for RMI
@@ -215,8 +219,6 @@ public final class Application implements IPathElement, Runnable {
 	dbSources = new Hashtable ();
 
 	cachenode = new TransientNode ("app");
-	xmlrpc = helma.main.Server.getXmlRpcServer ();
-	xmlrpcAccess = new XmlRpcAccess (this);
     }
 
     /**
@@ -273,11 +275,6 @@ public final class Application implements IPathElement, Runnable {
 	userRootMapping.update ();
 
 	nmgr = new NodeManager (this, dbDir.getAbsolutePath (), props);
-
-	xmlrpcHandlerName = props.getProperty ("xmlrpcHandlerName", this.name);
-	if (xmlrpc != null)
-	    xmlrpc.addHandler (xmlrpcHandlerName, new XmlRpcInvoker (this));
-
     }
 
     /**
@@ -302,9 +299,6 @@ public final class Application implements IPathElement, Runnable {
 	if (worker != null)
 	    worker.interrupt ();
 	worker = null;
-
-	if (xmlrpc != null && xmlrpcHandlerName != null)
-	    xmlrpc.removeHandler (xmlrpcHandlerName);
 
 	// stop evaluators
 	if (allThreads != null) {
@@ -498,6 +492,26 @@ public final class Application implements IPathElement, Runnable {
 	return res;
     }
 
+
+    /**
+     *  Called to execute a method via XML-RPC, usally by helma.main.ApplicationManager
+     *  which acts as default handler/request dispatcher.
+     */
+    public Object executeXmlRpc (String method, Vector args) throws Exception {
+	xmlrpcCount += 1;
+	Object retval = null;
+	RequestEvaluator ev = null;
+	try {
+	    // check if the properties file has been updated
+	    updateProperties ();
+	    // get evaluator and invoke
+	    ev = getEvaluator ();
+	    retval = ev.invokeXmlRpc (method, args.toArray());
+	}  finally {
+	    releaseEvaluator (ev);
+	}
+	return retval;
+    }
 
     /**
      * Reset the application's object cache, causing all objects to be refetched from
@@ -1214,11 +1228,23 @@ public final class Application implements IPathElement, Runnable {
 	        requestTimeout = 60000l;
 	    }
 	    // set base URI
-	    String base = props.getProperty ("baseURI");
+	    String base = props.getProperty ("baseuri");
 	    if (base != null)
 	        setBaseURI (base);
 	    else if (baseURI == null)
 	        baseURI = "/";
+	    // update the XML-RPC access list, containting prototype.method
+	    // entries of functions that may be called via XML-RPC
+	    String xmlrpcAccessProp = props.getProperty ("xmlrpcaccess");
+	    HashSet xra = new HashSet ();
+	    if (xmlrpcAccessProp != null) {
+	        StringTokenizer st = new StringTokenizer (xmlrpcAccessProp, ",; ");
+	        while (st.hasMoreTokens ()) {
+	            String token = st.nextToken ().trim ();
+	            xra.add (token.toLowerCase());
+	        }
+	    }
+	    xmlrpcAccess = xra;
 	    // if node manager exists, update it
 	    if (nmgr != null)
 	        nmgr.updateProperties (props);
@@ -1244,6 +1270,17 @@ public final class Application implements IPathElement, Runnable {
 
     public SystemProperties getProperties()	{
 	return props;
+    }
+
+    /**
+     * Return the XML-RPC handler name for this app. The contract is to 
+     * always return the same string, even if it has been changed in the properties file
+     * during runtime, so the app gets unregistered correctly.
+     */
+    public String getXmlRpcHandlerName () {
+	if (xmlrpcHandlerName == null)
+	    xmlrpcHandlerName = props.getProperty ("xmlrpcHandlerName", this.name);
+	return xmlrpcHandlerName;
     }
 
     /**
@@ -1325,102 +1362,14 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
-     * Check if a method may be invoked via XML-RPC on a prototype
+     * Check if a method may be invoked via XML-RPC on a prototype.
      */
     protected void checkXmlRpcAccess (String proto, String method) throws Exception {
-	xmlrpcAccess.checkAccess (proto, method);
+	String key = proto+"."+method;
+	// XML-RPC access items are case insensitive and stored in lower case
+	if (!xmlrpcAccess.contains (key.toLowerCase()))
+	    throw new Exception ("Method "+key+" is not callable via XML-RPC");
     }
 
 }
-
-
-/**
- * XML-RPC handler class for this application.
- */
-class XmlRpcInvoker implements XmlRpcHandler {
-
-    Application app;
-
-    public XmlRpcInvoker (Application app) {
-	this.app = app;
-    }
-
-    public Object execute (String method, Vector argvec) throws Exception {
-
-	app.xmlrpcCount += 1;
-
-	Object retval = null;
-	RequestEvaluator ev = null;
-	try {
-	    ev = app.getEvaluator ();
-	    retval = ev.invokeXmlRpc (method, argvec.toArray());
-	}  finally {
-	    app.releaseEvaluator (ev);
-	}
-	return retval;
-    }
-}
-
-
-/**
- * XML-RPC access permission checker
- */
-class XmlRpcAccess {
-    	
-    Application app;
-    Hashtable prototypes;
-    long lastmod;
-
-    public XmlRpcAccess (Application app) {
-    	this.app = app;
-	init ();
-    }
-    	
-    public void checkAccess (String proto, String method) throws Exception {
-	if (app.props.lastModified () != lastmod)
-	    init ();
-	Hashtable protoAccess = (Hashtable) prototypes.get (proto.toLowerCase ());
-	if (protoAccess == null)
-	    throw new Exception ("Method "+method+" is not callable via XML-RPC");
-	if (protoAccess.get (method.toLowerCase ()) == null)
-	    throw new Exception ("Method "+method+" is not callable via XML-RPC");
-    }
-
-   /*
-    * create internal representation of  XML-RPC-Permissions. They're encoded in the app property
-    *  file like this:
-    *
-    *    xmlrpcAccess = root.sayHello, story.countMessages, user.login
-    *
-    *  i.e. a prototype.method entry for each function callable via XML-RPC.
-    */
-    private void init () {
-	String newAccessprop = app.props.getProperty ("xmlrpcaccess");
-	Hashtable newPrototypes = new Hashtable ();
-	if (newAccessprop != null) {
-	    StringTokenizer st = new StringTokenizer (newAccessprop, ",; ");
-	    while (st.hasMoreTokens ()) {
-	        String token = st.nextToken ().trim ();
-	        int dot = token.indexOf (".");
-	        if (dot > -1) {
-	            String proto = token.substring (0, dot).toLowerCase ();
-	            String method = token.substring (dot+1).toLowerCase ();
-	            Hashtable protoAccess = (Hashtable) newPrototypes.get (proto);
-	            if (protoAccess == null) {
-	                protoAccess = new Hashtable ();
-	                newPrototypes.put (proto, protoAccess);
-	            }
-	            protoAccess.put (method, method);
-	        }
-	    }
-	}
-	this.prototypes = newPrototypes;
-	this.lastmod = app.props.lastModified ();
-    }
-
-}
-
-
-
-
 
