@@ -194,6 +194,19 @@ public class TypeManager implements Runnable {
         proto.templates = ntemp;
         proto.functions = nfunc;
         proto.actions = nact;
+
+        // register constructor for evaluators that are already initialized.
+        if (!"global".equalsIgnoreCase (name)) {
+            Iterator evals = getRegisteredRequestEvaluators ();
+            while (evals.hasNext ()) {
+                try {
+                    RequestEvaluator reval = (RequestEvaluator) evals.next ();
+                    FunctionPrototype fp = (FunctionPrototype) reval.evaluator.getFunctionPrototype();
+                    reval.global.putHiddenProperty (name, new NodeConstructor (name, fp, reval));
+                } catch (Exception ignore) {}
+            }
+        }
+
     }
 
 
