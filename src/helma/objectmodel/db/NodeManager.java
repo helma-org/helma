@@ -1661,8 +1661,8 @@ public final class NodeManager {
      *  Create a new Node from a ResultSet.
      */
     public Node createNode(DbMapping dbm, ResultSet rs, DbColumn[] columns, int offset)
-                throws SQLException, IOException {
-        Hashtable propMap = new Hashtable();
+                throws SQLException, IOException, ClassNotFoundException {
+        HashMap propBuffer = new HashMap();
         String id = null;
         String name = null;
         String protoName = dbm.getTypeName();
@@ -1702,15 +1702,15 @@ public final class NodeManager {
                 name = rs.getString(i+1+offset);
             }
 
-            Relation rel = columns[i].getRelation();
+            // Relation rel = columns[i].getRelation();
 
-            if ((rel == null) ||
+            /* if ((rel == null) ||
                     ((rel.reftype != Relation.PRIMITIVE) &&
                     (rel.reftype != Relation.REFERENCE))) {
                 continue;
-            }
+            } */
 
-            Property newprop = new Property(rel.propName, node);
+            Property newprop = new Property(node);
 
             switch (columns[i].getType()) {
                 case Types.BIT:
@@ -1822,13 +1822,13 @@ public final class NodeManager {
                 newprop.setStringValue(null);
             }
 
-            propMap.put(rel.propName.toLowerCase(), newprop);
+            propBuffer.put(columns[i].getName(), newprop);
 
             // if the property is a pointer to another node, change the property type to NODE
-            if ((rel.reftype == Relation.REFERENCE) && rel.usesPrimaryKey()) {
+            /* if ((rel.reftype == Relation.REFERENCE) && rel.usesPrimaryKey()) {
                 // FIXME: References to anything other than the primary key are not supported
                 newprop.convertToNodeReference(rel.otherType);
-            }
+            } */
 
             // mark property as clean, since it's fresh from the db
             newprop.dirty = false;
@@ -1836,6 +1836,28 @@ public final class NodeManager {
 
         if (id == null) {
             return null;
+        }
+
+        Hashtable propMap = new Hashtable();
+        DbColumn[] columns2 = dbmap.getColumns();
+        for (int i=0; i<columns2.length; i++) {
+            Relation rel = columns2[i].getRelation();
+            if (rel != null) {
+                Property prop = (Property) propBuffer.get(columns2[i].getName());
+
+                if (prop == null) {
+                    continue;
+                }
+
+                prop.setName(rel.propName);
+
+                // if the property is a pointer to another node, change the property type to NODE
+                if ((rel.reftype == Relation.REFERENCE) && rel.usesPrimaryKey()) {
+                    // FIXME: References to anything other than the primary key are not supported
+                    prop.convertToNodeReference(rel.otherType);
+                }
+                propMap.put(rel.propName.toLowerCase(), prop);
+            }
         }
 
         node.init(dbmap, id, name, protoName, propMap, safe);
