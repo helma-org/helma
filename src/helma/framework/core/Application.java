@@ -3,8 +3,6 @@
 
 package helma.framework.core;
 
-import helma.doc.DocApplication;
-import helma.doc.DocException;
 import helma.extensions.HelmaExtension;
 import helma.extensions.ConfigurationException;
 import helma.framework.*;
@@ -111,9 +109,7 @@ public final class Application implements IPathElement, Runnable {
     // Map of extensions allowed for public skins
     Properties skinExtensions;
 
-    // DocApplication used for introspection
-    public DocApplication docApp;
-    
+    // time we last read the properties file
     private long lastPropertyRead = 0l;
     
     // the set of prototype/function pairs which are allowed to be called via XML-RPC
@@ -997,25 +993,17 @@ public final class Application implements IPathElement, Runnable {
     ///   this is useful for scripting and url-building in the base-app.
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public String getElementName()	{
+    public String getElementName() {
 	return name;
     }
 
-    public IPathElement getChildElement(String name)	{
+    public IPathElement getChildElement(String name) {
 	// as Prototype and the helma.scripting-classes don't offer enough information
 	// we use the classes from helma.doc-pacakge for introspection.
 	// the first time an url like /appname/api/ is parsed, the application is read again
 	// parsed for comments and exposed as an IPathElement
 	if (name.equals("api")) {
-	    if ( docApp==null ) {
-	        try {
-	            docApp = new DocApplication (this.name, appDir.toString());
-	            docApp.readApplication ();
-	        } catch ( DocException e ) {
-	            return null;
-	        }
-	    }
-	    return docApp;
+	    return eval.scriptingEngine.getIntrospector ();
 	}
 	return null;
     }
