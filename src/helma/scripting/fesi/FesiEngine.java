@@ -24,16 +24,16 @@ import FESI.Exceptions.*;
 /**
  * This is the implementation of ScriptingEnvironment for the FESI EcmaScript interpreter.
  */
-public final class FesiEvaluator implements ScriptingEngine {
+public final class FesiEngine implements ScriptingEngine {
 
     // the application we're running in
-    public final Application app;
+    Application app;
 
     // The FESI evaluator
-    final Evaluator evaluator;
+    Evaluator evaluator;
 
     // the global object
-    final GlobalObject global;
+    GlobalObject global;
 
     // caching table for JavaScript object wrappers
     CacheMap wrappercache;
@@ -42,10 +42,10 @@ public final class FesiEvaluator implements ScriptingEngine {
     Hashtable prototypes;
 
     // the request evaluator instance owning this fesi evaluator
-    final RequestEvaluator reval;
+    RequestEvaluator reval;
 
     // extensions loaded by this evaluator
-    static String[] extensions = new String[] {
+    static final String[] extensions = new String[] {
 	"FESI.Extensions.BasicIO",
 	"FESI.Extensions.FileIO",
 	"helma.scripting.fesi.extensions.XmlRpcExtension",
@@ -64,16 +64,21 @@ public final class FesiEvaluator implements ScriptingEngine {
     
 
     /**
-     *  Create a FESI evaluator for the given application and request evaluator.
+     *  Zero argument constructor.
      */
-    public FesiEvaluator (Application app, RequestEvaluator reval) {
+    public FesiEngine () {}
+
+    /**
+     *  Initialize a FESI evaluator for the given application and request evaluator.
+     */
+    public void init (Application app, RequestEvaluator reval) {
 	this.app = app;
 	this.reval = reval;
 	wrappercache = new CacheMap (200, .75f);
 	prototypes = new Hashtable ();
 	try {
 	    evaluator = new Evaluator();
-	    evaluator.reval = this;
+	    evaluator.engine = this;
 	    global = evaluator.getGlobalObject();
 	    for (int i=0; i<extensions.length; i++)
 	        evaluator.addExtension (extensions[i]);
