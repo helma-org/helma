@@ -59,7 +59,7 @@ public final class NodeManager {
         // Make actual cache size bigger, since we use it only up to the threshold
         // cache = new CacheMap ((int) Math.ceil (cacheSize/0.75f), 0.75f);
         cache = new CacheMap(cacheSize, 0.75f);
-        cache.setLogger(app.getLogger("event"));
+        cache.setApplication(app);
         app.logEvent("Setting up node cache (" + cacheSize + ")");
 
         safe = new WrappedNodeManager(this);

@@ -30,6 +30,8 @@
 package helma.util;
 
 import java.util.HashMap;
+import helma.framework.core.Application;
+
 
 /// A Hashtable that expires least-recently-used objects.
 // <P>
@@ -57,8 +59,8 @@ public class CacheMap  {
     private HashMap oldTable;
     private HashMap newTable;
 
-    // the logger to output messages to
-    private Logger logger = null;
+    // the application to output messages to
+    private Application app = null;
 
     /// Constructs a new, empty hashtable with the specified initial
     // capacity and the specified load factor.
@@ -118,8 +120,8 @@ public class CacheMap  {
 	// initialCapacity/2 entries.
 	int newThreshold = capacity / 2;
 	if (newThreshold != threshold) {
-	    if (logger != null)
-	       logger.log ("Setting cache capacity to "+capacity);
+	    if (app != null)
+	       app.logEvent ("Setting cache capacity to "+capacity);
 	    updateThreshold (newThreshold);
 	}
     }
@@ -235,8 +237,8 @@ public class CacheMap  {
 	// grew beyond the threshold
 	if (newTable.size() >= threshold) {
 	    // Rotate the tables.
-	    if (logger != null)
-	        logger.log ("Rotating Cache tables at "+newTable.size()+
+	    if (app != null)
+	        app.logEvent ("Rotating Cache tables at "+newTable.size()+
 	                    "/"+oldTable.size()+" (new/old)");
 	    oldTable = newTable;
 	    newTable = new HashMap (eachCapacity, loadFactor);
@@ -261,9 +263,9 @@ public class CacheMap  {
 	oldTable.clear ();
     }
 
-    /// Set the logger to use for debug and profiling output
-    public void setLogger (Logger log) {
-	this.logger = log;
+    /// Set the application to use for debug and profiling output
+    public void setApplication (Application app) {
+	this.app = app;
     }
 
     public synchronized Object[] getEntryArray () {
