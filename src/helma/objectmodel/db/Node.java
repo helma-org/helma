@@ -96,6 +96,7 @@ public class Node implements INode, Serializable {
     transient INode cacheNode;
     transient WrappedNodeManager nmgr;
     transient DbMapping dbmap;
+    transient Key primaryKey = null;
     transient DbMapping parentmap;
     transient String subnodeRelation = null;
     transient long lastSubnodeFetch = 0;
@@ -489,6 +490,7 @@ public class Node implements INode, Serializable {
     public void setDbMapping (DbMapping dbmap) {
 	if (this.dbmap != dbmap) {
 	    this.dbmap = dbmap;
+	    primaryKey = null;
 	    ((Transactor) Thread.currentThread()).visitCleanNode (this);
 	}
     }
@@ -498,7 +500,9 @@ public class Node implements INode, Serializable {
     }
 
     public Key getKey () {
-	return Key.makeKey (dbmap, id);
+	if (primaryKey == null)
+	    primaryKey = new Key (dbmap, id);
+	return primaryKey;
     }
 
     public void setSubnodeRelation (String rel) {
@@ -1249,7 +1253,7 @@ public class Node implements INode, Serializable {
 	                parent.unset (oldvalue);
 	                parent.addNode (this);
 	                // let the node cache know this key's not for this node anymore.
-	                nmgr.evictKey (Key.makeKey (prel.other, prel.getKeyID (parent, oldvalue)));
+	                nmgr.evictKey (new Key (prel.other, prel.getKeyID (parent, oldvalue)));
 	            }
 	        }
 	        parent.setNode (value, this);
@@ -1434,10 +1438,10 @@ public class Node implements INode, Serializable {
 	    propMap.put (p2, prop);
 	} 
 	String nID = n.getID();
-	((Transactor) Thread.currentThread ()).visitCleanNode (Key.makeKey (nmap, nID), n);
+	((Transactor) Thread.currentThread ()).visitCleanNode (new Key (nmap, nID), n);
 	// if the field is not the primary key of the property, also register it
 	if (rel != null && !rel.getKeyID(this, p2).equals (nID))
-	     ((Transactor) Thread.currentThread ()).visitCleanNode (Key.makeKey (rel.other, rel.getKeyID(this, p2)), n);
+	     ((Transactor) Thread.currentThread ()).visitCleanNode (new Key (rel.other, rel.getKeyID(this, p2)), n);
 
 	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.SUBNODE_ADDED, n));
 	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));

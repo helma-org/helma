@@ -7,6 +7,7 @@ import java.io.*;
 import java.util.Vector;
 import java.util.Properties;
 import Acme.LruHashtable;
+import helma.util.CacheMap;
 import helma.objectmodel.*;
 import helma.framework.core.Application;
 import com.sleepycat.db.*;
@@ -25,7 +26,7 @@ public final class NodeManager {
 
     private Application app;
 
-    private LruHashtable cache;
+    private CacheMap cache;
 
     protected DbWrapper db;
 
@@ -41,7 +42,7 @@ public final class NodeManager {
     public NodeManager (Application app, String dbHome, Properties props) throws DbException {
 	this.app = app;
 	int cacheSize = Integer.parseInt (props.getProperty ("cachesize", "1000"));
-	cache = new LruHashtable (cacheSize, 0.9f);
+	cache = new CacheMap (cacheSize, 0.8f);
 	IServer.getLogger().log ("set up node cache ("+cacheSize+")");
 
 	safe = new WrappedNodeManager (this);
@@ -112,6 +113,10 @@ public final class NodeManager {
 	}
     }
 
+   /*  private synchronized Node storeNodeInCache (Node n, Key k, Key pk) {
+
+    } */
+
     public void shutdown () throws DbException {
 	db.shutdown ();
 	this.cache = null;
@@ -134,7 +139,7 @@ public final class NodeManager {
 	if (kstr == null)
 	    return null;
 
-	Key key = Key.makeKey (dbmap, kstr);
+	Key key = new Key (dbmap, kstr);
 
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNode "+kstr);
@@ -153,19 +158,17 @@ public final class NodeManager {
 
 	    // The requested node isn't in the shared cache. Synchronize with key to make sure only one
 	    // version is fetched from the database.
-	    synchronized (key) {
 
-	        // check again because only in the synchronized section can we be sure that
-	        // another thread hasn't fetched the node in the meantime.
-	        node = (Node) cache.get (key);
-
-	        if (node == null || node.getState() == Node.INVALID) {
-	            node = getNodeByKey (db, tx.txn, kstr, dbmap);
-	            if (node != null) {
-	                cache.put (node.getKey (), node);
+	    node = getNodeByKey (db, tx.txn, kstr, dbmap);
+	    if (node != null) {
+	        synchronized (cache) {
+	            Node oldnode = (Node) cache.put (node.getKey (), node);
+	            if (oldnode != null && oldnode.getState () != Node.INVALID) {
+	                cache.put (node.getKey (), oldnode);
+	                node = oldnode;
 	            }
-	        }
-	    } // synchronized
+	        }  // synchronized
+	    }
 	}
 
 	if (node != null)
@@ -186,7 +189,7 @@ public final class NodeManager {
 	    key = home.getKey ().getVirtualKey (kstr);
 	// if a key for a node from within the DB
 	else
-	    key = Key.makeKey (rel.other, rel.getKeyID (home, kstr));
+	    key = new Key (rel.other, rel.getKeyID (home, kstr));
 
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNode "+kstr);
@@ -198,41 +201,52 @@ public final class NodeManager {
 	    // tx.timer.endEvent ("getNode "+kstr);
 	    // if we didn't fetch the node via its primary key, refresh the primary key in the cache.
 	    // otherwise we risk cache corroption (duplicate node creation) if the node is fetched by its primary key
-	    if (!rel.usesPrimaryKey ())
-	        cache.put (node.getKey (), node);
+	    if (!rel.usesPrimaryKey ()) {
+	        synchronized (cache) {
+	            Node oldnode = (Node) cache.put (node.getKey (), node);
+	            if (oldnode != null && oldnode.getState () != Node.INVALID) {
+	                cache.put (node.getKey (), oldnode);
+	                cache.put (key, oldnode);
+	                node = oldnode;
+	            }
+	        }
+	    }
 	    return node;
 	}
 
 	// try to get the node from the shared cache
 	node = (Node) cache.get (key);
-	if (node == null || node.getState() == Node.INVALID) {
 
+	if (node == null || node.getState() == Node.INVALID) {
 	    // The requested node isn't in the shared cache. Synchronize with key to make sure only one
 	    // version is fetched from the database.
-	    synchronized (key) {
 
-	        // check again because only in the synchronized section can we be sure that
-	        // another thread hasn't fetched the node in the meantime.
-	        node = (Node) cache.get (key);
-
-	        if (node == null || node.getState() == Node.INVALID) {
-	            node = getNodeByRelation (db, tx.txn, home, kstr, rel);
-	            if (node != null) {
-	                Key primKey = node.getKey ();
-	                cache.put (primKey, node);
-	                if (!key.equals (primKey)) {
-	                    // cache node with extra (non-primary but unique) key
-	                    cache.put (key, node);
-	                }
+	    node = getNodeByRelation (db, tx.txn, home, kstr, rel);
+	    if (node != null) {
+	        Key primKey = node.getKey ();
+	        synchronized (cache) {
+	            Node oldnode = (Node) cache.put (primKey, node);
+	            if (oldnode != null && oldnode.getState () != Node.INVALID) {
+	                cache.put (primKey, oldnode);
+	                cache.put (key, oldnode);
+	                node = oldnode;
 	            }
-	        }
-	    } // synchronized
+	        } // synchronized
+	    }
 	}
 
 	if (node != null) {
 	    // update primary key in cache, see above
-	    if (!rel.usesPrimaryKey ())
-	        cache.put (node.getKey (), node);
+	    if (!rel.usesPrimaryKey ()) {
+	        synchronized (cache) {
+	            Node oldnode = (Node) cache.put (node.getKey (), node);
+	            if (oldnode != null && oldnode.getState () != Node.INVALID) {
+	                cache.put (node.getKey (), oldnode);
+	                cache.put (key, oldnode);
+	                node = oldnode;
+	            }
+	        }
+	    }
 	    tx.visitCleanNode (node.getKey (), node);
 	}
 
@@ -577,9 +591,12 @@ public final class NodeManager {
 	            retval.addElement (node.getID());
 	            Key primKey = node.getKey ();
 	            // do we need to synchronize on primKey here?
-	            Node oldnode = (Node) cache.get (primKey);
-	            if (oldnode == null || oldnode.getState() == INode.INVALID)
-	                cache.put (primKey, node);
+	            synchronized (cache) {
+	                Node oldnode = (Node) cache.put (primKey, node);
+	                if (oldnode != null && oldnode.getState() != INode.INVALID) {
+	                    cache.put (primKey, oldnode);
+	                }
+	            }
 	        }
 
 	    } finally {

@@ -4,7 +4,7 @@
 package helma.objectmodel;
 
 
-import Acme.LruHashtable;
+import helma.util.CacheMap;
 import java.io.Serializable;
 
 /**
@@ -13,32 +13,20 @@ import java.io.Serializable;
  * key of the node and unique within each HOP application. Currently only 
  * single keys are supported.
  */
-public class Key implements Serializable {
+public final class Key implements Serializable {
 
     protected String type;
     protected String id;
     private int hash;
-    private static LruHashtable keycache;
 
 
-    public synchronized static Key makeKey (DbMapping dbmap, String id) {
-	String _type = dbmap == null ? "" : dbmap.typename;
-	String _id = id.trim ();  // removed .toLowerCase() - hw
-	return makeKey (_type, _id);
+    public Key (DbMapping dbmap, String id) {
+	this.type = dbmap == null ? "" : dbmap.typename;
+	this.id = id;
+	hash = this.id.hashCode ();
     }
 
-    private synchronized static Key makeKey (String _type, String _id) {
-	if (keycache == null)
-	    keycache = new LruHashtable (1000, 0.9f);
-	Key k = (Key) keycache.get (_type+"#"+_id);
-	if (k == null) {
-	    k = new Key (_type, _id);
-	    keycache.put (_type+"#"+_id, k);
-	}
-	return k;
-    }
-
-    private Key (String type, String id) {
+    public Key (String type, String id) {
 	this.type = type;
 	this.id = id;
 	hash = this.id.hashCode ();
@@ -66,8 +54,7 @@ public class Key implements Serializable {
      *   a key that can't be mistaken for a relational db key.
      */
     public Key getVirtualKey (String sid) {
-	Key virtkey = makeKey ("", getVirtualID (type, id, sid));
-	return virtkey;
+	return new Key ("", getVirtualID (type, id, sid));
     }
 
     public static String getVirtualID (DbMapping pmap, String pid, String sid) {
