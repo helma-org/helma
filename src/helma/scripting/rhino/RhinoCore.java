@@ -99,10 +99,16 @@ public final class RhinoCore {
             pathProto = new PathWrapper(this);
 
             hopObjectProto =  HopObject.init(global);
-            FileObject.init(global);
-            FtpObject.init(global);
-            ImageObject.init(global);
-            XmlRpcObject.init(global);
+            // use lazy loaded constructors for all extension objects that
+            // adhere to the ScriptableObject.defineClass() protocol
+            new LazilyLoadedCtor(global, "File",
+                    "helma.scripting.rhino.extensions.FileObject", false);
+            new LazilyLoadedCtor(global, "Ftp",
+                    "helma.scripting.rhino.extensions.FtpObject", false);
+            new LazilyLoadedCtor(global, "Image",
+                    "helma.scripting.rhino.extensions.ImageObject", false);
+            new LazilyLoadedCtor(global, "Remote",
+                    "helma.scripting.rhino.extensions.XmlRpcObject", false);
             MailObject.init(global, app.getProperties());
 
             // add some convenience functions to string, date and number prototypes
