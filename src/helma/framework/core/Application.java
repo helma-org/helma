@@ -1442,7 +1442,10 @@ public final class Application implements IPathElement, Runnable {
 
             long sleepInterval = CronJob.millisToNextFullMinute();
             try {
-                sleepInterval = Integer.parseInt(props.getProperty("schedulerInterval"))*1000;
+                String sleepProp = props.getProperty("schedulerInterval");
+                if (sleepProp != null) {
+                    sleepInterval = Math.max(1000, Integer.parseInt(sleepProp)*1000);
+                }
             } catch (Exception ignore) {}
 
             // sleep until the next full minute

@@ -517,9 +517,13 @@ public abstract class AbstractServletClient extends HttpServlet {
         HashMap parameters = new HashMap();
 
         // Parse any query string parameters from the request
-        try {
-            parseParameters(parameters, request.getQueryString().getBytes(), encoding);
-        } catch (Exception e) {
+        String queryString = request.getQueryString();
+        if (queryString != null) {
+            try {
+                parseParameters(parameters, queryString.getBytes(), encoding);
+            } catch (Exception e) {
+                System.err.println("Error parsing query string: "+e);
+            }
         }
 
         // Parse any posted parameters in the input stream
