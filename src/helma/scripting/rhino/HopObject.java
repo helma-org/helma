@@ -161,6 +161,17 @@ public class HopObject extends ScriptableObject implements Wrapper {
     }
 
     /**
+     * Return a primitive representation for this object.
+     * FIXME: We always return a string representation.
+     *
+     * @param hint the type hint
+     * @return the default value for the object
+     */
+    public Object getDefaultValue(Class hint) {
+        return toString();
+    }
+
+    /**
      *
      *
      * @param c ...
