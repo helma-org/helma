@@ -123,6 +123,25 @@ public class TypeManager implements Runnable {
 	        zipped.update ();
 	    }
 	}
+	
+	// check if standard prototypes have been created
+	// as a performance hack, we only do this when update is false, i.e. the first time we're called.
+	if (!update) {
+	    for (Iterator it=standardTypes.iterator (); it.hasNext (); ) {
+	        String pname = (String) it.next();
+	        if (prototypes.get (pname) == null) {
+	            File f = new File (appDir, pname);
+	            if (!f.exists() && !f.mkdir ())	
+	                app.logEvent ("Warning: directory "+f.getAbsolutePath ()+" could not be created.");
+	            else if (!f.isDirectory ())
+	                app.logEvent ("Warning: "+f.getAbsolutePath ()+" is not a directory.");
+	            Prototype proto = new Prototype (pname, app);
+	            registerPrototype (pname, f, proto, update);
+	            prototypes.put (pname, proto);
+	        }
+	    }
+	}
+
 	if (rewire) {
 	    // there have been changes in the  DbMappings
 	    app.rewireDbMappings ();
