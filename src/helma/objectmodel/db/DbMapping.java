@@ -100,9 +100,6 @@ public final class DbMapping implements Updatable {
     // dbmapping of parent prototype, if any
     DbMapping parentMapping;
 
-    // db field that specifies the prototype of an object
-    String prototypeField;
-
     // descriptor for key generation method
     private String idgen;
 
@@ -174,10 +171,6 @@ public final class DbMapping implements Updatable {
         // read in properties
         tableName = props.getProperty("_table");
         idgen = props.getProperty("_idgen");
-
-        // see if there is a field which specifies the prototype of objects, if different prototypes
-        // can be stored in this table
-        prototypeField = props.getProperty("_prototypefield");
 
         dbSourceName = props.getProperty("_db");
 
