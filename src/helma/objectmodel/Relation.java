@@ -218,7 +218,10 @@ public class Relation {
 	    throw new RuntimeException ("getVirtualSubnodeRelation called on non-virtual relation");
 	if (filter != null)
 	    return filter;
-	return getVirtualPropertyRelation ();
+	Relation vr = new Relation (other, localField, remoteField, direction, subnodesAreProperties);
+	vr.groupby = groupby;
+	vr.filter = filter;
+	return vr;
     }
 
     /**
@@ -237,7 +240,11 @@ public class Relation {
      * Return a Relation that defines the subnodes of a group-by node.
      */
     public Relation getGroupbySubnodeRelation () {
-	return getGroupbyPropertyRelation ();
+	if (groupby == null)
+	    throw new RuntimeException ("getGroupbyPropertyRelation called on non-group-by relation");
+	if (filter != null)
+	    return filter;
+	return new Relation (other, localField, remoteField, direction, true);
     }
 
     /**
@@ -246,9 +253,7 @@ public class Relation {
     public Relation getGroupbyPropertyRelation () {
 	if (groupby == null)
 	    throw new RuntimeException ("getGroupbyPropertyRelation called on non-group-by relation");
-	if (filter != null)
-	    return filter;
-	return new Relation (other, localField, remoteField, direction, subnodesAreProperties);
+	return new Relation (other, localField, remoteField, direction, true);
     }
 
 
