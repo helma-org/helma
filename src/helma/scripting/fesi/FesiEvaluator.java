@@ -637,6 +637,11 @@ public final class FesiEvaluator implements ScriptingEngine {
                     info.lastUpdate = p.getLastUpdate ();
                     evaluatePrototype(p);
                 }
+	        // set info.lastUpdate to 1 if it is 0 so we know we 
+	        // have initialized this prototype already, even if 
+	        // it is empty (i.e. doesn't contain any scripts/skins/actoins
+	        if (info.lastUpdate == 0)
+	            info.lastUpdate = 1;
             }
         }
         return info == null? null : info.objectPrototype;
