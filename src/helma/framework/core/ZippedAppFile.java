@@ -214,7 +214,13 @@ public class ZippedAppFile implements Updatable {
         char[] c = new char[size];
         InputStreamReader reader = new InputStreamReader(zip.getInputStream(entry));
 
-        reader.read(c);
+        int read = 0;
+        while (read < size) {
+            int r = reader.read(c, read, size-read);
+            if (r == -1)
+                break;
+            read += r;
+        }
 
         return new String(c);
     }
