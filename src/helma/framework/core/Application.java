@@ -29,7 +29,7 @@ import java.util.StringTokenizer;
  * requests from the Web server or XML-RPC port and dispatches them to 
  * the evaluators.
  */
-public class Application extends UnicastRemoteObject implements IRemoteApp, Runnable {
+public class Application extends UnicastRemoteObject implements IRemoteApp, IReplicatedApp, Runnable {
 
     private String name;
     SystemProperties props, dbProps;
@@ -325,6 +325,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	    return;
 	nmgr.replicateCache (add, delete);
     }
+
 
     public void ping () {
 	// do nothing
