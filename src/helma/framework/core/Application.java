@@ -148,7 +148,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     public void stop () {
 	// stop all threads, this app is going down
 	if (worker != null)
-	    worker.stop ();
+	    worker.interrupt ();
 	worker = null;
 	typemgr.stop ();
 
@@ -410,7 +410,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	        worker.sleep (cleanupSleep);
 	    } catch (InterruptedException x) {
 	        IServer.getLogger().log ("Scheduler for "+name+" interrupted");
-	        Thread.currentThread().interrupt();
 	    }
 	    try {
 	        IServer.getLogger().log ("Cleaning up "+name+": " + sessions.size () + " sessions active");
@@ -474,7 +473,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     }
 
     public DbMapping getDbMapping (String typename) {
-	return (DbMapping) dbMappings.get (typename);
+	return typename == null ? null : (DbMapping) dbMappings.get (typename);
     }
 
     public void putDbMapping (String typename, DbMapping dbmap) {
