@@ -13,13 +13,12 @@
  * $Revision$
  * $Date$
  */
-
+ 
 package helma.scripting.rhino.debug;
 
-
+import helma.framework.ResponseTrans;
 import org.mozilla.javascript.*;
 import org.mozilla.javascript.debug.*;
-import helma.framework.ResponseTrans;
 
 public class Tracer implements Debugger {
 
@@ -32,11 +31,12 @@ public class Tracer implements Debugger {
         this.res = res;
     }
 
-
     /**
      *  Implementws handleCompilationDone in interface org.mozilla.javascript.debug.Debugger
      */
-    public void handleCompilationDone(Context cx, DebuggableScript script, String source) {
+    public void handleCompilationDone(Context cx, DebuggableScript script, 
+                                      String source) {
+
         // res.debug("CompilationDone: "+toString(script));
     }
 
@@ -44,69 +44,83 @@ public class Tracer implements Debugger {
      *  Implementws getFrame in interface org.mozilla.javascript.debug.Debugger
      */
     public DebugFrame getFrame(Context cx, DebuggableScript script) {
+
         // res.debug("getFrame: "+toString(script));
         if (script.isFunction()) {
+
             return new TracerFrame(script);
         }
+
         return null;
     }
 
     static String toString(DebuggableScript script) {
+
         if (script.isFunction()) {
-            return script.getSourceName()+": "+script.getFunctionName();
+
+            return script.getSourceName() + ": " + script.getFunctionName();
         } else {
+
             return script.getSourceName();
         }
     }
 
-class TracerFrame implements DebugFrame {
+    class TracerFrame
+        implements DebugFrame {
 
-    DebuggableScript script;
+        DebuggableScript script;
 
-    TracerFrame(DebuggableScript script) {
-        this.script = script;
-    }
-
-    /**
-     * Called when execution is ready to start bytecode interpretation
-     * for entered a particular function or script.
-     */
-    public void onEnter(Context cx, Scriptable activation,
-                            Scriptable thisObj, Object[] args) {
-        StringBuffer b = new StringBuffer("Trace: ");
-        b.append(Tracer.toString(script));
-        b.append("(");
-        for (int i=0; i<args.length; i++) {
-            b.append(args[i]);
-            if (i<args.length-1) {
-                b.append(", ");
-            }
+        TracerFrame(DebuggableScript script) {
+            this.script = script;
         }
-        b.append(")");
-        res.debug(b.toString());
-    }
 
-    /**
-     *  Called when thrown exception is handled by the function or script.
-     */
-    public void onExceptionThrown(Context cx, Throwable ex) {
-        res.debug("Exception Thrown: "+ex);
-    }
+        /**
+         * Called when execution is ready to start bytecode interpretation
+         * for entered a particular function or script.
+         */
+        public void onEnter(Context cx, Scriptable activation, 
+                            Scriptable thisObj, Object[] args) {
 
-    /**
-     *  Called when the function or script for this frame is about to return.
-     */
-    public void onExit(Context cx, boolean byThrow, Object resultOrException) {
-        // res.debug("Exit: "+Tracer.toString(script));
-    }
+            StringBuffer b = new StringBuffer("Trace: ");
+            b.append(Tracer.toString(script));
+            b.append("(");
 
-    /**
-     *  Called when executed code reaches new line in the source.
-     */
-    public void onLineChange(Context cx, int lineNumber) {
-        // res.debug("LineChange: "+Tracer.toString(script));
-    }
+            for (int i = 0; i < args.length; i++) {
+                b.append(args[i]);
 
-} // end of class TracerFrame
+                if (i < args.length - 1) {
+                    b.append(", ");
+                }
+            }
+
+            b.append(")");
+            res.debug(b.toString());
+        }
+
+        /**
+         *  Called when thrown exception is handled by the function or script.
+         */
+        public void onExceptionThrown(Context cx, Throwable ex) {
+            res.debug("Exception Thrown: " + ex);
+        }
+
+        /**
+         *  Called when the function or script for this frame is about to return.
+         */
+        public void onExit(Context cx, boolean byThrow, 
+                           Object resultOrException) {
+
+            // res.debug("Exit: "+Tracer.toString(script));
+        }
+
+        /**
+         *  Called when executed code reaches new line in the source.
+         */
+        public void onLineChange(Context cx, int lineNumber) {
+
+            // res.debug("LineChange: "+Tracer.toString(script));
+        }
+	
+    } // end of class TracerFrame
 } // end of class Tracer
 
