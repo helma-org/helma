@@ -294,6 +294,13 @@ public class Relation {
     }
 
     /**
+     * Tell if this relation represents a primitive (scalar) value mapping.
+     */
+    public boolean isPrimitive () {
+	return reftype == PRIMITIVE;
+    }
+    
+    /**
      * Return the prototype to be used for object reached by this relation
      */
     public String getPrototype () {
