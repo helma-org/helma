@@ -304,7 +304,10 @@ public class HopObject extends ScriptableObject implements Wrapper {
             n = getFromNode(id.toString());
             // then try to get child object by id
             if (n == null || n == NOT_FOUND) {
-                n = jsFunction_getById(id);
+                n = node.getChildElement(id.toString());
+                if (n != null) {
+                    n = Context.toObject(n, core.global);
+                }
             }
         }
 
