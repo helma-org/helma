@@ -569,30 +569,42 @@ public class HopObject extends ScriptableObject implements Wrapper {
     }
 
     /**
-     *  Remove node itself or one or more subnodes.
+     *  Remove this object from the database.
      */
-    public boolean jsFunction_remove(Object child) {
-        // semantics: if called without arguments, remove self.
-        // otherwise, remove given subnodes.
+    public boolean jsFunction_remove(Object arg) {
+        // shield off usage of old deprecated version taking an argument
+        if (arg != Undefined.instance) {
+            System.err.println(" *************  WARNING  *************************");
+            System.err.println(" The version of HopObject.remove(child) you were ");
+            System.err.println(" trying to use has been deprecated. Please use ");
+            System.err.println("      hopobj.removeChild(child)");
+            System.err.println(" to remove a child object from a collection without");
+            System.err.println(" deleting it, or ");
+            System.err.println("      hopobj.remove()");
+            System.err.println(" without argument to delete the object itself.");
+            System.err.println(" *************************************************");
+            throw new RuntimeException("Caught deprecated usage of HopObject.remove(child)");
+        }
 
         checkNode();
 
-        if (child == Undefined.instance) {
-            return node.remove();
-        } else if (node != null) {
-            try {
-                if (child instanceof HopObject) {
-                    HopObject hobj = (HopObject) child;
+        return node.remove();
+    }
 
-                    if (hobj.node != null) {
-                        node.removeNode(hobj.node);
+    /**
+     *  Remove a child node from this node's collection without deleting
+     *  it from the database.
+     */
+    public boolean jsFunction_removeChild(Object child) {
 
-                        return true;
-                    }
-                }
-            } catch (Exception x) {
-                System.err.println("Error in HopObject.remove(): " + x);
-                x.printStackTrace();
+        checkNode();
+
+        if (child instanceof HopObject) {
+            HopObject hobj = (HopObject) child;
+
+            if (hobj.node != null) {
+                node.removeNode(hobj.node);
+                return true;
             }
         }
 
