@@ -1205,7 +1205,9 @@ public final class Application
 	    // set base URI
 	    String base = props.getProperty ("baseURI");
 	    if (base != null)
-	        setBaseURI (base);
+	       setBaseURI (base);
+	   else if (baseURI == null)
+	       baseURI = "/";
 	    // if node manager exists, update it
 	    if (nmgr != null)
 	        nmgr.updateProperties (props);
