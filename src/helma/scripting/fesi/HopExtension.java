@@ -590,6 +590,9 @@ public final class HopExtension {
                         con.setRequestProperty ("If-None-Match", arguments[1].toString());
                     }
                 }
+                String httpUserAgent = app.getProperty ("httpUserAgent");
+                if (httpUserAgent != null)
+                    con.setRequestProperty ("User-Agent", httpUserAgent);
                 con.setAllowUserInteraction(false);
                 String filename = url.getFile ();
                 String contentType = con.getContentType ();
