@@ -488,7 +488,11 @@ public class DbMapping implements Updatable {
 	return null;
     }
 
-    public DbMapping getGroupbyMapping () {
+    /**
+     * If subnodes are grouped by one of their properties, return the
+     * db-mapping with the right relations to create the group-by nodes
+     */
+    public synchronized DbMapping getGroupbyMapping () {
 	if (subnodesRel == null || subnodesRel.groupby == null)
 	    return null;
 	if (groupbyMapping == null) {
