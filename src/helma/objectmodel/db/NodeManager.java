@@ -18,6 +18,7 @@ package helma.objectmodel.db;
 
 import helma.framework.core.Application;
 import helma.objectmodel.*;
+import helma.objectmodel.dom.XmlDatabase;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -40,6 +41,7 @@ public final class NodeManager {
     protected Application app;
     private ObjectCache cache;
     protected IDatabase db;
+    protected IDGenerator idgen;
     private boolean logSql;
     private Log sqlLog = null;
     protected boolean logReplication;
@@ -68,6 +70,13 @@ public final class NodeManager {
 
         cache = (ObjectCache) Class.forName(cacheImpl).newInstance();
         cache.init(app);
+
+        String idgenImpl = props.getProperty("idGeneratorImpl");
+
+        if (idgenImpl != null) {
+            idgen = (IDGenerator) Class.forName(idgenImpl).newInstance();
+            idgen.init(app);
+        }
 
         logSql = "true".equalsIgnoreCase(props.getProperty("logsql"));
         logReplication = "true".equalsIgnoreCase(props.getProperty("logReplication"));
@@ -114,6 +123,10 @@ public final class NodeManager {
         if (cache != null) {
             cache.shutdown();
             cache = null;
+        }
+
+        if (idgen != null) {
+            idgen.shutdown();
         }
     }
 
@@ -750,9 +763,27 @@ public final class NodeManager {
     }
 
     /**
-     * Generate a new ID from an Oracle sequence.
+     * Generate a new ID for a given type.
      */
     public String generateID(DbMapping map) throws Exception {
+        if (idgen != null) {
+            // use our custom IDGenerator
+            return idgen.generateID(map);
+        } else if ((map == null) || !map.isRelational() ||
+                   "[hop]".equalsIgnoreCase(map.getIDgen())) {
+            // use embedded db id generator
+            return db.nextID();
+        } else if ((map.getIDgen() == null) ||
+                   "[max]".equalsIgnoreCase(map.getIDgen())) {
+            // use select max as id generator
+            return generateMaxID(map);
+        } else {
+            // use db sequence as id generator
+            return generateSequenceID(map);
+        }
+    }
+
+    public String generateSequenceID(DbMapping map) throws Exception {
         // Transactor tx = (Transactor) Thread.currentThread ();
         // tx.timer.beginEvent ("generateID "+map);
         Statement stmt = null;

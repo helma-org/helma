@@ -16,69 +16,33 @@
 
 package helma.objectmodel.db;
 
-import java.io.Serializable;
+import helma.framework.core.Application;
+
 
 /**
- * An object that generates IDs (Strings) that are unique across the whole system.
- * It does this keeping a simple long value which is incremented for each new ID.
- * This is the key generation for nodes stored in the internal database, but it can
- * also be used for relational nodes if no other mechanism is available. (Sequences
- * in Oracle are supported, while auto-IDs are not, since the HOP has to know
- * the keys of new objects.)
+ * An interface for objects that generate IDs (Strings) that are
+ * unique for a specific type.
  */
-public final class IDGenerator implements Serializable {
-    static final long serialVersionUID = 753408631669789263L;
-    private long counter;
-    transient volatile boolean dirty;
+public interface IDGenerator {
 
     /**
-     *  Builds a new IDGenerator starting with 0.
-     */
-    public IDGenerator() {
-        this.counter = 0L;
-        dirty = false;
-    }
-
-    /**
-     *  Builds a new IDGenerator starting with value.
-     */
-    public IDGenerator(long value) {
-        this.counter = value;
-        dirty = false;
-    }
-
-    /**
-     * Delivers a unique id and increases counter by 1.
-     */
-    public synchronized String newID() {
-        counter += 1L;
-        dirty = true;
-
-        return Long.toString(counter);
-    }
-
-    /**
-     * Set the counter to a new value
-     */
-    protected synchronized void setValue(long value) {
-        counter = value;
-        dirty = true;
-    }
-
-    /**
-     * Get the current counter  value
-     */
-    public long getValue() {
-        return counter;
-    }
-
-    /**
+     * Init the ID generator for the given application.
      *
-     *
-     * @return ...
+     * @param app
      */
-    public String toString() {
-        return "helma.objectmodel.db.IDGenerator[counter=" + counter + ",dirty=" + dirty +
-               "]";
-    }
+    public void init(Application app);
+
+    /**
+     * Shut down the ID generator.
+     */
+    public void shutdown();
+
+    /**
+     * Generate a new ID for a specific type.
+     *
+     * @param dbmap
+     * @return
+     */
+    public String generateID(DbMapping dbmap);
+
 }

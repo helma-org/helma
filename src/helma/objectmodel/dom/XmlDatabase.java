@@ -14,18 +14,17 @@
  * $Date$
  */
 
-package helma.objectmodel.db;
+package helma.objectmodel.dom;
 
 import helma.objectmodel.*;
-import helma.objectmodel.dom.IDGenParser;
+import helma.objectmodel.db.NodeManager;
+import helma.objectmodel.db.Node;
+import helma.objectmodel.dom.XmlIDGenerator;
 import helma.objectmodel.dom.XmlDatabaseReader;
 import helma.objectmodel.dom.XmlWriter;
 import helma.framework.core.Application;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 
 /**
@@ -36,7 +35,7 @@ public final class XmlDatabase implements IDatabase {
     protected File dbHomeDir;
     protected Application app;
     protected NodeManager nmgr;
-    protected IDGenerator idgen;
+    protected XmlIDGenerator idgen;
 
     // character encoding to use when writing files.
     // use standard encoding by default.
@@ -91,7 +90,7 @@ public final class XmlDatabase implements IDatabase {
                 }
             } catch (ObjectNotFoundException notfound) {
                 // will start with idBaseValue+1
-                idgen = new IDGenerator(idBaseValue);
+                idgen = new XmlIDGenerator(idBaseValue);
             }
 
             // check if we need to set the id generator to a base value
@@ -99,7 +98,6 @@ public final class XmlDatabase implements IDatabase {
 
             try {
                 node = (Node) getNode(txn, "0");
-                node.nmgr = nmgr.safe;
             } catch (ObjectNotFoundException notfound) {
                 node = new Node("root", "0", "Root", nmgr.safe);
                 node.setDbMapping(app.getDbMapping("root"));
@@ -110,7 +108,6 @@ public final class XmlDatabase implements IDatabase {
 
             try {
                 node = (Node) getNode(txn, "1");
-                node.nmgr = nmgr.safe;
             } catch (ObjectNotFoundException notfound) {
                 node = new Node("users", "1", null, nmgr.safe);
                 node.setDbMapping(app.getDbMapping("__userroot__"));
@@ -226,11 +223,11 @@ public final class XmlDatabase implements IDatabase {
      * @return the id-generator for this database
      * @throws ObjectNotFoundException
      */
-    public IDGenerator getIDGenerator(ITransaction txn)
+    public XmlIDGenerator getIDGenerator(ITransaction txn)
                                throws ObjectNotFoundException {
         File file = new File(dbHomeDir, "idgen.xml");
 
-        this.idgen = IDGenParser.getIDGenerator(file);
+        this.idgen = XmlIDGenerator.getIDGenerator(file);
 
         return idgen;
     }
@@ -245,7 +242,7 @@ public final class XmlDatabase implements IDatabase {
                          throws IOException {
         File tmp = File.createTempFile("idgen.xml.", ".tmp", dbHomeDir);
 
-        IDGenParser.saveIDGenerator(idgen, tmp);
+        XmlIDGenerator.saveIDGenerator(idgen, tmp);
 
         File file = new File(dbHomeDir, "idgen.xml");
         if (file.exists() && !file.canWrite()) {
@@ -442,6 +439,11 @@ public final class XmlDatabase implements IDatabase {
             this.file = file;
             this.tmpfile = tmpfile;
         }
+    }
+
+
+    class IDGenerator {
+
     }
 
 }

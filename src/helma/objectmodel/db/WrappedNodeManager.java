@@ -246,19 +246,7 @@ public final class WrappedNodeManager {
      */
     public String generateID(DbMapping map) {
         try {
-            if ((map == null) || !map.isRelational() ||
-                       "[hop]".equalsIgnoreCase(map.getIDgen())) {
-                // use embedded db id generator
-                return nmgr.db.nextID();
-            } else if ((map.getIDgen() == null) ||
-                       "[max]".equalsIgnoreCase(map.getIDgen())) {
-                // use select max as id generator
-                return nmgr.generateMaxID(map);
-            } else {
-                // use db sequence as id generator
-                return nmgr.generateID(map);
-            }
-
+            return nmgr.generateID(map);
         } catch (Exception x) {
             if (nmgr.app.debug()) {
                 x.printStackTrace();
