@@ -97,7 +97,7 @@ public class ImageGenerator extends Window {
 	MediaTracker tracker = new MediaTracker (this);
 	try {
 	    URL url = new URL (urlstring);
-	    Image img1 = Toolkit.getDefaultToolkit ().getImage (url);
+	    Image img1 = Toolkit.getDefaultToolkit ().createImage (url);
 	    tracker.addImage (img1, 0);
 	    tracker.waitForAll ();
 	    int w = img1.getWidth (null);
@@ -122,7 +122,7 @@ public class ImageGenerator extends Window {
 	Image img = null;
 	MediaTracker tracker = new MediaTracker (this);
 	try {
-	    img = Toolkit.getDefaultToolkit ().getImage (filename);
+	    img = Toolkit.getDefaultToolkit ().createImage (filename);
 	    tracker.addImage (img, 0);
 	    tracker.waitForAll ();
 	} catch (Exception x) {
