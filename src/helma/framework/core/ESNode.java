@@ -311,8 +311,7 @@ public class ESNode extends ObjectPrototype {
              checkNode ();
 	// IServer.getLogger().log ("put property called: "+propertyName+", "+propertyValue.getClass());
 	if ("lastmodified".equalsIgnoreCase (propertyName) || "created".equalsIgnoreCase (propertyName) ||
-	        "contentlength".equalsIgnoreCase (propertyName) || "cache".equalsIgnoreCase (propertyName) ||
-                     "prototype".equalsIgnoreCase (propertyName))
+	        "contentlength".equalsIgnoreCase (propertyName) || "cache".equalsIgnoreCase (propertyName))
 	    throw new EcmaScriptException ("Can't modify read-only property \""+propertyName+"\".");
 
 	if ("subnodeRelation".equalsIgnoreCase (propertyName)) {
@@ -447,6 +446,8 @@ public class ESNode extends ObjectPrototype {
 	    return new ESString (node.getFullName ());
 	if ("__hash__".equals (propertyName))
 	    return new ESString (""+node.hashCode ());
+	if ("__prototype__".equals (propertyName))
+	    return new ESString (node.getPrototype ());
 	if ("__node__".equals (propertyName))
 	    return ESLoader.normalizeObject (node, evaluator);
 
