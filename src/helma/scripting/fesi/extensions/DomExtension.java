@@ -1,6 +1,7 @@
 package helma.scripting.fesi.extensions;
 
 import java.io.ByteArrayOutputStream;
+import java.io.StringReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.FileNotFoundException;
@@ -33,9 +34,10 @@ public class DomExtension extends Extension  {
 
         ESObject globalXml = new GlobalObjectXml("Xml", evaluator, fp);
         globalXml.putHiddenProperty ("length",new ESNumber(1));
-        globalXml.putHiddenProperty ("load", new XmlLoad ("load", evaluator, fp));
-        globalXml.putHiddenProperty ("save", new XmlSave ("save", evaluator, fp));
-        globalXml.putHiddenProperty ("create", new XmlCreate ("create", evaluator, fp));
+        globalXml.putHiddenProperty ("read", new XmlRead ("read", evaluator, fp, false));
+        globalXml.putHiddenProperty ("readFromString", new XmlRead ("readFromString", evaluator, fp, true));
+        globalXml.putHiddenProperty ("write", new XmlWrite ("write", evaluator, fp, false));
+        globalXml.putHiddenProperty ("writeToString", new XmlWrite ("writeToString", evaluator, fp, true));
         globalXml.putHiddenProperty ("get", new XmlGet ("get", evaluator, fp));
         go.putHiddenProperty ("Xml", globalXml);
 	}
@@ -52,29 +54,42 @@ public class DomExtension extends Extension  {
 		}
 	}
 
-	class XmlSave extends BuiltinFunctionObject {
-		XmlSave(String name, Evaluator evaluator, FunctionPrototype fp) {
+	class XmlWrite extends BuiltinFunctionObject {
+		boolean tostring;
+		XmlWrite(String name, Evaluator evaluator, FunctionPrototype fp, boolean tostring) {
 			super(fp, evaluator, name, 1);
+			this.tostring = tostring;
 		}
 		public ESValue callFunction(ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-			if ( arguments==null || arguments.length<2 )
-				throw new EcmaScriptException("not enough arguments");
+			if ( arguments==null ||
+					(tostring && arguments.length != 1) ||
+					(!tostring && arguments.length != 2))
+				throw new EcmaScriptException("wrong number of arguments");
 			INode node = null;
 			try	{
-				node = ((ESNode)arguments[1]).getNode();
+				node = ((ESNode)arguments[0]).getNode();
 			}	catch ( Exception e )	{
 				// we definitly need a node
-				throw new EcmaScriptException("argument is not an hopobject");
+				throw new EcmaScriptException("first argument is not an hopobject");
 			}
 			try	{
-				File tmpFile = new File(arguments[0].toString()+".tmp."+XmlWriter.generateID());
-				XmlWriter writer = new XmlWriter (tmpFile);
-				writer.setDatabaseMode(false);
-				boolean result = writer.write(node);
-				writer.close();
-				File finalFile = new File(arguments[0].toString());
-				tmpFile.renameTo (finalFile);
-				this.evaluator.reval.app.logEvent("wrote xml to " + finalFile.getAbsolutePath() );
+				if (tostring) {
+					ByteArrayOutputStream out = new ByteArrayOutputStream ();
+					XmlWriter writer = new XmlWriter (out, "UTF-8");
+					writer.setDatabaseMode(false);
+					boolean result = writer.write(node);
+					writer.close();
+					return new ESString (out.toString ("utf8"));
+				} else {
+					File tmpFile = new File(arguments[0].toString()+".tmp."+XmlWriter.generateID());
+					XmlWriter writer = new XmlWriter (tmpFile);
+					writer.setDatabaseMode(false);
+					boolean result = writer.write(node);
+					writer.close();
+					File finalFile = new File(arguments[0].toString());
+					tmpFile.renameTo (finalFile);
+					this.evaluator.reval.app.logEvent("wrote xml to " + finalFile.getAbsolutePath() );
+				}
 			}	catch (IOException io)	{
 				throw new EcmaScriptException (io.toString());
 			}
@@ -113,9 +128,11 @@ public class DomExtension extends Extension  {
         }
     }
 
-    class XmlLoad extends BuiltinFunctionObject {
-        XmlLoad(String name, Evaluator evaluator, FunctionPrototype fp) {
+    class XmlRead extends BuiltinFunctionObject {
+        boolean fromstring;
+        XmlRead(String name, Evaluator evaluator, FunctionPrototype fp, boolean fromstring) {
             super(fp, evaluator, name, 1);
+	    this.fromstring = fromstring;
         }
         public ESValue callFunction(ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
 			if ( arguments==null || arguments.length==0 )
@@ -129,7 +146,11 @@ public class DomExtension extends Extension  {
 			}
 			try	{
 				XmlReader reader = new XmlReader ();
-				INode result = reader.read (new File(arguments[0].toString()),node);
+				INode result = null;
+				if (fromstring)
+					result = reader.read (new StringReader (arguments[0].toString()),node);
+				else
+					result = reader.read (new File(arguments[0].toString()),node);
 				return this.evaluator.reval.getNodeWrapper (result);
 			}	catch ( NoClassDefFoundError e )	{
 				throw new EcmaScriptException ("Can't load dom-capable xml parser.");
