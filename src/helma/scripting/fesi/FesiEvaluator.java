@@ -154,9 +154,8 @@ public final class FesiEvaluator implements ScriptingEngine {
 
 	// Register a constructor for all types except global.
 	// This will first create a new prototyped hopobject and then calls
-                  // the actual (scripted) constructor on it.
-	if (!"global".equalsIgnoreCase (name)) {
-             if (!"root".equalsIgnoreCase (name) && !"user".equalsIgnoreCase (name))
+	// the actual (scripted) constructor on it.
+	if (!"global".equalsIgnoreCase (name) && !"root".equalsIgnoreCase (name)) {
              try {
 	        FunctionPrototype fp = (FunctionPrototype) evaluator.getFunctionPrototype();
 	        global.putHiddenProperty (name, new NodeConstructor (name, fp, this));
@@ -206,7 +205,7 @@ public final class FesiEvaluator implements ScriptingEngine {
 	// Register a constructor for all types except global.
 	// This will first create a new prototyped hopobject and then calls 
                   // the actual (scripted) constructor on it.
-	if (!"global".equalsIgnoreCase (name) && !"root".equalsIgnoreCase (name) && !"user".equalsIgnoreCase (name)) {
+	if (!"global".equalsIgnoreCase (name) && !"root".equalsIgnoreCase (name)) {
 	    try {
 	        FunctionPrototype fp = (FunctionPrototype) evaluator.getFunctionPrototype();
 	        global.putHiddenProperty (name, new NodeConstructor (name, fp, this));
