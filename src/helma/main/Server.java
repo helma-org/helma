@@ -13,11 +13,11 @@ import helma.extensions.HelmaExtension;
 import helma.objectmodel.db.DbSource;
 import helma.framework.*;
 import helma.framework.core.*;
-import helma.xmlrpc.*;
 import helma.util.*;
 import org.mortbay.http.*;
 import org.mortbay.util.*;
 import org.mortbay.http.ajp.*;
+import org.apache.xmlrpc.*;
 
 /**
  * Helma server main class.
