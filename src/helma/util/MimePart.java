@@ -86,7 +86,8 @@ public class MimePart implements Serializable {
      * @return ...
      */
     public String getText() {
-        if ((contentType == null) || contentType.startsWith("text/")) {
+        if ((contentType == null) || contentType.startsWith("text/")
+                                  || contentType.equals("application/text")) {
             // FIXME: check for encoding
             return new String(content);
         } else {
