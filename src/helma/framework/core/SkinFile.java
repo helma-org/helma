@@ -20,7 +20,7 @@ public final class SkinFile implements Updatable {
     Application app;
     File file;
     Skin skin;
-    long lastmod;
+    long lastmod = 0;
 
     public SkinFile (File file, String name, Prototype proto) {
 	this.prototype = proto;
