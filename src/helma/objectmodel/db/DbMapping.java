@@ -321,6 +321,8 @@ public final class DbMapping implements Updatable {
                 // the subnode relation is also the property relation.
                 if ((subRelation.accessName != null) || (subRelation.groupby != null)) {
                     propRelation = subRelation;
+                } else {
+                    propRelation = null;
                 }
             } catch (Exception x) {
                 app.logEvent("Error reading _subnodes relation for " + typename + ": " +
