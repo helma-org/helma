@@ -171,7 +171,7 @@ public final class XmlDatabase implements IDatabase {
         File f = new File(dbHomeDir, kstr + ".xml");
 
         if (!f.exists()) {
-            throw new ObjectNotFoundException("Object not found for key " + kstr + ".");
+            throw new ObjectNotFoundException("Object not found for key " + kstr);
         }
 
         try {
@@ -179,9 +179,9 @@ public final class XmlDatabase implements IDatabase {
             Node node = reader.read(f);
 
             return node;
-        } catch (RuntimeException x) {
-            nmgr.app.logError("Error reading " +f+": " + x.toString());
-            throw new ObjectNotFoundException(x.toString());
+        } catch (Exception x) {
+            nmgr.app.logError("Error reading " +f, x);
+            throw new IOException(x.toString());
         }
     }
 
@@ -261,6 +261,11 @@ public final class XmlDatabase implements IDatabase {
             for (int i=0; i<l; i++) {
                 Resource res = (Resource) writeFiles.get(i);
                 try {
+                    // because of a Java/Windows quirk, we have to delete
+                    // the existing file before trying to overwrite it
+                    if (res.file.exists()) {
+                        res.file.delete();
+                    }
                     // move temporary file to permanent name
                     if (res.tmpfile.renameTo(res.file)) {
                         // success - delete tmp file
