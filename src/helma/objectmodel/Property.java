@@ -66,7 +66,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 
     public void setStringValue (String value) throws ParseException {
 	if (type == NODE)
-	    unregisterNode ();
+	    this.nvalue = null;
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
 	type = STRING;
@@ -75,7 +75,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 
     public void setIntegerValue (long value) {
 	if (type == NODE)
-	    unregisterNode ();
+	    this.nvalue = null;
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
 	type = INTEGER;
@@ -84,7 +84,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 
     public void setFloatValue (double value) {
 	if (type == NODE)
-	    unregisterNode ();
+	    this.nvalue = null;
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
 	type = FLOAT;
@@ -93,7 +93,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 
     public void setDateValue (Date value) {
 	if (type == NODE)
-	    unregisterNode ();
+	    this.nvalue = null;
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
 	type = DATE;
@@ -102,7 +102,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 
     public void setBooleanValue (boolean value) {
 	if (type == NODE)
-	    unregisterNode ();
+	    this.nvalue = null;
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
 	type = BOOLEAN;
@@ -112,58 +112,18 @@ public final class Property implements IProperty, Serializable, Cloneable {
     public void setNodeValue (INode value) {
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
-	if (type == NODE && nvalue != value) {
-	    unregisterNode ();
-	    registerNode (value);
-	} else if (type != NODE) 
-	    registerNode (value);	
 	type = NODE;
 	this.nvalue = value;
     }
 
     public void setJavaObjectValue (Object value) {
 	if (type == NODE)
-	    unregisterNode ();
+	    this.nvalue = null;
 	type = JAVAOBJECT;
 	this.jvalue = value;
     }
 
 
-    /**
-     * tell a the value node that it is no longer used as a property.
-     */
-    protected void unregisterNode () {
-	if (nvalue != null && nvalue instanceof Node) {
-	    Node n = (Node) nvalue;
-	    if (!n.anonymous && propname.equals (n.getName()) && this.node == n.getParent()) {
-	        // this is the "main" property of a named node, so handle this as a total delete.
-	        IServer.getLogger().log ("deleting named property");
-	        if (n.proplinks != null) {
-	            for (Enumeration e = n.proplinks.elements (); e.hasMoreElements (); ) {
-	            	   Property p = (Property) e.nextElement ();
-	            	   p.node.propMap.remove (p.propname.toLowerCase ());
-	            }
-	        }
-	        if (n.links != null) {
-	            for (Enumeration e = n.links.elements (); e.hasMoreElements (); ) {
-	            	   Node n2 = (Node) e.nextElement ();
-	            	   n2.releaseNode (n);
-	            }
-	        }
-
-	    } else {
-	        n.unregisterPropLink (this);
-	    }
-	}
-    }
-
-    /**
-     * tell the value node that it is being used as a property value.
-     */
-    protected void registerNode (INode n) {
-	if (n != null && n instanceof Node) 
-	    ((Node) n).registerPropLink (this);
-    }
 
     public String getStringValue () {
 	switch (type) {

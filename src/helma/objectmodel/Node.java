@@ -71,8 +71,6 @@ public class Node implements INode, Serializable {
 	this.id = generateID ();
 	this.name = node.getName ();
 	created = lastmodified = System.currentTimeMillis ();
-	setContent (node.getContent (), node.getContentType ());
-	created = lastmodified = System.currentTimeMillis ();
 	ntable.put (node, this);
 	adoptName = !conversionRoot;  // only take over name from property if this is not the transient root
 	for (Enumeration e = node.getSubnodes (); e.hasMoreElements (); ) {
@@ -255,9 +253,9 @@ public class Node implements INode, Serializable {
 	        node.parent = this;
 	        node.anonymous = true;
 	    }
-	    if (node.parent != null && (node.parent != this || !node.anonymous)) {
+	    /* if (node.parent != null && (node.parent != this || !node.anonymous)) {
 	        node.registerLink (this);
-	    }
+	    } */
 	}
 	
 	lastmodified = System.currentTimeMillis ();
@@ -293,12 +291,12 @@ public class Node implements INode, Serializable {
     /**
      * register a node that links to this node.
      */
-    protected void registerLink (Node from) {
+    /* protected void registerLink (Node from) {
 	if (links == null) 
 	    links = new Vector ();
 	if (!links.contains (from)) 
 	    links.addElement (from);
-    }
+    } */
 
     public INode getSubnode (String name) {
 	return getSubnode (name, false);
@@ -359,12 +357,12 @@ public class Node implements INode, Serializable {
 	            p.node.propMap.remove (p.propname.toLowerCase ());
 	        } catch (Exception ignore) {}
 	    }
-	    for (Enumeration e2 = n.properties (); e2.hasMoreElements (); ) {
+	    /* for (Enumeration e2 = n.properties (); e2.hasMoreElements (); ) {
 	        // tell all nodes that are properties of n that they are no longer used as such
 	        Property p = (Property) n.get ((String) e2.nextElement (), false);
 	        if (p != null && p.type == Property.NODE)
 	            p.unregisterNode ();
-	    }
+	    } */
 	    // remove all subnodes, giving them a chance to destroy themselves.
 	    Vector v = new Vector ();  // removeElement modifies the Vector we are enumerating, so we are extra careful.
 	    for (Enumeration e3 = n.getSubnodes (); e3.hasMoreElements (); ) {
@@ -617,14 +615,14 @@ public class Node implements INode, Serializable {
 	    return;
 	try {
 	    Property p = (Property) propMap.remove (propname.toLowerCase ());
-	    if (p != null && p.type == Property.NODE)
-	        p.unregisterNode ();
+	    /* if (p != null && p.type == Property.NODE)
+	        p.unregisterNode (); */
 	    // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
 	    lastmodified = System.currentTimeMillis ();
 	} catch (Exception ignore) {}
     }
 
-    protected void registerPropLink (Property p) {
+    /* protected void registerPropLink (Property p) {
 	if (proplinks == null)
 	    proplinks = new Vector ();
 	proplinks.addElement (p);
@@ -638,102 +636,7 @@ public class Node implements INode, Serializable {
 	// IServer.getLogger().log ("unregistered proplink from "+p.node.getFullName ());
 	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.NODE_REMOVED));
 	// Server.throwNodeEvent (new NodeEvent (p.node, NodeEvent.SUBNODE_REMOVED, this));
-    }
-
-
-    /**
-     *  content-related
-     */ 
-
-    public boolean isText () throws IOException {
-	return getContentType().indexOf ("text/") == 0;
-    }
-
-    public boolean isBinary () throws IOException {
-	return getContentType().indexOf ("text/") != 0;
-    }
-
-    public String getContentType () {
-	if (contentType == null)
-	    return "text/plain";
-	return contentType;
-    }
-
-    public void setContentType (String type) {
-	contentType = type;
-	lastmodified = System.currentTimeMillis ();
-    }
-
-    public int getContentLength () {
-	if (content == null)
-	    return 0;
-	return content.length;
-    }
-
-    public void setContent (byte cnt[], String type) {
-	if (type != null)
-	    contentType = type;
-	content = cnt;
-	lastmodified = System.currentTimeMillis ();
-    }
-
-    public void setContent (String cstr) {
-	content = cstr == null ? null : cstr.getBytes ();
-	lastmodified = System.currentTimeMillis ();
-    }
-
-    public byte[] getContent () {
-	if (content == null || content.length == 0)
-	    return "".getBytes ();
-	byte retval[] = new byte[content.length];
-	System.arraycopy (content, 0, retval, 0, content.length);
-	return retval;
-    }
-
-    public String writeToFile (String dir) {
-	return writeToFile (dir, null);
-    }
-
-    public String writeToFile (String dir, String fname) {
-	try {
-	    File base = new File (dir);
-	    // make directories if they don't exist
-	    if (!base.exists ())
-	        base.mkdirs ();
-
-	    String filename = name;
-	    if (fname != null) {
-	        if (fname.indexOf (".") < 0) {
-	            // check if we can use extension from name
-	            int ndot = name == null ? -1 : name.lastIndexOf (".");
-                         if (ndot > -1)
-	                filename = fname + name.substring (ndot);
-	            else
-	                filename = fname;
-	        } else {
-	            filename = fname;
-	        }
-	    }
-	    File file = new File (base, filename);
-	    FileOutputStream fout = new FileOutputStream (file);
-	    fout.write (getContent ());
-	    fout.close ();
-	    return filename;
-	} catch (Exception x) {
-	    return null;
-	}
-    }
-
-    public String getText () {
-	if (content != null) {
-	    if (getContentType ().indexOf ("text/") == 0) {
-	        return new String (content);
-	    } else {
-	        return null;
-	    }
-	}
-	return null;
-    }
+    } */
 
 
     public String getUrl (INode root, INode users, String tmpname, String rootproto) {
