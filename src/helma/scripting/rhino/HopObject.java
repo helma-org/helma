@@ -486,6 +486,10 @@ public class HopObject extends ScriptableObject implements Wrapper {
                     node.setDate(name, new Date((long) ScriptRuntime.toNumber(s)));
                 } else if ("String".equals(s.getClassName())) {
                     node.setString(name, ScriptRuntime.toString(s));
+                } else if ("Number".equals(s.getClassName())) {
+                    node.setFloat(name, ScriptRuntime.toNumber(s));
+                } else if ("Boolean".equals(s.getClassName())) {
+                    node.setBoolean(name, ScriptRuntime.toBoolean(s));
                 } else if (s instanceof MapWrapper) {
                     node.setJavaObject(name, ((MapWrapper) s).unwrap());
                 } else {
@@ -580,20 +584,13 @@ public class HopObject extends ScriptableObject implements Wrapper {
             IProperty p = node.get(name);
 
             if (p != null) {
-                if (p.getType() == IProperty.STRING) {
-                    return p.getStringValue();
-                }
 
-                if (p.getType() == IProperty.BOOLEAN) {
-                    return p.getBooleanValue() ? Boolean.TRUE : Boolean.FALSE;
-                }
-
-                if (p.getType() == IProperty.INTEGER) {
-                    return new Long(p.getIntegerValue());
-                }
-
-                if (p.getType() == IProperty.FLOAT) {
-                    return new Double(p.getFloatValue());
+                switch (p.getType()) {
+                    case IProperty.STRING:
+                    case IProperty.INTEGER:
+                    case IProperty.FLOAT:
+                    case IProperty.BOOLEAN:
+                        return p.getValue();
                 }
 
                 Context cx = Context.getCurrentContext();
