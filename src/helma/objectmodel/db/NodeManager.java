@@ -599,18 +599,21 @@ public final class NodeManager {
 	    QueryDataSet qds = null;
 	    try {
 	
+	        String q = null;
+	
 	        if (home.getSubnodeRelation() != null) {
 	            // subnode relation was explicitly set
-	            qds = new QueryDataSet (con, "SELECT "+idfield+" FROM "+table+" "+home.getSubnodeRelation());
+	            q = "SELECT "+idfield+" FROM "+table+" "+home.getSubnodeRelation();
 	        } else {
-	            String q = "SELECT "+idfield+" FROM "+table;
-	            q += rel.buildQuery (home, home.getNonVirtualParent (), null);
-	            qds = new QueryDataSet (con, q);
+	            // let relation object build the query
+	            q = "SELECT "+idfield+" FROM "+table + rel.buildQuery (home, home.getNonVirtualParent (), null);
 	        }
 
 	        if (logSql)
-	           app.logEvent ("### getNodeIDs: "+qds.getSelectString());
+	           app.logEvent ("### getNodeIDs: "+q);
 
+	        qds = new QueryDataSet (con, q);
+	
 	        qds.fetchRecords ();
 	
 	        // problem: how do we derive a SyntheticKey from a not-yet-persistent Node?
