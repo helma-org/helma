@@ -138,7 +138,7 @@ public final class Application implements IPathElement, Runnable {
     Properties skinExtensions;
 
     // time we last read the properties file
-    private long lastPropertyRead = 0L;
+    private long lastPropertyRead = -1L;
 
     // the set of prototype/function pairs which are allowed to be called via XML-RPC
     private HashSet xmlrpcAccess;
