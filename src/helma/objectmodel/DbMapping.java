@@ -30,6 +30,8 @@ public class DbMapping implements Updatable {
 
     // name of data source to which this mapping writes
     DbSource source;
+    // name of datasource
+    String sourceName;
     // name of db table
     String table;
 
@@ -136,12 +138,12 @@ public class DbMapping implements Updatable {
 	// see if this prototype extends (inherits from) any other prototype
 	extendsProto = props.getProperty ("_extends");
 	
-	String sourceName = props.getProperty ("_datasource");
+	sourceName = props.getProperty ("_datasource");
 	if (sourceName != null) {
 	    source = app.getDbSource (sourceName);
 	    if (source == null) {
-	        // what we really want to do here is mark the DbMapping as invalid, so no data can be saved to it.
-	        throw new RuntimeException ("DbSource \""+sourceName+"\" not found for prototype "+typename);
+	        app.logEvent ("*** Data Source for prototype "+typename+" does not exist: "+sourceName);
+	        app.logEvent ("*** accessing or storing a "+typename+" object will cause an error.");
 	    }
 	}
 
@@ -244,8 +246,12 @@ public class DbMapping implements Updatable {
     public Connection getConnection () throws ClassNotFoundException, SQLException {
 	if (source == null && parentMapping != null)
 	    return parentMapping.getConnection ();
-	if (source == null)
-	    throw new SQLException ("Tried to get Connection from non-relational embedded data source.");
+	if (source == null) {
+	    if (sourceName == null)
+	        throw new SQLException ("Tried to get Connection from non-relational embedded data source.");
+	    else
+	        throw new SQLException ("Datasource is not defined: "+sourceName+".");
+	}
 	return source.getConnection ();
     }
 
@@ -425,10 +431,18 @@ public class DbMapping implements Updatable {
 	return app.getWrappedNodeManager ();
     }
 
+    /**
+     *  Tell whether this data mapping maps to a relational database table. This returns true
+     *  if a datasource is specified, even if it is not a valid one. Otherwise, objects with invalid
+     *  mappings would be stored in the embedded db instead of an error being thrown, which is
+     *  not what we want.
+     */
     public boolean isRelational () {
-	if (source == null && parentMapping != null)
+	if (sourceName != null)
+	    return true;
+	if (parentMapping != null)
 	    return parentMapping.isRelational ();
-	return source != null;
+	return false;
     }
 
     /**
