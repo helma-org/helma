@@ -303,7 +303,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
             // try to get as property first
             n = getFromNode(id.toString());
             // then try to get child object by id
-            if (n == null) {
+            if (n == null || n == NOT_FOUND) {
                 n = jsFunction_getById(id);
             }
         }
