@@ -307,7 +307,7 @@ public final class Skin {
             }
 
             if (b.length() > 0) {
-                if ((lastParamName != null) && (b.length() > 0)) {
+                if (lastParamName != null) {
                     String paramValue = b.toString();
 
                     if (!setSpecialParameter(lastParamName, paramValue)) {
