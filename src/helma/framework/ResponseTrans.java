@@ -174,7 +174,11 @@ public class ResponseTrans implements Externalizable {
     public synchronized void close () {
 	if (response == null) {
 	    if (buffer != null) {
-	        response = buffer.toString ().getBytes ();
+	        try {
+	            response = buffer.toString ().getBytes ("ISO-8859-1");
+	        } catch (UnsupportedEncodingException badenc) {
+	            response = buffer.toString ().getBytes ();
+	        }
 	        buffer = null; // make sure this is done only once, even with more requsts attached
 	    } else {
 	        response = new byte[0];
