@@ -232,8 +232,8 @@ public class ESNode extends ObjectPrototype {
             }
         }
         for (Enumeration e=oldnode.properties (); e.hasMoreElements (); ) {
-            IProperty p = (IProperty) e.nextElement ();
-            if (p.getType () == IProperty.NODE) {
+            IProperty p = oldnode.get ((String) e.nextElement (), false);
+            if (p != null && p.getType () == IProperty.NODE) {
             	   INode next = p.getNodeValue ();
                 ESNode esn = eval.getNodeWrapperFromCache (next);
                 if (esn != null) {
@@ -406,7 +406,7 @@ public class ESNode extends ObjectPrototype {
 	    return new ESString (node.getPrototype ());
 
              // this _may_ do a relational query if properties are mapped to a relational type.
-	IProperty p = (IProperty) node.get (propertyName, false);
+	IProperty p = node.get (propertyName, false);
 	if (p != null) {
 	    if (p.getType () == IProperty.STRING) {
 	        String str = p.getStringValue ();
