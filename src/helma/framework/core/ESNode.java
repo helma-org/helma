@@ -23,16 +23,22 @@ import java.util.*;
 public class ESNode extends ObjectPrototype {
 
     INode node;
+
+    // the cache node - persistent nodes have a transient property as a commodity to
+    // store temporary stuff.
     INode cache;
+    // the ecmascript wrapper for the cache.
+    ESObject cacheWrapper;
 
     // The handle of the wrapped Node. Makes ESNodes comparable without accessing the wrapped node.
     NodeHandle handle;
     DbMapping dbmap;
-    ESObject cacheWrapper;
     Throwable lastError = null;
     RequestEvaluator eval;
     
-    // used to create cache nodes
+    /**
+     * Constructor used to create transient cache nodes
+     */
     protected ESNode (INode node, RequestEvaluator eval) {
 	super (eval.esNodePrototype, eval.evaluator);
 	this.eval = eval;
@@ -40,11 +46,8 @@ public class ESNode extends ObjectPrototype {
 	cache = null;
 	cacheWrapper = null;
 	
-	// set node handle to wrapped node
-	if (node instanceof helma.objectmodel.db.Node)
-	    handle = ((helma.objectmodel.db.Node) node).getHandle ();
-	else
-	    handle = null;
+	// this is a transient node, set node handle to null
+	handle = null;
     }
     
     public ESNode (ESObject prototype, Evaluator evaluator, Object obj, RequestEvaluator eval) {
@@ -60,14 +63,14 @@ public class ESNode extends ObjectPrototype {
 	else
 	    node = new TransientNode (obj.toString ());
 	// set node handle to wrapped node
-	if (node instanceof helma.objectmodel.db.Node)
-	    handle = ((helma.objectmodel.db.Node) node).getHandle ();
+	if (node instanceof Node)
+	    handle = ((Node) node).getHandle ();
 	else
 	    handle = null;
 
-	// get transient cache Node
-	cache = node.getCacheNode ();
-	cacheWrapper = new ESNode (cache, eval);
+	//  cache Node is initialized on demend when it is needed
+	cache = null;
+	cacheWrapper = null;
     }
 
     /**
@@ -94,9 +97,9 @@ public class ESNode extends ObjectPrototype {
 	    else
 	        handle = null;
 	    eval.objectcache.put (node, this);
-	    // get transient cache Node
-	    cache = node.getCacheNode ();
-	    cacheWrapper = new ESNode (cache, eval);
+	    // reset cache Node - will be reinitialized when needed
+	    cache = null;
+	    cacheWrapper = null;
 	}
     }
 
@@ -297,14 +300,21 @@ public class ESNode extends ObjectPrototype {
 
 
     public ESValue getProperty(String propertyName, int hash) throws EcmaScriptException {
-             checkNode ();
+	checkNode ();
 	// eval.app.logEvent ("get property called: "+propertyName);
 	ESValue retval = super.getProperty (propertyName, hash);
 	if (! (retval instanceof ESUndefined))
 	    return retval;
 
-             if ("cache".equalsIgnoreCase (propertyName) && cache != null)
-	    return cacheWrapper;
+	// persistent or persistent capable nodes have a cache property that's a transient node.
+	// it it hasn't requested before, initialize it now
+	if ("cache".equalsIgnoreCase (propertyName) && node instanceof Node) {
+	   if (cacheWrapper == null) {
+	       cache = node.getCacheNode ();
+	       cacheWrapper = new ESNode (cache, eval);
+	   }
+	   return cacheWrapper;
+	}
 	if ("subnodeRelation".equalsIgnoreCase (propertyName)) {
 	    String rel = node.getSubnodeRelation ();
 	    return rel == null ?  (ESValue) ESNull.theNull :  new ESString (rel);
@@ -394,6 +404,11 @@ public class ESNode extends ObjectPrototype {
 	    return new ESString (""+node.hashCode ());
 	if ("__node__".equals (propertyName))
 	    return new ESWrapper (node, evaluator);
+	if ("__created__".equalsIgnoreCase (propertyName))
+	    return new DatePrototype (evaluator, node.created ());
+	if ("__lastmodified__".equalsIgnoreCase (propertyName))
+	    return new DatePrototype (evaluator, node.lastModified ());
+	
 	return ESNull.theNull;
     }
 
