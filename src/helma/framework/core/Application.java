@@ -87,7 +87,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     protected String templateExtension, scriptExtension, actionExtension, skinExtension;
 
     // A transient node that is shared among all evaluators
-    protected INode appnode;
+    protected INode cachenode;
     protected volatile long requestCount = 0;
     protected volatile long xmlrpcCount = 0;
     protected volatile long errorCount = 0;
@@ -223,7 +223,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	dbMappings = new Hashtable ();
 	dbSources = new Hashtable ();
 
-	appnode = new TransientNode ("app");
+	cachenode = new TransientNode ("app");
 	xmlrpc = helma.main.Server.getXmlRpcServer ();
 	xmlrpcAccess = new XmlRpcAccess (this);
     }
@@ -536,8 +536,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     /**
      *  Return a transient node that is shared by all evaluators of this application ("app node")
      */
-    public INode getAppNode () {
-	return appnode;
+    public INode getCacheNode () {
+	return cachenode;
     }
 
 
