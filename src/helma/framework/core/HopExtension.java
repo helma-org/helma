@@ -97,6 +97,7 @@ public class HopExtension {
         go.putHiddenProperty("getXmlDocument", new GlobalGetXmlDocument ("getXmlDocument", evaluator, fp));
         go.putHiddenProperty("getHtmlDocument", new GlobalGetHtmlDocument ("getHtmlDocument", evaluator, fp));
         go.putHiddenProperty("jdomize", new GlobalJDOM ("jdomize", evaluator, fp));
+        go.putHiddenProperty("getSkin", new GlobalGetSkin ("getSkin", evaluator, fp, reval));
         go.deleteProperty("exit", "exit".hashCode());
 
         // and some methods for session management from JS...
@@ -546,7 +547,20 @@ public class HopExtension {
                 
         }
     }
-    
+
+    class GlobalGetSkin extends BuiltinFunctionObject {
+        RequestEvaluator reval;
+        GlobalGetSkin (String name, Evaluator evaluator, FunctionPrototype fp, RequestEvaluator reval) {
+            super (fp, evaluator, name, 1);
+            this.reval = reval;
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+            if (arguments.length != 1 || ESNull.theNull.equals (arguments[0]))
+                throw new EcmaScriptException ("getSkin must be called with one String argument!");
+            return new ESWrapper (new Skin (arguments[0].toString(), reval), evaluator);
+        }
+    }
+
     class GlobalGetUser extends BuiltinFunctionObject {
         RequestEvaluator reval;
         GlobalGetUser (String name, Evaluator evaluator, FunctionPrototype fp, RequestEvaluator reval) {

@@ -26,7 +26,6 @@ public class ESNode extends ObjectPrototype {
 
     // The ID of the wrapped Node. Makes ESNodes comparable without accessing the wrapped node.
     String nodeID;
-    String protoName;
     ESObject cacheWrapper;
     Throwable lastError = null;
     RequestEvaluator eval;
@@ -89,12 +88,15 @@ public class ESNode extends ObjectPrototype {
 
     public void setPrototype (String protoName) {
         checkNode ();
-        this.protoName = protoName;
         node.setPrototype (protoName);
     }
 
+    public String getPrototypeName () {
+        return node.getPrototype ();
+    }
+
     public String getESClassName () {
-        return protoName == null ? "HopObject" : protoName;
+        return "HopObject";
     }
     
     public String toString () {

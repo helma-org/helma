@@ -42,7 +42,7 @@ public class RequestEvaluator implements Runnable {
     ESValue esresult;
     Object result;
     Exception exception;
-    private ArrayPrototype reqPath;
+    protected ArrayPrototype reqPath;
     private ESRequestData reqData;
 
     // vars for FESI EcmaScript support
@@ -178,8 +178,8 @@ public class RequestEvaluator implements Runnable {
 	        esu.setUser (user);
 	        global.putHiddenProperty ("root", getNodeWrapper (root));
 	        global.putHiddenProperty("user", esu);
-	        global.putHiddenProperty ("req", ESLoader.normalizeValue(req, evaluator));
-	        global.putHiddenProperty ("res", ESLoader.normalizeValue(res, evaluator));
+	        global.putHiddenProperty ("req", new ESWrapper (req, evaluator));
+	        global.putHiddenProperty ("res", new ESWrapper (res, evaluator));
 	        global.putHiddenProperty ("path", reqPath);
 	        global.putHiddenProperty ("app", appnode);
 	        // set and mount the request data object

@@ -7,6 +7,7 @@ import java.util.*;
 import java.io.*;
 import helma.framework.*;
 import FESI.Data.*;
+import FESI.Exceptions.*;
 
 
 /**
@@ -17,8 +18,10 @@ import FESI.Data.*;
 public class Skin {
 
     Object[] parts;
+    RequestEvaluator reval;
 
-    public Skin (String content) {
+    public Skin (String content, RequestEvaluator reval) {
+	this.reval = reval;
 	parse (content);
     }
 
@@ -61,27 +64,133 @@ public class Skin {
 	return b.toString ();
     }
 
+    static final int HANDLER = 0;
+    static final int MACRO = 1;
+    static final int PARAMNAME = 2;
+    static final int PARAMVALUE = 3;
 
     class Macro {
 
 	String handler;
 	String name;
-	HashMap parameters;
+	ESObject parameters;
 
 	public Macro (String str) {
-	    int dot = str.indexOf (".");
-	    if (dot < 0) {
-	        handler = null;
-	        name = str;
-	    } else {
-	        handler = str.substring (0, dot);
-	        name = str.substring (dot+1);
+
+	    parameters = new ObjectPrototype (null, reval.evaluator);
+
+	    int l = str.length ();
+	    char cnt[] = new char[l];
+	    str.getChars (0, l, cnt, 0);
+
+	    int state = HANDLER;
+	    boolean escape = false;
+	    char quotechar = '\u0000';
+	    String lastParamName = null;
+	    StringBuffer b = new StringBuffer();
+
+	    for (int i=0; i<l; i++) {
+	        switch (cnt[i]) {
+	            case '.':
+	                if (state == HANDLER) {
+	                    handler = b.toString ().trim();
+	                    b.setLength (0);
+	                    state = MACRO;
+	                } else
+	                    b.append (cnt[i]);
+	                break;
+	            case '\\':
+	                if (escape)
+	                    b.append (cnt[i]);
+	                escape = !escape;
+	                break;;
+	            case '"':
+	            case '\'':
+	                if (!escape && state == PARAMVALUE) {
+	                    if (quotechar == cnt[i]) {
+	                        try {
+	                            parameters.putHiddenProperty (lastParamName, new ESString (b.toString()));
+	                        } catch (EcmaScriptException badluck) {}
+	                        b.setLength (0);
+	                        state = PARAMNAME;
+	                        quotechar = '\u0000';
+	                    } else if (quotechar == '\u0000') {
+	                        quotechar = cnt[i];
+	                        b.setLength (0);
+	                    } else
+	                        b.append (cnt[i]);
+	                } else
+	                    b.append (cnt[i]);
+	                escape = false;
+	                break;
+	            case ' ':
+	            case '\t':
+	            case '\n':
+	            case '\r':
+	            case '\f':
+	                if (state == MACRO || (state == HANDLER && b.length() > 0)) {
+	                    name = b.toString().trim();
+	                    b.setLength (0);
+	                    state = PARAMNAME;
+	                } else if (state == PARAMVALUE && quotechar == '\u0000') {
+	                    try {
+	                        parameters.putHiddenProperty (lastParamName, new ESString (b.toString()));
+	                    } catch (EcmaScriptException badluck) {}
+	                    b.setLength (0);
+	                    state = PARAMNAME;
+	                } else if (state == PARAMVALUE)
+	                    b.append (cnt[i]);
+	                else
+	                    b.setLength (0);
+	                break;
+	            case '=':
+	                if (state == PARAMNAME) {
+	                    lastParamName = b.toString().trim();
+	                    b.setLength (0);
+	                    state = PARAMVALUE;
+	                } else
+	                    b.append (cnt[i]);
+	                break;
+	            default:
+	                b.append (cnt[i]);
+	                escape = false;
+	        }
 	    }
+	    if (lastParamName != null && b.length() > 0) try {
+	        parameters.putHiddenProperty (lastParamName, new ESString (b.toString()));
+	    } catch (EcmaScriptException noluck) {}
 	}
 
 
 	public String toString () {
-	    return "[HopMacro: "+handler+","+name+"]";
+
+	    try {
+
+	        ESValue[] arguments = new ESValue[2];
+	        arguments[0] = new ESString (name);
+	        arguments[1] = parameters;
+	        ESNode handlerNode = null;
+
+	        if (handler != null) {
+	            int l = reval.reqPath.size();
+	            for (int i=l-1; i>=0; i--) {
+	                if (handler.equalsIgnoreCase (((ESNode) reval.reqPath.getProperty(i)).getPrototypeName())) {
+	                     handlerNode = (ESNode) reval.reqPath.getProperty(i);
+	                     break;
+	                }
+	            }
+                     } else {
+	            handlerNode = (ESNode) reval.reqPath.getProperty(0);
+	        }
+
+	        if (handlerNode != null) {
+	            return handlerNode.doIndirectCall (reval.evaluator, handlerNode, "handleMacro", arguments).toString();
+	        } else {
+	            return "[HopMacro unhandled: "+handler+"."+name+"]";
+	        }
+	    } catch (Exception x) {
+	        return "[HopMacro error: "+x.getMessage()+"]";
+	    }
 	}
 
     }
