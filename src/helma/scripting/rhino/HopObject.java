@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Map;
+import java.io.UnsupportedEncodingException;
 
 /**
  * 
@@ -247,7 +248,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
      *
      * @return ...
      */
-    public boolean jsFunction_renderSkin(Object skinobj, Object paramobj) {
+    public boolean jsFunction_renderSkin(Object skinobj, Object paramobj)
+            throws UnsupportedEncodingException {
         Context cx = Context.getCurrentContext();
         RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
@@ -280,7 +282,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
      *
      * @return ...
      */
-    public String jsFunction_renderSkinAsString(Object skinobj, Object paramobj) {
+    public String jsFunction_renderSkinAsString(Object skinobj, Object paramobj)
+            throws UnsupportedEncodingException {
         Context cx = Context.getCurrentContext();
         RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
@@ -315,7 +318,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
      *
      * @return ...
      */
-    public Object jsFunction_href(Object action) {
+    public Object jsFunction_href(Object action) throws UnsupportedEncodingException {
         if (node == null) {
             return null;
         }

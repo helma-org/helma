@@ -19,6 +19,8 @@ package helma.scripting.rhino;
 import helma.framework.core.RequestPath;
 import org.mozilla.javascript.*;
 
+import java.io.UnsupportedEncodingException;
+
 /**
  * This class wraps around instances of helma.framework.core.RequestPath and
  * exposes them in an array-like fashion to the JavaScript runtime.
@@ -119,7 +121,7 @@ public class PathWrapper extends ScriptableObject {
     /**
      * Returns the wrapped path rendered as URL path.
      */
-    public String href(Object action) {
+    public String href(Object action) throws UnsupportedEncodingException {
         if (action != null && action != Undefined.instance) {
             return path.href(action.toString());
         }

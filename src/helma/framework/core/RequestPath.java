@@ -17,6 +17,8 @@
 package helma.framework.core;
 
 import java.util.*;
+import java.io.UnsupportedEncodingException;
+
 import helma.util.UrlEncoded;
 
 /**
@@ -106,7 +108,7 @@ public class RequestPath {
     /**
      * Returns the string representation of this path usable for links.
      */
-    public String href(String action) {
+    public String href(String action) throws UnsupportedEncodingException {
         StringBuffer buffer = new StringBuffer(app.getBaseURI());
 
         int start = 1;
@@ -121,12 +123,12 @@ public class RequestPath {
         }
 
         for (int i=start; i<ids.size(); i++) {
-            buffer.append(UrlEncoded.encode(ids.get(i).toString()));
+            buffer.append(UrlEncoded.smartEncode(ids.get(i).toString(), app.charset));
             buffer.append("/");
         }
 
         if (action != null) {
-            buffer.append(UrlEncoded.encode(action));
+            buffer.append(UrlEncoded.smartEncode(action, app.charset));
         }
 
         return buffer.toString();

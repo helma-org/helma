@@ -89,7 +89,8 @@ public class GlobalObject extends ImporterTopLevel {
      *
      * @return ...
      */
-    public boolean renderSkin(Object skinobj, Object paramobj) {
+    public boolean renderSkin(Object skinobj, Object paramobj)
+            throws UnsupportedEncodingException {
         Context cx = Context.getCurrentContext();
         RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
@@ -122,7 +123,8 @@ public class GlobalObject extends ImporterTopLevel {
      *
      * @return ...
      */
-    public String renderSkinAsString(Object skinobj, Object paramobj) {
+    public String renderSkinAsString(Object skinobj, Object paramobj)
+            throws UnsupportedEncodingException {
         Context cx = Context.getCurrentContext();
         RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");

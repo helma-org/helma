@@ -660,8 +660,8 @@ public final class RhinoCore {
         return esn;
     }
 
-    protected String postProcessHref(Object obj, String protoName, String basicHref) {
-
+    protected String postProcessHref(Object obj, String protoName, String basicHref)
+            throws UnsupportedEncodingException {
         // check if the app.properties specify a href-function to post-process the
         // basic href.
         String hrefFunction = app.getProperty("hrefFunction", null);

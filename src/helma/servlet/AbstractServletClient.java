@@ -27,6 +27,8 @@ import java.util.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
+import org.apache.commons.codec.DecoderException;
+
 /**
  * This is an abstract Hop servlet adapter. This class communicates with hop applications
  * via RMI. Subclasses are either one servlet per app, or one servlet that handles multiple apps
@@ -49,7 +51,7 @@ public abstract class AbstractServletClient extends HttpServlet {
     String cookieDomain;
 
     // default encoding for requests
-    String defaultEncoding;
+    String defaultEncoding = "ISO8859_1";
 
     // allow caching of responses
     boolean caching;
@@ -80,7 +82,12 @@ public abstract class AbstractServletClient extends HttpServlet {
         }
 
         // get default encoding
-        defaultEncoding = init.getInitParameter("charset");
+        String encoding = init.getInitParameter("charset");
+
+        if (encoding != null) {
+            defaultEncoding = encoding;
+        }
+
         debug = ("true".equalsIgnoreCase(init.getInitParameter("debug")));
         caching = !("false".equalsIgnoreCase(init.getInitParameter("caching")));
     }
@@ -125,7 +132,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 
             if (encoding == null) {
                 // no encoding from request, use standard one
-                encoding = defaultEncoding != null ? defaultEncoding : "ISO-8859-1";
+                encoding = defaultEncoding;
             }
 
             // read and set http parameters
@@ -344,15 +351,6 @@ public abstract class AbstractServletClient extends HttpServlet {
 
             if (modified > -1) {
                 res.setDateHeader("Last-Modified", System.currentTimeMillis());
-            }
-
-            // if we don't know which charset to use for parsing HTTP params,
-            // take the one from the response. This usually works because
-            // browsers send parameters in the same encoding as the page
-            // containing the form has. Problem is we can do this only per servlet,
-            // not per session or even per page, which would produce too much overhead
-            if (defaultEncoding == null) {
-                defaultEncoding = hopres.charset;
             }
 
             res.setContentLength(hopres.getContentLength());
@@ -711,7 +709,8 @@ public abstract class AbstractServletClient extends HttpServlet {
         return false;
     }
 
-    String getPathInfo(HttpServletRequest req) {
+    String getPathInfo(HttpServletRequest req)
+            throws DecoderException, UnsupportedEncodingException {
         StringTokenizer t = new StringTokenizer(req.getContextPath(), "/");
         int prefixTokens = t.countTokens();
 
@@ -735,11 +734,7 @@ public abstract class AbstractServletClient extends HttpServlet {
                 pathbuffer.append('/');
             }
 
-            if ((token.indexOf('+') == -1) && (token.indexOf('%') == -1)) {
-                pathbuffer.append(token);
-            } else {
-                pathbuffer.append(URLDecoder.decode(token));
-            }
+            pathbuffer.append(UrlEncoded.smartDecode(token, defaultEncoding));
         }
         
         // append trailing "/" if it is contained in original URI

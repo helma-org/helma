@@ -602,7 +602,7 @@ public final class Application implements IPathElement, Runnable {
                 try {
                     res.close(charset);
                 } catch (UnsupportedEncodingException uee) {
-                    logEvent("Unsupported response encoding: " + uee.getMessage());
+                    logError("Unsupported response encoding", uee);
                 }
             } else {
                 res.waitForClose();
@@ -692,9 +692,9 @@ public final class Application implements IPathElement, Runnable {
                         String rootFactory = classMapping.getProperty("root.factory.class");
                         Class c = typemgr.getClassLoader().loadClass(rootFactory);
                         Method m = c.getMethod(classMapping.getProperty("root.factory.method"),
-                                               null);
+                                               (Class[]) null);
 
-                        rootObject = m.invoke(c, null);
+                        rootObject = m.invoke(c, (Object[]) null);
                     } else {
                         String rootClass = classMapping.getProperty("root");
                         Class c = typemgr.getClassLoader().loadClass(rootClass);
@@ -1056,26 +1056,28 @@ public final class Application implements IPathElement, Runnable {
     /**
      *  Return the href to the root of this application.
      */
-    public String getRootHref() {
+    public String getRootHref() throws UnsupportedEncodingException {
         return getNodeHref(getDataRoot(), null);
     }
 
     /**
      * Return a path to be used in a URL pointing to the given element  and action
      */
-    public String getNodeHref(Object elem, String actionName) {
+    public String getNodeHref(Object elem, String actionName)
+            throws UnsupportedEncodingException {
         StringBuffer b = new StringBuffer(baseURI);
 
         composeHref(elem, b, 0);
 
         if (actionName != null) {
-            b.append(UrlEncoded.encode(actionName));
+            b.append(UrlEncoded.smartEncode(actionName, charset));
         }
 
         return b.toString();
     }
 
-    private final void composeHref(Object elem, StringBuffer b, int pathCount) {
+    private final void composeHref(Object elem, StringBuffer b, int pathCount)
+            throws UnsupportedEncodingException {
         if ((elem == null) || (pathCount > 50)) {
             return;
         }
@@ -1096,7 +1098,7 @@ public final class Application implements IPathElement, Runnable {
         // append ourselves
         String ename = getElementName(elem);
         if (ename != null) {
-            b.append(UrlEncoded.encode(ename));
+            b.append(UrlEncoded.smartEncode(ename, charset));
             b.append("/");
         }
     }

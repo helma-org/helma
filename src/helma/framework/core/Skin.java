@@ -23,6 +23,7 @@ import helma.util.SystemMap;
 import helma.util.WrappedMap;
 import helma.util.UrlEncoded;
 import java.util.*;
+import java.io.UnsupportedEncodingException;
 
 /**
  * This represents a Helma skin, i.e. a template created from containing Macro tags
@@ -119,7 +120,7 @@ public final class Skin {
      * Render this skin
      */
     public void render(RequestEvaluator reval, Object thisObject, Map paramObject)
-                throws RedirectException {
+                throws RedirectException, UnsupportedEncodingException {
         // check for endless skin recursion
         if (++reval.skinDepth > 50) {
             throw new RuntimeException("Recursive skin invocation suspected");
@@ -369,7 +370,8 @@ public final class Skin {
          *  Render the macro given a handler object
          */
         public void render(RequestEvaluator reval, Object thisObject, Map paramObject,
-                           Map handlerCache) throws RedirectException {
+                           Map handlerCache)
+                throws RedirectException, UnsupportedEncodingException {
             if ((sandbox != null) && !sandbox.contains(fullName)) {
                 //String h = (handler == null) ? "global" : handler;
 
@@ -547,7 +549,8 @@ public final class Skin {
             }
         }
 
-        private void renderFromResponse(RequestEvaluator reval) {
+        private void renderFromResponse(RequestEvaluator reval)
+                throws UnsupportedEncodingException {
             Object value = null;
 
             if ("message".equals(name)) {
@@ -563,7 +566,8 @@ public final class Skin {
             writeResponse(value, reval.res.getBuffer(), true);
         }
 
-        private void renderFromRequest(RequestEvaluator reval) {
+        private void renderFromRequest(RequestEvaluator reval)
+                throws UnsupportedEncodingException {
             if (reval.req == null) {
                 return;
             }
@@ -573,7 +577,8 @@ public final class Skin {
             writeResponse(value, reval.res.getBuffer(), true);
         }
 
-        private void renderFromSession(RequestEvaluator reval) {
+        private void renderFromSession(RequestEvaluator reval)
+                throws UnsupportedEncodingException {
             if (reval.session == null) {
                 return;
             }
@@ -583,7 +588,8 @@ public final class Skin {
             writeResponse(value, reval.res.getBuffer(), true);
         }
 
-        private void renderFromParam(RequestEvaluator reval, Map paramObject) {
+        private void renderFromParam(RequestEvaluator reval, Map paramObject)
+                throws UnsupportedEncodingException {
             if (paramObject == null) {
                 reval.res.write("[HopMacro error: Skin requires a parameter object]");
             } else {
@@ -596,7 +602,8 @@ public final class Skin {
         /**
          * Utility method for writing text out to the response object.
          */
-        void writeResponse(Object value, StringBuffer buffer, boolean useDefault) {
+        void writeResponse(Object value, StringBuffer buffer, boolean useDefault)
+                throws UnsupportedEncodingException {
             String text;
 
             if (value == null) {
@@ -650,7 +657,7 @@ public final class Skin {
                         break;
 
                     case ENCODE_URL:
-                        buffer.append(UrlEncoded.encode(text));
+                        buffer.append(UrlEncoded.smartEncode(text, app.charset));
 
                         break;
 

@@ -21,6 +21,7 @@ import org.mozilla.javascript.*;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.io.UnsupportedEncodingException;
 
 /**
  *
@@ -68,7 +69,8 @@ public class JavaObject extends NativeJavaObject {
      *
      * @return ...
      */
-    public boolean renderSkin(Object skinobj, Object paramobj) {
+    public boolean renderSkin(Object skinobj, Object paramobj)
+            throws UnsupportedEncodingException {
         Context cx = Context.getCurrentContext();
         RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
@@ -101,7 +103,8 @@ public class JavaObject extends NativeJavaObject {
      *
      * @return ...
      */
-    public String renderSkinAsString(Object skinobj, Object paramobj) {
+    public String renderSkinAsString(Object skinobj, Object paramobj)
+            throws UnsupportedEncodingException {
         Context cx = Context.getCurrentContext();
         RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
@@ -136,7 +139,7 @@ public class JavaObject extends NativeJavaObject {
      *
      * @return ...
      */
-    public Object href(Object action) {
+    public Object href(Object action) throws UnsupportedEncodingException {
         if (javaObject == null) {
             return null;
         }
