@@ -196,10 +196,13 @@
         <!-- copy the launcher jar file -->
         <copy file="${home.dir}/launcher.jar" todir="${build.work}/"/>
 
+        <!-- copy README.txt -->
+        <copy file="${home.dir}/README.txt" todir="${build.work}/"/>
+
         <!-- copy the whole docs-directory -->
-        <copy todir="${build.work}/docs">
+        <!-- copy todir="${build.work}/docs">
             <fileset dir="${build.docs}"/>
-        </copy>
+        </copy -->
 
         <!-- copy all libraries except helma-YYYYMMDD.jar -->
         <copy todir="${build.work}/lib">
