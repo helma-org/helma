@@ -62,6 +62,10 @@ public class ResponseBean implements Serializable {
 	res.writeBinary (what);
     }
 
+    public void debug (String message) {
+	res.debug (message);
+    }
+
     public String toString() {
 	return "[Response]";
     }

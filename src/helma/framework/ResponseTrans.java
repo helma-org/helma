@@ -71,6 +71,9 @@ public final class ResponseTrans implements Externalizable {
     private transient Object[] skinpath = null;
     // hashmap for skin caching
     private transient HashMap skincache;
+    
+    // buffer for debug messages - will be automatically appended to response
+    private transient StringBuffer debugBuffer;
 
     static final long serialVersionUID = -8627370766119740844L;
 
@@ -208,9 +211,10 @@ public final class ResponseTrans implements Externalizable {
      *  that buffer exists and its length is larger than offset. str may be null, in which
      *  case nothing happens.
      */
-    public void insert (int offset, String str) {
-	if (str != null)
-	    buffer.insert (offset, str);
+    public void debug (String str) {
+	if (debugBuffer == null)
+	    debugBuffer = new StringBuffer ();
+	debugBuffer.append ("<p><span style=\"background: yellow; color: black\">"+str+"</span></p>");
     }
 
     /**
@@ -308,6 +312,8 @@ public final class ResponseTrans implements Externalizable {
 	boolean error = false;
 	if (response == null) {
 	    if (buffer != null) {
+	        if (debugBuffer != null)
+	            buffer.append (debugBuffer);
 	        try {
 	            response = buffer.toString ().getBytes (charset);
 	        } catch (UnsupportedEncodingException uee) {
