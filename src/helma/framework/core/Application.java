@@ -1112,7 +1112,9 @@ public final class Application implements IPathElement, Runnable {
 	                NodeHandle userhandle = session.userHandle;
 	                if (userhandle != null) {
 	                    try {
-	                        eval.invokeFunction (userhandle, "onLogout", new Object[0]);
+	                        String[] str = new String [1];
+	                        str[0] = session.getSessionID ();
+	                        eval.invokeFunction (userhandle, "onLogout", str);
 	                    } catch (Exception ignore) {}
 	                }
 	                destroySession(session);
