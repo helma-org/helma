@@ -338,6 +338,10 @@ public abstract class AbstractServletClient extends HttpServlet {
             res.setContentLength(hopres.getContentLength());
             res.setContentType(hopres.getContentType());
 
+            if ("HEAD".equalsIgnoreCase(req.getMethod())) {
+                return;
+            }
+
             try {
                 OutputStream out = res.getOutputStream();
 
