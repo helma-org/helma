@@ -1589,9 +1589,15 @@ public final class NodeManager {
                     q.append(" = '");
                     q.append(escape(kstr));
                     q.append("'");
-                    q.append(" AND (");
-                    q.append(home.getSubnodeRelation().trim().substring(5));
-                    q.append(")");
+                    // add join contraints in case this is an old oracle style join
+                    dbm.addJoinConstraints(q, " AND ");
+                    // add potential constraints from manually set subnodeRelation
+                    String subrel = home.getSubnodeRelation().trim();
+                    if (subrel.length() > 5) {
+                        q.append(" AND (");
+                        q.append(subrel.substring(5).trim());
+                        q.append(")");
+                    }
                 } else {
                     q.append(rel.buildQuery(home,
                                             home.getNonVirtualParent(),
