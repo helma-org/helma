@@ -7,6 +7,7 @@ import helma.framework.core.Application;
 import helma.util.Updatable;
 import helma.util.SystemProperties;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.StringTokenizer;
@@ -28,15 +29,15 @@ public final class DbMapping implements Updatable {
     // properties from where the mapping is read
     SystemProperties props;
 
-    // name of data source to which this mapping writes
-    DbSource source;
+    // name of data dbSource to which this mapping writes
+    DbSource dbSource;
     // name of datasource
-    String sourceName;
+    String dbSourceName;
     // name of db table
-    String table;
+    String tableName;
 
     // list of properties to try for parent
-    ParentInfo[] parent;
+    ParentInfo[] parentInfo;
 
     // Relations describing subnodes and properties.
     Relation subRelation;
@@ -101,7 +102,7 @@ public final class DbMapping implements Updatable {
 	prop2db = new HashMap ();
 	db2prop = new HashMap ();
 
-	parent = null;
+	parentInfo = null;
 
 	idField = null;
     }
@@ -123,7 +124,7 @@ public final class DbMapping implements Updatable {
 	
 	columnMap = new HashMap ();
 
-	parent = null;
+	parentInfo = null;
 
 	idField = null;
 
@@ -145,7 +146,7 @@ public final class DbMapping implements Updatable {
      */
     public synchronized void update () {
 	// read in properties
-	table = props.getProperty ("_table");
+	tableName = props.getProperty ("_table");
 	idgen = props.getProperty ("_idgen");
 	// see if there is a field which specifies the prototype of objects, if different prototypes
 	// can be stored in this table
@@ -153,17 +154,17 @@ public final class DbMapping implements Updatable {
 	// see if this prototype extends (inherits from) any other prototype
 	extendsProto = props.getProperty ("_extends");
 
-	sourceName = props.getProperty ("_db");
-	if (sourceName != null) {
-	    source = app.getDbSource (sourceName);
-	    if (source == null) {
-	        app.logEvent ("*** Data Source for prototype "+typename+" does not exist: "+sourceName);
+	dbSourceName = props.getProperty ("_db");
+	if (dbSourceName != null) {
+	    dbSource = app.getDbSource (dbSourceName);
+	    if (dbSource == null) {
+	        app.logEvent ("*** Data Source for prototype "+typename+" does not exist: "+dbSourceName);
 	        app.logEvent ("*** accessing or storing a "+typename+" object will cause an error.");
-	    } else if (table == null) {
+	    } else if (tableName == null) {
 	        app.logEvent ("*** No table name specified for prototype "+typename);
 	        app.logEvent ("*** accessing or storing a "+typename+" object will cause an error.");
-	        // mark mapping as invalid by nulling the source field
-	        source = null;
+	        // mark mapping as invalid by nulling the dbSource field
+	        dbSource = null;
 	    }
 	}
 
@@ -179,11 +180,11 @@ public final class DbMapping implements Updatable {
 	if (parentSpec != null) {
 	    // comma-separated list of properties to be used as parent
 	    StringTokenizer st = new StringTokenizer (parentSpec, ",;");
-	    parent = new ParentInfo[st.countTokens()];
-	    for (int i=0; i<parent.length; i++)
-	        parent[i] = new ParentInfo (st.nextToken().trim());
+	    parentInfo = new ParentInfo[st.countTokens()];
+	    for (int i=0; i<parentInfo.length; i++)
+	        parentInfo[i] = new ParentInfo (st.nextToken().trim());
 	} else {
-	    parent = null;
+	    parentInfo = null;
 	}
 
 	lastTypeChange = props.lastModified ();
@@ -197,8 +198,8 @@ public final class DbMapping implements Updatable {
 	    parentMapping = app.getDbMapping (extendsProto);
 	}
 
-	// if (table != null && source != null) {
-	// app.logEvent ("set data source for "+typename+" to "+source);
+	// if (tableName != null && dbSource != null) {
+	// app.logEvent ("set data dbSource for "+typename+" to "+dbSource);
 	HashMap p2d = new HashMap ();
 	HashMap d2p = new HashMap ();
 
@@ -210,10 +211,13 @@ public final class DbMapping implements Updatable {
 	        if (!propName.startsWith ("_") && propName.indexOf (".") < 0) {
 	            String dbField = props.getProperty (propName);
 	            // check if a relation for this propery already exists. If so, reuse it
-	            Relation rel = propertyToRelation (propName);
+	            Relation rel = (Relation) prop2db.get (propName.toLowerCase());
 	            if (rel == null)
 	                rel = new Relation (dbField, propName, this, props);
 	            rel.update (dbField, props);
+	            // key enumerations from SystemProperties are all lower case, which is why
+	            // even though we don't do a toLowerCase() here,
+	            // we have to when we lookup things in p2d later.
 	            p2d.put (propName, rel);
 	            if (rel.columnName != null &&
 	                    (rel.reftype == Relation.PRIMITIVE ||
@@ -238,7 +242,7 @@ public final class DbMapping implements Updatable {
 	        subRelation.update (subnodeMapping, props);
 	        // if subnodes are accessed via access name or group name,
 	        // the subnode relation is also the property relation.
-	        if (subRelation.accessor != null || subRelation.groupby != null)
+	        if (subRelation.accessName != null || subRelation.groupby != null)
 	            propRelation = subRelation;
 	    } catch (Exception x) {
 	        app.logEvent ("Error reading _subnodes relation for "+typename+": "+x.getMessage ());
@@ -266,18 +270,23 @@ public final class DbMapping implements Updatable {
      * Get a JDBC connection for this DbMapping.
      */
     public Connection getConnection () throws ClassNotFoundException, SQLException {
-	// if source was previously not available, check again
-	if (source == null && sourceName != null)
-	    source = app.getDbSource (sourceName);
-	if (sourceName == null && parentMapping != null)
-	    return parentMapping.getConnection ();
-	if (source == null) {
-	    if (sourceName == null)
-	        throw new SQLException ("Tried to get Connection from non-relational embedded data source.");
+	if (dbSourceName == null) {
+	    if (parentMapping != null)
+	        return parentMapping.getConnection ();
 	    else
-	        throw new SQLException ("Datasource is not defined: "+sourceName+".");
+	        throw new SQLException ("Tried to get Connection from non-relational embedded data source.");
 	}
-	return source.getConnection ();
+	if (tableName == null) {
+	    throw new SQLException ("Invalid DbMapping, _table not specified: "+this);
+	}
+	// if dbSource was previously not available, check again
+	if (dbSource == null) {
+	    dbSource = app.getDbSource (dbSourceName);
+	}
+	if (dbSource == null) {
+	    throw new SQLException ("Datasource is not defined: "+dbSourceName+".");
+	}
+	return dbSource.getConnection ();
     }
 
     /**
@@ -285,27 +294,23 @@ public final class DbMapping implements Updatable {
      * data source including URL, JDBC driver, username and password.
      */
     public DbSource getDbSource () {
-	if (source == null && parentMapping != null)
-	    return parentMapping.getDbSource ();
-	return source;
+	if (dbSource == null) {
+	    if (tableName != null && dbSourceName != null)
+	        dbSource = app.getDbSource (dbSourceName);
+	    else if (parentMapping != null)
+	        return parentMapping.getDbSource ();
+	}
+	return dbSource;
     }
 
-    /**
-     * Get the URL of the data source used for this mapping.
-     */
-    public String getSourceID () {
-	if (source == null && parentMapping != null)
-	    return parentMapping.getSourceID ();
-	return source == null ? "" : source.url;
-    }
 
     /**
      * Get the table name used for this type mapping.
      */
     public String getTableName () {
-	if (source == null && parentMapping != null)
+	if (tableName == null && parentMapping != null)
 	    return parentMapping.getTableName ();
-	return table;
+	return tableName;
     }
 
     /**
@@ -349,7 +354,7 @@ public final class DbMapping implements Updatable {
      * Get the column used for (internal) names of objects of this type.
      */
     public String getNameField () {
-    	if (nameField == null && parentMapping != null)
+	if (nameField == null && parentMapping != null)
 	    return parentMapping.getNameField ();
 	return nameField;
     }
@@ -358,7 +363,7 @@ public final class DbMapping implements Updatable {
      * Get the column used for names of prototype.
      */
     public String getPrototypeField () {
-    	if (protoField == null && parentMapping != null)
+	if (protoField == null && parentMapping != null)
 	    return parentMapping.getPrototypeField ();
 	return protoField;
     }
@@ -370,9 +375,13 @@ public final class DbMapping implements Updatable {
     public String columnNameToProperty (String columnName) {
 	if (columnName == null)
 	    return null;
-	if (table == null && parentMapping != null)
-	    return parentMapping.columnNameToProperty (columnName);
-	Relation rel = (Relation) db2prop.get (columnName.toUpperCase ());
+	return _columnNameToProperty (columnName.toUpperCase());
+    }
+    
+    private String _columnNameToProperty (final String columnName) {
+	Relation rel = (Relation) db2prop.get (columnName);
+	if (rel == null && parentMapping != null)
+	    return parentMapping._columnNameToProperty (columnName);
 	if (rel != null  && (rel.reftype == Relation.PRIMITIVE || rel.reftype == Relation.REFERENCE))
 	    return rel.propName;
 	return null;
@@ -384,11 +393,15 @@ public final class DbMapping implements Updatable {
     public String propertyToColumnName (String propName) {
 	if (propName == null)
 	    return null;
-	if (table == null && parentMapping != null)
-	    return parentMapping.propertyToColumnName (propName);
 	// FIXME: prop2db stores keys in lower case, because it gets them
 	// from a SystemProperties object which converts keys to lower case.
-	Relation rel = (Relation) prop2db.get (propName.toLowerCase());
+	return _propertyToColumnName (propName.toLowerCase ());
+    }
+
+    private String _propertyToColumnName (final String propName) {
+	Relation rel = (Relation) prop2db.get (propName);
+	if (rel == null && parentMapping != null)
+	    return parentMapping._propertyToColumnName (propName);
 	if (rel != null  && (rel.reftype == Relation.PRIMITIVE || rel.reftype == Relation.REFERENCE))
 	    return rel.columnName;
 	return null;
@@ -400,9 +413,14 @@ public final class DbMapping implements Updatable {
     public Relation columnNameToRelation (String columnName) {
 	if (columnName == null)
 	    return null;
-	if (table == null && parentMapping != null)
-	    return parentMapping.columnNameToRelation (columnName);
-	return (Relation) db2prop.get (columnName.toUpperCase ());
+	return _columnNameToRelation (columnName.toUpperCase());
+    }
+    
+    private Relation _columnNameToRelation (final String columnName) {
+	Relation rel = (Relation) db2prop.get (columnName);
+	if (rel == null && parentMapping != null)
+	    return parentMapping._columnNameToRelation (columnName);
+	return rel;
     }
 
     /**
@@ -411,11 +429,16 @@ public final class DbMapping implements Updatable {
     public Relation propertyToRelation (String propName) {
 	if (propName == null)
 	    return null;
-	if (table == null && parentMapping != null)
-	    return parentMapping.propertyToRelation (propName);
 	// FIXME: prop2db stores keys in lower case, because it gets them
 	// from a SystemProperties object which converts keys to lower case.
-	return (Relation) prop2db.get (propName.toLowerCase());
+	return _propertyToRelation (propName.toLowerCase());
+    }
+
+    private Relation _propertyToRelation (String propName) {
+	Relation rel = (Relation) prop2db.get (propName);
+	if (rel == null && parentMapping != null)
+	    return parentMapping._propertyToRelation (propName);
+	return rel;
     }
 
 
@@ -424,17 +447,17 @@ public final class DbMapping implements Updatable {
      * determine its parent object.
      */
     public synchronized ParentInfo[] getParentInfo () {
-    	if (parent == null && parentMapping != null)
-    	    return parentMapping.getParentInfo ();
-	return parent;
+	if (parentInfo == null && parentMapping != null)
+	    return parentMapping.getParentInfo ();
+	return parentInfo;
     }
 
 
     public DbMapping getSubnodeMapping () {
 	if (subRelation != null)
 	    return subRelation.otherType;
-    	if (parentMapping != null)
-    	    return parentMapping.getSubnodeMapping ();
+	if (parentMapping != null)
+	    return parentMapping.getSubnodeMapping ();
 	return null;
     }
 
@@ -551,7 +574,7 @@ public final class DbMapping implements Updatable {
      *  not what we want.
      */
     public boolean isRelational () {
-	if (sourceName != null)
+	if (dbSourceName != null)
 	    return true;
 	if (parentMapping != null)
 	    return parentMapping.isRelational ();
@@ -565,7 +588,7 @@ public final class DbMapping implements Updatable {
     public synchronized DbColumn[] getColumns() throws ClassNotFoundException, SQLException {
 	if (!isRelational ())
 	    throw new SQLException ("Can't get columns for non-relational data mapping "+this);
-	if (source == null && parentMapping != null)
+	if (dbSource == null && parentMapping != null)
 	    return parentMapping.getColumns ();
 	// Use local variable cols to avoid synchronization (schema may be nulled elsewhere)
 	if (columns == null) {
@@ -656,7 +679,7 @@ public final class DbMapping implements Updatable {
      *  to be quoted in SQL queries.
      */
     public boolean needsQuotes (String columnName) throws SQLException {
-	if (table == null && parentMapping != null)
+	if (tableName == null && parentMapping != null)
 	    return parentMapping.needsQuotes (columnName);
 	try {
 	    DbColumn col = getColumn (columnName);
@@ -698,27 +721,38 @@ public final class DbMapping implements Updatable {
 
     public void notifyDataChange () {
 	lastDataChange = System.currentTimeMillis ();
-	if (parentMapping != null && source == null)
+	if (parentMapping != null && dbSource == null)
 	    parentMapping.notifyDataChange ();
     }
 
     public synchronized long getNewID (long dbmax) {
-	if (parentMapping != null && source == null)
+	if (parentMapping != null && dbSource == null)
 	    return parentMapping.getNewID (dbmax);
 	lastID = Math.max (dbmax+1, lastID+1);
 	return lastID;
     }
 
-    public HashMap getProp2DB () {
-	if (table == null && parentMapping != null)
-	    return parentMapping.getProp2DB ();
-	return prop2db;
+    
+    public Enumeration getPropertyEnumeration () {
+	HashSet set = new HashSet ();
+	collectPropertyNames (set);
+	final Iterator it = set.iterator();
+	return new Enumeration () {
+	    public boolean hasMoreElements() {
+	        return it.hasNext();
+	    }
+	    public Object nextElement() {
+	       return it.next();
+	    }
+	};
     }
 
-    public Iterator getDBPropertyIterator () {
-	if (table == null && parentMapping != null)
-	    return parentMapping.getDBPropertyIterator ();
-	return db2prop.values ().iterator ();
+    private void collectPropertyNames (HashSet basket) {
+	// fetch propnames from parent mapping first, than add our own.
+	if (parentMapping != null)
+	    parentMapping.collectPropertyNames (basket);
+	if (!prop2db.isEmpty())
+	    basket.addAll (prop2db.keySet());
     }
 
     /**
@@ -727,9 +761,9 @@ public final class DbMapping implements Updatable {
      * db.
      */
     public String getStorageTypeName () {
-	if (table == null && parentMapping != null)
+	if (tableName == null && parentMapping != null)
 	    return parentMapping.getStorageTypeName ();
-	return sourceName == null ? null : typename;
+	return dbSourceName == null ? null : typename;
     }
 
     /**

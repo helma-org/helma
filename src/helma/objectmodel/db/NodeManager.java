@@ -1027,8 +1027,8 @@ public final class NodeManager {
 	            }
 
 	            String accessProp = null;
-	            if (rel.accessor != null && !rel.usesPrimaryKey ())
-	                accessProp = dbm.columnNameToProperty (rel.accessor);
+	            if (rel.accessName != null && !rel.usesPrimaryKey ())
+	                accessProp = dbm.columnNameToProperty (rel.accessName);
 
 	            while (rs.next ()) {
 	                // create new Nodes.
@@ -1048,7 +1048,7 @@ public final class NodeManager {
 	                    sn.add (new NodeHandle (primKey));
 	                }
 
-	                // if relation doesn't use primary key as accessor, get accessor value
+	                // if relation doesn't use primary key as accessName, get accessName value
 	                String accessName = null;
 	                if (accessProp != null) {
 	                    accessName = node.getString (accessProp);
@@ -1166,7 +1166,7 @@ public final class NodeManager {
 	    Vector retval = new Vector ();
 	    // if we do a groupby query (creating an intermediate layer of groupby nodes),
 	    // retrieve the value of that field instead of the primary key
-	    String namefield = rel.accessor;
+	    String namefield = rel.accessName;
 	    Connection con = rel.otherType.getConnection ();
 	    String table = rel.otherType.getTableName ();
 
@@ -1296,7 +1296,7 @@ public final class NodeManager {
 	        if (home.getSubnodeRelation () != null) {
 	            // combine our key with the constraints in the manually set subnode relation
 	            q.append ("WHERE ");
-	            q.append (rel.accessor);
+	            q.append (rel.accessName);
 	            q.append (" = '");
 	            q.append (escape(kstr));
 	            q.append ("'");
