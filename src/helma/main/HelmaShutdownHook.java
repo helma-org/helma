@@ -17,7 +17,6 @@
 package helma.main;
 
 import helma.util.*;
-import java.util.List;
 import org.apache.commons.logging.LogFactory;
 
 /**
@@ -41,7 +40,7 @@ public class HelmaShutdownHook extends Thread {
     public void run() {
         System.err.println("Shutting down Helma - please stand by...");
 
-        Server.getLogger().info("Shutting down Helma");
+        Server.getServer().getLogger().info("Shutting down Helma");
 
         appmgr.stopAll();
 

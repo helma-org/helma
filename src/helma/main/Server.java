@@ -40,26 +40,29 @@ import java.util.*;
  * Helma server main class.
  */
 public class Server implements IPathElement, Runnable {
+    // version string
     public static final String version = "1.3.2-pre2 (2003/12/01)";
-
-    // server-wide properties
-    static SystemProperties appsProps;
-    static SystemProperties dbProps;
-    static SystemProperties sysProps;
 
     // static server instance
     private static Server server;
-    protected static File hopHome = null;
+
+    // Server home directory
+    protected File hopHome;
+
+    // server-wide properties
+    SystemProperties appsProps;
+    SystemProperties dbProps;
+    SystemProperties sysProps;
 
     // our logger
-    private static Log logger;
+    private Log logger;
     // are we using helma.util.Logging?
-    private static boolean helmaLogging;
+    private boolean helmaLogging;
 
     // server start time
     public final long starttime;
 
-    // if true we only accept RMI and XML-RPC connections from
+    // if paranoid == true we only accept RMI and XML-RPC connections from
     // explicitly listed hosts.
     public boolean paranoid;
     private ApplicationManager appManager;
@@ -91,7 +94,7 @@ public class Server implements IPathElement, Runnable {
     public Server(String[] args) {
         starttime = System.currentTimeMillis();
 
-        String homeDir = null;
+        String homeDir = System.getProperty("helma.home");
 
         boolean usageError = false;
 
@@ -350,9 +353,10 @@ public class Server implements IPathElement, Runnable {
         // check if we are running on a Java 2 VM - otherwise exit with an error message
         String javaVersion = System.getProperty("java.version");
 
-        if ((javaVersion == null) || javaVersion.startsWith("1.1") ||
-                javaVersion.startsWith("1.0")) {
-            System.err.println("This version of Helma requires Java 1.2 or greater.");
+        if ((javaVersion == null) || javaVersion.startsWith("1.2")
+                                  || javaVersion.startsWith("1.1")
+                                  || javaVersion.startsWith("1.0")) {
+            System.err.println("This version of Helma requires Java 1.3 or greater.");
 
             if (javaVersion == null) { // don't think this will ever happen, but you never know
                 System.err.println("Your Java Runtime did not provide a version number. Please update to a more recent version.");
@@ -503,10 +507,10 @@ public class Server implements IPathElement, Runnable {
                 LocateRegistry.createRegistry(rmiPort.getPort());
 
                 // create application manager which binds to the given RMI port
-                appManager = new ApplicationManager(hopHome, appsProps, this, rmiPort.getPort());
+                appManager = new ApplicationManager(appsProps, this, rmiPort.getPort());
             } else {
                 // create application manager with RMI port 0
-                appManager = new ApplicationManager(hopHome, appsProps, this, 0);
+                appManager = new ApplicationManager(appsProps, this, 0);
             }
 
             if (xmlrpc != null) {
@@ -589,7 +593,7 @@ public class Server implements IPathElement, Runnable {
     /**
      *  Get a logger to use for output in this server.
      */
-    public static Log getLogger() {
+    public Log getLogger() {
         if (logger == null) {
             if (helmaLogging) {
                 // set up system properties for helma.util.Logging

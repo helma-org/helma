@@ -45,7 +45,7 @@ public class HelmaSocketFactory extends RMISocketFactory {
         try {
             filter.addAddress(address);
         } catch (IOException x) {
-            Server.getLogger().error("Could not add " + address +
+            Server.getServer().getLogger().error("Could not add " + address +
                                    " to Socket Filter: invalid address.");
         }
     }
