@@ -19,8 +19,6 @@ package helma.doc;
 import java.awt.Point;
 import java.io.*;
 import java.util.Vector;
-import org.mozilla.javascript.ErrorReporter;
-import org.mozilla.javascript.EvaluatorException;
 import org.mozilla.javascript.TokenStream;
 import org.mozilla.javascript.Token;
 import org.mozilla.javascript.Context;
@@ -161,8 +159,7 @@ public class DocFunction extends DocFileElement {
         String name = f.getName();
         int line = 0;
         CompilerEnvirons compilerEnv = new CompilerEnvirons();
-        compilerEnv.initFromContext(Context.getCurrentContext(), 
-                                    new ErrorPrinter());
+        compilerEnv.initFromContext(Context.getCurrentContext());
         return new TokenStream (compilerEnv, reader, null, name, line);
     }
 
@@ -182,28 +179,5 @@ public class DocFunction extends DocFileElement {
      */
     public java.lang.String getPrototype() {
         return "docfunction";
-    }
-    
-    /**
-     * A simple error reporter that reports errors on the console
-     */
-    static class ErrorPrinter implements ErrorReporter {
-        public void warning(String message, String sourceName,
-                            int line, String lineSource, int lineOffset) {
-            System.err.println(new EvaluatorException(message, sourceName, line, 
-                                                      lineSource, lineOffset));
-        }
-
-        public void error(String message, String sourceName,
-                            int line, String lineSource, int lineOffset) {
-            System.err.println(new EvaluatorException(message, sourceName, line, 
-                                                      lineSource, lineOffset));
-        }
-
-        public EvaluatorException runtimeError(String message, String sourceName,
-                            int line, String lineSource, int lineOffset) {
-            return new EvaluatorException(message, sourceName, line, 
-                                          lineSource, lineOffset);
-        }
     }
 }
