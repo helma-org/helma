@@ -241,13 +241,11 @@ public abstract class AbstractServletClient extends HttpServlet {
 
 	    if (!hopres.cache || ! caching) {
 	        // Disable caching of response.
-	        if (isOneDotOne (req.getProtocol ())) {
-	            // for HTTP 1.0
-	            res.setHeader ("Pragma", "no-cache");
-	        } else {
-	            // for HTTP 1.1
-	            res.setHeader ("Cache-Control", "no-cache");
-	        }
+	        // for HTTP 1.0
+	        res.setDateHeader ("Expires", System.currentTimeMillis ()-10000);
+	        res.setHeader ("Pragma", "no-cache");
+	        // for HTTP 1.1
+	        res.setHeader ("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
 	    }
 	    if ( hopres.realm!=null )
 	        res.setHeader( "WWW-Authenticate", "Basic realm=\"" + hopres.realm + "\"" );
