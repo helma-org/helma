@@ -97,7 +97,7 @@ public class FunctionFile implements Updatable {
 	            EvaluationSource es = new FileEvaluationSource(file.getPath(), null);
 	            updateRequestEvaluator (reval, fr, es);
 
-	        } catch (Exception ignore) {}
+	        } catch (Throwable ignore) {}
 	    }
 	}
 

@@ -144,7 +144,7 @@ public class Template extends Action {
 	    pfunc = parseFunction (name,
 		"arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10",
 		body+"\r\nreturn null;\r\n");
-             } catch (Exception x) {
+             } catch (Throwable x) {
                  String message = x.getMessage ();
                  pfunc =  new ErrorFeedback (name, message);
              }
@@ -152,7 +152,7 @@ public class Template extends Action {
 	    psfunc = parseFunction (fname,
 		"arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10",
 		"res.pushStringBuffer(); "+body+"\r\nreturn res.popStringBuffer();\r\n");
-             } catch (Exception x) {
+             } catch (Throwable x) {
                  String message = x.getMessage ();
                  psfunc =  new ErrorFeedback (fname, message);
              }
