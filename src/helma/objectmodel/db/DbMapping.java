@@ -18,7 +18,7 @@ import com.workingdogs.village.*;
   * relational database table. Basically it consists of a set of JavaScript property-to-
   * Database row bindings which are represented by instances of the Relation class.
   */
-  
+
 public final class DbMapping implements Updatable {
 
     // DbMappings belong to an application
@@ -683,6 +683,10 @@ public final class DbMapping implements Updatable {
 
     public DbMapping getParentMapping () {
 	return parentMapping;
+    }
+    
+    public SystemProperties getProperties () {
+	return props;
     }
 
 }
