@@ -10,9 +10,11 @@ import org.w3c.dom.*;
 import helma.objectmodel.*;
 import helma.util.SystemProperties;
 
-public class XmlConverter implements XmlConstants	{
+public class XmlConverter implements XmlConstants {
 
-    private boolean DEBUG=false;
+    private boolean DEBUG = false;
+
+    private boolean sparse = false;
 
     private Properties props;
 
@@ -78,7 +80,7 @@ public class XmlConverter implements XmlConstants	{
 	if (DEBUG)
 	    debug("reading " + element.getNodeName() );
 	helmaNode.setName( element.getNodeName() );
-	String prototype = (String)props.get(element.getNodeName().toLowerCase()+"._prototype");
+	String prototype = props.getProperty(element.getNodeName()+"._prototype");
 	if ( prototype == null )
 	    prototype = "HopObject";
 	helmaNode.setPrototype( prototype );
@@ -117,11 +119,11 @@ public class XmlConverter implements XmlConstants	{
 	        Element childElement = (Element)childNode;
 
 	        // get the basic key we have to look for in the properties-table
-	        domKey = (element.getNodeName()+"."+childElement.getNodeName()).toLowerCase();
+	        domKey = element.getNodeName()+"."+childElement.getNodeName();
 
 	        // is there a childtext-2-property mapping?
 	        if ( props!=null && props.containsKey(domKey+"._text") ) {
-	            helmaKey = (String)props.get(domKey+"._text");
+	            helmaKey = props.getProperty(domKey+"._text");
 	            if( helmaKey.equals("") )
 	                // if property is set but without value, read elementname for this mapping
 	                helmaKey = childElement.getNodeName().replace(':',defaultSeparator);
@@ -139,7 +141,7 @@ public class XmlConverter implements XmlConstants	{
 	        // (lets the user define to use only one element and make this a property
 	        // and simply ignore other elements of the same name)
 	        if ( props!=null && props.containsKey(domKey+"._property") ) {
-	            helmaKey = (String)props.get(domKey+"._property");
+	            helmaKey = props.getProperty(domKey+"._property");
 	            // if property is set but without value, read elementname for this mapping:
 	            if ( helmaKey.equals("") )
 	                helmaKey = childElement.getNodeName().replace(':',defaultSeparator);
@@ -156,14 +158,14 @@ public class XmlConverter implements XmlConstants	{
 
 	        // map it to one of the children-lists
 	        helma.objectmodel.INode newHelmaNode = null;
-	        String childrenMapping = (String)props.get(element.getNodeName().toLowerCase()+"._children");
+	        String childrenMapping = props.getProperty(element.getNodeName()+"._children");
 	        // do we need a mapping directly among _children of helmaNode?
 	        // can either be through property elname._children=_all or elname._children=childname
 	        if( childrenMapping!=null && ( childrenMapping.equals("_all") || childrenMapping.equals(childElement.getNodeName()) ) ) {
 	            newHelmaNode = convert(childElement, helmaNode.createNode(null) );
 	        }
 	        // which name to choose for a virtual subnode:
-	        helmaKey = (String)props.get(domKey);
+	        helmaKey = props.getProperty(domKey);
 	        if ( helmaKey==null ) {
 	            helmaKey = childElement.getNodeName().replace(':',defaultSeparator);
 	        }
@@ -188,7 +190,7 @@ public class XmlConverter implements XmlConstants	{
 
 	// if there's some text content for this element, map it:
 	if ( textcontent.length()>0 ) {
-	    helmaKey = (String)props.get(element.getNodeName().toLowerCase()+"._text");
+	    helmaKey = props.getProperty(element.getNodeName()+"._text");
 	    if ( helmaKey==null )
 	        helmaKey = "text";
 	    helmaNode.setString(helmaKey, textcontent.toString().trim() );
@@ -210,7 +212,7 @@ public class XmlConverter implements XmlConstants	{
 	    } else if ( attr.getNodeName().equals("_name") ) {
 	        helmaNode.setName( attr.getNodeValue() );
 	    } else {
-	        String helmaKey = (String)props.get(element.getNodeName().toLowerCase()+"._attribute."+attr.getNodeName().toLowerCase());
+	        String helmaKey = props.getProperty(element.getNodeName()+"._attribute."+attr.getNodeName());
 	        if ( helmaKey==null )
 	            helmaKey = attr.getNodeName().replace(':',defaultSeparator);
 	        helmaNode.setString( helmaKey, attr.getNodeValue() );
@@ -224,8 +226,9 @@ public class XmlConverter implements XmlConstants	{
      */
     private void extractProperties( Properties props ) {
 	if ( props.containsKey("separator") ) {
-	    defaultSeparator = ((String)props.get("separator")).charAt(0);
+	    defaultSeparator = props.getProperty("separator").charAt(0);
 	}
+	sparse = "sparse".equalsIgnoreCase (props.getProperty("_mode"));
     }
 
     /** for testing */
