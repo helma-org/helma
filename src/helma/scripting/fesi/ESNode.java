@@ -418,7 +418,7 @@ public class ESNode extends ObjectPrototype {
 	}
 
 	// as last resort, try to get property as anonymous subnode
-	INode anon = node.getSubnode (propertyName);
+	INode anon = (INode) node.getChildElement (propertyName);
 	if (anon != null)
 	    return engine.getNodeWrapper (anon);
 
