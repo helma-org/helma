@@ -48,14 +48,19 @@ public class GlobalObject extends ScriptableObject {
      *
      * @param core ...
      * @param app ...
+     */
+    public GlobalObject(RhinoCore core, Application app) {
+        this.core = core;
+        this.app = app;
+    }
+
+    /**
+     * Initializes the global object. This is only done for the shared
+     * global objects not the per-thread ones.
      *
      * @throws PropertyException ...
      */
-    public GlobalObject(RhinoCore core, Application app, Context cx)
-                 throws PropertyException {
-        this.core = core;
-        this.app = app;
-
+    public void init() throws PropertyException {
         String[] globalFuncs = {
                                    "renderSkin", "renderSkinAsString", "getProperty",
                                    "authenticate", "createSkin", "format", "encode",
@@ -167,27 +172,41 @@ public class GlobalObject extends ScriptableObject {
     }
 
     /**
+     *  Create a Skin object from a string
      *
+     * @param str the source string to parse
      *
-     * @param str ...
-     *
-     * @return ...
+     * @return a parsed skin object
      */
-    public Skin createSkin(String str) {
+    public Object createSkin(String str) {
         return new Skin(str, app);
     }
 
-    public DatabaseObject getDBConnection(String dbsource) throws Exception {
+    /**
+     * Get a Helma DB connection specified in db.properties
+     *
+     * @param str the db source name
+     *
+     * @return a DatabaseObject for the specified DbConnection
+     */
+    public Object getDBConnection(String dbsource) throws Exception {
         if (dbsource == null)
             throw new RuntimeException ("Wrong number of arguments in getDBConnection(dbsource)");
         DbSource dbsrc = app.getDbSource (dbsource.toLowerCase ());
         if (dbsrc == null)
             throw new RuntimeException ("DbSource "+dbsource+" does not exist");
         DatabaseObject db = new DatabaseObject (dbsrc, 0);
-        return db;
+        return Context.toObject(db, this);
     }
 
-
+    /**
+     * Retrieve a Document from the specified URL.
+     *
+     * @param location the URL to retrieve
+     * @param opt either a LastModified date or an ETag string for conditional GETs
+     *
+     * @return a wrapped MIME object
+     */
     public Object getURL(String location, Object opt) {
             if (location ==  null) {
                 return null;

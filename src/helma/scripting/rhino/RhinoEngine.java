@@ -84,7 +84,7 @@ public class RhinoEngine implements ScriptingEngine {
         context.setCompileFunctionsWithDynamicScope(true);
 
         try {
-            global = context.newObject(core.global);
+            global = new GlobalObject(core, app); // context.newObject(core.global);
             global.setPrototype(core.global);
             global.setParentScope(null);
 

@@ -81,7 +81,8 @@ public final class RhinoCore {
         context.setOptimizationLevel(optLevel);
 
         try {
-            GlobalObject g = new GlobalObject(this, app, context);
+            GlobalObject g = new GlobalObject(this, app);
+            g.init();
 
             global = (GlobalObject) context.initStandardObjects(g);
             ScriptableObject.defineClass(global, HopObject.class);
