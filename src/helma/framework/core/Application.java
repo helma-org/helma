@@ -201,7 +201,7 @@ public final class Application
 	CryptFile parentpwfile = null;
 	if (home != null)
 	    parentpwfile = new CryptFile (new File (home, "passwd"), null);
-	CryptFile pwfile = new CryptFile (new File (appDir, "passwd"), parentpwfile);
+	pwfile = new CryptFile (new File (appDir, "passwd"), parentpwfile);
 
 	// the properties that map java class names to prototype names
 	File classMappingFile = new File (appDir, "class.properties");
