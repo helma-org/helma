@@ -997,15 +997,27 @@ public final class RhinoCore {
     class WrapMaker extends WrapFactory {
 
         public Object wrap(Context cx, Scriptable scope, Object obj, Class staticType) {
-            // System.err.println ("Wrapping: "+obj);
+            // Wrap Nodes
             if (obj instanceof INode) {
                 return getNodeWrapper((INode) obj);
             }
 
+            // Masquerade SystemMap and WrappedMap as native JavaScript objects
             if (obj instanceof SystemMap || obj instanceof WrappedMap) {
                 return new MapWrapper((Map) obj, RhinoCore.this);
             }
 
+            // Convert java.util.Date objects to JavaScript Dates
+            if (obj instanceof Date) {
+                Object[] args = { new Long(((Date) obj).getTime()) };
+                try {
+                    return cx.newObject(global, "Date", args);
+                 } catch (JavaScriptException nafx) {
+                    return obj;
+                }
+            }
+
+            // Wrap scripted Java objects
             if (obj != null && app.getPrototypeName(obj) != null) {
                 return getElementWrapper(obj);
             }
