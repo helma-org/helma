@@ -405,7 +405,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	        return null;
 	    
 	    unode = new Node (uname);
-	    unode.setString ("name", uname);
+	    String usernameField = userMapping.getNameField ();
+	    if (usernameField == null)
+	        usernameField = "name";
+	    unode.setString (usernameField, uname);
 	    unode.setString ("password", password);
 	    unode.setPrototype ("user");
 	    unode.setDbMapping (userMapping);
