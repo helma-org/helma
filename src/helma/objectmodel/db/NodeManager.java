@@ -305,6 +305,9 @@ public final class NodeManager {
 	            Node oldnode = (Node) cache.put (primKey, node);
 	            // no need to check for oldnode != node because we fetched a new node from db
 	            if (oldnode != null && !oldnode.isNullNode() && oldnode.getState () != Node.INVALID) {
+	                // reset create time of old node, otherwise Relation.checkConstraints
+	                // will reject it under certain circumstances.
+	                oldnode.created = oldnode.lastmodified;
 	                cache.put (primKey, oldnode);
 	                if (!keyIsPrimary) {
 	                    cache.put (key, oldnode);
