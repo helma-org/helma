@@ -16,6 +16,7 @@ import java.sql.*;
 import helma.objectmodel.*;
 import helma.util.*;
 import helma.framework.IPathElement;
+import java.math.BigDecimal;
 // import com.workingdogs.village.*;
 
 
@@ -275,20 +276,20 @@ public final class Node implements INode, Serializable {
 	    if (rel.reftype != Relation.PRIMITIVE && rel.reftype != Relation.REFERENCE)
 	        continue;
 
-	    // Value val = rec.getValue (rel.getDbField ());
-
-	    // if (val.isNull ())
-	    //     continue;
-
 	    Property newprop = new Property (rel.propName, this);
-
-	    // if (val.isNull ())
-	    //     newprop.setStringValue (null);
-	    // else 
+	    
 	    switch (rel.getColumnType()) {
 
 	        case Types.BIT:
-	            newprop.setBooleanValue (rs.getBoolean(rel.getDbField()));
+	            String tmp = rs.getString (rel.getDbField());
+	            if (tmp == null)
+	                newprop.setBooleanValue (false);
+	            else if (tmp.equalsIgnoreCase ("true") ||
+	                     tmp.equalsIgnoreCase ("yes") || 
+	                     tmp.equals ("1"))
+	                newprop.setBooleanValue (true);
+	            else
+	                newprop.setBooleanValue (false);
 	            break;
 
 	        case Types.TINYINT:
@@ -306,7 +307,7 @@ public final class Node implements INode, Serializable {
 
 	        case Types.DECIMAL:
 	        case Types.NUMERIC:
-	            java.math.BigDecimal num = rs.getBigDecimal (rel.getDbField());
+	            BigDecimal num = new BigDecimal (rs.getString (rel.getDbField()));
 	            if (num.scale() > 0)
 	                newprop.setFloatValue (rs.getDouble(rel.getDbField()));
 	            else
