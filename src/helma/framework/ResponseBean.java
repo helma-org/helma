@@ -160,6 +160,14 @@ public class ResponseBean implements Serializable {
 	res.setETag (etag);
     }
 
+    public void dependsOn (Object what) {
+	res.dependsOn (what);
+    }
+
+    public void digestDependencies () {
+	res.digestDependencies ();
+    }
+
     /* public void notModified () throws RedirectException {
 	res.setNotModified (true);
     } */

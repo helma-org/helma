@@ -8,6 +8,7 @@ import java.util.*;
 import helma.framework.core.Skin;
 import helma.objectmodel.*;
 import helma.util.*;
+import java.security.*;
 
 /**
  * A Transmitter for a response to the servlet client. Objects of this 
@@ -95,6 +96,7 @@ public final class ResponseTrans implements Externalizable {
     // the request trans for this response
     private transient RequestTrans reqtrans;
 
+    private transient MessageDigest digest;
 
     public ResponseTrans () {
 	super ();
@@ -141,6 +143,9 @@ public final class ResponseTrans implements Externalizable {
 	values.clear ();
 	lastModified = -1;
 	notModified = false;
+	etag = null;
+	if (digest != null)
+	    digest.reset();
     }
 
 
@@ -408,6 +413,38 @@ public final class ResponseTrans implements Externalizable {
     
     public boolean getNotModified () {
 	return notModified; 
+    }
+
+    public void dependsOn (Object what) {
+	if (digest == null) try {
+	    digest = MessageDigest.getInstance ("MD5");
+	} catch (NoSuchAlgorithmException nsa) {
+	    // MD5 should always be available
+	}
+	if (what == null) {
+	    digest.update (new byte[0]);
+	} else if (what instanceof byte[]) {
+	    digest.update ((byte[]) what);
+	} else {
+	    String str = what.toString();
+	    if (str != null)
+	        digest.update (str.getBytes ());
+	    else
+	        digest.update (new byte[0]);
+	}
+    }
+
+    public void digestDependencies () {
+	if (digest == null) 
+	    return;
+	byte[] b = digest.digest();
+        /* StringBuffer buf = new StringBuffer(b.length*2);
+        for ( int i=0; i<b.length; i++ ) {
+            int j = (b[i]<0) ? 256+b[i] : b[i];
+            if ( j<16 ) buf.append("0");
+            buf.append(Integer.toHexString(j));
+        } */
+	setETag (new String (Base64.encode(b)));
     }
 
     public void setSkinpath (Object[] arr) {
