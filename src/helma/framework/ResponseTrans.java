@@ -162,6 +162,11 @@ public final class ResponseTrans implements Externalizable {
 	    return 0;
 	return buffer.length ();
     }
+    
+    public void setBufferLength(int l) {
+	if (buffer != null)
+	    buffer.setLength (l);
+    }
 
     /**
      * Append a string to the response unchanged. This is often called 
