@@ -295,8 +295,8 @@ public class GlobalObject extends ScriptableObject {
     public Object getXmlDocument(Object src) {
         try {
             Object p = src;
-            if (p instanceof NativeJavaObject) {
-                p = ((NativeJavaObject) p).unwrap();
+            if (p instanceof Wrapper) {
+                p = ((Wrapper) p).unwrap();
             }
             Object doc = XmlUtils.parseXml(p);
 
@@ -315,8 +315,8 @@ public class GlobalObject extends ScriptableObject {
     public Object getHtmlDocument(Object src) {
         try {
             Object p = src;
-            if (p instanceof NativeJavaObject) {
-                p = ((NativeJavaObject) p).unwrap();
+            if (p instanceof Wrapper) {
+                p = ((Wrapper) p).unwrap();
             }
             Object doc = helma.util.XmlUtils.parseHtml(p);
 

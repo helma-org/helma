@@ -53,7 +53,7 @@ public final class RhinoCore {
     long lastUpdate = 0;
 
     // the wrap factory
-    Wrapper wrapper;
+    WrapFactory wrapper;
 
     // the prototype for path objects
     PathWrapper pathProto;
@@ -70,7 +70,7 @@ public final class RhinoCore {
         Context context = Context.enter();
 
         context.setCompileFunctionsWithDynamicScope(true);
-        wrapper = new Wrapper();
+        wrapper = new WrapMaker();
         context.setWrapFactory(wrapper);
 
         int optLevel = 0;
@@ -466,8 +466,8 @@ public final class RhinoCore {
      * convert a JavaScript Object object to a generic Java object stucture.
      */
     public Object processXmlRpcResponse (Object what) throws Exception {
-        if (what instanceof NativeJavaObject) {
-            what = ((NativeJavaObject) what).unwrap();
+        if (what instanceof Wrapper) {
+            what = ((Wrapper) what).unwrap();
         }
         if (what instanceof NativeObject) {
             NativeObject no = (NativeObject) what;
@@ -607,8 +607,8 @@ public final class RhinoCore {
             for (int i=0; i<skinpath.length; i++) {
                 if (skinpath[i] instanceof HopObject) {
                     skinpath[i] = ((HopObject) skinpath[i]).getNode();
-                } else if (skinpath[i] instanceof NativeJavaObject) {
-                    skinpath[i] = ((NativeJavaObject) skinpath[i]).unwrap();
+                } else if (skinpath[i] instanceof Wrapper) {
+                    skinpath[i] = ((Wrapper) skinpath[i]).unwrap();
                 }
             }
         }
@@ -627,8 +627,8 @@ public final class RhinoCore {
 
                 for (int i = 0; i < ids.length; i++) {
                     Object obj = sp.get(ids[i].toString(), sp);
-                    if (obj instanceof NativeJavaObject) {
-                        param.put(ids[i], ((NativeJavaObject) obj).unwrap());
+                    if (obj instanceof Wrapper) {
+                        param.put(ids[i], ((Wrapper) obj).unwrap());
                     } else if (obj != Undefined.instance) {
                         param.put(ids[i], obj);
                     }
@@ -744,7 +744,7 @@ public final class RhinoCore {
     /**
      *  Object wrapper class
      */
-    class Wrapper extends WrapFactory {
+    class WrapMaker extends WrapFactory {
 
         public Object wrap(Context cx, Scriptable scope, Object obj, Class staticType)  {
             // System.err.println ("Wrapping: "+obj);

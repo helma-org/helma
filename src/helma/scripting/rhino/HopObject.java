@@ -34,7 +34,7 @@ import java.util.Map;
 /**
  * 
  */
-public class HopObject extends ScriptableObject {
+public class HopObject extends ScriptableObject implements Wrapper {
     static Method hopObjCtor;
 
     static {
@@ -153,6 +153,14 @@ public class HopObject extends ScriptableObject {
     }
 
     /**
+     * Returns the wrapped Node. Implements unwrap() in interface Wrapper.
+     *
+     */
+    public Object unwrap() {
+        return node;
+    }
+
+    /**
      *
      *
      * @return ...
@@ -241,8 +249,8 @@ public class HopObject extends ScriptableObject {
         String act = null;
 
         if (action != null) {
-            if (action instanceof NativeJavaObject) {
-                act = ((NativeJavaObject) action).unwrap().toString();
+            if (action instanceof Wrapper) {
+                act = ((Wrapper) action).unwrap().toString();
             } else if (!(action instanceof Undefined)) {
                 act = action.toString();
             }
@@ -465,8 +473,8 @@ public class HopObject extends ScriptableObject {
                 node.setSubnodeRelation(value == null ? null : value.toString());
             }
 
-            if (value instanceof NativeJavaObject) {
-                value = ((NativeJavaObject) value).unwrap();
+            if (value instanceof Wrapper) {
+                value = ((Wrapper) value).unwrap();
             }
 
             if ((value == null) || (value == Undefined.instance)) {
@@ -480,8 +488,6 @@ public class HopObject extends ScriptableObject {
                     node.setString(name, ScriptRuntime.toString(s));
                 } else if (s instanceof MapWrapper) {
                     node.setJavaObject(name, ((MapWrapper) s).unwrap());
-                } else if (s instanceof HopObject) {
-                    node.setNode(name, ((HopObject) value).node);
                 } else {
                     node.setJavaObject(name, s);
                 }
@@ -495,8 +501,6 @@ public class HopObject extends ScriptableObject {
                 node.setDate(name, (Date) value);
             } else if (value instanceof INode) {
                 node.setNode(name, (INode) value);
-            } else if (value instanceof HopObject) {
-                node.setNode(name, ((HopObject) value).node);
             } else {
                 node.setJavaObject(name, value);
             }

@@ -142,8 +142,8 @@ public class JavaObject extends NativeJavaObject {
         String act = null;
 
         if (action != null) {
-            if (action instanceof NativeJavaObject) {
-                act = ((NativeJavaObject) action).unwrap().toString();
+            if (action instanceof Wrapper) {
+                act = ((Wrapper) action).unwrap().toString();
             } else if (!(action instanceof Undefined)) {
                 act = action.toString();
             }

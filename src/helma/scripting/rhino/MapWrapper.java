@@ -19,7 +19,7 @@ package helma.scripting.rhino;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
-import org.mozilla.javascript.NativeJavaObject;
+import org.mozilla.javascript.Wrapper;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -59,8 +59,8 @@ public class MapWrapper extends ScriptableObject {
         if (map == null) {
             map = new HashMap();
         }
-        if (value instanceof NativeJavaObject) {
-            map.put(name, ((NativeJavaObject) value).unwrap());
+        if (value instanceof Wrapper) {
+            map.put(name, ((Wrapper) value).unwrap());
         } else {
             map.put(name, value);
         }
@@ -126,8 +126,8 @@ public class MapWrapper extends ScriptableObject {
         if (map == null) {
             map = new HashMap();
         }
-        if (value instanceof NativeJavaObject) {
-            map.put(Integer.toString(idx), ((NativeJavaObject) value).unwrap());
+        if (value instanceof Wrapper) {
+            map.put(Integer.toString(idx), ((Wrapper) value).unwrap());
         } else {
             map.put(Integer.toString(idx), value);
         }

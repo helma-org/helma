@@ -265,10 +265,8 @@ public class RhinoEngine implements ScriptingEngine {
                 return core.processXmlRpcResponse (retval);
             } else if ((retval == null) || (retval == Undefined.instance)) {
                 return null;
-            } else if (retval instanceof NativeJavaObject) {
-                return ((NativeJavaObject) retval).unwrap();
-            } else if (retval instanceof HopObject) {
-                return ((HopObject) retval).getNode();
+            } else if (retval instanceof Wrapper) {
+                return ((Wrapper) retval).unwrap();
             } else {
                 return retval;
             }
@@ -378,8 +376,8 @@ public class RhinoEngine implements ScriptingEngine {
 
             if ((prop == null) || (prop == Undefined.instance)) {
                 return null;
-            } else if (prop instanceof NativeJavaObject) {
-                return ((NativeJavaObject) prop).unwrap();
+            } else if (prop instanceof Wrapper) {
+                return ((Wrapper) prop).unwrap();
             } else {
                 return prop;
             }
