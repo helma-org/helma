@@ -80,6 +80,7 @@ public final class RequestEvaluator implements Runnable {
 
 	    // long startCheck = System.currentTimeMillis ();
 	    app.typemgr.checkPrototypes ();
+	    scriptingEngine.updatePrototypes ();
 	    // System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
 
 	    // object refs to ressolve request path
@@ -92,8 +93,6 @@ public final class RequestEvaluator implements Runnable {
 	        int tries = 0;
 	        boolean done = false;
 	        String error = null;
-
-	        scriptingEngine.updatePrototypes ();
 
 	        while (!done) {
 
@@ -327,8 +326,6 @@ public final class RequestEvaluator implements Runnable {
 	            globals.put ("res", res);
 	            globals.put ("app", app);
 
-	            scriptingEngine.updatePrototypes ();
-
 	            scriptingEngine.enterContext (globals);
 
 	            currentElement = root;
@@ -380,8 +377,6 @@ public final class RequestEvaluator implements Runnable {
 	                break;
 	            }
 	        }
-
-	        scriptingEngine.updatePrototypes ();
 
 	        // avoid going into transaction if called function doesn't exist
 	        boolean functionexists = true;
