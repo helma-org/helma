@@ -60,6 +60,9 @@ public class CacheMap  {
     private HashMap oldTable;
     private HashMap newTable;
 
+    // the logger to output messages to
+    private Logger logger = null;
+
     /// Constructs a new, empty hashtable with the specified initial 
     // capacity and the specified load factor.
     // Unlike a plain Hashtable, an LruHashtable will never grow or
@@ -184,7 +187,8 @@ public class CacheMap  {
 	else {
 	    if (newTable.size() >= eachCapacity) {
 		// Rotate the tables.
-	             helma.main.Server.getLogger().log ("Rotating Cache tables at "+newTable.size()+"/"+oldTable.size()+" (new/old)");
+		if (logger != null)
+		    logger.log ("Rotating Cache tables at "+newTable.size()+"/"+oldTable.size()+" (new/old)");
 		oldTable = newTable;
 		newTable = new HashMap (eachCapacity, loadFactor);
 	    }
@@ -209,6 +213,10 @@ public class CacheMap  {
 	oldTable.clear ();
     }
 
+    /// Set the logger to use for debug and profiling output
+    public void setLogger (Logger log) {
+	this.logger = log;
+    }
 
     public synchronized Object[] getEntryArray () {
 	Object[] k1 = newTable.keySet().toArray();
