@@ -47,7 +47,7 @@ public class WebServer implements Runnable {
     }
     // XmlRpc.setDebug (true);
     XmlRpc.setKeepAlive (true);
-    XmlRpc.setEncoding ("UTF-8");
+    // XmlRpc.setEncoding ("UTF-8");
     try {
       WebServer webserver = new WebServer (p);
       // webserver.setParanoid (true);
@@ -84,7 +84,9 @@ public class WebServer implements Runnable {
     deny = new Vector ();
     threadpool = new Stack ();
     runners = new ThreadGroup ("XML-RPC Runner");
-    this.serverSocket = new ServerSocket (port, 50, add);
+    serverSocket = new ServerSocket (port, 50, add);
+    if (port == 0)   // do we need to get the actual port of the socket?
+      port = serverSocket.getLocalPort ();
     listener = new Thread (this, "XML-RPC Weblistener");
     listener.start();
   }
@@ -113,7 +115,14 @@ public class WebServer implements Runnable {
   public void setParanoid (boolean p) {
     paranoid = p;
   }
-  
+
+  /**
+   * Return the port the server is listening on. Useful when the initial port parameter
+   * was 0 which means that any free port is used.
+   */
+  public int getServerPort () {
+    return port;
+  }
 
   /**
    * Add an IP address to the list of accepted clients. The parameter can contain '*' as wildcard
