@@ -572,7 +572,7 @@ public final class Skin {
                     msg = x.toString();
                 }
 
-                msg = "[HopMacro error in " + fullName + ": " + msg + "]";
+                msg = "[Macro error in " + fullName + ": " + msg + "]";
                 reval.res.write(" " + msg + " ");
                 app.logEvent(msg);
             }
@@ -620,7 +620,7 @@ public final class Skin {
         private void renderFromParam(RequestEvaluator reval, Map paramObject)
                 throws UnsupportedEncodingException {
             if (paramObject == null) {
-                reval.res.write("[HopMacro error: Skin requires a parameter object]");
+                reval.res.write("[Macro error: Skin requires a parameter object]");
             } else {
                 Object value = paramObject.get(name);
 
@@ -703,7 +703,7 @@ public final class Skin {
         }
 
         public String toString() {
-            return "[HopMacro: " + fullName + "]";
+            return "[Macro: " + fullName + "]";
         }
 
         /**
