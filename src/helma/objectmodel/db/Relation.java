@@ -779,29 +779,13 @@ public final class Relation {
             prefix = " AND ";
         }
 
-        if (constraints.length > 1 && logicalOperator != AND) {
-            q.append(prefix);
-            q.append("(");
-            prefix = "";
-        }
+        // render the constraints and filter
+        renderConstraints(q, home, nonvirtual, prefix);
 
-        for (int i = 0; i < constraints.length; i++) {
-            q.append(prefix);
-            constraints[i].addToQuery(q, home, nonvirtual);
-            prefix = logicalOperator;
-        }
-
-        if (constraints.length > 1 && logicalOperator != AND) {
-            q.append(")");
-            prefix = " AND ";
-        }
-
-        if (filter != null) {
-            appendFilter(q, nonvirtual, prefix);
-        }
-
+        // add joined fetch constraints
         ownType.addJoinConstraints(q, prefix);
 
+        // add group and order clauses
         if (groupby != null) {
             q.append(" GROUP BY " + groupby);
 
@@ -885,30 +869,39 @@ public final class Relation {
     }
 
     /**
+     * Render contraints and filter conditions to an SQL query string buffer
      *
-     *
-     * @param home ...
-     * @param nonvirtual ...
-     *
-     * @return ...
+     * @param q the query string
+     * @param home our home node
+     * @param nonvirtual our non-virtual home node
+     * @param prefix the prefix to use to append to the existing query (e.g. " AND ")
      *
      * @throws SQLException ...
      */
-    public String renderConstraints(INode home, INode nonvirtual)
+    public void renderConstraints(StringBuffer q, INode home,
+                                  INode nonvirtual, String prefix)
                              throws SQLException {
-        StringBuffer q = new StringBuffer();
-        String prefix = " AND ";
+
+        if (constraints.length > 1 && logicalOperator != AND) {
+            q.append(prefix);
+            q.append("(");
+            prefix = "";
+        }
 
         for (int i = 0; i < constraints.length; i++) {
             q.append(prefix);
             constraints[i].addToQuery(q, home, nonvirtual);
+            prefix = logicalOperator;
+        }
+
+        if (constraints.length > 1 && logicalOperator != AND) {
+            q.append(")");
+            prefix = " AND ";
         }
 
         if (filter != null) {
             appendFilter(q, nonvirtual, prefix);
         }
-
-        return q.toString();
     }
 
     /**
@@ -982,6 +975,10 @@ public final class Relation {
             return false;
         }
 
+        // counter for constraints and satisfied constraints
+        int count = 0;
+        int satisfied = 0;
+
         INode nonvirtual = parent.getNonVirtualParent();
 
         for (int i = 0; i < constraints.length; i++) {
@@ -1000,13 +997,22 @@ public final class Relation {
                     value = home.getString(constraints[i].localName);
                 }
 
-                if ((value != null) && !value.equals(child.getString(propname))) {
-                    return false;
+                count++;
+
+                if (value != null && value.equals(child.getString(propname))) {
+                    satisfied++;
                 }
             }
         }
 
-        return true;
+        // check if enough constraints are met depending on logical operator
+        if (logicalOperator == OR) {
+            return satisfied > 0;
+        } else if (logicalOperator == XOR) {
+            return satisfied == 1;
+        } else {
+            return satisfied == count;
+        }
     }
 
     /**
@@ -1014,7 +1020,15 @@ public final class Relation {
      * appropriate properties
      */
     public void setConstraints(Node parent, Node child) {
+
+        // if logical operator is OR or XOR we just return because we
+        // wouldn't know what to do anyway
+        if (logicalOperator != AND) {
+            return;
+        }
+
         Node home = parent.getNonVirtualParent();
+
         for (int i = 0; i < constraints.length; i++) {
             // don't set groupby constraints since we don't know if the
             // parent node is the base node or a group node

@@ -1212,7 +1212,7 @@ public final class NodeManager {
                     dbm.addJoinConstraints(q, " AND ");
 
                     if (rel.groupby != null) {
-                        q.append(rel.renderConstraints(home, home.getNonVirtualParent()));
+                        rel.renderConstraints(q, home, home.getNonVirtualParent(), " AND ");
 
                         if (rel.order != null) {
                             q.append(" ORDER BY ");
