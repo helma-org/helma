@@ -90,9 +90,12 @@
       <!-- The following replace handles the "import java.util.*" case by    -->
       <!-- adding an "import com.sun.java.util.collections.*" after it.      -->
       <!-- BTW, \u000a is the Unicode escape for a new line. (jhunter)       -->
-      <!-- replace dir="${build.src}/helma" includes="**"
+      <replace dir="${build.src}/helma/framework/core" includes="**"
              token="java.util.*"
-             value="java.util.*;\u000aimport ${coll.import}.*"/ -->
+             value="java.util.*;\u000aimport ${coll.import}.*"/>
+      <replace dir="${build.src}/helma/objectmodel" includes="**"
+             token="java.util.*"
+             value="java.util.*;\u000aimport ${coll.import}.*"/>
     </target>
 
 
