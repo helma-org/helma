@@ -64,9 +64,11 @@
 
         <cvs cvsRoot="${cvs.root}" package="hopbuild/skeleton" dest="${build.checkout}"/>
 
-        <cvs cvsRoot="${cvs.root}" package="apps/hopblog" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/base" dest="${build.checkout}"/>
+        <cvs cvsRoot="${cvs.root}" package="apps/hopblog" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/himp" dest="${build.checkout}"/>
+        <cvs cvsRoot="${cvs.root}" package="apps/bloggerapi" dest="${build.checkout}"/>
+        <cvs cvsRoot="${cvs.root}" package="apps/lillebror" dest="${build.checkout}"/>
 
     </target>
 
