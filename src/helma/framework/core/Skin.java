@@ -185,7 +185,7 @@ public class Skin {
 	            // not a macro handled by global - need to find handler object
 	            if (handlerNode != null) {
 	                // was called with this object - check it or its parents for matching prototype
-	                if (!handler.equalsIgnoreCase ("hopobject") && !handler.equalsIgnoreCase (handlerNode.getPrototypeName ())) {
+	                if (!handler.equalsIgnoreCase ("this") && !handler.equalsIgnoreCase (handlerNode.getPrototypeName ())) {
 	                    // the handler object is not what we want
 	                    INode n = handlerNode.getNode();
 	                    while (n != null) {
