@@ -9,6 +9,7 @@ import helma.framework.*;
 import helma.scripting.*;
 import helma.util.*;
 import java.util.*;
+import java.lang.reflect.*;
 
 /**
  * This class does the work for incoming requests. It holds a transactor thread
@@ -68,9 +69,23 @@ public final class RequestEvaluator implements Runnable {
     }
 
     protected void initScriptingEngine () {
-	if (scriptingEngine == null)
-	    scriptingEngine = helma.scripting.fesi.FesiEngineFactory.getEngine (app, this);
-	    // scriptingEngine = helma.scripting.rhino.RhinoEngineFactory.getEngine (app, this);
+	if (scriptingEngine == null) {
+	    String engineClassName = app.getProperty (
+	            "scripting.engine.factory",
+	            "helma.scripting.fesi.FesiEngineFactory");
+	    try {
+	        Class clazz = Class.forName (engineClassName);
+	        Class[] argClasses = {app.getClass(), getClass()};
+	        Method method = clazz.getMethod ("getEngine", argClasses);
+	        Object[] args = {app, this};
+	        scriptingEngine = (ScriptingEngine) method.invoke (null, args);
+	    } catch (Exception x) {
+	        app.logEvent ("******************************************");
+	        app.logEvent ("*** Error creating scripting engine: ");
+	        app.logEvent ("*** "+x.toString());
+	        app.logEvent ("******************************************");
+	    }
+	}
     }
 
     public void run () {
