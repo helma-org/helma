@@ -128,12 +128,6 @@ public class RequestEvaluator implements Runnable {
 	                    user.message = null;
 	                }
 
-	                /* // set and mount the request and response data object
-	                reqData.setData (req.getRequestData());
-	                req.data = reqData;
-	                resData.setData (res.getResponseData());
-	                res.data = resData; */
-
 	                try {
 
 	                    if (error != null) {
@@ -172,48 +166,30 @@ public class RequestEvaluator implements Runnable {
 	                            if (currentElement == null)
 	                                throw new FrameworkException ("Object not found.");
 
-	                            // the first token in the path needs to be treated seprerately,
-	                            // because "/user" is a shortcut to the current user session, while "/users"
-	                            // is the mounting point for all users.
-								// UPDATE: with the refactored scripting environment, no more pre-defined 
-								// /users and /user mounting points!
-								
-	                            /* if (i == 0 && "user".equalsIgnoreCase (pathItems[i])) {
-	                                currentElement = user.getNode ();
+	                            // we used to do special processing for /user and /users
+	                            // here but with the framework cleanup, this stuff has to be
+	                            // mounted manually.
+
+	                            // if we're at the last element of the path,
+	                            // try to interpret it as action name.
+	                            if (i == ntokens-1) {
+	                                action = getAction (currentElement, pathItems[i]);
+	                            }
+
+	                            if (action == null) {
+
+	                                if (pathItems[i].length () == 0)
+	                                    continue;
+
+	                                currentElement = app.getChildElement (currentElement, pathItems[i]);
+
+	                                // add object to request path if suitable
 	                                if (currentElement != null) {
+	                                    // add to requestPath array
 	                                    requestPath.add (currentElement);
+	                                    String pt = app.getPrototypeName (currentElement);
 	                                }
-
-	                            } else if (i == 0 && "users".equalsIgnoreCase (pathItems[i])) {
-	                                currentElement = app.getUserRoot ();
-
-	                                if (currentElement != null) {
-	                                    requestPath.add (currentElement);
-	                                }
-
-	                            } else { */
-
-	                                // if we're at the last element of the path,
-	                                // try to interpret it as action name.
-	                                if (i == ntokens-1) {
-	                                    action = getAction (currentElement, pathItems[i]);
-	                                }
-
-	                                if (action == null) {
-
-	                                    if (pathItems[i].length () == 0)
-	                                        continue;
-
-	                                    currentElement = app.getChildElement (currentElement, pathItems[i]);
-
-	                                    // add object to request path if suitable
-	                                    if (currentElement != null) {
-	                                        // add to requestPath array
-	                                        requestPath.add (currentElement);
-	                                        String pt = app.getPrototypeName (currentElement);
-	                                    }
-	                                }
-	                            // }
+	                            }
 	                        }
 
 	                        if (currentElement == null)
@@ -267,46 +243,42 @@ public class RequestEvaluator implements Runnable {
 	                    } catch (Exception ignore) {
 	                        // function is not defined or caused an exception, ignore
 	                    }
+
 	                    // do the actual action invocation
 	                    if (isAction) {
 	                        app.scriptingEngine.invoke (currentElement, action, new Object[0], globals, this);
 	                    } else {
-	                        /* Skin skin = getSkinInternal (app.appDir, app.getPrototype(currentElement).getName(),
-						action.substring (0, actionDot), action.substring (actionDot+1));
+	                        Skin skin = app.skinmgr.getSkinInternal (app.appDir, app.getPrototype(currentElement).getName(),
+	                                         action.substring (0, actionDot), action.substring (actionDot+1));
 	                        if (skin != null)
 	                            skin.render (this, currentElement, null);
 	                        else
-	                            throw new RuntimeException ("Skin "+action+" not found in "+req.path); */
+	                            throw new RuntimeException ("Skin "+action+" not found in "+req.path);
 	                    }
-
 
 	                    // check if the script set the name of a skin to render in res.skin
 	                    if (res.skin != null) {
 	                        int dot = res.skin.indexOf (".");
-	                        Object sobj = null;
-	                        String sname = res.skin;
+	                        Object skinObject = null;
+	                        String skinName = res.skin;
 	                        if (dot > -1) {
 	                            String soname = res.skin.substring (0, dot);
 	                            int l = requestPath.size();
 	                            for (int i=l-1; i>=0; i--) {
 	                                Object pathelem = requestPath.get (i);
 	                                if (soname.equalsIgnoreCase (app.getPrototypeName (pathelem))) {
-	                                    sobj = pathelem;
+	                                    skinObject = pathelem;
 	                                    break;
 	                                }
 	                            }
 
-	                            if (sobj == null)
+	                            if (skinObject == null)
 	                                throw new RuntimeException ("Skin "+res.skin+" not found in path.");
-	                            sname = res.skin.substring (dot+1);
+	                            skinName = res.skin.substring (dot+1);
 	                        }
-	                        Skin skin = app.getSkin (sobj, sname, null);
-	                        // get the java object wrapped by the script object, if not global
-	                        // Object obj = sobj == null ? null : sobj.toJavaObject ();
-	                        if (skin != null)
-	                            skin.render (this, sobj, null);
-	                        else
-	                            throw new RuntimeException ("Skin "+res.skin+" not found in path.");
+	                        Object[] skinNameArg = new Object[1];
+	                        skinNameArg[0] = skinName;
+	                        app.scriptingEngine.invoke (skinObject, "renderSkin", skinNameArg, globals, this);
 	                    }
 
 	                    localrtx.timer.endEvent (txname+" execute");
@@ -392,8 +364,8 @@ public class RequestEvaluator implements Runnable {
 	            globals.put ("res", res);
 	            globals.put ("app", app.getAppNode());
 
-	            // resolve XML-RPC method path
 	            currentElement = root;
+
 	            if (method.indexOf (".") > -1) {
 	                StringTokenizer st = new StringTokenizer (method, ".");
 	                int cnt = st.countTokens ();
@@ -401,6 +373,7 @@ public class RequestEvaluator implements Runnable {
 	                    String next = st.nextToken ();
 	                    currentElement = app.getChildElement (currentElement, next);
 	                }
+
 	                if (currentElement == null)
 	                    throw new FrameworkException ("Method name \""+method+"\" could not be resolved.");
 	                method = st.nextToken ();
@@ -450,19 +423,7 @@ public class RequestEvaluator implements Runnable {
 	            globals.put ("res", res);
 	            globals.put ("app", app.getAppNode());
 
-	            /*if (current == null) {
-	                if (user == null) {
-	                    current = global;
-	                } else {
-	                    ESUser esu = (ESUser) getNodeWrapper (user);
-	                    // esu.setUser (user);
-	                    current = esu;
-	                }
-	            }
-	            // call internal functions only if they're specified
-	            if (current.getProperty (method, method.hashCode()) != ESUndefined.theUndefined)
-	                esresult = current.doIndirectCall (evaluator, current, method, new ESValue[0]); */
-				app.scriptingEngine.invoke (thisObject, method, args, globals, this);
+	            app.scriptingEngine.invoke (thisObject, method, args, globals, this);
 	            commitTransaction ();
 
 	        } catch (Exception wrong) {
@@ -531,7 +492,7 @@ public class RequestEvaluator implements Runnable {
 	notifyAll ();
 	try {
 	    // wait for request, max 10 min
-		wait (1000*60*10);
+	    wait (1000*60*10);
 	    //  if no request arrived, release ressources and thread
 	    if (reqtype == NONE && rtx == localrtx)
 	        rtx = null;
