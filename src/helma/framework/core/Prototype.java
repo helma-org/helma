@@ -7,6 +7,7 @@ import java.util.*;
 import java.io.*;
 import helma.framework.*;
 import helma.objectmodel.*;
+import FESI.Data.*;
 import FESI.Exceptions.EcmaScriptException;
 
 
@@ -121,6 +122,30 @@ public class Prototype {
 
 
     public void initRequestEvaluator (RequestEvaluator reval) {
+            ObjectPrototype op = null;
+            if ("user".equalsIgnoreCase (name))
+                op = reval.esUserPrototype;
+            else if ("global".equalsIgnoreCase (name))
+                op = reval.global;
+            else if ("hopobject".equalsIgnoreCase (name))
+                op = reval.esNodePrototype;
+            else {
+                op = new ObjectPrototype (reval.esNodePrototype, reval.evaluator);
+                try {
+                    op.putProperty ("prototypename", new ESString (name), "prototypename".hashCode ());
+                } catch (EcmaScriptException ignore) {}
+            }
+            reval.putPrototype (name, op);
+
+            // Register a constructor for all types except global.
+            // This will first create a node and then call the actual (scripted) constructor on it.
+            if (!"global".equalsIgnoreCase (name)) {
+                try {
+                    FunctionPrototype fp = (FunctionPrototype) reval.evaluator.getFunctionPrototype();
+                    reval.global.putHiddenProperty (name, new NodeConstructor (name, fp, reval));
+                } catch (EcmaScriptException ignore) {}
+            }
+
 	for (Enumeration en = functions.elements(); en.hasMoreElements(); ) {
 	    FunctionFile ff = (FunctionFile) en.nextElement ();
 	    ff.updateRequestEvaluator (reval);

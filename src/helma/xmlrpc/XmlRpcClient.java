@@ -19,14 +19,17 @@ public class XmlRpcClient implements XmlRpcHandler {
      
     URL url;
     String auth;
-    int maxThreads = 50;
+    int maxThreads = 100;
 
+    // pool of worker instances
     Stack pool = new Stack ();
     int workers = 0;
 
-    long calls = 0;
+    // average roundtrip of this method call. This is used to decide if
+    // additional threads are needed or not in async mode
     int roundtrip = 1000;
 
+    // a queue of calls to be handled asynchronously
     CallData first, last;
 
     /**
@@ -84,7 +87,6 @@ public class XmlRpcClient implements XmlRpcHandler {
 	try {
     	    Object retval =  worker.execute (method, params);
 	    long end = System.currentTimeMillis ();
-	    calls++;
 	    roundtrip = (int) ((roundtrip*4)+(end-start))/5;
 	    return retval;
 	} finally {
@@ -204,7 +206,6 @@ public class XmlRpcClient implements XmlRpcHandler {
                  if (callback != null)
 	        callback.handleError (x, url, method);
 	}
-	calls++;
 	long end = System.currentTimeMillis ();
 	roundtrip = (int) ((roundtrip*4)+(end-start))/5;
     }

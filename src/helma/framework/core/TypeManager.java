@@ -195,16 +195,11 @@ public class TypeManager implements Runnable {
         proto.functions = nfunc;
         proto.actions = nact;
 
-        // register constructor for evaluators that are already initialized.
-        if (!"global".equalsIgnoreCase (name)) {
-            Iterator evals = getRegisteredRequestEvaluators ();
-            while (evals.hasNext ()) {
-                try {
-                    RequestEvaluator reval = (RequestEvaluator) evals.next ();
-                    FunctionPrototype fp = (FunctionPrototype) reval.evaluator.getFunctionPrototype();
-                    reval.global.putHiddenProperty (name, new NodeConstructor (name, fp, reval));
-                } catch (Exception ignore) {}
-            }
+        // init prototype on evaluators that are already initialized.
+        Iterator evals = getRegisteredRequestEvaluators ();
+        while (evals.hasNext ()) {
+            RequestEvaluator reval = (RequestEvaluator) evals.next ();
+            proto.initRequestEvaluator (reval);
         }
 
     }
@@ -294,31 +289,6 @@ public class TypeManager implements Runnable {
             registeredEvaluators.add (reval);
         for (Enumeration en = prototypes.elements(); en.hasMoreElements(); ) {
             Prototype p = (Prototype) en.nextElement ();
-            String name = p.getName ();
-            ObjectPrototype op = null;
-            if ("user".equalsIgnoreCase (name))
-                op = reval.esUserPrototype;
-            else if ("global".equalsIgnoreCase (name))
-                op = reval.global;
-            else if ("hopobject".equalsIgnoreCase (name))
-                op = reval.esNodePrototype;
-            else {
-                op = new ObjectPrototype (reval.esNodePrototype, reval.evaluator);
-                try {
-                    op.putProperty ("prototypename", new ESString (name), "prototypename".hashCode ());
-                } catch (EcmaScriptException ignore) {}
-            }
-            reval.putPrototype (name, op);
-
-            // Register a constructor for all types except global.
-            // This will first create a node and then call the actual (scripted) constructor on it.
-            if (!"global".equalsIgnoreCase (name)) {
-                try {
-                    FunctionPrototype fp = (FunctionPrototype) reval.evaluator.getFunctionPrototype();
-                    reval.global.putHiddenProperty (name, new NodeConstructor (name, fp, reval));
-                } catch (EcmaScriptException ignore) {}
-            }
-
             p.initRequestEvaluator (reval);
         }
         reval.initialized = true;
