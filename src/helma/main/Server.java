@@ -162,6 +162,12 @@ import org.mortbay.util.*;
 
 	// create hopHome File object
 	hopHome = new File (homeDir);
+	// try to transform hopHome directory to its cononical representation
+	try {
+	    hopHome = hopHome.getCanonicalFile ();
+	} catch (IOException iox) {
+	    System.err.println ("Error calling getCanonicalFile() on hopHome: "+iox);
+	}
 
 	// from now on it's safe to call getLogger()
 
