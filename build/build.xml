@@ -110,8 +110,6 @@
             </classpath>
         </javac>
         <rmic classname="helma.framework.core.Application" base="${build.classes}"/>
-        <rmic classname="helma.image.Server" base="${build.classes}"/>
-        <rmic classname="helma.image.RemoteImage" base="${build.classes}"/>
     </target>
 
     <!-- =================================================================== -->
@@ -253,8 +251,6 @@
             </classpath>
         </javac>
         <rmic classname="helma.framework.core.Application" base="${snapshot.classes}"/>
-        <rmic classname="helma.image.Server" base="${snapshot.classes}"/>
-        <rmic classname="helma.image.RemoteImage" base="${snapshot.classes}"/>
     </target>
     
     <!-- =================================================================== -->
