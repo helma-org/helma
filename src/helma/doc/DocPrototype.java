@@ -1,11 +1,12 @@
 package helma.doc;
 
+import helma.framework.IPathElement;
 import java.io.*;
 import java.util.*;
 import FESI.Parser.*;
 
 
-public class DocPrototype extends DocElement	{
+public class DocPrototype extends DocElement implements IPathElement	{
 
 	DocFunction[] functions;
 	DocApplication app;
@@ -186,6 +187,34 @@ public class DocPrototype extends DocElement	{
 
 	public String toString()	{
 		return ( "[DocPrototype " + name + "]" );
+	}
+
+
+	////////////////////////////////////
+	// from helma.framework.IPathElement
+	////////////////////////////////////
+	
+	public String getElementName()	{
+		return name;
+	}
+
+	public IPathElement getChildElement(String name)	{
+		for ( int i=0; i<functions.length; i++ )	{
+			if ( name.equals( functions[i].getTypeName().toLowerCase()+"_"+functions[i].getName() ) )
+				return functions[i];
+		}
+		return null;
+	}
+
+//		return getFunction(name);
+//	}
+
+	public IPathElement getParentElement()	{
+		return app;
+	}
+
+	public java.lang.String getPrototype()	{
+		return "docprototype";
 	}
 
 }
