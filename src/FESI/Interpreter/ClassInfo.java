@@ -399,6 +399,8 @@ public class ClassInfo {
                }
                
             } // if class not public
+            if (Modifier.isPublic (method.getModifiers ()))
+                method.setAccessible (true);
             //  save it
             methodVector.addElement(method);
         }
@@ -486,7 +488,7 @@ public class ClassInfo {
             // I am not too sure of what happens if the method is defined in an
             // interface...
             if (!Modifier.isStatic(cls.getModifiers()) && !Modifier.isPublic(cls.getModifiers())) {
-               if (debug) System.out.println("** Bean class " + cls + 
+               if (debug) System.out.println("** Bean class " + cls +
                            " is not public, examining superclasses to find proper method descriptor");
             SEARCHPUBLIC:
                for (Class theClass=cls;theClass!=null;theClass=theClass.getSuperclass()) {
@@ -516,6 +518,8 @@ public class ClassInfo {
                     }
                } // for
             } // if class not public
+            if (Modifier.isPublic (method.getModifiers ()))
+                method.setAccessible (true);
             //  save it
             methodVector.addElement(method);
         }
@@ -523,7 +527,7 @@ public class ClassInfo {
         Method [] methods = null;
         int nmbMethods = methodVector.size();
         if (nmbMethods>0) {
-           if (debug) System.out.println("** " + nmbMethods + " methods named: '" 
+           if (debug) System.out.println("** " + nmbMethods + " methods named: '"
                                        + functionName + "' + found, add to bean cache");
             methods = new Method[nmbMethods];
             methodVector.copyInto(methods);
@@ -532,10 +536,10 @@ public class ClassInfo {
             }
             beanMethods.put(functionName, methods);
         } else {
-            if (debug) System.out.println("** No bean method named: '" + 
+            if (debug) System.out.println("** No bean method named: '" +
                                             functionName + "' + found");
         }
         return methods;
     }
-    
+
 }
