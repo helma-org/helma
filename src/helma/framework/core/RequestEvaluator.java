@@ -221,9 +221,6 @@ public class RequestEvaluator implements Runnable {
 	                    } else {
 
 	                        // march down request path...
-	                        // is the next path element a subnode or a property of the last one?
-	                        // currently only used for users node
-	                        boolean isProperty = false;
 	
 	                        StringTokenizer st = new StringTokenizer (req.path, "/");
 	                        int ntokens = st.countTokens ();
@@ -248,7 +245,7 @@ public class RequestEvaluator implements Runnable {
 	                            // because "/user" is a shortcut to the current user session, while "/users"
 	                            // is the mounting point for all users.
 	                            if (i == 0 && "user".equalsIgnoreCase (pathItems[i])) {
-	                                // currentElement = user.getNode ();
+	                                currentElement = user.getNode ();
 	                                if (currentElement != null) {
 	                                    current = getElementWrapper (currentElement);
 	                                    reqPath.putProperty (1, current);
@@ -256,8 +253,8 @@ public class RequestEvaluator implements Runnable {
 	                                }
 	
 	                            } else if (i == 0 && "users".equalsIgnoreCase (pathItems[i])) {
-	                                // currentElement = app.getUserRoot ();
-	                                // isProperty = true;
+	                                currentElement = app.getUserRoot ();
+
 	                                if (currentElement != null) {
 	                                    current = getElementWrapper (currentElement);
 	                                    reqPath.putProperty (1, current);
@@ -276,16 +273,6 @@ public class RequestEvaluator implements Runnable {
 	                                        continue;
 	
 	                                    currentElement = currentElement.getChildElement (pathItems[i]);
-	                                    /* if (isProperty)  // get next element as property
-	                                        currentElement = currentElement.getNode (pathItems[i], false);
-	                                    else {
-	                                        // try to get next element as subnode first, then fall back to property
-	                                        INode nextNode = currentElement.getSubnode (pathItems[i]);
-	                                        if (nextNode == null)
-	                                            nextNode = currentElement.getNode (pathItems[i], false);
-	                                        currentElement = nextNode;
-	                                    }
-	                                    isProperty = false; */
 
 	                                    // add object to request path if suitable
 	                                    if (currentElement != null) {
