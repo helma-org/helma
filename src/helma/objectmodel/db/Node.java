@@ -723,7 +723,8 @@ public final class Node implements INode, Serializable {
                 // we only try to fetch a node if an explicit relation is specified for the prop name
                 Relation rel = dbmap.propertyToRelation(pinfo.propname);
 
-                if ((rel != null) && (rel.reftype == Relation.REFERENCE)) {
+                if ((rel != null) && (rel.reftype == Relation.REFERENCE ||
+                                      rel.reftype == Relation.COMPLEX_REFERENCE)) {
                     pn = getNode(pinfo.propname);
                 }
 
