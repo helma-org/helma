@@ -25,7 +25,7 @@ import org.mortbay.http.ajp.*;
 
  public class Server implements IPathElement, Runnable {
 
-    public static final String version = "1.2pre3+ 2002/09/26";
+    public static final String version = "1.2pre3+ 2002/10/01";
     public long starttime;
 
     // if true we only accept RMI and XML-RPC connections from 
@@ -141,6 +141,13 @@ import org.mortbay.http.ajp.*;
 	        usageError = true;
 	}
 
+	// check server ports. If no port is set, issue a warning and exit.
+	if (!usageError && (websrvPort | ajp13Port | rmiPort | xmlrpcPort) == 0) {
+	    System.out.println ("  Error: No server port specified.");
+	    usageError = true;
+	}
+
+
 	if (usageError ) {
 	    System.out.println ("usage: java helma.main.Server [-h dir] [-f file] [-p port] [-w port] [-x port]");
 	    System.out.println ("  -h dir     Specify hop home directory");
@@ -148,10 +155,26 @@ import org.mortbay.http.ajp.*;
 	    System.out.println ("  -p port    Specify RMI port number");
 	    System.out.println ("  -w port    Specify port number for embedded Web server");
 	    System.out.println ("  -x port    Specify XML-RPC port number");
-	    System.out.println ("  -jk port    Specify AJP13 port number");
+	    System.out.println ("  -jk port   Specify AJP13 port number");
 	    System.err.println ("Usage Error - exiting");
 	    System.exit (0);
 	}
+
+	// check if servers are already running on the given ports
+	try {
+	    if (websrvPort > 0)
+	        checkRunning (websrvPort);
+	    if (rmiPort > 0)
+	        checkRunning (rmiPort);
+	    if (xmlrpcPort > 0)
+	        checkRunning (xmlrpcPort);
+	    if (ajp13Port > 0)
+	        checkRunning (ajp13Port);
+	} catch (Exception running) {
+	    System.out.println (running.getMessage ());
+	    System.exit (1);
+	}
+
 
 	// get main property file from home dir or vice versa, depending on what we have.
 	// get property file from hopHome
@@ -222,30 +245,6 @@ import org.mortbay.http.ajp.*;
 
 	dbSources = new Hashtable ();
 
-	// check server ports. If no port is set, 
-	// use 5055 for RMI and 5056 for XML-RPC.
-	if ((websrvPort | ajp13Port | rmiPort) == 0) {
-	    rmiPort = 5055;
-	    if (xmlrpcPort == 0)
-	        xmlrpcPort = 5056;
-	}
-
-	// check if servers are already running on the given ports
-	try {
-	    if (websrvPort > 0)
-	        checkRunning (websrvPort);
-	    if (rmiPort > 0)
-	        checkRunning (rmiPort);
-	    if (xmlrpcPort > 0)
-	        checkRunning (xmlrpcPort);
-	    if (ajp13Port > 0)
-	        checkRunning (ajp13Port);
-	} catch (Exception running) {
-	    System.out.println (running.getMessage ());
-	    System.exit (1);
-	}
-
-	// nmgr = new NodeManager (this, sysProps);
 	// try to load the extensions
 	extensions = new Vector ();
 	if (sysProps.getProperty ("extensions")!=null) {
@@ -323,36 +322,36 @@ import org.mortbay.http.ajp.*;
 	        getLogger().log ("Starting AJP13-Listener on port "+(ajp13Port));
 	    }
 
-	    String xmlparser = sysProps.getProperty ("xmlparser");
-	    if (xmlparser != null)
-	        XmlRpc.setDriver (xmlparser);
+	    if (xmlrpcPort > 0) {
+	        String xmlparser = sysProps.getProperty ("xmlparser");
+	        if (xmlparser != null)
+	            XmlRpc.setDriver (xmlparser);
 
-	    xmlrpc = new WebServer (xmlrpcPort);
-	    if (paranoid) {
-	        xmlrpc.setParanoid (true);
-	        String xallow = sysProps.getProperty ("allowXmlRpc");
-	        if (xallow != null) {
-	            StringTokenizer st = new StringTokenizer (xallow, " ,;");
-	            while (st.hasMoreTokens ())
-	                xmlrpc.acceptClient (st.nextToken ());
+	        xmlrpc = new WebServer (xmlrpcPort);
+	        if (paranoid) {
+	            xmlrpc.setParanoid (true);
+	            String xallow = sysProps.getProperty ("allowXmlRpc");
+	            if (xallow != null) {
+	                StringTokenizer st = new StringTokenizer (xallow, " ,;");
+	                while (st.hasMoreTokens ())
+	                    xmlrpc.acceptClient (st.nextToken ());
+	            }
 	        }
+	        getLogger().log ("Starting XML-RPC server on port "+(xmlrpcPort));
 	    }
-	    getLogger().log ("Starting XML-RPC server on port "+(xmlrpcPort));
 
-	    // the following seems not to be necessary after all ...
-	    // System.setSecurityManager(new RMISecurityManager());
-	    if (paranoid) {
-	        HopSocketFactory factory = new HopSocketFactory ();
-	        String rallow = sysProps.getProperty ("allowWeb");
-	        if (rallow != null) {
-	            StringTokenizer st = new StringTokenizer (rallow, " ,;");
-	            while (st.hasMoreTokens ())
-	                factory.addAddress (st.nextToken ());
-	        }
-	        RMISocketFactory.setSocketFactory (factory);
-	    }
 
 	    if (rmiPort > 0) {
+	        if (paranoid) {
+	            HopSocketFactory factory = new HopSocketFactory ();
+	            String rallow = sysProps.getProperty ("allowWeb");
+	            if (rallow != null) {
+	                StringTokenizer st = new StringTokenizer (rallow, " ,;");
+	                while (st.hasMoreTokens ())
+	                    factory.addAddress (st.nextToken ());
+	            }
+	            RMISocketFactory.setSocketFactory (factory);
+	        }
 	        getLogger().log ("Starting RMI server on port "+rmiPort);
 	        LocateRegistry.createRegistry (rmiPort);
 	    }
