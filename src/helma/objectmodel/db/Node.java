@@ -902,10 +902,23 @@ public final class Node implements INode, Serializable {
      * This implements the getChild() method of the IPathElement interface
      */
     public IPathElement getChildElement (String name) {
-	IPathElement child = (IPathElement) getSubnode (name);
-	if (child == null)
-	    child = (IPathElement) getNode (name, false);
-	return child;
+	if (dbmap != null) {
+	    // if a dbmapping is provided, check what it tells us about
+	    // getting this specific child element
+	    Relation rel = dbmap.getExactPropertyRelation (name);
+	    if (rel != null)
+	        return (IPathElement) getNode (name, false);
+	    rel = dbmap.getSubnodeRelation ();
+	    if (rel != null && rel.groupby == null && rel.accessor != null)
+	        return (IPathElement) nmgr.getNode (this, name, rel);
+	    return (IPathElement) getSubnode (name);
+	} else {
+	    // no dbmapping - just try child collection first, then named property.
+	    IPathElement child = (IPathElement) getSubnode (name);
+	    if (child == null)
+	        child = (IPathElement) getNode (name, false);
+	    return child;
+	}
     }
 
     /**
