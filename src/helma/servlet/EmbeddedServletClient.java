@@ -21,17 +21,16 @@ public final class EmbeddedServletClient extends AbstractServletClient {
     private Application app = null;
     private String appName;
 
-    // tells us whether the application is mounted as root or by its name
-    // depending on this we know whether we have to transform the request path
-    boolean root;
+    // The path where this servlet is mounted
+    String servletPath;
 
     public EmbeddedServletClient () {
 	super ();
     }
 
-    public EmbeddedServletClient (String appName, boolean isRoot) {
+    public EmbeddedServletClient (String appName, String servletPath) {
 	this.appName = appName;
-	this.root = isRoot;
+	this.servletPath = servletPath;
     }
 
     public void init (ServletConfig init) throws ServletException {
@@ -59,11 +58,9 @@ public final class EmbeddedServletClient extends AbstractServletClient {
     String getRequestPath (String path) {
 	if (path == null)
 	    return "";
-	if (root)
-	    return trim (path);
-	int appInPath = path.indexOf (appName);
-	if (appInPath > 0)
-	    return trim (path.substring (appInPath+appName.length()));
+	int pathMatch = path.indexOf (servletPath);
+	if (pathMatch > -1)
+	    return trim (path.substring (pathMatch+servletPath.length()));
 	else
 	    return trim (path);
     }
