@@ -182,7 +182,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     }
 
     protected boolean setNumberOfEvaluators (int n) {
-	if (n < 1 || n > 512)
+	if (n < 2 || n > 511)
 	    return false;
 	int current = allThreads.size();
 	synchronized (allThreads) {
@@ -199,6 +199,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	            try {
 	                RequestEvaluator re = (RequestEvaluator) freeThreads.pop ();
 	                allThreads.removeElement (re);
+	                typemgr.unregisterRequestEvaluator (re);
 	                re.stopThread ();
 	            } catch (EmptyStackException empty) {
 	                return false;

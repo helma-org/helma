@@ -27,13 +27,14 @@ import FESI.Exceptions.*;
 public class Action {
 
     String name;
+    String functionName;
     Prototype prototype;
     Application app;
     File file;
     long lastmod;
 
-
-    ParsedFunction pfunc;
+    // this is the parsed function which can be easily applied to RequestEvaluator objects
+    TypeUpdater pfunc;
 
 
     public Action (File file, String name, Prototype proto) {
@@ -70,15 +71,22 @@ public class Action {
     public void update (String content) throws Exception {
 	// IServer.getLogger().log ("Reading text template " + name);
 
-	String fname = name+"_hop_action";
+	functionName = name+"_hop_action";
 
              try {
-	    pfunc = parseFunction (fname, "arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10", content);
+	    pfunc = parseFunction (functionName, "arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10", content);
              } catch (Exception x) {
                  String message = x.getMessage ();
-                 app.typemgr.generateErrorFeedback (fname, message, prototype.getName ());
+                 pfunc =  new ErrorFeedback (functionName, message);
              }
 
+	Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
+	while (evals.hasNext ()) {
+	    try {
+	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
+	        updateRequestEvaluator (reval);
+	    } catch (Exception ignore) {}
+	}
    }
 
 
@@ -87,10 +95,16 @@ public class Action {
     }
 
     public String getFunctionName () {
-	return pfunc.functionName;
+	return functionName;
     }
 
-    protected ParsedFunction parseFunction (String funcname, String params, String body) throws EcmaScriptException {
+
+    public synchronized void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException {
+        if (pfunc != null)
+            pfunc.updateRequestEvaluator (reval);
+    }
+
+    protected TypeUpdater parseFunction (String funcname, String params, String body) throws EcmaScriptException {
 
         // ESObject fp = app.eval.evaluator.getFunctionPrototype();
         // ConstructedFunctionObject function = null;
@@ -142,12 +156,7 @@ public class Action {
         return new ParsedFunction (fpl, sl, fes, fulltext, funcname);
     }
 
-    public void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException {
-        if (pfunc != null)
-            pfunc.updateRequestEvaluator (reval);
-    }
-
-    class ParsedFunction {
+    class ParsedFunction implements TypeUpdater {
 
         ASTFormalParameterList fpl = null;
         ASTStatementList sl = null;
@@ -177,6 +186,44 @@ public class Action {
 	op.putHiddenProperty (functionName, fp);
         }
 
+    }
+
+    class ErrorFeedback implements TypeUpdater {
+
+        String functionName, errorMessage;
+
+        public ErrorFeedback (String fname, String msg) {
+            functionName = fname;
+            errorMessage = msg;
+        }
+
+        public void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException {
+
+            ObjectPrototype op = reval.getPrototype (prototype.getName ());
+
+            FunctionPrototype fp = (FunctionPrototype) reval.evaluator.getFunctionPrototype ();
+            FunctionPrototype func = new ThrowException (functionName, reval.evaluator, fp, errorMessage);
+            op.putHiddenProperty (functionName, func);
+
+        }
+    }
+
+    class ThrowException extends BuiltinFunctionObject {
+        String message;
+        ThrowException (String name, Evaluator evaluator, FunctionPrototype fp, String message) {
+            super (fp, evaluator, name, 1);
+            this.message = message == null ? "No error message available" : message;
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+            throw new EcmaScriptException (message);
+        }
+        public ESObject doConstruct (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+            throw new EcmaScriptException (message);
+        }
+    }
+
+    interface TypeUpdater {
+        public void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException;
     }
 }
 

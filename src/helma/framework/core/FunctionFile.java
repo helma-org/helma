@@ -44,9 +44,17 @@ public class FunctionFile {
 
 	lastmod = fmod;
 	// app.typemgr.readFunctionFile (file, prototype.getName ());
+	Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
+	while (evals.hasNext ()) {
+	    try {
+	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
+	        updateRequestEvaluator (reval);
+	    } catch (Exception ignore) {}
+	}
+
     }
 
-    public void updateRequestEvaluator (RequestEvaluator reval) {
+    public  synchronized void updateRequestEvaluator (RequestEvaluator reval) {
 
         EvaluationSource es = new FileEvaluationSource(file.getPath(), null);
         FileReader fr = null;

@@ -28,6 +28,7 @@ public class RequestEvaluator implements Runnable {
 
 
     Application app;
+    protected boolean initialized;
 
     RequestTrans req;
     ResponseTrans res;
@@ -86,6 +87,7 @@ public class RequestEvaluator implements Runnable {
 	this.objectcache = new LruHashtable (100, .80f);
 	this.prototypes = new Hashtable ();
 	initEvaluator ();
+	initialized = false;
 	// startThread ();
     }
 
@@ -132,7 +134,7 @@ public class RequestEvaluator implements Runnable {
 
         int txcount = 0;
 
-        if (prototypes.size() == 0)
+        if (!initialized)
 	app.typemgr.initRequestEvaluator (this);
 
         do {

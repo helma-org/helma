@@ -23,10 +23,11 @@ public class ESAppNode extends ESNode {
 	app = eval.app;
 	createtime = new DatePrototype (eval.evaluator, node.created());
 	FunctionPrototype fp = (FunctionPrototype) eval.evaluator.getFunctionPrototype();
-	putHiddenProperty("countEvaluators", new AppCountEvaluators ("countEvaluators", evaluator, fp));
-	putHiddenProperty("countFreeEvaluators", new AppCountFreeEvaluators ("countFreeEvaluators", evaluator, fp));
-	putHiddenProperty("countBusyEvaluators", new AppCountBusyEvaluators ("countBusyEvaluators", evaluator, fp));
-	putHiddenProperty("setNumberOfEvaluators", new AppSetNumberOfEvaluators ("setNumberOfEvaluators", evaluator, fp));
+	putHiddenProperty("getMaxThreads", new AppCountEvaluators ("getMaxThreads", evaluator, fp));
+	putHiddenProperty("getFreeThreads", new AppCountFreeEvaluators ("getFreeThreads", evaluator, fp));
+	putHiddenProperty("getActiveThreads", new AppCountBusyEvaluators ("getActiveThreads", evaluator, fp));
+	putHiddenProperty("getMaxActiveThreads", new AppCountMaxBusyEvaluators ("getMaxActiveThreads", evaluator, fp));
+	putHiddenProperty("setMaxThreads", new AppSetNumberOfEvaluators ("setMaxThreads", evaluator, fp));
     }
 
     /**
@@ -54,7 +55,7 @@ public class ESAppNode extends ESNode {
             super (fp, evaluator, name, 0);
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-           return new ESNumber (app.allThreads.size());
+           return new ESNumber (app.allThreads.size()-1);
         }
     }
 
@@ -72,7 +73,16 @@ public class ESAppNode extends ESNode {
             super (fp, evaluator, name, 0);
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-           return new ESNumber (app.allThreads.size() - app.freeThreads.size());
+           return new ESNumber (app.allThreads.size() - app.freeThreads.size() -1);
+        }
+    }
+
+    class AppCountMaxBusyEvaluators extends BuiltinFunctionObject {
+        AppCountMaxBusyEvaluators (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 0);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+           return new ESNumber (app.typemgr.countRegisteredRequestEvaluators () -1);
         }
     }
 
@@ -84,7 +94,7 @@ public class ESAppNode extends ESNode {
             RequestEvaluator ev = new RequestEvaluator (app);
             if (arguments.length != 1)
                 return ESBoolean.makeBoolean (false);
-            return ESBoolean.makeBoolean (app.setNumberOfEvaluators (arguments[0].toInt32()));
+            return ESBoolean.makeBoolean (app.setNumberOfEvaluators (1 + arguments[0].toInt32()));
         }
     }
 

@@ -31,6 +31,10 @@ public class TypeManager implements Runnable, EcmaScriptTreeConstants {
     long idleSeconds = 120; // if idle for longer than 5 minutes, slow down
     boolean rewire;
 
+    // this contains only those evaluatores which have already been initialized
+    // and thus need to get updates
+    List registeredEvaluators;
+
     Thread typechecker;
 
    // The http broadcaster for pushing out parser output
@@ -55,6 +59,7 @@ public class TypeManager implements Runnable, EcmaScriptTreeConstants {
 	if (!f.exists())	
 	    f.mkdir ();
 	prototypes = new Hashtable ();
+	registeredEvaluators = Collections.synchronizedList (new ArrayList (30));
 	nodeProto = null;
     }
 
@@ -277,38 +282,9 @@ public class TypeManager implements Runnable, EcmaScriptTreeConstants {
 
 
 
-    protected void generateErrorFeedback (String funcname, String message, String protoname)
-		throws EcmaScriptException {
-       int size = app.allThreads.size ();
-
-        for (int i=0; i<size; i++) {
-            RequestEvaluator reval = (RequestEvaluator) app.allThreads.elementAt (i);
-
-            ObjectPrototype op = reval.getPrototype (protoname);
-if (op == null) return;
-
-            FunctionPrototype fp = (FunctionPrototype) reval.evaluator.getFunctionPrototype ();
-            FunctionPrototype func = new ThrowException (funcname, reval.evaluator, fp, message);
-            op.putHiddenProperty (funcname, func);
-
-        }
-    }
-
-    class ThrowException extends BuiltinFunctionObject {
-        String message;
-        ThrowException (String name, Evaluator evaluator, FunctionPrototype fp, String message) {
-            super (fp, evaluator, name, 1);
-            this.message = message == null ? "No error message available" : message;
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            throw new EcmaScriptException (message);
-        }
-        public ESObject doConstruct (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            throw new EcmaScriptException (message);
-        }
-    }
-
     public void initRequestEvaluator (RequestEvaluator reval) {
+        if (!registeredEvaluators.contains (reval))
+            registeredEvaluators.add (reval);
         for (Enumeration en = prototypes.elements(); en.hasMoreElements(); ) {
             Prototype p = (Prototype) en.nextElement ();
             String name = p.getName ();
@@ -338,8 +314,20 @@ if (op == null) return;
 
             p.initRequestEvaluator (reval);
         }
+        reval.initialized = true;
     }
 
+    public void unregisterRequestEvaluator (RequestEvaluator reval) {
+        registeredEvaluators.remove (reval);
+    }
+
+    public Iterator getRegisteredRequestEvaluators () {
+        return registeredEvaluators.iterator ();
+    }
+
+    public int countRegisteredRequestEvaluators () {
+        return registeredEvaluators.size ();
+    }
 
 }
 

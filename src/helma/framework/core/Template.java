@@ -23,7 +23,8 @@ import FESI.Exceptions.*;
 
 public class Template extends Action {
 
-    ParsedFunction psfunc;
+    // this is the *_as_string function, which is in addition to the normal one
+    TypeUpdater psfunc;
 
 
     public Template (File file, String name, Prototype proto) {
@@ -132,6 +133,7 @@ public class Template extends Action {
 	}
 	// templateBody.append ("\r\nreturn null;\r\n");
 
+             functionName = name;
 	String fname = name+"_as_string";
 	String body = templateBody.toString ();
 
@@ -141,7 +143,7 @@ public class Template extends Action {
 		body+"\r\nreturn null;\r\n");
              } catch (Exception x) {
                  String message = x.getMessage ();
-                 app.typemgr.generateErrorFeedback (name, message, prototype.getName ());
+                 pfunc =  new ErrorFeedback (name, message);
              }
              try {
 	    psfunc = parseFunction (fname,
@@ -149,12 +151,19 @@ public class Template extends Action {
 		"res.pushStringBuffer(); "+body+"\r\nreturn res.popStringBuffer();\r\n");
              } catch (Exception x) {
                  String message = x.getMessage ();
-                 app.typemgr.generateErrorFeedback (fname, message, prototype.getName ());
+                 psfunc =  new ErrorFeedback (fname, message);
              }
 
+	Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
+	while (evals.hasNext ()) {
+	    try {
+	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
+	        updateRequestEvaluator (reval);
+	    } catch (Exception ignore) {}
+	}
    }
 
-    public void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException {
+    public synchronized void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException {
         if (pfunc != null)
             pfunc.updateRequestEvaluator (reval);
         if (psfunc != null)
