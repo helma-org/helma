@@ -406,9 +406,16 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	    
 	    unode = new Node (uname);
 	    String usernameField = userMapping.getNameField ();
-	    if (usernameField == null)
-	        usernameField = "name";
-	    unode.setString (usernameField, uname);
+	    String usernameProp = null;
+	    if (usernameField != null) {
+	        Relation namerel= userMapping.columnNameToProperty (usernameField);
+	        if (namerel != null)
+	            usernameProp = namerel.propname;
+	    }
+	    if (usernameProp == null)
+	        usernameProp = "name";
+	    unode.setName (uname);
+	    unode.setString (usernameProp, uname);
 	    unode.setString ("password", password);
 	    unode.setPrototype ("user");
 	    unode.setDbMapping (userMapping);
@@ -474,21 +481,23 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     public String getNodePath (INode n, String tmpname) {
 	INode root = getDataRoot ();
 	INode users = getUserRoot ();
-	String href = n.getUrl (root, users, tmpname);
+	String siteroot = props.getProperty ("rootPrototype");
+	String href = n.getUrl (root, users, tmpname, siteroot);
 	return href;
     }
 
     public String getNodeHref (INode n, String tmpname) {
 	INode root = getDataRoot ();
 	INode users = getUserRoot ();
-	// check base uri from app.properties
+	
+	// check base uri and optional root prototype from app.properties
 	String base = props.getProperty ("baseURI");
-	if (base != null)
-	    setBaseURI (base);
-	String href = n.getHref (root, users, tmpname, baseURI == null ? "/" : baseURI);
-	// add cache teaser
-	// href = href + "&tease="+((int) (Math.random ()*999));
-	return href;
+	String siteroot = props.getProperty ("rootPrototype");
+	
+	setBaseURI (base);
+	String href = n.getUrl (root, users, tmpname, siteroot);
+	
+	return baseURI + href;
     }
     
     public void setBaseURI (String uri) {
