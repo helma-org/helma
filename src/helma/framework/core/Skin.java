@@ -4,7 +4,7 @@
 package helma.framework.core;
 
 import java.io.*;
-import java.util.Vector;
+import java.util.ArrayList;
 import java.util.Hashtable;
 import helma.framework.*;
 import FESI.Data.*;
@@ -30,7 +30,7 @@ public class Skin {
 
     public void parse (String content) {
 
-	Vector partBuffer = new Vector ();
+	ArrayList partBuffer = new ArrayList ();
 	int l = content.length ();
 	char cnt[] = new char[l];
 	content.getChars (0, l, cnt, 0);
@@ -44,16 +44,16 @@ public class Skin {
 	        }
 	        if (j > i+2) {
 	            if (i - lastIdx > 0)
-	                partBuffer.addElement (new String (cnt, lastIdx, i - lastIdx));
+	                partBuffer.add (new String (cnt, lastIdx, i - lastIdx));
 	            String macrotext = new String (cnt, i+2, (j-i)-2);
-	            partBuffer.addElement (new Macro (macrotext));
+	            partBuffer.add (new Macro (macrotext));
 	            lastIdx = j+2;
 	        }
 	        i = j+1;
 	    }
 	}
 	if (lastIdx < l)
-	    partBuffer.addElement (new String (cnt, lastIdx, l - lastIdx));
+	    partBuffer.add (new String (cnt, lastIdx, l - lastIdx));
 
              parts = partBuffer.toArray ();
    }
