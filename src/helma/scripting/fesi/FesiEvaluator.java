@@ -29,7 +29,7 @@ public final class FesiEvaluator {
 
     // The FESI evaluator
     Evaluator evaluator;
-
+   
     // the global object
     GlobalObject global;
 
@@ -78,7 +78,7 @@ public final class FesiEvaluator {
 	    // fake a cache member like the one found in ESNodes
 	    global.putHiddenProperty ("cache", new ESNode (new TransientNode ("cache"), this));
 	    global.putHiddenProperty ("undefined", ESUndefined.theUndefined);
-	    ESAppNode appnode = new ESAppNode (app.getAppNode (), this);
+	    ESBeanWrapper appnode = new ESBeanWrapper (new ApplicationBean (app), this);
 	    global.putHiddenProperty ("app", appnode);
 	    initialize();
 	} catch (Exception e) {
@@ -227,11 +227,13 @@ public final class FesiEvaluator {
 	            // comfortable to EcmaScript coders, i.e. we use a lot of custom wrappers
 	            // that expose properties and functions in a special way instead of just going
 	            // with the standard java object wrappers.
+
+	
 	            if (v instanceof RequestTrans)
-	                ((RequestTrans) v).data = new ESMapWrapper (this, ((RequestTrans) v).getRequestData ());
+	            	sv = new ESBeanWrapper (new RequestBean ((RequestTrans) v), this);
 	            else if (v instanceof ResponseTrans)
-	                ((ResponseTrans) v).data = new ESMapWrapper (this, ((ResponseTrans) v).getResponseData ());
-	            if (v instanceof Map)
+	            	sv = new ESBeanWrapper (new ResponseBean ((ResponseTrans) v), this);
+	            else if (v instanceof Map)
 	                sv = new ESMapWrapper (this, (Map) v);
 	            else if ("path".equals (k)) {
 	                ArrayPrototype parr = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
@@ -246,10 +248,10 @@ public final class FesiEvaluator {
 	                        parr.putHiddenProperty (protoname, wrappedElement);
 	                }
 	                sv = parr;
-	            } else if ("user".equals (k)) {
-	                sv = getNodeWrapper ((User) v);
+	            } else if ("session".equals (k)) {
+					sv = new ESBeanWrapper (new SessionBean ((Session)v), this);
 	            } else if ("app".equals (k)) {
-	                sv = new ESAppNode ((INode) v, this);
+					sv = new ESBeanWrapper (new ApplicationBean ((Application)v), this);
 	            }
 	            else
 	                sv = ESLoader.normalizeValue (v, evaluator);
@@ -432,7 +434,7 @@ public final class FesiEvaluator {
      *  Get a script wrapper for an implemntation of helma.objectmodel.INode
      */
     public ESNode getNodeWrapper (INode n) {
-
+		// FIXME: should this return ESNull.theNull?
         if (n == null)
             return null;
 
@@ -455,12 +457,7 @@ public final class FesiEvaluator {
             if (op == null)
                 op = getPrototype("hopobject");
 
-
-            DbMapping dbm = n.getDbMapping ();
-            if (dbm != null && dbm.isInstanceOf ("user"))
-                esn = new ESUser (n, this, null);
-            else
-                esn = new ESNode (op, evaluator, n, this);
+            esn = new ESNode (op, evaluator, n, this);
 
             wrappercache.put (n, esn);
             // app.logEvent ("Wrapper for "+n+" created");
@@ -476,28 +473,6 @@ public final class FesiEvaluator {
      */
     public void putNodeWrapper (INode n, ESNode esn) {
 	wrappercache.put (n, esn);
-    }
-
-    /**
-     *  Get a scripting wrapper object for a user object. Active user objects are represented by
-     *  the special ESUser wrapper class.
-     */
-    public ESNode getNodeWrapper (User u) {
-        if (u == null)
-            return null;
-
-        ESUser esn = (ESUser) wrappercache.get (u);
-
-        if (esn == null) {
-            esn = new ESUser (u.getNode(), this, u);
-            wrappercache.put (u, esn);
-        } else {
-            // the user node may have changed (login/logout) while the ESUser was
-            // lingering in the cache.
-            esn.updateNodeFromUser ();
-        }
-
-        return esn;
     }
 
     /**
