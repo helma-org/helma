@@ -327,26 +327,16 @@ public class HopObject extends ScriptableObject implements Wrapper {
         Object n = null;
 
         if (id instanceof Number) {
-            n = get(((Number) id).intValue(), this);
+            n = node.getSubnodeAt(((Number) id).intValue());
         } else if (id != null) {
-            // try to get as property first
-            n = getFromNode(id.toString());
-            // then try to get child object by id
-            if (n == null || n == NOT_FOUND) {
-                n = node.getChildElement(id.toString());
-                if (n != null) {
-                    n = Context.toObject(n, core.global);
-                }
-            }
+            n = node.getChildElement(id.toString());
         }
 
-        // since we're calling Scriptable.get() methods, we'll get NOT_FOUND rather
-        // than null if a property is not defined.
-        if (n == null || n == NOT_FOUND) {
-            return null;
+        if (n != null) {
+            return Context.toObject(n, core.global);
         }
 
-        return n;
+        return null;
     }
 
     /**
@@ -787,7 +777,6 @@ public class HopObject extends ScriptableObject implements Wrapper {
             IProperty p = node.get(name);
 
             if (p != null) {
-
                 switch (p.getType()) {
                     case IProperty.STRING:
                     case IProperty.INTEGER:
@@ -893,13 +882,13 @@ public class HopObject extends ScriptableObject implements Wrapper {
             return new Object[0];
         }
 
-        Enumeration enum = node.properties();
-        ArrayList list = new ArrayList();
-
         checkNode();
 
-        while (enum.hasMoreElements())
-            list.add(enum.nextElement());
+        Enumeration en = node.properties();
+        ArrayList list = new ArrayList();
+
+        while (en.hasMoreElements())
+            list.add(en.nextElement());
 
         return list.toArray();
     }
