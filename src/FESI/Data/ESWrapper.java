@@ -338,9 +338,10 @@ public class ESWrapper extends ESObject {
                return noPropertyMarker;
             }
             int modifiers = fld.getModifiers();
-            if ((theObject == null) != Modifier.isStatic(modifiers)) {
-                throw new EcmaScriptException("Field mode (static) not correct for "+ propertyName);
-            }
+            // ALLOW ACCESS TO STATIC FIELDS. HW, 2001-11-27
+            // if ((theObject == null) != Modifier.isStatic(modifiers)) {
+            //    throw new EcmaScriptException("Field mode (static) not correct for "+ propertyName);
+            // }
             if (!Modifier.isPublic(modifiers)) {
                 throw new EcmaScriptException("Field "+ propertyName + " not public");
             }
