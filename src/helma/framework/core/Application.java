@@ -412,11 +412,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	    unode.setDbMapping (userMapping);
 	    String usernameField = userMapping.getNameField ();
 	    String usernameProp = null;
-	    if (usernameField != null) {
-	        Relation namerel= userMapping.columnNameToProperty (usernameField);
-	        if (namerel != null)
-	            usernameProp = namerel.propname;
-	    }
+	    if (usernameField != null)
+	        usernameProp = userMapping.columnNameToProperty (usernameField);
 	    if (usernameProp == null)
 	        usernameProp = "name";
 	    unode.setName (uname);
