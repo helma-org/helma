@@ -10,7 +10,6 @@ import helma.framework.*;
 import FESI.Data.*;
 import FESI.Exceptions.*;
 import helma.objectmodel.INode;
-import helma.objectmodel.IServer;
 import helma.objectmodel.ConcurrencyException;
 import helma.util.HtmlEncoder;
 import helma.util.UrlEncoder;
