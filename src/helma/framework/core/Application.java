@@ -859,8 +859,19 @@ public final class Application extends UnicastRemoteObject implements IRemoteApp
 	return debug;
     }
 
+    public RequestEvaluator getCurrentRequestEvaluator () {
+	Thread thread = Thread.currentThread ();
+	int l = allThreads.size();
+	for (int i=0; i<l; i++) {
+	    RequestEvaluator r = (RequestEvaluator) allThreads.get (i);
+	    if (r != null && r.rtx == thread)
+	        return r;
+	}
+	return null;
+    }
+
     /**
-     *  Utiliti function invoker for the methods below. This *must* be called 
+     *  Utility function invoker for the methods below. This *must* be called
      *  by an active RequestEvaluator thread.
      */
     private Object invokeFunction (Object obj, String func, Object[] args) {
