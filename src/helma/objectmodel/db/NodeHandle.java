@@ -16,7 +16,8 @@
 
 package helma.objectmodel.db;
 
-import helma.objectmodel.*;
+import helma.objectmodel.INodeState;
+
 import java.io.Serializable;
 
 /**

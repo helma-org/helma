@@ -16,12 +16,16 @@
 
 package helma.objectmodel.db;
 
-import helma.objectmodel.*;
-import helma.util.*;
-import java.io.*;
+import helma.objectmodel.INode;
+import helma.objectmodel.IProperty;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.sql.Timestamp;
-import java.text.*;
-import java.util.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * A property implementation for Nodes stored inside a database. Basically
@@ -104,7 +108,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
                     break;
 
                 case NODE:
-                    value = (NodeHandle) in.readObject();
+                    value = in.readObject();
 
                     break;
 
@@ -381,8 +385,8 @@ public final class Property implements IProperty, Serializable, Cloneable {
         nvalue.checkWriteLock();
 
         // check if the property node is also a subnode
-        // BUG: this doesn't work because properties for subnode/properties are never stored and therefore
-        // never reused.
+        // BUG: this doesn't work because properties for subnode/properties are never stored 
+        // and therefore never reused.
         if ((nvrel != null) && nvrel.hasAccessName()) {
             node.removeNode(nvalue);
         }

@@ -16,8 +16,8 @@
 
 package helma.objectmodel.db;
 
-import java.rmi.*;
-import java.util.*;
+import java.rmi.Naming;
+import java.util.Vector;
 
 /**
  * This class replicates the updates of transactions to other applications via RMI

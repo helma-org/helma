@@ -16,7 +16,8 @@
 
 package helma.objectmodel.db;
 
-import java.rmi.*;
+import java.rmi.Remote;
+import java.rmi.RemoteException;
 import java.util.Vector;
 
 /**

@@ -17,10 +17,14 @@
 package helma.objectmodel.db;
 
 import helma.objectmodel.*;
-import helma.objectmodel.dom.*;
-import java.io.*;
-import javax.xml.parsers.ParserConfigurationException;
+import helma.objectmodel.dom.IDGenParser;
+import helma.objectmodel.dom.XmlDatabaseReader;
+import helma.objectmodel.dom.XmlWriter;
 import org.xml.sax.SAXException;
+
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * A simple XML-database

@@ -16,7 +16,8 @@
 
 package helma.objectmodel.db;
 
-import helma.objectmodel.*;
+import helma.objectmodel.ObjectNotFoundException;
+
 import java.util.List;
 import java.util.Vector;
 

@@ -16,11 +16,13 @@
 
 package helma.objectmodel.db;
 
-import helma.framework.TimeoutException;
-import helma.objectmodel.*;
-import java.io.*;
-import java.sql.*;
-import java.util.*;
+import helma.objectmodel.DatabaseException;
+import helma.objectmodel.ITransaction;
+
+import java.sql.Connection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 
 /**
  * A subclass of thread that keeps track of changed nodes and triggers
@@ -147,7 +149,6 @@ public class Transactor extends Thread {
     /**
      *
      *
-     * @param key ...
      * @param node ...
      */
     public void visitParentNode(Node node) {
@@ -188,10 +189,9 @@ public class Transactor extends Thread {
     /**
      *
      *
-     * @param tnm ...
+     * @param name ...
      *
      * @throws Exception ...
-     * @throws DatabaseException ...
      */
     public synchronized void begin(String name) throws Exception {
         if (killed) {
