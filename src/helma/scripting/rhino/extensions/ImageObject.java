@@ -17,6 +17,8 @@
 package helma.scripting.rhino.extensions;
 
 import helma.image.*;
+import helma.util.MimePart;
+
 import java.awt.image.*;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Function;
@@ -34,7 +36,6 @@ import java.io.InputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.net.MalformedURLException;
@@ -63,8 +64,11 @@ public class ImageObject {
 
     public static Object imageCtor (Context cx, Object[] args,
                 Function ctorObj, boolean inNewExpr) {
+
         Object img = null;
+
         try {
+
             ImageGenerator generator = ImageGenerator.getInstance();
 
             if (args.length == 1) {
@@ -85,6 +89,11 @@ public class ImageObject {
                         // try the local file now:
                         img = generator.createImage(str);
                     }
+                } else if (args[0] instanceof NativeJavaObject) {
+                    Object arg = ((NativeJavaObject) args[0]).unwrap();
+                    if (arg instanceof MimePart) {
+                        img = generator.createImage(((MimePart) arg).getContent());
+                    }
                 }
             } else if (args.length == 2) {
                 if (args[0] instanceof Number &&
@@ -102,16 +111,23 @@ public class ImageObject {
                         else if (filter instanceof BufferedImageOp)
                             img = generator.createImage((ImageWrapper) wrapper, (BufferedImageOp) filter);
                     }
-                } else {
-                    throw new RuntimeException("Error creating Image from args "+args[0]+","+args[1]);
                 }
             }
-        } catch (Exception error) {
-            System.err.println("Error creating Image: " + error);
+        } catch (IOException iox) {
+            throw new RuntimeException("Error creating Image: " + iox);
         }
 
         if (img == null) {
-            throw new RuntimeException("Error creating image: Bad parameters or setup problem.");
+            switch (args.length) {
+                case 0:
+                    throw new RuntimeException("Error creating Image: Called without arguments");
+                case 1:
+                    throw new RuntimeException("Error creating Image from " + args[0]);
+                case 2:
+                    throw new RuntimeException("Error creating Image from " + args[0] + ", " + args[1]);
+                default:
+                    throw new RuntimeException("Error creating Image: Wrong number of arguments");
+            }
         }
 
         return Context.toObject(img, ctorObj.getParentScope());
