@@ -15,24 +15,25 @@ import helma.util.*;
  
 public class ResponseTrans implements Externalizable {
 
+    /**
+     * Set the MIME content type of the response.
+     */
     public String contentType = "text/html";
 
+    /**
+     * Set the charset of the response.
+     */
     public String charset;
 
-    // used to allow or disable client side caching
+    /**
+     * used to allow or disable client side caching
+     */
     public boolean cache = true;
 
-    // Used for HTTP response code, if 0 code 200 OK will be used.
+    /**
+     * Used for HTTP response code, if 0 code 200 OK will be used.
+     */
     public int status = 0;
-
-    // the buffers used to build the single body parts -
-    // transient, response must be constructed before this is serialized
-    public transient String title, head, body, message, error;
-
-    // Generic container for response data items. This is used to
-    // pass response fragments to skins, which can assemble them
-    // through the <% response.xxx %> macro.
-    public transient Object data;
 
     // name of the skin to be rendered  after completion, if any
     public transient String skin = null;
@@ -49,25 +50,65 @@ public class ResponseTrans implements Externalizable {
     int cookieDays[];
     int nCookies = 0;
 
-
     // the buffer used to build the response
     private transient StringBuffer buffer = null;
     // these are used to implement the _as_string variants for Hop templates.
     private transient Stack buffers;
 
+    static final long serialVersionUID = -8627370766119740844L;
+
+    /**
+     * the buffers used to build the single body parts -
+     * transient, response must be constructed before this is serialized
+     */
+    public transient String title, head, body, message, error;
+
+    /**
+     *  JavaScript object to make the values Map accessible to
+     *  script code as res.data
+     */
+    public transient Object data;
+
+    // the map of form and cookie data
+    private transient Map values;
+
 
     public ResponseTrans () {
 	super ();
-	title = head = body = message = error = "";
+	title = head = body = message = error = null;
+	values = new HashMap ();
     }
-    
+
+
+    /**
+     *  Get a value from the responses map by key.
+     */
+    public Object get (String name) {
+	try {
+	    return values.get (name);
+	} catch (Exception x) {
+	    return null;
+	}
+    }
+
+    /**
+     *  Get the data map for this response transmitter.
+     */
+    public Map getResponseData () {
+	return values;
+    }
+
+    /**
+     * Reset the response object to its initial empty state.
+     */
     public void reset () {
 	if (buffer != null)
 	    buffer.setLength (0);
 	response = null;
 	redir = null;
 	skin = null;
-	title = head = body = message = error = "";
+	title = head = body = message = error = null;
+	values.clear ();
     }
 
 
