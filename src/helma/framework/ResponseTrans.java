@@ -84,6 +84,9 @@ public final class ResponseTrans implements Externalizable {
     // the buffer used to build the response
     private transient StringBuffer buffer = null;
 
+    // an idle StringBuffer waiting to be reused
+    private transient StringBuffer cachedBuffer = null;
+
     // these are used to implement the _as_string variants for Hop templates.
     private transient Stack buffers;
 
@@ -202,19 +205,31 @@ public final class ResponseTrans implements Externalizable {
             buffers.push(buffer);
         }
 
-        buffer = new StringBuffer(64);
+        if (cachedBuffer != null) {
+            buffer = cachedBuffer;
+            cachedBuffer = null;
+        } else {
+            buffer = new StringBuffer(64);
+        }
     }
 
     /**
      * Returns the content of the current string buffer and switches back to the previos one.
      */
     public String popStringBuffer() {
-        StringBuffer b = buffer;
+        if (buffer == null || buffers == null) {
+            throw new RuntimeException("Can't pop string buffer: buffer stack is empty");
+        }
+
+        String str = buffer.toString();
+
+        buffer.setLength(0);
+        cachedBuffer = buffer;
 
         // restore the previous buffer, which may be null
         buffer = buffers.empty() ? null : (StringBuffer) buffers.pop();
 
-        return b.toString();
+        return str;
     }
 
     /**
