@@ -294,6 +294,7 @@ public final class RequestEvaluator implements Runnable {
                                     // immediately register objects with their direct prototype name
                                     if (protos[i] != null) {
                                         macroHandlers.put(protos[i].getName(), obj);
+                                        macroHandlers.put(protos[i].getLowerCaseName(), obj);
                                     }
                                 }
 

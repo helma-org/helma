@@ -97,7 +97,7 @@ public class ZippedAppFile implements Updatable {
                         Prototype proto = app.typemgr.getPrototype(dir);
 
                         if (proto == null) {
-                            proto = app.typemgr.createPrototype(dir);
+                            proto = app.typemgr.createPrototype(dir, null);
                             newPrototypes.add(proto);
                         }
 

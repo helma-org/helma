@@ -51,6 +51,9 @@ public final class RhinoCore {
     // the wrap factory
     WrapFactory wrapper;
 
+    // the prototype for HopObject
+    ScriptableObject hopObjectProto;
+
     // the prototype for path objects
     PathWrapper pathProto;
 
@@ -90,20 +93,14 @@ public final class RhinoCore {
 
             global = (GlobalObject) context.initStandardObjects(g);
 
-            ScriptableObject.defineClass(global, HopObject.class);
-            ScriptableObject.defineClass(global, FileObject.class);
-            ScriptableObject.defineClass(global, FtpObject.class);
-
             pathProto = new PathWrapper(this);
 
+            hopObjectProto =  HopObject.init(global);
+            FileObject.init(global);
+            FtpObject.init(global);
             ImageObject.init(global);
             XmlRpcObject.init(global);
             MailObject.init(global, app.getProperties());
-            
-            registerPrototype("hopobject",
-                    (ScriptableObject) ScriptableObject
-                    .getClassPrototype(global, "HopObject"));
-            registerPrototype("global", global);
 
             // add some convenience functions to string, date and number prototypes
             Scriptable stringProto = ScriptableObject.getClassPrototype(global, "String");
@@ -150,33 +147,34 @@ public final class RhinoCore {
      *
      *  @param prototype the prototype to be created
      */
-    synchronized void initPrototype(Prototype prototype) {
+    synchronized TypeInfo initPrototype(Prototype prototype) {
 
         String name = prototype.getName();
+        String lowerCaseName = prototype.getLowerCaseName();
+
+        TypeInfo type = (TypeInfo) prototypes.get(lowerCaseName);
 
         // check if the prototype info exists already
-        ScriptableObject op = getRawPrototype(name);
+        ScriptableObject op = (type == null) ? null : type.objectPrototype;
 
         // if prototype info doesn't exist (i.e. is a standard prototype
         // built by HopExtension), create it.
         if (op == null) {
-            try {
+            if ("global".equals(lowerCaseName)) {
+                op = global;
+            } else if ("hopobject".equals(lowerCaseName)) {
+                op = hopObjectProto;
+            } else {
                 op = new HopObject(name);
                 op.setParentScope(global);
-                // op.put("prototypename", op, name);
-            } catch (Exception ignore) {
-                System.err.println("Error creating prototype: " + ignore);
-                ignore.printStackTrace();
             }
-            registerPrototype(name, op);
+            type = registerPrototype(prototype, op);
         }
 
         // Register a constructor for all types except global.
-        // This will first create a new prototyped hopobject and then calls
+        // This will first create a new prototyped HopObject and then calls
         // the actual (scripted) constructor on it.
-        if (!"global".equalsIgnoreCase(name) &&
-                !"root".equalsIgnoreCase(name) &&
-                !"hopobject".equalsIgnoreCase(name)) {
+        if (!"global".equals(lowerCaseName)) {
             try {
                 installConstructor(name, op);
             } catch (Exception ignore) {
@@ -184,18 +182,20 @@ public final class RhinoCore {
                 ignore.printStackTrace();
             }
         }
+
+        return type;
     }
 
     /**
      *   Set up a prototype, parsing and compiling all its script files.
      *
-     *  @param prototype the prototype to update/evaluate/compile
      *  @param type the info, containing the object proto, last update time and
      *         the set of compiled functions properties
      */
-    synchronized void evaluatePrototype(Prototype prototype, TypeInfo type) {
-        // System.err.println("EVALUATING PROTO: "+prototype);
+    synchronized void evaluatePrototype(TypeInfo type) {
+
         Scriptable op = type.objectPrototype;
+        Prototype prototype = type.frameworkPrototype;
 
         // set the parent prototype in case it hasn't been done before
         // or it has changed...
@@ -258,8 +258,9 @@ public final class RhinoCore {
      */
     private void setParentPrototype(Prototype prototype, Scriptable op) {
         String name = prototype.getName();
+        String lowerCaseName = prototype.getLowerCaseName();
 
-        if (!"global".equalsIgnoreCase(name) && !"hopobject".equalsIgnoreCase(name)) {
+        if (!"global".equals(lowerCaseName) && !"hopobject".equals(lowerCaseName)) {
 
             // get the prototype's prototype if possible and necessary
             Scriptable opp = null;
@@ -282,12 +283,12 @@ public final class RhinoCore {
     /**
      *  This is a version of org.mozilla.javascript.FunctionObject.addAsConstructor()
      *  that does not set the constructor property in the prototype. This is because
-     *  we want our own scripted constructor function to prevail, if it is defined.
+     *  we want our own scripted constructor function to be visible, if it is defined.
      *
      * @param name the name of the constructor
      * @param op the object prototype
      */
-    private void installConstructor(String name, Scriptable op) {
+    void installConstructor(String name, Scriptable op) {
         FunctionObject fo = new FunctionObject(name, HopObject.hopObjCtor, global);
 
         ScriptRuntime.setFunctionProtoAndParent(global, fo);
@@ -315,27 +316,23 @@ public final class RhinoCore {
 
         for (Iterator i = protos.iterator(); i.hasNext();) {
             Prototype proto = (Prototype) i.next();
-            TypeInfo type = (TypeInfo) prototypes.get(proto.getName());
+            TypeInfo type = (TypeInfo) prototypes.get(proto.getLowerCaseName());
 
             if (type == null) {
                 // a prototype we don't know anything about yet. Init local update info.
-                initPrototype(proto);
-                type = (TypeInfo) prototypes.get(proto.getName());
+                type = initPrototype(proto);
             }
 
             // only update prototype if it has already been initialized.
             // otherwise, this will be done on demand
             // System.err.println ("CHECKING PROTO "+proto+": "+type);
             if (type.lastUpdate > -1) {
-                Prototype p = app.typemgr.getPrototype(type.protoName);
+                // let the type manager scan the prototype's directory
+                app.typemgr.updatePrototype(proto);
 
-                if (p != null) {
-                    // System.err.println ("UPDATING PROTO: "+p);
-                    app.typemgr.updatePrototype(p);
-
-                    if (p.getLastUpdate() > type.lastUpdate) {
-                        evaluatePrototype(p, type);
-                    }
+                // and re-evaluate if necessary
+                if (type.needsUpdate()) {
+                    evaluatePrototype(type);
                 }
             }
         }
@@ -343,19 +340,6 @@ public final class RhinoCore {
         lastUpdate = System.currentTimeMillis();
     }
 
-    /**
-     * Get a raw prototype, i.e. in potentially unfinished state
-     * without checking if it needs to be updated.
-     */
-    private ScriptableObject getRawPrototype(String protoName) {
-        if (protoName == null) {
-            return null;
-        }
-
-        TypeInfo type = (TypeInfo) prototypes.get(protoName);
-
-        return (type == null) ? null : type.objectPrototype;
-    }
 
     /**
      * A version of getPrototype() that retrieves a prototype and checks
@@ -394,20 +378,16 @@ public final class RhinoCore {
             return null;
         }
 
-        TypeInfo type = (TypeInfo) prototypes.get(protoName);
+        TypeInfo type = (TypeInfo) prototypes.get(protoName.toLowerCase());
 
         // if type exists and hasn't been evaluated (used) yet, evaluate it now.
         // otherwise, it has already been evaluated for this request by updatePrototypes(),
         // which is called before a request is handled.
         if ((type != null) && (type.lastUpdate == -1)) {
-            Prototype p = app.typemgr.getPrototype(protoName);
+            app.typemgr.updatePrototype(type.frameworkPrototype);
 
-            if (p != null) {
-                app.typemgr.updatePrototype(p);
-
-                if (p.getLastUpdate() > type.lastUpdate) {
-                    evaluatePrototype(p, type);
-                }
+            if (type.needsUpdate()) {
+                evaluatePrototype(type);
             }
         }
 
@@ -417,10 +397,10 @@ public final class RhinoCore {
     /**
      * Register an object prototype for a prototype name.
      */
-    private void registerPrototype(String protoName, ScriptableObject op) {
-        if ((protoName != null) && (op != null)) {
-            prototypes.put(protoName, new TypeInfo(op, protoName));
-        }
+    private TypeInfo registerPrototype(Prototype proto, ScriptableObject op) {
+        TypeInfo type = new TypeInfo(proto, op);
+        prototypes.put(proto.getLowerCaseName(), type);
+        return type;
     }
 
     /**
@@ -561,8 +541,8 @@ public final class RhinoCore {
             Scriptable op = getPrototype(prototypeName);
 
             if (op == null) {
-                prototypeName = "hopobject";
-                op = getPrototype("hopobject");
+                prototypeName = "HopObject";
+                op = getPrototype("HopObject");
             }
 
             w = new JavaObject(global, e, prototypeName, op, this);
@@ -602,8 +582,8 @@ public final class RhinoCore {
 
             // no prototype found for this node?
             if (op == null) {
-                op = getValidPrototype("hopobject");
-                protoname = "hopobject";
+                op = getValidPrototype("HopObject");
+                protoname = "HopObject";
             }
 
             esn = new HopObject(protoname, op);
@@ -797,7 +777,7 @@ public final class RhinoCore {
             }
             // mark prototype as broken
             if (type.error == null && e instanceof EcmaError) {
-                if ("global".equals(type.protoName)) {
+                if ("global".equals(type.frameworkPrototype.getLowerCaseName())) {
                     globalError = (EcmaError) e;
                 } else {
                     type.error = (EcmaError) e;
@@ -828,7 +808,10 @@ public final class RhinoCore {
      */
     class TypeInfo {
 
-        // the object prototype for this type
+        // the framework prototype object
+        Prototype frameworkPrototype;
+
+        // the JavaScript prototype for this type
         ScriptableObject objectPrototype;
 
         // timestamp of last update. This is -1 so even an empty prototype directory
@@ -837,7 +820,7 @@ public final class RhinoCore {
         long lastUpdate = -1;
 
         // the prototype name
-        String protoName;
+        // String protoName;
 
         // a set of property values that were defined in last script compliation
         Set compiledFunctions;
@@ -847,9 +830,9 @@ public final class RhinoCore {
 
         EcmaError error;
 
-        public TypeInfo(ScriptableObject op, String name) {
+        public TypeInfo(Prototype proto, ScriptableObject op) {
+            frameworkPrototype = proto;
             objectPrototype = op;
-            protoName = name;
             compiledFunctions = new HashSet(0);
             // remember properties already defined on this object prototype
             predefinedProperties = new HashSet();
@@ -859,8 +842,12 @@ public final class RhinoCore {
             }
         }
 
+        public boolean needsUpdate() {
+            return frameworkPrototype.getLastUpdate() > lastUpdate;
+        }
+
         public String toString() {
-            return ("TypeInfo[" + protoName + "," + new Date(lastUpdate) + "]");
+            return ("TypeInfo[" + frameworkPrototype + "," + new Date(lastUpdate) + "]");
         }
     }
 

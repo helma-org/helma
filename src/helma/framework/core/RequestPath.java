@@ -61,6 +61,7 @@ public class RequestPath {
 
         if (proto != null) {
             primaryProtos.put(proto.getName(), obj);
+            primaryProtos.put(proto.getLowerCaseName(), obj);
             proto.registerParents(secondaryProtos, obj);
         }
     }

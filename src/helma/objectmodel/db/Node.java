@@ -505,7 +505,7 @@ public final class Node implements INode, Serializable {
     public String getPrototype() {
         // if prototype is null, it's a vanilla HopObject.
         if (prototype == null) {
-            return "hopobject";
+            return "HopObject";
         }
 
         return prototype;

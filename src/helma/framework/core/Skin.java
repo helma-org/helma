@@ -412,7 +412,7 @@ public final class Skin {
                             // not a global macro - need to find handler object
                             // was called with this object - check it or its parents for matching prototype
                             if (!handler.equals("this") &&
-                                    !handler.equals(app.getPrototypeName(thisObject))) {
+                                    !handler.equalsIgnoreCase(app.getPrototypeName(thisObject))) {
                                 // the handler object is not what we want
                                 Object n = thisObject;
 

@@ -30,30 +30,34 @@ import java.util.*;
  * applications and updates the evaluators if anything has changed.
  */
 public final class TypeManager {
-    final static String[] standardTypes = { "user", "global", "root", "hopobject" };
+    final static String[] standardTypes = { "User", "Global", "Root", "HopObject" };
     final static String templateExtension = ".hsp";
     final static String scriptExtension = ".js";
     final static String actionExtension = ".hac";
     final static String skinExtension = ".skin";
-    Application app;
-    File appDir;
-    HashMap prototypes; // map of prototypes
-    HashMap zipfiles; // map of zipped script files
-    HashSet jarfiles; // set of Java archives
-    long lastCheck = 0;
-    long appDirMod = 0;
+
+    private Application app;
+    private File appDir;
+    // map of prototypes
+    private HashMap prototypes;
+    // map of zipped script files
+    private HashMap zipfiles;
+    // set of Java archives
+    private HashSet jarfiles;
+    private long lastCheck = 0;
+    private long appDirMod = 0;
 
     // a checksum that changes whenever something in the application files changes.
-    long checksum;
+    private long checksum;
 
     // the hopobject prototype
-    Prototype hopobjectProto;
+    // private Prototype hopobjectProto;
 
     // the global prototype
-    Prototype globalProto;
+    // private Prototype globalProto;
 
     // app specific class loader, includes jar files in the app directory
-    AppClassLoader loader;
+    private AppClassLoader loader;
 
     /**
      * Creates a new TypeManager object.
@@ -114,13 +118,9 @@ public final class TypeManager {
      */
     public void createPrototypes() {
         // create standard prototypes.
-        createPrototype("root");
-        createPrototype("user");
-
-        // get references to hopobject and global protos,
-        // since we need it regularly when setting parent prototypes.
-        hopobjectProto = createPrototype("hopobject");
-        globalProto = createPrototype("global");
+        for (int i = 0; i < standardTypes.length; i++) {
+            createPrototype(standardTypes[i], null);
+        }
 
         // loop through directories and create prototypes
         checkFiles();
@@ -236,19 +236,12 @@ public final class TypeManager {
             DbMapping dbmap = proto.getDbMapping();
 
             if ((dbmap != null) && dbmap.needsUpdate()) {
+                // call dbmap.update(). This also checks the
+                // parent prototype for prototypes other than
+                // global and HopObject, which is a bit awkward...
+                // I mean we're the type manager, so this should
+                // be part of our job, right?
                 dbmap.update();
-
-                // this is now done in dbmap.update()!!!
-                /*if ((proto != hopobjectProto) && (proto != globalProto)) {
-                    // set parent prototype, in case it has changed.
-                    String parentName = dbmap.getExtends();
-
-                    if (parentName != null) {
-                        proto.setParentPrototype(getPrototype(parentName));
-                    } else if (!app.isJavaPrototype(proto.getName())) {
-                        proto.setParentPrototype(hopobjectProto);
-                    }
-                } */
             }
         }
 
@@ -293,39 +286,47 @@ public final class TypeManager {
     }
 
     /**
+     * Return the class loader used by this application.
+     *
+     * @return the ClassLoader
+     */
+    public ClassLoader getClassLoader() {
+        return loader;
+    }
+
+    /**
+     * Return a collection containing the prototypes defined for this type
+     * manager.
+     *
+     * @return a collection containing the prototypes
+     */
+    public Collection getPrototypes() {
+        return prototypes.values();
+    }
+
+    /**
      *   Get a prototype defined for this application
      */
     public Prototype getPrototype(String typename) {
-        return (Prototype) prototypes.get(typename);
+        if (typename == null) {
+            return null;
+        }
+        return (Prototype) prototypes.get(typename.toLowerCase());
     }
 
     /**
-     * Get a prototype, creating it if it doesn't already exist. Note
-     * that it doesn't create a DbMapping - this is left to the
-     * caller (e.g. ZippedAppFile).
-     */
-    public Prototype createPrototype(String typename) {
-        return createPrototype(typename, new File(appDir, typename));
-    }
-
-    /**
-     *  Create a prototype from a directory containing scripts and other stuff
+     * Create and register a new Prototype.
+     *
+     * @param typename the name of the prototype
+     * @param dir the prototype directory if it is know, or null if we
+     *             ought to find out by ourselves
+     * @return the newly created prototype
      */
     public Prototype createPrototype(String typename, File dir) {
         Prototype proto = new Prototype(typename, dir, app);
 
-        // Create and register type properties file
-        File propfile = new File(dir, "type.properties");
-        SystemProperties props = new SystemProperties(propfile.getAbsolutePath());
-        DbMapping dbmap = new DbMapping(app, typename, props);
-
-        // we don't need to put the DbMapping into proto.updatables, because
-        // dbmappings are checked separately in checkFiles for each request
-        // proto.updatables.put ("type.properties", dbmap);
-        proto.setDbMapping(dbmap);
-
         // put the prototype into our map
-        prototypes.put(typename, proto);
+        prototypes.put(proto.getLowerCaseName(), proto);
 
         return proto;
     }

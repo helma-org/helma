@@ -283,7 +283,7 @@ public final class Application implements IPathElement, Runnable {
         // set the context classloader. Note that this must be done before
         // using the logging framework so that a new LogFactory gets created
         // for this app.
-        Thread.currentThread().setContextClassLoader(typemgr.loader);
+        Thread.currentThread().setContextClassLoader(typemgr.getClassLoader());
 
         if (Server.getServer() != null) {
             Vector extensions = Server.getServer().getExtensions();
@@ -356,7 +356,7 @@ public final class Application implements IPathElement, Runnable {
         nmgr = new NodeManager(this, dbDir.getAbsolutePath(), props);
 
         // reset the classloader to the parent/system/server classloader.
-        Thread.currentThread().setContextClassLoader(typemgr.loader.getParent());
+        Thread.currentThread().setContextClassLoader(typemgr.getClassLoader().getParent());
 
     }
 
@@ -695,13 +695,15 @@ public final class Application implements IPathElement, Runnable {
                 try {
                     if (classMapping.containsKey("root.factory.class") &&
                             classMapping.containsKey("root.factory.method")) {
-                        Class c = typemgr.loader.loadClass(classMapping.getProperty("root.factory.class"));
+                        String rootFactory = classMapping.getProperty("root.factory.class");
+                        Class c = typemgr.getClassLoader().loadClass(rootFactory);
                         Method m = c.getMethod(classMapping.getProperty("root.factory.method"),
                                                null);
 
                         rootObject = m.invoke(c, null);
                     } else {
-                        Class c = typemgr.loader.loadClass(classMapping.getProperty("root"));
+                        String rootClass = classMapping.getProperty("root");
+                        Class c = typemgr.getClassLoader().loadClass(rootClass);
 
                         rootObject = c.newInstance();
                     }
@@ -795,14 +797,14 @@ public final class Application implements IPathElement, Runnable {
      * Return the prototype with the given name, if it exists
      */
     public Prototype getPrototypeByName(String name) {
-        return (Prototype) typemgr.prototypes.get(name);
+        return typemgr.getPrototype(name);
     }
 
     /**
      * Return a collection containing all prototypes defined for this application
      */
     public Collection getPrototypes() {
-        return typemgr.prototypes.values();
+        return typemgr.getPrototypes();
     }
 
     /**
@@ -1193,7 +1195,7 @@ public final class Application implements IPathElement, Runnable {
      *  Return the application's classloader
      */
     public ClassLoader getClassLoader() {
-        return typemgr.loader;
+        return typemgr.getClassLoader();
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////

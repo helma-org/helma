@@ -78,6 +78,35 @@ public class HopObject extends ScriptableObject implements Wrapper {
         setPrototype(proto);
     }
 
+    public static HopObject init(Scriptable scope)
+            throws PropertyException {
+        int attributes = READONLY | DONTENUM | PERMANENT;
+
+        // create prototype object
+        HopObject proto = new HopObject();
+        proto.setPrototype(getObjectPrototype(scope));
+
+        // install JavaScript methods and properties
+        Method[] methods = HopObject.class.getDeclaredMethods();
+        for (int i=0; i<methods.length; i++) {
+            String methodName = methods[i].getName();
+
+            if (methodName.startsWith("jsFunction_")) {
+                methodName = methodName.substring(11);
+                FunctionObject func = new FunctionObject(methodName,
+                                                         methods[i], proto);
+                proto.defineProperty(methodName, func, attributes);
+
+            } else if (methodName.startsWith("jsGet_")) {
+                methodName = methodName.substring(6);
+                proto.defineProperty(methodName, null, methods[i],
+                                         null, attributes);
+            }
+        }
+        return proto;
+    }
+
+
     /**
      *  This method is used as HopObject constructor from JavaScript.
      */
@@ -408,14 +437,18 @@ public class HopObject extends ScriptableObject implements Wrapper {
     /**
      *  Prefetch child objects from (relational) database.
      */
-    public void jsFunction_prefetchChildren() {
-        jsFunction_prefetchChildren(0, 1000);
+    public void jsFunction_prefetchChildren(Object startArg, Object lengthArg) {
+        // check if we were called with no arguments
+        if (startArg == Undefined.instance && lengthArg == Undefined.instance) {
+            prefetchChildren(0, 1000);
+        } else {
+            int start = (int) ScriptRuntime.toNumber(startArg);
+            int length = (int) ScriptRuntime.toNumber(lengthArg);
+            prefetchChildren(start, length);
+        }
     }
 
-    /**
-     *  Prefetch child objects from (relational) database.
-     */
-    public void jsFunction_prefetchChildren(int start, int length) {
+    private void prefetchChildren(int start, int length) {
         if (!(node instanceof helma.objectmodel.db.Node)) {
             return;
         }
@@ -424,7 +457,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
 
         try {
             ((helma.objectmodel.db.Node) node).prefetchChildren(start, length);
-        } catch (Exception x) {
+        } catch (Exception ignore) {
+            System.err.println("Error in HopObject.prefetchChildren(): "+ignore);
         }
     }
 
@@ -446,6 +480,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
     private Scriptable list() {
         checkNode();
 
+        prefetchChildren(0, 1000);
         Enumeration e = node.getSubnodes();
         ArrayList a = new ArrayList();
 
@@ -475,7 +510,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
 
         checkNode();
 
-        jsFunction_prefetchChildren(start, length);
+        prefetchChildren(start, length);
         ArrayList a = new ArrayList();
 
         for (int i=start; i<start+length; i++) {
@@ -706,7 +741,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
      * @return ...
      */
     public Object get(String name, Scriptable start) {
-        // System.err.println ("GET from "+node+": "+name);
+        // System.err.println("GET from "+this+": "+name+" ->"+super.get(name, start));
         Object retval = null;
 
         if (node == null) {

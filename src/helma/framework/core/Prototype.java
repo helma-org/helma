@@ -19,6 +19,7 @@ package helma.framework.core;
 import helma.objectmodel.db.DbMapping;
 import helma.scripting.*;
 import helma.util.SystemMap;
+import helma.util.SystemProperties;
 import java.io.*;
 import java.util.*;
 
@@ -30,6 +31,7 @@ import java.util.*;
  */
 public final class Prototype {
     String name;
+    String lowerCaseName;
     Application app;
     File directory;
     File[] files;
@@ -61,15 +63,37 @@ public final class Prototype {
     /**
      * Creates a new Prototype object.
      *
-     * @param name ...
-     * @param dir ...
-     * @param app ...
+     * @param name the prototype's name
+     * @param dir the prototype directory, if known
+     * @param app the application this prototype is a part of
      */
     public Prototype(String name, File dir, Application app) {
         // app.logEvent ("Constructing Prototype "+app.getName()+"/"+name);
         this.app = app;
         this.name = name;
-        this.directory = dir;
+        lowerCaseName = name.toLowerCase();
+
+        if (dir != null) {
+            directory = dir;
+        } else {
+            directory = new File(app.appDir, name);
+            // a little bit of overkill to maintain backwards compatibility
+            // with lower case type names...
+            if (!directory.isDirectory()) {
+                File lowerDir = new File(app.appDir, lowerCaseName);
+                if (lowerDir.isDirectory()) {
+                    directory = lowerDir;
+                }
+            }
+        }
+
+        // Create and register type properties file
+        File propfile = new File(directory, "type.properties");
+        SystemProperties props = new SystemProperties(propfile.getAbsolutePath());
+        dbmap = new DbMapping(app, name, props);
+        // we don't need to put the DbMapping into proto.updatables, because
+        // dbmappings are checked separately in TypeManager.checkFiles() for
+        // each request
 
         code = new HashMap();
         zippedCode = new HashMap();
@@ -145,7 +169,7 @@ public final class Prototype {
      */
     public void setParentPrototype(Prototype parent) {
         // this is not allowed for the hopobject and global prototypes
-        if ("hopobject".equalsIgnoreCase(name) || "global".equalsIgnoreCase(name)) {
+        if ("HopObject".equals(name) || "global".equals(name)) {
             return;
         }
 
@@ -164,11 +188,11 @@ public final class Prototype {
      * Check if the given prototype is within this prototype's parent chain.
      */
     public final boolean isInstanceOf(String pname) {
-        if (name.equals(pname)) {
+        if (name.equals(pname) || lowerCaseName.equals(pname)) {
             return true;
         }
 
-        if ((parent != null) && !"hopobject".equalsIgnoreCase(parent.getName())) {
+        if ((parent != null) && !"HopObject".equals(parent.getName())) {
             return parent.isInstanceOf(pname);
         }
 
@@ -185,11 +209,16 @@ public final class Prototype {
 
         Prototype p = parent;
 
-        while ((p != null) && !"hopobject".equalsIgnoreCase(p.getName())) {
+        while ((p != null) && !"hopobject".equals(p.getLowerCaseName())) {
             Object old = handlers.put(p.name, obj);
             // if an object was already registered by this name, put it back in again.
             if (old != null) {
                 handlers.put(p.name, old);
+            }
+            // same with lower case name
+            old = handlers.put(p.lowerCaseName, obj);
+            if (old != null) {
+                handlers.put(p.lowerCaseName, old);
             }
 
             p = p.parent;
@@ -201,7 +230,7 @@ public final class Prototype {
      *
      * @param dbmap ...
      */
-    public void setDbMapping(DbMapping dbmap) {
+    protected void setDbMapping(DbMapping dbmap) {
         this.dbmap = dbmap;
     }
 
@@ -245,12 +274,21 @@ public final class Prototype {
     }
 
     /**
-     *
+     * Return this prototype's name
      *
      * @return ...
      */
     public String getName() {
         return name;
+    }
+
+    /**
+     * Return this prototype's name in lower case letters
+     *
+     * @return ...
+     */
+    public String getLowerCaseName() {
+        return lowerCaseName;
     }
 
     /**
