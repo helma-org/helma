@@ -903,7 +903,7 @@ public final class Application implements IPathElement, Runnable {
         ArrayList list = new ArrayList();
         INode users = getUserRoot();
 
-        // first try to get them from subnodes (db)
+        // add all child nodes to the list
         for (Enumeration e = users.getSubnodes(); e.hasMoreElements();) {
             list.add(e.nextElement());
         }
@@ -973,7 +973,7 @@ public final class Application implements IPathElement, Runnable {
         try {
             INode users = getUserRoot();
 
-            unode = users.getNode(uname);
+            unode = (INode) users.getChildElement(uname);
 
             if (unode != null) {
                 return null;
