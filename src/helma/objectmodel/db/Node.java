@@ -1930,7 +1930,7 @@ public final class Node implements INode, Serializable {
                 }
 
                 if (oldvalue != null) {
-                    n = parent.getNode(oldvalue);
+                    n = (INode) parent.getChildElement(oldvalue);
 
                     if (n == this) {
                         parent.unset(oldvalue);
