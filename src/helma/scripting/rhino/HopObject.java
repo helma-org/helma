@@ -73,7 +73,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
      */
     public static Object jsConstructor(Context cx, Object[] args,
                                               Function ctorObj, boolean inNewExpr)
-                         throws JavaScriptException, ScriptingException {
+                         throws EvaluatorException, ScriptingException {
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
         RhinoCore c = engine.core;
         String prototype = ((FunctionObject) ctorObj).getFunctionName();
@@ -96,14 +96,14 @@ public class HopObject extends ScriptableObject implements Wrapper {
                     if (value instanceof Throwable) {
                         ((Throwable) value).printStackTrace();
                     }
-                    throw new JavaScriptException("Error in Java constructor: "+value);
+                    throw new EvaluatorException("Error in Java constructor: "+value);
                 } catch (Exception ignore) {
                     // constructor arguments didn't match
                 }
                 throw new ScriptingException("No matching Java Constructor found in "+clazz);
             } catch (Exception x) {
                 System.err.println("Error in Java constructor: "+x);
-                throw new JavaScriptException(x);
+                throw new EvaluatorException(x.toString());
             }
         } else {
             INode n = new helma.objectmodel.db.Node(prototype, prototype,
@@ -155,7 +155,12 @@ public class HopObject extends ScriptableObject implements Wrapper {
      *
      */
     public Object unwrap() {
-        return node;
+        if (node != null) {
+            checkNode();
+            return node;
+        } else {
+            return this;
+        }
     }
 
     /**
@@ -319,7 +324,11 @@ public class HopObject extends ScriptableObject implements Wrapper {
         }
 
         checkNode();
-        Object n = node.getSubnode(id.toString());
+
+        String idString = (id instanceof Double) ?
+                          Long.toString(((Double) id).longValue()) :
+                          id.toString();
+        Object n = node.getSubnode(idString);
 
         if (n == null) {
             return null;
@@ -624,24 +633,12 @@ public class HopObject extends ScriptableObject implements Wrapper {
      * @return ...
      */
     public boolean has(String name, Scriptable start) {
-        if (super.has(name, start)) {
-            return true;
-        }
-
-        if ((prototype != null) && prototype.has(name, start)) {
-            return true;
-        }
-
         if (node != null) {
-
             checkNode();
-
-            if  (node.get(name) != null) {
-                return true;
-            }
+            return  (node.get(name) != null);
+        } else {
+            return super.has(name, start);
         }
-
-        return false;
     }
 
     /**
@@ -650,13 +647,11 @@ public class HopObject extends ScriptableObject implements Wrapper {
      * @param name ...
      */
     public void delete(String name) {
-        super.delete(name);
-
         if ((node != null)) {
-
             checkNode();
-
             node.unset(name);
+        } else {
+            super.delete(name);
         }
     }
 
@@ -670,21 +665,27 @@ public class HopObject extends ScriptableObject implements Wrapper {
      */
     public Object get(String name, Scriptable start) {
         // System.err.println ("GET from "+node+": "+name);
-        Object retval = super.get(name, start);
+        Object retval = null;
 
-        if (retval != ScriptableObject.NOT_FOUND) {
-            return retval;
+        if (node == null) {
+            return super.get(name, start);
+        } else {
+            // Note: we do not normally consult the prototype in get(),
+            // but we do so here because calling get on the Node may trigger
+            // db select statements (resulting in errors) and getting a
+            // property on the parent prototype is much cheaper and safer.
+            // NOTE: because of this, prototype inheritance is reversed for HopObjects!
+            Scriptable prototype = getPrototype();
+
+            while (prototype != null) {
+                retval = prototype.get(name, this);
+                if (retval != NOT_FOUND) {
+                    return retval;
+                }
+                prototype = prototype.getPrototype();
+            }
+            return getFromNode(name);
         }
-
-        if (prototype != null) {
-            retval = prototype.get(name, start);
-        }
-
-        if (retval != ScriptableObject.NOT_FOUND) {
-            return retval;
-        }
-
-        return getFromNode(name);
     }
 
     /**
@@ -729,10 +730,10 @@ public class HopObject extends ScriptableObject implements Wrapper {
                         Object[] args = { new Long(d.getTime()) };
                         try {
                             return cx.newObject(core.global, "Date", args);
-                        } catch (PropertyException px) {
-                            return NOT_FOUND;
-                        } catch (NotAFunctionException nafx) {
-                            return NOT_FOUND;
+                        /* } catch (PropertyException px) {
+                            return NOT_FOUND; */
+                        /* } catch (NotAFunctionException nafx) {
+                            return NOT_FOUND; */
                         } catch (JavaScriptException nafx) {
                             return NOT_FOUND;
                         }
