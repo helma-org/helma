@@ -21,7 +21,7 @@ public final class Key implements Serializable {
 
 
     public Key (DbMapping dbmap, String id) {
-	this.type = dbmap == null ? "" : dbmap.typename;
+	this.type = dbmap == null ? null : dbmap.typename;
 	this.id = id;
 	hash = id.hashCode ();
     }
@@ -46,7 +46,7 @@ public final class Key implements Serializable {
     }
 
     public void recycle (DbMapping dbmap, String id) {
-	this.type = dbmap == null ? "" : dbmap.typename;
+	this.type = dbmap == null ? null : dbmap.typename;
 	this.id = id;
 	hash = id.hashCode ();
     }
@@ -73,7 +73,7 @@ public final class Key implements Serializable {
     }
 
     public static String makeVirtualID (String ptype, String pid, String sid) {
-	return ptype+"/"+pid + "*h~v*" + sid;
+	return ptype+"/"+pid + "~" + sid;
     }
 
     public String toString () {
