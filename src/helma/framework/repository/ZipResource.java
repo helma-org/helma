@@ -120,6 +120,8 @@ public final class ZipResource implements Resource {
     }
 
     public URL getUrl() {
+        // TODO: we might want to return a Jar URL
+        // http://java.sun.com/j2se/1.5.0/docs/api/java/net/JarURLConnection.html
         throw new UnsupportedOperationException("getUrl() not implemented for ZipResource");
     }
 
