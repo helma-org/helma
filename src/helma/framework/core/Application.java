@@ -1252,6 +1252,14 @@ public final class Application implements IPathElement, Runnable {
 	    // if node manager exists, update it
 	    if (nmgr != null)
 	        nmgr.updateProperties (props);
+	    // update extensions
+	    Vector extensions = Server.getServer ().getExtensions ();
+	    for (int i=0; i<extensions.size(); i++) {
+	        HelmaExtension ext = (HelmaExtension)extensions.get(i);
+	        try {
+	            ext.applicationUpdated (this);
+	        } catch (ConfigurationException e) { }
+	    }
 	    // set prop read timestamp
 	    lastPropertyRead = props.lastModified ();
 	}
