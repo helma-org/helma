@@ -5,6 +5,7 @@ package helma.framework.core;
 
 import java.util.Vector;
 import java.util.Hashtable;
+import java.util.Enumeration;
 import java.util.StringTokenizer;
 import java.io.*;
 import helma.objectmodel.*;
@@ -152,7 +153,14 @@ public class RequestEvaluator implements Runnable {
 	            current = null;
 	            currentNode = null;
 	            reqPath.setSize (0);
-
+	            // delete path objects-via-prototype
+	            for (Enumeration en=reqPath.getAllProperties(); en.hasMoreElements(); ) {
+	                String pn = (String) en.nextElement ();
+	                if (!"length".equalsIgnoreCase (pn)) try {
+	                    reqPath.deleteProperty (pn, pn.hashCode ());
+	                } catch (Exception ignore) {}
+	            }
+	
 	            try {
 
 	                String requestPath = app.getName()+"/"+req.path;
@@ -191,6 +199,7 @@ public class RequestEvaluator implements Runnable {
 	                        currentNode = root;
 	                        current = getNodeWrapper (root);
 	                        reqPath.putProperty (0, current);
+	                        reqPath.putHiddenProperty ("root", current);
 	                        Prototype p = app.getPrototype (root);
 	                        String errorAction = app.props.getProperty ("error", "error");
 	                        action = p.getActionOrTemplate (errorAction);
@@ -199,6 +208,7 @@ public class RequestEvaluator implements Runnable {
 	                        currentNode = root;
 	                        current = getNodeWrapper (root);
 	                        reqPath.putProperty (0, current);
+	                        reqPath.putHiddenProperty ("root", current);
 	                        Prototype p = app.getPrototype (root);
 	                        action = p.getActionOrTemplate (null);
 
@@ -208,76 +218,92 @@ public class RequestEvaluator implements Runnable {
 	                        // is the next path element a subnode or a property of the last one?
 	                        // currently only used for users node
 	                        boolean isProperty = false;
+	
 	                        StringTokenizer st = new StringTokenizer (req.path, "/");
 	                        int ntokens = st.countTokens ();
-	                        String next = null;
-	                        currentNode = root;
-	                        reqPath.putProperty (0, getNodeWrapper (currentNode));
-
-	                        // the first token in the path needs to be treated seprerately,
-	                        // because "/user" is a shortcut to the current user session, while "/users"
-	                        // is the mounting point for all users.
-	                        if (ntokens > 1) {
-	                            next = st.nextToken ();
-	                            if ("user".equalsIgnoreCase (next)) {
-	                                currentNode = user.getNode ();
-	                                ntokens -=1;
-	                                if (currentNode != null)
-	                                    reqPath.putProperty (1, getNodeWrapper (currentNode));
-	                            } else if ("users".equalsIgnoreCase (next)) {
-	                                currentNode = app.getUserRoot ();
-	                                ntokens -=1;
-	                                isProperty = true;
-	                            } else {
-	                                currentNode = currentNode.getSubnode (next);
-	                                ntokens -=1;
-	                                if (currentNode != null)
-	                                    reqPath.putProperty (1, getNodeWrapper (currentNode));
-	                            }
-	                        }
+	                        // limit path to < 50 tokens
+	                        if (ntokens > 50)
+	                            throw new RuntimeException ("Path too long");
+	                        String[] pathItems = new String [ntokens];
+	                        for (int i=0; i<ntokens; i++)
+	                              pathItems[i] = st.nextToken ();
 	
-	                        for (int i=1; i<ntokens; i++) {
+	                        currentNode = root;
+	                        current = getNodeWrapper (root);
+	                        reqPath.putProperty (0, current);
+	                        reqPath.putHiddenProperty ("root", current);
+
+	                        for (int i=0; i<ntokens; i++) {
+	
 	                            if (currentNode == null)
 	                                throw new FrameworkException ("Object not found.");
-	                            next = st.nextToken ();
-	                            if (isProperty)  // get next element as property
-	                                currentNode = currentNode.getNode (next, false);
-	                            else  // get next element as subnode
-	                                currentNode = currentNode.getSubnode (next);
-	                            isProperty = false;
-	                            if (currentNode != null && currentNode.getState() != INode.VIRTUAL) // add to reqPath array
-	                                reqPath.putProperty (reqPath.size(), getNodeWrapper (currentNode));
-	                            // limit path to < 50 tokens
-	                            if (i > 50) throw new RuntimeException ("Path too deep");
+	
+	                            // the first token in the path needs to be treated seprerately,
+	                            // because "/user" is a shortcut to the current user session, while "/users"
+	                            // is the mounting point for all users.
+	                            if (i == 0 && "user".equalsIgnoreCase (pathItems[i])) {
+	                                currentNode = user.getNode ();
+	                                if (currentNode != null) {
+	                                    current = getNodeWrapper (currentNode);
+	                                    reqPath.putProperty (1, current);
+	                                    reqPath.putHiddenProperty ("user", current);
+	                                }
+	
+	                            } else if (i == 0 && "users".equalsIgnoreCase (pathItems[i])) {
+	                                currentNode = app.getUserRoot ();
+	                                isProperty = true;
+	                                if (currentNode != null) {
+	                                    current = getNodeWrapper (currentNode);
+	                                    reqPath.putProperty (1, current);
+	                                }
+	
+	                            } else {
+	                                if (i == ntokens-1) {
+	                                    Prototype p = app.getPrototype (currentNode);
+	                                    if (p != null)
+	                                        action = p.getActionOrTemplate (pathItems[i]);
+	                                }
+	
+	                                if (action == null) {
+	
+	                                    if (pathItems[i].length () == 0)
+	                                        continue;
+	                                    if (isProperty)  // get next element as property
+	                                        currentNode = currentNode.getNode (pathItems[i], false);
+	                                    else  // get next element as subnode
+	                                        currentNode = currentNode.getSubnode (pathItems[i]);
+	                                    isProperty = false;
+
+	                                    // add object to request path if suitable
+	                                    if (currentNode != null) {
+	                                        String pt = currentNode.getPrototype ();
+	                                        if (pt != null) {
+	                                            // add to reqPath array
+	                                            current = getNodeWrapper (currentNode);
+	                                            reqPath.putProperty (reqPath.size(), current);
+	                                            reqPath.putHiddenProperty (pt, current);
+	                                        }
+	                                    }
+	                                    	
+	                                }
+	                            }
 	                        }
 
 	                        if (currentNode == null)
 	                            throw new FrameworkException ("Object not found.");
+	                        else
+	                            current = getNodeWrapper (currentNode);
 
-	                        Prototype p = app.getPrototype (currentNode);
-                                     next = st.nextToken ();
-	                        if (p != null)
-	                            action = p.getActionOrTemplate (next);
-
-	                        if (p == null || action == null) {
-	                            currentNode = currentNode.getSubnode (next);
-	                            if (currentNode == null)
-	                                throw new FrameworkException ("Object or Action '"+next+"' not found.");
-	                            p = app.getPrototype (currentNode);
-	                            // add to reqPath array
-	                            if (currentNode != null && currentNode.getState() != INode.VIRTUAL)
-	                                reqPath.putProperty (reqPath.size(), getNodeWrapper (currentNode));
+	                        if (action == null) {
+	                            Prototype p = app.getPrototype (currentNode);
 	                            if (p != null)
-	                                action = p.getActionOrTemplate ("main");
+	                                action = p.getActionOrTemplate (null);
 	                        }
 
-	                        current = getNodeWrapper (currentNode);
-
+	                        if (action == null)
+	                            throw new FrameworkException ("Action not found");
 	                    }
-
-	                    if (action == null)
-	                        throw new FrameworkException ("Action not found");
-
+	
 	                } catch (FrameworkException notfound) {
 	                    if (error != null)
 	                        // we already have an error and the error template wasn't found,
@@ -606,7 +632,7 @@ public class RequestEvaluator implements Runnable {
 	this.method = functionName;
 	this.esargs = args;
 	this.res = new ResponseTrans ();
-             esresult = ESNull.theNull;
+	esresult = ESNull.theNull;
 	exception = null;
 
 	checkThread ();
@@ -629,7 +655,7 @@ public class RequestEvaluator implements Runnable {
 	this.method = functionName;
 	this.esargs = args;
 	this.res = new ResponseTrans ();
-             esresult = ESNull.theNull;
+	esresult = ESNull.theNull;
 	exception = null;
 
 	checkThread ();
