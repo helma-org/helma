@@ -1,6 +1,9 @@
 #!/bin/sh
 # Shell script for starting Helma with a JDK-like virtual machine.
 
+# To add JAR files to the classpath, simply place them into the 
+# lib/ext directory.
+
 # uncomment to set JAVA_HOME variable
 # JAVA_HOME=/usr/lib/java
 
@@ -13,7 +16,7 @@
 # Set TCP ports for Helma servers
 # (comment/uncomment to de/activate)
 HTTP_PORT=8080
-XMLRPC_PORT=8081
+# XMLRPC_PORT=8081
 # AJP13_PORT=8009
 # RMI_PORT=5050
 
@@ -41,23 +44,6 @@ else
 fi
 echo "Starting Helma in directory $HOP_HOME"
 
-# Set classpath
-JARS=lib/helma.jar
-JARS=$JARS:lib/jetty.jar
-JARS=$JARS:lib/crimson.jar
-JARS=$JARS:lib/xmlrpc.jar
-JARS=$JARS:lib/village.jar
-JARS=$JARS:lib/servlet.jar
-JARS=$JARS:lib/netcomponents.jar
-JARS=$JARS:lib/jimi.jar
-JARS=$JARS:lib/apache-dom.jar
-JARS=$JARS:lib/jdom.jar
-JARS=$JARS:lib/regexp.jar
-JARS=$JARS:lib/mail.jar
-JARS=$JARS:lib/activation.jar
-JARS=$JARS:lib/mysql.jar
-JARS=$JARS:lib/mckoidb.jar
-
 if [ "$HTTP_PORT" ]; then
    SWITCHES="$SWITCHES -w $HTTP_PORT"
    echo Starting HTTP server on port $HTTP_PORT
@@ -79,4 +65,4 @@ if [ "$HOP_HOME" ]; then
 fi
 
 # Invoking the Java VM
-$JAVACMD $JAVA_OPTIONS -classpath $CLASSPATH:$JARS helma.main.Server $SWITCHES
+$JAVACMD $JAVA_OPTIONS -jar launcher.jar $SWITCHES
