@@ -697,16 +697,33 @@ public class Node implements INode, Serializable {
     public INode getSubnode (String path) {
 	StringTokenizer st = new StringTokenizer (path, "/");
 	Node retval = this, runner;
+
 	while (st.hasMoreTokens () && retval != null) {
 	    runner = retval;
 	    String next = st.nextToken().trim().toLowerCase ();
+
 	    if ("".equals (next)) {
 	        retval = this;
 	    } else {
 	        runner.loadNodes ();
 	        boolean found = runner.subnodes == null ? false : runner.subnodes.contains (next);
-	        DbMapping smap = runner.dbmap == null ? null : runner.dbmap.getSubnodeMapping ();
-	        retval = found ? nmgr.getNode (next, smap) : null;
+
+	        if (!found)
+	            retval = null;
+	        else {
+	            Relation srel = null;
+	            DbMapping smap = null;
+	            if (runner.dbmap != null) {
+	                srel = runner.dbmap.getSubnodeRelation ();
+	                smap = runner.dbmap.getSubnodeMapping ();
+	            }
+	            // check if there is a group-by relation
+	            if (srel != null && srel.groupby != null)
+	                retval = nmgr.getNode (this, next, srel);
+	            else
+	                retval =  nmgr.getNode (next, smap);
+	        }
+
 	        if (retval != null && retval.parentID == null) {
 	            retval.setParent (runner);
 	            retval.anonymous = true;
