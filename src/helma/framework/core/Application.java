@@ -512,7 +512,6 @@ public final class Application implements IPathElement, Runnable {
 	nmgr.clearCache ();
     }
 
-
     /**
      * Returns the number of elements in the NodeManager's cache
      */
@@ -533,10 +532,7 @@ public final class Application implements IPathElement, Runnable {
      * This method returns the root object of this application's object tree.
      */
     public Object getDataRoot () {
-	// if rootObject is set, immediately return it.
-	if (rootObject != null)
-	    return rootObject;
-	// check if we ought to create a rootObject from its class name
+	// check if we have a custom root object class
 	if (rootObjectClass != null) {
 	    // create custom root element.
 	    if (rootObject == null) {
@@ -556,9 +552,13 @@ public final class Application implements IPathElement, Runnable {
 	    return rootObject;
 	}
 	// no custom root object is defined - use standard helma objectmodel
-	INode root = nmgr.safe.getNode ("0", rootMapping);
-	root.setDbMapping (rootMapping);
-	return root;
+	else {
+	    // INode root = nmgr.safe.getNode ("0", rootMapping);
+	    // root.setDbMapping (rootMapping);
+	    // rootObject = root;
+	    rootObject = nmgr.safe.getNode ("0", rootMapping);
+	    return rootObject;
+	}
     }
 
     /**
@@ -832,33 +832,27 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
-     *  Return the href to the root of this application.
-     */
-    public String getRootHref () {
-	return getNodeHref (getDataRoot(), null);
-    }
-
-    /**
      * Return a path to be used in a URL pointing to the given element  and action
      */
     public String getNodeHref (Object elem, String actionName) {
-	Object root = getDataRoot ();
+	// Object root = getDataRoot ();
 
 	// check optional root prototype from app.properties
-	String rootproto = props.getProperty ("rootPrototype");
+	String rootProto = props.getProperty ("rootPrototype");
 
 	String divider = "/";
 	StringBuffer b = new StringBuffer ();
-	Object p = elem;
+	Object parent = null;
 	int loopWatch = 0;
 
-	while  (p != null && getParentElement (p) != null && p != root) {
+	while  (elem != null && (parent = getParentElement (elem)) != null && elem != rootObject) {
 
-	    if (rootproto != null && rootproto.equals (getPrototypeName (p)))
+	    if (rootProto != null && rootProto.equals (getPrototypeName (elem)))
 	        break;
 	    b.insert (0, divider);
-	    b.insert (0, UrlEncoded.encode (getElementName (p)));
-	    p = getParentElement (p);
+	    b.insert (0, UrlEncoded.encode (getElementName (elem)));
+	    // move down to the element's parent
+	    elem = parent;
 
 	    if (loopWatch++ > 20)
 	        break;
