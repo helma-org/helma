@@ -25,7 +25,7 @@ import org.apache.xmlrpc.*;
 
  public class Server implements IPathElement, Runnable {
 
-    public static final String version = "1.2.3 RC1 (2003/03/05)";
+    public static final String version = "1.2.3 (2003/03/07)";
     public final long starttime;
 
     // if true we only accept RMI and XML-RPC connections from 
