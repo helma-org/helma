@@ -134,9 +134,10 @@ public final class TypeManager {
                 Prototype proto = getPrototype(name);
 
                 // if prototype doesn't exist, create it
-                if ((proto == null) && isValidTypeName(name)) {
-                    // create new prototype
-                    createPrototype(name, (Repository) list[i]);
+                if (proto == null) {
+                    // create new prototype if type name is valid
+                    if (isValidTypeName(name)) 
+                        createPrototype(name, (Repository) list[i]);
                 } else {
                     proto.addRepository((Repository) list[i]);
                 }
