@@ -129,7 +129,6 @@ public class Transactor extends Thread {
 
 	for (Iterator i=nodes.values().iterator(); i.hasNext (); ) {
 	    Node node = (Node) i.next ();
-
 	    // update nodes in db
 	    int nstate = node.getState ();
 	    if (nstate == Node.NEW) {
@@ -137,12 +136,12 @@ public class Transactor extends Thread {
 	        nmgr.insertNode (nmgr.db, txn, node);
 	        node.setState (Node.CLEAN);
 	        ins++;
-	        nmgr.app.logEvent ("inserted: Node "+node.getName ()+"/"+node.getID ());
+	        nmgr.app.logEvent ("inserted: Node "+node.getPrototype ()+"/"+node.getID ());
 	    } else if (nstate == Node.MODIFIED) {
 	        nmgr.updateNode (nmgr.db, txn, node);
 	        node.setState (Node.CLEAN);
 	        upd++;
-	        nmgr.app.logEvent ("updated: Node "+node.getName ()+"/"+node.getID ());
+	        nmgr.app.logEvent ("updated: Node "+node.getPrototype ()+"/"+node.getID ());
 	    } else if (nstate == Node.DELETED) {
 	        // nmgr.app.logEvent ("deleted: "+node.getFullName ()+" ("+node.getName ()+")");
 	        nmgr.deleteNode (nmgr.db, txn, node);

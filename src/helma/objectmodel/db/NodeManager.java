@@ -165,7 +165,7 @@ public final class NodeManager {
 	    if (node != null) {
 	        synchronized (cache) {
 	            Node oldnode = (Node) cache.put (node.getKey (), node);
-	            if (oldnode != null && oldnode.getState () != Node.INVALID) {
+	            if (oldnode != null && oldnode.getState () != Node.INVALID && oldnode != nullNode) {
 	                cache.put (node.getKey (), oldnode);
 	                node = oldnode;
 	            }
@@ -254,6 +254,7 @@ public final class NodeManager {
 	        }
 	    }
 	} else if (node == nullNode) {
+	    // the nullNode caches a null value, i.e. an object that doesn't exist
 	    return null;
 	} else {
 	    // update primary key in cache to keep it from being flushed, see above
@@ -454,7 +455,7 @@ public final class NodeManager {
 	}
 	// update may cause changes in the node's parent subnode array
 	if (node.isAnonymous()) {
-	    Node parent = (Node) node.getParent ();
+	    Node parent = node.getCachedParent ();
 	    if (parent != null)
 	        parent.lastSubnodeChange = System.currentTimeMillis ();
 	}
@@ -591,7 +592,14 @@ public final class NodeManager {
 	        qds.fetchRecords ();
 	        for (int i=0; i<qds.size (); i++) {
 	            Record rec = qds.getRecord (i);
-	            retval.addElement (rec.getValue (1).asString ());
+	            String kstr = rec.getValue (1).asString ();
+	            retval.addElement (kstr);
+	            // if these are groupby nodes, evict nullNode keys
+	            if (rel.groupby != null) {
+	                Key key = new Key ((String) null,  home.getKey ().getVirtualID (kstr));
+	                if (cache.get (key) == nullNode)
+	                    evictKey (key);
+	            }
 	        }
 
 	    } finally {

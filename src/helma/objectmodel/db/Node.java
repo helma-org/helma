@@ -329,6 +329,7 @@ public class Node implements INode, Serializable {
 	if (state == TRANSIENT)
 	    return; // no need to lock transient node
 	Transactor current = (Transactor) Thread.currentThread ();
+
 	if (!current.isActive ())
 	    throw new helma.framework.TimeoutException ();
 	if (state == INVALID) {
@@ -336,10 +337,12 @@ public class Node implements INode, Serializable {
 	    Thread.dumpStack ();
 	    throw new ConcurrencyException ("Node "+this+" was invalidated by another thread.");
 	}
+
 	if (lock != null && lock != current && lock.isAlive () && lock.isActive ()) {
 	    nmgr.logEvent ("Concurrency conflict for "+this+", lock held by "+lock);
 	    throw new ConcurrencyException ("Tried to modify "+this+" from two threads at the same time.");
 	}
+
 	current.visitNode (this);
 	lock = current;
     }
@@ -602,12 +605,15 @@ public class Node implements INode, Serializable {
     }
 
 
+    /**
+     * Get parent, retrieving it if necessary.
+     */
     public INode getParent () {
 
 	// check what's specified in the type.properties for this node.
 	ParentInfo[] parentInfo = null;
 	if (dbmap != null && dbmap.isRelational () &&
-			(lastParentSet < dbmap.getLastTypeChange() || lastParentSet < lastmodified))
+		(lastParentSet < dbmap.getLastTypeChange() || lastParentSet < lastmodified))
 	    parentInfo = dbmap.getParentInfo ();
 
 	// check if current parent candidate matches presciption, if not, try to get it
@@ -640,6 +646,16 @@ public class Node implements INode, Serializable {
 	}
 
 	// fall back to heuristic parent (the node that fetched this one from db)
+	if (parentID == null)
+	    return null;
+	return nmgr.getNode (parentID, parentmap);
+    }
+
+
+    /**
+     * Get parent, using cached info if it exists.
+     */
+    public Node getCachedParent () {
 	if (parentID == null)
 	    return null;
 	return nmgr.getNode (parentID, parentmap);
@@ -948,6 +964,7 @@ public class Node implements INode, Serializable {
 	// need to query parent before releaseNode is called, since this may change the parent
 	// to the next option described in the type.properties _parent info
 	INode parent = n.getParent ();
+
 	releaseNode (n);
 
 	if (parent == this) {
