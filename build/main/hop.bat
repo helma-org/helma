@@ -1,6 +1,9 @@
 @echo off
 rem Batch file for Starting Helma with a JDK-like virtual machine.
 
+rem To add jar files to the classpath, simply place them into the 
+rem lib/ext directory of this Helma installation.
+
 :: Initialize variables
 :: (don't touch this section)
 set JAVA_HOME=
@@ -26,9 +29,6 @@ rem set JAVA_HOME=c:\program files\java
 
 :: Uncomment to pass options to the Java virtual machine
 rem set JAVA_OPTIONS=-server -Xmx128m
-
-:: Uncomment to add your own jar files to the class path
-rem set JARS=C:\path\to\some.jar
 
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 :::::: No user configuration needed below this line :::::::
@@ -74,9 +74,6 @@ if not "%HOP_HOME%"=="" (
    echo Serving applications from %HOP_HOME%
    set OPTIONS=%OPTIONS% -h "%HOP_HOME%
 )
-if not "%JARS%"=="" (
-   set JARS=-classpath %JARS%
-)
 
 :: Invoking the Java virtual machine
-%JAVACMD% %JAVA_OPTIONS% %JARS% -jar launcher.jar %OPTIONS%
+%JAVACMD% %JAVA_OPTIONS% -jar launcher.jar %OPTIONS%

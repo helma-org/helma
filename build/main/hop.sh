@@ -1,6 +1,9 @@
 #!/bin/sh
 # Shell script for starting Helma with a JDK-like virtual machine.
 
+# To add JAR files to the classpath, simply place them into the 
+# lib/ext directory.
+
 # uncomment to set JAVA_HOME variable
 # JAVA_HOME=/usr/lib/java
 
@@ -16,9 +19,6 @@ HTTP_PORT=8080
 # XMLRPC_PORT=8081
 # AJP13_PORT=8009
 # RMI_PORT=5050
-
-# Set additional classpath
-# JARS=/path/to/some/file.jar
 
 ###########################################################
 ###### No user configuration needed below this line #######
@@ -63,10 +63,6 @@ fi
 if [ "$HOP_HOME" ]; then
    SWITCHES="$SWITCHES -h $HOP_HOME"
 fi
-if [ "$JARS" ]; then
-   JARS="-classpath $JARS"
-fi
-
 
 # Invoking the Java VM
-$JAVACMD $JAVA_OPTIONS $JARS -jar launcher.jar $SWITCHES
+$JAVACMD $JAVA_OPTIONS -jar launcher.jar $SWITCHES
