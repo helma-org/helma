@@ -17,6 +17,8 @@
 package helma.framework.core;
 
 import helma.objectmodel.INode;
+import helma.framework.repository.FileResource;
+
 import java.io.*;
 import java.util.*;
 
@@ -41,7 +43,7 @@ public final class SkinManager implements FilenameFilter {
         skinExtension = ".skin";
     }
 
-    protected Skin getSkin(Prototype proto, String skinname, Object[] skinpath) {
+    protected Skin getSkin(Prototype proto, String skinname, Object[] skinpath) throws IOException {
         if (proto == null) {
             return null;
         }
@@ -77,7 +79,7 @@ public final class SkinManager implements FilenameFilter {
         return null;
     }
 
-    protected Skin getSkinInternal(Object skinset, String prototype, String skinname) {
+    protected Skin getSkinInternal(Object skinset, String prototype, String skinname) throws IOException {
         if ((prototype == null) || (skinset == null)) {
             return null;
         }
@@ -101,19 +103,16 @@ public final class SkinManager implements FilenameFilter {
         } else {
             // Skinset is interpreted as directory name from which to
             // retrieve the skin
-            File f = new File(skinset.toString(), prototype);
+            StringBuffer b = new StringBuffer(skinset.toString());
+            b.append(File.separatorChar).append(prototype).append(File.separatorChar)
+                         .append(skinname).append(skinExtension);
 
-            // if directory does not exist use lower case property name
-            if (!f.isDirectory()) {
-                f = new File(skinset.toString(), prototype.toLowerCase());
-            }
+            // TODO: check for lower case prototype name for backwards compat
 
-            f = new File(f, skinname + skinExtension);
+            File f = new File(b.toString());
 
             if (f.exists() && f.canRead()) {
-                SkinFile sf = new SkinFile(f, skinname, app);
-
-                return sf.getSkin();
+                return Skin.getSkin(new FileResource(f), app);
             }
         }
 
@@ -131,7 +130,7 @@ public final class SkinManager implements FilenameFilter {
                 return null;
             }
         }
-        
+
         String[] skinNames = dir.list(this);
 
         if ((skinNames == null) || (skinNames.length == 0)) {
@@ -144,7 +143,7 @@ public final class SkinManager implements FilenameFilter {
             String name = skinNames[i].substring(0, skinNames[i].length() - 5);
             File file = new File(dir, skinNames[i]);
 
-            map.put(name, new SkinFile(file, name, proto));
+            map.put(name, (new FileResource(file)));
         }
 
         return map;

@@ -18,6 +18,7 @@ package helma.main;
 
 import helma.extensions.HelmaExtension;
 import helma.framework.*;
+import helma.framework.repository.FileResource;
 import helma.framework.core.*;
 import helma.objectmodel.db.DbSource;
 import helma.util.*;
@@ -31,10 +32,10 @@ import org.mortbay.util.LogSink;
 import org.mortbay.util.MultiException;
 import org.mortbay.util.Frame;
 import java.io.*;
-import java.net.*;
 import java.rmi.registry.*;
 import java.rmi.server.*;
 import java.util.*;
+import helma.util.ResourceProperties;
 
 /**
  * Helma server main class.
@@ -50,9 +51,9 @@ public class Server implements IPathElement, Runnable {
     protected File hopHome;
 
     // server-wide properties
-    SystemProperties appsProps;
-    SystemProperties dbProps;
-    SystemProperties sysProps;
+    ResourceProperties appsProps;
+    ResourceProperties dbProps;
+    ResourceProperties sysProps;
 
     // our logger
     private Log logger;
@@ -105,7 +106,8 @@ public class Server implements IPathElement, Runnable {
         hopHome    = config.homeDir;
 
         // create system properties
-        sysProps = new SystemProperties(config.propFile.getAbsolutePath());
+        sysProps = new ResourceProperties();
+        sysProps.addResource(new FileResource(config.propFile));
     }
 
 
@@ -184,7 +186,8 @@ public class Server implements IPathElement, Runnable {
         guessConfig(config);
 
         // create system properties
-        SystemProperties sysProps = new SystemProperties(config.propFile.getAbsolutePath());
+        ResourceProperties sysProps = new ResourceProperties();
+        sysProps.addResource(new FileResource(config.propFile));
 
         // check if there's a property setting for those ports not specified via command line
         if ((config.websrvPort == null) && (sysProps.getProperty("webPort") != null)) {
@@ -283,7 +286,8 @@ public class Server implements IPathElement, Runnable {
         }
 
         // create system properties
-        SystemProperties sysProps = new SystemProperties(config.propFile.getAbsolutePath());
+        ResourceProperties sysProps = new ResourceProperties();
+        sysProps.addResource(new FileResource(config.propFile));
 
         // try to get hopHome from property file
         if (config.homeDir == null && sysProps.getProperty("hophome") != null) {
@@ -442,18 +446,21 @@ public class Server implements IPathElement, Runnable {
 
 
         // read db.properties file in helma home directory
-        File helper = new File(hopHome, "db.properties");
-        dbProps = new SystemProperties(helper.getAbsolutePath());
+        dbProps = new ResourceProperties();
+        dbProps.addResource(new FileResource(new File(hopHome, "db.properties")));
         DbSource.setDefaultProps(dbProps);
 
         // read apps.properties file
         String appsPropfile = sysProps.getProperty("appsPropFile");
+        File file;
         if ((appsPropfile != null) && !"".equals(appsPropfile.trim())) {
-            helper = new File(appsPropfile);
+            file = new File(appsPropfile);
+            appsProps = new ResourceProperties();
         } else {
-            helper = new File(hopHome, "apps.properties");
+            file = new File(hopHome, "apps.properties");
+            appsProps = new ResourceProperties();
         }
-        appsProps = new SystemProperties(helper.getAbsolutePath());
+        appsProps.addResource(new FileResource(file));
 
         paranoid = "true".equalsIgnoreCase(sysProps.getProperty("paranoid"));
 
@@ -665,7 +672,7 @@ public class Server implements IPathElement, Runnable {
             return;
         }
 
-        // set the security manager. 
+        // set the security manager.
         // the default implementation is helma.main.HelmaSecurityManager.
         try {
             String secManClass = sysProps.getProperty("securityManager");
@@ -756,7 +763,7 @@ public class Server implements IPathElement, Runnable {
                     if (!dir.isAbsolute()) {
                         dir = new File(hopHome, logDir);
                     }
-                    
+
                     logDir = dir.getAbsolutePath();
                 }
                 System.setProperty("helma.logdir", logDir);
@@ -804,7 +811,7 @@ public class Server implements IPathElement, Runnable {
      *
      * @return ...
      */
-    public SystemProperties getProperties() {
+    public ResourceProperties getProperties() {
         return sysProps;
     }
 
@@ -813,7 +820,7 @@ public class Server implements IPathElement, Runnable {
      *
      * @return ...
      */
-    public SystemProperties getDbProperties() {
+    public ResourceProperties getDbProperties() {
         return dbProps;
     }
 

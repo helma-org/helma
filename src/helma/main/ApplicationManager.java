@@ -17,8 +17,9 @@
 package helma.main;
 
 import helma.framework.core.*;
+import helma.framework.repository.Repository;
+import helma.framework.repository.FileRepository;
 import helma.util.StringUtils;
-import helma.util.SystemProperties;
 import org.apache.xmlrpc.XmlRpcHandler;
 import org.mortbay.http.*;
 import org.mortbay.http.handler.*;
@@ -26,6 +27,7 @@ import org.mortbay.jetty.servlet.*;
 import java.io.*;
 import java.rmi.*;
 import java.util.*;
+import helma.util.ResourceProperties;
 
 /**
  * This class is responsible for starting and stopping Helma applications.
@@ -35,7 +37,7 @@ public class ApplicationManager implements XmlRpcHandler {
     private Hashtable applications;
     private Hashtable xmlrpcHandlers;
     private int rmiPort;
-    private SystemProperties props;
+    private ResourceProperties props;
     private Server server;
     private long lastModified;
 
@@ -46,7 +48,7 @@ public class ApplicationManager implements XmlRpcHandler {
      * @param server the server instance
      * @param port The RMI port we're binding to
      */
-    public ApplicationManager(SystemProperties props,
+    public ApplicationManager(ResourceProperties props,
                               Server server, int port) {
         this.props = props;
         this.server = server;
@@ -282,6 +284,7 @@ public class ApplicationManager implements XmlRpcHandler {
         String uploadLimit;
         String debug;
         boolean encode;
+        Repository[] repositories;
 
         /**
          *  Creates an AppDescriptor from the properties.
@@ -313,6 +316,60 @@ public class ApplicationManager implements XmlRpcHandler {
             appDir = (appDirName == null) ? null : new File(appDirName);
             String dbDirName = props.getProperty(name + ".dbdir");
             dbDir = (dbDirName == null) ? null : new File(dbDirName);
+
+            // read and configure app repositories
+            ArrayList repositoryList = new ArrayList();
+            for (int i = 0; true; i++) {
+                Class[] parameters = { String.class };
+
+                String[] repositoryArgs = { props.getProperty(name + ".repository." + i) };
+
+                if (repositoryArgs[0] != null) {
+                    // lookup repository implementation
+                    String repositoryImpl = props.getProperty(name + ".repository." + i +
+                                                              ".implementation");
+                    if (repositoryImpl == null) {
+                        // implementation not set manually, have to guess it
+                        if (repositoryArgs[0].endsWith(".zip")) {
+                            repositoryImpl = "helma.framework.repository.ZipRepository";
+                        } else {
+                            repositoryImpl = "helma.framework.repository.FileRepository";
+                        }
+                    }
+
+                    Repository newRepository = null;
+                    try {
+                        newRepository = (Repository) Class.forName(repositoryImpl)
+                                .getConstructor(parameters).newInstance(repositoryArgs);
+                        repositoryList.add(newRepository);
+                    } catch (Exception ex) {
+                        System.out.println("Adding repository " + repositoryArgs + " failed. " +
+                                           "Will not use that repository. Check your initArgs!");
+                    }
+                } else {
+                    // no more repositories to add
+                    break;
+                }
+            }
+
+            if (repositoryList.size() > 0) {
+                repositories = new Repository[repositoryList.size()];
+                repositoryList.toArray(repositories);
+            } else {
+                repositories = new Repository[1];
+                if (appDir != null) {
+                    repositories[0] = new FileRepository(appDir);
+                } else {
+                    repositories[0] = new FileRepository(new File(server.getAppsHome(), appName));
+                }
+                try {
+                    if (!repositories[0].exists()) {
+                        repositories[0].create();
+                    }
+                } catch (Exception swallow) {
+                    // couldn't create repository
+                }
+            }
         }
 
 
@@ -321,7 +378,7 @@ public class ApplicationManager implements XmlRpcHandler {
 
             try {
                 // create the application instance
-                app = new Application(appName, server, appDir, dbDir);
+                app = new Application(appName, server, repositories, dbDir);
 
                 // register ourselves
                 descriptors.put(appName, this);

@@ -18,6 +18,7 @@ package helma.scripting.rhino;
 
 import helma.scripting.rhino.extensions.*;
 import helma.framework.core.*;
+import helma.framework.repository.Resource;
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.DbKey;
@@ -215,18 +216,9 @@ public final class RhinoCore {
         }
 
         // loop through the prototype's code elements and evaluate them
-        // first the zipped ones ...
-        for (Iterator it = prototype.getZippedCode().values().iterator(); it.hasNext();) {
-            Object code = it.next();
-
-            evaluate(type, code);
-        }
-
-        // then the unzipped ones (this is to make sure unzipped code overwrites zipped code)
-        for (Iterator it = prototype.getCode().values().iterator(); it.hasNext();) {
-            Object code = it.next();
-
-            evaluate(type, code);
+        Iterator code = prototype.getCodeResources();
+        while (code.hasNext()) {
+            evaluate(type, (Resource) code.next());
         }
 
         type.commitCompilation();
@@ -310,7 +302,9 @@ public final class RhinoCore {
 
         TypeInfo type = (TypeInfo) prototypes.get("global");
 
-        updatePrototype(type, checked);
+        if (type != null) {
+            updatePrototype(type, checked);
+        }
 
         for (Iterator i = protos.iterator(); i.hasNext();) {
             Prototype proto = (Prototype) i.next();
@@ -624,7 +618,7 @@ public final class RhinoCore {
     }
 
     protected String postProcessHref(Object obj, String protoName, String basicHref)
-            throws UnsupportedEncodingException {
+            throws UnsupportedEncodingException, IOException {
         // check if the app.properties specify a href-function to post-process the
         // basic href.
         String hrefFunction = app.getProperty("hrefFunction", null);
@@ -750,46 +744,10 @@ public final class RhinoCore {
     // private evaluation/compilation methods
     ////////////////////////////////////////////////
 
-    private synchronized void evaluate(TypeInfo type, Object code) {
-        if (code instanceof FunctionFile) {
-            FunctionFile funcfile = (FunctionFile) code;
-            File file = funcfile.getFile();
-
-            if (file != null) {
-                try {
-                    FileReader fr = new FileReader(file);
-
-                    updateEvaluator(type, fr, funcfile.getSourceName(), 1);
-                } catch (IOException iox) {
-                    app.logEvent("Error updating function file: " + iox);
-                }
-            } else {
-                StringReader reader = new StringReader(funcfile.getContent());
-
-                updateEvaluator(type, reader, funcfile.getSourceName(), 1);
-            }
-        } else if (code instanceof ActionFile) {
-            ActionFile action = (ActionFile) code;
-            RhinoActionAdapter fa = new RhinoActionAdapter(action);
-
-            try {
-                updateEvaluator(type, new StringReader(fa.function),
-                                action.getSourceName(), 0);
-                if (fa.functionAsString != null) {
-                    // templates have an _as_string variant that needs to be compiled
-                    updateEvaluator(type, new StringReader(fa.functionAsString),
-                                action.getSourceName(), 0);
-                }
-            } catch (Exception esx) {
-                app.logEvent("Error parsing " + action + ": " + esx);
-            }
-        }
-    }
-
-    private synchronized void updateEvaluator(TypeInfo type, Reader reader,
-                                              String sourceName, int firstline) {
-        // System.err.println("UPDATE EVALUATOR: "+prototype+" - "+sourceName);
+    private synchronized void evaluate (TypeInfo type, Resource code) {
         Scriptable threadScope = global.unregisterScope();
+        String sourceName = code.getName();
+        Reader reader = null;
 
         try {
             // get the current context
@@ -798,8 +756,14 @@ public final class RhinoCore {
             Scriptable op = type.objProto;
 
             // do the update, evaluating the file
-            // Script script = cx.compileReader(reader, sourceName, firstline, null);
-            cx.evaluateReader(op, reader, sourceName, firstline, null);
+            if (sourceName.endsWith(".js")) {
+                reader = new InputStreamReader(code.getInputStream());
+                cx.evaluateReader(op, reader, sourceName, 1, null);
+            } else if (sourceName.endsWith(".hac")) {
+                RhinoActionAdapter raa = new RhinoActionAdapter(code);
+                reader = new StringReader(raa.function);
+                cx.evaluateReader(op, reader, sourceName, 0, null);
+            }
 
         } catch (Exception e) {
             app.logEvent("Error parsing file " + sourceName + ": " + e);
@@ -892,7 +856,7 @@ public final class RhinoCore {
 
         /**
          * Compilation has been completed successfully - switch over to code
-         * from temporary prototype, removing properties that haven't been
+         * from temporary prototype, removing properties that haven't been 
          * renewed.
          */
         public void commitCompilation() {
@@ -935,7 +899,7 @@ public final class RhinoCore {
             }
 
             // mark this type as updated
-            lastUpdate = frameworkProto.getLastUpdate();
+            lastUpdate = frameworkProto.lastCodeUpdate();
 
             // If this prototype defines a postCompile() function, call it
             Context cx = Context.getCurrentContext();
@@ -953,7 +917,7 @@ public final class RhinoCore {
         }
 
         public boolean needsUpdate() {
-            return frameworkProto.getLastUpdate() > lastUpdate;
+            return frameworkProto.lastCodeUpdate() > lastUpdate;
         }
 
         public void setParentType(TypeInfo type) {

@@ -16,7 +16,9 @@
 
 package helma.scripting.rhino;
 
-import helma.scripting.*;
+import helma.framework.repository.Resource;
+
+import java.io.IOException;
 
 /**
  *  An class that updates fesi interpreters with actionfiles and templates.
@@ -31,9 +33,9 @@ public class RhinoActionAdapter {
      *
      * @param action ...
      */
-    public RhinoActionAdapter(ActionFile action) {
+    public RhinoActionAdapter(Resource action) throws IOException {
         String content = action.getContent();
-        String functionName = action.getFunctionName().replace('.', '_');
+        String functionName = action.getShortName().replace('.', '_');
 
         sourceName = action.toString();
         function = composeFunction(functionName,
@@ -41,7 +43,7 @@ public class RhinoActionAdapter {
                                    content);
 
         // check if this is a template and we need to generate an "_as_string" variant
-        if (action instanceof Template) {
+        if (action.getName().endsWith(".hsp")) {
             functionAsString = composeFunction(functionName + "_as_string",
                                                "arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10",
                                                "res.pushStringBuffer(); " + content +

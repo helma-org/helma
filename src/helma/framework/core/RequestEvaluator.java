@@ -305,10 +305,6 @@ public final class RequestEvaluator implements Runnable {
                                     // set the req.action property, cutting off the _action suffix
                                     req.action = action.substring(0, action.length() - 7);
 
-                                    // set the application checksum in response to make ETag
-                                    // generation sensitive to changes in the app
-                                    res.setApplicationChecksum(app.getChecksum());
-
                                     // reset skin recursion detection counter
                                     skinDepth = 0;
 
@@ -856,7 +852,7 @@ public final class RequestEvaluator implements Runnable {
         this.req = req;
         this.reqtype = HTTP;
         this.session = session;
-        res = new ResponseTrans(req);
+        res = new ResponseTrans(app, req);
         result = null;
         exception = null;
     }
@@ -875,7 +871,7 @@ public final class RequestEvaluator implements Runnable {
         req = new RequestTrans(reqtypeName);
         req.path = functionName;
         session = new Session(functionName, app);
-        res = new ResponseTrans(req);
+        res = new ResponseTrans(app, req);
         result = null;
         exception = null;
     }

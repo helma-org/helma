@@ -27,6 +27,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Constructor;
 import java.util.*;
 import java.io.UnsupportedEncodingException;
+import java.io.IOException;
 
 /**
  * 
@@ -250,7 +251,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * @return ...
      */
     public boolean jsFunction_renderSkin(Object skinobj, Object paramobj)
-            throws UnsupportedEncodingException {
+            throws UnsupportedEncodingException, IOException {
         Context cx = Context.getCurrentContext();
         RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
@@ -284,7 +285,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * @return ...
      */
     public String jsFunction_renderSkinAsString(Object skinobj, Object paramobj)
-            throws UnsupportedEncodingException {
+            throws UnsupportedEncodingException, IOException {
         Context cx = Context.getCurrentContext();
         RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
@@ -319,7 +320,8 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      *
      * @return ...
      */
-    public Object jsFunction_href(Object action) throws UnsupportedEncodingException {
+    public Object jsFunction_href(Object action) throws UnsupportedEncodingException,
+                                                        IOException {
         if (node == null) {
             return null;
         }
@@ -790,9 +792,6 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * @return ...
      */
     public Object get(String name, Scriptable start) {
-        // System.err.println("GET from "+this+": "+name+" ->"+super.get(name, start));
-        Object retval = null;
-
         if (node == null) {
             return super.get(name, start);
         } else {

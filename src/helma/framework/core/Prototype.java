@@ -17,9 +17,12 @@
 package helma.framework.core;
 
 import helma.objectmodel.db.DbMapping;
-import helma.scripting.*;
 import helma.util.SystemMap;
-import helma.util.SystemProperties;
+import helma.util.ResourceProperties;
+import helma.framework.repository.Resource;
+import helma.framework.repository.Repository;
+import helma.framework.repository.ResourceTracker;
+
 import java.io.*;
 import java.util.*;
 
@@ -30,81 +33,77 @@ import java.util.*;
  * relational database table.
  */
 public final class Prototype {
+    Application app;
+
     String name;
     String lowerCaseName;
-    Application app;
-    File directory;
-    File[] files;
-    long lastDirectoryListing;
-    long checksum;
-    HashMap code;
-    HashMap zippedCode;
-    HashMap skins;
-    HashMap zippedSkins;
-    HashMap updatables;
+
+    Resource[] resources;
+    long lastResourceListing;
+
+    // lastCheck is the time the prototype's files were last checked
+    long lastChecksum;
+    long newChecksum;
+    // lastUpdate is the time at which any of the prototype's files were found updated the last time
+    long lastCodeUpdate;
+
+    TreeSet code;
+    TreeSet skins;
+
+    HashMap trackers;
+
+    HashSet repositories;
 
     // a map of this prototype's skins as raw strings
     // used for exposing skins to application (script) code (via app.skinfiles).
-    SkinMap skinMap;
+    HashMap skinMap;
+
     DbMapping dbmap;
 
-    // lastCheck is the time the prototype's files were last checked
-    private long lastChecksum;
-
-    // lastUpdate is the time at which any of the prototype's files were
-    // found updated the last time
-    private long lastUpdate;
     private Prototype parent;
 
     // Tells us whether this prototype is used to script a generic Java object,
     // as opposed to a Helma objectmodel node object.
     boolean isJavaPrototype;
 
+    ResourceProperties props;
+
     /**
      * Creates a new Prototype object.
      *
      * @param name the prototype's name
-     * @param dir the prototype directory, if known
+     * @param repository the first prototype's repository
      * @param app the application this prototype is a part of
      */
-    public Prototype(String name, File dir, Application app) {
+    public Prototype(String name, Repository repository, Application app) {
         // app.logEvent ("Constructing Prototype "+app.getName()+"/"+name);
         this.app = app;
         this.name = name;
+        repositories = new HashSet();
+        if (repository != null) {
+            repositories.add(repository);
+        }
         lowerCaseName = name.toLowerCase();
 
-        if (dir != null) {
-            directory = dir;
-        } else {
-            directory = new File(app.appDir, name);
-            // a little bit of overkill to maintain backwards compatibility
-            // with lower case type names...
-            if (!directory.isDirectory()) {
-                File lowerDir = new File(app.appDir, lowerCaseName);
-                if (lowerDir.isDirectory()) {
-                    directory = lowerDir;
-                }
-            }
-        }
-
         // Create and register type properties file
-        File propfile = new File(directory, "type.properties");
-        SystemProperties props = new SystemProperties(propfile.getAbsolutePath());
+        props = new ResourceProperties();
+        if (repository != null) {
+            props.addResource(repository.getResource("type.properties"));
+        }
         dbmap = new DbMapping(app, name, props);
         // we don't need to put the DbMapping into proto.updatables, because
         // dbmappings are checked separately in TypeManager.checkFiles() for
         // each request
 
-        code = new HashMap();
-        zippedCode = new HashMap();
-        skins = new HashMap();
-        zippedSkins = new HashMap();
-        updatables = new HashMap();
+        code = new TreeSet(app.getResourceComparator());
+        skins = new TreeSet(app.getResourceComparator());
 
-        skinMap = new SkinMap();
+        trackers = new HashMap();
+
+        skinMap = new HashMap();
 
         isJavaPrototype = app.isJavaPrototype(name);
-        lastUpdate = lastChecksum = 0;
+        lastCodeUpdate = lastChecksum = 0;
     }
 
     /**
@@ -115,42 +114,58 @@ public final class Prototype {
     }
 
     /**
-     *  Return this prototype's directory.
+     * Adds an repository to the list of repositories
+     * @param repository repository to add
      */
-    public File getDirectory() {
-        return directory;
+    public void addRepository(Repository repository) {
+        if (!repositories.contains(repository)) {
+            repositories.add(repository);
+            props.addResource(repository.getResource("type.properties"));
+        }
+        return;
     }
 
     /**
-     *  Get the list of files in this prototype's directory
+     *  Returns the list of resources in this prototype's repositories
      */
-    public File[] getFiles() {
-        if ((files == null) || (directory.lastModified() != lastDirectoryListing)) {
-            lastDirectoryListing = directory.lastModified();
-            files = directory.listFiles();
+    public Resource[] getResources() {
+        long resourceListing = getChecksum();
 
-            if (files == null) {
-                files = new File[0];
+        if (resources == null || resourceListing != lastResourceListing) {
+            lastResourceListing = resourceListing;
+            ArrayList list = new ArrayList();
+            Iterator iterator = repositories.iterator();
+
+            while (iterator.hasNext()) {
+                try {
+                    list.addAll(((Repository) iterator.next()).getAllResources());
+                } catch (IOException iox) {
+                    iox.printStackTrace();
+                }
+            }
+
+            resources = (Resource[]) list.toArray(new Resource[list.size()]);
+        }
+
+        return resources;
+    }
+
+    /**
+     *  Get a checksum over this prototype's sources
+     */
+    public long getChecksum() {
+        long checksum = 0;
+        Iterator iterator = repositories.iterator();
+
+        while (iterator.hasNext()) {
+            try {
+                checksum += ((Repository) iterator.next()).getChecksum();
+            } catch (IOException iox) {
+                iox.printStackTrace();
             }
         }
 
-        return files;
-    }
-
-    /**
-     *  Get a checksum over the files in this prototype's directory
-     */
-    public long getChecksum() {
-        // long start = System.currentTimeMillis();
-        File[] f = getFiles();
-        long c = directory.lastModified();
-
-        for (int i = 0; i < f.length; i++)
-            c += f[i].lastModified();
-
-        checksum = c;
-
-        // System.err.println ("CHECKSUM "+name+": "+(System.currentTimeMillis()-start));
+        newChecksum = checksum;
         return checksum;
     }
 
@@ -160,7 +175,8 @@ public final class Prototype {
      * @return ...
      */
     public boolean isUpToDate() {
-        return checksum == lastChecksum;
+        return (newChecksum == 0 && lastChecksum == 0) ?
+                false : newChecksum == lastChecksum;
     }
 
     /**
@@ -169,7 +185,7 @@ public final class Prototype {
      */
     public void setParentPrototype(Prototype parent) {
         // this is not allowed for the hopobject and global prototypes
-        if ("HopObject".equals(name) || "global".equals(name)) {
+        if ("hopobject".equals(lowerCaseName) || "global".equals(lowerCaseName)) {
             return;
         }
 
@@ -188,11 +204,11 @@ public final class Prototype {
      * Check if the given prototype is within this prototype's parent chain.
      */
     public final boolean isInstanceOf(String pname) {
-        if (name.equals(pname) || lowerCaseName.equals(pname)) {
+        if (name.equalsIgnoreCase(pname)) {
             return true;
         }
 
-        if ((parent != null) && !"HopObject".equals(parent.getName())) {
+        if (parent != null) {
             return parent.isInstanceOf(pname);
         }
 
@@ -248,14 +264,8 @@ public final class Prototype {
      *  residing in the prototype directory, not for skin files in
      *  other locations or database stored skins.
      */
-    public SkinFile getSkinFile(String sfname) {
-        SkinFile sf = (SkinFile) skins.get(sfname);
-
-        if (sf == null) {
-            sf = (SkinFile) zippedSkins.get(sfname);
-        }
-
-        return sf;
+    public Resource getSkinResource(String sname) {
+        return (Resource) skinMap.get(sname);
     }
 
     /**
@@ -263,11 +273,11 @@ public final class Prototype {
      *  residing in the prototype directory, not for skins files in
      *  other locations or database stored skins.
      */
-    public Skin getSkin(String sfname) {
-        SkinFile sf = getSkinFile(sfname);
+    public Skin getSkin(String sname) throws IOException {
+        Resource res = getSkinResource(sname);
 
-        if (sf != null) {
-            return sf.getSkin();
+        if (res != null) {
+            return Skin.getSkin(res, app);
         } else {
             return null;
         }
@@ -294,8 +304,8 @@ public final class Prototype {
     /**
      *  Get the last time any script has been re-read for this prototype.
      */
-    public long getLastUpdate() {
-        return lastUpdate;
+    public long lastCodeUpdate() {
+        return lastCodeUpdate;
     }
 
     /**
@@ -304,7 +314,7 @@ public final class Prototype {
      *  the evaluators.
      */
     public void markUpdated() {
-        lastUpdate = System.currentTimeMillis();
+        lastCodeUpdate = System.currentTimeMillis();
     }
 
     /**
@@ -313,7 +323,7 @@ public final class Prototype {
      */
     public void markChecked() {
         // lastCheck = System.currentTimeMillis ();
-        lastChecksum = checksum;
+        lastChecksum = newChecksum;
     }
 
     /**
@@ -321,145 +331,30 @@ public final class Prototype {
      *  to not return a map in a transient state where it is just being
      *  updated by the type manager.
      */
-    public synchronized Map getCode() {
-        return (Map) code.clone();
+    public synchronized Iterator getCodeResources() {
+        return code.iterator();
     }
 
     /**
-     *  Return a clone of this prototype's functions container. Synchronized
-     *  to not return a map in a transient state where it is just being
-     *  updated by the type manager.
+     * Add a code resource to this prototype
+     *
+     * @param res a code resource
      */
-    public synchronized Map getZippedCode() {
-        return (Map) zippedCode.clone();
+    public synchronized void addCodeResource(Resource res) {
+        code.add(res);
+        trackers.put(res.getName(), new ResourceTracker(res));
     }
 
-    /**
-     *
-     *
-     * @param action ...
-     */
-    public synchronized void addActionFile(ActionFile action) {
-        File f = action.getFile();
-
-        if (f != null) {
-            code.put(action.getSourceName(), action);
-            updatables.put(f.getName(), action);
-        } else {
-            zippedCode.put(action.getSourceName(), action);
-        }
-    }
 
     /**
+     * Add a skin resource to this prototype
      *
-     *
-     * @param template ...
+     * @param res a skin resource
      */
-    public synchronized void addTemplate(Template template) {
-        File f = template.getFile();
-
-        if (f != null) {
-            code.put(template.getSourceName(), template);
-            updatables.put(f.getName(), template);
-        } else {
-            zippedCode.put(template.getSourceName(), template);
-        }
-    }
-
-    /**
-     *
-     *
-     * @param funcfile ...
-     */
-    public synchronized void addFunctionFile(FunctionFile funcfile) {
-        File f = funcfile.getFile();
-
-        if (f != null) {
-            code.put(funcfile.getSourceName(), funcfile);
-            updatables.put(f.getName(), funcfile);
-        } else {
-            zippedCode.put(funcfile.getSourceName(), funcfile);
-        }
-    }
-
-    /**
-     *
-     *
-     * @param skinfile ...
-     */
-    public synchronized void addSkinFile(SkinFile skinfile) {
-        File f = skinfile.getFile();
-
-        if (f != null) {
-            skins.put(skinfile.getName(), skinfile);
-            updatables.put(f.getName(), skinfile);
-        } else {
-            zippedSkins.put(skinfile.getName(), skinfile);
-        }
-    }
-
-    /**
-     *
-     *
-     * @param action ...
-     */
-    public synchronized void removeActionFile(ActionFile action) {
-        File f = action.getFile();
-
-        if (f != null) {
-            code.remove(action.getSourceName());
-            updatables.remove(f.getName());
-        } else {
-            zippedCode.remove(action.getSourceName());
-        }
-    }
-
-    /**
-     *
-     *
-     * @param funcfile ...
-     */
-    public synchronized void removeFunctionFile(FunctionFile funcfile) {
-        File f = funcfile.getFile();
-
-        if (f != null) {
-            code.remove(funcfile.getSourceName());
-            updatables.remove(f.getName());
-        } else {
-            zippedCode.remove(funcfile.getSourceName());
-        }
-    }
-
-    /**
-     *
-     *
-     * @param template ...
-     */
-    public synchronized void removeTemplate(Template template) {
-        File f = template.getFile();
-
-        if (f != null) {
-            code.remove(template.getSourceName());
-            updatables.remove(f.getName());
-        } else {
-            zippedCode.remove(template.getSourceName());
-        }
-    }
-
-    /**
-     *
-     *
-     * @param skinfile ...
-     */
-    public synchronized void removeSkinFile(SkinFile skinfile) {
-        File f = skinfile.getFile();
-
-        if (f != null) {
-            skins.remove(skinfile.getName());
-            updatables.remove(f.getName());
-        } else {
-            zippedSkins.remove(skinfile.getName());
-        }
+    public synchronized void addSkinResource(Resource res) {
+        skins.add(res);
+        skinMap.put(res.getShortName(), res);
+        trackers.put(res.getName(), new ResourceTracker(res));
     }
 
     /**
@@ -475,7 +370,7 @@ public final class Prototype {
      * @return ...
      */
     public SkinMap getSkinMap() {
-        return skinMap;
+        return new SkinMap();
     }
 
     // not yet implemented
@@ -529,13 +424,17 @@ public final class Prototype {
 
             checkForUpdates();
 
-            SkinFile sf = (SkinFile) super.get(key);
+            Resource res = (Resource) super.get(key);
 
-            if (sf == null) {
+            if (res == null) {
                 return null;
             }
 
-            return sf.getSkin().getSource();
+            try {
+                return res.getContent();
+            } catch (IOException iox) {
+                return null;
+            }
         }
 
         public int hashCode() {
@@ -589,26 +488,20 @@ public final class Prototype {
                 app.typemgr.updatePrototype(Prototype.this);
             }
 
-            if (lastUpdate > lastSkinmapLoad) {
+            if (lastCodeUpdate > lastSkinmapLoad) {
                 load();
             }
         }
 
         private synchronized void load() {
-            if (lastUpdate == lastSkinmapLoad) {
+            if (lastCodeUpdate == lastSkinmapLoad) {
                 return;
             }
 
             super.clear();
 
-            // load Skins from zip files first, then from directories
-            for (Iterator i = zippedSkins.entrySet().iterator(); i.hasNext();) {
-                Map.Entry e = (Map.Entry) i.next();
-
-                super.put(e.getKey(), e.getValue());
-            }
-
-            for (Iterator i = skins.entrySet().iterator(); i.hasNext();) {
+            // load Skins
+            for (Iterator i = skins.iterator(); i.hasNext();) {
                 Map.Entry e = (Map.Entry) i.next();
 
                 super.put(e.getKey(), e.getValue());
@@ -628,7 +521,7 @@ public final class Prototype {
                 }
             }
 
-            lastSkinmapLoad = lastUpdate;
+            lastSkinmapLoad = lastCodeUpdate;
         }
 
         public String toString() {

@@ -17,6 +17,7 @@
 package helma.framework;
 
 import helma.framework.core.Skin;
+import helma.framework.core.Application;
 import helma.util.*;
 
 import javax.servlet.http.HttpServletResponse;
@@ -124,15 +125,24 @@ public final class ResponseTrans implements Serializable {
     // the message digest used to generate composed digests for ETag headers
     private transient MessageDigest digest;
 
-    // the appliciation checksum to make ETag headers sensitive to app changes
-    long applicationChecksum;
+    // the application
+    Application app;
+
+
+    /**
+     * Creates a new ResponseTrans object.
+     */
+    public ResponseTrans(Application app) {
+        this.app = app;
+    }
 
     /**
      * Creates a new ResponseTrans object.
      *
      * @param req the RequestTrans for this response
      */
-    public ResponseTrans(RequestTrans req) {
+    public ResponseTrans(Application app, RequestTrans req) {
+        this.app = app;
         reqtrans = req;
     }
 
@@ -681,25 +691,11 @@ public final class ResponseTrans implements Serializable {
             return;
         }
 
-        byte[] b = digest.digest(MD5Encoder.toBytes(applicationChecksum));
+        // add the application checksum as dependency to make ETag
+        // generation sensitive to changes in the app
+        byte[] b = digest.digest(MD5Encoder.toBytes(app.getChecksum()));
 
-        /* StringBuffer buf = new StringBuffer(b.length*2);
-           for ( int i=0; i<b.length; i++ ) {
-               int j = (b[i]<0) ? 256+b[i] : b[i];
-               if ( j<16 ) buf.append("0");
-               buf.append(Integer.toHexString(j));
-           }
-           setETag (buf.toString ()); */
         setETag(new String(Base64.encode(b)));
-    }
-
-    /**
-     *
-     *
-     * @param n ...
-     */
-    public void setApplicationChecksum(long n) {
-        applicationChecksum = n;
     }
 
     /**

@@ -19,18 +19,21 @@ package helma.framework.core;
 import helma.extensions.ConfigurationException;
 import helma.extensions.HelmaExtension;
 import helma.framework.*;
+import helma.framework.repository.ResourceComparator;
+import helma.framework.repository.Repository;
+import helma.framework.repository.FileResource;
+import helma.framework.repository.FileRepository;
 import helma.main.Server;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
-import helma.scripting.*;
 import helma.util.*;
 import java.io.*;
 import java.lang.reflect.*;
-import java.net.MalformedURLException;
 import java.rmi.*;
 import java.util.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import java.util.ArrayList;
 
 
 /**
@@ -44,16 +47,16 @@ public final class Application implements IPathElement, Runnable {
     private String name;
 
     // properties and db-properties
-    SystemProperties props;
+    ResourceProperties props;
 
     // properties and db-properties
-    SystemProperties dbProps;
+    ResourceProperties dbProps;
 
     // Helma server home directory
     File home;
 
-    // application directory
-    File appDir;
+    // application sources
+    ArrayList repositories;
 
     // embedded db directory
     File dbDir;
@@ -129,10 +132,10 @@ public final class Application implements IPathElement, Runnable {
     String charset;
 
     // password file to use for authenticate() function
-    private CryptFile pwfile;
+    private CryptResource pwfile;
 
     // Map of java class names to object prototypes
-    SystemProperties classMapping;
+   ResourceProperties classMapping;
 
     // Map of extensions allowed for public skins
     Properties skinExtensions;
@@ -151,6 +154,8 @@ public final class Application implements IPathElement, Runnable {
     // the list of custom cron jobs
     Hashtable customCronJobs = null;
 
+    private ResourceComparator resourceComparator;
+
     /**
      *  Simple constructor for dead application instances.
      */
@@ -159,12 +164,12 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
-     * Build an application with the given name in the app directory. No Server-wide
-     * properties are created or used.
+     * Build an application with the given name with the given sources. No
+     * Server-wide properties are created or used.
      */
-    public Application(String name, File appDir, File dbDir)
+    public Application(String name, Repository[] repositories, File dbDir)
                 throws RemoteException, IllegalArgumentException {
-        this(name, null, appDir, dbDir);
+        this(name, null, repositories, dbDir);
     }
 
     /**
@@ -173,40 +178,40 @@ public final class Application implements IPathElement, Runnable {
      */
     public Application(String name, Server server)
                 throws RemoteException, IllegalArgumentException {
-        this(name, server, null, null);
+        this(name, server, new Repository[0], null);
     }
 
     /**
-     * Build an application with the given name, server instance, app and
-     * db directories.
+     * Build an application with the given name, server instance, sources and
+     * db directory.
      */
-    public Application(String name, Server server, File customAppDir, File customDbDir)
+    public Application(String name, Server server, Repository[] repositories, File customDbDir)
                 throws RemoteException, IllegalArgumentException {
         if ((name == null) || (name.trim().length() == 0)) {
             throw new IllegalArgumentException("Invalid application name: " + name);
         }
 
         this.name = name;
-        appDir = customAppDir;
+        if (repositories.length > 0) {
+            this.repositories = new ArrayList();
+            this.repositories.addAll(Arrays.asList(repositories));
+            resourceComparator = new ResourceComparator(this);
+        } else {
+            throw new java.lang.IllegalArgumentException("No sources defined for application: " + name);
+        }
         dbDir = customDbDir;
 
         // system-wide properties, default to null
-        SystemProperties sysProps;
+        ResourceProperties sysProps;
 
         // system-wide properties, default to null
-        SystemProperties sysDbProps;
+        ResourceProperties sysDbProps;
 
         sysProps = sysDbProps = null;
         home = null;
 
         if (server != null) {
             home = server.getHopHome();
-
-            // if appDir and dbDir weren't explicitely passed, use the
-            // standard subdirectories of the Hop home directory
-            if (appDir == null) {
-                appDir = new File(server.getAppsHome(), name);
-            }
 
             if (dbDir == null) {
                 dbDir = new File(server.getDbHome(), name);
@@ -217,11 +222,6 @@ public final class Application implements IPathElement, Runnable {
             sysDbProps = server.getDbProperties();
         }
 
-        // create the directories if they do not exist already
-        if (!appDir.exists()) {
-            appDir.mkdirs();
-        }
-
         if (!dbDir.exists()) {
             dbDir.mkdirs();
         }
@@ -230,32 +230,26 @@ public final class Application implements IPathElement, Runnable {
         threadgroup = new ThreadGroup("TX-" + name);
 
         // create app-level properties
-        File propfile = new File(appDir, "app.properties");
-
-        props = new SystemProperties(propfile.getAbsolutePath(), sysProps);
+        props = new ResourceProperties(this, "app.properties", sysProps);
 
         // get log names
         accessLogName = props.getProperty("accessLog", "helma."+name+".access");
         eventLogName = props.getProperty("eventLog", "helma."+name+".event");
 
         // create app-level db sources
-        File dbpropfile = new File(appDir, "db.properties");
-
-        dbProps = new SystemProperties(dbpropfile.getAbsolutePath(), sysDbProps);
+        dbProps = new ResourceProperties(this, "db.properties", sysDbProps);
 
         // the passwd file, to be used with the authenticate() function
-        CryptFile parentpwfile = null;
+        CryptResource parentpwfile = null;
 
         if (home != null) {
-            parentpwfile = new CryptFile(new File(home, "passwd"), null);
+            parentpwfile = new CryptResource(new FileResource(new File(home, "passwd")), null);
         }
 
-        pwfile = new CryptFile(new File(appDir, "passwd"), parentpwfile);
+        pwfile = new CryptResource(repositories[0].getResource("passwd"), parentpwfile);
 
         // the properties that map java class names to prototype names
-        File classMappingFile = new File(appDir, "class.properties");
-
-        classMapping = new SystemProperties(classMappingFile.getAbsolutePath());
+        classMapping = new ResourceProperties(this, "class.properties");
         classMapping.setIgnoreCase(false);
 
         // get class name of root object if defined. Otherwise native Helma objectmodel will be used.
@@ -274,9 +268,8 @@ public final class Application implements IPathElement, Runnable {
      * Get the application ready to run, initializing the evaluators and type manager.
      */
     public synchronized void init()
-            throws DatabaseException, MalformedURLException,
-                   IllegalAccessException, InstantiationException,
-                   ClassNotFoundException {
+            throws DatabaseException, IllegalAccessException,
+                   InstantiationException, ClassNotFoundException {
 
         // create and init type mananger
         typemgr = new TypeManager(this);
@@ -346,8 +339,8 @@ public final class Application implements IPathElement, Runnable {
 
         // The whole user/userroot handling is basically old
         // ugly obsolete crap. Don't bother.
-        SystemProperties p = new SystemProperties();
-        String usernameField = userMapping.getNameField();
+        ResourceProperties p = new ResourceProperties();
+        String usernameField = (userMapping != null) ? userMapping.getNameField() : null;
 
         if (usernameField == null) {
             usernameField = "name";
@@ -436,6 +429,18 @@ public final class Application implements IPathElement, Runnable {
 
     public synchronized boolean isRunning() {
         return running;
+    }
+
+    public File getAppDir() {
+        try {
+            return new File(((FileRepository) getRepositories().next()).getName());
+        } catch (ClassCastException ex) {
+            return null;
+        }
+    }
+
+    public ResourceComparator getResourceComparator() {
+        return resourceComparator;
     }
 
     /**
@@ -554,6 +559,8 @@ public final class Application implements IPathElement, Runnable {
      *  Execute a request coming in from a web client.
      */
     public ResponseTrans execute(RequestTrans req) {
+        System.setProperty("request.start", String.valueOf(System.currentTimeMillis()));
+
         requestCount += 1;
 
         // get user for this request's session
@@ -594,7 +601,7 @@ public final class Application implements IPathElement, Runnable {
             throw stopped;
         } catch (Exception x) {
             errorCount += 1;
-            res = new ResponseTrans(req);
+            res = new ResponseTrans(this, req);
             res.writeErrorReport(name, x.getMessage());
         } finally {
             if (primaryRequest) {
@@ -808,7 +815,7 @@ public final class Application implements IPathElement, Runnable {
      *  Return a skin for a given object. The skin is found by determining the prototype
      *  to use for the object, then looking up the skin for the prototype.
      */
-    public Skin getSkin(String protoname, String skinname, Object[] skinpath) {
+    public Skin getSkin(String protoname, String skinname, Object[] skinpath) throws IOException {
         Prototype proto = getPrototypeByName(protoname);
 
         if (proto == null) {
@@ -1616,10 +1623,23 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
-     * Return the directory of this application
+     * Searches for the index of the given repository for this app.
+     * The arguement must be a root argument, or -1 will be returned.
+     *
+     * @param   rep one of this app's root repositories.
+     * @return  the index of the first occurrence of the argument in this
+     *          list; returns <tt>-1</tt> if the object is not found.
      */
-    public File getAppDir() {
-        return appDir;
+    public int getRepositoryIndex(Repository rep) {
+        return repositories.indexOf(rep);
+    }
+
+    /**
+     * Returns the repositories of this application
+     * @return iterator through application repositories
+     */
+    public Iterator getRepositories() {
+        return repositories.iterator();
     }
 
     /**
@@ -1721,7 +1741,7 @@ public final class Application implements IPathElement, Runnable {
      *  change, too.
      */
     public long getChecksum() {
-        return starttime + typemgr.getChecksum() + props.getChecksum();
+        return starttime + typemgr.lastCodeUpdate() + props.getChecksum();
     }
 
     /**
@@ -1743,7 +1763,7 @@ public final class Application implements IPathElement, Runnable {
      *
      * @return ...
      */
-    public SystemProperties getProperties() {
+    public ResourceProperties getProperties() {
         return props;
     }
 

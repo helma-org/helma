@@ -18,8 +18,7 @@ package helma.objectmodel.db;
 
 import helma.framework.core.Application;
 import helma.framework.core.Prototype;
-import helma.util.SystemProperties;
-import helma.util.Updatable;
+import helma.util.ResourceProperties;
 
 import java.sql.*;
 import java.util.*;
@@ -29,7 +28,7 @@ import java.util.*;
  * relational database table. Basically it consists of a set of JavaScript property-to-
  * Database row bindings which are represented by instances of the Relation class.
  */
-public final class DbMapping implements Updatable {
+public final class DbMapping {
     // DbMappings belong to an application
     protected Application app;
 
@@ -37,7 +36,7 @@ public final class DbMapping implements Updatable {
     private String typename;
 
     // properties from where the mapping is read
-    private SystemProperties props;
+    private ResourceProperties props;
 
     // name of data dbSource to which this mapping writes
     private DbSource dbSource;
@@ -131,7 +130,7 @@ public final class DbMapping implements Updatable {
     /**
      * Create a DbMapping from a type.properties property file
      */
-    public DbMapping(Application app, String typename, SystemProperties props) {
+    public DbMapping(Application app, String typename, ResourceProperties props) {
         this.app = app;
         // create a unique instance of the string. This is useful so
         // we can compare types just by using == instead of equals.
@@ -1349,7 +1348,7 @@ public final class DbMapping implements Updatable {
      *
      * @return ...
      */
-    public SystemProperties getProperties() {
+    public ResourceProperties getProperties() {
         return props;
     }
 }

@@ -17,10 +17,12 @@
 package helma.framework.core;
 
 import helma.objectmodel.db.DbMapping;
-import helma.scripting.*;
-import helma.util.*;
+import helma.framework.repository.ZipRepository;
+import helma.framework.repository.Resource;
+import helma.framework.repository.Repository;
+import helma.framework.repository.ResourceTracker;
+
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
@@ -37,24 +39,16 @@ public final class TypeManager {
     final static String skinExtension = ".skin";
 
     private Application app;
-    private File appDir;
+    Repository[] repositories;
+    long[] modified;
     // map of prototypes
     private HashMap prototypes;
-    // map of zipped script files
-    private HashMap zipfiles;
+
     // set of Java archives
     private HashSet jarfiles;
+
     private long lastCheck = 0;
-    private long appDirMod = 0;
-
-    // a checksum that changes whenever something in the application files changes.
-    private long checksum;
-
-    // the hopobject prototype
-    // private Prototype hopobjectProto;
-
-    // the global prototype
-    // private Prototype globalProto;
+    private long lastCodeUpdate;
 
     // app specific class loader, includes jar files in the app directory
     private AppClassLoader loader;
@@ -64,31 +58,14 @@ public final class TypeManager {
      *
      * @param app ...
      *
-     * @throws MalformedURLException ...
      * @throws RuntimeException ...
      */
-    public TypeManager(Application app) throws MalformedURLException {
+    public TypeManager(Application app) {
         this.app = app;
-        appDir = app.appDir;
-
-        // make sure the directories for the standard prototypes exist,
-        // and lament otherwise
-        if (appDir.list().length == 0) {
-            for (int i = 0; i < standardTypes.length; i++) {
-                File f = new File(appDir, standardTypes[i]);
-
-                if (!f.exists() && !f.mkdir()) {
-                    app.logEvent("Warning: directory " + f.getAbsolutePath() +
-                                 " could not be created.");
-                } else if (!f.isDirectory()) {
-                    app.logEvent("Warning: " + f.getAbsolutePath() +
-                                 " is not a directory.");
-                }
-            }
-        }
-
+        repositories = new Repository[app.repositories.size()];
+        app.repositories.toArray(repositories);
+        modified = new long[repositories.length];
         prototypes = new HashMap();
-        zipfiles = new HashMap();
         jarfiles = new HashSet();
 
         URL helmajar = TypeManager.class.getResource("/");
@@ -139,90 +116,63 @@ public final class TypeManager {
 
         try {
             checkFiles();
-        } catch (Exception ignore) {
-        }
+        } catch (Exception ignore) {}
 
         lastCheck = System.currentTimeMillis();
     }
 
-    /**
-     * Run through application's prototype directories and check if
-     * there are any prototypes to be created.
-     */
-    private void checkFiles() {
-        // check if any files have been created/removed since last time we
-        // checked...
-        if (appDir.lastModified() > appDirMod) {
-            appDirMod = appDir.lastModified();
-
-            String[] list = appDir.list();
-
-            if (list == null) {
-                throw new RuntimeException("Can't read app directory " + appDir +
-                                           " - check permissions");
-            }
-
-            for (int i = 0; i < list.length; i++) {
-                if (list[i].endsWith(".zip")) {
-                    ZippedAppFile zipped = (ZippedAppFile) zipfiles.get(list[i]);
-
-                    if (zipped == null) {
-                        File f = new File(appDir, list[i]);
-
-                        if (!f.isDirectory() && f.exists()) {
-                            zipped = new ZippedAppFile(f, app);
-                            zipfiles.put(list[i], zipped);
-                        }
-                    }
-
-                    continue;
-                }
-
-                if (list[i].endsWith(".jar")) {
-                    if (!jarfiles.contains(list[i])) {
-                        jarfiles.add(list[i]);
-
-                        File f = new File(appDir, list[i]);
-
-                        try {
-                            loader.addURL(new URL("file:" + f.getAbsolutePath()));
-                        } catch (MalformedURLException ignore) {
-                        }
-                    }
-
-                    continue;
-                }
-
-                if (list[i].indexOf('.') > -1) {
-                    continue;
-                }
-
-                Prototype proto = getPrototype(list[i]);
+    private void checkRepository(Repository repository) throws IOException {
+        Repository[] list = repository.getRepositories();
+        for (int i = 0; i < list.length; i++) {
+            if (list[i].isScriptRoot()) {
+                // this is an embedded top-level script repository 
+                checkRepository(list[i]);
+            } else {
+                // its an prototype
+                String name = null;
+                name = ((Repository) list[i]).getShortName();
+                Prototype proto = getPrototype(name);
 
                 // if prototype doesn't exist, create it
-                if ((proto == null) && isValidTypeName(list[i])) {
-                    File f = new File(appDir, list[i]);
-
-                    if (f.isDirectory()) {
-                        // create new prototype
-                        createPrototype(list[i], f);
-                    }
+                if ((proto == null) && isValidTypeName(name)) {
+                    // create new prototype
+                    createPrototype(name, (Repository) list[i]);
+                } else {
+                    proto.addRepository((Repository) list[i]);
                 }
             }
         }
 
-        // calculate this app's checksum by adding all checksums from all prototypes
-        long newChecksum = 0;
-
-        // loop through zip files to check for updates
-        for (Iterator it = zipfiles.values().iterator(); it.hasNext();) {
-            ZippedAppFile zipped = (ZippedAppFile) it.next();
-
-            if (zipped.needsUpdate()) {
-                zipped.update();
+        Iterator resources = repository.getResources();
+        while (resources.hasNext()) {
+            // check for jar files to add to class loader
+            Resource resource = (Resource) resources.next();
+            String name = resource.getName();
+            if (name.endsWith(".jar")) {
+                if (!jarfiles.contains(name)) {
+                    jarfiles.add(name);
+                    loader.addURL(resource.getUrl());
+                }
             }
+        }
+    }
 
-            newChecksum += zipped.lastmod;
+    /**
+     * Run through application's prototype sources and check if
+     * there are any prototypes to be created.
+     */
+    private void checkFiles() {
+        // check if any files have been created/removed since last time we checked...
+        for (int i = 0; i < repositories.length; i++) {
+            try {
+                if (repositories[i].lastModified() > modified[i]) {
+                    modified[i] = repositories[i].lastModified();
+
+                    checkRepository(repositories[i]);
+                }
+            } catch (IOException iox) {
+                iox.printStackTrace();
+            }
         }
 
         // loop through prototypes and check if type.properties needs updates
@@ -230,9 +180,6 @@ public final class TypeManager {
         // have been created in the previous loop.
         for (Iterator i = prototypes.values().iterator(); i.hasNext();) {
             Prototype proto = (Prototype) i.next();
-
-            // calculate this app's type checksum
-            newChecksum += proto.getChecksum();
 
             // update prototype's type mapping
             DbMapping dbmap = proto.getDbMapping();
@@ -243,24 +190,9 @@ public final class TypeManager {
                 // global and HopObject, which is a bit awkward...
                 // I mean we're the type manager, so this should
                 // be part of our job, right?
+                proto.props.update();
                 dbmap.update();
             }
-        }
-
-        checksum = newChecksum;
-    }
-
-    protected void removeZipFile(String zipname) {
-        zipfiles.remove(zipname);
-
-        for (Iterator i = prototypes.values().iterator(); i.hasNext();) {
-            Prototype proto = (Prototype) i.next();
-
-            // update prototype's type mapping
-            DbMapping dbmap = proto.getDbMapping();
-            SystemProperties props = dbmap.getProperties();
-
-            props.removeProps(zipname);
         }
     }
 
@@ -283,8 +215,8 @@ public final class TypeManager {
      *  Return a checksum over all files in all prototypes in this application.
      *  The checksum can be used to find out quickly if any file has changed.
      */
-    public long getChecksum() {
-        return checksum;
+    public long lastCodeUpdate() {
+        return lastCodeUpdate;
     }
 
     /**
@@ -320,12 +252,11 @@ public final class TypeManager {
      * Create and register a new Prototype.
      *
      * @param typename the name of the prototype
-     * @param dir the prototype directory if it is know, or null if we
-     *             ought to find out by ourselves
+     * @param repository the first prototype source
      * @return the newly created prototype
      */
-    public Prototype createPrototype(String typename, File dir) {
-        Prototype proto = new Prototype(typename, dir, app);
+    public Prototype createPrototype(String typename, Repository repository) {
+        Prototype proto = new Prototype(typename, repository, app);
 
         // put the prototype into our map
         prototypes.put(proto.getLowerCaseName(), proto);
@@ -334,124 +265,86 @@ public final class TypeManager {
     }
 
     /**
-     * Update a prototype to the files in the prototype directory.
-     */
-    public void updatePrototype(String name) {
-        // System.err.println ("UPDATE PROTO: "+app.getName()+"/"+name);
-        Prototype proto = getPrototype(name);
-
-        updatePrototype(proto);
-    }
-
-    /**
-     * Update a prototype to the files in the prototype directory.
+     * Check a prototype for new or updated resources.
      */
     public void updatePrototype(Prototype proto) {
-        if ((proto == null) || proto.isUpToDate()) {
-            return;
-        }
 
         synchronized (proto) {
             // check again because another thread may have checked the
             // prototype while we were waiting for access to the synchronized section
 
-            /* if (System.currentTimeMillis() - proto.getLastCheck() < 1000)
-               return; */
-            HashSet updateSet = null;
-            HashSet createSet = null;
+            boolean updatedResources = false;
+            List createdResources = null;
 
             // our plan is to do as little as possible, so first check if
             // anything the prototype knows about has changed on disk
-            for (Iterator i = proto.updatables.values().iterator(); i.hasNext();) {
-                Updatable upd = (Updatable) i.next();
+            for (Iterator i = proto.trackers.values().iterator(); i.hasNext();) {
+                ResourceTracker tracker = (ResourceTracker) i.next();
 
-                if (upd.needsUpdate()) {
-                    if (updateSet == null) {
-                        updateSet = new HashSet();
+                try {
+                    if (tracker.hasChanged()) {
+                        updatedResources = true;
+                        tracker.markClean();
                     }
-
-                    updateSet.add(upd);
+                } catch (IOException iox) {
+                    iox.printStackTrace();
                 }
             }
 
             // next we check if files have been created or removed since last update
-            // if (proto.getLastCheck() < dir.lastModified ()) {
-            File[] list = proto.getFiles();
+            Resource[] resources = proto.getResources();
 
-            for (int i = 0; i < list.length; i++) {
-                String fn = list[i].getName();
-
-                // ignore files starting with ".".
-                if (fn.startsWith(".")) {
-                    continue;
-                }
-
-                if (!proto.updatables.containsKey(fn)) {
-                    if (fn.endsWith(templateExtension) || fn.endsWith(scriptExtension) ||
-                            fn.endsWith(actionExtension) || fn.endsWith(skinExtension) ||
-                            "type.properties".equalsIgnoreCase(fn)) {
-                        if (createSet == null) {
-                            createSet = new HashSet();
+            for (int i = 0; i < resources.length; i++) {
+                String name = resources[i].getName();
+                if (!proto.trackers.containsKey(name)) {
+                    if (name.endsWith(templateExtension) ||
+                        name.endsWith(scriptExtension) ||
+                        name.endsWith(actionExtension) ||
+                        name.endsWith(skinExtension)) {
+                        if (createdResources == null) {
+                            createdResources = new ArrayList();
                         }
 
-                        createSet.add(list[i]);
+                        createdResources.add(resources[i]);
                     }
                 }
             }
 
-            // }
             // if nothing needs to be updated, mark prototype as checked and return
-            if ((updateSet == null) && (createSet == null)) {
+            if (!updatedResources && createdResources == null) {
                 proto.markChecked();
 
                 return;
             }
 
             // first go through new files and create new items
-            if (createSet != null) {
-                Object[] newFiles = createSet.toArray();
+            if (createdResources != null) {
+                Resource[] newResources = new Resource[createdResources.size()];
+                createdResources.toArray(newResources);
 
-                for (int i = 0; i < newFiles.length; i++) {
-                    File file = (File) newFiles[i];
-                    String filename = file.getName();
-                    int dot = filename.lastIndexOf(".");
-                    String tmpname = filename.substring(0, dot);
-                    String srcName = getSourceName(file);
-
-                    if (filename.endsWith(templateExtension)) {
-                        try {
-                            Template t = new Template(file, tmpname, srcName, proto);
-
-                            proto.addTemplate(t);
-                        } catch (Throwable x) {
-                            app.logEvent("Error updating prototype: " + x);
-                        }
-                    } else if (filename.endsWith(scriptExtension)) {
-                        try {
-                            FunctionFile ff = new FunctionFile(file, srcName, proto);
-
-                            proto.addFunctionFile(ff);
-                        } catch (Throwable x) {
-                            app.logEvent("Error updating prototype: " + x);
-                        }
-                    } else if (filename.endsWith(actionExtension)) {
-                        try {
-                            ActionFile af = new ActionFile(file, tmpname, srcName, proto);
-
-                            proto.addActionFile(af);
-                        } catch (Throwable x) {
-                            app.logEvent("Error updating prototype: " + x);
-                        }
-                    } else if (filename.endsWith(skinExtension)) {
-                        SkinFile sf = new SkinFile(file, tmpname, proto);
-
-                        proto.addSkinFile(sf);
-                    }
+                for (int i = 0; i < newResources.length; i++) {
+                     String resourceName = newResources[i].getName();
+                     if (resourceName.endsWith(templateExtension) ||
+                         resourceName.endsWith(scriptExtension) ||
+                         resourceName.endsWith(actionExtension)) {
+                         try {
+                             proto.addCodeResource(newResources[i]);
+                         } catch (Throwable x) {
+                             app.logEvent("Error updating prototype: " + x);
+                         }
+                     } else if (resourceName.endsWith(skinExtension)) {
+                         try {
+                             proto.addSkinResource(newResources[i]);
+                         } catch (Throwable x) {
+                             app.logEvent("Error updating prototype: " + x);
+                         }
+                     }
                 }
             }
 
             // next go through existing updatables
-            if (updateSet != null) {
+            if (updatedResources) {
+                /*
                 for (Iterator i = updateSet.iterator(); i.hasNext();) {
                     Updatable upd = (Updatable) i.next();
 
@@ -467,21 +360,15 @@ public final class TypeManager {
                         }
                     }
                 }
+                */
             }
 
             // mark prototype as checked and updated.
             proto.markChecked();
             proto.markUpdated();
-        }
-         // end of synchronized (proto)
+            lastCodeUpdate = proto.lastCodeUpdate();
+
+        } // end of synchronized (proto)
     }
-    
-    private String getSourceName(File file) {
-        StringBuffer b = new StringBuffer(app.getName());
-        b.append(":");
-        b.append(file.getParentFile().getName());
-        b.append("/");
-        b.append(file.getName());
-        return b.toString();
-    }
+
 }
