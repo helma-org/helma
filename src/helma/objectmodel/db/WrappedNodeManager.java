@@ -87,6 +87,16 @@ import java.util.Vector;
 	}
     }
 
+    public Vector getPropertyNames (Node home, Relation rel) {
+	try {
+	    return nmgr.getPropertyNames (home, rel);
+	} catch (Exception x) {
+	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
+	        x.printStackTrace();
+	    throw new RuntimeException ("Error retrieving property names: "+x.getMessage ());
+	}
+    }
+
     public void registerNode (Node node) {
 	nmgr.registerNode (node);
     }
