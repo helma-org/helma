@@ -1664,11 +1664,15 @@ public final class Node implements INode, Serializable {
                 // from a transient node for the first time, or when we get a collection whose
                 // content objects are stored in the embedded XML data storage.
                 if ((state == TRANSIENT) && propRel.virtual) {
-                    INode node = new Node(propname, propRel.getPrototype(), nmgr);
+                    Node pn = new Node(propname, propRel.getPrototype(), nmgr);
 
-                    node.setDbMapping(propRel.getVirtualMapping());
-                    setNode(propname, node);
-                    prop = (Property) propMap.get(propname);
+                    pn.setDbMapping(propRel.getVirtualMapping());
+                    if (propRel.needsPersistence()) {
+                        setNode(propname, pn);
+                        prop = (Property) propMap.get(propname);
+                    } else {
+                        prop = new Property(propname, this, pn);
+                    }
                 }
                 // if this is from relational database only fetch if this node
                 // is itself persistent.
