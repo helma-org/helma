@@ -135,6 +135,7 @@ public final class NodeManager {
 	    return null;
 
 	Key key = Key.makeKey (dbmap, kstr);
+
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNode "+kstr);
 
@@ -497,7 +498,7 @@ public final class NodeManager {
 	        } else {
 	            String q = "SELECT "+idfield+" FROM "+table;
 	            if (subrel.direction == Relation.BACKWARD) {
-	                String homeid = home.getState() == Node.VIRTUAL ? home.parentID : home.getID ();
+	                String homeid = home.getNonVirtualHomeID (); //  home.getState() == Node.VIRTUAL ? home.parentID : home.getID ();
 	                q += " WHERE "+subrel.remoteField+" = '"+homeid+"'";
 	            }
 	            // set order, if specified and if not using subnode's relation
@@ -678,6 +679,7 @@ public final class NodeManager {
     }
 
     private Node getNodeByRelation (DbWrapper db, DbTxn txn, Node home, String kstr, Relation rel) throws Exception {
+
 	Node node = null;
 	if (rel != null && rel.virtual && home.getState() != INode.VIRTUAL) {
 	    Key k = home.getKey ().getVirtualKey (kstr);
@@ -687,6 +689,7 @@ public final class NodeManager {
 	            node.setString ("prototype", rel.prototype);
 	        return node;
 	    }
+
 	    // if subnodes are stored in embedded db we have to actually assign it the virtual node,
 	    // otherwise it and its subnodes will be lost across restarts.
 	    if (rel.other == null || (!rel.other.isRelational() && !home.getDbMapping().isRelational())) {
@@ -707,14 +710,9 @@ public final class NodeManager {
 	        dbm.setPropertyRelation (rel.getVirtualPropertyRelation());
 	        node.setDbMapping (dbm);
 	    }
+
 	} else if (rel != null && rel.groupby != null) {
-	    node = new Node (home, kstr, safe, rel.prototype);
-	    DbMapping dbm = new DbMapping ();
-	    dbm.setSubnodeMapping (rel.other);
-	    dbm.setSubnodeRelation (rel.getGroupbySubnodeRelation());
-	    dbm.setPropertyMapping (rel.other);
-	    dbm.setPropertyRelation (rel.getGroupbyPropertyRelation());
-	    node.setDbMapping (dbm);
+	    return home.getGroupbySubnode (kstr, rel);
 	} else if (rel == null || rel.other == null || !rel.other.isRelational ()) {
 	    node = db.getNode (txn, kstr);
 	    node.nmgr = safe;
@@ -804,6 +802,7 @@ public final class NodeManager {
 	}
 	return sbuf.toString ();
     }
+
 
 }
 

@@ -746,6 +746,25 @@ public class Node implements INode, Serializable {
 	return retval;
     }
 
+    public Node getGroupbySubnode (String sid, Relation rel) {
+	loadNodes ();
+	if (subnodes.contains (sid)) {
+	    Node node = new Node (this, sid, nmgr, null);
+	    DbMapping dbm = new DbMapping ();
+	    dbm.setSubnodeMapping (rel.other);
+	    dbm.setSubnodeRelation (rel.getGroupbySubnodeRelation());
+	    dbm.setPropertyMapping (rel.other);
+	    dbm.setPropertyRelation (rel.getGroupbyPropertyRelation());
+	    node.setDbMapping (dbm);
+	    String snrel = "WHERE "+rel.groupby +"='"+sid+"'";
+	    if (dbm.getSubnodeRelation().direction == Relation.BACKWARD)
+	        snrel += " AND "+dbm.getSubnodeRelation().remoteField+"='"+getNonVirtualHomeID()+"'";
+	    node.setSubnodeRelation (snrel);
+	    return node;
+	}
+	return null;
+    }
+
     public boolean remove () {
 	checkWriteLock ();
     	if (anonymous)
@@ -1637,6 +1656,23 @@ public class Node implements INode, Serializable {
 	if (cacheNode == null)
 	    cacheNode = new helma.objectmodel.Node();
 	return cacheNode;
+    }
+
+    // walk down node path to the first non-virtual node and return its id.
+    // limit max depth to 3, since there shouldn't be more then 2 layers of virtual nodes.
+    public String getNonVirtualHomeID () {
+	INode node = this;
+	for (int i=0; i<3; i++) {
+	    if (node == null) break;
+	    if (node.getState() != Node.VIRTUAL)
+	        return node.getID ();
+	    node = node.getParent ();
+	}
+	return null;
+    }
+
+    public void dumpSubnodes () {
+	System.err.println (subnodes);
     }
 
 }
