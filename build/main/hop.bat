@@ -68,24 +68,24 @@ set JARS=%JARS%;%LIB%\mysql.jar
 :: Setting Helma server options
 if not "%HTTP_PORT%"=="" (
    echo Starting HTTP server on port %HTTP_PORT%
-   set OPTIONSS=%OPTIONSS% -w %HTTP_PORT%
+   set OPTIONS=%OPTIONS% -w %HTTP_PORT%
 )
 if not "%XMLRPC_PORT%"=="" (
    echo Starting XML-RPC server on port %XMLRPC_PORT%
-   set OPTIONSS=%OPTIONSS% -x %XMLRPC_PORT%
+   set OPTIONS=%OPTIONS% -x %XMLRPC_PORT%
 )
 if not "%AJP13_PORT%"=="" (
    echo Starting AJP13 listener on port %AJP13_PORT%
-   set OPTIONSS=%OPTIONSS% -jk %AJP13_PORT%
+   set OPTIONS=%OPTIONS% -jk %AJP13_PORT%
 )
 if not "%RMI_PORT%"=="" (
    echo Starting RMI server on port %RMI_PORT%
-   set OPTIONSS=%OPTIONSS% -p %RMI_PORT%
+   set OPTIONS=%OPTIONS% -p %RMI_PORT%
 )
 if not "%HOP_HOME%"=="" (
    echo Serving applications from %HOP_HOME%
-   set OPTIONSS=%OPTIONSS% -h %HOP_HOME%
+   set OPTIONS=%OPTIONS% -h %HOP_HOME%
 )
 
 :: Invoking the Java virtual machine
-%JAVACMD% %JAVA_OPTIONS% -classpath %JARS% helma.main.Server %OPTIONSS%
+%JAVACMD% %JAVA_OPTIONS% -classpath %JARS% helma.main.Server %OPTIONS%
