@@ -31,6 +31,10 @@ public class Logger implements Runnable {
     public Logger (PrintStream out) {
 	dformat = DateFormat.getInstance ();
 	this.out = out;
+	entries = new Vector ();
+	logger = new Thread (this);
+	// logger.setPriority (Thread.MIN_PRIORITY+2);
+	logger.start ();
     }
 
     public Logger (String dirname, String filename) throws IOException {
@@ -57,33 +61,36 @@ public class Logger implements Runnable {
 	// it's enough to render the date every 15 seconds
 	if (System.currentTimeMillis () - 15000 > dateLastRendered)
 	    renderDate ();
-    	// log directly to printstream or to buffer?
-    	if (out == null)
-	    entries.addElement (dateCache + " " + msg);
-	else
-	    out.println (dateCache + " " + msg);
+	entries.addElement (dateCache + " " + msg);
     }
 
-    private void renderDate () {
-	dateCache = dformat.format (new Date());
+    private synchronized void renderDate () {
 	dateLastRendered = System.currentTimeMillis ();
+	dateCache = dformat.format (new Date());
     }
 
     public void run () {
 	while (Thread.currentThread () == logger) {
 	    try {
-	        if (currentFile.length() > 10000000) {
+	        if (currentFile != null && currentFile.length() > 10000000) {
 	            // rotate log files each 10 megs
 	            swapFile ();
 	        }
+	
 	        int l = entries.size();
 	        for (int i=0; i<l; i++) {
 	            Object entry = entries.elementAt (0);
 	            entries.removeElementAt (0);
-	            currentWriter.println (entry.toString());
+	            if (out != null)
+	                out.println (entry.toString());
+	            else
+	                currentWriter.println (entry.toString());
 	        }
-	        currentWriter.flush ();
+
+                     if (currentWriter != null)
+	            currentWriter.flush ();
 	        logger.sleep (1000l);
+
 	    } catch (InterruptedException ir) {
 	        Thread.currentThread().interrupt ();
 	    }
