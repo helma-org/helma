@@ -100,6 +100,10 @@ public class ResponseBean implements Serializable {
     public Map getdata () {
 	return res.getResponseData ();
     }
+    
+    public Map gethandlers () {
+	return res.getMacroHandlers ();
+    }
 
     public String geterror () {
 	return res.error;

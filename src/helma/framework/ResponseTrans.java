@@ -135,6 +135,14 @@ public final class ResponseTrans implements Externalizable {
     }
 
     /**
+     *  Get the macro handlers map for this response transmitter.
+     */
+    public Map getMacroHandlers () {
+	return handlers;
+    }
+
+
+    /**
      * Reset the response object to its initial empty state.
      */
     public void reset () {
