@@ -17,6 +17,7 @@
 package helma.main;
 
 import helma.framework.core.*;
+import helma.util.StringUtils;
 import helma.util.SystemProperties;
 import org.apache.xmlrpc.XmlRpcHandler;
 import org.mortbay.http.*;
@@ -276,7 +277,10 @@ public class ApplicationManager implements XmlRpcHandler {
         String mountpoint;
         String pathPattern;
         String staticDir;
+        String protectedStaticDir;
         String staticMountpoint;
+        boolean staticIndex;
+        String[] staticHome;
         String xmlrpcHandlerName;
         String cookieDomain;
         String uploadLimit;
@@ -295,6 +299,16 @@ public class ApplicationManager implements XmlRpcHandler {
             staticDir = props.getProperty(name+".static");
             staticMountpoint = getPathPattern(props.getProperty(name+".staticMountpoint",
                                         joinMountpoint(mountpoint, "static")));
+            staticIndex = "true".equalsIgnoreCase(props.getProperty(name+
+                                                  ".staticIndex"));
+            String home = props.getProperty(name+".staticHome");
+            if (home == null) {
+                staticHome = new String[] {"index.html", "index.htm"};
+            } else {
+                staticHome = StringUtils.split(home, ",");
+            }
+            protectedStaticDir = props.getProperty(name+".protectedStatic");
+
             cookieDomain = props.getProperty(name+".cookieDomain");
             uploadLimit = props.getProperty(name+".uploadLimit");
             debug = props.getProperty(name+".debug");
@@ -361,10 +375,7 @@ public class ApplicationManager implements XmlRpcHandler {
                         app.setBaseURI(mountpoint);
                     }
 
-                    ServletHttpContext context = new ServletHttpContext();
-
-                    context.setContextPath(pathPattern);
-                    server.http.addContext(context);
+                    HttpContext context = server.http.addContext(pathPattern);
 
                     if (encode) {
                         // FIXME: ContentEncodingHandler is broken/removed in Jetty 4.2
@@ -372,7 +383,9 @@ public class ApplicationManager implements XmlRpcHandler {
                         Server.getLogger().log("Warning: disabling response encoding for Jetty 4.2 compatibility");
                     }
 
-                    ServletHolder holder = context.addServlet(appName, "/*",
+                    ServletHandler handler = new ServletHandler();
+
+                    ServletHolder holder = handler.addServlet(appName, "/*",
                                                           "helma.servlet.EmbeddedServletClient");
 
                     holder.setInitParameter("application", appName);
@@ -392,8 +405,22 @@ public class ApplicationManager implements XmlRpcHandler {
 
                     holder.setInitParameter("charset", app.getCharset());
 
+                    context.addHandler(handler);
+
+                    if (protectedStaticDir != null) {
+                        File protectedContent = new File(protectedStaticDir);
+                        if (!protectedContent.isAbsolute()) {
+                            protectedContent = new File(server.getHopHome(), protectedStaticDir);
+                        }
+                        context.setResourceBase(protectedContent.getAbsolutePath());
+                        Server.getLogger().log("Serving protected static from " +
+                                       protectedContent.getAbsolutePath());
+                        context.addHandler(new ResourceHandler());
+                    }
+
                     context.start();
 
+                    // if there is a static direcory specified, mount it
                     if (staticDir != null) {
 
                         File staticContent = new File(staticDir);
@@ -406,14 +433,15 @@ public class ApplicationManager implements XmlRpcHandler {
                         Server.getLogger().log("Mounting static at " +
                                        staticMountpoint);
 
-                        HttpContext cx = server.http.addContext(staticMountpoint);
+                        context = server.http.addContext(staticMountpoint);
+                        context.setWelcomeFiles(staticHome);
 
-                        cx.setResourceBase(staticContent.getAbsolutePath());
+                        context.setResourceBase(staticContent.getAbsolutePath());
 
-                        ResourceHandler handler = new ResourceHandler();
-
-                        cx.addHandler(handler);
-                        cx.start();
+                        ResourceHandler rhandler = new ResourceHandler();
+                        rhandler.setDirAllowed(staticIndex);
+                        context.addHandler(rhandler);
+                        context.start();
                     }
                 }
 
