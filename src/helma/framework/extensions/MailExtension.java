@@ -3,7 +3,7 @@
 
 package helma.framework.extensions;
 
-import helma.objectmodel.*;
+import helma.main.Server;
 import helma.util.*;
 
 import FESI.Interpreter.*;
@@ -243,7 +243,7 @@ public class MailExtension extends Extension {
             try {
                 mail.send ();
             } catch (Exception x) {
-	   IServer.getLogger().log ("Error sending mail: "+x);
+	  Server.getLogger().log ("Error sending mail: "+x);
                 mail.setStatus (ESMail.SEND);
                 return ESBoolean.makeBoolean(false);
             }
