@@ -1100,11 +1100,7 @@ public final class NodeManager {
                 } else {
                     // let relation object build the query
                     q.append(rel.buildQuery(home, home.getNonVirtualParent(), null,
-                                            " WHERE ", false));
-
-                    if (rel.getOrder() != null) {
-                        q.append(" order by " + rel.getOrder());
-                    }
+                                            " WHERE ", true));
                 }
 
                 if (logSql) {
@@ -1412,9 +1408,16 @@ public final class NodeManager {
             Statement stmt = null;
 
             try {
-                String q = new StringBuffer("SELECT ").append(namefield).append(" FROM ")
-                                                      .append(table).append(" ORDER BY ")
-                                                      .append(namefield).toString();
+                StringBuffer q = new StringBuffer("SELECT ").append(namefield).append(" FROM ")
+                                                      .append(table);
+
+                if (home.getSubnodeRelation() != null) {
+                    q.append(" ").append(home.getSubnodeRelation());
+                } else {
+                    // let relation object build the query
+                    q.append(rel.buildQuery(home, home.getNonVirtualParent(), null,
+                                            " WHERE ", true));
+                }
 
                 stmt = con.createStatement();
 
@@ -1422,7 +1425,7 @@ public final class NodeManager {
                     app.logEvent("### getPropertyNames: " + q);
                 }
 
-                ResultSet rs = stmt.executeQuery(q);
+                ResultSet rs = stmt.executeQuery(q.toString());
 
                 while (rs.next()) {
                     String n = rs.getString(1);
