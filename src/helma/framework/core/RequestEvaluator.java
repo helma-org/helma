@@ -203,6 +203,8 @@ public class RequestEvaluator implements Runnable {
 	                        Prototype p = app.getPrototype (root);
 	                        String errorAction = app.props.getProperty ("error", "error");
 	                        action = p.getActionOrTemplate (errorAction);
+	                        if (action == null)
+	                            throw new RuntimeException (error);
 	
 	                    } else if (req.path == null || "".equals (req.path.trim ())) {
 	                        currentNode = root;
@@ -333,11 +335,26 @@ public class RequestEvaluator implements Runnable {
 	                try {
 	                    localrtx.timer.beginEvent (requestPath+" execute");
 	                    current.doIndirectCall (evaluator, current, action.getFunctionName (), new ESValue[0]);
+	
+	                    // check if the script set the name of a skin to render in res.skin
 	                    if (res.skin != null) {
-	                        Skin skin = getSkin (null, res.skin);
+	                        int dot = res.skin.indexOf (".");
+	                        ESValue sobj = null;
+	                        String sname = res.skin;
+	                        if (dot > -1) {
+	                            String soname = res.skin.substring (0, dot);
+	                            sobj = reqPath.getProperty (soname, soname.hashCode ());
+	                            if (sobj == null || sobj == ESUndefined.theUndefined)
+	                                throw new RuntimeException ("Skin "+res.skin+" not found in path.");
+	                            sname = res.skin.substring (dot+1);
+	                        }
+	                        Skin skin = getSkin ((ESNode) sobj, sname);
 	                        if (skin != null)
-	                            skin.render (this, null, null);
+	                            skin.render (this, (ESNode) sobj, null);
+	                        else
+	                            throw new RuntimeException ("Skin "+res.skin+" not found in path.");
 	                    }
+	
 	                    localrtx.timer.endEvent (requestPath+" execute");
 	                } catch (RedirectException redirect) {
 	                    // res.redirect = redirect.getMessage ();
@@ -852,11 +869,11 @@ public class RequestEvaluator implements Runnable {
     }
 
     public ObjectPrototype getPrototype (String protoName) {
-        return (ObjectPrototype) prototypes.get (protoName);
+        return (ObjectPrototype) prototypes.get (protoName.toLowerCase ());
     }
 
     public void putPrototype (String protoName, ObjectPrototype op) {
-        prototypes.put (protoName, op);
+        prototypes.put (protoName.toLowerCase (), op);
     }
 
 
