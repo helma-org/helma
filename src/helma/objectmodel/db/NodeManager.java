@@ -993,7 +993,8 @@ public final class NodeManager {
 
                 if (home.getSubnodeRelation() != null) {
                     // subnode relation was explicitly set
-                    q = new StringBuffer("SELECT ").append(idfield).append(" FROM ")
+                    q = new StringBuffer("SELECT ").append(table).append('.')
+                                                   .append(idfield).append(" FROM ")
                                                    .append(table).append(" ")
                                                    .append(home.getSubnodeRelation())
                                                    .toString();
