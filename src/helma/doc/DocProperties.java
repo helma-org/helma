@@ -45,5 +45,19 @@ public class DocProperties extends DocFileElement	{
 		return props;
 	}
 
+	public Properties getMappings () {
+		Properties childProps = new Properties ();
+		for (Enumeration e = props.keys (); e.hasMoreElements (); ) {
+			String key = (String) e.nextElement ();
+			String value = props.getProperty (key);
+			if (value.startsWith ("collection") || value.startsWith ("object") || value.startsWith ("mountpoint")) {
+				String prototype = value.substring (value.indexOf("(")+1, value.indexOf(")")).trim ();
+				childProps.setProperty (key, prototype);
+			}
+			
+		}
+		return childProps;
+	}
+
 }
 
