@@ -1418,6 +1418,23 @@ public final class Node implements INode, Serializable {
 	    }
 	}
 
+	// check if the property we're setting specifies the prototype of this object.
+	if (dbmap != null && dbmap.getPrototypeField () != null) {
+	    String pn = dbmap.columnNameToProperty (dbmap.getPrototypeField ());
+	    if (propname.equals (pn)) {
+	        DbMapping newmap = nmgr.getDbMapping (value);
+	        if (newmap != null) {
+	            // see if old and new prototypes have same storage - otherwise type change is ignored
+	            String oldStorage = dbmap.getStorageTypeName ();
+	            String newStorage = newmap.getStorageTypeName ();
+	            if ((oldStorage == null && newStorage == null) ||
+	            		(oldStorage != null && oldStorage.equals (newStorage))) {
+	                this.dbmap = newmap;
+	                this.prototype = value;
+	            }
+	        }
+	    }
+	}
 
 	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
 	lastmodified = System.currentTimeMillis ();
@@ -1784,6 +1801,18 @@ public final class Node implements INode, Serializable {
 
     public boolean isNullNode () {
 	return nmgr == null;
+    }
+
+    /**
+     * We overwrite hashCode to make it dependant from the prototype. That way, when the prototype
+     * changes, the node will automatically get a new ESNode wrapper, since they're cached in a hashtable.
+     * You gotta love these hash code tricks ;-)
+     */
+    public int hashCode () {
+	if (prototype == null)
+	    return super.hashCode ();
+	else
+	    return super.hashCode () + prototype.hashCode ();
     }
 
     public void dump () {
