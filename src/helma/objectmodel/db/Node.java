@@ -131,7 +131,7 @@ public final class Node implements INode, Serializable {
     /**
      * Creates a new Node with the given name. This is used for ordinary transient nodes.
      */
-    public Node(String n, String prototype, WrappedNodeManager nmgr) {
+    public Node(String name, String prototype, WrappedNodeManager nmgr) {
         this.nmgr = nmgr;
         this.prototype = prototype;
         dbmap = nmgr.getDbMapping(prototype);
@@ -139,7 +139,7 @@ public final class Node implements INode, Serializable {
         // the id is only generated when the node is actually checked into db,
         // or when it's explicitly requested.
         id = null;
-        this.name = (n == null) ? "" : n;
+        this.name = (name == null) ? "" : name;
         created = lastmodified = System.currentTimeMillis();
         state = TRANSIENT;
     }
@@ -790,7 +790,7 @@ public final class Node implements INode, Serializable {
 
         // if the new node is marked as TRANSIENT and this node is not, mark new node as NEW
         if ((state != TRANSIENT) && (node.state == TRANSIENT)) {
-            node.makePersistentCapable();
+            node.makePersistable();
         }
 
         // if (n.indexOf('/') > -1)
@@ -2155,7 +2155,7 @@ public final class Node implements INode, Serializable {
 
         // if the new node is marked as TRANSIENT and this node is not, mark new node as NEW
         if ((state != TRANSIENT) && (n.state == TRANSIENT)) {
-            n.makePersistentCapable();
+            n.makePersistable();
         }
 
         if (state != TRANSIENT) {
@@ -2266,7 +2266,7 @@ public final class Node implements INode, Serializable {
         }
 
         try {
-            // if node is relational, leave a null property so that it is 
+            // if node is relational, leave a null property so that it is
             // updated in the DB. Otherwise, remove the property.
             Property p;
             boolean relational = (dbmap != null) && dbmap.isRelational();
@@ -2345,48 +2345,75 @@ public final class Node implements INode, Serializable {
     }
 
     /**
-     * Recursively turn node status from TRANSIENT to NEW so that the Transactor will
-     * know it has to insert this node.
+     * Turn node status from TRANSIENT to NEW so that the Transactor will
+     * know it has to insert this node. Recursively persistifies all child nodes
+     * and references.
      */
-    protected void makePersistentCapable() {
-        if (state == TRANSIENT) {
-            state = NEW;
+    private void makePersistable() {
+        // if this isn't a transient node, do nothing.
+        if (state != TRANSIENT) {
+            return;
+        }
 
-            // generate a real, persistent ID for this object
-            id = nmgr.generateID(dbmap);
-            getHandle().becomePersistent();
+        // mark as new
+        setState(NEW);
 
-            Transactor current = (Transactor) Thread.currentThread();
+        // generate a real, persistent ID for this object
+        id = nmgr.generateID(dbmap);
+        getHandle().becomePersistent();
 
-            current.visitNode(this);
-            current.visitCleanNode(this);
+        // register node with the transactor
+        Transactor current = (Transactor) Thread.currentThread();
+        current.visitNode(this);
+        current.visitCleanNode(this);
 
-            for (Enumeration e = getSubnodes(); e.hasMoreElements();) {
-                Node n = (Node) e.nextElement();
+        // recursively make children persistable
+        makeChildrenPersistable();
+    }
 
-                if (n.state == TRANSIENT) {
-                    n.makePersistentCapable();
-                }
+    /**
+     * Recursively turn node status from TRANSIENT to NEW on child nodes
+     * so that the Transactor knows they are to be persistified.
+     */
+    private void makeChildrenPersistable() {
+        for (Enumeration e = getSubnodes(); e.hasMoreElements();) {
+            Node n = (Node) e.nextElement();
+
+            if (n.state == TRANSIENT) {
+                n.makePersistable();
             }
+        }
 
-            for (Enumeration e = properties(); e.hasMoreElements();) {
-                IProperty next = get((String) e.nextElement());
+        for (Enumeration e = properties(); e.hasMoreElements();) {
+            String propname = (String) e.nextElement();
+            IProperty next = get(propname);
 
-                if ((next != null) && (next.getType() == IProperty.NODE)) {
-                    // check if this property actually needs to be persisted.
-                    if (dbmap != null) {
-                        Relation rel = dbmap.getExactPropertyRelation(next.getName());
-                        if (rel != null && !rel.needsPersistence()) {
-                            continue;
-                        }
-                    }
+            if ((next != null) && (next.getType() == IProperty.NODE)) {
 
-                    Node n = (Node) next.getNodeValue();
+                // check if this property actually needs to be persisted.
+                Node n = (Node) next.getNodeValue();
 
-                    if ((n != null) && (n.state == TRANSIENT)) {
-                        n.makePersistentCapable();
+                if (n == null) {
+                    continue;
+                }
+
+                if (dbmap != null) {
+                    Relation rel = dbmap.getExactPropertyRelation(next.getName());
+                    if (rel != null && rel.isVirtual() && !rel.needsPersistence()) {
+                        // make this a virtual node. what we do is basically to
+                        // replay the things done in the constructor for virtual nodes.
+                        // NOTE: setting the primaryKey may not be necessary since this
+                        // isn't managed by the nodemanager but rather an actual property of
+                        // its parent node.
+                        n.setState(VIRTUAL);
+                        n.primaryKey = new SyntheticKey(getKey(), propname);
+                        n.id = propname;
+                        n.makeChildrenPersistable();
+                        continue;
                     }
                 }
+
+                n.makePersistable();
             }
         }
     }
