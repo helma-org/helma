@@ -128,30 +128,43 @@ public class ResponseBuffer implements ResponsePart {
 
 class StringPart implements ResponsePart {
 
-   StringBuffer strbuf;
+   char[] chars;
+   int count;
 
    public StringPart (String str) {
-	strbuf = new StringBuffer (str);
+	count = str.length();
+	chars = new char[count+32];
+	str.getChars (0, count, chars, 0);
    }
 
    public int length() {
-	return strbuf.length();
+	return count;
    }
 
    public void writeTo (Writer writer) throws IOException {
-	writer.write (strbuf.toString());
+	writer.write (chars, 0, count);
    }
 
    public void appendTo (StringBuffer buffer) {
-	buffer.append (strbuf.toString());
+	buffer.append (chars, 0, count);
    }
 
    public void append (String str) {
-	strbuf.append (str);
+	int l = str.length();
+	if (count+l > chars.length) {
+	    int newLength = count*2;
+	    if (newLength < count+l)
+	        newLength = count+l;
+	    char[] newChars = new char[newLength];
+	    System.arraycopy (chars, 0, newChars, 0, count);
+	    chars = newChars;
+	}
+	str.getChars (0, l, chars, count);
+	count += l;
    }
 
    public String toString () {
-	return strbuf.toString();
+	return String.valueOf (chars, 0, count);
    }
 
 }
