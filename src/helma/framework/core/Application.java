@@ -275,18 +275,22 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	}
     }
 
-    public Prototype getPrototype (String str) {
-	return typemgr.getPrototype (str);
-    }
 
+    /**
+     * Return a prototype for a given node. If the node doesn't specify a prototype,
+     * return the generic hopobject prototype.
+     */
     public Prototype getPrototype (INode n) {
     	String protoname = n.getPrototype ();
 	if (protoname == null)
-	    return null;
-	return getPrototype (protoname);
+	    return typemgr.getPrototype ("hopobject");
+	return typemgr.getPrototype (protoname);
     }
 
 
+    /**
+     * Return the user currently associated with a given Hop session ID.
+     */
     public User getUser (String sessionID) {
     	if (sessionID == null)
 	    return null;
