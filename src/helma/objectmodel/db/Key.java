@@ -22,24 +22,26 @@ package helma.objectmodel.db;
  *
  */
 public interface Key {
+
     /**
-     *
+     * Get the key's parent key
      *
      * @return ...
      */
     public Key getParentKey();
 
     /**
-     *
+     * Get the key's ID part
      *
      * @return ...
      */
     public String getID();
 
     /**
-     *
+     *  Get the key's storage id
      *
      * @return ...
      */
     public String getStorageName();
+
 }

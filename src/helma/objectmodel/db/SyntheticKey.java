@@ -25,11 +25,17 @@ import java.io.Serializable;
  * virtual nodes and groupby nodes.
  */
 public final class SyntheticKey implements Key, Serializable {
+
+    // the parent key
     private final Key parentKey;
+
+    // the name relative to the parent key
     private final String name;
 
     // lazily initialized hashcode
     private transient int hashcode = 0;
+
+    static final long serialVersionUID = -693454133259421857L;
 
     /**
      * make a key for a persistent Object, describing its datasource and id.

@@ -17,6 +17,10 @@
 package helma.objectmodel.db;
 
 import java.io.Serializable;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.IOException;
+
 
 /**
  *  This is the internal representation of a database key. It is constructed
@@ -27,13 +31,15 @@ public final class DbKey implements Key, Serializable {
     // the name of the prototype which defines the storage of this object.
     // this is the name of the object's prototype, or one of its ancestors.
     // If null, the object is stored in the embedded db.
-    private final String storageName;
+    private String storageName;
 
     // the id that defines this key's object within the above storage space
-    private final String id;
+    private String id;
 
     // lazily initialized hashcode
     private transient int hashcode = 0;
+
+    static final long serialVersionUID = 1618863960930966588L;
 
     /**
      * make a key for a persistent Object, describing its datasource and id.
@@ -116,4 +122,23 @@ public final class DbKey implements Key, Serializable {
     public String toString() {
         return (storageName == null) ? ("[" + id + "]") : (storageName + "[" + id + "]");
     }
+
+    // We implement write/readObject to set storageName
+    // to the interned version of the string.
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.writeObject(storageName);
+        stream.writeObject(id);
+    }
+
+    private void readObject(ObjectInputStream stream)
+                                        throws IOException, ClassNotFoundException {
+        storageName = (String) stream.readObject();
+        id = (String) stream.readObject();
+        // if storageName is not null, set it to the interned version
+        if (storageName != null) {
+            storageName = storageName.intern();
+        }
+    }
+
 }
