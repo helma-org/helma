@@ -301,7 +301,6 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    loc.append (url);
 	    location = loc.toString ();
 	}
-	res.reset ();
 	// send status code 303 for HTTP 1.1, 302 otherwise
 	if (isOneDotOne (req.getProtocol ()))
 	    res.setStatus (res.SC_SEE_OTHER);
