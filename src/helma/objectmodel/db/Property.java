@@ -40,7 +40,11 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	    type = in.readInt ();
 	    switch (type) {
 	    case STRING:
-	        svalue = in.readUTF ();
+	        // try to convert from old format
+	        if (node.version < 7)
+	            svalue = in.readUTF ();
+	        else
+	            svalue = (String) in.readObject ();
 	        break;
 	    case BOOLEAN:
 	        bvalue = in.readBoolean ();
@@ -74,7 +78,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	out.writeInt (type);
 	switch (type) {
 	case STRING:
-	    out.writeUTF (svalue);
+	    out.writeObject (svalue);
 	    break;
 	case BOOLEAN:
 	    out.writeBoolean (bvalue);

@@ -107,7 +107,7 @@ public final class Node implements INode, Serializable {
      * Write out this instance to a stream
      */
     private void writeObject (ObjectOutputStream out) throws IOException {
-	out.writeShort (6);  // serialization version
+	out.writeShort (7);  // serialization version
 	out.writeUTF (id);
 	out.writeUTF (name);
 	out.writeObject (parentHandle);
