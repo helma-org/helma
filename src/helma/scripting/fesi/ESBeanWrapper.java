@@ -2,7 +2,9 @@ package helma.scripting.fesi;
 
 import java.util.Map;
 
+import helma.framework.core.ApplicationBean;
 import helma.objectmodel.INode;
+import helma.util.SystemProperties;
 
 import FESI.Interpreter.Evaluator;
 import FESI.Exceptions.EcmaScriptException;
@@ -19,38 +21,41 @@ public class ESBeanWrapper extends ESWrapper {
 	FesiEvaluator eval;
 
 	public ESBeanWrapper (Object object, FesiEvaluator eval) {
-		super (object, eval.getEvaluator(),true);
-		this.eval = eval;
+	super (object, eval.getEvaluator(),true);
+	this.eval = eval;
 	}
 
 	/**
- 	* Wrap getProperty, return ESNode if INode would be returned.
+ 	* Wrap getProperty, return ESNode if INode would be returned,
+ 	* ESMapWrapper if Map would be returned.
  	*/
-    public ESValue getProperty(String propertyName, int hash)
-                                 throws EcmaScriptException {
-		try {
-			ESValue val = super.getProperty (propertyName, hash);
-			if (val instanceof ESWrapper && ((ESWrapper)val).getJavaObject() instanceof INode)	{
-				return eval.getNodeWrapper( (INode) ((ESWrapper)val).getJavaObject() );
-			} else if (val instanceof ESWrapper && ((ESWrapper)val).getJavaObject() instanceof Map)	{
-				return new ESMapWrapper(eval, (Map) ((ESWrapper)val).getJavaObject() );
-			} else {
-				return val;
-			}
-		} catch (Exception rte) {
-			return ESNull.theNull;
-		}
+    public ESValue getProperty(String propertyName, int hash) throws EcmaScriptException {
+	try {
+	    ESValue val = super.getProperty (propertyName, hash);
+	    Object theObject = ((ESWrapper)val).getJavaObject ();
+	    if (val instanceof ESWrapper && theObject instanceof INode)	{
+	        return eval.getNodeWrapper ((INode) theObject);
+	    } else if (val instanceof ESWrapper && theObject instanceof Map)	{
+	        ESMapWrapper wrapper = new ESMapWrapper(eval, (Map) theObject);
+	        if (theObject instanceof SystemProperties && super.getJavaObject () instanceof ApplicationBean)
+	            wrapper.setReadonly(true);
+	        return wrapper;
+	    } else {
+	        return val;
+	    }
+	} catch (Exception rte) {
+	    return ESNull.theNull;
+	}
     }
 
-    public void putProperty(String propertyName, ESValue propertyValue, int hash)
-                              throws EcmaScriptException {
-    	try {
-    		super.putProperty (propertyName, propertyValue, hash);
-    	} catch (Exception rte) {
-    		// create a nice error message
-    		throw new EcmaScriptException("can't set property " + propertyName +
-    		" to this value on " + getJavaObject().toString() );
-    	}
+    public void putProperty(String propertyName, ESValue propertyValue, int hash) throws EcmaScriptException {
+	try {
+	    super.putProperty (propertyName, propertyValue, hash);
+	} catch (Exception rte) {
+	    // create a nice error message
+	    throw new EcmaScriptException("can't set property " + propertyName +
+	    " to this value on " + getJavaObject().toString() );
+	}
 	}
 
 }
