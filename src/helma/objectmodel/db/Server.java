@@ -79,13 +79,13 @@ import com.sleepycat.db.*;
 	        propfile = new File ("server.properties").getAbsolutePath ();
 	}
 	sysProps = new SystemProperties (propfile);
-	getLogger().log ("propfile = "+propfile);
 	// get hopHome from property file
 	if (hopHome == null)
 	    hopHome = sysProps.getProperty ("hophome");
 	if (hopHome == null)
 	    hopHome =  new File (propfile).getParent ();
 
+	getLogger().log ("propfile = "+propfile);
 	getLogger().log ("hopHome = "+hopHome);
 
 	if (usageError ) {
