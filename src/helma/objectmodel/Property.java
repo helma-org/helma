@@ -67,33 +67,10 @@ public final class Property implements IProperty, Serializable, Cloneable {
     public void setStringValue (String value) throws ParseException {
 	if (type == NODE)
 	    unregisterNode ();
-	// IServer.getLogger().log ("setting string value of property "+propname + " to "+value);
-	if (type == DATE) {
-	    SimpleDateFormat dateformat = new SimpleDateFormat ();
-	    dateformat.setLenient (true);
-	    Date date = dateformat.parse (value);
-	    this.lvalue =  date.getTime ();
-	    return;
-	}
-	if (type == BOOLEAN) {
-	    if ("true".equalsIgnoreCase (value))
-	        this.bvalue = true;
-	    else if ("false".equalsIgnoreCase (value))
-	        this.bvalue = false;
-	    return;
-	}
-	if (type == INTEGER) {
-	    this.lvalue = Long.parseLong (value);
-	    return;
-	}
-	if (type == FLOAT) {
-	    this.dvalue = new Double (value).doubleValue ();
-	    return;
-	}
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
-	this.svalue = value;
 	type = STRING;
+	this.svalue = value;
     }
 
     public void setIntegerValue (long value) {

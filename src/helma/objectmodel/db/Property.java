@@ -140,41 +140,11 @@ public final class Property implements IProperty, Serializable, Cloneable {
     public void setStringValue (String value) {
 	if (type == NODE)
 	    unregisterNode ();
-	// IServer.getLogger().log ("setting string value of property "+propname + " to "+value);
-	// mark property as dirty
-	dirty = true;
-	// if this is not a string property, try to parse a value out of it
-	if (type == DATE) {
-	    SimpleDateFormat dateformat = new SimpleDateFormat ();
-	    try {
-	        dateformat.setLenient (true);
-	        Date date = dateformat.parse (value);
-	        this.lvalue =  date.getTime ();
-	        return;
-	    } catch (ParseException nodate) {
-	        node.nmgr.logEvent ("Couldn't parse date: was expecting something like "+dateformat.format (new Date()));
-	        // store as plain string
-	    }
-	}
-	if (type == BOOLEAN) {
-	    if ("true".equalsIgnoreCase (value))
-	        this.bvalue = true;
-	    else if ("false".equalsIgnoreCase (value))
-	        this.bvalue = false;
-	    return;
-	}
-	if (type == INTEGER) {
-	    this.lvalue = Long.parseLong (value);
-	    return;
-	}
-	if (type == FLOAT) {
-	    this.dvalue = new Double (value).doubleValue ();
-	    return;
-	}
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
-	this.svalue = value;
 	type = STRING;
+	this.svalue = value;
+	dirty = true;
     }
 
 
