@@ -6,7 +6,7 @@ package helma.objectmodel.db;
 import helma.framework.core.Application;
 import helma.util.Updatable;
 import helma.util.SystemProperties;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Enumeration;
 import java.util.StringTokenizer;
 import java.sql.*;
@@ -49,9 +49,9 @@ public class DbMapping implements Updatable {
     DbMapping groupbyMapping;
 
      // Map of property names to Relations objects
-    Hashtable prop2db;
+    HashMap prop2db;
      // Map of db columns to Relations objects
-    Hashtable db2prop;
+    HashMap db2prop;
 
     // db field used as primary key
     String idField;
@@ -64,7 +64,6 @@ public class DbMapping implements Updatable {
     String extendsProto;
     // dbmapping of parent prototype, if any
     DbMapping parentMapping;
-    boolean inheritsMapping;
 
     // db field that specifies the prototype of an object
     String prototypeField;
@@ -92,8 +91,8 @@ public class DbMapping implements Updatable {
 
 	this.app = app;
 
-	prop2db = new Hashtable ();
-	db2prop = new Hashtable ();
+	prop2db = new HashMap ();
+	db2prop = new HashMap ();
 
 	parent = null;
 	// subnodes = null;
@@ -109,8 +108,8 @@ public class DbMapping implements Updatable {
 	this.app = app;
 	this.typename = typename;
 
-	prop2db = new Hashtable ();
-	db2prop = new Hashtable ();
+	prop2db = new HashMap ();
+	db2prop = new HashMap ();
 
 	parent = null;
 	// subnodes = null;
@@ -199,8 +198,8 @@ public class DbMapping implements Updatable {
 	
 	// if (table != null && source != null) {
 	// app.logEvent ("set data source for "+typename+" to "+source);
-	Hashtable p2d = new Hashtable ();
-	Hashtable d2p = new Hashtable ();
+	HashMap p2d = new HashMap ();
+	HashMap d2p = new HashMap ();
 
 	for (Enumeration e=props.keys(); e.hasMoreElements(); ) {
 	    String propName = (String) e.nextElement ();
@@ -268,8 +267,7 @@ public class DbMapping implements Updatable {
 	    propertiesRel = null;
 
 	if (groupbyMapping != null) {
-	    groupbyMapping.subnodesRel = subnodesRel == null ? null : subnodesRel.getGroupbySubnodeRelation ();
-	    groupbyMapping.propertiesRel = propertiesRel == null ? null : propertiesRel.getGroupbyPropertyRelation ();
+	    initGroupbyMapping ();
 	    groupbyMapping.lastTypeChange = this.lastTypeChange;
 	}
     }
@@ -458,23 +456,12 @@ public class DbMapping implements Updatable {
 
 
     public DbMapping getExactPropertyMapping (String propname) {
-	if (propname == null)
-	    return null;
-	Relation rel = (Relation) prop2db.get (propname.toLowerCase());
-	if (rel == null && parentMapping != null)
-	    return parentMapping.getExactPropertyMapping (propname);
+	Relation rel = getExactPropertyRelation (propname);
 	return rel != null ? rel.otherType : null;
     }
 
     public DbMapping getPropertyMapping (String propname) {
-	if (propname == null) {
-	    if (propertiesRel != null)
-	        return propertiesRel.otherType;
-	    if (parentMapping != null)
-	        return parentMapping.getPropertyMapping (null);
-	}
-
-	Relation rel = (Relation) prop2db.get (propname.toLowerCase());
+	Relation rel = getPropertyRelation (propname);
 	if (rel != null) {
 	    // if this is a virtual node, it doesn't have a dbmapping
 	    if (rel.virtual && rel.prototype == null)
@@ -482,11 +469,6 @@ public class DbMapping implements Updatable {
 	    else
 	        return rel.otherType;
 	}
-
-	if (propertiesRel != null)
-	    return propertiesRel.otherType;
-	if (parentMapping != null)
-	    return parentMapping.getPropertyMapping (propname);
 	return null;
     }
 
@@ -498,30 +480,37 @@ public class DbMapping implements Updatable {
 	if (subnodesRel == null || subnodesRel.groupby == null)
 	    return null;
 	if (groupbyMapping == null) {
-	    // if a prototype is defined for groupby nodes, use that
-	    // DbMapping instead of creating a new one
-	    if (subnodesRel.groupbyprototype != null)
-	        groupbyMapping = app.getDbMapping (subnodesRel.groupbyprototype);
-	    // if mapping doesn' exist or isn't defined, create a new (anonymous internal) one
-	    if (groupbyMapping == null)
-	        groupbyMapping = new DbMapping (app);
-	    groupbyMapping.subnodesRel = subnodesRel.getGroupbySubnodeRelation ();
-	    if (propertiesRel != null)
-	        groupbyMapping.propertiesRel = propertiesRel.getGroupbyPropertyRelation ();
-	    else
-	        groupbyMapping.propertiesRel = subnodesRel.getGroupbyPropertyRelation ();
-	    groupbyMapping.typename = subnodesRel.groupbyprototype;
+	    initGroupbyMapping ();
 	}
 	return groupbyMapping;
+    }
+
+    /**
+     * Initialize the dbmapping used for group-by nodes.
+     */
+    private void initGroupbyMapping () {
+	// if a prototype is defined for groupby nodes, use that
+	// if mapping doesn' exist or isn't defined, create a new (anonymous internal) one
+	groupbyMapping = new DbMapping (app);
+	// If a mapping is defined, make the internal mapping inherit from
+	// the defined named prototype.
+	if (subnodesRel.groupbyprototype != null)
+	    groupbyMapping.parentMapping = app.getDbMapping (subnodesRel.groupbyprototype);
+	groupbyMapping.subnodesRel = subnodesRel.getGroupbySubnodeRelation ();
+	if (propertiesRel != null)
+	    groupbyMapping.propertiesRel = propertiesRel.getGroupbyPropertyRelation ();
+	else
+	    groupbyMapping.propertiesRel = subnodesRel.getGroupbyPropertyRelation ();
+	groupbyMapping.typename = subnodesRel.groupbyprototype;
     }
 
     /* public void setPropertyMapping (DbMapping pm) {
 	properties = pm;
     } */
 
-    public void setSubnodeRelation (Relation rel) {
+    /* public void setSubnodeRelation (Relation rel) {
 	subnodesRel = rel;
-    }
+    } */
 
     public void setPropertyRelation (Relation rel) {
 	propertiesRel = rel;
@@ -542,10 +531,21 @@ public class DbMapping implements Updatable {
     public Relation getPropertyRelation (String propname) {
 	if (propname == null)
 	    return getPropertyRelation ();
+	// first try finding an exact match for the property name
+	Relation rel = getExactPropertyRelation (propname);
+	// if not defined, return the generic property mapping
+	if (rel == null)
+	    rel = getPropertyRelation ();
+	return rel;
+    }
+
+    public Relation getExactPropertyRelation (String propname) {
+	if (propname == null)
+	    return null;
 	Relation rel = (Relation) prop2db.get (propname.toLowerCase());
-	if (rel == null && propertiesRel == null && parentMapping != null)
-	    return parentMapping.getPropertyRelation (propname);
-	return rel != null ? rel : propertiesRel;
+	if (rel == null && parentMapping != null)
+	    rel = parentMapping.getExactPropertyRelation (propname);
+	return rel;
     }
 
     public String getSubnodeGroupby () {
@@ -614,7 +614,7 @@ public class DbMapping implements Updatable {
     }
 
     public String toString () {
-	if (app == null)
+	if (typename == null)
 	    return "[unspecified internal DbMapping]";
 	else
 	    return ("["+app.getName()+"."+typename+"]");
@@ -642,13 +642,13 @@ public class DbMapping implements Updatable {
 	return lastID;
     }
 
-    public Hashtable getProp2DB () {
+    public HashMap getProp2DB () {
 	if (table == null && parentMapping != null)
 	    return parentMapping.getProp2DB ();
 	return prop2db;
     }
 
-    public Hashtable getDB2Prop () {
+    public HashMap getDB2Prop () {
 	if (table == null && parentMapping != null)
 	    return parentMapping.getDB2Prop ();
 	return db2prop;
@@ -692,6 +692,11 @@ public class DbMapping implements Updatable {
 	    p = p.parentMapping;
 	}
 	return false;
+    }
+
+
+    public DbMapping getParentMapping () {
+	return parentMapping;
     }
 
 }
