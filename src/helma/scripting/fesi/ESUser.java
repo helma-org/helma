@@ -54,8 +54,14 @@ public class ESUser extends ESNode {
 	    else
 	        return new ESString (user.getSessionID ());
 	}
-	if ("cache".equals (propname) && user != null)
+	// if this represents an active user object, we override
+	// the cache property to come from the user session object
+	// instead of the Node object.
+	if ("cache".equals (propname) && user != null) {
+	    cache = user.getCache ();
+	    cacheWrapper.node = cache;
 	    return cacheWrapper;
+	}
 	return super.getProperty (propname, hash);
     }
 
@@ -97,55 +103,19 @@ public class ESUser extends ESNode {
 	else
 	    handle = null;
 	
-    }	
+    }
+
+    public boolean clearCache () {
+	if (user != null)
+	    user.clearCache ();
+	else
+	    super.clearCache ();
+	return true;
+    }
 
     public String toString () {
 	return ("UserObject "+node.getName ());
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

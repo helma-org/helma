@@ -29,7 +29,7 @@ public class ESNode extends ObjectPrototype {
     // store temporary stuff.
     INode cache;
     // the ecmascript wrapper for the cache.
-    ESObject cacheWrapper;
+    ESNode cacheWrapper;
 
     // The handle of the wrapped Node. Makes ESNodes comparable without accessing the wrapped node.
     NodeHandle handle;
@@ -310,10 +310,11 @@ public class ESNode extends ObjectPrototype {
 	// persistent or persistent capable nodes have a cache property that's a transient node.
 	// it it hasn't requested before, initialize it now
 	if ("cache".equalsIgnoreCase (propertyName) && node instanceof Node) {
-	   if (cacheWrapper == null) {
-	       cache = node.getCacheNode ();
+	   cache = node.getCacheNode ();
+	   if (cacheWrapper == null)
 	       cacheWrapper = new ESNode (cache, eval);
-	   }
+	   else
+	       cacheWrapper.node = cache;
 	   return cacheWrapper;
 	}
 	if ("subnodeRelation".equalsIgnoreCase (propertyName)) {
@@ -413,12 +414,18 @@ public class ESNode extends ObjectPrototype {
 	return ESNull.theNull;
     }
 
+    public boolean clearCache () {
+	checkNode ();
+	node.clearCacheNode ();
+	return true;
+    }
+
     public Enumeration getAllProperties () {
 	return getProperties ();
     }
 
     public Enumeration getProperties () {
-             checkNode ();
+	checkNode ();
 	return node.properties ();
     }
 
