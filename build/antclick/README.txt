@@ -1,4 +1,48 @@
-This is the README file for version 1.2 of Helma Object Publisher.
+==============
+ABOUT ANTCLICK
+==============
+
+Antclick is an integrated Helma/Antville package. It comes with 
+integrated web server and SQL database. It should run out of the 
+box although you may have to modify the start script. 
+
+This version of Antclick contains Mckoi as the embedded database 
+and Jetty as the embedded web server.
+
+Although Antcklick comes preconfigured with the Mckoi database, it 
+can easily be set up to run with other databases such as MySQL and 
+Oracle. It is also possible to configure it to use a fully featured 
+web server instead of the built-in web server. 
+
+
+======================
+INSTALLING AND RUNNING 
+======================
+
+Simply uncompress the content of the archive file into any place on 
+your hard disk. Start Helma on Windows by opening the file hop.bat. 
+On Unix systems open a terminal window, change to the Antclick 
+directory and type ./hop.sh.
+
+If you manage to get it running you should be able to connect your
+browser to http://127.0.0.1:8080/ (port 8080, that is). Now you can 
+set up and configure your antville site.
+
+
+==============
+ABOUT ANTVILLE
+==============
+
+Antville is an open source project aimed to the development of an 
+"easy to maintain and use" weblog-hosting system. It is not limited 
+to just one weblog, it can easily host up to several hundred or 
+thousand weblogs (the number of weblogs is more limited by the site 
+owner's choice and server power than software limitations).
+
+Antville is entirely written in JavaScript and based on the Helma 
+Object Publisher, a powerful and fast scriptable open source web 
+application server (which itself is written in Java). Antville works 
+with a relational database in the backend.
 
 ============================
 ABOUT HELMA OBJECT PUBLISHER
@@ -29,24 +73,8 @@ JavaScript.
 SYSTEM REQUIREMENTS
 ===================
 
-Windows: 1) On Windows Helma won't run with Microsoft's version of
-Java (jview). You can get a compatible Java runtime from Sun or IBM:
-http://java.sun.com/j2se/1.3/jre/download-windows.html
-http://www.ibm.com/java/jdk/download/ 2) In the Windows start script
-I've hardcoded c:\java\lib\classes.zip  in the CLASSPATH argument. Not
-good.
-
-Macintosh: 1) If you are using the Mac version you should own a G3 CPU
-and/or  have MRJ 2.2 (http://www.apple.com/java) installed. Other
-platforms  have less frustration potential. The Mac OS version
-currently is not up-to-date (version 0.1).
-
-Linux: The recomended virtual machine for running Helma on Linux is
-Blackdown's  port of JDK 1.2.2 RC4
-(http://www.blackdown.org/java-linux/mirrors.html).  JDK 1.1.7v3 will
-work, but much slower and show a lot of CPU activity  even when the
-Helma is idle. IBM's version of JDK 1.1.8 also works well,  but this
-JVM has some problems of its own with thread handling.
+You need Java 2 runtime version 1.3 or higher to run Helma. Helma has 
+been used successfully on Windows, Linux and Mac OS X platforms.
 
 
 ============================
@@ -76,7 +104,7 @@ DOCUMENTATION AND FURTHER INFORMATION
 =====================================
 
 Currently, a documentation-in-progress is available online only.
-Please refer to http://helma.org/docs/.
+Please refer to http://helma.org/.
 
 For further information http://helma.org generally is a good place.
 There is also a mailing-list about Helma-related stuff available at
@@ -89,5 +117,5 @@ tobi@helma.at.
 
 --
 
-This document was last modified on Friday 22 June 2001 by
-tobi@helma.at
+This document was last modified on Friday 25 October 2002 by
+hannes@helma.at
