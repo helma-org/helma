@@ -71,6 +71,7 @@ public class ApplicationManager {
 	                    if (mountpoint == null || "".equals (mountpoint.trim()))
 	                    mountpoint = "/"+URLEncoder.encode(appName);
 	                if (!mountpoint.equals (oldMountpoint)) {
+	                    Server.getLogger().log("Moving application "+appName+" from "+oldMountpoint+" to "+mountpoint);
 	                    if ("/".equals (oldMountpoint))
 	                        server.websrv.removeDefaultServlet ();
 	                       else
