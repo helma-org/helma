@@ -791,7 +791,7 @@ public final class Node implements INode, Serializable {
      *  INode-related
      */
     public INode addNode(INode elem) {
-        return addNode(elem, numberOfNodes());
+        return addNode(elem, -1);
     }
 
     /**
@@ -866,22 +866,31 @@ public final class Node implements INode, Serializable {
             }
         }
 
-        if ((where < 0) || (where > numberOfNodes())) {
-            where = numberOfNodes();
-        }
-
         NodeHandle nhandle = node.getHandle();
 
         if ((subnodes != null) && subnodes.contains(nhandle)) {
             // Node is already subnode of this - just move to new position
-            subnodes.remove(nhandle);
-            where = Math.min(where, numberOfNodes());
-            subnodes.add(where, nhandle);
+            synchronized (subnodes) {
+                subnodes.remove(nhandle);
+                // check if index is out of bounds when adding
+                if (where < 0 || where > subnodes.size()) {
+                    subnodes.add(nhandle);
+                } else {
+                    subnodes.add(where, nhandle);
+                }
+            }
         } else {
             if (subnodes == null) {
                 subnodes = new ExternalizableVector();
             }
-            subnodes.add(where, nhandle);
+            synchronized (subnodes) {
+                // check if index is out of bounds when adding
+                if (where < 0 || where > subnodes.size()) {
+                    subnodes.add(nhandle);
+                } else {
+                    subnodes.add(where, nhandle);
+                }
+            }
 
             // check if subnode accessname is set
             if ((dbmap != null) && (node.dbmap != null)) {
@@ -941,7 +950,7 @@ public final class Node implements INode, Serializable {
      */
     public INode createNode() {
         // create new node at end of subnode array
-        return createNode(null, numberOfNodes());
+        return createNode(null, -1);
     }
 
     /**
@@ -964,7 +973,7 @@ public final class Node implements INode, Serializable {
      */
     public INode createNode(String nm) {
         // parameter where is  ignored if nm != null so we try to avoid calling numberOfNodes()
-        return createNode(nm, (nm == null) ? numberOfNodes() : 0);
+        return createNode(nm, -1);
     }
 
     /**
@@ -976,7 +985,7 @@ public final class Node implements INode, Serializable {
      * @return ...
      */
     public INode createNode(String nm, int where) {
-        checkWriteLock();
+        // checkWriteLock();
 
         boolean anon = false;
 
@@ -1245,7 +1254,9 @@ public final class Node implements INode, Serializable {
         boolean removed = false;
 
         if (subnodes != null) {
-            removed = subnodes.remove(node.getHandle());
+            synchronized (subnodes) {
+                removed = subnodes.remove(node.getHandle());
+            }
         }
 
         if (removed)
