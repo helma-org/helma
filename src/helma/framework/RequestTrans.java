@@ -6,7 +6,7 @@ package helma.framework;
 import java.io.*;
 import java.util.*;
 import helma.objectmodel.*;
-import helma.xmlrpc.Base64;
+import helma.util.Base64;
 
 /**
  * A Transmitter for a request from the servlet client. Objects of this 
