@@ -26,7 +26,7 @@ import org.mortbay.util.*;
 
  public class Server implements IPathElement, Runnable {
 
-    public static final String version = "1.2pre4 2002/07/12";
+    public static final String version = "1.2pre3+ 2002/07/25";
     public long starttime;
 
     // if true we only accept RMI and XML-RPC connections from 
