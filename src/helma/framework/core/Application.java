@@ -187,7 +187,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	worker = new Thread (this, "Worker-"+name);
 	worker.setPriority (Thread.NORM_PRIORITY+2);
 	worker.start ();
-	logEvent ("session cleanup and scheduler thread started");
+	// logEvent ("session cleanup and scheduler thread started");
 	
 	if (xmlrpc != null)
 	    xmlrpc.addHandler (this.name, new XmlRpcInvoker (this));
@@ -408,6 +408,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	        return null;
 	    
 	    unode = users.createNode (uname);
+	    unode.setPrototype ("user");
+	    unode.setDbMapping (userMapping);
 	    String usernameField = userMapping.getNameField ();
 	    String usernameProp = null;
 	    if (usernameField != null) {
@@ -420,8 +422,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	    unode.setName (uname);
 	    unode.setString (usernameProp, uname);
 	    unode.setString ("password", password);
-	    unode.setPrototype ("user");
-	    unode.setDbMapping (userMapping);
 	    // users.setNode (uname, unode);
 	    // return users.getNode (uname, false);	
 	    return unode;
@@ -552,7 +552,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	long lastScheduler = 0;
 	long lastCleanup = System.currentTimeMillis ();
 
-	logEvent ("Starting scheduler for "+name);
+	// logEvent ("Starting scheduler for "+name);
 	// as first thing, invoke function onStart in the root object
 
 	try {
@@ -571,7 +571,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	    // check if we should clean up user sessions
 	    if (now - lastCleanup > cleanupSleep) try {
 	        lastCleanup = now;
-	        logEvent ("Cleaning up "+name+": " + sessions.size () + " sessions active");
+	        // logEvent ("Cleaning up "+name+": " + sessions.size () + " sessions active");
 	        Hashtable cloned = (Hashtable) sessions.clone ();
 	        for (Enumeration e = cloned.elements (); e.hasMoreElements (); ) {
 	            User u = (User) e.nextElement ();
@@ -588,7 +588,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	                u.setNode (null);
 	            }
 	        }
-	        logEvent ("Cleaned up "+name+": " + sessions.size () + " sessions remaining");
+	        // logEvent ("Cleaned up "+name+": " + sessions.size () + " sessions remaining");
 	    } catch (Exception cx) {
 	        logEvent ("Error cleaning up sessions: "+cx);
 	        cx.printStackTrace ();
@@ -608,7 +608,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	            else
 	                scheduleSleep = ret;
 	        } catch (Exception ignore) {}
-	        logEvent ("Called scheduler for "+name+", will sleep for "+scheduleSleep+" millis");
+	        // logEvent ("Called scheduler for "+name+", will sleep for "+scheduleSleep+" millis");
 	    }
 
 	    // sleep until we have work to do
