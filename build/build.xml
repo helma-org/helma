@@ -22,7 +22,7 @@
         <property name="jar.name" value="helma"/>
         <property name="final.name" value="${project}-${version}"/>
         <property name="final.dir" value="../${final.name}/"/>
-        <property name="debug" value="on"/>
+        <property name="debug" value="off"/>
         <property name="optimize" value="on"/>
         <property name="deprecation" value="off"/>
 
@@ -90,7 +90,7 @@
       <!-- BTW, \u000a is the Unicode escape for a new line. (jhunter)       -->
       <replace dir="${build.src}" includes="**"
              token="java.util.*"
-             value="java.util.*;\u000aimport ${coll.import}.*"/>
+             value="${coll.import}.*"/>
     </target>
 
 
@@ -180,7 +180,7 @@
     <!-- Packages just the jar with ZIP                                  -->
     <!-- =================================================================== -->
     <target name="snapshot" depends="jar">
-        <copy file="${build.dir}/${jar.name}.jar" tofile="../helma${DSTAMP}.jar"/>
+        <copy file="${build.dir}/${jar.name}.jar" tofile="../helma-${DSTAMP}.jar"/>
     </target>
 
 
