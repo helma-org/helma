@@ -96,7 +96,12 @@ public final class ResponseTrans implements Externalizable {
     // the request trans for this response
     private transient RequestTrans reqtrans;
 
+    // the message digest used to generate composed digests for ETag headers
     private transient MessageDigest digest;
+    
+    // the appliciation checksum to make ETag headers sensitive to app changes
+    long applicationChecksum;
+
 
     public ResponseTrans () {
 	super ();
@@ -321,7 +326,7 @@ public final class ResponseTrans implements Externalizable {
 	// if charset is not set, use western encoding
 	if (charset == null)
 	    charset = "ISO-8859-1";
-	boolean error = false;
+	boolean encodingError = false;
 	if (response == null) {
 	    if (buffer != null) {
 	        if (debugBuffer != null)
@@ -329,18 +334,22 @@ public final class ResponseTrans implements Externalizable {
 	        try {
 	            response = buffer.toString ().getBytes (charset);
 	        } catch (UnsupportedEncodingException uee) {
-	            error = true;
+	            encodingError = true;
 	            response = buffer.toString ().getBytes ();
 	        }
 	        // if etag is not set, calc MD5 digest and check it
-	        if (etag == null && !notModified && redir == null) try {
-	            String digest = MD5Encoder.encode (response);
-	            etag = "\""+digest+"\"";
+	        if (etag == null && lastModified == -1 &&
+	            redir == null && error == null) try {
+	            digest = MessageDigest.getInstance("MD5");
+	            byte[] b = digest.digest(response);
+	            etag = "\""+new String (Base64.encode(b))+"\"";
 	            if (reqtrans != null && reqtrans.hasETag (etag)) {
 	                response = new byte[0];
 	                notModified = true;
 	            }
-	        } catch (Exception ignore) {}
+	        } catch (Exception ignore) {
+	            // Etag creation failed for some reason. Ignore.
+	        }
 	        buffer = null; // make sure this is done only once, even with more requsts attached
 	    } else {
 	        response = new byte[0];
@@ -348,7 +357,7 @@ public final class ResponseTrans implements Externalizable {
 	}
 	notifyAll ();
 	// if there was a problem with the encoding, let the app know
-	if (error)
+	if (encodingError)
 	    throw new UnsupportedEncodingException (charset);
     }
 
@@ -393,12 +402,6 @@ public final class ResponseTrans implements Externalizable {
 	return lastModified;
     }
 
-    /* public void setNotModified (boolean notmod) throws RedirectException {
-	notModified = notmod;
-	if (notmod)
-	    throw new RedirectException (null);
-    } */
-
     public void setETag (String value) {
 	etag = value == null ? null : "\""+value+"\"";
 	if (etag != null && reqtrans != null && reqtrans.hasETag (etag)) {
@@ -423,6 +426,8 @@ public final class ResponseTrans implements Externalizable {
 	}
 	if (what == null) {
 	    digest.update (new byte[0]);
+	} else if (what instanceof Date) {
+	    digest.update (MD5Encoder.toBytes((Date) what).getTime());
 	} else if (what instanceof byte[]) {
 	    digest.update ((byte[]) what);
 	} else {
@@ -435,16 +440,21 @@ public final class ResponseTrans implements Externalizable {
     }
 
     public void digestDependencies () {
-	if (digest == null) 
+	if (digest == null)
 	    return;
-	byte[] b = digest.digest();
-        /* StringBuffer buf = new StringBuffer(b.length*2);
-        for ( int i=0; i<b.length; i++ ) {
-            int j = (b[i]<0) ? 256+b[i] : b[i];
-            if ( j<16 ) buf.append("0");
-            buf.append(Integer.toHexString(j));
-        } */
+	byte[] b = digest.digest(MD5Encoder.toBytes (applicationChecksum));
+	/* StringBuffer buf = new StringBuffer(b.length*2);
+	for ( int i=0; i<b.length; i++ ) {
+	    int j = (b[i]<0) ? 256+b[i] : b[i];
+	    if ( j<16 ) buf.append("0");
+	    buf.append(Integer.toHexString(j));
+	}
+	setETag (buf.toString ()); */
 	setETag (new String (Base64.encode(b)));
+    }
+
+    public void setApplicationChecksum (long n) {
+	applicationChecksum = n;
     }
 
     public void setSkinpath (Object[] arr) {
