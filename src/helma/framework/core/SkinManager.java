@@ -25,6 +25,10 @@ import java.util.*;
  */
 public final class SkinManager implements FilenameFilter {
     Application app;
+    // the skin property name to use in database skin objects
+    final String skinProperty;
+    // the file name extension for skin files
+    final String skinExtension;
 
     /**
      * Creates a new SkinManager object.
@@ -33,6 +37,8 @@ public final class SkinManager implements FilenameFilter {
      */
     public SkinManager(Application app) {
         this.app = app;
+        skinProperty = app.getProperty("skinProperty", "skin");
+        skinExtension = ".skin";
     }
 
     protected Skin getSkin(Prototype proto, String skinname, Object[] skinpath) {
@@ -85,7 +91,7 @@ public final class SkinManager implements FilenameFilter {
                 n = (INode) n.getChildElement(skinname);
 
                 if (n != null) {
-                    String skin = n.getString("skin");
+                    String skin = n.getString(skinProperty);
 
                     if (skin != null) {
                         return new Skin(skin, app);
@@ -97,7 +103,7 @@ public final class SkinManager implements FilenameFilter {
             // retrieve the skin
             File f = new File(skinset.toString(), prototype);
 
-            f = new File(f, skinname + ".skin");
+            f = new File(f, skinname + skinExtension);
 
             if (f.exists() && f.canRead()) {
                 SkinFile sf = new SkinFile(f, skinname, app);
@@ -135,6 +141,6 @@ public final class SkinManager implements FilenameFilter {
      * Implements java.io.FilenameFilter.accept()
      */
     public boolean accept(File d, String n) {
-        return n.endsWith(".skin");
+        return n.endsWith(skinExtension);
     }
 }
