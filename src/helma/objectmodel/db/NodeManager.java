@@ -1267,12 +1267,9 @@ public final class NodeManager {
 	        node = (Node) home.createNode (kstr);
 	    else
 	        node = new Node (home, kstr, safe, rel.prototype);
-	    if (rel.prototype != null) {
-	        node.setPrototype (rel.prototype);
-	        node.setDbMapping (app.getDbMapping (rel.prototype));
-	    } else {
-	        node.setDbMapping (rel.getVirtualMapping ());
-	    }
+	    // set prototype and dbmapping on the newly created virtual/collection node
+	    node.setPrototype (rel.prototype);
+	    node.setDbMapping (rel.getVirtualMapping ());
 
 	} else if (rel != null && rel.groupby != null) {
 	    node = home.getGroupbySubnode (kstr, false);
