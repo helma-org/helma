@@ -22,6 +22,7 @@ import java.lang.reflect.Constructor;
 import java.io.*;
 import java.util.Vector;
 import org.mozilla.javascript.TokenStream;
+import org.mozilla.javascript.Token;
 
 /**
  * 
@@ -90,11 +91,11 @@ public class DocFunction extends DocFileElement {
 
                 // if we're currently parsing a functionbody and come to the start
                 // of the next function or eof -> read function body
-                if (curFunction != null && (tok== TokenStream.FUNCTION || ts.eof())) {
+                if (curFunction != null && (tok== Token.FUNCTION || ts.eof())) {
                     curFunction.content = "function " + Util.getStringFromFile(location, curFunctionStart, endOfLastToken);
                 }
 
-                if (tok == TokenStream.FUNCTION) {
+                if (tok == Token.FUNCTION) {
                     // store the function start for parsing the function body later
                     curFunctionStart = getPoint (ts); 
                     // get and chop the comment
@@ -111,12 +112,12 @@ public class DocFunction extends DocFileElement {
                     // subloop on the tokenstream: find the parameters of a function
                     // only if it's a function (and not a macro or an action)
                     if (curFunction.type == FUNCTION) {
-                        while (!ts.eof() && tok != TokenStream.RP) {
+                        while (!ts.eof() && tok != Token.RP) {
                             // store the position of the last token 
                             endOfLastToken = getPoint (ts);
                             // new token
                             tok = ts.getToken();
-                            if (tok==TokenStream.NAME) {
+                            if (tok==Token.NAME) {
                                 curFunction.addParameter (ts.getString());
                             }
                         }
