@@ -3,8 +3,6 @@
 
 package helma.framework;
 
-import helma.objectmodel.Key;
-import helma.objectmodel.INode;
 import java.rmi.*;
 import java.util.Vector;
 
