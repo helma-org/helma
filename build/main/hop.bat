@@ -27,6 +27,9 @@ rem set JAVA_HOME=c:\program files\java
 :: Uncomment to pass options to the Java virtual machine
 rem set JAVA_OPTIONS=-server -Xmx128m
 
+:: Uncomment to add your own jar files to the class path
+rem set JARS=C:\path\to\some.jar
+
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 :::::: No user configuration needed below this line :::::::
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -34,7 +37,7 @@ rem set JAVA_OPTIONS=-server -Xmx128m
 :: Setting the script path
 set SCRIPT_DIR=%~d0%~p0
 
-:: Using JAVA_HOME variable if defined. Otherwise, 
+:: Using JAVA_HOME variable if defined. Otherwise,
 :: Java executable must be contained in PATH variable
 if "%JAVA_HOME%"=="" goto default
    set JAVACMD=%JAVA_HOME%\bin\java
@@ -47,23 +50,8 @@ if "%JAVA_HOME%"=="" goto default
 if "%HOP_HOME%"=="" (
    set HOP_HOME=%SCRIPT_DIR%
 )
+cd %HOP_HOME%
 
-:: Setting the classpath
-set LIB=%SCRIPT_DIR%lib
-set JARS=%LIB%\helma.jar
-set JARS=%JARS%;%LIB%\jetty.jar
-set JARS=%JARS%;%LIB%\crimson.jar
-set JARS=%JARS%;%LIB%\xmlrpc.jar
-set JARS=%JARS%;%LIB%\village.jar
-set JARS=%JARS%;%LIB%\servlet.jar
-set JARS=%JARS%;%LIB%\regexp.jar
-set JARS=%JARS%;%LIB%\netcomponents.jar
-set JARS=%JARS%;%LIB%\jimi.jar
-set JARS=%JARS%;%LIB%\apache-dom.jar
-set JARS=%JARS%;%LIB%\jdom.jar
-set JARS=%JARS%;%LIB%\mail.jar
-set JARS=%JARS%;%LIB%\activation.jar
-set JARS=%JARS%;%LIB%\mysql.jar
 
 :: Setting Helma server options
 if not "%HTTP_PORT%"=="" (
@@ -84,8 +72,11 @@ if not "%RMI_PORT%"=="" (
 )
 if not "%HOP_HOME%"=="" (
    echo Serving applications from %HOP_HOME%
-   set OPTIONS=%OPTIONS% -h %HOP_HOME%
+   set OPTIONS=%OPTIONS% -h "%HOP_HOME%
+)
+if not "%JARS%"=="" (
+   set JARS=-classpath %JARS%
 )
 
 :: Invoking the Java virtual machine
-%JAVACMD% %JAVA_OPTIONS% -classpath %JARS% helma.main.Server %OPTIONS%
+%JAVACMD% %JAVA_OPTIONS% %JARS% -jar launcher.jar %OPTIONS%
