@@ -647,7 +647,8 @@ public final class RequestEvaluator implements Runnable {
 	Transactor t = rtx;
 	// let the scripting engine know that the
 	// current transaction is being aborted.
-	scriptingEngine.abort ();
+	if (scriptingEngine != null)
+	    scriptingEngine.abort ();
 	rtx = null;
 	if (t != null) {
 	    if (reqtype != NONE) {
