@@ -127,7 +127,9 @@ function typeProperties_macro (param) {
 				if (arr[i].match (reg)) {
 					// it matched, wrap line in a link to that prototype:
 					var docProtoObj = this.getApplication ().getPrototype (mappings.getProperty (key));
-					arr[i] = '<a href="' + docProtoObj.href ("main") + '#typeproperties">' + arr[i] + '</a>';
+					if (docProtoObj!=null) {
+					   arr[i] = '<a href="' + docProtoObj.href ("main") + '#typeproperties">' + arr[i] + '</a>';
+               }
 				}
 			}
 			sb.append (arr[i] + "\n");
