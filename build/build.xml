@@ -309,13 +309,13 @@
       </copy>
       <chmod file="${antclick.dir}/hop.sh" perm="755"/>
 			<zip zipfile="${home.dir}/antclick.zip" basedir="${build.work}/" includes="antclick/**"/>
-      <tar tarfile="${build.work}/antclick.tar" basedir="${build.work}/" includes="antclick/**">
+      <tar tarfile="${build.work}/antclick.tar">
         <tarfileset dir="${antclick.dir}" mode="755">
-          <include name="${antclick.dir}/hop.sh"/>
+          <include name="hop.sh"/>
         </tarfileset>
         <tarfileset dir="${antclick.dir}">
-          <include name="${antclick.dir}/**"/>
-          <exclude name="${antclick.dir}/hop.sh"/>
+          <include name="**"/>
+          <exclude name="hop.sh"/>
         </tarfileset>
       </tar>
       <gzip zipfile="${home.dir}/antclick.tgz" src="${build.work}/antclick.tar"/>
@@ -350,13 +350,13 @@
         </ftp>
     </target>
     
-		<target name="test1" depends="init">
+    <target name="test1" depends="init">
       <mkdir dir="${build.checkout}"/>
       <cvs cvsRoot="${cvs.root}" package="apps/manage" dest="${build.checkout}"/>
 			<zip zipfile="../manage.zip" basedir="${build.checkout}/apps/manage/" includes="**"/>
     </target>
 
-		<target name="test2" depends="init">
+    <target name="test2" depends="init">
       <property name="antclick.dir" value="${build.work}/antclick"/>
       <copy todir="${antclick.dir}/apps/antville/">
         <fileset dir="${build.checkout}/hopbuild/skeleton/extras" includes="db.properties"/>
