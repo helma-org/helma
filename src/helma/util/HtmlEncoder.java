@@ -229,6 +229,7 @@ public final class HtmlEncoder {
 	allTags.add ("plaintext");
 	allTags.add ("pre");
 	allTags.add ("q");
+	allTags.add ("s");
 	allTags.add ("samp");
 	allTags.add ("script");
 	allTags.add ("select");
