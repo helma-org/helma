@@ -151,12 +151,8 @@ public class FesiActionAdapter {
         }
 
         public void updateEvaluator (FesiEvaluator fesi) throws EcmaScriptException {
-System.err.println ("1 "+fesi);
-System.err.println ("2 "+prototype);
-System.err.println ("3 "+fesi.evaluator);
 
 	ObjectPrototype op = fesi.getPrototype (prototype.getName());
-System.err.println ("4 "+op);
 
 	EcmaScriptVariableVisitor vdvisitor = fesi.evaluator.getVarDeclarationVisitor();
 	Vector vnames = vdvisitor.processVariableDeclarations(sl, fes);

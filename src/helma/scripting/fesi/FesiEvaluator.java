@@ -88,7 +88,6 @@ public class FesiEvaluator {
 	Collection prototypes = app.getPrototypes();
 	for (Iterator i=prototypes.iterator(); i.hasNext(); ) {
 	    Prototype proto = (Prototype) i.next ();
-	    System.err.println ("      "+proto);
 	    evaluatePrototype (proto);
 	}
     }
@@ -158,7 +157,6 @@ public class FesiEvaluator {
 
 	    /* for (Iterator j=proto.updatables.values().iterator(); j.hasNext(); ) {
 	        Updatable upd = (Updatable) j.next ();
-	        System.err.println ("           "+upd);
 	        if (upd instanceof ActionFile) try {
 	            new FesiActionAdapter ((ActionFile) upd).updateEvaluator (this);
 	        } catch (Exception x) {
@@ -212,7 +210,9 @@ public class FesiEvaluator {
 	                    parr.putHiddenProperty (app.getPrototypeName(pathElem), wrappedElement);
 	                }
 	                sv = parr;
-	            }
+	            } else if ("app".equals (k)) {
+				    sv = new ESAppNode ((INode) v, this);
+				}
 	            else
 	                sv = ESLoader.normalizeValue (v, evaluator);
 	            evaluator.getGlobalObject ().putHiddenProperty (k, sv);
@@ -220,14 +220,13 @@ public class FesiEvaluator {
 	    }
 	    evaluator.thread = Thread.currentThread ();
 	    ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
-	    System.err.println ("INVOKE-RESULT: "+ (retval == null ? null : retval.toJavaObject ()));
 	    return retval == null ? null : retval.toJavaObject ();
 	} catch (Exception x) {
 	    String msg = x.getMessage ();
 	    if (msg == null || msg.length() < 10)
 	        msg = x.toString ();
-	    System.err.println ("INVOKE-ERROR: "+msg);
-	    x.printStackTrace ();
+	    // System.err.println ("INVOKE-ERROR: "+msg);
+	    // x.printStackTrace ();
 	    throw new ScriptingException (msg);
 	}
     }
@@ -248,7 +247,7 @@ public class FesiEvaluator {
 	    if (func != null && func instanceof FunctionPrototype)
 	        return true;
 	} catch (EcmaScriptException esx) {
-	    // System.err.println ("Error in getProperty: "+esx);
+	    // System.err.println ("Error in hasFunction: "+esx);
 	    return false;
 	}
 	return false;
@@ -286,7 +285,7 @@ public class FesiEvaluator {
 	                    !(prop instanceof ESUndefined))
 	        return prop.toJavaObject ();
 	} catch (EcmaScriptException esx) {
-	    System.err.println ("Error in getProperty: "+esx);
+	    // System.err.println ("Error in getProperty: "+esx);
 	    return null;
 	}
 	return null;
@@ -334,6 +333,8 @@ public class FesiEvaluator {
     public ESValue getObjectWrapper (Object e) {
 	if (app.getPrototypeName (e) != null)
 	    return getElementWrapper (e);
+	/* else if (e instanceof INode)
+	    return new ESNode ((INode) e, this); */
 	else
 	    return new ESWrapper (e, evaluator);
     }

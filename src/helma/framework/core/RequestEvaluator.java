@@ -449,9 +449,9 @@ public class RequestEvaluator implements Runnable {
 
 	        // avoid going into transaction if called function doesn't exist
 	        boolean functionexists = true;
-	        /* if (current == null) try {
-	            functionexists = global.getProperty (method, method.hashCode()) != ESUndefined.theUndefined;
-	        } catch (EcmaScriptException x) {} */
+	        if (thisObject == null) try {
+	            functionexists = app.scriptingEngine.hasFunction (null, method, this);
+			} catch (ScriptingException ignore) {}
 
 	        if (!functionexists)
 	            // global function doesn't exist, nothing to do here.
@@ -466,9 +466,6 @@ public class RequestEvaluator implements Runnable {
 	            globals.put ("res", res);
 	            globals.put ("app", app.getAppNode());
 
-	            // resData.setData (res.getResponseData());
-	            // res.data = resData;
-
 	            /*if (current == null) {
 	                if (user == null) {
 	                    current = global;
@@ -481,9 +478,10 @@ public class RequestEvaluator implements Runnable {
 	            // call internal functions only if they're specified
 	            if (current.getProperty (method, method.hashCode()) != ESUndefined.theUndefined)
 	                esresult = current.doIndirectCall (evaluator, current, method, new ESValue[0]); */
+				app.scriptingEngine.invoke (thisObject, method, args, globals, this);
 	            commitTransaction ();
 
-	        } catch (Throwable wrong) {
+	        } catch (Exception wrong) {
 
 	            abortTransaction (false);
 
@@ -493,13 +491,7 @@ public class RequestEvaluator implements Runnable {
 	                return;
 	            }
 
-	            String msg = wrong.getMessage ();
-	            if (msg == null || msg.length () == 0)
-	                msg = wrong.toString ();
-	            app.logEvent ("Error executing "+funcdesc+": "+msg);
-	            if (app.debug)
-	                wrong.printStackTrace ();
-	            this.exception = new Exception (msg);
+	            this.exception = wrong;
 	        }
 
 	        break;
@@ -627,23 +619,8 @@ public class RequestEvaluator implements Runnable {
     }
 
     protected Object invokeDirectFunction (Object obj, String functionName, Object[] args) throws Exception {
-/*	ESObject eso = null;
-	if (obj == null)
-	    eso = global;
-	else
-	    eso = getElementWrapper (obj);
-	ESValue[] esv = args == null ? new ESValue[0] : new ESValue[args.length];
-	for (int i=0; i<esv.length; i++)
-	    // for java.util.Map objects, we use the special "tight" wrapper
-	    // that makes the Map look like a native object
-	    if (args[i] instanceof Map)
-	        esv[i] = new ESMapWrapper (this, (Map) args[i]);
-	    else
-	        esv[i] = ESLoader.normalizeValue (args[i], evaluator);
-	ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
-	return retval == null ? null : retval.toJavaObject (); */
 	return app.scriptingEngine.invoke (obj, functionName, args, null, this);
-    }
+    } 
 
     public synchronized Object invokeFunction (Object object, String functionName, Object[] args)
 		throws Exception {

@@ -34,7 +34,7 @@ public class NodeConstructor extends BuiltinFunctionObject {
            Application app = fesi.getApplication ();
            if ("Node".equals (typename) || "hopobject".equalsIgnoreCase (typename)) {
                String nodeName = null;
-               if (arguments.length == 0)
+               if (arguments.length > 0 && arguments[0] != null)
                    nodeName = arguments[0].toString();
                Node n = new Node (nodeName, (String) null, app.getWrappedNodeManager ());
                node = new ESNode (fesi.getPrototype ("hopobject"), this.evaluator, n, fesi);

@@ -941,8 +941,12 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	// as first thing, invoke function onStart in the root object
 
 	try {
+	    System.err.println ("INVOKING ONSTART");
 	    eval.invokeFunction ((INode) null, "onStart", new Object[0]);
-	} catch (Exception ignore) {}
+	} catch (Exception ignore) {
+	    System.err.println ("ERROR ONSTART "+name+": "+ignore);
+		ignore.printStackTrace ();
+	}
 
 	while (Thread.currentThread () == worker) {
 	    // get session timeout

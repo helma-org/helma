@@ -34,7 +34,6 @@ public class FesiScriptingEnvironment implements ScriptingEnvironment {
      * A prototype has been updated and must be re-evaluated.
      */
     public void updatePrototype (Prototype prototype) {
-	System.err.println ("UPDATING PROTOTYPE: "+prototype);
 	for (Iterator i = evaluators.values().iterator(); i.hasNext(); ) {
 	    FesiEvaluator fesi = (FesiEvaluator) i.next();
 	    fesi.evaluatePrototype (prototype);
@@ -47,8 +46,6 @@ public class FesiScriptingEnvironment implements ScriptingEnvironment {
     public Object invoke (Object thisObject, String functionName, Object[] args,
 			HashMap globals, RequestEvaluator reval)
 			throws ScriptingException {
-	System.err.println ("INVOKE: "+thisObject+", "+functionName);
-	System.err.println (this);
 	// check if there is already a FesiEvaluator for this RequestEvaluator.
 	// if not, create one.
 	FesiEvaluator fesi = getEvaluator (reval);
@@ -59,7 +56,6 @@ public class FesiScriptingEnvironment implements ScriptingEnvironment {
      *  Get a property on an object
      */
     public Object get (Object thisObject, String key, RequestEvaluator reval) {
-	System.err.println ("GETPROPERTY "+thisObject+", "+key);
 	FesiEvaluator fesi = getEvaluator (reval);
 	return fesi.getProperty (thisObject, key);
     }
@@ -69,7 +65,6 @@ public class FesiScriptingEnvironment implements ScriptingEnvironment {
      */
     public boolean hasFunction (Object thisObject, String functionName, RequestEvaluator reval)
 			throws ScriptingException {
-	System.err.println ("HASFUNCTION "+thisObject+", "+functionName);
 	FesiEvaluator fesi = getEvaluator (reval);
 	return fesi.hasFunction (thisObject, functionName);
     }
