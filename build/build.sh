@@ -1,17 +1,6 @@
 #!/bin/sh
 
-# --------------------------------------------
-# Default == jar
-# "snapshot"       target compiles and builds jar in src/ and lib/
-# "checkout"       target gets sources from helma.org in src/
-# "compile"        target compiles java sources in work/
-# "jar"            target compiles and builds jar in work/
-# "javadoc"        target builds the javadoc
-# "package"        target builds core + jar + javadoc + distribution
-# --------------------------------------------
-TARGET=${1}
-
-# export JAVA_HOME=/usr/lib/java
+export JAVA_HOME=/usr/lib/j2sdk1.4.0
 
 export CVSHOME=:pserver:anonymous@coletta.helma.at:/opt/cvs
 
@@ -28,22 +17,20 @@ if test -z "${JAVA_HOME}" ; then
     exit
 fi
 
-if test -z "${TARGET}" ; then
-TARGET=jar
-fi
-
 if test -f ${JAVA_HOME}/lib/tools.jar ; then
     CLASSPATH=${CLASSPATH}:${JAVA_HOME}/lib/tools.jar
 fi
 
-echo "Now building ${TARGET}..."
+if test -n "${2}" ; then
+	APPLICATION=-Dapplication=${2}
+fi
 
-CP=${CLASSPATH}:ant.jar:jaxp.jar:crimson.jar:../lib/netcomponents.jar
+CP=${CLASSPATH}:ant.jar:jaxp.jar:../lib/crimson.jar:../lib/netcomponents.jar
 
 echo "Classpath: ${CP}"
 echo "JAVA_HOME: ${JAVA_HOME}"
 
 BUILDFILE=build.xml
 
-${JAVA_HOME}/bin/java -classpath ${CP} org.apache.tools.ant.Main -buildfile ${BUILDFILE} ${TARGET}
+${JAVA_HOME}/bin/java -classpath ${CP} ${APPLICATION} org.apache.tools.ant.Main -buildfile ${BUILDFILE} ${1}
 
