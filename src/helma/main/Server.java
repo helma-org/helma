@@ -17,7 +17,7 @@ import helma.xmlrpc.*;
 import helma.util.*;
 import org.mortbay.http.*;
 import org.mortbay.util.*;
-
+import org.mortbay.http.ajp.*;
 
 /**
  * Helma server main class.
@@ -25,7 +25,7 @@ import org.mortbay.util.*;
 
  public class Server implements IPathElement, Runnable {
 
-    public static final String version = "1.2pre3+ 2002/09/13";
+    public static final String version = "1.2pre3+ 2002/09/19";
     public long starttime;
 
     // if true we only accept RMI and XML-RPC connections from 
@@ -47,6 +47,7 @@ import org.mortbay.util.*;
     int rmiPort = 5055;
     int xmlrpcPort = 5056;
     int websrvPort = 0;
+    int ajp13Port = 0;
 
     // map of server-wide database sources
     Hashtable dbSources;
@@ -62,6 +63,9 @@ import org.mortbay.util.*;
     // the embedded web server
     // protected Serve websrv;
     protected HttpServer http;
+
+    // the AJP13 Listener, used for connecting from external webserver to servlet via JK
+    protected AJP13Listener ajp13;
 
     // the XML-RPC server
     protected WebServer xmlrpc;
@@ -127,17 +131,24 @@ import org.mortbay.util.*;
 	        } catch (Exception portx) {
 	            usageError = true;
 	        }
+	    } else if (args[i].equals ("-jk") && i+1<args.length) {
+	        try {
+	            ajp13Port = Integer.parseInt (args[++i]);
+	        } catch (Exception portx) {
+	            usageError = true;
+	        }
 	    } else
 	        usageError = true;
 	}
 
 	if (usageError ) {
-	    System.out.println ("usage: java helma.objectmodel.db.Server [-h dir] [-f file] [-p port] [-w port] [-x port]");
+	    System.out.println ("usage: java helma.main.Server [-h dir] [-f file] [-p port] [-w port] [-x port]");
 	    System.out.println ("  -h dir     Specify hop home directory");
 	    System.out.println ("  -f file    Specify server.properties file");
 	    System.out.println ("  -p port    Specify RMI port number");
 	    System.out.println ("  -w port    Specify port number for embedded Web server");
 	    System.out.println ("  -x port    Specify XML-RPC port number");
+	    System.out.println ("  -jk port    Specify AJP13 port number");
 	    System.err.println ("Usage Error - exiting");
 	    System.exit (0);
 	}
@@ -247,6 +258,7 @@ import org.mortbay.util.*;
 	mainThread = new Thread (this);
 	mainThread.start ();
     }
+    
 
     /**
      *  The main method of the Server. Basically, we set up Applications and than
@@ -257,15 +269,47 @@ import org.mortbay.util.*;
 
 	try {
 
+	    if (websrvPort > 0 || ajp13Port > 0) {
+	        http = new HttpServer ();
+	        // disable Jetty logging  FIXME: seems to be a jetty bug; as soon
+	        // as the logging is disabled, the more is logged
+	        Log.instance().disableLog ();
+	        Log.instance().add (new LogSink ()
+	            {
+	                public String getOptions () { return null; }
+	                public void log (String formattedLog) {}
+	                public void log (String tag, Object msg, Frame frame, long time) {}
+	                public void setOptions (String options) {}
+	                public boolean isStarted () { return true; }
+	                public void start () {}
+	                public void stop () {}
+	            }
+	        );
+	    }
+
 	    // start embedded web server if port is specified
 	    if (websrvPort > 0) {
-	        // websrv = new Acme.Serve.Serve (websrvPort, sysProps);
-	       // disable Jetty logging
-	       Log.instance().disableLog ();
-	       // create new Jetty server and bind it to the web server port
-	       http = new HttpServer ();
-	       http.addListener (new InetAddrPort (websrvPort));
-	       // http.setRequestLogSink (new OutputStreamLogSink ());
+	        http.addListener (new InetAddrPort (websrvPort));
+	    }
+
+	    // activate the ajp13-listener
+	    if (ajp13Port > 0) {
+	        // create AJP13Listener
+	        ajp13 = new AJP13Listener(new InetAddrPort (ajp13Port));
+	        ajp13.setHttpServer(http);
+	        String jkallow = sysProps.getProperty ("allowAJP13");
+	        // by default the AJP13-connection just accepts requests from 127.0.0.1
+	        if (jkallow == null)
+	            jkallow = "127.0.0.1";
+	        StringTokenizer st = new StringTokenizer (jkallow, " ,;");
+	        String[] jkallowarr  = new String [st.countTokens()];
+	        int cnt = 0;
+	        while (st.hasMoreTokens ()) {
+	            jkallowarr[cnt] = st.nextToken();
+	            cnt++;
+	        }
+	        ajp13.setRemoteServers(jkallowarr);
+	        getLogger().log ("Starting AJP13-Listener on port "+(ajp13Port));
 	    }
 
 	    String xmlparser = sysProps.getProperty ("xmlparser");
@@ -327,6 +371,12 @@ import org.mortbay.util.*;
 	    getLogger().log ("Error starting embedded web server: "+m);
 	}
 
+	if (ajp13 != null) try {
+	    ajp13.start ();
+	} catch (Exception m) {
+	    getLogger().log ("Error starting AJP13 listener: "+m);
+	}
+
 	int count = 0;
 	while (Thread.currentThread () == mainThread) {
 	    try {
@@ -338,7 +388,6 @@ import org.mortbay.util.*;
 	        getLogger().log ("Caught in app manager loop: "+x);
 	    }
 	}
-
     }
 
     /**
@@ -469,4 +518,6 @@ import org.mortbay.util.*;
 	public String getPrototype()	{
 		return "root";
 	}
+	
 }
+

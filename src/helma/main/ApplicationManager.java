@@ -71,20 +71,31 @@ public class ApplicationManager {
 	                String oldMountpoint = mountpoints.getProperty (appName);
 	                String mountpoint = getMountpoint (appName);
 	                String pattern = getPathPattern (mountpoint);
-	                    if (!pattern.equals (oldMountpoint)) {
+	                if (!pattern.equals (oldMountpoint)) {
 	                    Server.getLogger().log("Moving application "+appName+" from "+oldMountpoint+" to "+pattern);
-	                    HandlerContext oldContext = server.http.getContext (null, oldMountpoint);
+	                    HttpContext oldContext = server.http.getContext (null, oldMountpoint);
 	                    if (oldContext != null) {
+	                        // oldContext.setContextPath(pattern);
 	                        oldContext.stop ();
 	                        oldContext.destroy ();
 	                    }
 	                    Application app = (Application) applications.get (appName);
+	                    // if using embedded webserver (not AJP) set application URL prefix
+	                       if (server.ajp13Port == 0)
+	                        app.setBaseURI (mountpoint);
 	                    app.setBaseURI (mountpoint);
-	                    ServletHandlerContext context = new ServletHandlerContext (server.http, pattern);
-	                    server.http.addContext (null, context);
+	                    ServletHttpContext context = new ServletHttpContext ();
+	                    context.setContextPath(pattern);
+	                    server.http.addContext (context);
 	                    ServletHolder holder = context.addServlet (appName, "/*", "helma.servlet.EmbeddedServletClient");
 	                    holder.setInitParameter ("application", appName);
 	                    holder.setInitParameter ("mountpoint", mountpoint);
+	                    String cookieDomain = props.getProperty (appName+".cookieDomain");
+	                    if (cookieDomain != null)
+	                        holder.setInitParameter ("cookieDomain", cookieDomain);
+	                    String uploadLimit = props.getProperty (appName+".uploadLimit");
+	                       if (uploadLimit != null)
+	                        holder.setInitParameter ("uploadLimit", uploadLimit);
 	                    // holder.start ();
 	                    context.start ();
 	                    mountpoints.setProperty (appName, pattern);
@@ -102,7 +113,7 @@ public class ApplicationManager {
     void start (String appName) {
 	Server.getLogger().log ("Building application "+appName);
 	try {
-	    // check if application and db dirs are set, otherwise go with 
+	    // check if application and db dirs are set, otherwise go with
 	    // the defaults, passing null dirs to the constructor.
 	    String appDirName = props.getProperty (appName+".appdir");
 	    File appDir = appDirName == null ? null : new File (appDirName);
@@ -127,7 +138,7 @@ public class ApplicationManager {
 	        Naming.unbind ("//:"+port+"/"+appName);
 	    } else {
 	        String mountpoint = mountpoints.getProperty (appName);
-	        HandlerContext context = server.http.getContext (null, mountpoint);
+	        HttpContext context = server.http.getContext (null, mountpoint);
 	        if (context != null) {
 	            context.stop ();
 	            context.destroy ();
@@ -149,14 +160,22 @@ public class ApplicationManager {
 	        Naming.rebind ("//:"+port+"/"+appName, app);
 	    } else {
 	        String mountpoint = getMountpoint (appName);
-	        // set application URL prefix
-	        app.setBaseURI (mountpoint);
+	        // if using embedded webserver (not AJP) set application URL prefix
+	        if (server.ajp13Port == 0)
+	            app.setBaseURI (mountpoint);
 	        String pattern = getPathPattern (mountpoint);
-	        ServletHandlerContext context = new ServletHandlerContext (server.http, pattern);
-	        server.http.addContext (null, context);
+	        ServletHttpContext context = new ServletHttpContext ();
+	        context.setContextPath(pattern);
+	        server.http.addContext (context);
 	        ServletHolder holder = context.addServlet (appName, "/*", "helma.servlet.EmbeddedServletClient");
 	        holder.setInitParameter ("application", appName);
 	        holder.setInitParameter ("mountpoint", mountpoint);
+	        String cookieDomain = props.getProperty (appName+".cookieDomain");
+	        if (cookieDomain != null)
+	            holder.setInitParameter ("cookieDomain", cookieDomain);
+	        String uploadLimit = props.getProperty (appName+".uploadLimit");
+	        if (uploadLimit != null)
+	            holder.setInitParameter ("uploadLimit", uploadLimit);
 	        // holder.start ();
 	        context.start ();
 	        mountpoints.setProperty (appName, pattern);
@@ -184,9 +203,10 @@ public class ApplicationManager {
 	        // add handler for static files.
 	        File staticContent = new File (server.getHopHome(), "static");
 	        Server.getLogger().log("Serving static content from "+staticContent.getAbsolutePath());
-	        HandlerContext context = server.http.addContext ("/static/*");
+	        HttpContext context = server.http.addContext ("/static/*");
 	        context.setResourceBase (staticContent.getAbsolutePath());
-	        context.setServingResources (true);
+	        ResourceHandler handler = new ResourceHandler();
+	        context.addHandler(handler);
 	        context.start ();
 	    }
 	    lastModified = System.currentTimeMillis ();
