@@ -25,7 +25,6 @@ import java.io.*;
  */
 public class FunctionFile implements Updatable {
     Prototype prototype;
-    Application app;
     File file;
     String sourceName;
     String content;
@@ -39,7 +38,6 @@ public class FunctionFile implements Updatable {
      */
     public FunctionFile(File file, Prototype proto) {
         this.prototype = proto;
-        this.app = proto.getApplication();
         this.sourceName = file.getParentFile().getName() + "/" + file.getName();
         this.file = file;
         update();
@@ -52,7 +50,6 @@ public class FunctionFile implements Updatable {
      */
     public FunctionFile(String body, String sourceName, Prototype proto) {
         this.prototype = proto;
-        this.app = proto.getApplication();
         this.sourceName = sourceName;
         this.file = null;
         this.content = body;

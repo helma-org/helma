@@ -30,7 +30,6 @@ public class ActionFile implements Updatable {
     String name;
     String sourceName;
     Prototype prototype;
-    Application app;
     File file;
     String content;
     long lastmod;
@@ -44,7 +43,6 @@ public class ActionFile implements Updatable {
      */
     public ActionFile(File file, String name, Prototype proto) {
         this.prototype = proto;
-        this.app = proto.getApplication();
         this.name = name;
         this.sourceName = file.getParentFile().getName() + "/" + file.getName();
         this.file = file;
@@ -62,7 +60,6 @@ public class ActionFile implements Updatable {
      */
     public ActionFile(String content, String name, String sourceName, Prototype proto) {
         this.prototype = proto;
-        this.app = proto.getApplication();
         this.name = name;
         this.sourceName = sourceName;
         this.file = null;
@@ -158,7 +155,7 @@ public class ActionFile implements Updatable {
 
                 return new String(cbuf);
             } catch (Exception filex) {
-                app.logEvent("Error reading " + this + ": " + filex);
+                prototype.getApplication().logEvent("Error reading " + this + ": " + filex);
 
                 return null;
             }
@@ -181,15 +178,6 @@ public class ActionFile implements Updatable {
      */
     public Prototype getPrototype() {
         return prototype;
-    }
-
-    /**
-     *
-     *
-     * @return ...
-     */
-    public Application getApplication() {
-        return app;
     }
 
     /**
