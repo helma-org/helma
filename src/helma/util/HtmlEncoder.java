@@ -545,6 +545,12 @@ public final class HtmlEncoder {
 	        case '&':
 	            ret.append ("&amp;");
 	            break;
+	        case '"':
+	            ret.append ("&quot;");
+	            break;
+	        case '\'':
+	            ret.append ("&apos;");
+	            break;
 	        default:
 	            if (c < 0x20) {
 	                // sort out invalid XML characters below 0x20 - all but 0x9, 0xA and 0xD.
