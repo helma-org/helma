@@ -163,6 +163,7 @@ public class ApplicationBean implements Serializable {
 	Map skinz = new Hashtable ();
 	for (Iterator it = app.getPrototypes().iterator(); it.hasNext(); ) {
 	    Prototype p = (Prototype) it.next ();
+	    app.typemgr.updatePrototype (p);
 	    Map proto = new Hashtable ();
 	    for (Iterator it2 = p.skins.values().iterator(); it2.hasNext(); ) {
 	        SkinFile sf = (SkinFile) it2.next ();
