@@ -194,7 +194,7 @@ public class RhinoEngine implements ScriptingEngine {
                         Scriptable arr = context.newObject(global, "Array");
                         List path = (List) v;
                         int length = path.size();
-                        Scriptable[] wrapped = new Scriptable[length]
+                        Scriptable[] wrapped = new Scriptable[length];
 
                         // Move through the path list and set the path array.
                         for (int j = 0; j < length; j++) {
