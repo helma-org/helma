@@ -720,7 +720,6 @@ public final class Node implements INode, Serializable {
 
                         if (pn != null) {
                             setParent((Node) pn);
-                            // anonymous = !pinfo.named;
                             lastParentSet = System.currentTimeMillis();
 
                             return pn;
@@ -1189,11 +1188,7 @@ public final class Node implements INode, Serializable {
         checkWriteLock();
 
         try {
-            if (!anonymous) {
-                getParent().unset(name);
-            } else {
-                getParent().removeNode(this);
-            }
+            getParent().removeNode(this);
         } catch (Exception x) {
             return false;
         }
