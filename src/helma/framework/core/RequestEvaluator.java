@@ -100,6 +100,14 @@ public final class RequestEvaluator implements Runnable {
                 app.logEvent("*** Error creating scripting engine: ");
                 app.logEvent("*** " + t.toString());
                 app.logEvent("******************************************");
+                app.logError("Error creating scripting engine", t);
+
+                // rethrow exception
+                if (t instanceof RuntimeException) {
+                    throw((RuntimeException) t);
+                } else {
+                    throw new RuntimeException(t.toString());
+                }
             }
         }
     }
