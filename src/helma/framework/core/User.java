@@ -41,12 +41,12 @@ public class User implements Serializable {
     public User (String sid, Application app) {
 	this.uid = null;
 	this.nhandle = null;
-    	this.app = app;
-    	setNode (null);
-    	umap = app.getDbMapping ("user");
+	this.app = app;
+	setNode (null);
+	umap = app.getDbMapping ("user");
 	cache = new TransientNode ("[session cache]");
-	cache.setPrototype ("user");
-	cache.setDbMapping (umap);
+	// cache.setPrototype ("user");
+	// cache.setDbMapping (umap);
 	sessionID = sid;
 	onSince = System.currentTimeMillis ();
 	lastTouched = onSince;
@@ -121,5 +121,12 @@ public class User implements Serializable {
 	return cache;
     }
 
+    /**
+     * Reset the session cache node, clearing all properties.
+     * This is done by recreating the cache node object.
+     */
+    public void clearCache () {
+	cache = new TransientNode ("[session cache]");
+    }
 }
 
