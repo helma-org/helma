@@ -877,10 +877,20 @@ public final class NodeManager {
 	    TableDataSet tds = null;
 	    try {
 	        DbMapping dbm = rel.otherType;
+	
 	        tds = new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
-	        String where = rel.buildQuery (home, home.getNonVirtualParent (), kstr, "", false);
-
-	        tds.where (where);
+	
+	        if (home.getSubnodeRelation () != null) {
+	            // combine our key with the constraints in the manually set subnode relation
+	            StringBuffer where = new StringBuffer ();
+	            where.append (rel.accessor);
+	            where.append (" = '");
+	            where.append (escape(kstr));
+	            where.append ("' AND ");
+                          where.append (home.getSubnodeRelation ().trim().substring(5).trim());
+	            tds.where (where.toString ());
+	        } else
+	            tds.where (rel.buildQuery (home, home.getNonVirtualParent (), kstr, "", false));
 
 	        if (logSql)
 	            app.logEvent ("### getNodeByRelation: "+tds.getSelectString());
@@ -913,21 +923,21 @@ public final class NodeManager {
     }
 
     // a utility method to escape single quotes
-/*    private String escape (String str) {
-	if (str == null)
-	    return null;
-	if (str.indexOf ("'") < 0)
-	    return str;
-	int l = str.length();
-	StringBuffer sbuf = new StringBuffer (l + 10);
-	for (int i=0; i<l; i++) {
-	    char c = str.charAt (i);
-	    if (c == '\'')
-	        sbuf.append ("\\");
-	    sbuf.append (c);
-	}
-	return sbuf.toString ();
-    } */
+    private String escape (String str) {
+        if (str == null)
+            return null;
+        if (str.indexOf ("'") < 0)
+            return str;
+        int l = str.length();
+             StringBuffer sbuf = new StringBuffer (l + 10);
+        for (int i=0; i<l; i++) {
+            char c = str.charAt (i);
+            if (c == '\'')
+                sbuf.append ("\\");
+            sbuf.append (c);
+        }
+        return sbuf.toString ();
+    }
 
 
     public Object[] getCacheEntries () {
