@@ -56,7 +56,7 @@ public class DocPrototype extends DocDirElement	{
 				parentPrototype = (DocPrototype) parent.getChildElement ("prototype_" + ext);
 			}
 		}
-		if (parentPrototype==null && parent!=null) {
+		if (parentPrototype==null && parent!=null && !name.equals("global")) {
 			// if no _extend was set, get the hopobject prototype
 			parentPrototype = (DocPrototype) parent.getChildElement ("prototype_hopobject");
 		}
