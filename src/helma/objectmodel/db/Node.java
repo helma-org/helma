@@ -1357,10 +1357,13 @@ public final class Node implements INode, Serializable {
         if (dbmap != null) {
             Relation subrel = dbmap.getSubnodeRelation();
             // if we're dealing with relational child nodes use
-            // Relation.checkConstraints to avoid loading the child index
-            if (subrel != null &&
-                subrel.otherType != null &&
-                subrel.otherType.isRelational()) {
+            // Relation.checkConstraints to avoid loading the child index.
+            // Note that we only do that if no filter is set, since
+            // Relation.checkConstraints() would always return false
+            // if there was a filter property.
+            if (subrel != null && subrel.otherType != null
+                               && subrel.otherType.isRelational()
+                               && subrel.filter == null) {
                 return subrel.checkConstraints(this, n);
             }
         }
