@@ -1,27 +1,26 @@
 @echo off
 
-
-REM --------------------------------------------
-REM Default == jar
-REM "snapshot"       target compiles and builds jar in src/ and lib/
-REM "checkout"       target gets sources from helma.org in src/
-REM "compile"        target compiles java sources in work/
-REM "jar"            target compiles and builds jar in work/
-REM "javadoc"        target builds the javadoc
-REM "package"        target builds core + jar + javadoc + distribution
-REM --------------------------------------------
 set TARGET=%1%
-
+set JAVA_HOME=c:\programme\jdk13
 
 REM --------------------------------------------
 REM No need to edit anything past here
 REM --------------------------------------------
+
 set BUILDFILE=build.xml
 if "%TARGET%" == "" goto setdist
+goto cont1
+
+:cont1
+if not "%2%" == "" goto setapp
 goto final
 
 :setdist
-set TARGET=jar
+set TARGET=usage
+goto cont1
+
+:setapp
+set APPNAME=-Dapplication=%2%
 goto final
 
 :final
@@ -34,7 +33,7 @@ if exist %JAVA_HOME%\lib\tools.jar set CP=%CP%;%JAVA_HOME%\lib\tools.jar
 echo Classpath: %CP%
 echo JAVA_HOME: %JAVA_HOME%
 
-%JAVA_HOME%\bin\java.exe -classpath "%CP%" org.apache.tools.ant.Main -buildfile %BUILDFILE% %TARGET%
+%JAVA_HOME%\bin\java.exe -classpath "%CP%" %APPNAME% org.apache.tools.ant.Main -buildfile %BUILDFILE% %TARGET%
 
 goto end
 
