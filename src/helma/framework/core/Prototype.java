@@ -26,7 +26,7 @@ public final class Prototype {
     String name;
     Application app;
     public HashMap templates, functions, actions, skins, updatables;
-    long lastUpdate;
+    long lastUpdate, lastCheck;
 
     private Prototype parent;
 
@@ -39,7 +39,7 @@ public final class Prototype {
 	this.app = app;
 	this.name = name;
 	isJavaPrototype = app.isJavaPrototype (name);
-	lastUpdate = 0; // System.currentTimeMillis ();
+	lastUpdate = lastCheck = 0;
     }
 
     /**
@@ -108,9 +108,17 @@ public final class Prototype {
     public long getLastUpdate () {
 	return lastUpdate;
     }
-	
+
     public void markUpdated () {
 	lastUpdate = System.currentTimeMillis ();
+    }
+
+    public long getLastCheck () {
+	return lastCheck;
+    }
+
+    public void markChecked () {
+	lastCheck = System.currentTimeMillis ();
     }
 
     public String toString () {

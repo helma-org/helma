@@ -112,6 +112,8 @@ public class ZippedAppFile implements Updatable {
 	                // DbMapping does its own registering, just construct it.
 	                new DbMapping (app, proto.getName (), props);
 	            }
+	            // mark prototype as updated
+	            proto.markUpdated ();
 	        }
 	    } catch (Throwable x) {
 	        System.err.println ("Error updating ZipFile: "+x);

@@ -203,8 +203,13 @@ public final class TypeManager {
         Prototype proto = getPrototype (name);
         if (proto == null)
             return;
+        if (System.currentTimeMillis() - proto.getLastCheck() < 500)
+            return;
 
         synchronized (proto) {
+        if (System.currentTimeMillis() - proto.getLastCheck() < 500)
+            return;
+
         File dir = new File (appDir, name);
         boolean needsUpdate = false;
         HashSet updatables = null;
@@ -236,10 +241,10 @@ public final class TypeManager {
             }
         }
 
-        if (!needsUpdate)
-	return;
-
-        proto.markUpdated();
+        if (!needsUpdate) {
+            proto.markChecked ();
+            return;
+        }
 
         // let the thread know we had to do something.
         idleSeconds = 0;
@@ -315,7 +320,10 @@ public final class TypeManager {
                 }
             }
         }
-        }
+        proto.markUpdated();
+
+        } // end of synchronized (proto)
+
         // app.scriptingEngine.updatePrototype (proto);
     }
 
