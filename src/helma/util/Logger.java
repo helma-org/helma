@@ -17,6 +17,8 @@ public final class Logger {
     static Runner runner;
     // the list of active loggers
     static ArrayList loggers;
+    // hash map of loggers
+    static HashMap loggerMap;
 
     private LinkedList entries;
     private String filename;
@@ -48,7 +50,7 @@ public final class Logger {
      * Create a file logger. The actual file names do have numbers appended and are
      * rotated every x bytes.
      */
-    public Logger (String dirname, String filename) throws IOException {
+    private Logger (String dirname, String filename) throws IOException {
 	if (filename == null || dirname == null)
 	    throw new IOException ("Logger can't use null as file or directory name");
 	this.filename = filename;
@@ -68,8 +70,21 @@ public final class Logger {
 	start (this);
     }
 
+
     /**
-     * Append a message with to the log.
+     * Get a logger with a symbolic file name within a directory.
+     */
+    public static synchronized Logger getLogger (String dirname, String filename) throws IOException {
+	File f = new File (dirname, filename);
+	Logger log = (Logger) loggerMap.get (f);
+	if (log == null)
+	    log = new Logger (dirname, filename);
+	return log;
+    }
+
+
+    /**
+     * Append a message to the log.
      */
     public void log (String msg) {
 	// it's enough to render the date every 15 seconds
@@ -81,6 +96,16 @@ public final class Logger {
     private synchronized void renderDate () {
 	dateLastRendered = System.currentTimeMillis ();
 	dateCache = dformat.format (new Date());
+    }
+
+
+    /**
+     *  Return an object  which identifies  this logger.
+     */
+    public Object getKey () {
+	if (dirname != null && filename != null)
+	    return new File (dirname, filename);
+	return null;
     }
 
     /**
@@ -134,10 +159,14 @@ public final class Logger {
      *  runner thread if necessary.
      */
     static synchronized void start (Logger log) {
-	if (loggers == null) {
+	if (loggers == null)
 	    loggers = new ArrayList ();
-	}
+	if (loggerMap == null)
+	    loggerMap = new HashMap ();
+	
 	loggers.add (log);
+	loggerMap.put (log.getKey (), log);
+	
 	if (runner == null || !runner.isAlive ()) {
 	    runner = new Runner ();
 	    runner.setPriority (Thread.NORM_PRIORITY-1);
@@ -174,6 +203,7 @@ public final class Logger {
 	            log.run ();
 	            if (log.closed) {
 	                loggers.remove (log);
+	                loggerMap.remove (log.getKey ());
 	                log.closeFiles ();
 	            }
 	        }
