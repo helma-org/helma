@@ -48,8 +48,10 @@ public class ESMapWrapper extends ESWrapper {
     public void putProperty(String propertyName, ESValue propertyValue, int hash) throws EcmaScriptException {
 	if (data == null)
 	    data = new HashMap ();
-	if (readonly==false)
-	    data.put (propertyName, propertyValue);
+	if (propertyValue == ESNull.theNull)
+	    deleteProperty(propertyName, hash);
+	else if (readonly==false)
+	    data.put (propertyName, propertyValue.toJavaObject ());
 	else
 	    throw new EcmaScriptException ("object is readonly");
     }
