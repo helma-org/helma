@@ -69,7 +69,8 @@ public final class Relation {
     boolean readonly;
     boolean aggressiveLoading;
     boolean aggressiveCaching;
-    boolean isPrivate;
+    boolean isPrivate = false;
+    boolean referencesPrimaryKey = false;
     String accessName; // db column used to access objects through this relation
     String order;
     String groupbyOrder;
@@ -108,6 +109,7 @@ public final class Relation {
     ////////////////////////////////////////////////////////////////////////////////////////////
     public void update(String desc, Properties props) {
         Application app = ownType.getApplication();
+        boolean notPrimitive = false;
 
         if ((desc == null) || "".equals(desc.trim())) {
             if (propName != null) {
@@ -136,7 +138,9 @@ public final class Relation {
                     prototype = proto;
                 } else if ("object".equalsIgnoreCase(ref)) {
                     virtual = false;
-                    reftype = REFERENCE;
+                    if (reftype != COMPLEX_REFERENCE) {
+                        reftype = REFERENCE;
+                    }
                 } else {
                     throw new RuntimeException("Invalid property Mapping: " + desc);
                 }
@@ -174,13 +178,31 @@ public final class Relation {
             newConstraints.copyInto(constraints);
 
 
-            // check if this is a non-trivial reference
-            if (reftype == REFERENCE) {
+            if (reftype == REFERENCE || reftype == COMPLEX_REFERENCE) {
+                if (constraints.length == 0) {
+                    referencesPrimaryKey = true;
+                } else {
+                    boolean rprim = false;
+                    for (int i=0; i<constraints.length; i++) {
+                        if (constraints[0].foreignKeyIsPrimary()) {
+                            rprim = true;
+                        }
+                    }
+                    referencesPrimaryKey = rprim;
+                }
+
+                // check if this is a non-trivial reference
                 if (constraints.length > 0 && !usesPrimaryKey()) {
                     reftype = COMPLEX_REFERENCE;
+                } else {
+                    reftype = REFERENCE;
                 }
             }
 
+            if (reftype == COLLECTION) {
+                referencesPrimaryKey = (accessName == null) ||
+                        accessName.equalsIgnoreCase(otherType.getIDField());
+            }
 
             // if DbMapping for virtual nodes has already been created,
             // update its subnode relation.
@@ -190,6 +212,8 @@ public final class Relation {
                 virtualMapping.subRelation = getVirtualSubnodeRelation();
                 virtualMapping.propRelation = getVirtualPropertyRelation();
             }
+        } else {
+            referencesPrimaryKey = false;
         }
     }
 
@@ -415,23 +439,11 @@ public final class Relation {
     /**
      *
      *
-     * @return ...
+     * @return true if the foreign key used for this relation is the
+     * other object's primary key.
      */
     public boolean usesPrimaryKey() {
-        if (otherType != null) {
-            if (reftype == REFERENCE) {
-                return constraints.length == 0 ||
-                       ((constraints.length == 1) &&
-                         constraints[0].foreignKeyIsPrimary());
-            }
-
-            if (reftype == COLLECTION) {
-                return (accessName == null) ||
-                       accessName.equalsIgnoreCase(otherType.getIDField());
-            }
-        }
-
-        return false;
+        return referencesPrimaryKey;
     }
 
     /**
@@ -735,7 +747,14 @@ public final class Relation {
             // whether the primary key of either side is used.
 
             if (constraints[i].foreignKeyIsPrimary()) {
-                parent.setString(constraints[i].localProperty(), child.getID());
+                String localProp = constraints[i].localProperty();
+                if (localProp == null) {
+                    System.err.println ("Error: column "+constraints[i].localName+
+                       " must be mapped in order to be used as constraint in "+
+                       Relation.this);
+                } else {
+                    home.setString(localProp, child.getID());
+                }
                 continue;
             }
 
@@ -772,6 +791,61 @@ public final class Relation {
 
                     if (prop != null) {
                         child.set(crel.propName, prop.getValue(), prop.getType());
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Unset the constraints that link two objects together.
+     */
+    public void unsetConstraints(Node parent, INode child) {
+        Node home = parent.getNonVirtualParent();
+        for (int i = 0; i < constraints.length; i++) {
+            // don't set groupby constraints since we don't know if the
+            // parent node is the base node or a group node
+            if (constraints[i].isGroupby) {
+                continue;
+            }
+
+            // check if we update the local or the other object, depending on
+            // whether the primary key of either side is used.
+
+            if (constraints[i].foreignKeyIsPrimary()) {
+                String localProp = constraints[i].localProperty();
+                if (localProp != null) {
+                    home.setString(localProp, null);
+                }
+                continue;
+            }
+
+            Relation crel = otherType.columnNameToRelation(constraints[i].foreignName);
+            if (crel != null) {
+                // INode home = constraints[i].isGroupby ? parent : nonVirtual;
+
+                if (constraints[i].localKeyIsPrimary(home.getDbMapping())) {
+                    // only set node if property in child object is defined as reference.
+                    if (crel.reftype == REFERENCE) {
+                        INode currentValue = child.getNode(crel.propName);
+
+                        if ((currentValue == home)) {
+                            child.setString(crel.propName, null);
+                        }
+                    } else if (crel.reftype == PRIMITIVE) {
+                        child.setString(crel.propName, null);
+                    }
+                } else if (crel.reftype == PRIMITIVE) {
+                    Property prop = null;
+
+                    if (ownType.isRelational()) {
+                        prop = home.getProperty(constraints[i].localProperty());
+                    } else {
+                        prop = home.getProperty(constraints[i].localName);
+                    }
+
+                    if (prop != null) {
+                        child.setString(crel.propName, null);
                     }
                 }
             }
