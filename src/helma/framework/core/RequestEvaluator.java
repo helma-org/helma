@@ -175,7 +175,10 @@ public class RequestEvaluator implements Runnable {
 	                            // the first token in the path needs to be treated seprerately,
 	                            // because "/user" is a shortcut to the current user session, while "/users"
 	                            // is the mounting point for all users.
-	                            if (i == 0 && "user".equalsIgnoreCase (pathItems[i])) {
+								// UPDATE: with the refactored scripting environment, no more pre-defined 
+								// /users and /user mounting points!
+								
+	                            /* if (i == 0 && "user".equalsIgnoreCase (pathItems[i])) {
 	                                currentElement = user.getNode ();
 	                                if (currentElement != null) {
 	                                    requestPath.add (currentElement);
@@ -188,7 +191,7 @@ public class RequestEvaluator implements Runnable {
 	                                    requestPath.add (currentElement);
 	                                }
 
-	                            } else {
+	                            } else { */
 
 	                                // if we're at the last element of the path,
 	                                // try to interpret it as action name.
@@ -210,7 +213,7 @@ public class RequestEvaluator implements Runnable {
 	                                        String pt = app.getPrototypeName (currentElement);
 	                                    }
 	                                }
-	                            }
+	                            // }
 	                        }
 
 	                        if (currentElement == null)
@@ -389,39 +392,26 @@ public class RequestEvaluator implements Runnable {
 	            globals.put ("res", res);
 	            globals.put ("app", app.getAppNode());
 
-	            // resData.setData (res.getResponseData());
-	            // res.data = resData;
-
-	            // convert arguments
-	            /*int l = args.size ();
-	            current = getElementWrapper (root);
+	            // resolve XML-RPC method path
+	            currentElement = root;
 	            if (method.indexOf (".") > -1) {
 	                StringTokenizer st = new StringTokenizer (method, ".");
 	                int cnt = st.countTokens ();
 	                for (int i=1; i<cnt; i++) {
 	                    String next = st.nextToken ();
-	                    try {
-	                        current = (ESObject) current.getProperty (next, next.hashCode ());
-	                    } catch (Exception x) {
-	                        throw new EcmaScriptException ("The property \""+next+"\" is not defined in the remote object.");
-	                    }
+	                    currentElement = app.getChildElement (currentElement, next);
 	                }
-	                if (current == null)
-	                    throw new EcmaScriptException ("Method name \""+method+"\" could not be resolved.");
+	                if (currentElement == null)
+	                    throw new FrameworkException ("Method name \""+method+"\" could not be resolved.");
 	                method = st.nextToken ();
 	            }
 
 	            // check XML-RPC access permissions
-	            String proto = ((ESNode) current).getNode().getPrototype ();
+	            String proto = app.getPrototypeName (currentElement);
 	            app.checkXmlRpcAccess (proto, method);
 
-	            ESValue esa[] = new ESValue[l];
-	            for (int i=0; i<l; i++) {
-    	                esa[i] = FesiRpcUtil.convertJ2E (args.elementAt (i), evaluator);
-	            }
-
-	            result = FesiRpcUtil.convertE2J (current.doIndirectCall (evaluator, current, method, esa));
-	            commitTransaction (); */
+	            result = app.scriptingEngine.invoke (currentElement, method, args, globals, this);
+	            commitTransaction ();
 
 	        } catch (Exception wrong) {
 
@@ -538,19 +528,10 @@ public class RequestEvaluator implements Runnable {
 	if (reqtype != NONE)
 	    return; // is there a new request already?
 
-	// clear/reset global vars
-	/* for (Enumeration en = global.getProperties(); en.hasMoreElements(); ) {
-	    Object obj = en.nextElement ();
-	    try {
-	        global.deleteProperty(obj.toString(), obj.hashCode());
-	    } catch (Exception x) {}
-	    // System.err.println (">>> "+obj);
-	} */
-
 	notifyAll ();
 	try {
-	    // wait for request, max 30 min
-	    wait (1800000l);
+	    // wait for request, max 10 min
+		wait (1000*60*10);
 	    //  if no request arrived, release ressources and thread
 	    if (reqtype == NONE && rtx == localrtx)
 	        rtx = null;
