@@ -185,9 +185,10 @@ public class Transactor extends Thread {
     }
 
     /**
+     * Start a new transaction with the given name.
      *
-     *
-     * @param name ...
+     * @param name The name of the transaction. This is usually the request
+     * path for the underlying HTTP request.
      *
      * @throws Exception ...
      */
@@ -210,7 +211,7 @@ public class Transactor extends Thread {
     }
 
     /**
-     *
+     * Commit the current transaction, persisting all changes to DB.
      *
      * @throws Exception ...
      */
@@ -353,7 +354,7 @@ public class Transactor extends Thread {
     }
 
     /**
-     *
+     * Abort the current transaction, rolling back all changes made.
      *
      * @throws Exception ...
      */
@@ -400,7 +401,7 @@ public class Transactor extends Thread {
     }
 
     /**
-     *
+     * Kill this transaction thread. Used as last measure only.
      */
     public synchronized void kill() {
         killed = true;
@@ -445,7 +446,15 @@ public class Transactor extends Thread {
     }
 
     /**
-     *
+     * Return the name of the current transaction. This is usually the request
+     * path for the underlying HTTP request.
+     */
+    public String getTransactionName() {
+        return tname;
+    }
+
+    /**
+     * Return a string representation of this Transactor thread
      *
      * @return ...
      */
