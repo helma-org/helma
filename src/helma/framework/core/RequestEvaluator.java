@@ -114,28 +114,27 @@ public final class RequestEvaluator implements Runnable {
                 // update scripting prototypes
                 scriptingEngine.updatePrototypes();
 
-                // System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
-                // object refs to ressolve request path
+                // root object reference
                 Object root;
 
-                // System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
-                // object refs to ressolve request path
+                // object reference to ressolve request path
                 Object currentElement;
 
+                // request path object
                 requestPath = new RequestPath(app);
 
                 int tries = 0;
                 boolean done = false;
                 String error = null;
 
-                while (!done) {
+                while (!done && localrtx == rtx) {
                     currentElement = null;
 
                     try {
-                        // TODO: transaction names are not set for internal/xmlrpc/external requests
-                        // used for logging
+
+                        // Transaction name is used for logging etc.
                         StringBuffer txname = new StringBuffer(app.getName());
-                        txname.append("/");
+                        txname.append(":").append(req.getMethod().toLowerCase()).append(":");
                         txname.append((error == null) ? req.path : "error");
 
                         // begin transaction
@@ -387,7 +386,7 @@ public final class RequestEvaluator implements Runnable {
                                             ScriptingEngine.ARGS_WRAP_XMLRPC);
                                     commitTransaction();
                                 } catch (Exception x) {
-                                    abortTransaction(false);
+                                    abortTransaction();
 
                                     app.logEvent("Exception in " + Thread.currentThread() + ": " +
                                             x);
@@ -405,10 +404,6 @@ public final class RequestEvaluator implements Runnable {
                                 break;
 
                             case INTERNAL:
-
-                                // TODO: transaction names are not set for internal/xmlrpc/external requests
-                                // Just a human readable descriptor of this invocation
-                                // String funcdesc = app.getName() + ":internal:" + functionName;
 
                                 // if thisObject is an instance of NodeHandle, get the node object itself.
                                 if ((thisObject != null) && thisObject instanceof NodeHandle) {
@@ -444,7 +439,7 @@ public final class RequestEvaluator implements Runnable {
                                                 ScriptingEngine.ARGS_WRAP_DEFAULT);
                                         commitTransaction();
                                     } catch (Exception x) {
-                                        abortTransaction(false);
+                                        abortTransaction();
 
                                         app.logEvent("Exception in " + Thread.currentThread() +
                                                 ": " + x);
@@ -468,7 +463,7 @@ public final class RequestEvaluator implements Runnable {
 
                         if (++tries < 8) {
                             // try again after waiting some period
-                            abortTransaction(true);
+                            abortTransaction();
 
                             try {
                                 // wait a bit longer with each try
@@ -480,25 +475,17 @@ public final class RequestEvaluator implements Runnable {
 
                             continue;
                         } else {
-                            abortTransaction(false);
+                            abortTransaction();
 
-                            if (error == null) {
-                                app.errorCount += 1;
+                            if (error == null)
+                                error = "Application too busy, please try again later";
 
-                                // set done to false so that the error will be processed
-                                done = false;
-                                error = "Couldn't complete transaction due to heavy object traffic (tried " +
-                                        tries + " times)";
-                            } else {
-                                // error in error action. use traditional minimal error message
-                                res.write("<b>Error in application '" +
-                                        app.getName() + "':</b> <br><br><pre>" +
-                                        error + "</pre>");
-                                done = true;
-                            }
+                            // error in error action. use traditional minimal error message
+                            res.writeErrorReport(app.getName(), error);
+                            done = true;
                         }
                     } catch (Throwable x) {
-                        abortTransaction(false);
+                        abortTransaction();
 
                         // If the transactor thread has been killed by the invoker thread we don't have to
                         // bother for the error message, just quit.
@@ -532,9 +519,7 @@ public final class RequestEvaluator implements Runnable {
                             }
                         } else {
                             // error in error action. use traditional minimal error message
-                            res.write("<b>Error in application '" +
-                                    app.getName() + "':</b> <br><br><pre>" +
-                                    error + "</pre>");
+                            res.writeErrorReport(app.getName(), error);
                             done = true;
                         }
                     }
@@ -543,16 +528,10 @@ public final class RequestEvaluator implements Runnable {
                 // exit execution context
                 scriptingEngine.exitContext();
 
-                // make sure there is only one thread running per instance of this class
-                // if localrtx != rtx, the current thread has been aborted and there's no need to notify
-                if (localrtx != rtx) {
-                    localrtx.closeConnections();
-
-                    return;
-                }
-
                 notifyAndWait();
+
             } while (localrtx == rtx);
+
         } finally {
             localrtx.closeConnections();
         }
@@ -565,23 +544,33 @@ public final class RequestEvaluator implements Runnable {
         Transactor localrtx = (Transactor) Thread.currentThread();
 
         if (localrtx == rtx) {
-            reqtype = NONE;
             localrtx.commit();
         } else {
             throw new TimeoutException();
         }
     }
 
-    synchronized void abortTransaction(boolean retry) {
+    synchronized void abortTransaction() {
         Transactor localrtx = (Transactor) Thread.currentThread();
-
-        if (!retry && (localrtx == rtx)) {
-            reqtype = NONE;
-        }
 
         try {
             localrtx.abort();
         } catch (Exception ignore) {
+        }
+    }
+
+    private synchronized void startTransactor() {
+        if (!app.isRunning()) {
+            throw new ApplicationStoppedException();
+        }
+
+        if ((rtx == null) || !rtx.isAlive()) {
+            // app.logEvent ("Starting Thread");
+            rtx = new Transactor(this, app.threadgroup, app.nmgr);
+            rtx.setContextClassLoader(app.getClassLoader());
+            rtx.start();
+        } else {
+            notifyAll();
         }
     }
 
@@ -591,9 +580,16 @@ public final class RequestEvaluator implements Runnable {
     synchronized void notifyAndWait() {
         Transactor localrtx = (Transactor) Thread.currentThread();
 
-        if (reqtype != NONE) {
-            return; // is there a new request already?
+        // make sure there is only one thread running per instance of this class
+        // if localrtx != rtx, the current thread has been aborted and there's no need to notify
+        if (localrtx != rtx) {
+            // A new request came in while we were finishing the last one.
+            // Return to run() to get the work done.
+            localrtx.closeConnections();
+            return;
         }
+
+        reqtype = NONE;
 
         notifyAll();
 
@@ -609,7 +605,41 @@ public final class RequestEvaluator implements Runnable {
                 // scriptingEngine = null;
                 rtx = null;
             }
-        } catch (InterruptedException ir) {
+        } catch (InterruptedException ix) {
+        }
+    }
+
+    /**
+     * Stop this request evaluator's current thread. This is called by the
+     * waiting thread when it times out and stops waiting, or from an outside
+     * thread. If currently active kill the request, otherwise just notify.
+     */
+    public synchronized void stopTransactor() {
+        Transactor t = rtx;
+
+        rtx = null;
+
+        if (t != null && t.isActive()) {
+            // let the scripting engine know that the
+            // current transaction is being aborted.
+            if (scriptingEngine != null) {
+                scriptingEngine.abort();
+            }
+
+            app.logEvent("Killing Thread " + t);
+
+            reqtype = NONE;
+
+            t.kill();
+
+            try {
+                t.abort();
+            } catch (Exception ignore) {
+            }
+
+            t.closeConnections();
+
+            notifyAll();
         }
     }
 
@@ -629,39 +659,44 @@ public final class RequestEvaluator implements Runnable {
 
         app.activeRequests.put(req, this);
 
-        checkThread();
+        startTransactor();
         wait(app.requestTimeout);
 
         if (reqtype != NONE) {
             app.logEvent("Stopping Thread for Request " + app.getName() + "/" + req.path);
-            stopThread();
+            stopTransactor();
             res.reset();
-            res.write("<b>Error in application '" + app.getName() +
-                      "':</b> <br><br><pre>Request timed out.</pre>");
+            res.writeErrorReport(app.getName(), "Request timed out");
         }
 
         return res;
     }
 
     /**
-     * This checks if the Evaluator is already executing an equal request. If so, attach to it and
-     * wait for it to complete. Otherwise return null, so the application knows it has to run the request.
+     * This checks if the Evaluator is already executing an equal request.
+     * If so, attach to it and wait for it to complete. Otherwise return null,
+     * so the application knows it has to run the request.
      */
-    public synchronized ResponseTrans attachRequest(RequestTrans req)
-                                             throws InterruptedException {
-        if ((this.req == null) || (res == null) || !this.req.equals(req)) {
+    public synchronized ResponseTrans attachHttpRequest(RequestTrans req)
+                                             throws Exception {
+        // Get a reference to the res object at the time we enter
+        ResponseTrans localRes = res;
+
+        if ((localRes == null) || !req.equals(this.req)) {
             return null;
         }
-
-        // we already know our response object
-        ResponseTrans r = res;
 
         if (reqtype != NONE) {
             wait(app.requestTimeout);
         }
 
-        return r;
+        return localRes;
     }
+
+    /*
+     * TODO invokeXmlRpc(), invokeExternal() and invokeInternal() are basically the same
+     * and should be unified
+     */
 
     /**
      *
@@ -675,15 +710,16 @@ public final class RequestEvaluator implements Runnable {
      */
     public synchronized Object invokeXmlRpc(String functionName, Object[] args)
                                      throws Exception {
-        initObjects(XMLRPC, RequestTrans.XMLRPC);
+        initObjects(functionName, XMLRPC, RequestTrans.XMLRPC);
         this.functionName = functionName;
         this.args = args;
 
-        checkThread();
+        startTransactor();
         wait(app.requestTimeout);
 
         if (reqtype != NONE) {
-            stopThread();
+            stopTransactor();
+            exception = new RuntimeException("Request timed out");
         }
 
         // reset res for garbage collection (res.data may hold reference to evaluator)
@@ -710,15 +746,16 @@ public final class RequestEvaluator implements Runnable {
      */
     public synchronized Object invokeExternal(String functionName, Object[] args)
                                      throws Exception {
-        initObjects(EXTERNAL, RequestTrans.EXTERNAL);
+        initObjects(functionName, EXTERNAL, RequestTrans.EXTERNAL);
         this.functionName = functionName;
         this.args = args;
 
-        checkThread();
+        startTransactor();
         wait();
 
         if (reqtype != NONE) {
-            stopThread();
+            stopTransactor();
+            exception = new RuntimeException("Request timed out");
         }
 
         // reset res for garbage collection (res.data may hold reference to evaluator)
@@ -780,16 +817,17 @@ public final class RequestEvaluator implements Runnable {
     public synchronized Object invokeInternal(Object object, String functionName,
                                               Object[] args, long timeout)
                                        throws Exception {
-        initObjects(INTERNAL, RequestTrans.INTERNAL);
+        initObjects(functionName, INTERNAL, RequestTrans.INTERNAL);
         thisObject = object;
         this.functionName = functionName;
         this.args = args;
 
-        checkThread();
+        startTransactor();
         wait(timeout);
 
         if (reqtype != NONE) {
-            stopThread();
+            stopTransactor();
+            exception = new RuntimeException("Request timed out");
         }
 
         // reset res for garbage collection (res.data may hold reference to evaluator)
@@ -814,20 +852,23 @@ public final class RequestEvaluator implements Runnable {
         this.reqtype = HTTP;
         this.session = session;
         res = new ResponseTrans(req);
-        // result = null;
-        // exception = null;
+        result = null;
+        exception = null;
     }
 
     /**
      * Init this evaluator's objects for an internal, external or XML-RPC type
      * request.
      *
+     * @param functionName
      * @param reqtype
      * @param reqtypeName
      */
-    private void initObjects(int reqtype, String reqtypeName) {
+    private void initObjects(String functionName, int reqtype, String reqtypeName) {
+        this.functionName = functionName;
         this.reqtype = reqtype;
-        this.req = new RequestTrans(reqtypeName);
+        req = new RequestTrans(reqtypeName);
+        req.path = functionName;
         session = new Session(functionName, app);
         res = new ResponseTrans(req);
         result = null;
@@ -873,54 +914,6 @@ public final class RequestEvaluator implements Runnable {
         }
         
         return null;
-    }
-
-    /**
-     *  Stop this request evaluator's current thread.
-     *  If currently active kill the request, otherwise just notify.
-     */
-    public synchronized void stopThread() {
-        Transactor t = rtx;
-
-        // let the scripting engine know that the
-        // current transaction is being aborted.
-        if (scriptingEngine != null) {
-            scriptingEngine.abort();
-        }
-
-        rtx = null;
-
-        if (t != null) {
-            if (reqtype != NONE) {
-                app.logEvent("Killing Thread " + t);
-                reqtype = NONE;
-                t.kill();
-
-                try {
-                    t.abort();
-                } catch (Exception ignore) {
-                }
-            } else {
-                notifyAll();
-            }
-
-            t.closeConnections();
-        }
-    }
-
-    private synchronized void checkThread() {
-        if (!app.isRunning()) {
-            throw new ApplicationStoppedException();
-        }
-
-        if ((rtx == null) || !rtx.isAlive()) {
-            // app.logEvent ("Starting Thread");
-            rtx = new Transactor(this, app.threadgroup, app.nmgr);
-            rtx.setContextClassLoader(app.getClassLoader());
-            rtx.start();
-        } else {
-            notifyAll();
-        }
     }
 
     /**

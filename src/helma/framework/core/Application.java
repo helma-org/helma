@@ -398,7 +398,7 @@ public final class Application implements IPathElement, Runnable {
             for (Enumeration e = allThreads.elements(); e.hasMoreElements();) {
                 RequestEvaluator ev = (RequestEvaluator) e.nextElement();
 
-                ev.stopThread();
+                ev.stopTransactor();
             }
         }
 
@@ -532,7 +532,7 @@ public final class Application implements IPathElement, Runnable {
                         allThreads.removeElement(re);
 
                         // typemgr.unregisterRequestEvaluator (re);
-                        re.stopThread();
+                        re.stopTransactor();
                     } catch (EmptyStackException empty) {
                         return false;
                     }
@@ -574,13 +574,13 @@ public final class Application implements IPathElement, Runnable {
             ev = (RequestEvaluator) activeRequests.get(req);
 
             if (ev != null) {
-                res = ev.attachRequest(req);
+                res = ev.attachHttpRequest(req);
             }
 
             if (res == null) {
                 primaryRequest = true;
 
-                // if attachRequest returns null this means we came too late
+                // if attachHttpRequest returns null this means we came too late
                 // and the other request was finished in the meantime
                 // check if the properties file has been updated
                 updateProperties();
@@ -595,7 +595,7 @@ public final class Application implements IPathElement, Runnable {
         } catch (Exception x) {
             errorCount += 1;
             res = new ResponseTrans();
-            res.write("Error in application: <b>" + x.getMessage() + "</b>");
+            res.writeErrorReport(name, x.getMessage());
         } finally {
             if (primaryRequest) {
                 activeRequests.remove(req);
