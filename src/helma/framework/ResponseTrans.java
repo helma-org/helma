@@ -296,7 +296,9 @@ public final class ResponseTrans implements Externalizable {
 	// only use default charset if not explicitly set for this response.
 	if (charset == null)
 	    charset = cset;
-
+	// if charset is not set, use western encoding
+	if (charset == null)
+	    charset = "ISO-8859-1";
 	boolean error = false;
 	if (response == null) {
 	    if (buffer != null) {
