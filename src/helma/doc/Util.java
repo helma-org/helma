@@ -51,6 +51,23 @@ public final class Util {
     }
 
     /**
+     * chops anything that comes after a closing comment tag
+     *
+     * @param raw comment
+     *
+     * @return chopped comment
+     */
+    public static String chopComment (String comment) {
+        int idx = comment.indexOf ("*/");
+        if (idx>0) {
+            return comment.substring (0, idx+2);
+        } else {
+            return comment;
+        }
+    }
+
+
+    /**
      * reads a complete file
      *
      * @param file
