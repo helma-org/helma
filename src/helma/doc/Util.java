@@ -35,7 +35,11 @@ public final class Util {
         line = line.trim();
         if (line == null) {
             return null;
-        } else if (line.startsWith("/**")) {
+        }
+        if (line.endsWith("*/")) {
+            line = line.substring(0, line.length() - 2);
+        }
+        if (line.startsWith("/**")) {
             line = line.substring(3).trim();
         } else if (line.startsWith("/*")) {
             line = line.substring(2).trim();
@@ -43,9 +47,6 @@ public final class Util {
             line = line.substring(1).trim();
         } else if (line.startsWith("//")) {
             line = line.substring(2).trim();
-        }
-        if (line.endsWith("*/")) {
-            line = line.substring(0, line.length() - 2);
         }
         return line;
     }
