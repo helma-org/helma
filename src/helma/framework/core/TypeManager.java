@@ -37,6 +37,14 @@ public class TypeManager implements Runnable {
    //   } catch (IOException ignore) {}
    // }
 
+    static HashSet standardTypes;
+    static {
+	standardTypes = new HashSet ();
+	standardTypes.add ("user");
+	standardTypes.add ("global");
+	standardTypes.add ("root");
+	standardTypes.add ("hopobject");
+    }
 
     public TypeManager (Application app) {
 	this.app = app;
@@ -87,6 +95,13 @@ public class TypeManager implements Runnable {
 	    }
 	}
 
+	/* for (Iterator it=prototypes.values ().iterator (); it.hasNext (); ) {
+	    Prototype proto = (Prototype) it.next ();
+	    if (!proto.getCodeDir ().exists ()) {
+	        app.logEvent ("TypeManager: Can't remove prototype from running application. Restart for changes to take effect.");
+	    }
+	} */
+
 	if (rewire) {
 	    // there have been changes @ DbMappings
 	    app.rewireDbMappings ();
@@ -134,7 +149,7 @@ public class TypeManager implements Runnable {
 	        // for each idle minute, add 300 ms to sleeptime until 5 secs are reached.
 	        // (10 secs are reached after 30 minutes of idle state)
 	        // the above is all false.
-	        long sleeptime = 1500 + Math.min (idleSeconds*30, 3500);
+	        long sleeptime = 1000 + Math.min (idleSeconds*30, 4000);
 	        typechecker.sleep (sleeptime);
 	    } catch (InterruptedException x) {
 	        // app.logEvent ("Typechecker interrupted");
