@@ -52,7 +52,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     long requestTimeout = 60000; // 60 seconds for request timeout.
     ThreadGroup threadgroup;
     
-    protected String templateExtension, scriptExtension, actionExtension;
+    protected String templateExtension, scriptExtension, actionExtension, skinExtension;
 
     // A transient node that is shared among all evaluators
     protected INode appnode;
@@ -95,6 +95,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	templateExtension = props.getProperty ("templateExtension", ".hsp");
 	scriptExtension = props.getProperty ("scriptExtension", ".js");
 	actionExtension = props.getProperty ("actionExtension", ".hac");
+	skinExtension = ".skin";
 	
 	sessions = new Hashtable ();
 	activeUsers = new Hashtable ();

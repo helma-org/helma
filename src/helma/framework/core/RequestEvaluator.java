@@ -652,6 +652,17 @@ public class RequestEvaluator implements Runnable {
 	    notifyAll ();
 	}
     }
+
+    public Skin getSkin (ESObject thisObject, String skinname) {
+	INode n = null;
+	if (thisObject != null && thisObject instanceof ESNode)
+	    n = ((ESNode) thisObject).getNode ();
+	Prototype proto = app.getPrototype (n);
+	if (proto != null)
+	    return proto.getSkin (skinname);
+	else
+	    return null;
+    }
 	
 
     /**

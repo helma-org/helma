@@ -602,18 +602,30 @@ public class HopExtension {
             this.asString = asString;
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            if (arguments.length != 1 || !(arguments[0] instanceof ESWrapper))
-                throw new EcmaScriptException ("renderSkin must be called with one Skin argument!");
+            if (arguments.length < 1 || arguments.length > 2 || arguments[0] ==null || arguments[0] == ESNull.theNull)
+                throw new EcmaScriptException ("renderSkin must be called with one Skin argument and an optional parameter argument");
             try {
-                Skin skin = (Skin) ((ESWrapper) arguments[0]).toJavaObject ();
+	   Skin skin = null;
                 ESNode handlerNode = global ? null : (ESNode) thisObject;
+                // first, see if the first argument already is a skin object. If not, it's the name of the skin to be called
+                if (arguments[0] instanceof ESWrapper) {
+                    Object obj = ((ESWrapper) arguments[0]).toJavaObject ();
+                    if (obj instanceof Skin)
+                        skin = (Skin) obj;
+                }
+                if (skin == null)
+                    skin = reval.getSkin (handlerNode, arguments[0].toString ());
                 if (asString)
                     reval.res.pushStringBuffer ();
-                skin.render (reval, handlerNode);
+                try {
+                    skin.render (reval, handlerNode);
+                } catch (NullPointerException npx) {
+                    reval.res.write ("[Skin not found: "+arguments[0]+"]");
+                }
                 if (asString)
                     return  new ESString (reval.res.popStringBuffer ());
-            } catch (ClassCastException x) {
-                throw new EcmaScriptException ("renderSkin must be called with one Skin argument!");
+            } catch (Exception x) {
+                throw new EcmaScriptException ("renderSkin: "+x);
             }
             return ESNull.theNull;
         }

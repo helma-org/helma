@@ -24,7 +24,7 @@ public class Prototype {
     String id;
     String name;
     Application app;
-    Hashtable templates, functions, actions;
+    Hashtable templates, functions, actions, skins;
     File codeDir;
     long lastUpdate;
 
@@ -84,6 +84,18 @@ public class Prototype {
 
     public Action getAction (String afname) {
 	return (Action) actions.get (afname);
+    }
+
+    public SkinFile getSkinFile (String sfname) {
+	return (SkinFile) skins.get (sfname);
+    }
+
+    public Skin getSkin (String sfname) {
+	SkinFile sf = (SkinFile) skins.get (sfname);
+	if (sf != null)
+	    return sf.getSkin ();
+	else
+	    return null;
     }
 
     public File getCodeDir () {

@@ -55,12 +55,12 @@ public class Skin {
              parts = partBuffer.toArray ();
    }
 
-    public void render (RequestEvaluator reval, ESNode handlerNode) {
+    public void render (RequestEvaluator reval, ESNode thisNode) {
 	if (parts == null)
 	    return;
 	for (int i=0; i<parts.length; i++) {
 	    if (parts[i] instanceof Macro)
-	        ((Macro) parts[i]).render (reval, handlerNode);
+	        ((Macro) parts[i]).render (reval, thisNode);
 	    else
 	        reval.res.write (parts[i]);
 	}
@@ -165,7 +165,7 @@ public class Skin {
 	}
 
 
-	public void render (RequestEvaluator reval, ESNode handlerNode) {
+	public void render (RequestEvaluator reval, ESNode thisNode) {
 
 	    if ("response".equalsIgnoreCase (handler)) {
 	        renderFromResponse (reval);
@@ -182,12 +182,13 @@ public class Skin {
 	        arguments[0] = par;
 
 	        if (handler != null) {
-	            // not a macro handled by global - need to find handler object
-	            if (handlerNode != null) {
+	            // not a global macro - need to find handler object
+	            if (thisNode != null) {
 	                // was called with this object - check it or its parents for matching prototype
-	                if (!handler.equalsIgnoreCase ("this") && !handler.equalsIgnoreCase (handlerNode.getPrototypeName ())) {
+	                if (!handler.equalsIgnoreCase ("this") && !handler.equalsIgnoreCase (thisNode.getPrototypeName ())) {
 	                    // the handler object is not what we want
-	                    INode n = handlerNode.getNode();
+	                    INode n = thisNode.getNode();
+	                    // walk down parent chain to find handler object
 	                    while (n != null) {
 	                        if (handler.equalsIgnoreCase (n.getPrototype())) {
 	                            handlerObject = reval.getNodeWrapper (n);
@@ -197,12 +198,12 @@ public class Skin {
 	                    }
 	                } else {
 	                    // we already have the right handler object
-	                    handlerObject = handlerNode;
+	                    handlerObject = thisNode;
 	                }
 	            }
 
 	            if (handlerObject == null) {
-	                // eiter because handlerNode == null or the right object wasn't found in the targetNode path
+	                // eiter because thisNode == null or the right object wasn't found in the targetNode path
 	                // go check request path for an object with matching prototype
 	                int l = reval.reqPath.size();
 	                for (int i=l-1; i>=0; i--) {

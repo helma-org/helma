@@ -157,6 +157,7 @@ public class TypeManager implements Runnable {
         Hashtable ntemp = new Hashtable ();
         Hashtable nfunc = new Hashtable ();
         Hashtable nact = new Hashtable ();
+        Hashtable nskins = new Hashtable ();
 
         for (int i=0; i<list.length; i++) {
             File tmpfile = new File (dir, list[i]);
@@ -182,10 +183,18 @@ public class TypeManager implements Runnable {
                 } catch (Throwable x) {
                     IServer.getLogger().log ("Error creating prototype: "+x);
                 }
+
             } else if (list[i].endsWith (app.actionExtension) && tmpfile.length () > 0) {
                 try {
                     Action af = new Action (tmpfile, tmpname, proto);
                     nact.put (tmpname, af);
+                } catch (Throwable x) {
+                    IServer.getLogger().log ("Error creating prototype: "+x);
+                }
+           }  else if (list[i].endsWith (app.skinExtension)) {
+                try {
+                    SkinFile sf = new SkinFile (tmpfile, tmpname, proto);
+                    nskins.put (tmpname, sf);
                 } catch (Throwable x) {
                     IServer.getLogger().log ("Error creating prototype: "+x);
                 }
@@ -194,6 +203,7 @@ public class TypeManager implements Runnable {
         proto.templates = ntemp;
         proto.functions = nfunc;
         proto.actions = nact;
+        proto.skins = nskins;
 
         // init prototype on evaluators that are already initialized.
         Iterator evals = getRegisteredRequestEvaluators ();
@@ -212,6 +222,7 @@ public class TypeManager implements Runnable {
         Hashtable ntemp = new Hashtable ();
         Hashtable nfunc = new Hashtable ();
         Hashtable nact = new Hashtable ();
+        Hashtable nskins = new Hashtable ();
 
         for (int i=0; i<list.length; i++) {
             File tmpfile = new File (dir, list[i]);
@@ -266,6 +277,21 @@ public class TypeManager implements Runnable {
                 }
                 nact.put (tmpname, af);
 
+           }  else if (list[i].endsWith (app.skinExtension)) {
+                SkinFile sf = proto.getSkinFile (tmpname);
+                try {
+                    if (sf == null) {
+                        sf = new SkinFile (tmpfile, tmpname, proto);
+	           idleSeconds = 0;
+                    } else if (sf.lastmod != tmpfile.lastModified ()) {
+                        sf.update (tmpfile);
+	           idleSeconds = 0;
+                    }
+                } catch (Throwable x) {
+                    IServer.getLogger().log ("Error updating prototype: "+x);
+                }
+                nskins.put (tmpname, sf);
+
            } else if ("type.properties".equalsIgnoreCase (list[i])) {
 	    try {
 	        if (proto.dbmap.read ()) {
@@ -280,6 +306,7 @@ public class TypeManager implements Runnable {
         proto.templates = ntemp;
         proto.functions = nfunc;
         proto.actions = nact;
+        proto.skins = nskins;
     }
 
 
