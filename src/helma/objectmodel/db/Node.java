@@ -984,7 +984,19 @@ public final class Node implements INode, Serializable {
             anon = true;
         }
 
-        Node n = new Node(nm, null, nmgr);
+        String proto = null;
+
+        // try to get proper prototype for new node
+        if (dbmap != null) {
+            DbMapping childmap = anon ?
+                dbmap.getSubnodeMapping() :
+                dbmap.getPropertyMapping(nm);
+            if (childmap != null) {
+                proto = childmap.getTypeName();
+            }
+        }
+
+        Node n = new Node(nm, proto, nmgr);
 
         if (anon) {
             addNode(n, where);
