@@ -59,7 +59,7 @@ public class GlobalObject extends ScriptableObject {
                                    "renderSkin", "renderSkinAsString", "getProperty",
                                    "authenticate", "createSkin", "format", "encode",
                                    "encodeXml", "encodeForm", "stripTags",
-                                   "getDBConnection", "getURL"
+                                   "getDBConnection", "getURL", "write", "writeln"
                                };
 
         defineFunctionProperties(globalFuncs, GlobalObject.class, 0);
@@ -304,6 +304,29 @@ public class GlobalObject extends ScriptableObject {
     public String format(String str) {
         return HtmlEncoder.encode(str);
     }
+
+    /**
+     *
+     *
+     * @param str ...
+     *
+     * @return ...
+     */
+    public void write(String str) {
+        System.out.print(str);
+    }
+
+    /**
+     *
+     *
+     * @param str ...
+     *
+     * @return ...
+     */
+    public void writeln(String str) {
+        System.out.println(str);
+    }
+
 
     /**
      *
