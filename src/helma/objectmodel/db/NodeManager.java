@@ -655,9 +655,14 @@ public final class NodeManager {
             db.saveNode(txn, node.getID(), node);
         } else {
             Hashtable propMap = node.getPropMap();
-            Property[] props = new Property[propMap.size()];
+            Property[] props;
 
-            propMap.values().toArray(props);
+            if (propMap == null) {
+                props = new Property[0];
+            } else {
+                props = new Property[propMap.size()];
+                propMap.values().toArray(props);
+            }
 
             // make sure table meta info is loaded by dbmapping
             dbm.getColumns();
