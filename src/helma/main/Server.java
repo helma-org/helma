@@ -222,8 +222,15 @@ import org.apache.xmlrpc.*;
 	} catch (IOException iox) {
 	    System.err.println ("Error calling getCanonicalFile() on hopHome: "+iox);
 	}
+	
+	// set the current working directory to the helma home dir.
+	// note that this is not a real cwd, which is not supported
+	// by java. It makes sure relative to absolute path name
+	// conversion is done right, so for Helma code, this should
+	// work.
+	System.setProperty ("user.dir", hopHome.getPath());
 
-	// from now on it's safe to call getLogger()
+	// from now on it's safe to call getLogger() because hopHome is set up
 
 	String startMessage = "Starting Helma "+version+
 		" on Java "+System.getProperty ("java.version");
