@@ -472,6 +472,9 @@ public final class NodeManager {
 	    String q = "SELECT MAX("+map.getIDField()+") FROM "+map.getTableName();
 	    qds = new QueryDataSet (con, q);
 	    qds.fetchRecords ();
+	    // check for empty table
+	    if (qds.size () == 0)
+	        return "0";
 	    long currMax = qds.getRecord (0).getValue (1).asLong ();
 	    currMax = Math.max (currMax+1, map.lastID+1);
 	    map.lastID = currMax;
