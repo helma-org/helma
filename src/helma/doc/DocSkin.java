@@ -16,7 +16,6 @@
 
 package helma.doc;
 
-import helma.framework.IPathElement;
 import java.io.*;
 import java.util.*;
 

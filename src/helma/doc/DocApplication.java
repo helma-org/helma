@@ -21,7 +21,6 @@ import helma.main.Server;
 import helma.util.SystemProperties;
 import java.io.*;
 import java.util.*;
-import java.awt.*;
 /**
  * 
  */

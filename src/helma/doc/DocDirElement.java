@@ -17,7 +17,6 @@
 package helma.doc;
 
 import java.io.*;
-import java.util.*;
 
 /**
  * 
