@@ -75,6 +75,7 @@ public class ApplicationManager {
 	    app.start ();
 	} catch (Exception x) {
 	    IServer.getLogger().log ("Error creating application "+appName+": "+x);
+	    x.printStackTrace ();
 	}
     }
 
