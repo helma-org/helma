@@ -52,7 +52,7 @@ public class DomExtension extends Extension  {
 		}
 	}
 
-    class XmlSave extends BuiltinFunctionObject {
+	class XmlSave extends BuiltinFunctionObject {
 		XmlSave(String name, Evaluator evaluator, FunctionPrototype fp) {
 			super(fp, evaluator, name, 1);
 		}
@@ -69,6 +69,7 @@ public class DomExtension extends Extension  {
 			try	{
 				File tmpFile = new File(arguments[0].toString()+".tmp."+XmlWriter.generateID());
 				XmlWriter writer = new XmlWriter (tmpFile);
+				writer.setDatabaseMode(false);
 				boolean result = writer.write(node);
 				writer.close();
 				File finalFile = new File(arguments[0].toString());
@@ -81,6 +82,10 @@ public class DomExtension extends Extension  {
         }
     }
 
+	/**
+	  * Xml.create() is used to get a string containing the xml-content.
+	  * Useful if Xml-content should be made public through the web.
+	  */
     class XmlCreate extends BuiltinFunctionObject {
 		XmlCreate(String name, Evaluator evaluator, FunctionPrototype fp) {
 			super(fp, evaluator, name, 1);
@@ -98,6 +103,7 @@ public class DomExtension extends Extension  {
 			try	{
 				ByteArrayOutputStream out = new ByteArrayOutputStream();
 				XmlWriter writer = new XmlWriter (out);
+				writer.setDatabaseMode(false);
 				boolean result = writer.write(node);
 				writer.flush();
 				return new ESString (out.toString());
