@@ -127,67 +127,61 @@ public class ImageObject {
             Object arg = args[0];
             InputStream in = null;
             ImageInfo info = new ImageInfo();
-
-            if (arg instanceof Wrapper) {
-                arg = ((Wrapper) arg).unwrap();
-            }
-
-            if (arg instanceof InputStream) {
-                in = (InputStream) arg;
-            } else if (arg instanceof byte[]) {
-                in = new ByteArrayInputStream((byte[]) arg);
-            } else if (arg instanceof File) {
-                try {
-                    in = new FileInputStream((File) arg);
-                } catch (FileNotFoundException fnf) {
-                    return null;
+            Object ret = null;
+    
+            try {
+                if (arg instanceof Wrapper) {
+                    arg = ((Wrapper) arg).unwrap();
                 }
-            } else if (arg instanceof File) {
-                try {
+    
+                if (arg instanceof InputStream) {
+                    in = (InputStream) arg;
+                } else if (arg instanceof byte[]) {
+                    in = new ByteArrayInputStream((byte[]) arg);
+                } else if (arg instanceof File) {
                     in = new FileInputStream((File) arg);
-                } catch (FileNotFoundException fnf) {
-                    return null;
-                }
-            } else if (arg instanceof FileObject) {
-                try {
+                } else if (arg instanceof File) {
+                    in = new FileInputStream((File) arg);
+                } else if (arg instanceof FileObject) {
                     in = new FileInputStream(((FileObject)arg).getFile());
-                } catch (FileNotFoundException fnf) {
-                    return null;
-                }
-            } else if (arg instanceof String) {
-                String str = (String) arg;
-                // try to interpret argument as URL if it contains a colon,
-                // otherwise or if URL is malformed interpret as file name.
-                try {
+                } else if (arg instanceof String) {
+                    String str = (String) arg;
+                    // try to interpret argument as URL if it contains a colon,
+                    // otherwise or if URL is malformed interpret as file name.
                     if (str.indexOf(":") > -1) {
                         try {
                             URL url = new URL(str);
                             in = url.openStream();
                         } catch (MalformedURLException mux) {
                             in = new FileInputStream(str);
-                        } catch (IOException iox) {
-                            return null;
                         }
                     } else {
-                        in = new FileInputStream((String) arg);
+                        in = new FileInputStream(str);
                     }
-                } catch (FileNotFoundException fnf) {
-                    return null;
+                }
+    
+                if (in == null) {
+                    String msg = "Unrecognized argument in Image.getInfo(): ";
+                    msg += arg == null ? "null" : arg.getClass().toString();
+                    throw new IllegalArgumentException(msg);
+                }
+    
+                info.setInput(in);
+                if (info.check()) {
+                    ret = Context.toObject(info, scope);
+                }
+    
+            } catch (IOException e) {
+                // do nothing, returns null later
+            } finally {
+                if (in != null) {
+                    try {
+                        in.close();
+                    } catch (IOException ee) {
+                    }
                 }
             }
-
-            if (in == null) {
-                String msg = "Unrecognized argument in Image.getInfo(): ";
-                msg += arg == null ? "null" : arg.getClass().toString();
-                throw new IllegalArgumentException(msg);
-            }
-
-            info.setInput(in);
-            if (info.check()) {
-                return Context.toObject(info, scope);
-            }
-
-            return null;
+            return ret;
         }
     }
 }

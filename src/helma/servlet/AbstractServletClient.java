@@ -448,24 +448,27 @@ public abstract class AbstractServletClient extends HttpServlet {
         InputStream in = cx.getResourceAsStream(forward);
         if (in == null)
             throw new IOException("Can't read "+path);
-
-        OutputStream out = res.getOutputStream();
-
-        int bufferSize = 4096;
-        byte buffer[] = new byte[bufferSize];
-        int l = bufferSize;
-
-        while (length>0) {
-            if (length < bufferSize)
-                l = in.read(buffer, 0, length);
-            else
-                l=in.read(buffer, 0, bufferSize);
-
-            if (l == -1)
-                break;
-
-            length -= l;
-            out.write(buffer, 0, l);
+        try {
+            OutputStream out = res.getOutputStream();
+    
+            int bufferSize = 4096;
+            byte buffer[] = new byte[bufferSize];
+            int l = bufferSize;
+    
+            while (length>0) {
+                if (length < bufferSize)
+                    l = in.read(buffer, 0, length);
+                else
+                    l=in.read(buffer, 0, bufferSize);
+    
+                if (l == -1)
+                    break;
+    
+                length -= l;
+                out.write(buffer, 0, l);
+            }
+        } finally {
+            in.close();
         }
     }
 
@@ -738,6 +741,10 @@ public abstract class AbstractServletClient extends HttpServlet {
         }
         
         // append trailing "/" if it is contained in original URI
+        
+        // append trailing "/" if it is contained in original URI
+        if (uri.endsWith("/"))
+            pathbuffer.append('/');
         if (uri.endsWith("/"))
             pathbuffer.append('/');
 
