@@ -47,20 +47,25 @@ public final class NodeManager {
     public final WrappedNodeManager safe;
 
     /**
-     *  Create a new NodeManager for Application app. An embedded database will be
+     *  Create a new NodeManager for Application app.
+     */
+    public NodeManager(Application app) {
+        this.app = app;
+        safe = new WrappedNodeManager(this);
+    }
+
+    /**
+     * Initialize the NodeManager for the given dbHome and 
+     * application properties. An embedded database will be
      * created in dbHome if one doesn't already exist.
      */
-    public NodeManager(Application app, String dbHome, Properties props)
+    public void init(String dbHome, Properties props)
             throws DatabaseException, ClassNotFoundException,
                    IllegalAccessException, InstantiationException {
-        this.app = app;
-
         String cacheImpl = props.getProperty("cacheimpl", "helma.util.CacheMap");
 
         cache = (ObjectCache) Class.forName(cacheImpl).newInstance();
         cache.init(app);
-
-        safe = new WrappedNodeManager(this);
 
         logSql = "true".equalsIgnoreCase(props.getProperty("logsql"));
         logReplication = "true".equalsIgnoreCase(props.getProperty("logReplication"));
@@ -162,17 +167,15 @@ public final class NodeManager {
     }
 
     /**
-     *  Shut down this node manager. This is called when the application using this
-     *  node manager is stopped.
+     *  Shut down this node manager. This is called when the application 
+     *  using this node manager is stopped.
      */
     public void shutdown() throws DatabaseException {
         db.shutdown();
 
         if (cache != null) {
-            synchronized (cache) {
-                cache.clear();
-                cache = null;
-            }
+            cache.shutdown();
+            cache = null;
         }
     }
 
@@ -1830,7 +1833,13 @@ public final class NodeManager {
         int l = listeners.size();
 
         for (int i=0; i<l; i++) {
-            ((NodeChangeListener) listeners.get(i)).nodesChanged(inserted, updated, deleted);
+            try {
+                ((NodeChangeListener) listeners.get(i)).nodesChanged(inserted, updated, deleted);
+            } catch (Error e) {
+                e.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
     

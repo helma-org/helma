@@ -34,6 +34,11 @@ public interface ObjectCache {
     void init(Application app);
 
     /**
+     * Called when the application holding the cache is stopped.
+     */
+    void shutdown();
+
+    /**
      * Called when the application's properties have been updated to let
      * the cache implementation update its settings.
      * @param props

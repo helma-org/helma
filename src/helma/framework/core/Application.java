@@ -359,7 +359,8 @@ public final class Application implements IPathElement, Runnable {
         userRootMapping.update();
 
         // create the node manager
-        nmgr = new NodeManager(this, dbDir.getAbsolutePath(), props);
+        nmgr = new NodeManager(this);
+        nmgr.init(dbDir.getAbsolutePath(), props);
 
         // reset the classloader to the parent/system/server classloader.
         Thread.currentThread().setContextClassLoader(typemgr.getClassLoader().getParent());

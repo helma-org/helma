@@ -275,6 +275,12 @@ public class CacheMap implements ObjectCache {
         return true;
     }
 
+    /// Called when the application using this cache is stopped. We 
+    //  simply clear out our cache contents.
+    public synchronized void shutdown() {
+        clear();
+    }
+
     /// Set the application to use for debug and profiling output
     public void init(Application app) {
         this.app = app;
