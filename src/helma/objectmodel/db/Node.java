@@ -2369,11 +2369,13 @@ public final class Node implements INode, Serializable {
 
         Relation rel = (dbmap == null) ? null : dbmap.getPropertyRelation(propname);
 
-        if (rel != null && rel.isComplexReference()) {
+        if (rel != null && (rel.countConstraints() > 1 || rel.isComplexReference())) {
             rel.setConstraints(this, n);
-            Key key = new MultiKey(n.getDbMapping(), rel.getKeyParts(this));
-            nmgr.nmgr.registerNode(n, key);
-            return;
+            if (rel.isComplexReference()) {
+                Key key = new MultiKey(n.getDbMapping(), rel.getKeyParts(this));
+                nmgr.nmgr.registerNode(n, key);
+                return;
+            }
         }
 
         Property prop = (propMap == null) ? null : (Property) propMap.get(p2);
@@ -2484,6 +2486,15 @@ public final class Node implements INode, Serializable {
 
                 if (state == CLEAN) {
                     markAs(MODIFIED);
+                }
+            } else if (dbmap != null) {
+                // check if this is a complex constraint and we have to
+                // unset constraints.
+                Relation rel = dbmap.getExactPropertyRelation(propname);
+
+                if (rel != null && (rel.isComplexReference() || rel.countConstraints() > 1)) {
+                    p = getProperty(propname);
+                    System.err.println ("NEED TO UNSET: "+p.getNodeValue());
                 }
             }
         } catch (Exception ignore) {

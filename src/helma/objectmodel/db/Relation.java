@@ -176,7 +176,7 @@ public final class Relation {
 
             // check if this is a non-trivial reference
             if (reftype == REFERENCE) {
-                if (constraints.length > 1 || !usesPrimaryKey()) {
+                if (constraints.length > 0 && !usesPrimaryKey()) {
                     reftype = COMPLEX_REFERENCE;
                 }
             }
@@ -321,6 +321,15 @@ public final class Relation {
      */
     public boolean isPrivate() {
         return isPrivate;
+    }
+
+    /**
+     *  Returns the number of constraints for this relation.
+     */
+    public int countConstraints() {
+        if (constraints == null)
+            return 0;
+        return constraints.length;
     }
 
     /**
