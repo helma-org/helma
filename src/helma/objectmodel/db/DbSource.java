@@ -33,6 +33,7 @@ public class DbSource {
     private String driver;
     protected String user;
     private String password;
+    private boolean isOracle;
     private long lastRead = 0L;
 
     /**
@@ -87,6 +88,7 @@ public class DbSource {
                                                      defaultProps.lastModified());
         url = props.getProperty(name + ".url");
         driver = props.getProperty(name + ".driver");
+        isOracle = driver != null && driver.startsWith("oracle.jdbc.driver");
         Class.forName(driver);
         user = props.getProperty(name + ".user");
         password = props.getProperty(name + ".password");
@@ -117,5 +119,14 @@ public class DbSource {
      */
     public static void setDefaultProps(SystemProperties props) {
         defaultProps = props;
+    }
+    
+    /**
+     * Is this an Oracle database?
+     *
+     * @return true if we're using an oracle JDBC driver
+     */
+    public boolean isOracle() {
+        return isOracle;
     }
 }

@@ -1201,6 +1201,8 @@ public final class NodeManager {
 
                     q.append(") ");
 
+                    dbm.addJoinConstraints(q, " AND ");
+
                     if (rel.groupby != null) {
                         q.append(rel.renderConstraints(home, home.getNonVirtualParent()));
 
@@ -1503,6 +1505,8 @@ public final class NodeManager {
                 } else {
                     q.append(kstr);
                 }
+
+                dbm.addJoinConstraints(q, " AND ");
 
                 if (logSql) {
                     app.logEvent("### getNodeByKey: " + q.toString());

@@ -921,6 +921,7 @@ public final class DbMapping implements Updatable {
         // assign to local variable first so we are thread safe
         // (selectString may be reset by other threads)
         String sel = selectString;
+        boolean isOracle = isOracle();
 
         if (rel == null && sel != null) {
             return new StringBuffer(sel);
@@ -962,13 +963,24 @@ public final class DbMapping implements Updatable {
             if (!joins[i].otherType.isRelational()) {
                 continue;
             }
-            s.append("LEFT OUTER JOIN ");
-            s.append(joins[i].otherType.getTableName());
-            s.append(" AS ");
-            s.append(Relation.JOIN_PREFIX);
-            s.append(joins[i].propName);
-            s.append(" ON ");
-            joins[i].renderJoinConstraints(s);
+            if (isOracle) {
+                // generate an old-style oracle left join - see
+                // http://www.praetoriate.com/oracle_tips_outer_joins.htm
+                s.append(", ");
+                s.append(joins[i].otherType.getTableName());
+                s.append(" ");
+                s.append(Relation.JOIN_PREFIX);
+                s.append(joins[i].propName);
+                s.append(" ");
+            } else {
+                s.append("LEFT OUTER JOIN ");
+                s.append(joins[i].otherType.getTableName());
+                s.append(" ");
+                s.append(Relation.JOIN_PREFIX);
+                s.append(joins[i].propName);
+                s.append(" ON ");
+                joins[i].renderJoinConstraints(s, isOracle);
+            }
         }
 
         // cache rendered string for later calls, but only if it wasn't
@@ -1062,6 +1074,37 @@ public final class DbMapping implements Updatable {
         } catch (Exception x) {
             throw new SQLException(x.getMessage());
         }
+    }
+
+    /**
+     * Add constraints to select query string to join object references
+     */
+    public void addJoinConstraints(StringBuffer s, String pre) {
+        boolean isOracle = isOracle();
+        String prefix = pre;
+
+        if (!isOracle) {
+            // constraints have already been rendered by getSelect()
+            return;
+        }
+
+        for (int i = 0; i < joins.length; i++) {
+            if (!joins[i].otherType.isRelational()) {
+                continue;
+            }
+            s.append(prefix);
+            joins[i].renderJoinConstraints(s, isOracle);
+            prefix = " AND ";
+        }
+    }
+
+    /**
+     * Is the database behind this an Oracle db?
+     *
+     * @return true if the dbsource is using an oracle JDBC driver
+     */
+    public boolean isOracle() {
+        return dbSource != null && dbSource.isOracle();
     }
 
     /**

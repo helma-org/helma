@@ -800,6 +800,8 @@ public final class Relation {
             appendFilter(q, nonvirtual, prefix);
         }
 
+        ownType.addJoinConstraints(q, prefix);
+
         if (groupby != null) {
             q.append(" GROUP BY " + groupby);
 
@@ -912,8 +914,11 @@ public final class Relation {
     /**
      *  Render the constraints for this relation for use within
      *  a left outer join select statement for the base object.
+     *
+     * @param select the string buffer to write to
+     * @param isOracle create Oracle pre-9 style left outer join
      */
-    public void renderJoinConstraints(StringBuffer select) {
+    public void renderJoinConstraints(StringBuffer select, boolean isOracle) {
         for (int i = 0; i < constraints.length; i++) {
             select.append(ownType.getTableName());
             select.append(".");
@@ -923,6 +928,11 @@ public final class Relation {
             select.append(propName);
             select.append(".");
             select.append(constraints[i].foreignName);
+            if (isOracle) {
+                // create old oracle style join - see
+                // http://www.praetoriate.com/oracle_tips_outer_joins.htm
+                select.append("(+)");
+            }
             if (i == constraints.length-1) {
                 select.append(" ");
             } else {
@@ -1062,6 +1072,7 @@ public final class Relation {
      */
     public void unsetConstraints(Node parent, INode child) {
         Node home = parent.getNonVirtualParent();
+
         for (int i = 0; i < constraints.length; i++) {
             // don't set groupby constraints since we don't know if the
             // parent node is the base node or a group node
