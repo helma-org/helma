@@ -142,11 +142,16 @@ public class GlobalObject extends ScriptableObject {
      *
      *
      * @param propname ...
+     * @param defvalue ...
      *
      * @return ...
      */
-    public String getProperty(String propname) {
-        return app.getProperty(propname);
+    public String getProperty(String propname, Object defvalue) {
+        if (defvalue == Undefined.instance) {
+            return app.getProperty(propname);
+        } else {
+            return app.getProperty(propname, defvalue.toString());
+        }
     }
 
     /**
