@@ -479,9 +479,6 @@ public final class Application implements IPathElement, Runnable {
 	        // response needs to be closed/encoded before sending it back
 	        try {
 	            res.close (charset);
-	            // reset data fields for garbage collection (may hold references to evaluator)
-	            res.data = null;
-	            req.data = null;
 	        } catch (UnsupportedEncodingException uee) {
 	            logEvent ("Unsupported response encoding: "+uee.getMessage());
 	        }
