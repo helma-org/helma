@@ -17,12 +17,13 @@ public final class SystemProperties extends Properties {
     private Properties newProps;    // used while building up props
     private Properties defaultProps;  // the default/fallback properties.
     private File file;   // the underlying properties file from which we read.
-    private long lastread, lastcheck;  // time we last read/checked the underlying properties file
+    private long lastread, lastcheck, lastadd;  // time we last read/checked the underlying properties file
 
     // the timespan for which we omit checking for changed files after we
     // did a check, in milliseconds.
     final static long cacheTime = 1500l;
 
+    private HashMap additionalProps = null;
 
     /** 
      *  Construct an empty properties object.
@@ -71,7 +72,7 @@ public final class SystemProperties extends Properties {
 	this.defaultProps = defaultProps;
 	props = defaultProps == null ? new Properties () : new Properties (defaultProps);
 	file = filename == null ? null : new File (filename);
-	lastcheck = lastread = 0;
+	lastcheck = lastread = lastadd = 0;
     }
 
    /**
@@ -79,8 +80,8 @@ public final class SystemProperties extends Properties {
     */
     public long lastModified () {
 	if (file == null || !file.exists ())
-	    return lastread;
-	return file.lastModified ();
+	    return lastadd;
+	return Math.max (file.lastModified (), lastadd);
     }
 
     /**
@@ -119,6 +120,10 @@ public final class SystemProperties extends Properties {
 	lastread = System.currentTimeMillis ();
 	props = newProps;
 	newProps = null;
+	if (additionalProps != null) {
+	    for (Iterator i=additionalProps.values().iterator(); i.hasNext(); ) 
+	        props.putAll ((Properties) i.next());
+	}
     }
 
 
@@ -126,9 +131,27 @@ public final class SystemProperties extends Properties {
      * Similar to load(), but adds to the existing properties instead
      * of discarding them.
      */
-    public synchronized void add (InputStream in) throws IOException {
-	super.load (in);
-	lastread = System.currentTimeMillis ();
+    public synchronized void addProps (String key, InputStream in) throws IOException {
+	Properties p = new Properties();
+	p.load (in);
+	if (additionalProps == null)
+	    additionalProps = new HashMap ();
+	additionalProps.put (key, p);
+	if (props != null)
+	    props.putAll (p);
+	else
+	    props = p;
+	lastadd = System.currentTimeMillis ();
+    }
+    
+    public synchronized void removeProps (String key) {
+	if (additionalProps != null) {
+	    // remove added properties for this key. If we had
+	    // properties associated with the key, mark props as updated.
+	    Object p = additionalProps.remove (key);
+	    if (p != null)
+	        lastadd = System.currentTimeMillis ();
+	}
     }
 
 
