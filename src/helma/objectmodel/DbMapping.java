@@ -79,6 +79,8 @@ public class DbMapping {
 
     /**
      * Read the mapping from the Properties. Return true if the properties were changed.
+     * The read is split in two, this method and the rewire method. The reason is that in order
+     * for rewire to work, all other db mappings must have been initialized and registered.
      */
     public synchronized boolean read () {
 
@@ -91,6 +93,14 @@ public class DbMapping {
 	String sourceName = props.getProperty ("_datasource");
 	if (sourceName != null)
 	    source = (DbSource) IServer.dbSources.get (sourceName.toLowerCase ());
+
+	idField = props.getProperty ("_id");
+	// id field must not be null
+	if (idField == null)
+	    idField = "id";
+
+	nameField = props.getProperty ("_name");
+
 	lastTypeChange = lastmod;
 	// set the cached schema & keydef to null so it's rebuilt the next time around
 	schema = null;
@@ -98,6 +108,10 @@ public class DbMapping {
 	return true;
     }
 
+    /**
+     * This is the second part of the property reading process, called after the first part has been
+     * completed on all other mappings in this application
+     */
     public synchronized void rewire () {
 
 	// if (table != null && source != null) {
@@ -108,22 +122,22 @@ public class DbMapping {
 	for (Enumeration e=props.keys(); e.hasMoreElements(); ) {
 	    String propName = (String) e.nextElement ();
 
-	    if (!propName.startsWith ("_") && propName.indexOf (".") < 0) {
-	        String dbField = props.getProperty (propName);
-	        Relation rel = new Relation (dbField, propName, this, props);
-	        p2d.put (propName, rel);
-	        if (rel.localField != null)
-	            d2p.put (rel.localField, rel);
-	        // IServer.getLogger().log ("Mapping "+propName+" -> "+dbField);
-
+	    try {
+	        if (!propName.startsWith ("_") && propName.indexOf (".") < 0) {
+	            String dbField = props.getProperty (propName);
+	            Relation rel = new Relation (dbField, propName, this, props);
+	            p2d.put (propName, rel);
+	            if (rel.localField != null)
+	                d2p.put (rel.localField, rel);
+	            // IServer.getLogger().log ("Mapping "+propName+" -> "+dbField);
+	        }
+	    } catch (Exception x) {
+	        IServer.getLogger ().log ("Error in type.properties: "+x.getMessage ());
 	    }
 	}
+
 	prop2db = p2d;
 	db2prop = d2p;
-
-	idField = props.getProperty ("_id");
-
-	nameField = props.getProperty ("_name");
 
 	String ano = props.getProperty ("_anonymous");
 	if (ano != null) {
@@ -147,28 +161,38 @@ public class DbMapping {
 
 	String subnodeMapping = props.getProperty ("_subnodes");
 	if (subnodeMapping != null) {
-	    subnodesRel = new Relation (subnodeMapping, "_subnodes", this, props);
-	    if (subnodesRel.isReference ())
-	        subnodes = subnodesRel.other;
-	    else
-	        subnodes = (DbMapping) app.getDbMapping (subnodeMapping);
+	    try {
+	        subnodesRel = new Relation (subnodeMapping, "_subnodes", this, props);
+	        if (subnodesRel.isReference ())
+	            subnodes = subnodesRel.other;
+	        else
+	            subnodes = (DbMapping) app.getDbMapping (subnodeMapping);
+	    } catch (Exception x) {
+	        IServer.getLogger ().log ("Error in type.properties: "+x.getMessage ());
+	        subnodesRel = null;
+	    }
 	} else
 	    subnodesRel = null;
 
 	String propertiesMapping = props.getProperty ("_properties");
 	if (propertiesMapping != null) {
-	    propertiesRel = new Relation (propertiesMapping, "_properties", this, props);
-	    if (propertiesRel.isReference ())
-	        properties = propertiesRel.other;
-	    else
-	        properties = (DbMapping) app.getDbMapping (propertiesMapping);
-	    // take over groupby flag from subnodes, if properties are subnodes
-	    if (propertiesRel.subnodesAreProperties && subnodesRel != null)
-	        propertiesRel.groupby = subnodesRel.groupby;
+	    try {
+	        propertiesRel = new Relation (propertiesMapping, "_properties", this, props);
+	        if (propertiesRel.isReference ())
+	            properties = propertiesRel.other;
+	        else
+	            properties = (DbMapping) app.getDbMapping (propertiesMapping);
+	        // take over groupby flag from subnodes, if properties are subnodes
+	        if (propertiesRel.subnodesAreProperties && subnodesRel != null)
+	            propertiesRel.groupby = subnodesRel.groupby;
+	    } catch (Exception x) {
+	        IServer.getLogger ().log ("Error in type.properties: "+x.getMessage ());
+	        propertiesRel = null;
+	    }
 	} else
 	    propertiesRel = null;
 
-	IServer.getLogger().log ("rewiring: "+parent+" -> "+this+" -> "+subnodes);
+	IServer.getLogger().log ("rewiring: "+this);
     }
 
 
