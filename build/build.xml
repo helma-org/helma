@@ -281,17 +281,6 @@ manage
 
 
     <!-- =================================================================== -->
-    <!-- Checks out and zips an application defined by -Dapplication=appName -->
-    <!-- e.g. ant [-buildfile build.xml] -Dapplication=helmaorg              -->
-    <!-- =================================================================== -->
-    <target name="app-package" depends="init">
-      <mkdir dir="${build.checkout}"/>
-      <cvs cvsRoot="${cvs.root}" package="apps/${application}" dest="${build.checkout}"/>
-      <zip zipfile="../${application}.zip" basedir="${build.checkout}/apps/${application}/" includes="**"/>
-    </target>
-
-
-    <!-- =================================================================== -->
     <!-- Make Antclick package (helma plus Antville and manage apps)         -->
     <!-- =================================================================== -->
     <target name="antclick" depends="init">
