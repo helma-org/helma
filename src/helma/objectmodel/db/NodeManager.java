@@ -988,9 +988,15 @@ public final class NodeManager {
 
             try {
                 String q = null;
+                StringBuffer tables = new StringBuffer(table);
+
+                if (rel.additionalTables != null) {
+                     tables.append(',').append(rel.additionalTables);
+                }
+
                 StringBuffer b = new StringBuffer("SELECT ").append(table).append('.')
                                                    .append(idfield).append(" FROM ")
-                                                   .append(table);
+                                                   .append(tables);
 
                 if (home.getSubnodeRelation() != null) {
                     // subnode relation was explicitly set
@@ -1085,6 +1091,10 @@ public final class NodeManager {
             Relation[] joins = dbm.getJoins();
             StringBuffer q = dbm.getSelect();
 
+            if (rel.additionalTables != null) {
+                 q.append(',').append(rel.additionalTables);
+            }
+
             try {
                 if (home.getSubnodeRelation() != null) {
                     q.append(home.getSubnodeRelation());
@@ -1162,6 +1172,10 @@ public final class NodeManager {
                 DbColumn[] columns = dbm.getColumns();
                 Relation[] joins = dbm.getJoins();
                 StringBuffer q = dbm.getSelect();
+
+                if (rel.additionalTables != null) {
+                     q.append(',').append(rel.additionalTables);
+                }
 
                 try {
                     String idfield = (rel.groupby != null) ? rel.groupby : dbm.getIDField();
@@ -1335,7 +1349,13 @@ public final class NodeManager {
 
             try {
                 String q = null;
-                StringBuffer b = new StringBuffer("SELECT count(*) FROM ").append(table);
+                StringBuffer tables = new StringBuffer(table);
+
+                if (rel.additionalTables != null) {
+                     tables.append(',').append(rel.additionalTables);
+                }
+
+                StringBuffer b = new StringBuffer("SELECT count(*) FROM ").append(tables);
 
                 if (home.getSubnodeRelation() != null) {
                     // use the manually set subnoderelation of the home node
@@ -1398,10 +1418,16 @@ public final class NodeManager {
 
             Statement stmt = null;
 
+            StringBuffer tables = new StringBuffer(table);
+
+            if (rel.additionalTables != null) {
+                 tables.append(',').append(rel.additionalTables);
+            }
+
             try {
                 StringBuffer q = new StringBuffer("SELECT ").append(namefield)
                                                             .append(" FROM ")
-                                                            .append(table);
+                                                            .append(tables);
 
                 if (home.getSubnodeRelation() != null) {
                     q.append(" ").append(home.getSubnodeRelation());
@@ -1557,6 +1583,10 @@ public final class NodeManager {
                 DbColumn[] columns = dbm.getColumns();
                 Relation[] joins = dbm.getJoins();
                 StringBuffer q = dbm.getSelect();
+
+                if (rel.additionalTables != null) {
+                     q.append(',').append(rel.additionalTables);
+                }
 
                 if (home.getSubnodeRelation() != null && !rel.isComplexReference()) {
                     // combine our key with the constraints in the manually set subnode relation
