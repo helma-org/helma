@@ -37,12 +37,12 @@ public class ResponseTrans implements Serializable {
 
     // the buffers used to build the single body parts -
     // transient, response must be constructed before this is serialized
-    public transient String title, head, body, message;
+    public transient String title, head, body, message, error;
 
 
     public ResponseTrans () {
 	super ();
-	title = head = body = message = "";
+	title = head = body = message = error = "";
     }
     
     public void reset () {
