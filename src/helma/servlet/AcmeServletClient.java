@@ -1,4 +1,4 @@
-// ServletClient.java
+// AcmeServletClient.java
 // Copyright (c) Hannes Wallnoefer, Raphael Spannocchi 1998-2000
 
 /* Portierung von helma.asp.AspClient auf Servlets */
@@ -16,11 +16,11 @@ import helma.objectmodel.Node;
 import helma.util.Uploader;
 
 /**
- * This is the HOP servlet adapter that uses the Acme servlet API clone and communicates 
+ * This is the Hop servlet adapter that uses the Acme servlet API clone and communicates
  * directly with hop applications instead of using RMI. 
  */
  
-public class AcmeServletClient extends HttpServlet{
+public class AcmeServletClient extends HttpServlet {
 	
     private int uploadLimit;       // limit to HTTP uploads in kB
     private Hashtable apps;
@@ -182,7 +182,7 @@ public class AcmeServletClient extends HttpServlet{
 	try { 
 	    res.sendRedirect(url); 
 	} catch (Exception e) { 
-	    System.err.println ("Exception bei redirect: " + e + e.getMessage());
+	    System.err.println ("Exception in redirect: " + e + e.getMessage());
 	}
     }
 	
