@@ -1593,18 +1593,18 @@ public final class Node implements INode, Serializable {
 	} */
 	
 	// don't check node in transactor cache -- this is done anyway when the node becomes persistent.
-	/* if (n.state != TRANSIENT) {
+	if (n.state != TRANSIENT) {
 	    // check node in with transactor cache
 	    String nID = n.getID();
 	    Transactor tx = (Transactor) Thread.currentThread ();
 	    tx.visitCleanNode (new DbKey (nmap, nID), n);
 	    // if the field is not the primary key of the property, also register it
-	    if (rel != null && rel.reftype == Relation.DIRECT && state != TRANSIENT) {
+	    if (rel != null && rel.accessor != null && state != TRANSIENT) {
 	        Key secKey = new SyntheticKey (getKey (), propname);
 	        nmgr.evictKey (secKey);
 	        tx.visitCleanNode (secKey, n);
 	    }
-	} */
+	}
 
 	lastmodified = System.currentTimeMillis ();
 	if (n.state == DELETED) n.markAs (MODIFIED);
