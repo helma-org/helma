@@ -31,7 +31,7 @@ public class FileUpload {
      * Creates a new FileUpload object.
      */
     public FileUpload() {
-        maxKbytes = 1024;
+        maxKbytes = 4096;
     }
 
     /**
@@ -67,7 +67,7 @@ public class FileUpload {
               throws Exception {
         parts = new Hashtable();
 
-        String boundary = getSubHeader(contentType, "boundary");
+        String boundary = MimePart.getSubHeader(contentType, "boundary");
 
         if (boundary == null) {
             throw new MimeParserException("Error parsing MIME input stream.");
@@ -107,8 +107,8 @@ public class FileUpload {
 
             String type = headers.getValue("Content-Type");
             String disposition = headers.getValue("Content-Disposition");
-            String name = getSubHeader(disposition, "name");
-            String filename = getSubHeader(disposition, "filename");
+            String name = MimePart.getSubHeader(disposition, "name");
+            String filename = MimePart.getSubHeader(disposition, "filename");
 
             if (filename != null) {
                 int sep = filename.lastIndexOf("\\");
@@ -132,29 +132,5 @@ public class FileUpload {
                 parts.put(name, new String(newb, encoding));
             }
         }
-    }
-
-    private String getSubHeader(String header, String subHeaderName) {
-        if (header == null) {
-            return null;
-        }
-
-        String retval = null;
-        StringTokenizer headerTokenizer = new StringTokenizer(header, ";");
-
-        while (headerTokenizer.hasMoreTokens()) {
-            String token = headerTokenizer.nextToken().trim();
-            int i = token.indexOf("=");
-
-            if (i > 0) {
-                String hname = token.substring(0, i).trim();
-
-                if (hname.equalsIgnoreCase(subHeaderName)) {
-                    retval = token.substring(i + 1).replace('"', ' ').trim();
-                }
-            }
-        }
-
-        return retval;
     }
 }

@@ -18,6 +18,7 @@ package helma.util;
 
 import java.io.*;
 import java.util.Date;
+import java.util.StringTokenizer;
 
 /**
  * This represents a MIME part of a HTTP file upload
@@ -87,9 +88,17 @@ public class MimePart implements Serializable {
      */
     public String getText() {
         if ((contentType == null) || contentType.startsWith("text/")
-                                  || contentType.equals("application/text")) {
-            // FIXME: check for encoding
-            return new String(content);
+                                  || contentType.startsWith("application/text")) {
+            String charset = getSubHeader(contentType, "charset");
+            if (charset != null) {
+                try {
+                    return new String(content, charset);
+                } catch (UnsupportedEncodingException uee) {
+                    return new String(content);
+                }
+            } else {
+                return new String(content);
+            }
         } else {
             return null;
         }
@@ -151,4 +160,33 @@ public class MimePart implements Serializable {
             return null;
         }
     }
+
+    /**
+     *  Get a sub-header from a header, e.g. the charset from
+     *  <code>Content-Type: text/plain; charset="UTF-8"</code>
+     */
+    public static String getSubHeader(String header, String subHeaderName) {
+        if (header == null) {
+            return null;
+        }
+
+        StringTokenizer headerTokenizer = new StringTokenizer(header, ";");
+
+        while (headerTokenizer.hasMoreTokens()) {
+            String token = headerTokenizer.nextToken().trim();
+            int i = token.indexOf("=");
+
+            if (i > 0) {
+                String hname = token.substring(0, i).trim();
+
+                if (hname.equalsIgnoreCase(subHeaderName)) {
+                    String value = token.substring(i + 1);
+                    return value.replace('"', ' ').trim();
+                }
+            }
+        }
+
+        return null;
+    }
+
 }
