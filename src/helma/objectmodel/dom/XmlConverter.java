@@ -6,6 +6,7 @@ import java.util.*;
 
 import javax.xml.parsers.*;
 import org.w3c.dom.*;
+import org.xml.sax.InputSource;
 
 import helma.objectmodel.*;
 import helma.util.SystemProperties;
@@ -68,6 +69,15 @@ public class XmlConverter implements XmlConstants {
 
     public INode convert( InputStream in, INode helmaNode ) throws RuntimeException {
 	Document document = XmlUtil.parse (in);
+	if ( document!=null && document.getDocumentElement()!=null ) {
+	    return convert( document.getDocumentElement(), helmaNode, new HashMap() );
+	} else {
+	    return helmaNode;
+	}
+    }
+
+    public INode convertFromString( String xml, INode helmaNode ) throws RuntimeException {
+	Document document = XmlUtil.parse (new InputSource (new StringReader (xml)));
 	if ( document!=null && document.getDocumentElement()!=null ) {
 	    return convert( document.getDocumentElement(), helmaNode, new HashMap() );
 	} else {
