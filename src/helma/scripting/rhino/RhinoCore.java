@@ -504,6 +504,7 @@ public final class RhinoCore {
      * convert a JavaScript Object object to a generic Java object stucture.
      */
     public Object processXmlRpcResponse (Object what) throws Exception {
+        // unwrap if argument is a Wrapper
         if (what instanceof Wrapper) {
             what = ((Wrapper) what).unwrap();
         }
@@ -521,8 +522,7 @@ public final class RhinoCore {
                 }
             }
             what = ht;
-        }
-        if (what instanceof NativeArray) {
+        } else if (what instanceof NativeArray) {
             NativeArray na = (NativeArray) what;
             Number n = (Number) na.get("length", na);
             int l = n.intValue();
@@ -531,16 +531,17 @@ public final class RhinoCore {
                 retval.add(i, processXmlRpcResponse(na.get(i, na)));
             }
             what = retval;
-        }
-        if (what instanceof Number) {
+        } else if (what instanceof Map) {
+            Map map = (Map) what;
+            what = new Hashtable(map);
+        } else if (what instanceof Number) {
             Number n = (Number) what;
             if (what instanceof Float || what instanceof Long) {
                 what = new Double(n.doubleValue());
             } else if (!(what instanceof Double)) {
                 what = new Integer(n.intValue());
             }
-        }
-        if (what instanceof Scriptable) {
+        } else if (what instanceof Scriptable) {
             Scriptable s = (Scriptable) what;
             if ("Date".equals(s.getClassName())) {
                 what = new Date((long) ScriptRuntime.toNumber(s));
