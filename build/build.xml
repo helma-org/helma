@@ -307,6 +307,7 @@
       <copy todir="${antclick.dir}/apps/antville/">
         <fileset dir="${build.checkout}/hopbuild/skeleton/extras" includes="db.properties"/>
       </copy>
+      <chmod file="${antclick.dir}/hop.sh" perm="755"/>
 			<zip zipfile="../antclick.zip" basedir="${build.work}/" includes="antclick/**"/>
     </target>
 
