@@ -53,7 +53,11 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	        dvalue = in.readDouble ();
 	        break;
 	    case NODE:
-	        nhandle = (NodeHandle) in.readObject ();
+	        // try to convert from old format
+	        if (node.version > 4)
+	            nhandle = (NodeHandle) in.readObject ();
+	        else
+	            nhandle = new NodeHandle (new DbKey (null, in.readUTF ()));
 	        break;
 	    case JAVAOBJECT:
 	        jvalue = in.readObject ();
