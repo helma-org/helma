@@ -18,6 +18,8 @@ package helma.framework;
 
 import helma.framework.core.Skin;
 import helma.util.*;
+
+import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.security.*;
 import java.util.*;
@@ -111,13 +113,13 @@ public final class ResponseTrans implements Serializable {
     public transient String error;
 
     // the res.data map of form and cookie data
-    private transient Map values;
+    private transient Map values = new SystemMap();;
 
     // the res.handlers map of macro handlers
-    private transient Map handlers;
+    private transient Map handlers = new SystemMap();;
 
     // the res.meta map for meta response data
-    private transient Map meta;
+    private transient Map meta = new SystemMap();;
     
     // the request trans for this response
     private transient RequestTrans reqtrans;
@@ -130,22 +132,10 @@ public final class ResponseTrans implements Serializable {
 
     /**
      * Creates a new ResponseTrans object.
-     */
-    public ResponseTrans() {
-        super();
-        message = error = null;
-        values = new SystemMap();
-        handlers = new SystemMap();
-        meta = new SystemMap();
-    }
-
-    /**
-     * Creates a new ResponseTrans object.
      *
-     * @param req ...
+     * @param req the RequestTrans for this response
      */
     public ResponseTrans(RequestTrans req) {
-        this();
         reqtrans = req;
     }
 
@@ -179,6 +169,14 @@ public final class ResponseTrans implements Serializable {
      */
     public Map getMetaData() {
         return meta;
+    }
+
+    /**
+     * Returns the ServletResponse instance for this ResponseTrans.
+     * Returns null for internal and XML-RPC requests.
+     */
+    public HttpServletResponse getServletResponse() {
+        return reqtrans.getServletResponse();
     }
 
     /**

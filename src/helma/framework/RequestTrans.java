@@ -20,6 +20,7 @@ import helma.util.Base64;
 import helma.util.SystemMap;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.util.*;
 
@@ -44,8 +45,9 @@ public class RequestTrans implements Serializable {
     public final static String EXTERNAL = "EXTERNAL";
     public final static String INTERNAL = "INTERNAL";
 
-    // the servlet request, may be null
+    // the servlet request and response, may be null
     HttpServletRequest request;
+    HttpServletResponse response;
 
     // the uri path of the request
     public String path;
@@ -85,9 +87,10 @@ public class RequestTrans implements Serializable {
     /**
      *  Create a new request transmitter with the given data map.
      */
-    public RequestTrans(HttpServletRequest request) {
+    public RequestTrans(HttpServletRequest request, HttpServletResponse response) {
         this.method = request.getMethod();
         this.request = request;
+        this.response = response;
         values = new SystemMap();
     }
 
@@ -122,6 +125,14 @@ public class RequestTrans implements Serializable {
      */
     public HttpServletRequest getServletRequest() {
         return request;
+    }
+
+    /**
+     * Returns the Servlet response for this request.
+     * Returns null for internal and XML-RPC requests.
+     */
+    public HttpServletResponse getServletResponse() {
+        return response;
     }
 
     /**

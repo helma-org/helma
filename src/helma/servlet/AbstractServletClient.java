@@ -100,7 +100,7 @@ public abstract class AbstractServletClient extends HttpServlet {
     protected void service (HttpServletRequest request, HttpServletResponse response)
                 throws ServletException, IOException {
 
-        RequestTrans reqtrans = new RequestTrans(request);
+        RequestTrans reqtrans = new RequestTrans(request, response);
 
         try {
             // get the character encoding

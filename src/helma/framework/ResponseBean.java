@@ -18,6 +18,7 @@ package helma.framework;
 
 import helma.objectmodel.db.Transactor;
 
+import javax.servlet.http.HttpServletResponse;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.Map;
@@ -91,6 +92,14 @@ public class ResponseBean implements Serializable {
      */
     public void reset() {
         res.reset();
+    }
+
+    /**
+     * Returns the ServletResponse instance for this Response.
+     * Returns null for internal and XML-RPC requests.
+     */
+    public HttpServletResponse getServletResponse() {
+        return res.getServletResponse();
     }
 
     /**

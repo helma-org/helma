@@ -594,7 +594,7 @@ public final class Application implements IPathElement, Runnable {
             throw stopped;
         } catch (Exception x) {
             errorCount += 1;
-            res = new ResponseTrans();
+            res = new ResponseTrans(req);
             res.writeErrorReport(name, x.getMessage());
         } finally {
             if (primaryRequest) {
