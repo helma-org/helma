@@ -35,7 +35,10 @@ public class DbMapping implements Updatable {
     // name of db table
     String table;
 
-    ParentInfo[] parent;  // list of properties to try for parent
+    // list of properties to try for parent
+    ParentInfo[] parent;
+    // list of properties to try as skinmanager
+    String[] skinmgr;
 
     // DbMapping subnodes;
     // DbMapping properties;
@@ -166,6 +169,15 @@ public class DbMapping implements Updatable {
 	        parent[i] = new ParentInfo (st.nextToken().trim());
 	} else
 	    parent = null;
+	
+	String skm = props.getProperty ("_skinmanager");
+	if (skm != null) {
+	    StringTokenizer st = new StringTokenizer (skm, ",;");
+	    skinmgr = new String[st.countTokens()];
+	    for (int i=0; i<skinmgr.length; i++)
+	        skinmgr[i] = st.nextToken().trim();
+	} else
+	    skinmgr = null;
 
 	lastTypeChange = props.lastModified ();
 	// set the cached schema & keydef to null so it's rebuilt the next time around
@@ -389,6 +401,10 @@ public class DbMapping implements Updatable {
     	if (parent == null && parentMapping != null)
     	    return parentMapping.getParentInfo ();
 	return parent;
+    }
+
+    public String[] getSkinManagers () {
+	return skinmgr;
     }
 
 
