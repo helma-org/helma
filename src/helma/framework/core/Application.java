@@ -241,7 +241,7 @@ public final class Application implements IPathElement, Runnable {
         // create app-level db sources
         File dbpropfile = new File(appDir, "db.properties");
 
-        dbProps = new SystemProperties(dbpropfile.getAbsolutePath(), sysDbProps);
+        dbProps = new SystemProperties(dbpropfile.getAbsolutePath(), sysDbProps, false);
 
         // the passwd file, to be used with the authenticate() function
         CryptFile parentpwfile = null;
