@@ -50,6 +50,8 @@ public class ESUser extends ESNode {
 	    else
 	        return new ESString (user.getSessionID ());
 	}
+	if ("cache".equals (propname))
+	    return cacheWrapper;
 	return super.getProperty (propname, hash);
     }
 
