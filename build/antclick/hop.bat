@@ -13,8 +13,8 @@ set OPTIONS=
 
 :: Set TCP ports for Helma servers
 :: (comment/uncomment to de/activate)
-set HTTP_PORT=8080
-rem set XMLRPC_PORT=8081
+set HTTP_PORT=80
+set XMLRPC_PORT=8081
 rem set AJP13_PORT=8009
 rem set RMI_PORT=5050
 
