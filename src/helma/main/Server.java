@@ -88,72 +88,298 @@ public class Server implements IPathElement, Runnable {
     // the XML-RPC server
     protected WebServer xmlrpc;
 
+
     /**
      * Constructs a new Server instance with an array of command line options.
      */
-    public Server(String[] args) {
+    public Server(Config config) {
         starttime = System.currentTimeMillis();
 
-        String homeDir = System.getProperty("helma.home");
+        rmiPort    = config.rmiPort;
+        xmlrpcPort = config.xmlrpcPort;
+        websrvPort = config.websrvPort;
+        ajp13Port  = config.ajp13Port;
+        hopHome    = config.homeDir;
 
-        boolean usageError = false;
+        // create system properties
+        sysProps = new SystemProperties(config.propFile.getAbsolutePath());
+    }
 
-        // file names of various property files
-        String propfile = null;
-        String dbPropfile = "db.properties";
-        String appsPropfile = null;
+
+    /**
+     *  static main entry point.
+     */
+    public static void main(String[] args) {
+        checkJavaVersion();
+
+        Config config = null;
+        try {
+            config = parseArgs(args);
+        } catch (Exception cex) {
+            printUsageError(cex.toString());
+            System.exit(1);
+        }
+
+        if (!config.hasPortSetting()) {
+            printUsageError("no server ports set");
+            System.exit(1);
+        }
+
+        checkRunning(config);
+
+        // create new server instance
+        server = new Server(config);
+
+        // parse properties files etc
+        server.init();
+
+        // start the server main thread
+        server.start();
+    }
+
+
+    /**
+      * check if we are running on a Java 2 VM - otherwise exit with an error message
+      */
+    public static void checkJavaVersion() {
+        String javaVersion = System.getProperty("java.version");
+
+        if ((javaVersion == null) || javaVersion.startsWith("1.2")
+                                  || javaVersion.startsWith("1.1")
+                                  || javaVersion.startsWith("1.0")) {
+            System.err.println("This version of Helma requires Java 1.3 or greater.");
+
+            if (javaVersion == null) { // don't think this will ever happen, but you never know
+                System.err.println("Your Java Runtime did not provide a version number. Please update to a more recent version.");
+            } else {
+                System.err.println("Your Java Runtime is version " + javaVersion +
+                                   ". Please update to a more recent version.");
+            }
+
+            System.exit(1);
+        }
+    }
+
+
+    /**
+      * parse the command line arguments, read a given server.properties file
+      * and check the values given for server ports
+      * @return Config if successfull
+      * @throews Exception on any configuration error
+      */
+    public static Config parseArgs(String[] args) throws Exception {
+
+        Config config = new Config();
+
+        if (System.getProperty("helma.home")!=null) {
+            config.homeDir = new File(System.getProperty("helma.home"));
+        }
 
         // parse arguments
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("-h") && ((i + 1) < args.length)) {
-                homeDir = args[++i];
+                config.homeDir = new File(args[++i]);
             } else if (args[i].equals("-f") && ((i + 1) < args.length)) {
-                propfile = args[++i];
+                config.propFile = new File(args[++i]);
             } else if (args[i].equals("-p") && ((i + 1) < args.length)) {
                 try {
-                    rmiPort = new InetAddrPort(args[++i]);
+                    config.rmiPort = new InetAddrPort(args[++i]);
                 } catch (Exception portx) {
-                    usageError = true;
+                    throw new Exception("Error parsing RMI server port property: " + portx);
                 }
             } else if (args[i].equals("-x") && ((i + 1) < args.length)) {
                 try {
-                    xmlrpcPort = new InetAddrPort(args[++i]);
+                    config.xmlrpcPort = new InetAddrPort(args[++i]);
                 } catch (Exception portx) {
-                    usageError = true;
+                    throw new Exception("Error parsing XML-RPC server port property: " + portx);
                 }
             } else if (args[i].equals("-w") && ((i + 1) < args.length)) {
                 try {
-                    websrvPort = new InetAddrPort(args[++i]);
+                    config.websrvPort = new InetAddrPort(args[++i]);
                 } catch (Exception portx) {
-                    usageError = true;
+                    throw new Exception("Error parsing web server port property: " + portx);
                 }
             } else if (args[i].equals("-jk") && ((i + 1) < args.length)) {
                 try {
-                    ajp13Port = new InetAddrPort(args[++i]);
+                    config.ajp13Port = new InetAddrPort(args[++i]);
                 } catch (Exception portx) {
-                    usageError = true;
+                    throw new Exception("Error parsing AJP1.3 server port property: " + portx);
                 }
             } else if (args[i].equals("-i") && ((i + 1) < args.length)) {
                 // eat away the -i parameter which is meant for helma.main.launcher.Main
                 i++;
             } else {
-                System.err.println("Unknown command line token: " + args[i]);
-                usageError = true;
+                throw new Exception("Unknown command line token: " + args[i]);
             }
         }
 
         // get main property file from home dir or vice versa, depending on what we have.
         // get property file from hopHome
-        if (propfile == null) {
-            if (homeDir != null) {
-                propfile = new File(homeDir, "server.properties").getAbsolutePath();
+        if (config.propFile == null) {
+            if (config.homeDir != null) {
+                config.propFile = new File(config.homeDir, "server.properties");
             } else {
-                propfile = new File("server.properties").getAbsolutePath();
+                config.propFile = new File("server.properties");
             }
         }
 
         // create system properties
-        sysProps = new SystemProperties(propfile);
+        SystemProperties sysProps = new SystemProperties(config.propFile.getAbsolutePath());
+
+        // check if there's a property setting for those ports not specified via command line
+        if ((config.websrvPort == null) && (sysProps.getProperty("webPort") != null)) {
+            try {
+                config.websrvPort = new InetAddrPort(sysProps.getProperty("webPort"));
+            } catch (Exception portx) {
+                throw new Exception("Error parsing web server port property from server.properties: " + portx);
+            }
+        }
+
+        if ((config.ajp13Port == null) && (sysProps.getProperty("ajp13Port") != null)) {
+            try {
+                config.ajp13Port = new InetAddrPort(sysProps.getProperty("ajp13Port"));
+            } catch (Exception portx) {
+                throw new Exception("Error parsing AJP1.3 server port property from server.properties: " + portx);
+            }
+        }
+
+        if ((config.rmiPort == null) && (sysProps.getProperty("rmiPort") != null)) {
+            try {
+                config.rmiPort = new InetAddrPort(sysProps.getProperty("rmiPort"));
+            } catch (Exception portx) {
+                throw new Exception("Error parsing RMI server port property from server.properties: " + portx);
+            }
+        }
+
+        if ((config.xmlrpcPort == null) && (sysProps.getProperty("xmlrpcPort") != null)) {
+            try {
+                config.xmlrpcPort = new InetAddrPort(sysProps.getProperty("xmlrpcPort"));
+            } catch (Exception portx) {
+                throw new Exception("Error parsing XML-RPC server port property from server.properties: " + portx);
+            }
+        }
+
+        // get hopHome from property file
+        if (config.homeDir == null) {
+            config.homeDir = new File(sysProps.getProperty("hophome"));
+        }
+
+        if (config.homeDir == null) {
+            config.homeDir = new File(config.propFile.getParent());
+        }
+
+        // try to transform hopHome directory to its canonical representation
+        try {
+            config.homeDir = config.homeDir.getCanonicalFile();
+        } catch (IOException iox) {
+            config.homeDir = config.homeDir.getAbsoluteFile();
+        }
+
+        return config;
+    }
+
+
+
+    /**
+      * print the usage hints and prefix them with a message.
+      */
+    public static void printUsageError(String msg) {
+        System.out.println(msg);
+        printUsageError();
+    }
+
+
+    /**
+      * print the usage hints
+      */
+    public static void printUsageError() {
+        System.out.println("");
+        System.out.println("Usage: java helma.main.Server [options]");
+        System.out.println("Possible options:");
+        System.out.println("  -h dir       Specify hop home directory");
+        System.out.println("  -f file      Specify server.properties file");
+        System.out.println("  -w [ip:]port      Specify embedded web server address/port");
+        System.out.println("  -x [ip:]port      Specify XML-RPC address/port");
+        System.out.println("  -jk [ip:]port     Specify AJP13 address/port");
+        System.out.println("  -p [ip:]port      Specify RMI address/port");
+        System.out.println("");
+        System.out.println("Supported formats for server ports:");
+        System.out.println("   <port-number>");
+        System.out.println("   <ip-address>:<port-number>");
+        System.out.println("   <hostname>:<port-number>");
+        System.out.println("");
+        System.err.println("Usage Error - exiting");
+        System.out.println("");
+    }
+
+
+
+    /**
+     *  Check wheter a server is already running on any of the given ports
+     *  - otherwise exit with an error message
+     */
+    public static void checkRunning(Config config) {
+        // check if any of the specified server ports is in use already
+        try {
+            if (config.websrvPort != null) {
+                checkPort(config.websrvPort);
+            }
+
+            if (config.rmiPort != null) {
+                checkPort(config.rmiPort);
+            }
+
+            if (config.xmlrpcPort != null) {
+                checkPort(config.xmlrpcPort);
+            }
+
+            if (config.ajp13Port != null) {
+                checkPort(config.ajp13Port);
+            }
+        } catch (Exception running) {
+            System.out.println(running.getMessage());
+            System.exit(1);
+        }
+
+    }
+
+
+    /**
+     *  A primitive method to check whether a server is already running on our port.
+     */
+    private static void checkPort(InetAddrPort addrPort) throws Exception {
+        // checkRunning is disabled until we find a fix for the socket creation
+        // timeout problems reported on the list.
+        return;
+
+        /*
+        InetAddress addr = addrPort.getInetAddress();
+        if (addr == null) {
+            try {
+                addr = InetAddress.getLocalHost();
+            } catch (UnknownHostException unknown) {
+                System.err.println("Error checking running server: localhost is unknown.");
+                return;
+            }
+        }
+        try {
+            new Socket(addr, addrPort.getPort());
+        } catch (IOException x) {
+            // we couldn't connect to the socket because no server
+            // is running on it yet. Everything's ok.
+            return;
+        }
+
+        // if we got so far, another server is already running on this port and db
+        throw new Exception("Error: Server already running on this port: " + addrPort);
+        */
+    }
+
+
+    /**
+      * initialize the server
+      */
+    public void init() {
 
         // set the log factory property
         String logFactory = sysProps.getProperty("loggerFactory",
@@ -161,109 +387,6 @@ public class Server implements IPathElement, Runnable {
 
         helmaLogging = "helma.util.Logging".equals(logFactory);
         System.setProperty("org.apache.commons.logging.LogFactory", logFactory);
-
-        // check if there's a property setting for those ports not specified via command line
-        if ((websrvPort == null) && (sysProps.getProperty("webPort") != null)) {
-            try {
-                websrvPort = new InetAddrPort(sysProps.getProperty("webPort"));
-            } catch (Exception fmt) {
-                System.err.println("Error parsing web server port property: " + fmt);
-            }
-        }
-
-        if ((ajp13Port == null) && (sysProps.getProperty("ajp13Port") != null)) {
-            try {
-                ajp13Port = new InetAddrPort(sysProps.getProperty("ajp13Port"));
-            } catch (Exception fmt) {
-                System.err.println("Error parsing AJP1.3 server port property: " + fmt);
-            }
-        }
-
-        if ((rmiPort == null) && (sysProps.getProperty("rmiPort") != null)) {
-            try {
-                rmiPort = new InetAddrPort(sysProps.getProperty("rmiPort"));
-            } catch (Exception fmt) {
-                System.err.println("Error parsing RMI server port property: " + fmt);
-            }
-        }
-
-        if ((xmlrpcPort == null) && (sysProps.getProperty("xmlrpcPort") != null)) {
-            try {
-                xmlrpcPort = new InetAddrPort(sysProps.getProperty("xmlrpcPort"));
-            } catch (Exception fmt) {
-                System.err.println("Error parsing XML-RPC server port property: " + fmt);
-            }
-        }
-
-        // check server ports. If no port is set, issue a warning and exit.
-        if (!usageError && websrvPort == null && ajp13Port == null &&
-                           rmiPort == null && xmlrpcPort == null) {
-            System.out.println("  Error: No server port specified.");
-            usageError = true;
-        }
-
-        // if there's a usage error, output message and exit
-        if (usageError) {
-            System.out.println("");
-            System.out.println("Usage: java helma.main.Server [options]");
-            System.out.println("Possible options:");
-            System.out.println("  -h dir       Specify hop home directory");
-            System.out.println("  -f file      Specify server.properties file");
-            System.out.println("  -w [ip:]port      Specify embedded web server address/port");
-            System.out.println("  -x [ip:]port      Specify XML-RPC address/port");
-            System.out.println("  -jk [ip:]port     Specify AJP13 address/port");
-            System.out.println("  -p [ip:]port      Specify RMI address/port");
-            System.out.println("");
-            System.out.println("Supported formats for server ports:");
-            System.out.println("   <port-number>");
-            System.out.println("   <ip-address>:<port-number>");
-            System.out.println("   <hostname>:<port-number>");
-            System.out.println("");
-            System.err.println("Usage Error - exiting");
-            System.out.println("");
-            System.exit(0);
-        }
-
-        // check if any of the specified server ports is in use already
-        try {
-            if (websrvPort != null) {
-                checkRunning(websrvPort);
-            }
-
-            if (rmiPort != null) {
-                checkRunning(rmiPort);
-            }
-
-            if (xmlrpcPort != null) {
-                checkRunning(xmlrpcPort);
-            }
-
-            if (ajp13Port != null) {
-                checkRunning(ajp13Port);
-            }
-        } catch (Exception running) {
-            System.out.println(running.getMessage());
-            System.exit(1);
-        }
-
-        // get hopHome from property file
-        if (homeDir == null) {
-            homeDir = sysProps.getProperty("hophome");
-        }
-
-        if (homeDir == null) {
-            homeDir = new File(propfile).getParent();
-        }
-
-        // create hopHome File object
-        hopHome = new File(homeDir);
-
-        // try to transform hopHome directory to its cononical representation
-        try {
-            hopHome = hopHome.getCanonicalFile();
-        } catch (IOException iox) {
-            hopHome = hopHome.getAbsoluteFile();
-        }
 
         // set the current working directory to the helma home dir.
         // note that this is not a real cwd, which is not supported
@@ -285,22 +408,20 @@ public class Server implements IPathElement, Runnable {
 
         logger.info("Setting Helma Home to " + hopHome);
 
-        File helper = new File(hopHome, "db.properties");
 
-        dbPropfile = helper.getAbsolutePath();
-        dbProps = new SystemProperties(dbPropfile);
+        // read db.properties file in helma home directory
+        File helper = new File(hopHome, "db.properties");
+        dbProps = new SystemProperties(helper.getAbsolutePath());
         DbSource.setDefaultProps(dbProps);
 
-        appsPropfile = sysProps.getProperty("appsPropFile");
-
+        // read apps.properties file
+        String appsPropfile = sysProps.getProperty("appsPropFile");
         if ((appsPropfile != null) && !"".equals(appsPropfile.trim())) {
             helper = new File(appsPropfile);
         } else {
             helper = new File(hopHome, "apps.properties");
         }
-
-        appsPropfile = helper.getAbsolutePath();
-        appsProps = new SystemProperties(appsPropfile);
+        appsProps = new SystemProperties(helper.getAbsolutePath());
 
         paranoid = "true".equalsIgnoreCase(sysProps.getProperty("paranoid"));
 
@@ -324,56 +445,33 @@ public class Server implements IPathElement, Runnable {
 
         // try to load the extensions
         extensions = new Vector();
-
         if (sysProps.getProperty("extensions") != null) {
-            StringTokenizer tok = new StringTokenizer(sysProps.getProperty("extensions"),
-                                                      ",");
-
-            while (tok.hasMoreTokens()) {
-                String extClassName = tok.nextToken().trim();
-
-                try {
-                    Class extClass = Class.forName(extClassName);
-                    HelmaExtension ext = (HelmaExtension) extClass.newInstance();
-
-                    ext.init(this);
-                    extensions.add(ext);
-                    logger.info("Loaded: " + extClassName);
-                } catch (Throwable e) {
-                    logger.error("Error loading extension " + extClassName + ": " + e.toString());
-                }
-            }
+            initExtensions();
         }
     }
+
 
     /**
-     *  static main entry point.
-     */
-    public static void main(String[] args) {
-        // check if we are running on a Java 2 VM - otherwise exit with an error message
-        String javaVersion = System.getProperty("java.version");
+      * initialize extensions
+      */
+    private void initExtensions() {
+        StringTokenizer tok = new StringTokenizer(sysProps.getProperty("extensions"), ",");
+        while (tok.hasMoreTokens()) {
+            String extClassName = tok.nextToken().trim();
 
-        if ((javaVersion == null) || javaVersion.startsWith("1.2")
-                                  || javaVersion.startsWith("1.1")
-                                  || javaVersion.startsWith("1.0")) {
-            System.err.println("This version of Helma requires Java 1.3 or greater.");
-
-            if (javaVersion == null) { // don't think this will ever happen, but you never know
-                System.err.println("Your Java Runtime did not provide a version number. Please update to a more recent version.");
-            } else {
-                System.err.println("Your Java Runtime is version " + javaVersion +
-                                   ". Please update to a more recent version.");
+            try {
+                Class extClass = Class.forName(extClassName);
+                HelmaExtension ext = (HelmaExtension) extClass.newInstance();
+                ext.init(this);
+                extensions.add(ext);
+                logger.info("Loaded: " + extClassName);
+            } catch (Throwable e) {
+                logger.error("Error loading extension " + extClassName + ": " + e.toString());
             }
-
-            System.exit(1);
         }
-
-        // create new server instance
-        server = new Server(args);
-
-        // start the server main thread
-        server.start();
     }
+
+
 
     protected void start() {
         // Start running, finishing setup and then entering a loop to check changes
@@ -640,37 +738,6 @@ public class Server implements IPathElement, Runnable {
     }
 
     /**
-     *  A primitive method to check whether a server is already running on our port.
-     */
-    private void checkRunning(InetAddrPort addrPort) throws Exception {
-        // checkRunning is disabled until we find a fix for the socket creation
-        // timeout problems reported on the list.
-        return;
-
-        /*
-        InetAddress addr = addrPort.getInetAddress();
-        if (addr == null) {
-            try {
-                addr = InetAddress.getLocalHost();
-            } catch (UnknownHostException unknown) {
-                System.err.println("Error checking running server: localhost is unknown.");
-                return;
-            }
-        }
-        try {
-            new Socket(addr, addrPort.getPort());
-        } catch (IOException x) {
-            // we couldn't connect to the socket because no server
-            // is running on it yet. Everything's ok.
-            return;
-        }
-
-        // if we got so far, another server is already running on this port and db
-        throw new Exception("Error: Server already running on this port: " + addrPort);
-        */
-    }
-
-    /**
      *
      *
      * @param key ...
@@ -785,4 +852,5 @@ public class Server implements IPathElement, Runnable {
     public String getPrototype() {
         return "root";
     }
+
 }
