@@ -124,17 +124,23 @@ public final class TypeManager {
 	                zipfiles.put (filename, zipped);
 	            }
 	        }
-	    } else {
-	        // update prototype's type mapping
-	        DbMapping dbmap = proto.getDbMapping ();
-	        if (dbmap != null && dbmap.needsUpdate ()) {
-	            dbmap.update ();
+	    }
+	}
+
+	// loop through prototypes and check if type.properties needs updates
+	// it's important that we do this _after_ potentially new prototypes 
+	// have been created in the previous loop.
+	for (Iterator i=prototypes.values().iterator(); i.hasNext(); ) {
+	    Prototype proto = (Prototype) i.next ();
+	    // update prototype's type mapping
+	    DbMapping dbmap = proto.getDbMapping ();
+	    if (dbmap != null && dbmap.needsUpdate ()) {
+	        dbmap.update ();
 	        // set parent prototype, in case it has changed.
 	        String parentName = dbmap.getExtends ();
 	        if (parentName == null)
 	            parentName = "hopobject";
 	        proto.setParentPrototype (getPrototype (parentName));
-	        }
 	    }
 	}
 
@@ -150,9 +156,9 @@ public final class TypeManager {
 
 
     private boolean isValidTypeName (String str) {
-    	if (str == null)
-    	    return false;
-    	char[] c = str.toCharArray ();
+	if (str == null)
+	    return false;
+	char[] c = str.toCharArray ();
 	for (int i=0; i<c.length; i++)
 	    if (!Character.isJavaIdentifierPart (c[i]))
 	        return false;
