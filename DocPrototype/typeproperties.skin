@@ -3,7 +3,7 @@
 	<td class="headline">type.properties</td>
 </tr>
 <tr>
-	<td class="mainbox"><pre><% param.content encoding="html" %></pre></td>
+	<td class="mainbox"><pre><% param.content %></pre></td>
 </tr>
 </table>
 
