@@ -142,7 +142,7 @@ public class Transactor extends Thread {
 	        nmgr.updateNode (nmgr.db, txn, node);
 	        node.setState (Node.CLEAN);
 	        upd++;
-	        IServer.getLogger().log ("updated: "+node.getFullName ());
+	        IServer.getLogger().log ("updated: Node "+node.getName ()+"/"+node.getID ());
 	    } else if (nstate == Node.DELETED) {
 	        // IServer.getLogger().log ("deleted: "+node.getFullName ()+" ("+node.getName ()+")");
 	        nmgr.deleteNode (nmgr.db, txn, node);
@@ -156,7 +156,6 @@ public class Transactor extends Thread {
 
 	nodes.clear ();
 	cleannodes.clear ();
-	// sqlCon.clear ();
 
 	if (nmgr.idgen.dirty) {
 	    nmgr.db.save (txn, "idgen", nmgr.idgen);
@@ -174,7 +173,6 @@ public class Transactor extends Thread {
 
     public synchronized void abort () throws Exception {
 
-	int l = nodes.size ();
 	for (Iterator i=nodes.values().iterator(); i.hasNext(); ) {
 	    Node node = (Node) i.next ();
 	    // Declare node as invalid, so it won't be used by other threads that want to
@@ -184,13 +182,8 @@ public class Transactor extends Thread {
 	}
 	nodes.clear ();
 	cleannodes.clear ();
-	for (Iterator i=sqlCon.values().iterator(); i.hasNext(); ) {
-	    try {
-	        Connection con = (Connection) i.next ();
-	        con.close ();
-	    } catch (Exception ignore) {}
-	}
-	sqlCon.clear ();
+	// close any JDBC connections associated with this transactor thread
+	closeConnections ();
 
 	if (active) {
 	    active = false;
@@ -220,18 +213,22 @@ public class Transactor extends Thread {
 	}
     }
 
-    public void cleanup () {
+    public void closeConnections () {
 	// IServer.getLogger().log("Cleaning up Transactor thread");
 	if (sqlCon != null) {
 	    for (Iterator i=sqlCon.values().iterator(); i.hasNext(); ) {
 	        try {
 	            Connection con = (Connection) i.next();
 	            con.close ();
+	            IServer.getLogger ().log ("Closing DB connection: "+con);
 	        } catch (Exception ignore) {}
 	    }
 	    sqlCon.clear ();
-	    sqlCon = null;
 	}
+    }
+
+    public String toString () {
+	return "Transactor["+tname+"]";
     }
 
 }
