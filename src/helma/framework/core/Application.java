@@ -8,7 +8,7 @@ import helma.doc.DocException;
 import helma.framework.*;
 import helma.main.Server;
 import helma.scripting.*;
-import helma.scripting.fesi.ESUser;
+//import helma.scripting.fesi.ESUser;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.xmlrpc.*;
@@ -263,8 +263,12 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	String usernameField = userMapping.getNameField ();
 	if (usernameField == null)
 	    usernameField = "name";
-	p.put ("_properties", "user."+usernameField);
+	p.put ("_version","1.2");
+	p.put ("_children", "collection(user)");
+	p.put ("_children.accessname", usernameField);
+//	p.put ("_properties", "user."+usernameField);
 	userRootMapping = new DbMapping (this, "__userroot__", p);
+
 	rewireDbMappings ();
 
 	nmgr = new NodeManager (this, dbDir.getAbsolutePath (), props);
@@ -400,7 +404,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	requestCount += 1;
 	
 	// get user for this request's session
-	User u = getUser (req.session);
+	Session session = checkSession (req.session);
+	session.touch();
 
 	ResponseTrans res = null;
 	RequestEvaluator ev = null;
@@ -419,7 +424,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        // if attachRequest returns null this means we came too late
 	        // and the other request was finished in the meantime
 	        ev = getEvaluator ();
-	        res = ev.invoke (req, u);
+	        res = ev.invoke (req, session);
 	    }
 	} catch (ApplicationStoppedException stopped) {
 	    // let the servlet know that this application has gone to heaven
@@ -579,30 +584,39 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     }
 
     /**
-     * Return the user currently associated with a given Hop session ID. This may be
-     * a registered or an anonymous user.
+     * Return the session currently associated with a given Hop session ID.
+     * Create a new session if necessary.
      */
-    public User getUser (String sessionID) {
-	if (sessionID == null)
-	    return null;
-
-	User u = (User) sessions.get (sessionID);
-	if (u != null) {
-	    u.touch ();
-	} else {
-	    u = new User (sessionID, this);
-	    sessions.put (sessionID, u);
+	public Session checkSession (String sessionID)	{
+		Session session = getSession(sessionID);
+		if ( session==null )	{
+			session = new Session (sessionID, this);
+			sessions.put (sessionID, session);
+		}
+		return session;
 	}
-	return u;
-    }
 
+	public Hashtable getSessionsForUsername (String username)	{
+		User u = (User)activeUsers.get(username);
+		if (u==null)
+			return null;
+		return u.getSessions();
+	}
+
+
+    /**
+     * Return the session currently associated with a given Hop session ID.
+     */
+    public Session getSession (String sessionID) {
+		if (sessionID == null)
+		    return null;
+		return (Session) sessions.get (sessionID);
+    }
 
     /**
      * Register a user with the given user name and password.
      */
     public INode registerUser (String uname, String password) {
-	// Register a user who already has a user object
-	// (i.e. who has been surfing around)
 	if (uname == null)
 	    return null;
 	uname = uname.toLowerCase ().trim ();
@@ -640,45 +654,48 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     /**
      * Log in a user given his or her user name and password.
      */
-    public boolean loginUser (String uname, String password, ESUser u) {
-	// Check the name/password of a user who already has a user object
-	// (i.e. who has been surfing around)
-	if (uname == null)
-	    return false;
-	uname = uname.toLowerCase ().trim ();
-	if ("".equals (uname))
-	    return false;
-
-	try {
-	    INode users = getUserRoot ();
-	    INode unode = users.getNode (uname, false);
-	    String pw = unode.getString ("password", false);
-	    if (pw != null && pw.equals (password)) {
-	        // give the user his/her persistant node
-	        u.setNode (unode);
-	        activeUsers.put (unode.getName (), u.user);
-	        return true;
-	    }
-
-	} catch (Exception x) {
-	    return false;
-	}
-	return false;
+    public boolean loginSession (String uname, String password, Session s) {
+		// Check the name/password of a user and log it in to the current session
+		if (uname == null)
+		    return false;
+		uname = uname.toLowerCase ().trim ();
+		if ("".equals (uname))
+	    	return false;
+		try {
+	    	INode users = getUserRoot ();
+	    	Node unode = (Node)users.getNode (uname, false);
+	    	String pw = unode.getString ("password", false);
+	    	if (pw != null && pw.equals (password)) {
+				// let the old user-object forget about this session
+				logoutSession(s);
+	        	s.login (unode);
+	        	User u = (User)activeUsers.get(unode.getName());
+	        	if (u==null)	{
+			        activeUsers.put (unode.getName (), new User(unode.getHandle(), unode.getName(),s));
+				}	else	{
+					u.addSession(s);
+				}
+	        	return true;
+	    	}
+		} catch (Exception x) {
+	    	return false;
+		}
+		return false;
     }
 
     /**
-     * Log out a user from this application.
+     * Log out a session from this application.
      */
-    public boolean logoutUser (ESUser u) {
-	if (u.user != null) {
-	    String uid = u.user.uid;
-                 if (uid != null)
-	        activeUsers.remove (uid);
-
-	    // switch back to the non-persistent user node as cache
-	    u.setNode (null);
-	}
-	return true;
+    public boolean logoutSession (Session s) {
+		if (s.isLoggedIn()==true) {
+	    	String uid = s.uid;
+			User u = (User) activeUsers.get (uid);
+			if (u.removeSession(s)==0)	{
+				activeUsers.remove (uid);
+			}
+			s.logout();
+		}
+		return true;
     }
 
     /**
@@ -728,11 +745,11 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	    b.insert (0, divider);
 
 	    // users always have a canonical URL like /users/username
-	    if ("user".equals (getPrototypeName (p))) {
-	        b.insert (0, URLEncoder.encode (getElementName (p)));
-	        p = users;
-	        break;
-	    }
+//	    if ("user".equals (getPrototypeName (p))) {
+//	        b.insert (0, URLEncoder.encode (getElementName (p)));
+//	        p = users;
+//	        break;
+//	    }
 	    b.insert (0, URLEncoder.encode (getElementName (p)));
 	    p = getParentElement (p);
 
@@ -740,10 +757,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        break;
 	}
 
-	if (p == users) {
-	    b.insert (0, divider);
-	    b.insert (0, "users");
-	}
+//	if (p == users) {
+//	    b.insert (0, divider);
+//	    b.insert (0, "users");
+//	}
 
 	if (actionName != null)
 	    b.append (URLEncoder.encode (actionName));
@@ -968,16 +985,15 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        // logEvent ("Cleaning up "+name+": " + sessions.size () + " sessions active");
 	        Hashtable cloned = (Hashtable) sessions.clone ();
 	        for (Enumeration e = cloned.elements (); e.hasMoreElements (); ) {
-	            User u = (User) e.nextElement ();
-	            if (now - u.lastTouched () > sessionTimeout * 60000) {
-	                if (u.uid != null) {
-	                    try {
-	                        eval.invokeFunction (u, "onLogout", new Object[0]);
-	                    } catch (Exception ignore) {}
-	                    activeUsers.remove (u.uid);
-	                }
-	                sessions.remove (u.getSessionID ());
-	                u.setNode (null);
+	            Session session = (Session) e.nextElement ();
+	            if (now - session.lastTouched () > sessionTimeout * 60000) {
+//	                if (session.uid != null) {
+//	FIXME onlogout()!        try {
+//	                        eval.invokeFunction (u, "onLogout", new Object[0]);
+//	                    } catch (Exception ignore) {}
+//	                    activeUsers.remove (session.uid);
+//	                }
+					logoutSession(session);
 	            }
 	        }
 	        // logEvent ("Cleaned up "+name+": " + sessions.size () + " sessions remaining");
