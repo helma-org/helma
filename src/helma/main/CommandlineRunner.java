@@ -22,8 +22,8 @@ import java.io.File;
 import java.util.*;
 
 /**
- *  Helma bootstrap class. Figures out Helma home directory, sets up class path and
- *  lauchnes main class. This class must be invoked from a jar file in order to work.
+ *  Helma command line runner class. This class creates and starts a single application,
+ *  invokes a function in, writes its return value to the console and exits.
  *
  *  @author Stefan Pollach
  */
@@ -31,10 +31,9 @@ public class CommandlineRunner {
 
     /**
      * boot method for running a request from the command line.
-     * This retrieves the Helma home directory, creates the
-     * classpath, get the request properties, creates the app and
-     * runs it
-     *-
+     * This retrieves the Helma home directory, creates the app and
+     * runs the function.
+     *
      * @param args command line arguments
      *
      * @throws Exception if the Helma home dir or classpath couldn't be built
