@@ -185,4 +185,10 @@ public class WrappedMap implements Map {
         return wrapped.hashCode();
     }
 
+    // toString
+
+    public String toString() {
+        return wrapped.toString();
+    }
+
 }
