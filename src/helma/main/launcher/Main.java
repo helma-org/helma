@@ -60,7 +60,11 @@ public class Main {
 	        // unable to get Helma home dir from launcher jar
 	    }
 	}
-	// set the current working directory to the helma home dir
+	// set the current working directory to the helma home dir.
+	// note that this is not a real cwd, which is not supported
+	// by java. It makes sure relative to absolute path name
+	// conversion is done right, so for Helma code, this should 
+	// work.
 	System.setProperty ("user.dir", home);
 
 	// set up the class path
