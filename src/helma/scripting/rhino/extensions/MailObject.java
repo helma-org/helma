@@ -157,8 +157,8 @@ public class MailObject extends ScriptableObject implements Serializable {
         ctor.put("props", ctor, props);
         String[] mailFuncs = {
                 "addBCC", "addCC", "addPart", "addText", "addTo",
-                "send", "setFrom", "setSubject", "setText", "setTo"
-                            };
+                "send", "setFrom", "setSubject", "setText", "setTo",
+                "setReplyTo" };
         try {
             proto.defineFunctionProperties(mailFuncs, MailObject.class, 0);
             proto.defineProperty("status", MailObject.class, 0);
@@ -397,6 +397,7 @@ public class MailObject extends ScriptableObject implements Serializable {
             setStatus(BCC);
         }
     }
+
 
     /**
      * Add a recipient for this message
