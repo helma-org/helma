@@ -118,7 +118,7 @@ public class ZippedAppFile implements Updatable {
 	                // DbMapping doesn't exist, we still need to create one
 	                SystemProperties props = new SystemProperties ();
 	                // DbMapping does its own registering, just construct it.
-	                new DbMapping (app, proto.getName (), props);
+	                proto.setDbMapping (new DbMapping (app, proto.getName (), props));
 	            }
 	        }
 	    } catch (Throwable x) {

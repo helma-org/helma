@@ -119,9 +119,6 @@ public final class DbMapping implements Updatable {
 	idField = null;
 
 	this.props = props;
-	update ();
-
-	app.putDbMapping (typename, this);
     }
 
     /**
@@ -138,13 +135,6 @@ public final class DbMapping implements Updatable {
      * for rewire to work, all other db mappings must have been initialized and registered.
      */
     public synchronized void update () {
-
-	// determin file format version of type.properties file
-	/* String versionInfo = props.getProperty ("_version");
-	if ("1.2".equals (versionInfo))
-	    version = 1;
-	else
-	    version = 0; */
 
 	table = props.getProperty ("_table");
 	idgen = props.getProperty ("_idgen");
@@ -170,32 +160,27 @@ public final class DbMapping implements Updatable {
 	nameField = props.getProperty ("_name");
 
 	protoField = props.getProperty ("_prototype");
-	
-	String parentMapping = props.getProperty ("_parent");
-	if (parentMapping != null) {
+
+	String parentSpec = props.getProperty ("_parent");
+	if (parentSpec != null) {
 	    // comma-separated list of properties to be used as parent
-	    StringTokenizer st = new StringTokenizer (parentMapping, ",;");
+	    StringTokenizer st = new StringTokenizer (parentSpec, ",;");
 	    parent = new ParentInfo[st.countTokens()];
 	    for (int i=0; i<parent.length; i++)
 	        parent[i] = new ParentInfo (st.nextToken().trim());
-	} else
+	} else {
 	    parent = null;
-	
+	}
+
 	lastTypeChange = props.lastModified ();
 	// set the cached schema & keydef to null so it's rebuilt the next time around
 	schema = null;
 	keydef = null;
-    }
 
-    /**
-     * This is the second part of the property reading process, called after the first part has been
-     * completed on all other mappings in this application
-     */
-    public synchronized void rewire () {
 	if (extendsProto != null) {
 	    parentMapping = app.getDbMapping (extendsProto);
 	}
-	
+
 	// if (table != null && source != null) {
 	// app.logEvent ("set data source for "+typename+" to "+source);
 	HashMap p2d = new HashMap ();

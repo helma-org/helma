@@ -23,7 +23,7 @@ public final class TypeManager {
     HashMap prototypes;
     HashMap zipfiles;
     long lastCheck = 0;
-    boolean rewire;
+    // boolean rewire;
 
     final static String[] standardTypes = {"user", "global", "root", "hopobject"};
     final static String templateExtension = ".hsp";
@@ -54,6 +54,7 @@ public final class TypeManager {
      * compile or evaluate any scripts.
      */
     public void createPrototypes () {
+        // loop through directories and create prototypes
         checkFiles ();
         // check if standard prototypes have been created
         // if not, create them.
@@ -62,8 +63,21 @@ public final class TypeManager {
             if (prototypes.get (pname) == null) {
                 Prototype proto = new Prototype (pname, app);
                 registerPrototype (pname, new File (appDir, pname), proto);
-                prototypes.put (pname, proto);
             }
+        }
+        Prototype hobjectProto = getPrototype ("hopobject");
+        // loop through freshly created prototypes and rewire them,
+        // i.e. establish connections between them (inherit, collection etc.)
+        for (Iterator i = prototypes.values().iterator(); i.hasNext(); ) {
+            Prototype proto = (Prototype) i.next();
+            DbMapping dbm = proto.getDbMapping ();
+            dbm.update ();
+            // set parent prototype
+            String parentName = dbm.getExtends ();
+            if (parentName == null)
+                proto.setParentPrototype (hobjectProto);
+            else
+                proto.setParentPrototype (getPrototype (parentName));
         }
     }
 
@@ -82,34 +96,44 @@ public final class TypeManager {
     }
 
     /**
-     * Run through application's prototype directories and check if anything has been updated.
+     * Run through application's prototype directories and check if
+     * there are any prototypes to be created.
      */
     public void checkFiles () {
 	// long now = System.currentTimeMillis ();
-	// System.out.print ("checking "+Thread.currentThread ());
+	// System.out.print ("checking prototypes for  "+app);
 	File[] list = appDir.listFiles ();
 	if (list == null)
 	    throw new RuntimeException ("Can't read app directory "+appDir+" - check permissions");
 	for (int i=0; i<list.length; i++) {
 	    String filename = list[i].getName ();
 	    Prototype proto = getPrototype (filename);
-	    if (proto != null) {
-	        // check if existing prototype needs update
-	        // app.logEvent (protoDir.lastModified ());
-	        // updatePrototype (filename, list[i], proto);
-	    } else if (list[i].isDirectory () && isValidTypeName (filename)) {
+	    // if prototype doesn't exist, create it
+	    if (proto == null) {
 	        // leave out ".." and other directories that contain "."
-	        // create new prototype
-	        proto = new Prototype (filename, app);
-	        registerPrototype (filename, list[i], proto);
-	        prototypes.put (filename, proto);
-	        // give logger thread a chance to tell what's going on
-	        // Thread.yield();
-	    } else if (filename.toLowerCase().endsWith (".zip") && !list[i].isDirectory ()) {
-	        ZippedAppFile zipped = (ZippedAppFile) zipfiles.get (filename);
-	        if (zipped == null) {
-	            zipped = new ZippedAppFile (list[i], app);
-	            zipfiles.put (filename, zipped);
+	        if (list[i].isDirectory () && isValidTypeName (filename)) {
+	            // create new prototype
+	            proto = new Prototype (filename, app);
+	            registerPrototype (filename, list[i], proto);
+	            // give logger thread a chance to tell what's going on
+	            // Thread.yield();
+	        } else if (filename.toLowerCase().endsWith (".zip") && !list[i].isDirectory ()) {
+	            ZippedAppFile zipped = (ZippedAppFile) zipfiles.get (filename);
+	            if (zipped == null) {
+	                zipped = new ZippedAppFile (list[i], app);
+	                zipfiles.put (filename, zipped);
+	            }
+	        }
+	    } else {
+	        // update prototype's type mapping
+	        DbMapping dbmap = proto.getDbMapping ();
+	        if (dbmap != null && dbmap.needsUpdate ()) {
+	            dbmap.update ();
+	        // set parent prototype, in case it has changed.
+	        String parentName = dbmap.getExtends ();
+	        if (parentName == null)
+	            parentName = "hopobject";
+	        proto.setParentPrototype (getPrototype (parentName));
 	        }
 	    }
 	}
@@ -122,11 +146,6 @@ public final class TypeManager {
 	    }
 	}
 
-	if (rewire) {
-	    // there have been changes in the  DbMappings
-	    app.rewireDbMappings ();
-	    rewire = false;
-	}
     }
 
 
@@ -148,7 +167,9 @@ public final class TypeManager {
     }
 
     /**
-     * Get a prototype, creating it if id doesn't already exist
+     * Get a prototype, creating it if it doesn't already exist. Note
+     * that it doesn't create a DbMapping - this is left to the 
+     * caller (e.g. ZippedAppFile).
      */
     public Prototype createPrototype (String typename) {
 	Prototype p = getPrototype (typename);
@@ -171,9 +192,13 @@ public final class TypeManager {
         File propfile = new File (dir, "type.properties");
         SystemProperties props = new SystemProperties (propfile.getAbsolutePath ());
         DbMapping dbmap = new DbMapping (app, name, props);
-        proto.updatables.put ("type.properties", dbmap);
+        // we don't need to put the DbMapping into proto.updatables, because
+        // dbmappings are checked separately in checkFiles for each request
+        // proto.updatables.put ("type.properties", dbmap);
+        proto.setDbMapping (dbmap);
 
-        // app.scriptingEngine.updatePrototype (proto);
+        // put the prototype into our map
+        prototypes.put (name, proto);
     }
 
 
@@ -226,8 +251,8 @@ public final class TypeManager {
                 String fn = list[i];
                 if (!proto.updatables.containsKey (fn)) {
                     if (fn.endsWith (templateExtension) || fn.endsWith (scriptExtension) ||
-	    	fn.endsWith (actionExtension) || fn.endsWith (skinExtension) ||
-	    	"type.properties".equalsIgnoreCase (fn)) {
+			fn.endsWith (actionExtension) || fn.endsWith (skinExtension) ||
+			"type.properties".equalsIgnoreCase (fn)) {
                         needsUpdate = true;
                         // updatables.add ("[new:"+proto.getName()+"/"+fn+"]");
                     }
@@ -299,17 +324,13 @@ public final class TypeManager {
             for (Iterator i = updatables.iterator(); i.hasNext(); ) {
                 Updatable upd = (Updatable) i.next();
 
-                if (upd.needsUpdate ()) {
-                    if (upd instanceof DbMapping)
-                        rewire = true;
-                    try {
-                        upd.update ();
-                    } catch (Exception x) {
-                         if (upd instanceof DbMapping)
-                            app.logEvent ("Error updating db mapping for type "+proto.getName()+": "+x);
-                         else
-                            app.logEvent ("Error updating "+upd+" of prototye type "+proto.getName()+": "+x);
-                    }
+                try {
+                    upd.update ();
+                } catch (Exception x) {
+                     if (upd instanceof DbMapping)
+                        app.logEvent ("Error updating db mapping for type "+proto.getName()+": "+x);
+                     else
+                        app.logEvent ("Error updating "+upd+" of prototye type "+proto.getName()+": "+x);
                 }
             }
         }

@@ -38,9 +38,6 @@ public final class Relation {
     //  if this relation defines a virtual node, we need to provide a DbMapping for these virtual nodes
     DbMapping virtualMapping;
 
-    Relation virtualRelation;
-    Relation groupRelation;
-
     String propName;
     String columnName;
 
@@ -150,6 +147,14 @@ public final class Relation {
 
 	    constraints = new Constraint[newConstraints.size()];
 	    newConstraints.copyInto (constraints);
+	    // if DbMapping for virtual nodes has already been created, 
+	    // update its subnode relation.
+	    // FIXME: needs to be synchronized?
+	     if (virtualMapping != null) {
+	        virtualMapping.lastTypeChange = ownType.lastTypeChange;
+	        virtualMapping.subnodesRel = getVirtualSubnodeRelation ();
+	        virtualMapping.propertiesRel = getVirtualPropertyRelation ();
+	    }
 	}
     }
 
@@ -301,6 +306,7 @@ public final class Relation {
 	vr.groupbyprototype = groupbyprototype;
 	vr.order = order;
 	vr.filter = filter;
+	vr.maxSize = maxSize;
 	vr.constraints = constraints;
 	vr.aggressiveLoading = aggressiveLoading;
 	vr.aggressiveCaching = aggressiveCaching;
@@ -319,6 +325,7 @@ public final class Relation {
 	vr.groupbyprototype = groupbyprototype;
 	vr.order = order;
 	vr.filter = filter;
+	vr.maxSize = maxSize;
 	vr.constraints = constraints;
 	return vr;
     }

@@ -10,13 +10,14 @@ import java.io.*;
 import helma.framework.*;
 import helma.scripting.*;
 import helma.objectmodel.*;
+import helma.objectmodel.db.DbMapping;
 import helma.util.Updatable;
 
 
 /**
  * The Prototype class represents Script prototypes/type defined in a Helma
- * application. This class manages a prototypes templates, functions and actions 
- * as well as optional information about the mapping of this type to a 
+ * application. This class manages a prototypes templates, functions and actions
+ * as well as optional information about the mapping of this type to a
  * relational database table.
  */
 
@@ -32,6 +33,8 @@ public final class Prototype {
     final HashMap skins;
     final HashMap updatables;
     
+    DbMapping dbmap;
+
     // lastCheck is the time the prototype's files were last checked
     private long lastCheck;
     // lastUpdate is the time at which any of the prototype's files were
@@ -68,7 +71,7 @@ public final class Prototype {
 
 
     /**
-     *  Set the parent prototype of this prototype, i.e. the prototype this 
+     *  Set the parent prototype of this prototype, i.e. the prototype this
      *  prototype inherits from.
      */
     public void setParentPrototype (Prototype parent) {
@@ -84,6 +87,14 @@ public final class Prototype {
      */
     public Prototype getParentPrototype () {
 	return parent;
+    }
+
+    public void setDbMapping (DbMapping dbmap) {
+	this.dbmap = dbmap;
+    }
+    
+    public DbMapping getDbMapping () {
+	return dbmap;
     }
 
     /**

@@ -873,7 +873,7 @@ public final class NodeManager {
 	Node node = null;
 	DbMapping dbm = app.getDbMapping (key.getStorageName ());
 	String kstr = key.getID ();
-	
+
 	if (dbm == null || !dbm.isRelational ()) {
 	    node = (Node)db.getNode (txn, kstr);
 	    node.nmgr = safe;
@@ -881,7 +881,7 @@ public final class NodeManager {
 	        node.setDbMapping (dbm);
 	} else {
 	    String idfield =dbm.getIDField ();
-	
+
 	    TableDataSet tds = null;
 	    try {
 	        tds = new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());

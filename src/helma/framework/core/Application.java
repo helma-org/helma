@@ -74,7 +74,6 @@ public final class Application
     long starttime;
 
     Hashtable sessions;
-    Hashtable dbMappings;
     Hashtable dbSources;
 
     // internal worker thread for scheduler, session cleanup etc.
@@ -224,7 +223,6 @@ public final class Application
 	}
 
 	sessions = new Hashtable ();
-	dbMappings = new Hashtable ();
 	dbSources = new Hashtable ();
 
 	cachenode = new TransientNode ("app");
@@ -281,8 +279,7 @@ public final class Application
 	p.put ("_children", "collection(user)");
 	p.put ("_children.accessname", usernameField);
 	userRootMapping = new DbMapping (this, "__userroot__", p);
-
-	rewireDbMappings ();
+	userRootMapping.update ();
 
 	nmgr = new NodeManager (this, dbDir.getAbsolutePath (), props);
 
@@ -1144,39 +1141,6 @@ public final class Application
 	logEvent ("Scheduler for "+name+" exiting");
     }
 
-    /**
-     *  This method is called after the type.properties files are read on all prototypes, or after one
-     * or more of the type properties have been re-read after an update, to let the DbMappings reestablish
-     * the relations among them according to their mappings.
-     */
-    public void rewireDbMappings () {
-	for (Enumeration e=dbMappings.elements(); e.hasMoreElements(); ) {
-	    try {
-	        DbMapping m = (DbMapping) e.nextElement ();
-	        m.rewire ();
-	        String typename = m.getTypeName ();
-	        // set prototype hierarchy
-	        if (!"hopobject".equalsIgnoreCase (typename) && !"global".equalsIgnoreCase (typename)) {
-	            Prototype proto = (Prototype) typemgr.prototypes.get (typename);
-	            if (proto != null) {
-	                String protoname = m.getExtends ();
-	                // only use hopobject prototype if we're scripting HopObjects, not
-	                // java objects.
-	                boolean isjava = isJavaPrototype (typename);
-	                if (protoname == null && !isjava)
-	                    protoname = "hopobject";
-	                Prototype parentProto = (Prototype) typemgr.prototypes.get (protoname);
-	                if (parentProto == null && !isjava)
-	                    parentProto = (Prototype) typemgr.prototypes.get ("hopobject");
-	                if (parentProto != null)
-	                    proto.setParentPrototype (parentProto);
-	            }
-	        }
-	    } catch (Exception x) {
-	        logEvent ("Error rewiring DbMappings: "+x);
-	    }
-	}
-    }
 
     /**
      * Check whether a prototype is for scripting a java class, i.e. if there's an entry
@@ -1230,15 +1194,13 @@ public final class Application
      * Get the DbMapping associated with a prototype name in this application
      */
     public DbMapping getDbMapping (String typename) {
-	return typename == null ? null : (DbMapping) dbMappings.get (typename);
+	Prototype proto = typemgr.getPrototype (typename);
+	if (proto == null)
+	    return null;
+	return proto.getDbMapping ();
     }
 
-    /**
-     * Associate a DbMapping object with a prototype name for this application.
-     */
-    public void putDbMapping (String typename, DbMapping dbmap) {
-	dbMappings.put (typename, dbmap);
-    }
+
     /**
      * Proxy method to get a property from the applications properties.
      */
