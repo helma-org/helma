@@ -90,6 +90,9 @@ import org.apache.xmlrpc.*;
 
 	// create new server instance
 	server = new Server (args);
+
+	// start the server main thread
+	server.start ();
     }
 
     /**
@@ -137,6 +140,9 @@ import org.apache.xmlrpc.*;
 	        } catch (Exception portx) {
 	            usageError = true;
 	        }
+	    } else if (args[i].equals ("-i") && i+1<args.length) {
+	        // eat away the -i parameter which is meant for helma.main.launcher.Main
+	        i++;
 	    } else
 	        usageError = true;
 	}
@@ -291,12 +297,18 @@ import org.apache.xmlrpc.*;
 	    }
 	}
 
+    }
+
+    protected void start () {
 	// Start running, finishing setup and then entering a loop to check changes
 	// in the apps.properties file.
 	mainThread = new Thread (this);
 	mainThread.start ();
     }
-
+    
+    protected void stop () {
+	mainThread = null;
+    }
 
     /**
      *  The main method of the Server. Basically, we set up Applications and than
