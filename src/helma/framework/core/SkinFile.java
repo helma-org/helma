@@ -164,6 +164,28 @@ public final class SkinFile implements Updatable {
      * @return ...
      */
     public String toString() {
-        return "[SkinFile "+prototype.getName() + "/" + name+"]";
+        return new StringBuffer("[SkinFile ").append(prototype.getName())
+                      .append("/").append(name).append("]").toString();
     }
+
+    /**
+     * Override to produce hash code depending on file name
+     *
+     * @return a hash code value for this object.
+     */
+    public int hashCode() {
+        return toString().hashCode();
+    }
+
+    /**
+     * Override to equal other SkinFile with the same source name
+     *
+     * @param obj the object to compare to
+     * @return true if obj is a SkinFile with the same source name
+     */
+    public boolean equals(Object obj) {
+        return (obj instanceof SkinFile) &&
+                toString().equals(obj.toString());
+    }
+
 }

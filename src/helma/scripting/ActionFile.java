@@ -189,4 +189,25 @@ public class ActionFile implements Updatable {
     public String toString() {
         return "ActionFile[" + sourceName + "]";
     }
+
+    /**
+     * Override to produce hash code depending on source name
+     *
+     * @return a hash code value for this object.
+     */
+    public int hashCode() {
+        return sourceName.hashCode();
+    }
+
+    /**
+     * Override to equal other ActionFile with the same source name
+     *
+     * @param obj the object to compare to
+     * @return true if obj is a ActionFile with the same source name
+     */
+    public boolean equals(Object obj) {
+        return (obj instanceof ActionFile) &&
+                sourceName.equals(((ActionFile) obj).getSourceName());
+    }
+
 }

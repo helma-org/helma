@@ -235,4 +235,25 @@ public class Template extends ActionFile {
             return "Template.Part [" + content + "," + isStatic + "]";
         }
     }
+
+    /**
+     * Override to produce hash code depending on source name
+     *
+     * @return a hash code value for this object.
+     */
+    public int hashCode() {
+        return sourceName.hashCode();
+    }
+
+    /**
+     * Override to equal other Template with the same source name
+     *
+     * @param obj the object to compare to
+     * @return true if obj is a Template with the same source name
+     */
+    public boolean equals(Object obj) {
+        return (obj instanceof Template) &&
+                sourceName.equals(((Template) obj).getSourceName());
+    }
+
 }

@@ -123,4 +123,24 @@ public class FunctionFile implements Updatable {
     public String toString() {
         return sourceName;
     }
+
+    /**
+     * Override to produce hash code depending on source name
+     *
+     * @return a hash code value for this object.
+     */
+    public int hashCode() {
+        return sourceName.hashCode();
+    }
+
+    /**
+     * Override to equal other FunctionFiles with the same source name
+     *
+     * @param obj the object to compare to
+     * @return true if obj is a FunctionFile with the same source name
+     */
+    public boolean equals(Object obj) {
+        return (obj instanceof FunctionFile) &&
+                sourceName.equals(((FunctionFile) obj).getSourceName());
+    }
 }
