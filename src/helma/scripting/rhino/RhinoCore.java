@@ -89,6 +89,8 @@ public final class RhinoCore implements ScopeProvider {
             debugger.setScopeProvider(this);
             debugger.pack();
             debugger.setVisible(true);
+            debugger.contextCreated(context);
+            debugger.contextEntered(context);
         }
 
         // Set default optimization level according to whether debugger is on
@@ -142,6 +144,11 @@ public final class RhinoCore implements ScopeProvider {
             throw new RuntimeException(e.getMessage());
         } finally {
             Context.exit();
+
+            if (debugger != null) {
+                debugger.contextExited(context);
+                debugger.contextReleased(context);
+            }
         }
     }
 
