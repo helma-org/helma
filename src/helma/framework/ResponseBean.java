@@ -164,7 +164,7 @@ public class ResponseBean implements Serializable {
 	res.dependsOn (what);
     }
 
-    public void digestDependencies () {
+    public void digest () {
 	res.digestDependencies ();
     }
 
