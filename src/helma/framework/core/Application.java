@@ -162,6 +162,7 @@ public final class Application
 	// system-wide properties, default to null
 	Properties sysProps, sysDbProps;
 	sysProps = sysDbProps = null;
+	home = null;
 
 	if (server != null) {
 	     home = server.getHopHome ();
@@ -197,10 +198,10 @@ public final class Application
 	dbProps = new SystemProperties (dbpropfile.getAbsolutePath (), sysDbProps);
 
 	// the passwd file, to be used with the authenticate() function
-	// File pwf = new File (home, "passwd");
-	// CryptFile parentpwfile = new CryptFile (pwf, null);
-	File pwf = new File (appDir, "passwd");
-	CryptFile pwfile = new CryptFile (pwf, null);
+	CryptFile parentpwfile = null;
+	if (home != null)
+	    parentpwfile = new CryptFile (new File (home, "passwd"), null);
+	CryptFile pwfile = new CryptFile (new File (appDir, "passwd"), parentpwfile);
 
 	// the properties that map java class names to prototype names
 	File classMappingFile = new File (appDir, "class.properties");
