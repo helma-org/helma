@@ -38,10 +38,9 @@ public class FileResource implements Resource {
         } else {
             this.repository = repository;
             name = repository.getName() + "/" + file.getName();
-            if (name.lastIndexOf(".") != -1) {
-                shortName = file.getName().substring(0, file.getName().lastIndexOf("."));
-            } else {
-                shortName = file.getName();
+            shortName = file.getName();
+            if (shortName.lastIndexOf(".") != -1) {
+                shortName = shortName.substring(0, shortName.lastIndexOf("."));
             }
         }
     }
