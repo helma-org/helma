@@ -17,8 +17,11 @@ public class RequestTrans implements Serializable {
     public String path;
     public String session;
     private Hashtable values;
+
     // this is used to hold the EcmaScript form data object
     public transient Object data;
+    // when was execution started on this request?
+    public transient long startTime;
 
     public RequestTrans () {
 	super ();
@@ -47,6 +50,26 @@ public class RequestTrans implements Serializable {
 
     public Hashtable getReqData () {
 	return values;
+    }
+
+    public int hashCode () {
+	return session == null ? super.hashCode () : session.hashCode ();
+    }
+
+
+    /**
+     * A request is considered equal to another one if it has the same user, path,
+     * and request data. This is used to evaluate multiple simultanous requests only once
+     */
+    public boolean equals (Object what) {
+	try {
+	    RequestTrans other = (RequestTrans) what;
+	    return (session.equals (other.session) &&
+		path.equalsIgnoreCase (other.path) &&
+		values.equals (other.getReqData ()));
+	} catch (Exception x) {
+	    return false;
+	}
     }
 
 }

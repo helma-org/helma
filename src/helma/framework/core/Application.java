@@ -53,6 +53,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     Thread worker;
     long requestTimeout = 60000; // 60 seconds for request timeout.
     ThreadGroup threadgroup;
+
+    // Map of requesttrans -> active requestevaluators
+    Hashtable activeRequests;
     
     protected String templateExtension, scriptExtension, actionExtension, skinExtension;
 
@@ -124,6 +127,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	    freeThreads.push (ev);
 	    allThreads.addElement (ev);
 	}
+	activeRequests = new Hashtable ();
 
 	typemgr = new TypeManager (this);
 	typemgr.check ();
@@ -229,9 +233,23 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 
 	ResponseTrans res = null;
 	RequestEvaluator ev = null;
+	// are we responsible for releasing the evaluator and closing the result?
+	boolean primaryRequest = false;
 	try {
-	    ev = getEvaluator ();
-	    res = ev.invoke (req, u);
+	    // first look if a request with same user/path/data is already being executed.
+	    // if so, attach the request to its output instead of starting a new evaluation
+	    // this helps to cleanly solve "doubleclick" kind of users
+	    ev = (RequestEvaluator) activeRequests.get (req);
+	    if (ev != null) {
+	        res = ev.attachRequest (req);
+	    }
+	    if (res == null) {
+	        primaryRequest = true;
+	        // if attachRequest returns null this means we came too late
+	        // and the other request was finished in the meantime
+	        ev = getEvaluator ();
+	        res = ev.invoke (req, u);
+	    }
 	} catch (ApplicationStoppedException stopped) {
 	    // let the servlet know that this application has gone to heaven
 	    throw stopped;
@@ -240,10 +258,14 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	    res = new ResponseTrans ();
 	    res.write ("Error in application: <b>" + x.getMessage () + "</b>");
 	} finally {
-	    releaseEvaluator (ev);
+	    if (primaryRequest) {
+	        releaseEvaluator (ev);
+	        res.close ();  // this needs to be done before sending it back
+	    } else {
+	        res.waitForClose ();
+	    }
 	}
 
-	res.close ();  // this needs to be done before sending it back
 	return res;
     }
 

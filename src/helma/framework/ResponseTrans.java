@@ -142,12 +142,28 @@ public class ResponseTrans implements Serializable {
 
 
     /**
-     * This has to be called after writin to this response has finished and before it is shipped back to the
+     * This has to be called after writing to this response has finished and before it is shipped back to the
      * web server. Transforms the string buffer into a char array to minimize size.
      */
-    public void close () {
-	if (buffer != null)
+    public synchronized void close () {
+	if (buffer != null) {
 	    response = new String (buffer).toCharArray();
+	    buffer = null; // make sure this is done only once, even with more requsts attached
+	} else {
+	    response = new char[0];
+	}
+	notifyAll ();
+    }
+
+    /**
+     * If we just attached to evaluation we call this instead of close because only the primary thread
+     * is responsible for closing the result
+     */
+    public synchronized void waitForClose () {
+	try {
+	    if (response == null)
+	        wait (10000l);
+	} catch (InterruptedException ix) {}
     }
 
     public String getContentString () {

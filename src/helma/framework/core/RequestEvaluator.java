@@ -533,16 +533,35 @@ public class RequestEvaluator implements Runnable {
 	this.user = user;
 	this.res = new ResponseTrans ();
 
-	checkThread ();
-	wait (app.requestTimeout);
- 	if (reqtype != NONE) {
-	    IServer.getLogger().log ("Stopping Thread for Request "+app.getName()+"/"+req.path);
-	    stopThread ();
-	    res.reset ();
-	    res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>Request timed out.</pre>");
+	try {
+	    app.activeRequests.put (req, this);
+
+	    checkThread ();
+	    wait (app.requestTimeout);
+ 	    if (reqtype != NONE) {
+	        IServer.getLogger().log ("Stopping Thread for Request "+app.getName()+"/"+req.path);
+	        stopThread ();
+	        res.reset ();
+	        res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>Request timed out.</pre>");
+	    }
+	} finally {
+	    app.activeRequests.remove (req);
 	}
 
 	return res;
+    }
+
+    /**
+     * This checks if the Evaluator is already executing an equal request. If so, attach to it and
+     * wait for it to complete. Otherwise return null, so the application knows it has to run the request.
+     */
+    public synchronized ResponseTrans attachRequest (RequestTrans req) throws InterruptedException {
+	if (this.req == null || !this.req.equals (req) || reqtype == NONE)
+	    return null;
+	// we already know our response object
+	ResponseTrans r = res;
+	wait (app.requestTimeout);
+	return r;
     }
 
 
