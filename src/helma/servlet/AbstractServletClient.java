@@ -253,6 +253,12 @@ public abstract class AbstractServletClient extends HttpServlet {
 
             ResponseTrans restrans = getApplication().execute(reqtrans);
 
+            // if the response was already written and committed by the application
+            // we can skip this part and return
+            if (response.isCommitted()) {
+                return;
+            }
+
             // set cookies
             if (restrans.countCookies() > 0) {
                 CookieTrans[] resCookies = restrans.getCookies();

@@ -462,6 +462,13 @@ public final class ResponseTrans implements Serializable {
      * web server. Transforms the string buffer into a char array to minimize size.
      */
     public synchronized void close(String cset) throws UnsupportedEncodingException {
+        // if the response was already written and committed by the application
+        // there's no point in closing the response buffer
+        HttpServletResponse res = reqtrans.getServletResponse();
+        if (res != null && res.isCommitted()) {
+            return;
+        }
+
         // only use default charset if not explicitly set for this response.
         if (charset == null) {
             charset = cset;
