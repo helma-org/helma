@@ -31,9 +31,18 @@ public class CryptFile {
 	    users.clear ();
 	String realpw = users.getProperty (username);
 	if (realpw != null) {
-	    // check if password matches
-	    String cryptpw = Crypt.crypt (realpw, pw);
-	    return realpw.equals (cryptpw);
+	    try {
+	        // check if password matches
+	        // first we try with unix crypt algorithm
+	        String cryptpw = Crypt.crypt (realpw, pw);
+	        if (realpw.equals (cryptpw))
+	            return true;
+	        // then try MD5
+	        if (realpw.equals (MD5Encoder.encode (pw)))
+	            return true;
+	    } catch (Exception x) {
+	        return false;
+	    }
 	} else {
 	    if (parentFile != null)
 	        return parentFile.authenticate (username, pw);
