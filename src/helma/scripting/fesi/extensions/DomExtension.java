@@ -123,7 +123,7 @@ public class DomExtension extends Extension  {
 			}
 			try	{
 				XmlReader reader = new XmlReader ();
-				INode result = reader.read (arguments[0].toString(),node);
+				INode result = reader.read (new File(arguments[0].toString()),node);
 				return this.evaluator.reval.getNodeWrapper (result);
 			}	catch ( NoClassDefFoundError e )	{
 				throw new EcmaScriptException ("Can't load dom-capable xml parser.");
