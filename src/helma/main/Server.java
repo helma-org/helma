@@ -10,7 +10,6 @@ import java.rmi.registry.*;
 import java.net.*;
 import java.util.*;
 import helma.extensions.HelmaExtension;
-// import helma.objectmodel.*;
 import helma.objectmodel.db.DbSource;
 import helma.framework.*;
 import helma.framework.core.*;
