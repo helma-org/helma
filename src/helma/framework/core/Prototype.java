@@ -68,6 +68,10 @@ public class Prototype {
     }
 
     public void setPrototype (Prototype prototype) {
+	// this is not allowed for the hopobject and global prototypes
+	if ("hopobject".equalsIgnoreCase (name) || "global".equalsIgnoreCase (name))
+	    return;
+	    
 	Prototype old = this.prototype;
 	this.prototype = prototype;
 
@@ -78,10 +82,16 @@ public class Prototype {
 	        try {
 	            RequestEvaluator reval = (RequestEvaluator) evals.next ();
 	            ObjectPrototype op = reval.getPrototype (getName());
-	            ObjectPrototype opp = prototype == null ? null : reval.getPrototype (prototype.getName ());
+	            // use hopobject (node) as prototype even if prototype is null - 
+	            // this is the case if no hopobject directory exists
+	            ObjectPrototype opp = prototype == null ? 
+	            	reval.esNodePrototype : reval.getPrototype (prototype.getName ());
+	            // don't think this is possible, but check anyway
+	            if (opp == null)
+	                opp = reval.esNodePrototype;
 	            op.setPrototype (opp);
 	        } catch (Exception ignore) {}
-                 }
+	    }
 	}
     }
 
@@ -153,12 +163,11 @@ public class Prototype {
 
             // get the prototype's prototype if possible and necessary
             ObjectPrototype opp = null;
-            if (prototype != null) {
-                if ("hopobject".equalsIgnoreCase (prototype.getName ()))
-                    opp = reval.esNodePrototype;
-                else
-                    opp = reval.getPrototype (prototype.getName ());
-            }
+            if (prototype != null) 
+                opp = reval.getPrototype (prototype.getName ());
+            if (!"global".equalsIgnoreCase (name) && 
+            		!"hopobject".equalsIgnoreCase (name) && opp == null)
+                opp = reval.esNodePrototype;
 
             if ("user".equalsIgnoreCase (name)) {
                 op = reval.esUserPrototype;
