@@ -169,7 +169,7 @@ public class XmlWriter	extends OutputStreamWriter implements XmlConstants		{
 		write (indent);
 		write ("<");
 		write (key);
-		write (" hop:type=\"null\"/>");
+		write (" type=\"null\"/>");
 		write (LINESEPARATOR);
 	}	
 
@@ -184,17 +184,17 @@ public class XmlWriter	extends OutputStreamWriter implements XmlConstants		{
 		write (property.getName());
 		switch (property.getType())	{
 			case IProperty.BOOLEAN:
-				write (" hop:type=\"boolean\"");
+				write (" type=\"boolean\"");
 				break;
 			case IProperty.FLOAT:
-				write (" hop:type=\"float\"");
+				write (" type=\"float\"");
 				break;
 			case IProperty.INTEGER: 
-				write (" hop:type=\"integer\"");
+				write (" type=\"integer\"");
 				break;
 		}
 		if ( property.getType()==IProperty.DATE )	{
-			write (" hop:type=\"date\"");
+			write (" type=\"date\"");
 			write (">");
 			write ( format.format (property.getDateValue()) );
 		}	else	{
@@ -232,15 +232,15 @@ public class XmlWriter	extends OutputStreamWriter implements XmlConstants		{
 		write (prefix.toString());
 		write ("<");
 		write ( (name==null)?"hopobject" : name);
-		write (" hop:id=\"");
+		write (" id=\"");
 		write (getNodeIdentifier(node));
-		write ("\" hop:name=\"");
+		write ("\" name=\"");
 		write (node.getName());
-		write ("\" hop:prototype=\"");
+		write ("\" prototype=\"");
 		write (getNodePrototype(node));
-		write ("\" hop:created=\"");
+		write ("\" created=\"");
 		write (Long.toString(node.created()));
-		write ("\" hop:lastModified=\"");
+		write ("\" lastModified=\"");
 		write (Long.toString(node.lastModified()));
 		//FIXME: do we need anonymous-property?
 		write ("\">");
@@ -262,15 +262,15 @@ public class XmlWriter	extends OutputStreamWriter implements XmlConstants		{
 	/**
 	  * write a tag holding a reference to an element that has
 	  * been written out before.
-	  * e.g. <parent hop:idref="35" hop:prototyperef="hopobject"/>
+	  * e.g. <parent idref="35" prototyperef="hopobject"/>
 	  */
 	public void writeReferenceTag (INode node, String name) throws IOException	{
 		write (prefix.toString());
 		write ("<");
 		write ( (name==null)?"hopobject" : name);
-		write ( " hop:idref=\"");
+		write ( " idref=\"");
 		write (getNodeIdentifier(node));
-		write ("\" hop:prototyperef=\"");
+		write ("\" prototyperef=\"");
 		write (getNodePrototype(node));
 		write ("\"");
 		write ("/>");

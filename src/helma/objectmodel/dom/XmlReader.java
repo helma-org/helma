@@ -71,16 +71,16 @@ public class XmlReader implements XmlConstants	{
 	  * convert children of an Element to a given helmaNode
 	  */
 	public INode convert (Element element, INode helmaNode)	{
-		String idref = element.getAttributeNS(NAMESPACE, "idref");
-		String key = idref + "-" + element.getAttributeNS(NAMESPACE, "prototyperef");
+		String idref = element.getAttribute("idref");
+		String key = idref + "-" + element.getAttribute("prototyperef");
 		if( idref!=null && !idref.equals("") )	{
 			if( convertedNodes.containsKey(key) )	{
 				return (INode)convertedNodes.get(key);
 			}
 		}
-		key = element.getAttributeNS(NAMESPACE, "id") + "-" + element.getAttributeNS(NAMESPACE, "prototype");
+		key = element.getAttribute("id") + "-" + element.getAttribute("prototype");
 		convertedNodes.put( key, helmaNode );
-		String prototype = element.getAttributeNS(NAMESPACE, "prototype");
+		String prototype = element.getAttribute("prototype");
 		if( !prototype.equals("") && !prototype.equals("hopobject") )	{
 			helmaNode.setPrototype( prototype );
 		}
@@ -106,7 +106,7 @@ public class XmlReader implements XmlConstants	{
 
 				convert (childElement, helmaNode.createNode(null));
 
-			}	else if ( !"".equals(childElement.getAttributeNS(NAMESPACE,"id")) || !"".equals(childElement.getAttributeNS(NAMESPACE,"idref")) )	{
+			}	else if ( !"".equals(childElement.getAttribute("id")) || !"".equals(childElement.getAttribute("idref")) )	{
 
 				String childTagName = childElement.getTagName();
 				INode newNode = convert (childElement, helmaNode.createNode (childTagName));
@@ -114,7 +114,7 @@ public class XmlReader implements XmlConstants	{
 
 			}	else	{
 
-				String type = childElement.getAttribute("hop:type");
+				String type = childElement.getAttribute("type");
 				String key  = childElement.getTagName();
 				String content = XmlUtil.getTextContent(childElement);
 				if ( type.equals("boolean") )	{
@@ -153,16 +153,16 @@ public class XmlReader implements XmlConstants	{
 	public helma.objectmodel.db.Node convert (Element element)	{
 		// FIXME: this method should use Element.getAttributeNS():
 		// FIXME: do we need the name value or is it retrieved through mappings anyway?
-		String name = element.getAttribute("hop:name");
+		String name = element.getAttribute("name");
 // 		String name = null;
-		String id = element.getAttribute("hop:id");
-		String prototype = element.getAttribute("hop:prototype");
+		String id = element.getAttribute("id");
+		String prototype = element.getAttribute("prototype");
 		if ( "".equals(prototype) )
 			prototype = "hopobject";
 		helma.objectmodel.db.Node helmaNode = null;
 		try		{
-			long created = Long.parseLong (element.getAttribute	("hop:created"));
-			long lastmodified = Long.parseLong (element.getAttribute	("hop:lastModified"));
+			long created = Long.parseLong (element.getAttribute	("created"));
+			long lastmodified = Long.parseLong (element.getAttribute	("lastModified"));
 			helmaNode = new helma.objectmodel.db.Node (name,id,prototype,nmgr.safe,created,lastmodified);
 		}	catch ( NumberFormatException e )	{
 			helmaNode = new helma.objectmodel.db.Node (name,id,prototype,nmgr.safe);
@@ -185,24 +185,24 @@ public class XmlReader implements XmlConstants	{
 			if ( childElement.getTagName().equals("hop:child") )	{
 				// add a new NodeHandle, presume all IDs in this objectcache are unique,
 				// a prerequisite for a simple internal database.
-				subnodes.add (new NodeHandle (new DbKey(null,childElement.getAttribute("hop:idref") ) ) );
+				subnodes.add (new NodeHandle (new DbKey(null,childElement.getAttribute("idref") ) ) );
 				continue;
 			}
 
 			if ( childElement.getTagName().equals("hop:parent") )	{
 				// add a NodeHandle to parent object
-				helmaNode.setParentHandle (new NodeHandle (new DbKey(null,childElement.getAttribute("hop:idref") ) ) );
+				helmaNode.setParentHandle (new NodeHandle (new DbKey(null,childElement.getAttribute("idref") ) ) );
 			}	
 
 			// if we come until here, childelement is a property value
 			Property prop = new Property (childElement.getTagName(), helmaNode);
-			if ( !"".equals(childElement.getAttribute("hop:id")) || !"".equals(childElement.getAttribute("hop:idref")) )	{
+			if ( !"".equals(childElement.getAttribute("id")) || !"".equals(childElement.getAttribute("idref")) )	{
 				// we've got an object!
-				String idref = childElement.getAttribute("hop:idref");
+				String idref = childElement.getAttribute("idref");
 				prop.setNodeHandle (new NodeHandle(new DbKey(null,idref)));
 				
 			}	else	{
-				String type = childElement.getAttribute("hop:type");
+				String type = childElement.getAttribute("type");
 				String content = XmlUtil.getTextContent(childElement);
 				if ( type.equals("boolean") )	{
 					if ( content.equals("true") )	{
