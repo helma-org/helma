@@ -58,7 +58,7 @@ public final class IDGenerator implements Serializable {
     /**
      * Get the current counter  value
      */
-    protected long getValue () {
+    public long getValue () {
 	return counter;
     }
 
