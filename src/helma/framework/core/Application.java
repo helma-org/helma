@@ -526,8 +526,11 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	long cleanupSleep = 60000;    // thread sleep interval (fixed)
 	long scheduleSleep = 60000;  // interval for scheduler invocation
 	long lastScheduler = 0;
+	long lastCleanup = System.currentTimeMillis ();
+
 	logEvent ("Starting scheduler for "+name);
 	// as first thing, invoke function onStart in the root object
+
 	try {
 	    eval.invokeFunction ((INode) null, "onStart", new ESValue[0]);
 	} catch (Exception ignore) {}	
@@ -539,16 +542,12 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	        sessionTimeout = Math.max (0, Integer.parseInt (props.getProperty ("sessionTimeout", "30")));
 	    } catch (Exception ignore) {}
 
- 	    try {
-	        worker.sleep (cleanupSleep);
-	    } catch (InterruptedException x) {
-	        logEvent ("Scheduler for "+name+" interrupted");
-	        worker = null;
-	        break;
-	    }
-	    try {
+	    long now = System.currentTimeMillis ();
+
+	    // check if we should clean up user sessions
+	    if (now - lastCleanup > cleanupSleep) try {
+	        lastCleanup = now;
 	        logEvent ("Cleaning up "+name+": " + sessions.size () + " sessions active");
-	        long now = System.currentTimeMillis ();
 	        Hashtable cloned = (Hashtable) sessions.clone ();
 	        for (Enumeration e = cloned.elements (); e.hasMoreElements (); ) {
 	            User u = (User) e.nextElement ();
@@ -565,14 +564,13 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	                u.setNode (null);
 	            }
 	        }
-
 	        logEvent ("Cleaned up "+name+": " + sessions.size () + " sessions remaining");
 	    } catch (Exception cx) {
 	        logEvent ("Error cleaning up sessions: "+cx);
 	        cx.printStackTrace ();
 	    }
 
-	    long now = System.currentTimeMillis ();
+	    // check if we should call scheduler
 	    if (now - lastScheduler > scheduleSleep) {
 	        lastScheduler = now;
 	        ESValue val = null;
@@ -588,7 +586,19 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	        } catch (Exception ignore) {}
 	        logEvent ("Called scheduler for "+name+", will sleep for "+scheduleSleep+" millis");
 	    }
+
+	    // sleep until we have work to do
+ 	    try {
+	        worker.sleep (Math.min (cleanupSleep, scheduleSleep));
+	    } catch (InterruptedException x) {
+	        logEvent ("Scheduler for "+name+" interrupted");
+	        worker = null;
+	        break;
+	    }
+
+
 	}
+
 	logEvent ("Scheduler for "+name+" exiting");
     }
 

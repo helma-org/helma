@@ -379,7 +379,7 @@ public class RequestEvaluator implements Runnable {
 	            global.putHiddenProperty ("root", getNodeWrapper (root));
 	            global.deleteProperty("user", "user".hashCode());
 	            global.deleteProperty ("req", "req".hashCode());
-	            global.putHiddenProperty ("res", ESLoader.normalizeValue(new ResponseTrans (), evaluator));
+	            global.putHiddenProperty ("res", ESLoader.normalizeValue(res, evaluator));
 	            global.deleteProperty ("path", "path".hashCode());
 	            global.putHiddenProperty ("app", appnode);
 
@@ -440,7 +440,7 @@ public class RequestEvaluator implements Runnable {
 	            global.putHiddenProperty ("root", getNodeWrapper (root));
 	            global.deleteProperty("user", "user".hashCode());
 	            global.deleteProperty ("req", "req".hashCode());
-	            global.putHiddenProperty ("res", ESLoader.normalizeValue(new ResponseTrans (), evaluator));
+	            global.putHiddenProperty ("res", ESLoader.normalizeValue(res, evaluator));
 	            global.deleteProperty ("path", "path".hashCode());
 	            global.putHiddenProperty ("app", appnode);
 
@@ -571,6 +571,7 @@ public class RequestEvaluator implements Runnable {
 	this.user = null;
 	this.method = method;
 	this.args = args;
+	this.res = new ResponseTrans ();
 	result = null;
 	exception = null;
 
@@ -602,6 +603,7 @@ public class RequestEvaluator implements Runnable {
 	this.current = obj;
 	this.method = functionName;
 	this.esargs = args;
+	this.res = new ResponseTrans ();
              esresult = ESNull.theNull;
 	exception = null;
 
@@ -624,6 +626,7 @@ public class RequestEvaluator implements Runnable {
 	this.current = null;
 	this.method = functionName;
 	this.esargs = args;
+	this.res = new ResponseTrans ();
              esresult = ESNull.theNull;
 	exception = null;
 
