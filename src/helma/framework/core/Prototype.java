@@ -35,7 +35,7 @@ public class Prototype {
 
      public Prototype (String name, Application app) {
 
-	app.logEvent ("Constructing Prototype "+app.getName()+"/"+name);
+	// app.logEvent ("Constructing Prototype "+app.getName()+"/"+name);
 
 	this.app = app;
 	this.name = name;
