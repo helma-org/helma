@@ -16,7 +16,7 @@ import helma.util.HtmlEncoder;
 import helma.util.UrlEncoder;
 
 /**
- * This represents a HOP skin, i.e. a template created from JavaScript. It uses the request path array
+ * This represents a Helma skin, i.e. a template created from JavaScript. It uses the request path array
  * from the RequestEvaluator object to resolve dynamic tokens.
  */
 
