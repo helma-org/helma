@@ -47,7 +47,10 @@ public class ESUser extends ESNode {
 	        return new ESString (user.uid);
 	}
 	if ("sessionID".equals (propname)) {
-	    return new ESString (user.getSessionID ());
+	    if (user == null || user.getSessionID () == null)
+	        return ESNull.theNull;
+	    else
+	        return new ESString (user.getSessionID ());
 	}
 	return super.getProperty (propname, hash);
     }
