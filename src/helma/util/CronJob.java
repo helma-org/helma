@@ -378,7 +378,6 @@ public class CronJob {
    public static void parseTimeout (CronJob job, String timeout) {
       long timeoutValue = 1000 * Long.valueOf(timeout).longValue ();
       job.setTimeout (timeoutValue);
-      System.out.println("parseTimeout(), value is now " + job.getTimeout ());
    }
 
 	public static long nextFullMinute () {
