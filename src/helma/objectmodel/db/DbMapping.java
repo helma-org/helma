@@ -824,13 +824,13 @@ public final class DbMapping implements Updatable {
             // and build a string of column names.
             Connection con = getConnection();
             Statement stmt = con.createStatement();
-            String t = getTableName();
+            String table = getTableName();
 
-            if (t == null) {
+            if (table == null) {
                 throw new SQLException("Table name is null in getColumns() for " + this);
             }
 
-            ResultSet rs = stmt.executeQuery(new StringBuffer("SELECT * FROM ").append(t)
+            ResultSet rs = stmt.executeQuery(new StringBuffer("SELECT * FROM ").append(table)
                                                                                .append(" WHERE 1 = 0")
                                                                                .toString());
 
@@ -921,36 +921,35 @@ public final class DbMapping implements Updatable {
 
         StringBuffer s = new StringBuffer("SELECT ");
 
-        /* DbColumn[] cols = columns;
+        String table = getTableName();
 
-        if (cols == null) {
-            cols = getColumns();
-        }
-
-        for (int i = 0; i < cols.length; i++) {
-            s.append(cols[i].getName());
-            if (i < cols.length-1) {
-                s.append(',');
-            }
-        }
+        // all columns from the main table
+        s.append(table);
+        s.append(".*");
 
         for (int i = 0; i < joins.length; i++) {
-        } */
-
-        s.append ("*");
+            if (!joins[i].otherType.isRelational()) {
+                continue;
+            }
+            s.append(", ");
+            s.append(Relation.JOIN_PREFIX);
+            s.append(joins[i].propName);
+            s.append(".*");
+        }
 
         s.append(" FROM ");
 
-        s.append(getTableName());
+        s.append(table);
         s.append(" ");
 
         for (int i = 0; i < joins.length; i++) {
             if (!joins[i].otherType.isRelational()) {
                 continue;
             }
-            s.append("LEFT JOIN ");
+            s.append("LEFT OUTER JOIN ");
             s.append(joins[i].otherType.getTableName());
-            s.append(" AS _HLM_");
+            s.append(" AS ");
+            s.append(Relation.JOIN_PREFIX);
             s.append(joins[i].propName);
             s.append(" ON ");
             joins[i].renderJoinConstraints(s);
@@ -1080,11 +1079,12 @@ public final class DbMapping implements Updatable {
     /**
      *
      */
-    public void notifyDataChange() {
-        lastDataChange = System.currentTimeMillis();
+    public void setLastDataChange(long t) {
+        lastDataChange = t;
 
+        // propagate data change timestamp to parent mapping
         if ((parentMapping != null) && (dbSource == null)) {
-            parentMapping.notifyDataChange();
+            parentMapping.setLastDataChange(t);
         }
     }
 
