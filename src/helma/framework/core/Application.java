@@ -275,7 +275,7 @@ public final class Application extends UnicastRemoteObject implements IRemoteApp
     }
 
     /**
-     *  Create request evaluators and start scheduler and cleanup thread
+     *  Create and start scheduler and cleanup thread
      */
     public void start () {
 	starttime = System.currentTimeMillis();
@@ -305,6 +305,7 @@ public final class Application extends UnicastRemoteObject implements IRemoteApp
 	    for (Enumeration e=allThreads.elements (); e.hasMoreElements (); ) {
 	        RequestEvaluator ev = (RequestEvaluator) e.nextElement ();
 	        ev.stopThread ();
+	        ev.scriptingEngine = null;
 	    }
 	}
 	
@@ -318,6 +319,9 @@ public final class Application extends UnicastRemoteObject implements IRemoteApp
 	} catch (DatabaseException dbx) {
 	    System.err.println ("Error shutting down embedded db: "+dbx);
 	}
+
+	// null out type manager
+	typemgr = null;
 	
 	// stop logs if they exist
 	if (eventLog != null) {
@@ -435,8 +439,9 @@ public final class Application extends UnicastRemoteObject implements IRemoteApp
 	        // response needs to be closed/encoded before sending it back
 	        try {
 	            res.close (charset);
-                res.data = null;
-                req.data = null;
+	            // reset data fields for garbage collection (may hold references to evaluator)
+	            res.data = null;
+	            req.data = null;
 	        } catch (UnsupportedEncodingException uee) {
 	            logEvent ("Unsupported response encoding: "+uee.getMessage());
 	        }
@@ -948,6 +953,10 @@ public final class Application extends UnicastRemoteObject implements IRemoteApp
 	// logEvent ("Starting scheduler for "+name);
 	// as first thing, invoke function onStart in the root object
 
+	// read in standard prototypes to make first request go faster
+	typemgr.updatePrototype ("root");
+	typemgr.updatePrototype ("global");
+
 	try {
 	    eval.invokeFunction ((INode) null, "onStart", new Object[0]);
 	} catch (Exception ignore) {
@@ -1012,10 +1021,7 @@ public final class Application extends UnicastRemoteObject implements IRemoteApp
 	        worker = null;
 	        break;
 	    }
-
-
 	}
-
 	logEvent ("Scheduler for "+name+" exiting");
     }
 
