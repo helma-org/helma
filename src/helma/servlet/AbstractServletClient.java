@@ -256,7 +256,13 @@ public abstract class AbstractServletClient extends HttpServlet {
             if (browser != null) {
                 reqtrans.set("http_browser", browser);
             }
-
+           
+            String language = request.getHeader("Accept-Language");
+            
+            if (language != null) {
+                reqtrans.set("http_language", language);
+            } 
+            
             String authorization = request.getHeader("authorization");
 
             if (authorization != null) {
