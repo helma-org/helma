@@ -52,7 +52,7 @@ public final class NodeManager {
 	app.logEvent ("set up node cache ("+cacheSize+")");
 
 	safe = new WrappedNodeManager (this);
-	// nullNode = new Node ("nullNode", "nullNode", null, safe);
+	// nullNode = new Node ();
 
 	String replicationUrl = props.getProperty ("replicationUrl");
 	if (replicationUrl != null) {
@@ -184,7 +184,7 @@ public final class NodeManager {
 	    if (node != null) {
 	        synchronized (cache) {
 	            Node oldnode = (Node) cache.put (node.getKey (), node);
-	            if (oldnode != null && oldnode.getState () != Node.INVALID && !(oldnode instanceof NullNode)) {
+	            if (oldnode != null && oldnode.getState () != Node.INVALID && !oldnode.isNullNode ()) {
 	                cache.put (node.getKey (), oldnode);
 	                node = oldnode;
 	            }
@@ -236,7 +236,7 @@ public final class NodeManager {
 	// we need further checks for subnodes fetched by name if the subnodes were changed.
 	if (!rel.virtual && rel.subnodesAreProperties && node != null && node.getState() != Node.INVALID) {
 	    // check if node is null node (cached null)
-	    if (node instanceof NullNode) {
+	    if (node.isNullNode ()) {
 	        if (node.created() < rel.other.getLastDataChange ())
 	            node = null; //  cached null not valid anymore
 	    } else if (app.doesSubnodeChecking () && home.contains (node) < 0) {
@@ -258,7 +258,7 @@ public final class NodeManager {
 	            // check if node is already in cache with primary key
 	            Node oldnode = (Node) cache.put (primKey, node);
 	            // no need to check for oldnode != node because we fetched a new node from db
-	            if (oldnode != null && !(oldnode instanceof NullNode) && oldnode.getState () != Node.INVALID) {
+	            if (oldnode != null && !oldnode.isNullNode() && oldnode.getState () != Node.INVALID) {
 	                cache.put (primKey, oldnode);
 	                if (!keyIsPrimary) {
 	                    cache.put (key, oldnode);
@@ -272,12 +272,12 @@ public final class NodeManager {
 	    } else {
 	        // node fetched from db is null, cache result using nullNode
 	        synchronized (cache) {
-	            Node oldnode = (Node) cache.put (key, new NullNode ());
+	            Node oldnode = (Node) cache.put (key, new Node ());
 	            // we ignore the case that onother thread has created the node in the meantime
 	            return null;
 	        }
 	    }
-	} else if (node instanceof NullNode) {
+	} else if (node.isNullNode ()) {
 	    // the nullNode caches a null value, i.e. an object that doesn't exist
 	    return null;
 	} else {
@@ -634,8 +634,11 @@ public final class NodeManager {
 	            		(Key) new SyntheticKey (k, kstr);
 	            retval.add (new NodeHandle (key));
 	            // if these are groupby nodes, evict nullNode keys
-	            if (rel.groupby != null && cache.get (key) instanceof NullNode)
-	                evictKey (key);
+	            if (rel.groupby != null) {
+	                Node n = (Node) cache.get (key);
+	                if (n != null && n.isNullNode ())
+	                    evictKey (key);
+	            }
 	        }
 
 	    } finally {
