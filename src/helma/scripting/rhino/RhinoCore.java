@@ -71,6 +71,7 @@ public final class RhinoCore {
 
         context.setCompileFunctionsWithDynamicScope(true);
         wrapper = new WrapMaker();
+        wrapper.setJavaPrimitiveWrap(false);
         context.setWrapFactory(wrapper);
 
         int optLevel = 0;
@@ -758,10 +759,6 @@ public final class RhinoCore {
 
             if (obj != null && app.getPrototypeName(obj) != null) {
                 return getElementWrapper(obj);
-            }
-
-            if (obj instanceof String) {
-                return obj;
             }
 
             return super.wrap(cx, scope, obj, staticType);
