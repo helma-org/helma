@@ -49,6 +49,12 @@ public final class ResponseTrans implements Externalizable {
 
     // contains the redirect URL
     private String redir = null;
+    
+    // the last-modified date, if it should be set in the response
+    private long lastModified = -1;
+    // flag to signal that resource has not been modified
+    private boolean notModified = false;
+
 
     // cookies
     String cookieKeys[];
@@ -120,6 +126,7 @@ public final class ResponseTrans implements Externalizable {
 	skin = null;
 	title = head = body = message = error = null;
 	values.clear ();
+	lastModified = -1;
     }
 
 
@@ -327,6 +334,24 @@ public final class ResponseTrans implements Externalizable {
 	return contentType;
     }
 
+    public void setLastModified (long modified) {
+	lastModified = modified;
+    }
+    
+    public long getLastModified () {
+	return lastModified;
+    }
+    
+    public void setNotModified (boolean notmod) throws RedirectException {
+	notModified = notmod;
+	if (notmod)
+	    throw new RedirectException (null);
+    }
+    
+    public boolean getNotModified () {
+	return notModified; 
+    }
+
     public void setSkinpath (Object[] arr) {
 	this.skinpath = arr;
 	skincache = null;
@@ -408,6 +433,8 @@ public final class ResponseTrans implements Externalizable {
 	cache = s.readBoolean ();
 	status = s.readInt ();
 	realm = (String) s.readObject ();
+	lastModified = s.readLong ();
+	notModified = s.readBoolean ();
     }
 
     public void writeExternal (ObjectOutput s) throws IOException {
@@ -421,6 +448,8 @@ public final class ResponseTrans implements Externalizable {
 	s.writeBoolean (cache);
 	s.writeInt (status);
 	s.writeObject (realm);
+	s.writeLong (lastModified);
+	s.writeBoolean (notModified);
     }
 
 }

@@ -169,6 +169,12 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    if (referer != null)
 	        reqtrans.set ("http_referer", referer);
 
+	    try {
+	        long ifModifiedSince = request.getDateHeader ("If-Modified-Since");
+	        if (ifModifiedSince > -1)
+	            reqtrans.setIfModifiedSince (ifModifiedSince);
+	    } catch (IllegalArgumentException ignore) {}
+
 	    String remotehost = request.getRemoteAddr ();
 	    if (remotehost != null)
 	        reqtrans.set ("http_remotehost", remotehost);
@@ -226,7 +232,8 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    try {
 	        res.sendRedirect(trans.getRedirect ());
 	    } catch(Exception io_e) {}
-
+	} else if (trans.getNotModified ()) {
+	    res.setStatus (HttpServletResponse.SC_NOT_MODIFIED);
 	} else {
 
 	    if (!trans.cache || ! caching) {
@@ -240,6 +247,10 @@ public abstract class AbstractServletClient extends HttpServlet {
 	        res.setHeader( "WWW-Authenticate", "Basic realm=\"" + trans.realm + "\"" );
 	    if (trans.status > 0)
 	        res.setStatus (trans.status);
+	    // set last-modified header to now
+	    long modified = trans.getLastModified ();
+	    if (modified > -1)
+	        res.setDateHeader ("Last-Modified", System.currentTimeMillis ());
 	    // if we don't know which charset to use for parsing HTTP params,
 	    // take the one from the response. This usually works because
 	    // browsers send parrameters in the same encoding as the page
@@ -254,19 +265,11 @@ public abstract class AbstractServletClient extends HttpServlet {
 	        out.write (trans.getContent ());
 	        out.close ();
 	    } catch(Exception io_e) {
-	        System.err.println ("Exception in writeResponse: "+io_e);
+	        log ("Exception in writeResponse: "+io_e);
 	    }
 	}
     }
-	
-    private void redirectResponse (HttpServletRequest request, HttpServletResponse res, ResponseTrans trans, String url) { 		
-	try { 
-	    res.sendRedirect(url); 
-	} catch (Exception e) { 
-	    System.err.println ("Exception at redirect: " + e + e.getMessage());
-	}
-    }
-	
+
 
     public FileUpload getUpload (HttpServletRequest request) throws Exception {
 	int contentLength = request.getContentLength ();

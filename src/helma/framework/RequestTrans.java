@@ -24,6 +24,10 @@ public class RequestTrans implements Externalizable {
     // the request method - 0 for GET, 1 for POST
     private byte httpMethod = 0;
 
+    // timestamp of client-cached version, if present in request
+    private long ifModifiedSince = -1;
+    
+
     // this is used to hold the EcmaScript form data object
     public transient Object data;
     // when was execution started on this request?
@@ -32,8 +36,8 @@ public class RequestTrans implements Externalizable {
     // the name of the action being invoked
     public transient String action;
 
-	private transient String httpUsername;
-	private transient String httpPassword;
+    private transient String httpUsername;
+    private transient String httpPassword;
 
     static final long serialVersionUID = 5398880083482000580L;
 
@@ -125,6 +129,7 @@ public class RequestTrans implements Externalizable {
 	session = s.readUTF ();
 	values = (Map) s.readObject ();
 	httpMethod = s.readByte ();
+	ifModifiedSince = s.readLong ();
     }
 
     /**
@@ -135,6 +140,15 @@ public class RequestTrans implements Externalizable {
 	s.writeUTF (session);
 	s.writeObject (values);
 	s.writeByte (httpMethod);
+	s.writeLong (ifModifiedSince);
+    }
+
+    public void setIfModifiedSince (long since) {
+	ifModifiedSince = since;
+    }
+    
+    public long getIfModifiedSince () {
+	return ifModifiedSince;
     }
 
 	public String getUsername()	{
