@@ -990,23 +990,19 @@ public class HopExtension {
             if (hrefSkin != null) {
                 // we need to post-process the href with a skin for this application
                 // first, look in the object href was called on.
-                Prototype proto = app.getPrototype (n);
+                INode sn = n;
                 Skin skin = null;
-                if (proto != null) {
-                    skin = proto.getSkin (hrefSkin);
-                    if (skin != null)
-                        return renderSkin (skin, basicHref, (ESNode) thisObject);
-                }
-                for (int i=reval.reqPath.size()-1; i>=0; i--) {
-                    ESNode esn = (ESNode) reval.reqPath.getProperty (i);
-                    INode sn = esn.getNode ();
-                    proto = app.getPrototype (sn);
-                    if (proto != null) {
+                while (skin == null && sn != null) {
+                    Prototype proto = app.getPrototype (sn);
+                    if (proto != null)
                         skin = proto.getSkin (hrefSkin);
-                        if (skin != null) {
-                            return renderSkin (skin, basicHref, esn);
-                        }
-                    }
+                    if (skin == null)
+                        sn = sn.getParent ();
+                }
+
+                if (skin != null) {
+                    ESNode esn = reval.getNodeWrapper (sn);
+                    return renderSkin (skin, basicHref, esn);
                 }
             }
             return new ESString (basicHref);
