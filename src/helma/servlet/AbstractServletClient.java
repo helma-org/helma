@@ -27,7 +27,7 @@ public abstract class AbstractServletClient extends HttpServlet {
     // port of Helma RMI server
     int port = 0;
     // limit to HTTP uploads in kB
-    int uploadLimit;
+    int uploadLimit = 1024;
     // RMI url of Helma app
     String hopUrl;
     // cookie domain to use
@@ -274,7 +274,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    // consume all input to make Apache happy
 	    byte b[] = new byte[1024];
 	    int read = 0;
-	    while (read > -1)
+	    while (in.available () > 0)
 	         read = in.read (b, 0, 1024);
 	    throw new RuntimeException ("Upload exceeds limit of "+uploadLimit+" kb.");
 	}
