@@ -984,4 +984,14 @@ public final class RequestEvaluator implements Runnable {
         return null;
     }
 
+    /**
+     * Returns this evaluator's scripting engine
+     */
+    public ScriptingEngine getScriptingEngine() {
+        if (scriptingEngine == null) {
+            initScriptingEngine();
+        }
+        return scriptingEngine;
+    }
+
 }
