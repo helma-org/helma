@@ -684,6 +684,7 @@ public final class RequestEvaluator implements Runnable {
             res.writeErrorReport(app.getName(), "Request timed out");
         }
 
+        session.commit(this);
         return res;
     }
 

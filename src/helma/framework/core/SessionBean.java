@@ -75,7 +75,7 @@ public class SessionBean implements Serializable {
      * Disassociate this session from any user object it may have been associated with.
      */
     public void logout() {
-        session.getApp().logoutSession(session);
+        session.logout();
     }
 
     /**
@@ -132,7 +132,7 @@ public class SessionBean implements Serializable {
      * @return ...
      */
     public String get_id() {
-        return session.getSessionID();
+        return session.getSessionId();
     }
 
     /**
@@ -141,7 +141,7 @@ public class SessionBean implements Serializable {
      * @return ...
      */
     public String getCookie() {
-        return session.getSessionID();
+        return session.getSessionId();
     }
 
     /**

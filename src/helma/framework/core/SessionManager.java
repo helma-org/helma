@@ -31,8 +31,12 @@ public class SessionManager {
         sessions = new Hashtable();
     }
 
-    public void setApplication(Application app) {
+    public void init(Application app) {
         this.app = app;
+    }
+
+    public void shutdown() {
+        sessions.clear();
     }
 
     public Session createSession(String sessionId) {
@@ -74,7 +78,7 @@ public class SessionManager {
      */
     public void discardSession(Session session) {
         logoutSession(session);
-        sessions.remove(session.getSessionID());
+        sessions.remove(session.getSessionId());
     }
 
     /**
@@ -237,7 +241,7 @@ public class SessionManager {
 
                 if ((now - session.lastTouched()) < (sessionTimeout * 60000)) {
                     session.setApp(app);
-                    newSessions.put(session.getSessionID(), session);
+                    newSessions.put(session.getSessionId(), session);
                 }
 
                 ct++;

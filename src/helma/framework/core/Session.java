@@ -23,39 +23,39 @@ import java.util.*;
 
 /**
  * This represents a session currently using the Hop application.
- * This comprends anybody who happens to surf the site.
- * Depending on whether the user is logged in or not, the user object holds a
+ * This includes anybody who happens to request a page from this application.
+ * Depending on whether the user is logged in or not, the session holds a
  * persistent user node.
  */
 public class Session implements Serializable {
-    transient Application app;
-    String sessionID;
+
+    transient protected Application app;
+    protected String sessionId;
 
     // the unique id (login name) for the user, if logged in
-    String uid;
+    protected String uid;
 
     // the handle to this user's persistent db node, if logged in
-    NodeHandle userHandle;
+    protected NodeHandle userHandle;
 
     // the transient cache node that is exposed to javascript
     // this stays the same across logins and logouts.
-    public TransientNode cacheNode;
-    long onSince;
-    long lastTouched;
-    long lastModified;
+    protected TransientNode cacheNode;
+    protected long onSince;
+    protected long lastTouched;
+    protected long lastModified;
 
-    // used to remember messages to the user between requests -
-    // used for redirects.
-    String message;
+    // used to remember messages to the user between requests, mainly between redirects.
+    protected String message;
 
     /**
      * Creates a new Session object.
      *
-     * @param sessionID ...
+     * @param sessionId ...
      * @param app ...
      */
-    public Session(String sessionID, Application app) {
-        this.sessionID = sessionID;
+    public Session(String sessionId, Application app) {
+        this.sessionId = sessionId;
         this.app = app;
         this.uid = null;
         this.userHandle = null;
@@ -65,7 +65,7 @@ public class Session implements Serializable {
     }
 
     /**
-     * attach the given user node to this session.
+     * Attach the given user node to this session.
      */
     public void login(INode usernode) {
         if (usernode == null) {
@@ -91,7 +91,7 @@ public class Session implements Serializable {
     }
 
     /**
-     * remove this sessions's user node.
+     * Remove this sessions's user node.
      */
     public void logout() {
         userHandle = null;
@@ -100,7 +100,7 @@ public class Session implements Serializable {
     }
 
     /**
-     *
+     * Returns true if this session is currently associated with a user object.
      *
      * @return ...
      */
@@ -110,6 +110,13 @@ public class Session implements Serializable {
         } else {
             return false;
         }
+    }
+
+    /**
+     * Get the Node handle for the current user, if logged in.
+     */
+    public NodeHandle getUserHandle() {
+        return userHandle;
     }
 
     /**
@@ -131,7 +138,7 @@ public class Session implements Serializable {
     }
 
     /**
-     *
+     * Get this session's application
      *
      * @return ...
      */
@@ -140,7 +147,7 @@ public class Session implements Serializable {
     }
 
     /**
-     *
+     * Set this session's application
      *
      * @param app ...
      */
@@ -149,23 +156,33 @@ public class Session implements Serializable {
     }
 
     /**
-     *
+     * Return this session's id.
      *
      * @return ...
      */
-    public String getSessionID() {
-        return sessionID;
+    public String getSessionId() {
+        return sessionId;
     }
 
     /**
-     *
+     * Called at the beginning of a request to let the session know it's
+     * being used.
      */
     public void touch() {
         lastTouched = System.currentTimeMillis();
     }
 
     /**
+     * Called after a request has been handled.
      *
+     * @param reval the request evaluator that handled the request
+     */
+    public void commit(RequestEvaluator reval) {
+        lastModified = Math.max(lastModified, cacheNode.lastModified());
+    }
+
+    /**
+     * Returns the time this session was last touched.
      *
      * @return ...
      */
@@ -174,7 +191,8 @@ public class Session implements Serializable {
     }
 
     /**
-     *
+     * Returns the time this session was last modified, meaning the last time
+     * its user status changed or its cache node was modified.
      *
      * @return ...
      */
@@ -183,7 +201,7 @@ public class Session implements Serializable {
     }
 
     /**
-     *
+     * Set the last modified time on this session.
      *
      * @param date ...
      */
@@ -194,7 +212,7 @@ public class Session implements Serializable {
     }
 
     /**
-     *
+     * Return the time this session was created.
      *
      * @return ...
      */
@@ -203,7 +221,7 @@ public class Session implements Serializable {
     }
 
     /**
-     *
+     * Return a string representation for this session.
      *
      * @return ...
      */

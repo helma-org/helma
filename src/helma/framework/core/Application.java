@@ -276,7 +276,7 @@ public final class Application implements IPathElement, Runnable {
         String sessionMgrImpl = props.getProperty("sessionManagerImpl",
                                                   "helma.framework.core.SessionManager");
         sessionMgr = (SessionManager) Class.forName(sessionMgrImpl).newInstance();
-        sessionMgr.setApplication(this);
+        sessionMgr.init(this);
 
         // read the sessions if wanted
         if ("true".equalsIgnoreCase(getProperty("persistentSessions"))) {
@@ -428,7 +428,7 @@ public final class Application implements IPathElement, Runnable {
         if ("true".equalsIgnoreCase(getProperty("persistentSessions"))) {
             sessionMgr.storeSessionData(null);
         }
-
+        sessionMgr.shutdown();        
     }
 
     public synchronized boolean isRunning() {
@@ -1392,7 +1392,7 @@ public final class Application implements IPathElement, Runnable {
 
                             if (userhandle != null) {
                                 try {
-                                    Object[] param = { session.getSessionID() };
+                                    Object[] param = { session.getSessionId() };
 
                                     thisEvaluator.invokeInternal(userhandle, "onLogout", param);
                                 } catch (Exception ignore) {
