@@ -40,7 +40,13 @@ public final class RequestEvaluator implements Runnable {
     protected ScriptingEngine scriptingEngine;
     public RequestTrans req;
     public ResponseTrans res;
+
+    // the one and only transactor thread
     volatile Transactor rtx;
+
+    // the type of request to be serviced,
+    // used to coordinate worker and waiter threads
+    volatile int reqtype;
 
     // the object on which to invoke a function, if specified
     Object thisObject;
@@ -63,8 +69,7 @@ public final class RequestEvaluator implements Runnable {
     // the exception thrown by the evaluator, if any.
     Exception exception;
 
-    // the type of request to be serviced
-    int reqtype;
+    // skin depth counter, used to avoid recursive skin rendering
     protected int skinDepth;
 
     /**
