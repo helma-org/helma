@@ -48,9 +48,11 @@
         <filter token="date" value="${TODAY}"/>
     </target>
 
+
     <!-- =================================================================== -->
     <!-- Help on usage                                                       -->
     <!-- =================================================================== -->
+    <target name="help" depends="usage" />
     <target name="usage">
         <echo message=""/>
         <echo message=""/>
@@ -63,7 +65,7 @@
         <echo message=" jar        --> generates the ./lib/helma-YYYYMMDD.jar file"/>
         <echo message=" javadocs   --> generates the API docs"/>
         <echo message=" docs       --> tries to retrieve the HTML documentation "/>
-        <echo message="                (may need proxy settings in startscript"/>
+        <echo message="                (may need proxy settings in startscript)"/>
         <echo message=" package    --> generates the distribution (zip and tar.gz)"/>
         <echo message=" antclick   --> generates the distribution (zip and tar.gz)"/>
         <echo message="                with antville preconfigured"/>
@@ -135,7 +137,6 @@
     </target>
 
 
-
     <!-- =================================================================== -->
     <!-- Creates the full helma distribution                                 -->
     <!-- =================================================================== -->
@@ -202,7 +203,6 @@
     </target>
 
 
-
     <!-- =================================================================== -->
     <!-- Checkout demo apps, put them in work directory and zip manage app   -->
     <!-- =================================================================== -->
@@ -230,7 +230,6 @@ lillebror
 manage
 </echo>
     </target>
-
 
 
     <!-- =================================================================== -->
@@ -290,7 +289,6 @@ manage
       <cvs cvsRoot="${cvs.root}" package="apps/${application}" dest="${build.checkout}"/>
       <zip zipfile="../${application}.zip" basedir="${build.checkout}/apps/${application}/" includes="**"/>
     </target>
-
 
 
     <!-- =================================================================== -->
