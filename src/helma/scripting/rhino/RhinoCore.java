@@ -737,7 +737,7 @@ public final class RhinoCore {
             cx.evaluateReader(op, reader, sourceName, firstline, null);
         } catch (Throwable e) {
             app.logEvent("Error parsing function file " + sourceName + ": " + e);
-            e.printStackTrace();
+            // e.printStackTrace();
         } finally {
             if (reader != null) {
                 try {
