@@ -25,10 +25,10 @@ function formatProperties(props,par)	{
 	var prefix = (par && par.prefix) ? par.prefix : "";
 	var suffix = (par && par.suffix) ? par.suffix : "";
 	var separator = (par && par.separator) ? par.separator : "";
+	if ( props.size()==0 )
+		return "";
 	var e = props.keys();
 	var arr = new Array();
-	if ( e==null )
-		return "";
 	while ( e.hasMoreElements() )	{
 		arr[arr.length] = e.nextElement();
 	}	
