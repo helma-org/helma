@@ -42,7 +42,7 @@ public final class SyntheticKey implements Key, Serializable {
      */
     public SyntheticKey(Key key, String name) {
         this.parentKey = key;
-        this.name = name.toLowerCase();
+        this.name = name;
     }
 
     /**
@@ -64,7 +64,7 @@ public final class SyntheticKey implements Key, Serializable {
         SyntheticKey k = (SyntheticKey) what;
 
         return parentKey.equals(k.parentKey) &&
-               ((name == k.name) || name.equals(k.name));
+               ((name == k.name) || name.equalsIgnoreCase(k.name));
     }
 
     /**
@@ -74,7 +74,8 @@ public final class SyntheticKey implements Key, Serializable {
      */
     public int hashCode() {
         if (hashcode == 0) {
-            hashcode = 17 + (37 * name.hashCode()) + (37 * parentKey.hashCode());
+            hashcode = 17 + (37 * name.toLowerCase().hashCode()) + 
+                            (37 * parentKey.hashCode());
         }
 
         return hashcode;
