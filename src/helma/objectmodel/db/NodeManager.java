@@ -1161,6 +1161,13 @@ public final class NodeManager {
     }
 
     /**
+     * Get the number of elements in the object cache
+     */
+    public int countCacheEntries () {
+    return cache.size ();
+    }
+
+    /**
     * Clear the object cache, causing all objects to be recreated.
     */
     public void clearCache () {
