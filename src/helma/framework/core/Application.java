@@ -345,8 +345,6 @@ public final class Application implements IPathElement, Runnable {
         worker = new Thread(this, "Worker-" + name);
         worker.setPriority(Thread.NORM_PRIORITY + 1);
         worker.start();
-
-        // logEvent ("session cleanup and scheduler thread started");
     }
 
     /**
@@ -668,10 +666,8 @@ public final class Application implements IPathElement, Runnable {
         }
         // no custom root object is defined - use standard helma objectmodel
         else {
-            // INode root = nmgr.safe.getNode ("0", rootMapping);
-            // root.setDbMapping (rootMapping);
-            // rootObject = root;
-            rootObject = nmgr.safe.getNode("0", rootMapping);
+            String rootId = props.getProperty("rootid", "0");
+            rootObject = nmgr.safe.getNode(rootId, rootMapping);
 
             return rootObject;
         }
@@ -1126,13 +1122,17 @@ public final class Application implements IPathElement, Runnable {
     private Object invokeFunction(Object obj, String func, Object[] args) {
         RequestEvaluator reval = getCurrentRequestEvaluator();
 
+        if (args == null) {
+            args = new Object[0];
+        }
+        
         if (reval != null) {
             try {
                 return reval.invokeDirectFunction(obj, func, args);
             } catch (Exception x) {
                 if (debug) {
-                    System.err.println("Error in Application.invokeFunction (" + func +
-                                       "): " + x);
+                    System.err.println("Error in Application.invokeFunction (" + 
+                                        func + "): " + x);
                 }
             }
         }
@@ -1163,7 +1163,7 @@ public final class Application implements IPathElement, Runnable {
             return ((IPathElement) obj).getElementName();
         }
 
-        Object retval = invokeFunction(obj, "getElementName", null);
+        Object retval = invokeFunction(obj, "getElementName", new Object[0]);
 
         if (retval != null) {
             return retval.toString();
@@ -1195,7 +1195,7 @@ public final class Application implements IPathElement, Runnable {
             return ((IPathElement) obj).getParentElement();
         }
 
-        return invokeFunction(obj, "getParentElement", null);
+        return invokeFunction(obj, "getParentElement", new Object[0]);
     }
 
     /**
@@ -1263,7 +1263,7 @@ public final class Application implements IPathElement, Runnable {
         return "application";
     }
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////
 
     /**
      * Get the logger object for logging generic events
@@ -1465,7 +1465,6 @@ public final class Application implements IPathElement, Runnable {
             try {
                 Thread.sleep(sleepInterval);
             } catch (InterruptedException x) {
-                logEvent("Scheduler for " + name + " interrupted");
                 worker = null;
                 break;
             }
@@ -1693,6 +1692,13 @@ public final class Application implements IPathElement, Runnable {
         }
 
         return xmlrpcHandlerName;
+    }
+
+    /**
+     * Return a string representation for this app.
+     */
+    public String toString() {
+        return "[Application "+name+"]";
     }
 
     /**
