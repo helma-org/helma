@@ -24,6 +24,7 @@ import com.sleepycat.db.*;
  
  public class Server {
 
+    public static final String version = "1.2 pre 2001/11/20";
 
     public static boolean useTransactions = true;
     public static boolean paranoid;
@@ -94,6 +95,8 @@ import com.sleepycat.db.*;
 	    } else
 	        usageError = true;
 	}
+
+	System.out.println ("Helma "+version);
 
 	if (usageError ) {
 	    System.out.println ("usage: java helma.objectmodel.db.Server [-h dir] [-f file] [-p port] [-w port] [-t]");
