@@ -79,7 +79,7 @@ public class DocPrototype extends DocDirElement	{
 		children.clear ();
 		String arr[] = location.list ();
 		for (int i=0; i<arr.length; i++) {
-			if (Util.isExcluded (arr[i]))
+			if (getDocApplication ().isExcluded (arr[i]))
 				continue;
 			File f = new File (location.getAbsolutePath (), arr[i]);
 			if (f.isDirectory ())
@@ -102,7 +102,9 @@ public class DocPrototype extends DocDirElement	{
          } catch (Exception ex) {
             System.out.println ("couldn't parse file " + f.getAbsolutePath () + ": " + ex.toString ());
             ex.printStackTrace ();
-         }
+         } catch (FESI.Parser.TokenMgrError err) {
+            System.out.println ("couldn't parse file " + f.getAbsolutePath () + ": " + err.toString ());
+         }            
 		}
 	}
 
