@@ -145,13 +145,13 @@ public abstract class DocElement implements IPathElement {
     }
 
     /**
-     * filter the tags according to DocTag.TYPE
+     * filter the tags according to their type
      */
-    public DocTag[] listTags(int type) {
+    public DocTag[] listTags(String type) {
         Vector retval = new Vector();
 
         for (int i = 0; i < tags.size(); i++) {
-            if (((DocTag) tags.get(i)).getType() == type) {
+            if (((DocTag) tags.get(i)).getType().equals(type)) {
                 retval.add(tags.get(i));
             }
         }
