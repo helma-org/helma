@@ -1037,7 +1037,15 @@ public class Node implements INode, Serializable {
 	loadNodes ();
 	if (subnodes == null)
 	    return -1;
-	return subnodes.indexOf (n.getID ());
+	// if the node contains relational groupby subnodes, the subnodes vector contains the names instead of ids.
+	Relation srel = dbmap == null ? null : dbmap.getSubnodeRelation ();
+	if (srel != null && srel.groupby != null && srel.other != null && srel.other.isRelational ()) {
+	    if (n.getParent () != this)
+	        return -1;
+	    else
+	        return subnodes.indexOf (n.getName ());
+	} else
+	    return subnodes.indexOf (n.getID ());
     }
 
     /**
