@@ -253,6 +253,7 @@ public final class Application implements IPathElement, Runnable {
 	} catch (Exception ignore) {}
 	for (int i=0; i<minThreads; i++) {
 	    RequestEvaluator ev = new RequestEvaluator (this);
+	    ev.initScriptingEngine ();
 	    freeThreads.push (ev);
 	    allThreads.addElement (ev);
 	}
@@ -350,16 +351,18 @@ public final class Application implements IPathElement, Runnable {
     protected RequestEvaluator getEvaluator () {
 	if (stopped)
 	    throw new ApplicationStoppedException ();
+	// first try
 	try {
 	    return (RequestEvaluator) freeThreads.pop ();
 	} catch (EmptyStackException nothreads) {
+	    int maxThreads = 12;
+	    try {
+	        maxThreads = Integer.parseInt (props.getProperty ("maxThreads"));
+	    } catch (Exception ignore) {
+	        // property not set, use default value
+	    }
 	    synchronized (this) {
-	        int maxThreads = 12;
-	        try {
-	            maxThreads = Integer.parseInt (props.getProperty ("maxThreads"));
-	        } catch (Exception ignore) {
-	            // property not set, use default value
-	        }
+	        // allocate a new evaluator
 	        if (allThreads.size() < maxThreads) {
 	            logEvent ("Starting evaluator "+(allThreads.size()+1) +" for application "+name);
 	            RequestEvaluator ev = new RequestEvaluator (this);
@@ -367,8 +370,21 @@ public final class Application implements IPathElement, Runnable {
 	            return (ev);
 	        }
 	    }
-	    throw new RuntimeException ("Maximum Thread count reached.");
 	}
+	// we can't create a new evaluator, so we wait if one becomes available.
+	// give it 3 more tries, waiting 3 seconds each time.
+	for (int i=0; i<4; i++) {
+	    try {
+	        Thread.currentThread().sleep(3000);
+	        return (RequestEvaluator) freeThreads.pop ();
+	    } catch (EmptyStackException nothreads) {
+	        // do nothing
+	    } catch (InterruptedException inter) {
+	        throw new RuntimeException ("Thread interrupted.");
+	    }
+	}
+	// no luck, give up.
+	throw new RuntimeException ("Maximum Thread count reached.");
     }
 
     /**
