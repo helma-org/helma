@@ -89,6 +89,7 @@ public class HopExtension {
         go.putHiddenProperty("getUserBySession", new GlobalGetUserBySession ("getUserBySession", evaluator, fp, reval));
         go.putHiddenProperty("getAllUsers", new GlobalGetAllUsers ("getAllUsers", evaluator, fp, reval));
         go.putHiddenProperty("getActiveUsers", new GlobalGetActiveUsers ("getActiveUsers", evaluator, fp, reval));
+        go.putHiddenProperty("countActiveUsers", new GlobalCountActiveUsers ("countActiveUsers", evaluator, fp, reval));
         go.putHiddenProperty("isActive", new GlobalIsActive ("isActive", evaluator, fp));
         go.putHiddenProperty("getAge", new GlobalGetAge ("getAge", evaluator, fp));
         go.putHiddenProperty("getURL", new GlobalGetURL ("getURL", evaluator, fp));
@@ -717,6 +718,17 @@ public class HopExtension {
                }
            }
            return theArray;
+        }
+    }
+
+    class GlobalCountActiveUsers extends BuiltinFunctionObject {
+        RequestEvaluator reval;
+        GlobalCountActiveUsers (String name, Evaluator evaluator, FunctionPrototype fp, RequestEvaluator reval) {
+            super (fp, evaluator, name, 1);
+            this.reval = reval;
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+           return new ESNumber (app.sessions.size ());
         }
     }
 
