@@ -46,7 +46,7 @@ public class SessionBean implements Serializable {
 
 	// property-related methods:
 
-	public INode getcache() {
+	public INode getdata() {
 		return session.getCacheNode ();
 	}
 
