@@ -8,7 +8,7 @@
     <target name="init">
         <property name="Name" value="helma"/>
         <property name="year" value="1998-${year}"/>
-        <property name="version" value="1.2-rc2"/>
+        <property name="version" value="1.2-rc1"/>
         <property name="project" value="helma"/>
         <property name="build.compiler" value="classic"/>
 
@@ -28,7 +28,7 @@
 
         <property name="jar.name" value="${project}"/>
         <property name="package.name" value="${project}-${version}"/>
-        <property name="antclick.name" value="antclick-1.0pre3"/>
+        <property name="antclick.name" value="antclick-1.0pre2"/>
 
         <property name="debug" value="on"/>
         <property name="optimize" value="on"/>
@@ -196,13 +196,10 @@
         <!-- copy the launcher jar file -->
         <copy file="${home.dir}/launcher.jar" todir="${build.work}/"/>
 
-        <!-- copy README.txt -->
-        <copy file="${home.dir}/README.txt" todir="${build.work}/"/>
-
         <!-- copy the whole docs-directory -->
-        <!-- copy todir="${build.work}/docs">
+        <copy todir="${build.work}/docs">
             <fileset dir="${build.docs}"/>
-        </copy -->
+        </copy>
 
         <!-- copy all libraries except helma-YYYYMMDD.jar -->
         <copy todir="${build.work}/lib">

@@ -1,7 +1,7 @@
 #!/bin/sh
 # Shell script for starting Helma with a JDK-like virtual machine.
 
-# To add JAR files to the classpath, simply place them into the
+# To add JAR files to the classpath, simply place them into the 
 # lib/ext directory.
 
 # uncomment to set JAVA_HOME variable
@@ -31,11 +31,6 @@ if [ "$JAVA_HOME" ]; then
 else
    JAVACMD=java
 fi
-
-# Get the Helma installation directory
-INSTALL_DIR="${0%/*}"
-cd $INSTALL_DIR
-INSTALL_DIR=$PWD
 
 # get HOP_HOME variable if it isn't set
 if test -z "$HOP_HOME"; then
@@ -69,5 +64,5 @@ if [ "$HOP_HOME" ]; then
    SWITCHES="$SWITCHES -h $HOP_HOME"
 fi
 
-# Invoke the Java VM
-$JAVACMD $JAVA_OPTIONS -jar "$INSTALL_DIR/launcher.jar" $SWITCHES
+# Invoking the Java VM
+$JAVACMD $JAVA_OPTIONS -jar launcher.jar $SWITCHES
