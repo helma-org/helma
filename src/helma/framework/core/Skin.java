@@ -485,9 +485,9 @@ public final class Skin {
                             // arguments[0] = new SystemMap(parameters);
                         }
 
-                        Object value = reval.scriptingEngine.invoke(handlerObject,
-                                                                    funcName, arguments,
-                                                                    false);
+                        Object value = reval.invokeDirectFunction(handlerObject,
+                                                                  funcName,
+                                                                  arguments);
 
                         // check if macro wrote out to response buffer
                         if (buffer.length() == (bufLength + preLength)) {
