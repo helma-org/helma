@@ -13,6 +13,7 @@ public final class ASCII_CharStream
   int available;
   int tokenBegin;
   public int bufpos = -1;
+  boolean addedNewline = false;
   private int bufline[];
   private int bufcolumn[];
 
@@ -107,8 +108,14 @@ public final class ASCII_CharStream
         if ((i = inputStream.read(buffer, maxNextCharInd,
                                     available - maxNextCharInd)) == -1)
         {
-           inputStream.close();
-           throw new java.io.IOException();
+           if (!addedNewline) {
+               addedNewline = true;
+               buffer[maxNextCharInd] = '\n';
+               i = 1;
+           } else {
+               inputStream.close();
+               throw new java.io.IOException();
+           }
         }
         else
            maxNextCharInd += i;
@@ -265,6 +272,7 @@ public final class ASCII_CharStream
     prevCharIsLF = prevCharIsCR = false;
     tokenBegin = inBuf = maxNextCharInd = 0;
     bufpos = -1;
+    addedNewline = false;
   }
 
   public void ReInit(java.io.Reader dstream, int startline,
