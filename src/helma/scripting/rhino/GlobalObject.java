@@ -65,7 +65,7 @@ public class GlobalObject extends ScriptableObject {
         String[] globalFuncs = {
                                    "renderSkin", "renderSkinAsString", "getProperty",
                                    "authenticate", "createSkin", "format", "encode",
-                                   "encodeXml", "encodeForm", "stripTags",
+                                   "encodeXml", "encodeForm", "stripTags", "formatParagraphs",
                                    "getXmlDocument", "getHtmlDocument",
                                    "getDBConnection", "getURL", "write", "writeln"
                                };
@@ -370,6 +370,34 @@ public class GlobalObject extends ScriptableObject {
      */
     public String format(Object obj) {
         return HtmlEncoder.encode(toString(obj));
+    }
+
+    /**
+     *
+     *
+     * @param str ...
+     *
+     * @return ...
+     */
+    public String formatParagraphs(Object obj) {
+        String str = toString(obj);
+        
+        if (str == null) {
+            return null;
+        }
+
+        int l = str.length();
+
+        if (l == 0) {
+            return "";
+        }
+
+        // try to make stringbuffer large enough from the start
+        StringBuffer buffer = new StringBuffer(Math.round(l * 1.4f));
+
+        HtmlEncoder.encode(str, buffer, true, null);
+
+        return buffer.toString();
     }
 
     /**
