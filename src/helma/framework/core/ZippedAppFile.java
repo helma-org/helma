@@ -104,9 +104,17 @@ public class ZippedAppFile implements Updatable {
 	                }
 	                else if ("type.properties".equalsIgnoreCase (fname)) {
 	                    String name = fname.substring (0, fname.lastIndexOf ("."));
-	                    SystemProperties props = new SystemProperties (zip.getInputStream (entry));
-	                    // DbMapping does its own registering, just construct it.
-	                    new DbMapping (app, proto.getName (), props);
+	                    DbMapping dbmap = proto.getDbMapping ();
+	                    if (dbmap == null) {
+	                        SystemProperties props = new SystemProperties (zip.getInputStream (entry));
+	                        dbmap = new DbMapping (app, proto.getName (), props);
+	                        proto.setDbMapping (dbmap);
+	                    } else {
+	                        // FIXME: provide a way to let zip files add to
+	                        // type.properties files of existing prototypes.
+	                        // SystemProperties props = dbmap.getProperties ();
+	                        // props.add (zip.getInputStream (entry));
+	                    }
 	                    // mark prototype as updated
 	                    proto.markUpdated ();
 	                }
@@ -114,10 +122,9 @@ public class ZippedAppFile implements Updatable {
 	        }
 	        for  (Iterator it = newPrototypes.iterator (); it.hasNext (); ) {
 	            Prototype proto = (Prototype) it.next ();
-	            if (app.getDbMapping (proto.getName ()) == null) {
+	            if (proto.getDbMapping() == null) {
 	                // DbMapping doesn't exist, we still need to create one
 	                SystemProperties props = new SystemProperties ();
-	                // DbMapping does its own registering, just construct it.
 	                proto.setDbMapping (new DbMapping (app, proto.getName (), props));
 	            }
 	        }
@@ -153,42 +160,6 @@ public class ZippedAppFile implements Updatable {
 
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
