@@ -372,7 +372,7 @@ public class ResponseBean implements Serializable {
      *
      * @param what ...
      */
-    public void dependsOn(Object what) {
+    public void dependsOn(String what) {
         res.dependsOn(what);
     }
 
