@@ -342,7 +342,7 @@ class Connection implements Runnable {
           output.write (clength);
           output.write (Integer.toString (result.length).getBytes());
           output.write (doubleNewline);
-           output.write (result);
+          output.write (result);
           output.flush ();
         } else {
           output.write (httpversion.getBytes());
