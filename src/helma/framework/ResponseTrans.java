@@ -656,7 +656,7 @@ public final class ResponseTrans implements Externalizable {
      *
      * @return ...
      */
-    public Skin getCachedSkin(String id) {
+    public Skin getCachedSkin(Object id) {
         if (skincache == null) {
             return null;
         }
@@ -670,7 +670,7 @@ public final class ResponseTrans implements Externalizable {
      * @param id ...
      * @param skin ...
      */
-    public void cacheSkin(String id, Skin skin) {
+    public void cacheSkin(Object id, Skin skin) {
         if (skincache == null) {
             skincache = new HashMap();
         }
