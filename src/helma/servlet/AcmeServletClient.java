@@ -93,6 +93,10 @@ public class AcmeServletClient extends HttpServlet {
 	    if (browser != null)
 	        reqtrans.set ("http_browser", browser);
 
+		String authorization = request.getHeader("authorization");
+		if ( authorization != null )
+			reqtrans.set ("authorization", authorization );
+
 	    for (Enumeration e = request.getParameterNames(); e.hasMoreElements(); ) {
 	        // Params parsen
 	        String nextKey = (String)e.nextElement();
@@ -170,6 +174,8 @@ public class AcmeServletClient extends HttpServlet {
 	        else
 	            res.setHeader ("Cache-Control", "no-cache"); // for HTTP 1.1
 	    }
+		if ( trans.realm!=null )
+			res.setHeader( "WWW-Authenticate", "Basic realm=\"" + trans.realm + "\"" );
 	    if (trans.status > 0)
 	        res.setStatus (trans.status);
 	    res.setContentLength (trans.getContentLength ());			
