@@ -1087,7 +1087,7 @@ public final class Application implements IPathElement, Runnable {
 	try {
 	    eval.invokeFunction ((INode) null, "onStart", new Object[0]);
 	} catch (Exception ignore) {
-	    System.err.println ("Error in "+name+"/onStart(): "+ignore);
+	    logEvent ("Error in "+name+"/onStart(): "+ignore);
 	}
 
 	while (Thread.currentThread () == worker) {
