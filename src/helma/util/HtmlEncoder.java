@@ -275,7 +275,7 @@ public final class HtmlEncoder {
     }
 
     // HTML block tags need to suppress automatic newline to <br>
-    // conversion around them to look good. However, they differ 
+    // conversion around them to look good. However, they differ
     // in how many newlines around them should ignored. These sets
     // help to treat each tag right in newline conversion.
     static final HashSet swallowAll = new HashSet();
@@ -342,10 +342,12 @@ public final class HtmlEncoder {
         emptyTags.add("param");
     }
 
-    final static byte TAG_NAME = 0;
-    final static byte TAG_SPACE = 1;
-    final static byte TAG_ATT_NAME = 2;
-    final static byte TAG_ATT_VAL = 3;
+    static final byte TAG_NAME = 0;
+    static final byte TAG_SPACE = 1;
+    static final byte TAG_ATT_NAME = 2;
+    static final byte TAG_ATT_VAL = 3;
+
+    static final String newLine = System.getProperty("line.separator");
 
 
     /**
@@ -529,11 +531,13 @@ public final class HtmlEncoder {
             }
 
             if ((linebreaks > 0 || swallowLinebreaks > 0) && !Character.isWhitespace(c)) {
-                if (!insidePreTag && (linebreaks > swallowLinebreaks)) {
-                    linebreaks -= swallowLinebreaks;
-
-                    for (int k = 0; k < linebreaks; k++)
-                        ret.append("<br />\n");
+                if (!insidePreTag) {
+                    for (int k = 0; k < linebreaks; k++) {
+                        if (k >= swallowLinebreaks) {
+                            ret.append("<br />");
+                        }
+                        ret.append(newLine);
+                    }
                 }
 
                 if (!insideTag) {
@@ -628,13 +632,17 @@ public final class HtmlEncoder {
                     break;
 
                 case '\n':
-                    ret.append('\n');
-
                     if (!insideTag) {
                         linebreaks++;
+                    } else {
+                        ret.append('\n');
                     }
 
                     break;
+                case '\r':
+                    if (!insideTag) {
+                        break;
+                    }
 
                 case '>':
 
@@ -731,11 +739,13 @@ public final class HtmlEncoder {
         }
 
         // add remaining newlines we may have collected
-        if ((linebreaks > 0) && (linebreaks > swallowLinebreaks)) {
-            linebreaks -= swallowLinebreaks;
-
-            for (int i = 0; i < linebreaks; i++)
-                ret.append("<br />\n");
+        if (linebreaks > 0) {
+            for (int i = 0; i < linebreaks; i++) {
+                if (i >= swallowLinebreaks) {
+                    ret.append("<br />");
+                }
+                ret.append(newLine);
+            }
         }
     }
 
@@ -830,11 +840,10 @@ public final class HtmlEncoder {
                     break;
 
                 case '\n':
-                    ret.append('\n');
-
                     if (encodeNewline) {
                         ret.append("<br />");
                     }
+                    ret.append('\n');
 
                     break;
 
