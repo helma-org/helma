@@ -17,6 +17,7 @@
 package helma.framework.core;
 
 import helma.objectmodel.INode;
+import helma.util.CronJob;
 import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -252,6 +253,45 @@ public class ApplicationBean implements Serializable {
         List userSessions = app.getSessionsForUsername(username);
 
         return (SessionBean[]) userSessions.toArray(new SessionBean[0]);
+    }
+
+    /**
+     *
+     *
+     * @param functionName ...
+     */
+    public void addCronJob(String functionName) {
+        CronJob job = new CronJob(functionName);
+
+        job.setFunction(functionName);
+        app.customCronJobs.put(functionName, job);
+    }
+
+    /**
+     *
+     *
+     * @param functionName ...
+     * @param year ...
+     * @param month ...
+     * @param day ...
+     * @param weekday ...
+     * @param hour ...
+     * @param minute ...
+     */
+    public void addCronJob(String functionName, String year, String month, String day,
+                           String weekday, String hour, String minute) {
+        CronJob job = CronJob.newJob(functionName, year, month, day, weekday, hour, minute);
+
+        app.customCronJobs.put(functionName, job);
+    }
+
+    /**
+     *
+     *
+     * @param functionName ...
+     */
+    public void removeCronJob(String functionName) {
+        app.customCronJobs.remove(functionName);
     }
 
     // getter methods for readonly properties of this application

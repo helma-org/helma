@@ -146,6 +146,11 @@ public final class Application implements IPathElement, Runnable {
     // the name under which this app serves XML-RPC requests. Defaults to the app name
     private String xmlrpcHandlerName;
 
+    // the list of cron jobs
+    private Map activeCronJobs = null;
+    private Vector cronJobs = null;
+    Hashtable customCronJobs = null;
+
     /**
      * Build an application with the given name in the app directory. No Server-wide
      * properties are created or used.
@@ -305,6 +310,8 @@ public final class Application implements IPathElement, Runnable {
         }
 
         activeRequests = new Hashtable();
+        activeCronJobs = new WeakHashMap();
+        customCronJobs = new Hashtable();
 
         skinmgr = new SkinManager(this);
 
@@ -1355,39 +1362,85 @@ public final class Application implements IPathElement, Runnable {
                 }
             }
 
-            // check if we should call scheduler
-            if ((now - lastScheduler) > scheduleSleep) {
-                lastScheduler = now;
-
-                Object val = null;
-
-                try {
-                    val = eval.invokeFunction((INode) null, "scheduler", new Object[0]);
-                } catch (Exception ignore) {
-                }
-
-                try {
-                    int ret = ((Number) val).intValue();
-
-                    if (ret < 1000) {
-                        scheduleSleep = 60000L;
-                    } else {
-                        scheduleSleep = ret;
-                    }
-                } catch (Exception ignore) {
-                }
-
-                // logEvent ("Called scheduler for "+name+", will sleep for "+scheduleSleep+" millis");
+            if ((cronJobs == null) || (props.lastModified() > lastPropertyRead)) {
+                updateProperties();
+                cronJobs = CronJob.parse(props);
             }
 
-            // sleep until we have work to do
+            Date d = new Date();
+            List jobs = (List) cronJobs.clone();
+
+            jobs.addAll(customCronJobs.values());
+            CronJob.sort(jobs);
+
+            for (Iterator i = jobs.iterator(); i.hasNext();) {
+                CronJob j = (CronJob) i.next();
+
+                if (j.appliesToDate(d)) {
+                    // check if the job is already active ...
+                    if (activeCronJobs.containsKey(j.getName())) {
+                        logEvent(j + " is still active, skipped in this minute");
+
+                        continue;
+                    }
+
+                    RequestEvaluator thisEvaluator;
+
+                    try {
+                        thisEvaluator = getEvaluator();
+                    } catch (RuntimeException rt) {
+                        if (stopped == false) {
+                            logEvent("couldn't execute " + j +
+                                     ", maximum thread count reached");
+
+                            continue;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    // if the job has a long timeout or we're already late during this minute
+                    // the job is run from an extra thread
+                    if ((j.getTimeout() > 20000) ||
+                            (CronJob.millisToNextFullMinute() < 30000)) {
+                        CronRunner r = new CronRunner(thisEvaluator, j);
+
+                        r.start();
+                        activeCronJobs.put(j.getName(), r);
+                    } else {
+                        try {
+                            thisEvaluator.invokeFunction((INode) null, j.getFunction(),
+                                                         new Object[0], j.getTimeout());
+                        } catch (Exception ex) {
+                            logEvent("error running " + j + ": " + ex.toString());
+                        } finally {
+                            if (stopped == false) {
+                                releaseEvaluator(thisEvaluator);
+                            }
+                        }
+                    }
+
+                    thisEvaluator = null;
+                }
+            }
+
+            // sleep until the next full minute
             try {
-                worker.sleep(Math.min(cleanupSleep, scheduleSleep));
+                worker.sleep(CronJob.millisToNextFullMinute());
             } catch (InterruptedException x) {
                 logEvent("Scheduler for " + name + " interrupted");
                 worker = null;
-
                 break;
+            }
+        }
+
+        // when interrupted, shutdown running cron jobs
+        synchronized (activeCronJobs) {
+            for (Iterator i = activeCronJobs.keySet().iterator(); i.hasNext();) {
+                String jobname = (String) i.next();
+
+                ((CronRunner) activeCronJobs.get(jobname)).interrupt();
+                activeCronJobs.remove(jobname);
             }
         }
 
@@ -1759,6 +1812,31 @@ public final class Application implements IPathElement, Runnable {
             logEvent("loaded " + newSessions.size() + " sessions from file");
         } catch (Exception e) {
             logEvent("error loading session data: " + e.toString());
+        }
+    }
+
+    class CronRunner extends Thread {
+        RequestEvaluator thisEvaluator;
+        CronJob job;
+
+        public CronRunner(RequestEvaluator thisEvaluator, CronJob job) {
+            this.thisEvaluator = thisEvaluator;
+            this.job = job;
+        }
+
+        public void run() {
+            try {
+                thisEvaluator.invokeFunction((INode) null, job.getFunction(),
+                                             new Object[0], job.getTimeout());
+            } catch (Exception ex) {
+            }
+
+            if (stopped == false) {
+                releaseEvaluator(thisEvaluator);
+            }
+
+            thisEvaluator = null;
+            activeCronJobs.remove(job.getName());
         }
     }
 }
