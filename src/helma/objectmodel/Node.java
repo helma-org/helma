@@ -13,9 +13,9 @@ import java.io.*;
 import helma.util.*;
 
 /**
- * A transient implementation of INode. If a transient node is stored in a 
- * database, it is automatically (along with all reachable subnodes) rebuilt 
- * as a persistent node.
+ * A transient implementation of INode. An instance of this class can't be
+ * made persistent by reachability from a persistent node. To make a persistent-capable
+ * object, class helma.objectmodel.db.Node has to be used.
  */
  
 public class Node implements INode, Serializable {
@@ -63,48 +63,6 @@ public class Node implements INode, Serializable {
 	name = n == null || "".equals (n) ? id : n;
 	created = lastmodified = System.currentTimeMillis ();
     }
-
-    /**
-     *  Create a clone of a given node that implements this class
-    */ 
-    public Node (INode node, Hashtable ntable, boolean conversionRoot) {
-	this.id = generateID ();
-	this.name = node.getName ();
-	created = lastmodified = System.currentTimeMillis ();
-	ntable.put (node, this);
-	adoptName = !conversionRoot;  // only take over name from property if this is not the transient root
-	for (Enumeration e = node.getSubnodes (); e.hasMoreElements (); ) {
-	    INode next = (INode) e.nextElement ();
-	    Node nextc = (Node) ntable.get (next);
-	    if (nextc == null)
-	        nextc = new Node (next, ntable, true);
-	    addNode (nextc);
-	}
- 	for (Enumeration e = node.properties (); e.hasMoreElements (); ) {
-	    IProperty next = node.get ((String) e.nextElement (), false);
-	    if (next == null)
-	        continue;
-	    int t = next.getType ();
-	    if (t == IProperty.NODE) {
-	        INode n = next.getNodeValue ();
-	        Node nextc = (Node) ntable.get (n);
-	        if (nextc == null)
-	            nextc = new Node (n, ntable, true);
-	        setNode (next.getName (), nextc);
-	    } else if (t == IProperty.STRING) {
-	        setString (next.getName (), next.getStringValue ());
-	    } else if (t == IProperty.INTEGER) {
-	        setInteger (next.getName (), next.getIntegerValue ());
-	    } else if (t == IProperty.FLOAT) {
-	        setFloat (next.getName (), next.getFloatValue ());
-	    } else if (t == IProperty.BOOLEAN) {
-	        setBoolean (next.getName (), next.getBooleanValue ());
-	    } else if (t == IProperty.DATE) {
-	        setDate (next.getName (), next.getDateValue ());
-	    }
-	}
-	adoptName = true; // switch back to normal name adoption behaviour
-    } 
 
 
     public void setDbMapping (DbMapping dbmap) {
@@ -253,9 +211,6 @@ public class Node implements INode, Serializable {
 	        node.parent = this;
 	        node.anonymous = true;
 	    }
-	    /* if (node.parent != null && (node.parent != this || !node.anonymous)) {
-	        node.registerLink (this);
-	    } */
 	}
 	
 	lastmodified = System.currentTimeMillis ();
@@ -434,7 +389,7 @@ public class Node implements INode, Serializable {
     }
 
     private Property makeVirtualNode (String propname, Relation rel) {
-	INode node = new helma.objectmodel.db.Node (rel.propname, dbmap.getWrappedNodeManager());
+	INode node = new helma.objectmodel.db.Node (rel.propname, rel.prototype, dbmap.getWrappedNodeManager());
 	// node.setState (TRANSIENT);
 	// make a db mapping good enough that the virtual node finds its subnodes
 	DbMapping dbm = new DbMapping ();
@@ -605,8 +560,6 @@ public class Node implements INode, Serializable {
 	    }
 	}
 	
-	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.SUBNODE_ADDED, n));
-	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
 	lastmodified = System.currentTimeMillis ();
     }
 
@@ -615,28 +568,9 @@ public class Node implements INode, Serializable {
 	    return;
 	try {
 	    Property p = (Property) propMap.remove (propname.toLowerCase ());
-	    /* if (p != null && p.type == Property.NODE)
-	        p.unregisterNode (); */
-	    // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
 	    lastmodified = System.currentTimeMillis ();
 	} catch (Exception ignore) {}
     }
-
-    /* protected void registerPropLink (Property p) {
-	if (proplinks == null)
-	    proplinks = new Vector ();
-	proplinks.addElement (p);
-	// IServer.getLogger().log ("registered proplink from "+p.node.getFullName ());
-	// the NodeEvent is thrown later, since the node is not yet in the prop table
-    }
-
-    protected void unregisterPropLink (Property p) {
-	if (proplinks != null)
-	    proplinks.removeElement (p);
-	// IServer.getLogger().log ("unregistered proplink from "+p.node.getFullName ());
-	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.NODE_REMOVED));
-	// Server.throwNodeEvent (new NodeEvent (p.node, NodeEvent.SUBNODE_REMOVED, this));
-    } */
 
 
     public String getUrl (INode root, INode users, String tmpname, String rootproto) {
@@ -656,12 +590,6 @@ public class Node implements INode, Serializable {
 	return "Node " + name;
     }
 
-
-    protected Node convert (INode n) {
-    	Hashtable ntable = new Hashtable ();
-	Node converted = new Node (n, ntable, false);
-	return converted;
-    }
 
     INode cacheNode;
     /**
