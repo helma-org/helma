@@ -186,9 +186,7 @@ public final class Prototype {
         Prototype p = parent;
 
         while ((p != null) && !"hopobject".equalsIgnoreCase(p.getName())) {
-            if (!handlers.containsKey(p.name)) {
-                handlers.put(p.name, obj);
-            }
+            handlers.put(p.name, obj);
 
             p = p.parent;
         }
@@ -266,15 +264,6 @@ public final class Prototype {
     public void markUpdated() {
         lastUpdate = System.currentTimeMillis();
     }
-
-    /**
-     *  Get the time at which this prototype's scripts were checked
-     *  for changes for the last time.
-     */
-
-    /* public long getLastCheck () {
-       return lastCheck;
-       } */
 
     /**
      *  Signal that the prototype's scripts have been checked for

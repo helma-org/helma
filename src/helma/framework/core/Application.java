@@ -115,6 +115,10 @@ public final class Application implements IPathElement, Runnable {
 
     // the URL-prefix to use for links into this application
     private String baseURI;
+    // the name of the root prototype
+    private String rootPrototype;
+
+    // Db mappings for some standard prototypes
     private DbMapping rootMapping;
     private DbMapping userRootMapping;
     private DbMapping userMapping;
@@ -1019,13 +1023,9 @@ public final class Application implements IPathElement, Runnable {
      * Return a path to be used in a URL pointing to the given element  and action
      */
     public String getNodeHref(Object elem, String actionName) {
-        // Object root = getDataRoot ();
-        // check optional root prototype from app.properties
-        String rootProto = props.getProperty("rootPrototype");
-
         StringBuffer b = new StringBuffer(baseURI);
 
-        composeHref(elem, b, rootProto, 0);
+        composeHref(elem, b, 0);
 
         if (actionName != null) {
             b.append(UrlEncoded.encode(actionName));
@@ -1034,13 +1034,12 @@ public final class Application implements IPathElement, Runnable {
         return b.toString();
     }
 
-    private final void composeHref(Object elem, StringBuffer b, String rootProto,
-                                   int pathCount) {
+    private final void composeHref(Object elem, StringBuffer b, int pathCount) {
         if ((elem == null) || (pathCount > 20)) {
             return;
         }
 
-        if ((rootProto != null) && rootProto.equals(getPrototypeName(elem))) {
+        if ((rootPrototype != null) && rootPrototype.equals(getPrototypeName(elem))) {
             return;
         }
 
@@ -1050,10 +1049,18 @@ public final class Application implements IPathElement, Runnable {
             return;
         }
 
-        composeHref(getParentElement(elem), b, rootProto, pathCount++);
+        composeHref(getParentElement(elem), b, pathCount++);
         b.append(UrlEncoded.encode(getElementName(elem)));
         b.append("/");
     }
+
+    /**
+     *  Returns the baseURI for Hrefs in this application.
+     */
+    public String getBaseURI() {
+        return baseURI;
+    }
+
 
     /**
      *  This method sets the base URL of this application which will be prepended to
@@ -1075,6 +1082,13 @@ public final class Application implements IPathElement, Runnable {
      */
     public boolean hasExplicitBaseURI() {
         return props.containsKey("baseuri");
+    }
+
+    /**
+     *  Returns the prototype name that Hrefs in this application should start with.
+     */
+    public String getRootPrototype() {
+        return rootPrototype;
     }
 
     /**
@@ -1574,8 +1588,9 @@ public final class Application implements IPathElement, Runnable {
             // debug flag
             debug = "true".equalsIgnoreCase(props.getProperty("debug"));
 
+            String reqTimeout = props.getProperty("requesttimeout", "60");
             try {
-                requestTimeout = Long.parseLong(props.getProperty("requestTimeout", "60")) * 1000L;
+                requestTimeout = Long.parseLong(reqTimeout) * 1000L;
             } catch (Exception ignore) {
                 // go with default value
                 requestTimeout = 60000L;
@@ -1589,6 +1604,8 @@ public final class Application implements IPathElement, Runnable {
             } else if (baseURI == null) {
                 baseURI = "/";
             }
+
+            rootPrototype = props.getProperty("rootprototype");
 
             // update the XML-RPC access list, containting prototype.method
             // entries of functions that may be called via XML-RPC

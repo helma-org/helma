@@ -187,40 +187,15 @@ public class RhinoEngine implements ScriptingEngine {
                 Scriptable scriptable = null;
 
                 try {
-                    // we do some extra work with the path object: first, we create a native
-                    // JavaScript array, then we register objects by
-                    // their prototype name, which we take from res.handlers.
-                    if ("path".equals(k)) {
-                        Scriptable arr = context.newObject(global, "Array");
-                        List path = (List) v;
-                        int length = path.size();
-                        Scriptable[] wrapped = new Scriptable[length];
-
-                        // Move through the path list and set the path array.
-                        for (int j = 0; j < length; j++) {
-                            Object pathElem = path.get(j);
-                            Scriptable wrappedElement = Context.toObject(pathElem, global);
-
-                            arr.put(j, arr, wrappedElement);
-                            wrapped[j] = wrappedElement;
-                        }
-
-                        // register path elements with their prototypes on the path array
-                        ResponseTrans res = getResponse();
-                        Map handlers = res.getMacroHandlers();
-
-                        if (handlers != null) {
-                            for (Iterator h = handlers.entrySet().iterator(); h.hasNext(); ) {
-                                Map.Entry entry = (Map.Entry) h.next();
-                                int idx = path.indexOf(entry.getValue());
-                                arr.put(entry.getKey().toString(), arr, wrapped[idx]);
-                            }
-                        }
-
-                        v = arr;
+                    // create a special wrapper for the path object.
+                    // other objects are wrapped in the default way.
+                    if (v instanceof RequestPath) {
+                        scriptable = new PathWrapper((RequestPath) v, core);
+                        scriptable.setPrototype(core.pathProto);
+                    } else {
+                        scriptable = Context.toObject(v, global);
                     }
 
-                    scriptable = Context.toObject(v, global);
                     global.put(k, global, scriptable);
                 } catch (Exception x) {
                     app.logEvent("Error setting global variable " + k + ": " + x);
@@ -292,6 +267,8 @@ public class RhinoEngine implements ScriptingEngine {
                 return null;
             } else if (retval instanceof NativeJavaObject) {
                 return ((NativeJavaObject) retval).unwrap();
+            } else if (retval instanceof HopObject) {
+                return ((HopObject) retval).getNode();
             } else {
                 return retval;
             }
@@ -358,7 +335,7 @@ public class RhinoEngine implements ScriptingEngine {
      * is a java object) with that name.
      */
     public boolean hasFunction(Object obj, String fname) {
-        // System.err.println ("HAS_FUNC: "+fname);
+        // System.err.println ("HAS_FUNC: "+obj+"."+fname);
         return core.hasFunction(app.getPrototypeName(obj), fname.replace('.', '_'));
     }
 
@@ -367,6 +344,7 @@ public class RhinoEngine implements ScriptingEngine {
      * is a java object) with that name.
      */
     public Object get(Object obj, String propname) {
+        // System.err.println ("GET: "+propname);
         if ((obj == null) || (propname == null)) {
             return null;
         }

@@ -55,7 +55,7 @@ public final class RequestEvaluator implements Runnable {
     Object[] args;
 
     // the object path of the request we're evaluating
-    List requestPath;
+    RequestPath requestPath;
 
     // the result of the operation
     Object result;
@@ -122,7 +122,7 @@ public final class RequestEvaluator implements Runnable {
                 // object refs to ressolve request path
                 Object currentElement;
 
-                requestPath = new ArrayList();
+                requestPath = new RequestPath(app);
 
                 switch (reqtype) {
                     case HTTP:
@@ -158,6 +158,9 @@ public final class RequestEvaluator implements Runnable {
                                 globals.put("path", requestPath);
                                 req.startTime = System.currentTimeMillis();
 
+                                // enter execution context
+                                scriptingEngine.enterContext(globals);
+
                                 if (error != null) {
                                     res.error = error;
                                 }
@@ -186,7 +189,7 @@ public final class RequestEvaluator implements Runnable {
                                     } else if ((req.path == null) ||
                                                    "".equals(req.path.trim())) {
                                         currentElement = root;
-                                        requestPath.add(currentElement);
+                                        requestPath.add(null, currentElement);
 
                                         action = getAction(currentElement, null);
 
@@ -210,7 +213,7 @@ public final class RequestEvaluator implements Runnable {
                                             pathItems[i] = st.nextToken();
 
                                         currentElement = root;
-                                        requestPath.add(currentElement);
+                                        requestPath.add(null, currentElement);
 
 
                                         for (int i = 0; i < ntokens; i++) {
@@ -222,9 +225,6 @@ public final class RequestEvaluator implements Runnable {
                                                 continue;
                                             }
 
-                                            // we used to do special processing for /user and /users
-                                            // here but with the framework cleanup, this stuff has to be
-                                            // mounted manually.
                                             // if we're at the last element of the path,
                                             // try to interpret it as action name.
                                             if (i == (ntokens - 1)) {
@@ -233,13 +233,13 @@ public final class RequestEvaluator implements Runnable {
                                             }
 
                                             if (action == null) {
-                                                currentElement = app.getChildElement(currentElement,
-                                                                                     pathItems[i]);
+                                                currentElement = getChildElement(currentElement,
+                                                                                 pathItems[i]);
 
                                                 // add object to request path if suitable
                                                 if (currentElement != null) {
                                                     // add to requestPath array
-                                                    requestPath.add(currentElement);
+                                                    requestPath.add(pathItems[i], currentElement);
                                                 }
                                             }
                                         }
@@ -311,13 +311,10 @@ public final class RequestEvaluator implements Runnable {
                                 /////////////////////////////////////////////////////////////////////////////
                                 // beginning of execution section
                                 try {
-                                    // enter execution context
-                                    scriptingEngine.enterContext(globals);
-
                                     // set the req.action property, cutting off the _action suffix
                                     req.action = action.substring(0, action.length() - 7);
 
-                                    // set the application checksum in response to make ETag 
+                                    // set the application checksum in response to make ETag
                                     // generation sensitive to changes in the app
                                     res.setApplicationChecksum(app.getChecksum());
 
@@ -411,7 +408,7 @@ public final class RequestEvaluator implements Runnable {
                                     if (app.debug && !(x instanceof ScriptingException)) {
                                         x.printStackTrace ();
                                     }
-                                    
+
                                     // set done to false so that the error will be processed
                                     done = false;
                                     error = x.getMessage();
@@ -459,8 +456,8 @@ public final class RequestEvaluator implements Runnable {
                                 for (int i = 1; i < cnt; i++) {
                                     String next = st.nextToken();
 
-                                    currentElement = app.getChildElement(currentElement,
-                                                                         next);
+                                    currentElement = getChildElement(currentElement,
+                                                                     next);
                                 }
 
                                 if (currentElement == null) {
@@ -839,6 +836,18 @@ public final class RequestEvaluator implements Runnable {
             throw (exception);
         }
         return result;
+    }
+
+    private Object getChildElement(Object obj, String name) throws ScriptingException {
+        if (scriptingEngine.hasFunction(obj, "getChildElement")) {
+            return scriptingEngine.invoke(obj, "getChildElement", new Object[] {name}, false);
+        }
+
+        if (obj instanceof IPathElement) {
+            return ((IPathElement) obj).getChildElement(name);
+        }
+        
+        return null;
     }
 
     /**

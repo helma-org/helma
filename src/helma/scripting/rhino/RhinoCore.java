@@ -55,6 +55,9 @@ public final class RhinoCore {
     // the wrap factory
     Wrapper wrapper;
 
+    // the prototype for path objects
+    PathWrapper pathProto;
+
     /**
      *  Create a Rhino evaluator for the given application and request evaluator.
      */
@@ -85,12 +88,17 @@ public final class RhinoCore {
             g.init();
 
             global = (GlobalObject) context.initStandardObjects(g);
+
             ScriptableObject.defineClass(global, HopObject.class);
             ScriptableObject.defineClass(global, FileObject.class);
             ScriptableObject.defineClass(global, FtpObject.class);
+
+            pathProto = new PathWrapper(this);
+
             ImageObject.init(global);
             XmlRpcObject.init(global);
             MailObject.init(global, app.getProperties());
+            
             putPrototype("hopobject",
                     (ScriptableObject) ScriptableObject
                     .getClassPrototype(global, "HopObject"));
