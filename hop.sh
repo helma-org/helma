@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/sh
 # Stupid shell script for starting Hop with a JDK-like virtual machine.
 # Presumes that you have your classpath set.
 
