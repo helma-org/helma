@@ -57,7 +57,6 @@ public final class SourceProperties extends Properties {
     /**
      * Constructs an empty SourceProperties
      * Resources must be added manually afterwards
-     * @param sourceName
      */
     public SourceProperties() {
         resources = new TreeMap();
@@ -80,7 +79,7 @@ public final class SourceProperties extends Properties {
      * application using the given name to fetch resources and falling back
      * to the given default properties
      * @param app application to fetch resources from
-     * @param resourceName name to use when fetching resources from the application
+     * @param sourceName name to use when fetching resources from the application
      * @param defaultProperties default properties
      */
     public SourceProperties(Application app, String sourceName, SourceProperties defaultProperties) {
@@ -109,7 +108,7 @@ public final class SourceProperties extends Properties {
     /**
      * Adds a resource to the list of resources and updates all properties if
      * needed
-     * @param resources resource to add
+     * @param resource resource to add
      */
     public void addResource(Resource resource) {
         if (resource != null) {
