@@ -7,6 +7,7 @@ import helma.objectmodel.*;
 import helma.framework.core.Application;
 import java.util.Properties;
 import java.util.Vector;
+import java.sql.SQLException;
 
 /**
  * This describes how a property of a persistent Object is stored in a
@@ -89,7 +90,17 @@ public class Relation {
     }
 
     public void update (String desc, Properties props, int version) {
-	
+	if (version == 0)
+	    update_v0 (desc, props);
+	else if (version == 1)
+	    update_v1 (desc, props);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    // parse methods for file format v0
+    ////////////////////////////////////////////////////////////////////////////////////////////
+
+    private void update_v0 (String desc, Properties props) {
 	boolean mountpoint = false;
 	Vector cnst = null;
 
@@ -124,22 +135,22 @@ public class Relation {
 	        readonly = false;
 	    }
 	}
-	
+
 	// parse the basic properties of this mapping
 	parseMapping (desc, mountpoint);
-	
+
 	// the following options only apply to object relations
 	if (reftype != PRIMITIVE && reftype != INVALID) {
-	
+
 	    cnst = new Vector ();
-	
+
 	    Constraint c = parseConstraint (desc);
-	
+
 	    if (c != null)
 	        cnst.add (c);
-	
+
 	    parseOptions (cnst, props);
-	
+
 	    constraints = new Constraint[cnst.size()];
 	    cnst.copyInto (constraints);
 
@@ -154,9 +165,9 @@ public class Relation {
      * object reference of a collection of objects, put any constraints in the Vector.
      */
     protected void parseMapping (String desc, boolean mountpoint) {
-	
+
 	Application app = ownType.getApplication ();
-	
+
 	if (desc.indexOf ("<") > -1) {
 	    reftype = COLLECTION;
 	    int lt = desc.indexOf ("<");
@@ -283,6 +294,72 @@ public class Relation {
 	    }
 	}
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    // parse methods for file format v0
+    ////////////////////////////////////////////////////////////////////////////////////////////
+
+    private void update_v1 (String desc, Properties props) {
+	boolean mountpoint = false;
+	Vector cnst = null;
+
+	if (desc == null || "".equals (desc.trim ())) {
+	    if (propName != null) {
+	        reftype = PRIMITIVE;
+	        columnName = propName;
+	    } else {
+	        reftype = INVALID;
+	        columnName = propName;
+	    }
+	} else {
+	    desc = desc.trim ();
+	    String descLower = desc.toLowerCase ();
+	    if (descLower.startsWith ("[virtual]")) {
+	        desc = desc.substring (9).trim ();
+	        virtual = true;
+	    } else if (descLower.startsWith ("[collection]")) {
+	        desc = desc.substring (12).trim ();
+	        virtual = true;
+	    } else if (descLower.startsWith ("[mountpoint]")) {
+	        desc = desc.substring (12).trim ();
+	        virtual = true;
+	        mountpoint = true;
+	    } else {
+	        virtual = false;
+	    }
+	    if (descLower.startsWith ("[readonly]")) {
+	        desc = desc.substring (10).trim ();
+	        readonly = true;
+	    } else {
+	        readonly = false;
+	    }
+	}
+
+	// parse the basic properties of this mapping
+	parseMapping (desc, mountpoint);
+
+	// the following options only apply to object relations
+	if (reftype != PRIMITIVE && reftype != INVALID) {
+
+	    cnst = new Vector ();
+
+	    Constraint c = parseConstraint (desc);
+
+	    if (c != null)
+	        cnst.add (c);
+
+	    parseOptions (cnst, props);
+
+	    constraints = new Constraint[cnst.size()];
+	    cnst.copyInto (constraints);
+
+	    // System.err.println ("PARSED RELATION "+this);
+	    // if (accessor != null)
+	    //     System.err.println ("SET ACCESSOR: "+accessor);
+	}
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Does this relation describe a virtual (collection) node?
@@ -435,16 +512,21 @@ public class Relation {
      *  Build the second half of an SQL select statement according to this relation
      *  and a local object.
      */
-    public String buildQuery (INode home, INode nonvirtual, String kstr, String pre, boolean useOrder) {
+    public String buildQuery (INode home, INode nonvirtual, String kstr, String pre, boolean useOrder) throws SQLException {
 	StringBuffer q = new StringBuffer ();
 	String prefix = pre;
 	if (kstr != null) {
 	    q.append (prefix);
 	    String accessColumn = accessor == null ? otherType.getIDField () : accessor;
 	    q.append (accessColumn);
-	    q.append (" = '");
-	    q.append (escape (kstr));
-	    q.append ("'");
+	    q.append (" = ");
+	    // check if column is string type and value needs to be quoted
+	    if (otherType.isStringColumn (accessColumn)) {
+	        q.append ("'");
+	        q.append (escape (kstr));
+	        q.append ("'");
+	    } else
+	        q.append (escape (kstr));
 	    prefix = " AND ";
 	}
 	for (int i=0; i<constraints.length; i++) {
@@ -601,7 +683,7 @@ public class Relation {
     	    isGroupby = groupby;
     	}
 
-    	public void addToQuery (StringBuffer q, INode home, INode nonvirtual) {
+    	public void addToQuery (StringBuffer q, INode home, INode nonvirtual) throws SQLException {
     	    String local = null;
     	    INode ref = isGroupby ? home : nonvirtual;
     	    if (localName == null)
@@ -611,9 +693,13 @@ public class Relation {
     	        local = ref.getString (homeprop, false);
     	    }
     	    q.append (foreignName);
-    	    q.append (" = '");
-    	    q.append (escape (local));
-    	    q.append ("'");
+    	    q.append (" = ");
+    	    if (otherType.isStringColumn (foreignName)) {
+    	        q.append ("'");
+    	        q.append (escape (local));
+    	        q.append ("'");
+    	    } else
+    	        q.append (escape (local));
     	}
 
     	public boolean foreignKeyIsPrimary () {
