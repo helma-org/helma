@@ -17,6 +17,9 @@ HTTP_PORT=8080
 # AJP13_PORT=8009
 # RMI_PORT=5050
 
+# Set additional classpath
+# JARS=/path/to/some/file.jar
+
 ###########################################################
 ###### No user configuration needed below this line #######
 ###########################################################
@@ -41,22 +44,6 @@ else
 fi
 echo "Starting Helma in directory $HOP_HOME"
 
-# Set classpath
-JARS=lib/helma.jar
-JARS=$JARS:lib/jetty.jar
-JARS=$JARS:lib/crimson.jar
-JARS=$JARS:lib/xmlrpc.jar
-JARS=$JARS:lib/village.jar
-JARS=$JARS:lib/servlet.jar
-JARS=$JARS:lib/regexp.jar
-JARS=$JARS:lib/mail.jar
-JARS=$JARS:lib/activation.jar
-JARS=$JARS:lib/netcomponents.jar
-JARS=$JARS:lib/jimi.jar
-JARS=$JARS:lib/apache-dom.jar
-JARS=$JARS:lib/jdom.jar
-JARS=$JARS:lib/mysql.jar
-
 if [ "$HTTP_PORT" ]; then
    SWITCHES="$SWITCHES -w $HTTP_PORT"
    echo Starting HTTP server on port $HTTP_PORT
@@ -76,6 +63,10 @@ fi
 if [ "$HOP_HOME" ]; then
    SWITCHES="$SWITCHES -h $HOP_HOME"
 fi
+if [ "$JARS" ]; then
+   JARS="-classpath $JARS"
+fi
+
 
 # Invoking the Java VM
-$JAVACMD $JAVA_OPTIONS -classpath $CLASSPATH:$JARS helma.main.Server $SWITCHES
+$JAVACMD $JAVA_OPTIONS $JARS -jar launcher.jar $SWITCHES
