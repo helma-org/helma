@@ -20,11 +20,22 @@ public class User implements Serializable {
 
     Application app;
     String sessionID;
-    String uid; // the unique id (login name) for the user, if logged in
+
+    // the unique id (login name) for the user, if logged in
+    String uid;
+
+    // the handle to this user's persistent db node, if logged in
     NodeHandle nhandle;
+
+    // the transient cache node. This stays the same across logins and logouts.
+    // If logged out, this also represents the user's main node.
+    TransientNode cache;
+
     DbMapping umap;
     long onSince, lastTouched;
-    TransientNode cache;
+
+    // used to remember messages to the user between requests -
+    // used for redirects.
     String message;
 
     public User (String sid, Application app) {
@@ -43,8 +54,11 @@ public class User implements Serializable {
     
     
     /**
-     *  This is used to turn an anonymous user into a registered or known one.
-     *  The user object remains the same, but she gets some persistent storage.
+     *  This is used to turn for login and logout.
+     *  Calling this weith a DB Node object will turn an anonymous user into a registered or known one.
+     *  The user object remains the same, but he or she gets some persistent storage.
+     *  On the other side, calling this method with a parameter value of null is means the user
+     *  is logged out and will be represented by its transient cache node.
      */
     public void setNode (INode n) {
 	// IServer.getLogger().log ("esn = "+esn);
@@ -53,15 +67,25 @@ public class User implements Serializable {
 	    uid = null;
 	} else {
 	    uid = n.getElementName ();
-	    nhandle = ((helma.objectmodel.db.Node) n).getHandle ();
+	    nhandle = ((Node) n).getHandle ();
 	}
+	// System.err.println ("User.setNode: "+nhandle);
     }
 
     public INode getNode () {
 	if (nhandle == null) {
 	    return cache;
 	} else {
-	    return nhandle.getNode (app.nmgr.safe);
+	    // in some special cases, a user's node handle may go bad, for instance
+	    // if something bad happens during registration. For this reason, we check
+	    // if the handle actually works. If not, it is reset to the transient cache, which
+	    // means the user is logged out.
+	    Node n = nhandle.getNode (app.nmgr.safe);
+	    if (n == null) {
+	        setNode (null);
+	        return cache;
+	    }
+	    return n;
 	}
     }
 
@@ -98,34 +122,4 @@ public class User implements Serializable {
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
