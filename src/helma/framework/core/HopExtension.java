@@ -622,11 +622,10 @@ public class HopExtension {
                     skin = reval.getSkin (handlerNode, arguments[0].toString ());
                 if (asString)
                     reval.res.pushStringBuffer ();
-                try {
+                if (skin != null)
                     skin.render (reval, handlerNode, paramObject);
-                } catch (NullPointerException npx) {
+                else
                     reval.res.write ("[Skin not found: "+arguments[0]+"]");
-                }
                 if (asString)
                     return  new ESString (reval.res.popStringBuffer ());
             } catch (Exception x) {
