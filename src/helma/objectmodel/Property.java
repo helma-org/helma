@@ -141,7 +141,7 @@ public final class Property implements IProperty, Serializable {
 	case NODE:
 	    return nvalue.getName ();
 	case JAVAOBJECT:
-	    return jvalue.toString ();
+	    return jvalue == null ? null :  jvalue.toString ();
 	}
 	return "";
     }

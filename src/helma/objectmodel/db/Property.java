@@ -268,7 +268,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	case NODE:
 	    return nhandle.getID ();
 	case JAVAOBJECT:
-	    return jvalue.toString ();
+	    return jvalue == null ? null : jvalue.toString ();
 	}
 	return "";
     }
