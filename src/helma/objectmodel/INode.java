@@ -5,6 +5,7 @@ package helma.objectmodel;
 
 import java.util.*;
 import java.io.*;
+import helma.framework.IPathElement;
 
 /**
  * Interface that all Nodes implement. Currently, there are two implementations:
@@ -12,7 +13,7 @@ import java.io.*;
  * stored in a database (either the internal Object DB or an external relational DB).
  */
  
-public interface INode extends INodeState {
+public interface INode extends INodeState, IPathElement {
 
 
     /** 
@@ -21,7 +22,7 @@ public interface INode extends INodeState {
 
     public String getID ();
     public String getName ();
-    public String getNameOrID ();  // get name or id depending if it's a named or an anonymous node.
+    // public String get ();  // get name or id depending if it's a named or an anonymous node.
     public void setDbMapping (DbMapping dbmap);
     public DbMapping getDbMapping ();
     public int getState ();
@@ -36,8 +37,8 @@ public interface INode extends INodeState {
 
     public String getFullName ();
     public String getFullName (INode root);
-    public INode[] getPath ();
-    public String getUrl (INode root, INode users, String tmpname, String rootproto);
+    // public INode[] getPath ();
+    // public String getUrl (INode root, INode users, String tmpname, String rootproto);
 
     /**
      *  node-related methods

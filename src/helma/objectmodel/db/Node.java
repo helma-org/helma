@@ -15,6 +15,7 @@ import java.io.*;
 import java.sql.Types;
 import helma.objectmodel.*;
 import helma.util.*;
+import helma.framework.IPathElement;
 import com.workingdogs.village.*;
 
 
@@ -431,7 +432,7 @@ public final class Node implements INode, Serializable {
      * Get something to identify this node within  a URL. This is the ID for anonymous nodes
      * and a property value for named properties.
      */
-    public String getNameOrID () {
+    public String getElementName () {
 	// if subnodes are also mounted as properties, try to get the "nice" prop value
 	// instead of the id by turning the anonymous flag off.
 	// Work around this for user objects to alsways return a URL like /users/username
@@ -477,7 +478,7 @@ public final class Node implements INode, Serializable {
 	        b.insert (0, divider);
 	    else
 	        divider = "/";
-	    b.insert (0, p.getNameOrID ());
+	    b.insert (0, p.getElementName ());
 	    p = p.getParent ();
 
 	    loopWatch++;
@@ -489,7 +490,7 @@ public final class Node implements INode, Serializable {
 	return b.toString ();
     }
 
-    public INode[] getPath () {
+    /* public INode[] getPath () {
 	int pathSize = 1;
 	INode p = getParent ();
 
@@ -506,7 +507,7 @@ public final class Node implements INode, Serializable {
 	    p = p.getParent ();
 	}
 	return path;
-    }
+    } */
 
     public String getPrototype () {
 	if (prototype == null && propMap != null) {
@@ -869,6 +870,24 @@ public final class Node implements INode, Serializable {
 	if (!links.contains (fromHandle))
 	    links.add (fromHandle);
     }
+
+    /**
+     * This implements the getChild() method of the IPathElement interface
+     */
+    public IPathElement getChildElement (String name) {
+	IPathElement child = (IPathElement) getSubnode (name);
+	if (child == null)
+	    child = (IPathElement) getNode (name, false);
+	return child;
+    }
+
+    /**
+     * This implements the getParentElement() method of the IPathElement interface
+     */
+    public IPathElement getParentElement () {
+	return getParent ();
+    }
+
 
     public INode getSubnode (String subid) {
 	// System.err.println ("GETSUBNODE : "+this+" > "+subid);
@@ -1689,7 +1708,7 @@ public final class Node implements INode, Serializable {
      *  Get the path to eiter the general data-root or the user root, depending on 
      *  where this node is located.
      */
-    public String getUrl (INode root, INode users, String tmpname, String rootproto) {
+   /*  public String getUrl (INode root, INode users, String tmpname, String rootproto) {
 	
 	if (state == TRANSIENT)
 	    throw new RuntimeException ("Can't get URL for transient Object");
@@ -1713,7 +1732,7 @@ public final class Node implements INode, Serializable {
 	        break;
 	    }
 	
-	    b.insert (0, UrlEncoder.encode (p.getNameOrID ()));
+	    b.insert (0, UrlEncoder.encode (p.getElementName ()));
 	    	
 	    p = p.getParent ();
 
@@ -1726,7 +1745,7 @@ public final class Node implements INode, Serializable {
 	    b.insert (0, "users");
 	}
 	return b.toString()+UrlEncoder.encode (tmpname);
-    }
+    } */
 
     public long lastModified () {
 	return lastmodified;

@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.StringTokenizer;
 import java.io.*;
 import helma.util.*;
+import helma.framework.IPathElement;
 
 /**
  * A transient implementation of INode. An instance of this class can't be
@@ -91,7 +92,7 @@ public class Node implements INode, Serializable {
 	return name; 
     }
     
-    public String getNameOrID () {
+    public String getElementName () {
     	return anonymous ? id : name;
     }
 
@@ -117,13 +118,13 @@ public class Node implements INode, Serializable {
 	        b.insert (0, divider);
 	    else
 	        divider = "/";
-	    b.insert (0, p.getNameOrID ());
+	    b.insert (0, p.getElementName ());
 	    p = p.parent;
 	}
 	return b.toString ();
     }
 
-    public INode[] getPath () {
+    /* public INode[] getPath () {
 	int pathSize = 1;
 	INode p = getParent ();
 	while  (p != null) {
@@ -137,7 +138,7 @@ public class Node implements INode, Serializable {
 	    p = p.getParent ();
 	}
 	return path;
-    }
+    } */
 
     public void setName (String name) { 
 	if (name.indexOf('/') > -1)
@@ -252,6 +253,14 @@ public class Node implements INode, Serializable {
 	if (!links.contains (from)) 
 	    links.addElement (from);
     } */
+
+    public IPathElement getParentElement () {
+	return getParent ();
+    }
+
+    public IPathElement getChildElement (String name) {
+	return getNode (name, false);
+    }
 
     public INode getSubnode (String name) {
 	return getSubnode (name, false);
@@ -571,9 +580,9 @@ public class Node implements INode, Serializable {
     }
 
 
-    public String getUrl (INode root, INode users, String tmpname, String rootproto) {
+    /* public String getUrl (INode root, INode users, String tmpname, String rootproto) {
         throw new RuntimeException ("HREFs on transient (non-db based) Nodes not supported");
-    }
+    } */
 
 
     public long lastModified () {
