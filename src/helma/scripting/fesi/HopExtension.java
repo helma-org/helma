@@ -82,8 +82,9 @@ public class HopExtension {
         reval.esNodePrototype.putHiddenProperty ("href", new NodeHref ("href", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("setParent", new NodeSetParent ("setParent", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("invalidate", new NodeInvalidate ("invalidate", evaluator, fp));
-        reval.esNodePrototype.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, false, false));
-        reval.esNodePrototype.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, true));
+        reval.esNodePrototype.putHiddenProperty ("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, false, false));
+        reval.esNodePrototype.putHiddenProperty ("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, true));
+        reval.esNodePrototype.putHiddenProperty ("clearCache", new NodeClearCache ("clearCache", evaluator, fp));
 
         // default methods for generic Java wrapper object prototype
         reval.esObjectPrototype.putHiddenProperty ("href", new NodeHref ("href", evaluator, fp));
@@ -557,7 +558,11 @@ public class HopExtension {
             if (arguments.length != 1 || ESNull.theNull.equals (arguments[0]))
                 throw new EcmaScriptException ("createSkin must be called with one String argument");
             String str = arguments[0].toString ();
-            Skin skin = new Skin (str, app);
+	    Skin skin = (Skin) app.skincache.get (str);
+	    if (skin == null) {
+	        skin = new Skin (str, app);
+	        app.skincache.put (str, skin);
+	    }
             return new ESWrapper (skin, evaluator);
         }
     }
@@ -943,6 +948,15 @@ public class HopExtension {
         }
     }
 
+    class NodeClearCache extends BuiltinFunctionObject {
+        NodeClearCache (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 2);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+           ESNode node = (ESNode) thisObject;
+           return ESBoolean.makeBoolean (node.clearCache ());
+        }
+    }
 
     class NodeHref extends BuiltinFunctionObject {
         NodeHref (String name, Evaluator evaluator, FunctionPrototype fp) {
