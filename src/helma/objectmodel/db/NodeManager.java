@@ -202,14 +202,10 @@ public final class NodeManager {
     public Node getNode(Key key) throws Exception {
         Transactor tx = (Transactor) Thread.currentThread();
 
-        // tx.timer.beginEvent ("getNode "+kstr);
-        // it would be a good idea to reuse key objects one day.
-        // Key key = new Key (dbmap, kstr);
         // See if Transactor has already come across this node
         Node node = tx.getVisitedNode(key);
 
         if ((node != null) && (node.getState() != Node.INVALID)) {
-            // tx.timer.endEvent ("getNode "+kstr);
             return node;
         }
 
@@ -241,7 +237,7 @@ public final class NodeManager {
                         cache.put(node.getKey(), oldnode);
                         node = oldnode;
                     }
-                }  
+                }
                 // end of cache-synchronized section
             }
         }
@@ -279,9 +275,9 @@ public final class NodeManager {
             // generated on the fly
             key = new SyntheticKey(home.getKey(), kstr);
         } else {
-            // refers to a node through its primary database key
-            key = new DbKey(rel.otherType, kstr);
-            return getNode(key);
+            // Not a relation we use can use getNodeByRelation() for
+            System.err.println(" WOMBAT: "+home+" ° "+kstr);
+            return null;
         }
 
         // See if Transactor has already come across this node
