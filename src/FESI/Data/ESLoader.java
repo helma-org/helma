@@ -260,6 +260,8 @@ public abstract class ESLoader extends ESObject {
            return (ESArrayWrapper) obj; // An array wrapper received externally  
         } else if (obj.getClass().isArray()) {
             return new ESArrayWrapper(obj, evaluator);
+        } else if (obj instanceof helma.framework.IPathElement) {   // Hannes Wallnoefer, 13. Aug 2001
+            return evaluator.reval.getElementWrapper ((helma.framework.IPathElement) obj);
         }
         return new ESWrapper(obj, evaluator);
     }
