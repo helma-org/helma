@@ -576,7 +576,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     }
 
     /**
-     *  Retrurn a skin for a given object. The skin is found by determining the prototype
+     *  Return a skin for a given object. The skin is found by determining the prototype
      *  to use for the object, then looking up the skin for the prototype.
      */
     public Skin getSkin (Object object, String skinname, Object[] skinpath) {
