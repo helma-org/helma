@@ -49,33 +49,22 @@ public final class SystemProperties extends Properties {
      *  Construct a properties object from a properties file.
      */
     public SystemProperties(String filename) {
-        this(filename, null, true);
+        this(filename, null);
     }
 
     /**
      *  Contstruct a properties object with the given default properties.
      */
     public SystemProperties(SystemProperties defaultProps) {
-        this(null, defaultProps, true);
+        this(null, defaultProps);
     }
 
     /**
      *  Construct a properties object from a file name with the given default properties (ignoring case)
      */
     public SystemProperties(String filename, SystemProperties defaultProps) {
-        this(filename, defaultProps, true);
-    }
-    
-    /**
-     * Construct a properties object from a file name with the given default properties where ignoreCase is a boolean-flag
-     * @param filename Filename of the file to read in
-     * @param defaultProps Defaultproperties, which are overwritten by the content of the file
-     * @param ignoreCase if true, all properties are in lower case, if false the case will be preserved
-     */
-    public SystemProperties(String filename, SystemProperties defaultProps, boolean ignoreCase) {
         // System.err.println ("building sysprops with file "+filename+" and node "+node);
         super(defaultProps);
-        this.ignoreCase = ignoreCase;
         this.defaultProps = defaultProps;
         file = (filename == null) ? null : new File(filename);
         lastcheck = lastread = lastadd = 0;
