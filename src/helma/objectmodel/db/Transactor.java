@@ -9,7 +9,6 @@ import java.sql.*;
 import helma.objectmodel.*;
 import helma.util.Timer;
 import helma.framework.TimeoutException;
-import com.sleepycat.db.*;
 
 /**
  * A subclass of thread that keeps track of changed nodes and triggers 
@@ -30,7 +29,7 @@ public class Transactor extends Thread {
     private volatile boolean killed;
 
     // Transaction for the embedded database
-    protected DbTxn txn;
+    protected ITransaction txn;
     // Transactions for SQL data sources
     protected HashMap sqlCon;
 
@@ -108,7 +107,7 @@ public class Transactor extends Thread {
     public synchronized void begin (String tnm) throws Exception {
 
 	if (killed)
-	    throw new DbException ("Transaction started on killed thread");
+	    throw new DatabaseException ("Transaction started on killed thread");
 
 	if (active)
 	    abort ();
@@ -171,7 +170,7 @@ public class Transactor extends Thread {
 	cleannodes.clear ();
 
 	if (nmgr.idgen.dirty) {
-	    nmgr.db.save (txn, "idgen", nmgr.idgen);
+	    nmgr.db.saveIDGenerator (txn, nmgr.idgen);
 	    nmgr.idgen.dirty = false;
 	}
 
