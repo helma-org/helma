@@ -505,7 +505,7 @@ public class DbMapping implements Updatable {
     }
 
     public String getStorageTypeName () {
-	if (table == null && parentMapping != null)
+	if (table == null && parentMapping != null && !"hopobject".equalsIgnoreCase (extendsProto))
 	    return parentMapping.getStorageTypeName ();
 	return typename;
     }
