@@ -103,15 +103,22 @@ public final class Skin {
 	if (parts == null)
 	    reval.res.writeCharArray (source, 0, sourceLength);
 
-	int written = 0;
-	for (int i=0; i<parts.length; i++) {
-	    if (parts[i].start > written)
-	        reval.res.writeCharArray (source, written, parts[i].start-written);
-	    parts[i].render (reval, thisObject, paramObject);
-	    written = parts[i].end;
+	try {
+	    // check for endless skin recursion
+	    if (++reval.skinDepth > 50)
+	        throw new RuntimeException ("Recursive skin invocation suspected");
+	    int written = 0;
+	    for (int i=0; i<parts.length; i++) {
+	        if (parts[i].start > written)
+	            reval.res.writeCharArray (source, written, parts[i].start-written);
+	        parts[i].render (reval, thisObject, paramObject);
+	        written = parts[i].end;
+	    }
+	    if (written < sourceLength)
+	        reval.res.writeCharArray (source, written, sourceLength-written);
+	} finally {
+	    reval.skinDepth--;
 	}
-	if (written < sourceLength)
-	    reval.res.writeCharArray (source, written, sourceLength-written);
     }
 
     /**
@@ -328,17 +335,25 @@ public final class Skin {
 	                v = reval.scriptingEngine.get (handlerObject, name);
 	            }
 	            // check if macro wrote out to response buffer
-	            int newLength = reval.res.getBufferLength ();
-	            if (newLength > oldLength) {
+	            if (reval.res.getBufferLength () > oldLength) {
 	               // insert prefix and append suffix
 	               String prefix = (String) parameters.get ("prefix");
 	               String suffix = (String) parameters.get ("suffix");
-	               reval.res.insert (oldLength, prefix);
-	               reval.res.write (suffix);
+	               if (prefix != null)
+	                   reval.res.insert (oldLength, prefix);
+	               if (suffix != null)
+	                   reval.res.write (suffix);
 	            }
 	            // if macro returned something append it to response
 	            if (v != null) {
 	                writeToResponse (v.toString (), reval.res);
+	            }
+	            // if the macro hasn't produced any output, write default attribute
+	            // if it is specified.
+	            if (reval.res.getBufferLength () == oldLength) {
+	               String defaultValue = (String) parameters.get ("default");
+	               if (defaultValue != null)
+	                   reval.res.write (defaultValue);
 	            }
 	        } else {
 	            String msg = "[HopMacro unhandled: "+getFullName()+"]";
@@ -353,7 +368,7 @@ public final class Skin {
 	        throw timeout;
 	    } catch (Exception x) {
 	        x.printStackTrace();
-	        String msg = "[HopMacro error in "+this+": "+x+"]";
+	        String msg = "[HopMacro error in "+getFullName()+": "+x+"]";
 	        reval.res.write (" "+msg+" ");
 	        app.logEvent (msg);
 	    }
