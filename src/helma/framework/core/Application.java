@@ -19,6 +19,10 @@ package helma.framework.core;
 import helma.extensions.ConfigurationException;
 import helma.extensions.HelmaExtension;
 import helma.framework.*;
+import helma.framework.repository.ResourceComparator;
+import helma.framework.repository.Repository;
+import helma.framework.repository.FileResource;
+import helma.framework.repository.FileRepository;
 import helma.main.Server;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
@@ -31,6 +35,7 @@ import java.rmi.*;
 import java.util.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import java.util.ArrayList;
 
 
 /**
@@ -44,16 +49,16 @@ public final class Application implements IPathElement, Runnable {
     private String name;
 
     // properties and db-properties
-    SystemProperties props;
+    SourceProperties props;
 
     // properties and db-properties
-    SystemProperties dbProps;
+    SourceProperties dbProps;
 
     // Helma server home directory
     File home;
 
-    // application directory
-    File appDir;
+    // application sources
+    LinkedHashSet repositories;
 
     // embedded db directory
     File dbDir;
@@ -129,10 +134,10 @@ public final class Application implements IPathElement, Runnable {
     String charset;
 
     // password file to use for authenticate() function
-    private CryptFile pwfile;
+    private CryptResource pwfile;
 
     // Map of java class names to object prototypes
-    SystemProperties classMapping;
+   SourceProperties classMapping;
 
     // Map of extensions allowed for public skins
     Properties skinExtensions;
@@ -151,6 +156,8 @@ public final class Application implements IPathElement, Runnable {
     // the list of custom cron jobs
     Hashtable customCronJobs = null;
 
+    private ResourceComparator resourceComparator;
+
     /**
      *  Simple constructor for dead application instances.
      */
@@ -159,12 +166,12 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
-     * Build an application with the given name in the app directory. No Server-wide
-     * properties are created or used.
+     * Build an application with the given name with the given sources. No
+     * Server-wide properties are created or used.
      */
-    public Application(String name, File appDir, File dbDir)
+    public Application(String name, Repository[] repositories, File dbDir)
                 throws RemoteException, IllegalArgumentException {
-        this(name, null, appDir, dbDir);
+        this(name, null, repositories, dbDir);
     }
 
     /**
@@ -173,40 +180,40 @@ public final class Application implements IPathElement, Runnable {
      */
     public Application(String name, Server server)
                 throws RemoteException, IllegalArgumentException {
-        this(name, server, null, null);
+        this(name, server, new Repository[0], null);
     }
 
     /**
-     * Build an application with the given name, server instance, app and
-     * db directories.
+     * Build an application with the given name, server instance, sources and
+     * db directory.
      */
-    public Application(String name, Server server, File customAppDir, File customDbDir)
+    public Application(String name, Server server, Repository[] repositories, File customDbDir)
                 throws RemoteException, IllegalArgumentException {
         if ((name == null) || (name.trim().length() == 0)) {
             throw new IllegalArgumentException("Invalid application name: " + name);
         }
 
         this.name = name;
-        appDir = customAppDir;
+        if (repositories.length > 0) {
+            this.repositories = new LinkedHashSet();
+            this.repositories.addAll(Arrays.asList(repositories));
+            resourceComparator = new ResourceComparator(this);
+        } else {
+            throw new java.lang.IllegalArgumentException("No sources defined for application: " + name);
+        }
         dbDir = customDbDir;
 
         // system-wide properties, default to null
-        SystemProperties sysProps;
+        SourceProperties sysProps;
 
         // system-wide properties, default to null
-        SystemProperties sysDbProps;
+        SourceProperties sysDbProps;
 
         sysProps = sysDbProps = null;
         home = null;
 
         if (server != null) {
             home = server.getHopHome();
-
-            // if appDir and dbDir weren't explicitely passed, use the
-            // standard subdirectories of the Hop home directory
-            if (appDir == null) {
-                appDir = new File(server.getAppsHome(), name);
-            }
 
             if (dbDir == null) {
                 dbDir = new File(server.getDbHome(), name);
@@ -217,11 +224,6 @@ public final class Application implements IPathElement, Runnable {
             sysDbProps = server.getDbProperties();
         }
 
-        // create the directories if they do not exist already
-        if (!appDir.exists()) {
-            appDir.mkdirs();
-        }
-
         if (!dbDir.exists()) {
             dbDir.mkdirs();
         }
@@ -230,32 +232,26 @@ public final class Application implements IPathElement, Runnable {
         threadgroup = new ThreadGroup("TX-" + name);
 
         // create app-level properties
-        File propfile = new File(appDir, "app.properties");
-
-        props = new SystemProperties(propfile.getAbsolutePath(), sysProps);
+        props = new SourceProperties(this, "app.properties", sysProps);
 
         // get log names
         accessLogName = props.getProperty("accessLog", "helma."+name+".access");
         eventLogName = props.getProperty("eventLog", "helma."+name+".event");
 
         // create app-level db sources
-        File dbpropfile = new File(appDir, "db.properties");
-
-        dbProps = new SystemProperties(dbpropfile.getAbsolutePath(), sysDbProps);
+        dbProps = new SourceProperties(this, "db.properties", sysDbProps);
 
         // the passwd file, to be used with the authenticate() function
-        CryptFile parentpwfile = null;
+        CryptResource parentpwfile = null;
 
         if (home != null) {
-            parentpwfile = new CryptFile(new File(home, "passwd"), null);
+            parentpwfile = new CryptResource(new FileResource(new File(home, "passwd")), null);
         }
 
-        pwfile = new CryptFile(new File(appDir, "passwd"), parentpwfile);
+        pwfile = new CryptResource(repositories[0].getResource("passwd"), parentpwfile);
 
         // the properties that map java class names to prototype names
-        File classMappingFile = new File(appDir, "class.properties");
-
-        classMapping = new SystemProperties(classMappingFile.getAbsolutePath());
+        classMapping = new SourceProperties(this, "class.properties");
         classMapping.setIgnoreCase(false);
 
         // get class name of root object if defined. Otherwise native Helma objectmodel will be used.
@@ -346,8 +342,8 @@ public final class Application implements IPathElement, Runnable {
 
         // The whole user/userroot handling is basically old
         // ugly obsolete crap. Don't bother.
-        SystemProperties p = new SystemProperties();
-        String usernameField = userMapping.getNameField();
+        SourceProperties p = new SourceProperties();
+        String usernameField = (userMapping != null) ? userMapping.getNameField() : null;
 
         if (usernameField == null) {
             usernameField = "name";
@@ -436,6 +432,18 @@ public final class Application implements IPathElement, Runnable {
 
     public synchronized boolean isRunning() {
         return running;
+    }
+
+    public File getAppDir() {
+        try {
+            return new File(((FileRepository) getRepositories().next()).getName());
+        } catch (ClassCastException ex) {
+            return null;
+        }
+    }
+
+    public ResourceComparator getResourceComparator() {
+        return resourceComparator;
     }
 
     /**
@@ -554,6 +562,8 @@ public final class Application implements IPathElement, Runnable {
      *  Execute a request coming in from a web client.
      */
     public ResponseTrans execute(RequestTrans req) {
+        System.setProperty("request.start", String.valueOf(System.currentTimeMillis()));
+
         requestCount += 1;
 
         // get user for this request's session
@@ -1616,10 +1626,11 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
-     * Return the directory of this application
+     * Returns the repositories of this application
+     * @return application's repositories
      */
-    public File getAppDir() {
-        return appDir;
+    public Iterator getRepositories() {
+        return repositories.iterator();
     }
 
     /**
@@ -1743,7 +1754,7 @@ public final class Application implements IPathElement, Runnable {
      *
      * @return ...
      */
-    public SystemProperties getProperties() {
+    public SourceProperties getProperties() {
         return props;
     }
 

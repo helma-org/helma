@@ -30,6 +30,7 @@ import helma.scripting.rhino.debug.Tracer;
 import org.mozilla.javascript.*;
 
 import java.util.*;
+import java.io.File;
 import java.lang.ref.WeakReference;
 
 /**
@@ -432,7 +433,7 @@ public class RhinoEngine implements ScriptingEngine {
      */
     public IPathElement getIntrospector() {
         if (doc == null) {
-            doc = new DocApplication(app.getName(), app.getAppDir().toString());
+            doc = new DocApplication(app.getName(), new File(Server.getServer().getAppsHome(), app.getName()));
             doc.readApplication();
         }
         return doc;

@@ -17,7 +17,10 @@
 package helma.servlet;
 
 import helma.framework.*;
+import helma.framework.repository.Repository;
 import helma.framework.core.Application;
+import helma.framework.repository.Repository;
+import helma.framework.repository.FileRepository;
 import java.io.*;
 import javax.servlet.*;
 
@@ -92,10 +95,11 @@ public final class StandaloneServletClient extends AbstractServletClient {
         }
 
         try {
-            File appHome = new File(appDir);
+            Repository[] repositories = new Repository[1];
+            repositories[0] = new FileRepository(new File(appDir));
             File dbHome = new File(dbDir);
 
-            app = new Application(appName, appHome, dbHome);
+            app = new Application(appName, repositories, dbHome);
             app.init();
             app.start();
         } catch (Exception x) {

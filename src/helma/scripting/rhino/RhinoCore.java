@@ -215,17 +215,17 @@ public final class RhinoCore {
 
         // loop through the prototype's code elements and evaluate them
         // first the zipped ones ...
-        for (Iterator it = prototype.getZippedCode().values().iterator(); it.hasNext();) {
-            Object code = it.next();
-
-            evaluate(type, code);
+        Object[] zippedCode = prototype.getZippedCode().values().toArray();
+        Arrays.sort(zippedCode, app.getResourceComparator());
+        for (int i = 0; i < zippedCode.length; i++) {
+            evaluate(type, zippedCode[i]);
         }
 
         // then the unzipped ones (this is to make sure unzipped code overwrites zipped code)
-        for (Iterator it = prototype.getCode().values().iterator(); it.hasNext();) {
-            Object code = it.next();
-
-            evaluate(type, code);
+        Object[] code = prototype.getCode().values().toArray();
+        Arrays.sort(code, app.getResourceComparator());
+        for (int i = 0; i < code.length; i++) {
+            evaluate(type, code[i]);
         }
 
         type.commitCompilation();
@@ -294,7 +294,9 @@ public final class RhinoCore {
         }
 
         // init prototypes and/or update prototype checksums
+        // long start = System.currentTimeMillis();
         app.typemgr.checkPrototypes();
+        // System.err.println("SPENT IN checkPrototypes: "+(System.currentTimeMillis()-start));
 
         // get a collection of all prototypes (code directories)
         Collection protos = app.getPrototypes();
@@ -307,7 +309,9 @@ public final class RhinoCore {
 
         TypeInfo type = (TypeInfo) prototypes.get("global");
 
-        updatePrototype(type, checked);
+        if (type != null) {
+            updatePrototype(type, checked);
+        }
 
         for (Iterator i = protos.iterator(); i.hasNext();) {
             Prototype proto = (Prototype) i.next();
@@ -347,10 +351,13 @@ public final class RhinoCore {
         }
 
         // let the type manager scan the prototype's directory
+        // long start = System.currentTimeMillis();
         app.typemgr.updatePrototype(type.frameworkProto);
+        // System.err.println("SPENT IN updatePrototype: "+(System.currentTimeMillis()-start));
 
         // and re-evaluate if necessary
         if (type.needsUpdate()) {
+            System.err.println("EVALUATING... "+type);
             evaluatePrototype(type);
         }
     }
@@ -748,38 +755,14 @@ public final class RhinoCore {
     ////////////////////////////////////////////////
 
     private synchronized void evaluate(TypeInfo type, Object code) {
-        if (code instanceof FunctionFile) {
-            FunctionFile funcfile = (FunctionFile) code;
-            File file = funcfile.getFile();
-
-            if (file != null) {
-                try {
-                    FileReader fr = new FileReader(file);
-
-                    updateEvaluator(type, fr, funcfile.getSourceName(), 1);
-                } catch (IOException iox) {
-                    app.logEvent("Error updating function file: " + iox);
-                }
-            } else {
-                StringReader reader = new StringReader(funcfile.getContent());
-
-                updateEvaluator(type, reader, funcfile.getSourceName(), 1);
-            }
-        } else if (code instanceof ActionFile) {
-            ActionFile action = (ActionFile) code;
-            RhinoActionAdapter fa = new RhinoActionAdapter(action);
-
-            try {
-                updateEvaluator(type, new StringReader(fa.function),
-                                action.getSourceName(), 0);
-                if (fa.functionAsString != null) {
-                    // templates have an _as_string variant that needs to be compiled
-                    updateEvaluator(type, new StringReader(fa.functionAsString),
-                                action.getSourceName(), 0);
-                }
-            } catch (Exception esx) {
-                app.logEvent("Error parsing " + action + ": " + esx);
-            }
+        if (code instanceof FunctionResource) {
+            FunctionResource fr = (FunctionResource) code;
+            StringReader reader = new StringReader(fr.getContent());
+            updateEvaluator(type, reader, fr.getResourceName(), 1);
+        } else if (code instanceof ActionResource) {
+            ActionResource ar = (ActionResource) code;
+            RhinoActionAdapter aa = new RhinoActionAdapter(ar);
+            updateEvaluator(type, new StringReader(aa.function), ar.getResourceName(), 0);
         }
     }
 
@@ -884,7 +867,7 @@ public final class RhinoCore {
 
         /**
          * Compilation has been completed successfully - switch over to code
-         * from temporary prototype, removing properties that haven't been
+         * from temporary prototype, removing properties that haven't been 
          * renewed.
          */
         public void commitCompilation() {

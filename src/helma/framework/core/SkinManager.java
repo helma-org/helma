@@ -17,6 +17,8 @@
 package helma.framework.core;
 
 import helma.objectmodel.INode;
+import helma.framework.repository.FileResource;
+
 import java.io.*;
 import java.util.*;
 
@@ -111,9 +113,9 @@ public final class SkinManager implements FilenameFilter {
             f = new File(f, skinname + skinExtension);
 
             if (f.exists() && f.canRead()) {
-                SkinFile sf = new SkinFile(f, skinname, app);
+                SkinResource ss = new SkinResource(new FileResource(f), app.getPrototypeByName(prototype));
 
-                return sf.getSkin();
+                return ss.getSkin();
             }
         }
 
@@ -131,7 +133,7 @@ public final class SkinManager implements FilenameFilter {
                 return null;
             }
         }
-        
+
         String[] skinNames = dir.list(this);
 
         if ((skinNames == null) || (skinNames.length == 0)) {
@@ -144,7 +146,7 @@ public final class SkinManager implements FilenameFilter {
             String name = skinNames[i].substring(0, skinNames[i].length() - 5);
             File file = new File(dir, skinNames[i]);
 
-            map.put(name, new SkinFile(file, name, proto));
+            map.put(name, new SkinResource(new FileResource(file), proto));
         }
 
         return map;

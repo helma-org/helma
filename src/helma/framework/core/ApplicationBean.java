@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 
+ *
  */
 public class ApplicationBean implements Serializable {
     Application app;
@@ -490,7 +490,7 @@ public class ApplicationBean implements Serializable {
         File f = app.getServerDir();
 
         if (f == null) {
-            f = app.getAppDir();
+            return app.getAppDir().getAbsolutePath();
         }
 
         return f.getAbsolutePath();

@@ -114,11 +114,9 @@ public final class RequestEvaluator implements Runnable {
                 // update scripting prototypes
                 scriptingEngine.updatePrototypes();
 
-                // System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
                 // object refs to ressolve request path
                 Object root;
 
-                // System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
                 // object refs to ressolve request path
                 Object currentElement;
 
@@ -311,6 +309,8 @@ public final class RequestEvaluator implements Runnable {
                                 // end of path resolution section
                                 /////////////////////////////////////////////////////////////////////////////
                                 // beginning of execution section
+                                long a = 0;
+                                long pre = 0;
                                 try {
                                     // set the req.action property, cutting off the _action suffix
                                     req.action = action.substring(0, action.length() - 7);
@@ -319,18 +319,23 @@ public final class RequestEvaluator implements Runnable {
                                     // generation sensitive to changes in the app
                                     res.setApplicationChecksum(app.getChecksum());
 
+                                    a = System.currentTimeMillis();
+                                    pre = a - Long.parseLong(System.getProperty("request.start", "0"));
+
                                     // reset skin recursion detection counter
                                     skinDepth = 0;
 
-                                    // try calling onRequest() function on object before
-                                    // calling the actual action
+                                    // try calling beforeRequest() / onRequest function
+                                    // on object before calling the actual action
                                     try {
                                         if (scriptingEngine.hasFunction(currentElement,
-                                                                            "onRequest")) {
+                                                                            "beforeRequest")) {
                                             scriptingEngine.invoke(currentElement,
-                                                                   "onRequest",
+                                                                   "beforeRequest",
                                                                    new Object[0],
                                                                    ScriptingEngine.ARGS_WRAP_DEFAULT);
+                                        } else if (scriptingEngine.hasFunction(currentElement, "onRequest")) {
+                                            scriptingEngine.invoke(currentElement, "onRequest", new Object[0], ScriptingEngine.ARGS_WRAP_DEFAULT);
                                         }
                                     } catch (RedirectException redir) {
                                         throw redir;
@@ -343,6 +348,20 @@ public final class RequestEvaluator implements Runnable {
                                     scriptingEngine.invoke(currentElement, action,
                                                            new Object[0],
                                                            ScriptingEngine.ARGS_WRAP_DEFAULT);
+
+                                    // reset skin recursion detection counter
+                                    skinDepth = 0;
+
+                                    // try calling afterRequest() function on object after
+                                    // calling the actual action
+                                    try {
+                                        if (scriptingEngine.hasFunction(currentElement, "afterRequest")) {
+                                            scriptingEngine.invoke(currentElement, "afterRequest", new Object[0], ScriptingEngine.ARGS_WRAP_DEFAULT);
+                                        }
+                                    } catch (RedirectException redir) {
+                                        throw redir;
+                                    }
+
                                 } catch (RedirectException redirect) {
                                     // res.redirect = redirect.getMessage ();
                                     // if there is a message set, save it on the user object for the next request
@@ -352,6 +371,9 @@ public final class RequestEvaluator implements Runnable {
 
                                     done = true;
                                 }
+
+                                System.out.println("Request time was: " + (System.currentTimeMillis() - a) + "ms");
+                                System.out.println("Prerequest time was: " + pre + "ms");
 
                                 // check if we're still the one and only or if the waiting thread has given up on us already
                                 commitTransaction();
@@ -859,7 +881,7 @@ public final class RequestEvaluator implements Runnable {
         if (obj instanceof IPathElement) {
             return ((IPathElement) obj).getChildElement(name);
         }
-        
+
         return null;
     }
 

@@ -16,7 +16,7 @@
 
 package helma.objectmodel.db;
 
-import helma.util.SystemProperties;
+import helma.util.SourceProperties;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -28,10 +28,10 @@ import java.util.Properties;
  *  This class describes a releational data source (URL, driver, user and password).
  */
 public class DbSource {
-    private static SystemProperties defaultProps = null;
+    private static SourceProperties defaultProps = null;
     private Properties conProps;
     private String name;
-    private SystemProperties props;
+    private SourceProperties props;
     protected String url;
     private String driver;
     private boolean isOracle;
@@ -45,7 +45,7 @@ public class DbSource {
      *
      * @throws ClassNotFoundException ...
      */
-    public DbSource(String name, SystemProperties props)
+    public DbSource(String name, SourceProperties props)
              throws ClassNotFoundException {
         this.name = name;
         this.props = props;
@@ -158,10 +158,10 @@ public class DbSource {
      *
      * @param props ...
      */
-    public static void setDefaultProps(SystemProperties props) {
+    public static void setDefaultProps(SourceProperties props) {
         defaultProps = props;
     }
-    
+
     /**
      * Is this an Oracle database?
      *

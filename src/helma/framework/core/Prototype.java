@@ -19,7 +19,11 @@ package helma.framework.core;
 import helma.objectmodel.db.DbMapping;
 import helma.scripting.*;
 import helma.util.SystemMap;
-import helma.util.SystemProperties;
+import helma.util.SourceProperties;
+import helma.framework.repository.ZipResource;
+import helma.framework.repository.Resource;
+import helma.framework.repository.Repository;
+
 import java.io.*;
 import java.util.*;
 
@@ -33,15 +37,15 @@ public final class Prototype {
     String name;
     String lowerCaseName;
     Application app;
-    File directory;
-    File[] files;
-    long lastDirectoryListing;
+    ArrayList resources;
+    long lastResourceListing;
     long checksum;
     HashMap code;
     HashMap zippedCode;
     HashMap skins;
     HashMap zippedSkins;
     HashMap updatables;
+    HashSet repositories;
 
     // a map of this prototype's skins as raw strings
     // used for exposing skins to application (script) code (via app.skinfiles).
@@ -60,36 +64,30 @@ public final class Prototype {
     // as opposed to a Helma objectmodel node object.
     boolean isJavaPrototype;
 
+    SourceProperties props;
+
     /**
      * Creates a new Prototype object.
      *
      * @param name the prototype's name
-     * @param dir the prototype directory, if known
+     * @param repository the first prototype's repository
      * @param app the application this prototype is a part of
      */
-    public Prototype(String name, File dir, Application app) {
+    public Prototype(String name, Repository repository, Application app) {
         // app.logEvent ("Constructing Prototype "+app.getName()+"/"+name);
         this.app = app;
         this.name = name;
+        repositories = new HashSet();
+        if (repository != null) {
+            repositories.add(repository);
+        }
         lowerCaseName = name.toLowerCase();
 
-        if (dir != null) {
-            directory = dir;
-        } else {
-            directory = new File(app.appDir, name);
-            // a little bit of overkill to maintain backwards compatibility
-            // with lower case type names...
-            if (!directory.isDirectory()) {
-                File lowerDir = new File(app.appDir, lowerCaseName);
-                if (lowerDir.isDirectory()) {
-                    directory = lowerDir;
-                }
-            }
-        }
-
         // Create and register type properties file
-        File propfile = new File(directory, "type.properties");
-        SystemProperties props = new SystemProperties(propfile.getAbsolutePath());
+        props = new SourceProperties();
+        if (repository != null) {
+            props.addResource(repository.getResource("type.properties"));
+        }
         dbmap = new DbMapping(app, name, props);
         // we don't need to put the DbMapping into proto.updatables, because
         // dbmappings are checked separately in TypeManager.checkFiles() for
@@ -115,42 +113,50 @@ public final class Prototype {
     }
 
     /**
-     *  Return this prototype's directory.
+     * Adds an repository to the list of repositories
+     * @param repository repository to add
      */
-    public File getDirectory() {
-        return directory;
+    public void addRepository(Repository repository) {
+        if (!repositories.contains(repository)) {
+            repositories.add(repository);
+            props.addResource(repository.getResource("type.properties"));
+        }
+        return;
     }
 
     /**
-     *  Get the list of files in this prototype's directory
+     *  Returns the list of resources in this prototype's repositories
      */
-    public File[] getFiles() {
-        if ((files == null) || (directory.lastModified() != lastDirectoryListing)) {
-            lastDirectoryListing = directory.lastModified();
-            files = directory.listFiles();
+    public Resource[] getResources() {
+        long resourceListing = getChecksum();
+        if (resources == null || resourceListing != lastResourceListing) {
+            lastResourceListing = resourceListing;
+            resources = new ArrayList();
+            Iterator iterator = repositories.iterator();
 
-            if (files == null) {
-                files = new File[0];
+            while (iterator.hasNext()) {
+                resources.addAll(Arrays.asList(((Repository) iterator.next()).getAllResources()));
+            }
+
+            if (resources == null) {
+                return new Resource[0];
             }
         }
 
-        return files;
+        return (Resource[]) resources.toArray(new Resource[resources.size()]);
     }
 
     /**
-     *  Get a checksum over the files in this prototype's directory
+     *  Get a checksum over this prototype's sources
      */
     public long getChecksum() {
-        // long start = System.currentTimeMillis();
-        File[] f = getFiles();
-        long c = directory.lastModified();
+        long checksum = 0;
+        Iterator iterator = repositories.iterator();
 
-        for (int i = 0; i < f.length; i++)
-            c += f[i].lastModified();
+        while (iterator.hasNext()) {
+            checksum += ((Repository) iterator.next()).getChecksum();
+        }
 
-        checksum = c;
-
-        // System.err.println ("CHECKSUM "+name+": "+(System.currentTimeMillis()-start));
         return checksum;
     }
 
@@ -160,7 +166,7 @@ public final class Prototype {
      * @return ...
      */
     public boolean isUpToDate() {
-        return checksum == lastChecksum;
+        return (checksum == 0 && lastChecksum == 0) ? false : checksum == lastChecksum;
     }
 
     /**
@@ -248,14 +254,14 @@ public final class Prototype {
      *  residing in the prototype directory, not for skin files in
      *  other locations or database stored skins.
      */
-    public SkinFile getSkinFile(String sfname) {
-        SkinFile sf = (SkinFile) skins.get(sfname);
+    public SkinResource getSkinResource(String sname) {
+        SkinResource sr = (SkinResource) skins.get(sname);
 
-        if (sf == null) {
-            sf = (SkinFile) zippedSkins.get(sfname);
+        if (sr == null) {
+            sr = (SkinResource) zippedSkins.get(sname);
         }
 
-        return sf;
+        return sr;
     }
 
     /**
@@ -263,11 +269,11 @@ public final class Prototype {
      *  residing in the prototype directory, not for skins files in
      *  other locations or database stored skins.
      */
-    public Skin getSkin(String sfname) {
-        SkinFile sf = getSkinFile(sfname);
+    public Skin getSkin(String sname) {
+        SkinResource sr = getSkinResource(sname);
 
-        if (sf != null) {
-            return sf.getSkin();
+        if (sr != null) {
+            return sr.getSkin();
         } else {
             return null;
         }
@@ -334,132 +340,73 @@ public final class Prototype {
         return (Map) zippedCode.clone();
     }
 
-    /**
-     *
-     *
-     * @param action ...
-     */
-    public synchronized void addActionFile(ActionFile action) {
-        File f = action.getFile();
-
-        if (f != null) {
-            code.put(action.getSourceName(), action);
-            updatables.put(f.getName(), action);
+    public synchronized void addActionResource(ActionResource action) {
+        if (action.getResource() instanceof ZipResource && action.getResource().getRepository().getRootRepository().getClass().getName() != "helma.framework.repository.ZipRepository") {
+            zippedCode.put(action.getResourceName(), action);
         } else {
-            zippedCode.put(action.getSourceName(), action);
+            code.put(action.getResourceName(), action);
         }
+        updatables.put(action.getName(), action);
+        return;
     }
 
-    /**
-     *
-     *
-     * @param template ...
-     */
-    public synchronized void addTemplate(Template template) {
-        File f = template.getFile();
-
-        if (f != null) {
-            code.put(template.getSourceName(), template);
-            updatables.put(f.getName(), template);
+    public synchronized void addFunctionResource(FunctionResource function) {
+        if (function.getResource() instanceof ZipResource && function.getResource().getRepository().getRootRepository().getClass().getName() != "helma.framework.repository.ZipRepository") {
+            zippedCode.put(function.getResourceName(), function);
         } else {
-            zippedCode.put(template.getSourceName(), template);
+            code.put(function.getResourceName(), function);
         }
+        updatables.put(function.getName(), function);
+        return;
     }
 
-    /**
-     *
-     *
-     * @param funcfile ...
-     */
-    public synchronized void addFunctionFile(FunctionFile funcfile) {
-        File f = funcfile.getFile();
-
-        if (f != null) {
-            code.put(funcfile.getSourceName(), funcfile);
-            updatables.put(f.getName(), funcfile);
+    public synchronized void addSkinResource(SkinResource skin) {
+        String name = skin.getResource().getShortName();
+        if (skin.getResource() instanceof ZipResource && skin.getResource().getRepository().getRootRepository().getClass().getName() != "helma.framework.repository.ZipRepository") {
+            if (!zippedSkins.containsKey(name) || app.getResourceComparator().compare(zippedSkins.get(name), skin) == -1) {
+                SkinResource previous = (SkinResource) zippedSkins.put(name, skin);
+                if (previous != null && previous != skin) {
+                    updatables.remove(previous.getName());
+                }
+                updatables.put(skin.getName(), skin);
+            }
         } else {
-            zippedCode.put(funcfile.getSourceName(), funcfile);
+            if (!skins.containsKey(name) || app.getResourceComparator().compare(skins.get(name), skin) == -1) {
+                SkinResource previous = (SkinResource) skins.put(name, skin);
+                if (previous != null && previous != skin) {
+                    updatables.remove(previous.getName());
+                }
+                updatables.put(skin.getName(), skin);
+            }
         }
+        return;
     }
 
-    /**
-     *
-     *
-     * @param skinfile ...
-     */
-    public synchronized void addSkinFile(SkinFile skinfile) {
-        File f = skinfile.getFile();
-
-        if (f != null) {
-            skins.put(skinfile.getName(), skinfile);
-            updatables.put(f.getName(), skinfile);
+    public synchronized void removeActionResource(ActionResource action) {
+        if (action.getResource() instanceof ZipResource && action.getResource().getRepository().getRootRepository().getClass().getName() != "helma.framework.repository.ZipRepository") {
+            zippedCode.remove(action.getResourceName());
         } else {
-            zippedSkins.put(skinfile.getName(), skinfile);
+            code.remove(action.getResourceName());
         }
+        updatables.remove(action.getName());
     }
 
-    /**
-     *
-     *
-     * @param action ...
-     */
-    public synchronized void removeActionFile(ActionFile action) {
-        File f = action.getFile();
-
-        if (f != null) {
-            code.remove(action.getSourceName());
-            updatables.remove(f.getName());
+    public synchronized void removeFunctionResource(FunctionResource function) {
+        if (function.getResource() instanceof ZipResource && function.getResource().getRepository().getRootRepository().getClass().getName() != "helma.framework.repository.ZipRepository") {
+            zippedCode.remove(function.getResourceName());
         } else {
-            zippedCode.remove(action.getSourceName());
+            code.remove(function.getResourceName());
         }
+        updatables.remove(function.getName());
     }
 
-    /**
-     *
-     *
-     * @param funcfile ...
-     */
-    public synchronized void removeFunctionFile(FunctionFile funcfile) {
-        File f = funcfile.getFile();
-
-        if (f != null) {
-            code.remove(funcfile.getSourceName());
-            updatables.remove(f.getName());
+    public synchronized void removeSkinResource(SkinResource skin) {
+        if (skin.getResource() instanceof ZipResource && skin.getResource().getRepository().getRootRepository().getClass().getName() != "helma.framework.repository.ZipRepository") {
+            zippedSkins.remove(skin.getResource().getShortName());
         } else {
-            zippedCode.remove(funcfile.getSourceName());
+            skins.remove(skin.getResource().getShortName());
         }
-    }
-
-    /**
-     *
-     *
-     * @param template ...
-     */
-    public synchronized void removeTemplate(Template template) {
-        File f = template.getFile();
-
-        if (f != null) {
-            code.remove(template.getSourceName());
-            updatables.remove(f.getName());
-        } else {
-            zippedCode.remove(template.getSourceName());
-        }
-    }
-
-    /**
-     *
-     *
-     * @param skinfile ...
-     */
-    public synchronized void removeSkinFile(SkinFile skinfile) {
-        File f = skinfile.getFile();
-
-        if (f != null) {
-            skins.remove(skinfile.getName());
-            updatables.remove(f.getName());
-        } else {
-            zippedSkins.remove(skinfile.getName());
-        }
+        updatables.remove(skin.getName());
     }
 
     /**
@@ -529,13 +476,13 @@ public final class Prototype {
 
             checkForUpdates();
 
-            SkinFile sf = (SkinFile) super.get(key);
+            SkinResource sr = (SkinResource) super.get(key);
 
-            if (sf == null) {
+            if (sr == null) {
                 return null;
             }
 
-            return sf.getSkin().getSource();
+            return sr.getSkin().getSource();
         }
 
         public int hashCode() {
