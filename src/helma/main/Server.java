@@ -9,6 +9,7 @@ import java.rmi.server.*;
 import java.rmi.registry.*;
 import java.net.*;
 import java.util.*;
+import helma.extensions.HelmaExtension;
 // import helma.objectmodel.*;
 import helma.objectmodel.db.DbSource;
 import helma.framework.*;
@@ -31,6 +32,8 @@ import helma.util.*;
     public static String dbFilename = "hop.db";
 
     private ApplicationManager appManager;
+	
+    private Vector extensions;
 
     private  Thread mainThread;
 
@@ -181,6 +184,23 @@ import helma.util.*;
 	}
 
 	// nmgr = new NodeManager (this, sysProps);
+	// try to load the extensions
+	extensions = new Vector ();
+	if (sysProps.getProperty ("extensions")!=null) {
+	    StringTokenizer tok=new StringTokenizer (sysProps.getProperty ("extensions"),",");
+	    while(tok.hasMoreTokens ()) {
+	        String extClassName = tok.nextToken ().trim ();
+	        try {
+	            Class extClass = Class.forName (extClassName);
+	            HelmaExtension ext = (HelmaExtension) extClass.newInstance ();
+	            ext.init (this);
+	            extensions.add (ext);
+	            getLogger ().log ("loaded: " + extClassName);
+	        } catch (Exception e) {
+	            getLogger ().log ("error:  " + extClassName + " (" + e.toString () + ")");
+	        }
+	    }
+	}
 
 	// Start running, finishing setup and then entering a loop to check changes
 	// in the apps.properties file.
@@ -352,6 +372,10 @@ import helma.util.*;
 		    return new File (appHome);
 		else
 	    	return new File (hopHome, "apps");
+	}
+
+	public Vector getExtensions () {
+	    return extensions;
 	}
 
 	public void startApplication(String name)	{
