@@ -142,12 +142,15 @@ function checkAuth(appObj)	{
 
 
 /**
-  * check access to the base-app by ip-addresses
+  * check access to the manage-app by ip-addresses
   */
 function checkAddress()	{
 	if ( !app.data.addressFilter.matches(java.net.InetAddress.getByName(req.data.http_remotehost)) )	{
 		app.log("denied request from " + req.data.http_remotehost );
-		return forceStealth();
+		// forceStealth seems a bit like overkill here.
+		// display a message that the ip address must be added to server.properties
+		res.write ("Access to address "+req.data.http_remotehost+" denied.");
+		return false;
 	}	else	{
 		return true;
 	}
