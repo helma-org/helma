@@ -210,6 +210,17 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	dirty = true;
     }
 
+	public void setNodeHandle (NodeHandle value)	{
+	if (type == NODE)
+	    unregisterNode ();
+	if (type == JAVAOBJECT)
+	    this.jvalue = null;
+	// registerNode (value);	
+	type = NODE;
+	nhandle = value;
+	dirty = true;
+	}
+
     public void setJavaObjectValue (Object value) {
 	if (type == NODE)
 	    unregisterNode ();
