@@ -603,6 +603,10 @@ public final class Node implements INode, Serializable {
 	parentHandle = parent == null ? null : parent.getHandle ();
     }
 
+	public void setParentHandle (NodeHandle parent)	{
+		parentHandle = parent;
+	}
+
     /**
      * This version of setParent additionally marks the node as anonymous or non-anonymous,
      * depending on the string argument. This is the version called from the scripting framework,
