@@ -8,7 +8,7 @@
     <target name="init">
         <property name="Name" value="helma"/>
         <property name="year" value="1998-${year}"/>
-        <property name="version" value="1.2.4"/>
+        <property name="version" value="1.2.5-pre1"/>
         <property name="project" value="helma"/>
         <property name="build.compiler" value="classic"/>
 
@@ -28,7 +28,7 @@
 
         <property name="jar.name" value="${project}"/>
         <property name="package.name" value="${project}-${version}"/>
-        <property name="antclick.name" value="antclick-1.0pre6"/>
+        <property name="antclick.name" value="antclick-1.0.1-pre1"/>
 
         <property name="debug" value="on"/>
         <property name="optimize" value="on"/>
@@ -248,17 +248,6 @@
 
         <antcall target="package-manage" />
 
-        <!-- write out apps.properties file -->
-        <echo file="${build.work}/apps.properties" append="false">
-# list of applications to be started by helma
-base
-base.mountpoint = /
-bloggerapi
-himp
-gong
-lillebror
-manage
-</echo>
     </target>
 
 
