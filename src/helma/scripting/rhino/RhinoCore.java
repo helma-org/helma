@@ -26,6 +26,8 @@ import helma.util.CacheMap;
 import helma.util.SystemMap;
 import helma.util.WrappedMap;
 import org.mozilla.javascript.*;
+import org.mozilla.javascript.tools.debugger.Main;
+import org.mozilla.javascript.tools.debugger.ScopeProvider;
 
 import java.io.*;
 import java.text.*;
@@ -34,7 +36,7 @@ import java.util.*;
 /**
  * This is the implementation of ScriptingEnvironment for the Mozilla Rhino EcmaScript interpreter.
  */
-public final class RhinoCore {
+public final class RhinoCore implements ScopeProvider {
     // the application we're running in
     public final Application app;
 
@@ -62,6 +64,8 @@ public final class RhinoCore {
     // Any error that may have been found in global code
     String globalError;
 
+    Main debugger = null;
+
     /**
      *  Create a Rhino evaluator for the given application and request evaluator.
      */
@@ -79,14 +83,22 @@ public final class RhinoCore {
         wrapper.setJavaPrimitiveWrap(false);
         context.setWrapFactory(wrapper);
 
-        int optLevel = 0;
+        // Set up visual debugger if rhino.debug = true
+        if ("true".equals(app.getProperty("rhino.debug"))) {
+            debugger = new Main(app.getName() + " Debugger");
+            debugger.setScopeProvider(this);
+            debugger.pack();
+            debugger.setVisible(true);
+        }
+
+        // Set default optimization level according to whether debugger is on
+        int optLevel = debugger == null ? 0 : -1;
 
         try {
             optLevel = Integer.parseInt(app.getProperty("rhino.optlevel"));
         } catch (Exception ignore) {
         }
 
-        // System.err.println("Setting Rhino optlevel to " + optLevel);
         context.setOptimizationLevel(optLevel);
 
         try {
