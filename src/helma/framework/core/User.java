@@ -45,8 +45,8 @@ public class User implements Serializable {
 	setNode (null);
 	umap = app.getDbMapping ("user");
 	cache = new TransientNode ("[session cache]");
-	// cache.setPrototype ("user");
-	// cache.setDbMapping (umap);
+	cache.setPrototype ("user");
+	cache.setDbMapping (umap);
 	sessionID = sid;
 	onSince = System.currentTimeMillis ();
 	lastTouched = onSince;
@@ -127,6 +127,8 @@ public class User implements Serializable {
      */
     public void clearCache () {
 	cache = new TransientNode ("[session cache]");
+	cache.setPrototype ("user");
+	cache.setDbMapping (umap);
     }
 }
 
