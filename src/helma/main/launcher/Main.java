@@ -68,7 +68,8 @@ public class Main {
 	File extdir =new File (libdir, "ext");
 	File[] files = extdir.listFiles (new FilenameFilter() {
 	    public boolean accept (File dir, String name) {
-	        return name.toLowerCase().endsWith (".jar");
+	        String n = name.toLowerCase();
+	        return n.endsWith (".jar") || n.endsWith (".zip");
 	    }
 	});
 	if (files != null)
