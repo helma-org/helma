@@ -15,7 +15,7 @@ public interface IDatabase {
     public void shutdown ();
 
 	// id-related
-	public String      nextID();
+	public String      nextID() throws ObjectNotFoundException;
     public IDGenerator getIDGenerator  (ITransaction transaction) throws Exception;
 	public void        saveIDGenerator (ITransaction transaction, IDGenerator idgen) throws Exception;
 
