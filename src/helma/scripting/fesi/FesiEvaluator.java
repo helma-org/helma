@@ -50,6 +50,7 @@ public class FesiEvaluator {
 	"helma.scripting.fesi.extensions.ImageExtension",
 	"helma.scripting.fesi.extensions.FtpExtension",
 	"FESI.Extensions.JavaAccess",
+	"helma.scripting.fesi.extensions.DomExtension",
 	"FESI.Extensions.OptionalRegExp"};
 
     public FesiEvaluator (Application app, RequestEvaluator reval) {
