@@ -12,6 +12,8 @@ public class Benchmark implements Runnable {
     XmlRpcClient client;
     static String url;
     static int clients = 8;
+    static int loops = 200;
+
     int gCalls = 0, gErrors = 0;
 
     Date date;
@@ -47,7 +49,7 @@ public class Benchmark implements Runnable {
 	    // ECHO DATE
 	    // args.addElement (date);
 
-	    for (int i=0; i<100; i++) {
+	    for (int i=0; i<loops; i++) {
 
 	        // ABS INT
 	        Integer ret = (Integer) client.execute ("math.abs", args);
