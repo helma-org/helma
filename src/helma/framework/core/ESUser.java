@@ -25,11 +25,9 @@ public class ESUser extends ESNode {
     // if the user is online, this is his/her online session object
     public User user;
 
-    public ESUser (INode node, RequestEvaluator eval) {
+    public ESUser (INode node, RequestEvaluator eval, User user) {
 	super (eval.esUserPrototype, eval.evaluator, node, eval);
-	user = (User) eval.app.activeUsers.get (node.getNameOrID ());
-	if (user == null)
-	    user = (User) eval.app.sessions.get (node.getNameOrID ());
+	this.user = user;
 	if (user != null) {
 	    cache = user.cache;
 	    cacheWrapper = new ESNode (cache, eval);
@@ -56,25 +54,30 @@ public class ESUser extends ESNode {
     }
 
 
-    public void setUser (User user) {
-	if (this.user != user) {
-	    this.user = user;
-	    cache = user.cache;
-	}
-	cacheWrapper = new ESNode (cache, eval);
-    }
-
+    /**
+     * The node for a user object changes at login and logout, so we don't use our
+     * own node, but just reach through to the session user object instead.
+     */
     public void setNode (INode node) {
+	user.setNode (node);
 	if (node != null) {
 	    this.node = node;
-	    nodeID = node.getID ();
-	    dbmap = node.getDbMapping ();
-	    eval.objectcache.put (node, this);
-	    // we don't take over the transient cache from the node,
-	    // because we always use the one from the user object.
+	} else {
+	    // user.getNode will never return null. If the node is set to null (=user logged out)
+	    // it will user the original transient cache node again.
+	    this.node = user.getNode ();
 	}
+	nodeID = this.node.getID ();
+	dbmap = this.node.getDbMapping ();
+	// we don't take over the transient cache from the node,
+	// because we always use the one from the user object.
     }
 
+    public void updateNode () {
+	node = user.getNode ();
+	nodeID = node.getID ();
+	dbmap = node.getDbMapping ();
+    }	
 
     public String toString () {
 	return ("UserObject "+node.getNameOrID ());

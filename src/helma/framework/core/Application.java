@@ -444,7 +444,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	    if (pw != null && pw.equals (password)) {
 	        // give the user her piece of persistence
 	        u.setNode (unode);
-	        u.user.setNode (unode);
 	        activeUsers.put (unode.getNameOrID (), u.user);
 	        return true;
 	    }
@@ -462,8 +461,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	        activeUsers.remove (uid);
 
 	    // switch back to the non-persistent user node as cache
-	    u.user.setNode (null);
-	    u.setNode (u.user.getNode ());
+	    u.setNode (null);
 	}
 	return true;
     }
@@ -495,7 +493,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	String base = props.getProperty ("baseURI");
 	String siteroot = props.getProperty ("rootPrototype");
 	
-	setBaseURI (base);
+	if (base != null) setBaseURI (base);
 	String href = n.getUrl (root, users, tmpname, siteroot);
 	
 	return baseURI + href;

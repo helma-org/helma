@@ -173,8 +173,8 @@ public class RequestEvaluator implements Runnable {
 
 	                root = app.getDataRoot ();
 
-	                ESUser esu = (ESUser) getNodeWrapper (user.getNode ());
-	                esu.setUser (user);
+	                ESUser esu = (ESUser) getNodeWrapper (user);
+	                // esu.setUser (user);
 	                global.putHiddenProperty ("root", getNodeWrapper (root));
 	                global.putHiddenProperty("user", esu);
 	                global.putHiddenProperty ("req", new ESWrapper (req, evaluator));
@@ -476,8 +476,8 @@ public class RequestEvaluator implements Runnable {
 	                if (user == null) {
 	                    current = global;
 	                } else {
-	                    ESUser esu = (ESUser) getNodeWrapper (user.getNode ());
-	                    esu.setUser (user);
+	                    ESUser esu = (ESUser) getNodeWrapper (user);
+	                    // esu.setUser (user);
 	                    current = esu;
 	                }
 	            }
@@ -786,8 +786,8 @@ public class RequestEvaluator implements Runnable {
         ESNode esn = (ESNode) objectcache.get (n);
 
         if (esn == null || esn.getNode() != n) {
-            ObjectPrototype op = null;
             String protoname = n.getPrototype ();
+            ObjectPrototype op = null;
 
             // set the DbMapping of the node according to its prototype.
             // this *should* be done on the objectmodel level, but isn't currently
@@ -804,13 +804,29 @@ public class RequestEvaluator implements Runnable {
             if (op == null)
                 op = esNodePrototype; // no prototype found for this node.
 
-            if ("user".equalsIgnoreCase (protoname))
-                esn = new ESUser (n, this);
-            else
-                esn = new ESNode (op, evaluator, n, this);
+            esn = new ESNode (op, evaluator, n, this);
 
             objectcache.put (n, esn);
             // app.logEvent ("Wrapper for "+n+" created");
+        }
+
+        return esn;
+    }
+
+
+    public ESNode getNodeWrapper (User u) {
+        if (u == null)
+            return null;
+
+        ESUser esn = (ESUser) objectcache.get (u);
+
+        if (esn == null) {
+            esn = new ESUser (u.getNode(), this, u);
+            objectcache.put (u, esn);
+        } else {
+            // the user node may have changed (login/logout) while the ESUser was
+            // lingering in the cache.
+            esn.updateNode ();
         }
 
         return esn;

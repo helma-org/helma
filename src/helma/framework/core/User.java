@@ -29,7 +29,7 @@ public class User implements Serializable {
     	this.app = app;
     	setNode (null);
 	cache = new Node (sid);
-             cache.setPrototype ("user");
+	cache.setPrototype ("user");
 	sessionID = sid;
 	onSince = System.currentTimeMillis ();
 	lastTouched = onSince;

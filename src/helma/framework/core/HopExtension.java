@@ -710,14 +710,16 @@ public class HopExtension {
            Hashtable sessions = (Hashtable) app.sessions.clone ();
            ESObject ap = this.evaluator.getArrayPrototype();
            ArrayPrototype theArray = new ArrayPrototype (ap, this.evaluator);
+           theArray.setSize (sessions.size ());
            int i=0;
-           Hashtable visited = new Hashtable ();
+           // Hashtable visited = new Hashtable ();
            for (Enumeration e=sessions.elements(); e.hasMoreElements(); ) {
                User u = (User) e.nextElement ();
-               if (u.uid == null || !visited.containsKey (u.uid)) {
-                   theArray.setElementAt (reval.getNodeWrapper (u.getNode ()), i++);
-                   if (u.uid != null) visited.put (u.uid, u);
-               }
+               // Note: we previously sorted out duplicate users - now we simply enumerate all active sessions.
+               // if (u.uid == null || !visited.containsKey (u.uid)) {
+               theArray.setElementAt (reval.getNodeWrapper (u), i++);
+               // if (u.uid != null) visited.put (u.uid, u);
+               // }
            }
            return theArray;
         }
