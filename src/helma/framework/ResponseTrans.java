@@ -66,6 +66,9 @@ public final class ResponseTrans implements Externalizable {
     // contains the redirect URL
     private String redir = null;
 
+    // the forward (internal redirect) URL
+    private String forward = null;
+
     // the last-modified date, if it should be set in the response
     private long lastModified = -1;
 
@@ -380,6 +383,27 @@ public final class ResponseTrans implements Externalizable {
      */
     public String getRedirect() {
         return redir;
+    }
+
+    /**
+     *
+     *
+     * @param url ...
+     *
+     * @throws RedirectException ...
+     */
+    public void forward(String url) throws RedirectException {
+        forward = url;
+        throw new RedirectException(url);
+    }
+
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getForward() {
+        return forward;
     }
 
     /**

@@ -75,6 +75,17 @@ public class ResponseBean implements Serializable {
 
     /**
      *
+     *
+     * @param url ...
+     *
+     * @throws RedirectException ...
+     */
+    public void forward(String url) throws RedirectException {
+        res.forward(url);
+    }
+
+    /**
+     *
      */
     public void reset() {
         res.reset();
