@@ -320,7 +320,7 @@ public final class Skin {
 	            int oldLength = reval.res.getBufferLength ();
 	            if (reval.scriptingEngine.hasFunction (handlerObject, name+"_macro")) {
 	                // System.err.println ("Getting macro from function");
-	                v = reval.scriptingEngine.invoke (handlerObject, name+"_macro", arguments, null);
+	                v = reval.scriptingEngine.invoke (handlerObject, name+"_macro", arguments);
 	            } else {
 	                // System.err.println ("Getting macro from property");
 	                v = reval.scriptingEngine.get (handlerObject, name);
