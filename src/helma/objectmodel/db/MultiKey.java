@@ -17,29 +17,33 @@
 package helma.objectmodel.db;
 
 import java.io.Serializable;
+import java.util.Map;
 
 /**
- *  This is the internal representation of a database key. It is constructed
- *  from the logical table (type) name and the object's primary key
- *  within the table. Currently only single keys are supported.
+ *  This is the internal representation of a database key with multiple
+ *  columns. It is constructed from the logical table (type) name and the
+ *  column name/column value pairs that identify the key's object
+ *
+ *  NOTE: This class doesn't fully support the Key interface - getID always
+ *  returns null since there is no unique key (at least we don't know about it).
  */
-public final class DbKey implements Key, Serializable {
+public final class MultiKey implements Key, Serializable {
     // the name of the prototype which defines the storage of this object.
     // this is the name of the object's prototype, or one of its ancestors.
     // If null, the object is stored in the embedded db.
     private final String storageName;
 
     // the id that defines this key's object within the above storage space
-    private final String id;
+    private final Map parts;
 
     // lazily initialized hashcode
     private transient int hashcode = 0;
 
     /**
-     * make a key for a persistent Object, describing its datasource and id.
+     * make a key for a persistent Object, describing its datasource and key parts.
      */
-    public DbKey(DbMapping dbmap, String id) {
-        this.id = id;
+    public MultiKey(DbMapping dbmap, Map parts) {
+        this.parts = parts;
         this.storageName = (dbmap == null) ? null : dbmap.getStorageTypeName();
     }
 
@@ -55,15 +59,16 @@ public final class DbKey implements Key, Serializable {
             return true;
         }
 
-        if (!(what instanceof DbKey)) {
+        if (!(what instanceof MultiKey)) {
             return false;
         }
 
-        DbKey k = (DbKey) what;
+        MultiKey k = (MultiKey) what;
 
         // storageName is an interned string (by DbMapping, from where we got it)
         // so we can compare by using == instead of the equals method.
-        return (storageName == k.storageName) && ((id == k.id) || id.equals(k.id));
+        return (storageName == k.storageName) &&
+                ((parts == k.parts) || parts.equals(k.parts));
     }
 
     /**
@@ -73,9 +78,9 @@ public final class DbKey implements Key, Serializable {
      */
     public int hashCode() {
         if (hashcode == 0) {
-            hashcode = (storageName == null) ? (17 + (37 * id.hashCode()))
+            hashcode = (storageName == null) ? (17 + (37 * parts.hashCode()))
                                              : (17 + (37 * storageName.hashCode()) +
-                                             (+37 * id.hashCode()));
+                                             (+37 * parts.hashCode()));
         }
 
         return hashcode;
@@ -105,7 +110,7 @@ public final class DbKey implements Key, Serializable {
      * @return this key's object's id
      */
     public String getID() {
-        return id;
+        return null;
     }
 
     /**
@@ -114,6 +119,6 @@ public final class DbKey implements Key, Serializable {
      * @return a string representation for this key
      */
     public String toString() {
-        return (storageName == null) ? ("[" + id + "]") : (storageName + "[" + id + "]");
+        return (storageName == null) ? ("[" + parts + "]") : (storageName + "[" + parts + "]");
     }
 }

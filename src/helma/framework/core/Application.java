@@ -78,12 +78,6 @@ public final class Application implements IPathElement, Runnable {
     protected SkinManager skinmgr;
 
     /**
-     *  Each application has one internal request evaluator for calling
-     * the scheduler and other internal functions.
-     */
-    RequestEvaluator eval;
-
-    /**
      * Collections for evaluator thread pooling
      */
     protected Stack freeThreads;
@@ -283,23 +277,24 @@ public final class Application implements IPathElement, Runnable {
             loadSessionData(null);
         }
 
+        // create and init type mananger
         typemgr = new TypeManager(this);
         typemgr.createPrototypes();
 
-        // logEvent ("Started type manager for "+name);
-        // eval = new RequestEvaluator (this);
-        logEvent("Starting evaluators for " + name);
+        // create and init evaluator/thread lists
         freeThreads = new Stack();
         allThreads = new Vector();
 
-        // allThreads.addElement (eval);
         // preallocate minThreads request evaluators
         int minThreads = 0;
 
         try {
             minThreads = Integer.parseInt(props.getProperty("minThreads"));
         } catch (Exception ignore) {
+            // not parsable as number, keep 0
         }
+
+        logEvent("Starting "+minThreads+" evaluator(s) for " + name);
 
         for (int i = 0; i < minThreads; i++) {
             RequestEvaluator ev = new RequestEvaluator(this);
@@ -339,7 +334,7 @@ public final class Application implements IPathElement, Runnable {
     public void start() {
         starttime = System.currentTimeMillis();
         worker = new Thread(this, "Worker-" + name);
-        worker.setPriority(Thread.NORM_PRIORITY + 2);
+        // worker.setPriority(Thread.NORM_PRIORITY + 2);
         worker.start();
 
         // logEvent ("session cleanup and scheduler thread started");
@@ -741,6 +736,13 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
+     * Return the prototype with the given name, if it exists
+     */
+    public Prototype getPrototypeByName(String name) {
+        return (Prototype) typemgr.prototypes.get(name);
+    }
+
+    /**
      * Return a collection containing all prototypes defined for this application
      */
     public Collection getPrototypes() {
@@ -1101,17 +1103,7 @@ public final class Application implements IPathElement, Runnable {
      *  by an active RequestEvaluator thread.
      */
     private Object invokeFunction(Object obj, String func, Object[] args) {
-        Thread thread = Thread.currentThread();
-        RequestEvaluator reval = null;
-        int l = allThreads.size();
-
-        for (int i = 0; i < l; i++) {
-            RequestEvaluator r = (RequestEvaluator) allThreads.get(i);
-
-            if ((r != null) && (r.rtx == thread)) {
-                reval = r;
-            }
-        }
+        RequestEvaluator reval = getCurrentRequestEvaluator();
 
         if (reval != null) {
             try {
@@ -1225,8 +1217,8 @@ public final class Application implements IPathElement, Runnable {
         // we use the classes from helma.doc-pacakge for introspection.
         // the first time an url like /appname/api/ is parsed, the application is read again
         // parsed for comments and exposed as an IPathElement
-        if (name.equals("api")) {
-            return eval.scriptingEngine.getIntrospector();
+        if (name.equals("api") && allThreads.size() > 0) {
+            return ((RequestEvaluator) allThreads.get(0)).scriptingEngine.getIntrospector();
         }
 
         return null;
@@ -1306,44 +1298,47 @@ public final class Application implements IPathElement, Runnable {
      * kicking out expired user sessions.
      */
     public void run() {
-        long cleanupSleep = 60000; // thread sleep interval (fixed)
-        long scheduleSleep = 60000; // interval for scheduler invocation
-        long lastScheduler = 0; // run scheduler immediately
-        long lastCleanup = System.currentTimeMillis();
+        // interval between session cleanups
+        long sessionCleanupInterval = 60000;
+        long lastSessionCleanup = System.currentTimeMillis();
 
         // logEvent ("Starting scheduler for "+name);
-        // as first thing, invoke function onStart in the root object
-        eval = new RequestEvaluator(this);
-        allThreads.addElement(eval);
 
         // read in standard prototypes to make first request go faster
         typemgr.updatePrototype("root");
         typemgr.updatePrototype("global");
 
+        // as first thing, invoke function onStart in the root object
+        RequestEvaluator eval = getEvaluator();
         try {
             eval.invokeFunction((INode) null, "onStart", new Object[0]);
         } catch (Exception ignore) {
             logEvent("Error in " + name + "/onStart(): " + ignore);
+        } finally {
+            if (!stopped) {
+                releaseEvaluator(eval);
+            }
         }
 
         while (Thread.currentThread() == worker) {
-            // get session timeout
-            int sessionTimeout = 30;
-
-            try {
-                sessionTimeout = Math.max(0,
-                                          Integer.parseInt(props.getProperty("sessionTimeout",
-                                                                             "30")));
-            } catch (Exception ignore) {
-                System.out.println(ignore.toString());
-            }
 
             long now = System.currentTimeMillis();
 
             // check if we should clean up user sessions
-            if ((now - lastCleanup) > cleanupSleep) {
+            if ((now - lastSessionCleanup) > sessionCleanupInterval) {
+
+                lastSessionCleanup = now;
+
+                // get session timeout
+                int sessionTimeout = 30;
+
                 try {
-                    lastCleanup = now;
+                    sessionTimeout = Math.max(0,
+                            Integer.parseInt(props.getProperty("sessionTimeout",
+                                                               "30")));
+                } catch (Exception ignore) {}
+
+                try {
 
                     Hashtable cloned = (Hashtable) sessions.clone();
 
@@ -1398,7 +1393,7 @@ public final class Application implements IPathElement, Runnable {
                     try {
                         thisEvaluator = getEvaluator();
                     } catch (RuntimeException rt) {
-                        if (stopped == false) {
+                        if (!stopped) {
                             logEvent("couldn't execute " + j +
                                      ", maximum thread count reached");
 
@@ -1414,8 +1409,8 @@ public final class Application implements IPathElement, Runnable {
                             (CronJob.millisToNextFullMinute() < 30000)) {
                         CronRunner r = new CronRunner(thisEvaluator, j);
 
-                        r.start();
                         activeCronJobs.put(j.getName(), r);
+                        r.start();
                     } else {
                         try {
                             thisEvaluator.invokeFunction((INode) null, j.getFunction(),
@@ -1423,19 +1418,23 @@ public final class Application implements IPathElement, Runnable {
                         } catch (Exception ex) {
                             logEvent("error running " + j + ": " + ex.toString());
                         } finally {
-                            if (stopped == false) {
+                            if (!stopped) {
                                 releaseEvaluator(thisEvaluator);
                             }
                         }
                     }
-
-                    thisEvaluator = null;
                 }
             }
 
+
+            long sleepInterval = CronJob.millisToNextFullMinute();
+            try {
+                sleepInterval = Integer.parseInt(props.getProperty("schedulerInterval"))*1000;
+            } catch (Exception ignore) {}
+
             // sleep until the next full minute
             try {
-                worker.sleep(CronJob.millisToNextFullMinute());
+                worker.sleep(sleepInterval);
             } catch (InterruptedException x) {
                 logEvent("Scheduler for " + name + " interrupted");
                 worker = null;
@@ -1645,14 +1644,14 @@ public final class Application implements IPathElement, Runnable {
      *
      */
     public int countThreads() {
-        return threadgroup.activeCount() - 1;
+        return threadgroup.activeCount();
     }
 
     /**
      *
      */
     public int countEvaluators() {
-        return allThreads.size() - 1;
+        return allThreads.size();
     }
 
     /**
@@ -1666,7 +1665,7 @@ public final class Application implements IPathElement, Runnable {
      *
      */
     public int countActiveEvaluators() {
-        return allThreads.size() - freeThreads.size() - 1;
+        return allThreads.size() - freeThreads.size();
     }
 
     /**
@@ -1838,14 +1837,14 @@ public final class Application implements IPathElement, Runnable {
                 thisEvaluator.invokeFunction((INode) null, job.getFunction(),
                                              new Object[0], job.getTimeout());
             } catch (Exception ex) {
+                // gets logged in RequestEvaluator
+            } finally {
+                if (!stopped) {
+                    releaseEvaluator(thisEvaluator);
+                }
+                thisEvaluator = null;
+                activeCronJobs.remove(job.getName());
             }
-
-            if (stopped == false) {
-                releaseEvaluator(thisEvaluator);
-            }
-
-            thisEvaluator = null;
-            activeCronJobs.remove(job.getName());
         }
     }
 }

@@ -107,7 +107,6 @@ public final class HopExtension {
         esNodePrototype.putHiddenProperty("addAt", new NodeAddAt("addAt", evaluator, fp));
         esNodePrototype.putHiddenProperty("remove",
                                           new NodeRemove("remove", evaluator, fp));
-        esNodePrototype.putHiddenProperty("link", new NodeLink("link", evaluator, fp));
         esNodePrototype.putHiddenProperty("list", new NodeList("list", evaluator, fp));
         esNodePrototype.putHiddenProperty("set", new NodeSet("set", evaluator, fp));
         esNodePrototype.putHiddenProperty("get", new NodeGet("get", evaluator, fp));
@@ -267,19 +266,6 @@ public final class HopExtension {
             ESNode node = (ESNode) thisObject;
 
             return ESBoolean.makeBoolean(node.remove(arguments));
-        }
-    }
-
-    class NodeLink extends BuiltinFunctionObject {
-        NodeLink(String name, Evaluator evaluator, FunctionPrototype fp) {
-            super(fp, evaluator, name, 1);
-        }
-
-        public ESValue callFunction(ESObject thisObject, ESValue[] arguments)
-                             throws EcmaScriptException {
-            ESNode node = (ESNode) thisObject;
-
-            return ESBoolean.makeBoolean(node.link(arguments));
         }
     }
 

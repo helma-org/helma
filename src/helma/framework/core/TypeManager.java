@@ -166,7 +166,7 @@ public final class TypeManager {
                     if (zipped == null) {
                         File f = new File(appDir, list[i]);
 
-                        if (!f.isDirectory()) {
+                        if (!f.isDirectory() && f.exists()) {
                             zipped = new ZippedAppFile(f, app);
                             zipfiles.put(list[i], zipped);
                         }
@@ -237,7 +237,8 @@ public final class TypeManager {
             if ((dbmap != null) && dbmap.needsUpdate()) {
                 dbmap.update();
 
-                if ((proto != hopobjectProto) && (proto != globalProto)) {
+                // this is now done in dbmap.update()!!!
+                /*if ((proto != hopobjectProto) && (proto != globalProto)) {
                     // set parent prototype, in case it has changed.
                     String parentName = dbmap.getExtends();
 
@@ -246,7 +247,7 @@ public final class TypeManager {
                     } else if (!app.isJavaPrototype(proto.getName())) {
                         proto.setParentPrototype(hopobjectProto);
                     }
-                }
+                } */
             }
         }
 

@@ -32,9 +32,6 @@ public final class EmbeddedServletClient extends AbstractServletClient {
     private Application app = null;
     private String appName;
 
-    // The path where this servlet is mounted
-    String mountpoint;
-
     /**
      * Creates a new EmbeddedServletClient object.
      */
@@ -55,12 +52,6 @@ public final class EmbeddedServletClient extends AbstractServletClient {
 
         if (appName == null) {
             throw new ServletException("Application name not set in init parameters");
-        }
-
-        mountpoint = init.getInitParameter("mountpoint");
-
-        if (mountpoint == null) {
-            mountpoint = "/" + appName;
         }
     }
 

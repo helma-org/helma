@@ -21,6 +21,7 @@ import helma.framework.core.*;
 import helma.objectmodel.*;
 import helma.servlet.*;
 import helma.util.SystemProperties;
+import helma.util.StringUtils;
 import org.apache.xmlrpc.XmlRpcHandler;
 import org.mortbay.http.*;
 import org.mortbay.http.handler.*;
@@ -28,7 +29,6 @@ import org.mortbay.jetty.servlet.*;
 import org.mortbay.util.*;
 import java.io.*;
 import java.lang.reflect.*;
-import java.net.URLEncoder;
 import java.rmi.*;
 import java.rmi.server.*;
 import java.util.*;
@@ -38,9 +38,9 @@ import javax.servlet.Servlet;
  * This class is responsible for starting and stopping Helma applications.
  */
 public class ApplicationManager implements XmlRpcHandler {
+    private Hashtable descriptors;
     private Hashtable applications;
     private Hashtable xmlrpcHandlers;
-    private Properties mountpoints;
     private int port;
     private File hopHome;
     private SystemProperties props;
@@ -50,10 +50,10 @@ public class ApplicationManager implements XmlRpcHandler {
     /**
      * Creates a new ApplicationManager object.
      *
-     * @param port ...
-     * @param hopHome ...
-     * @param props ...
-     * @param server ...
+     * @param port The RMI port we're binding to
+     * @param hopHome The Helma home directory
+     * @param props the properties defining the running apps
+     * @param server the server instance
      */
     public ApplicationManager(int port, File hopHome, SystemProperties props,
                               Server server) {
@@ -61,13 +61,16 @@ public class ApplicationManager implements XmlRpcHandler {
         this.hopHome = hopHome;
         this.props = props;
         this.server = server;
+        descriptors = new Hashtable();
         applications = new Hashtable();
         xmlrpcHandlers = new Hashtable();
-        mountpoints = new Properties();
         lastModified = 0;
     }
 
-    // regularely check applications property file to create and start new applications
+    /**
+     * Called regularely check applications property file
+     * to create and start new applications.
+     */
     protected void checkForChanges() {
         if (props.lastModified() > lastModified) {
             try {
@@ -76,79 +79,28 @@ public class ApplicationManager implements XmlRpcHandler {
 
                     if ((appName.indexOf(".") == -1) &&
                             (applications.get(appName) == null)) {
-                        start(appName);
-                        register(appName);
+                        AppDescriptor appDesc = new AppDescriptor(appName);
+                        appDesc.start();
+                        appDesc.bind();
                     }
                 }
 
                 // then stop deleted ones
-                for (Enumeration e = applications.keys(); e.hasMoreElements();) {
-                    String appName = (String) e.nextElement();
+                for (Enumeration e = descriptors.elements(); e.hasMoreElements();) {
+                    AppDescriptor appDesc = (AppDescriptor) e.nextElement();
 
                     // check if application has been removed and should be stopped
-                    if (!props.containsKey(appName)) {
-                        stop(appName);
+                    if (!props.containsKey(appDesc.appName)) {
+                        appDesc.stop();
                     } else if (server.http != null) {
-                        // check if application should be remounted at a
-                        // different location on embedded web server
-                        String oldMountpoint = mountpoints.getProperty(appName);
-                        String mountpoint = getMountpoint(appName);
-                        String pattern = getPathPattern(mountpoint);
+                        // If application continues to run, remount
+                        // as the mounting options may have changed.
+                        appDesc.unbind();
+                        AppDescriptor ndesc = new AppDescriptor(appDesc.appName);
+                        ndesc.app = appDesc.app;
+                        ndesc.bind();
+                        descriptors.put(ndesc.appName, ndesc);
 
-                        if (!pattern.equals(oldMountpoint)) {
-                            Server.getLogger().log("Moving application " + appName +
-                                                   " from " + oldMountpoint + " to " +
-                                                   pattern);
-
-                            HttpContext oldContext = server.http.getContext(null,
-                                                                            oldMountpoint);
-
-                            if (oldContext != null) {
-                                // oldContext.setContextPath(pattern);
-                                oldContext.stop();
-                                oldContext.destroy();
-                            }
-
-                            Application app = (Application) applications.get(appName);
-
-                            if (!app.hasExplicitBaseURI()) {
-                                app.setBaseURI(mountpoint);
-                            }
-
-                            ServletHttpContext context = new ServletHttpContext();
-
-                            context.setContextPath(pattern);
-                            server.http.addContext(context);
-
-                            ServletHolder holder = context.addServlet(appName, "/*",
-                                                                      "helma.servlet.EmbeddedServletClient");
-
-                            holder.setInitParameter("application", appName);
-                            holder.setInitParameter("mountpoint", mountpoint);
-
-                            if ("true".equalsIgnoreCase(props.getProperty(appName +
-                                                                              ".responseEncoding"))) {
-                                context.addHandler(new ContentEncodingHandler());
-                            }
-
-                            String cookieDomain = props.getProperty(appName +
-                                                                    ".cookieDomain");
-
-                            if (cookieDomain != null) {
-                                holder.setInitParameter("cookieDomain", cookieDomain);
-                            }
-
-                            String uploadLimit = props.getProperty(appName +
-                                                                   ".uploadLimit");
-
-                            if (uploadLimit != null) {
-                                holder.setInitParameter("uploadLimit", uploadLimit);
-                            }
-
-                            // holder.start ();
-                            context.start();
-                            mountpoints.setProperty(appName, pattern);
-                        }
                     }
                 }
             } catch (Exception mx) {
@@ -159,134 +111,38 @@ public class ApplicationManager implements XmlRpcHandler {
         }
     }
 
-    void start(String appName) {
-        Server.getLogger().log("Building application " + appName);
 
-        try {
-            // check if application and db dirs are set, otherwise go with
-            // the defaults, passing null dirs to the constructor.
-            String appDirName = props.getProperty(appName + ".appdir");
-            File appDir = (appDirName == null) ? null : new File(appDirName);
-            String dbDirName = props.getProperty(appName + ".dbdir");
-            File dbDir = (dbDirName == null) ? null : new File(dbDirName);
-
-            // create the application instance
-            Application app = new Application(appName, server, appDir, dbDir);
-
-            applications.put(appName, app);
-
-            // the application is started later in the register method, when it's bound
-            app.init();
-        } catch (Exception x) {
-            Server.getLogger().log("Error creating application " + appName + ": " + x);
-            x.printStackTrace();
-        }
+    /**
+     *  Start an application by name
+     */
+    public void start(String appName) {
+        AppDescriptor desc = new AppDescriptor(appName);
+        desc.start();
     }
 
-    void stop(String appName) {
-        Server.getLogger().log("Stopping application " + appName);
-
-        try {
-            Application app = (Application) applications.get(appName);
-
-            // unbind from RMI server
-            if (port > 0) {
-                Naming.unbind("//:" + port + "/" + appName);
-            }
-
-            // unbind from Jetty HTTP server
-            if (server.http != null) {
-                String mountpoint = mountpoints.getProperty(appName);
-                HttpContext context = server.http.getContext(null, mountpoint);
-
-                if (context != null) {
-                    context.stop();
-                    context.destroy();
-                }
-            }
-
-            // unregister as XML-RPC handler
-            xmlrpcHandlers.remove(app.getXmlRpcHandlerName());
-            app.stop();
-            Server.getLogger().log("Unregistered application " + appName);
-        } catch (Exception x) {
-            Server.getLogger().log("Couldn't unregister app: " + x);
-        }
-
-        applications.remove(appName);
-    }
-
-    void register(String appName) {
-        try {
-            Server.getLogger().log("Binding application " + appName);
-
-            Application app = (Application) applications.get(appName);
-
-            // bind to RMI server
-            if (port > 0) {
-                Naming.rebind("//:" + port + "/" + appName, new RemoteApplication(app));
-            }
-
-            // bind to Jetty HTTP server
-            if (server.http != null) {
-                String mountpoint = getMountpoint(appName);
-
-                // if using embedded webserver (not AJP) set application URL prefix
-                if (!app.hasExplicitBaseURI()) {
-                    app.setBaseURI(mountpoint);
-                }
-
-                String pattern = getPathPattern(mountpoint);
-                ServletHttpContext context = new ServletHttpContext();
-
-                context.setContextPath(pattern);
-                server.http.addContext(context);
-
-                ServletHolder holder = context.addServlet(appName, "/*",
-                                                          "helma.servlet.EmbeddedServletClient");
-
-                holder.setInitParameter("application", appName);
-                holder.setInitParameter("mountpoint", mountpoint);
-
-                if ("true".equalsIgnoreCase(props.getProperty(appName +
-                                                                  ".responseEncoding"))) {
-                    context.addHandler(new ContentEncodingHandler());
-                }
-
-                String cookieDomain = props.getProperty(appName + ".cookieDomain");
-
-                if (cookieDomain != null) {
-                    holder.setInitParameter("cookieDomain", cookieDomain);
-                }
-
-                String uploadLimit = props.getProperty(appName + ".uploadLimit");
-
-                if (uploadLimit != null) {
-                    holder.setInitParameter("uploadLimit", uploadLimit);
-                }
-
-                String debug = props.getProperty(appName + ".debug");
-
-                if (debug != null) {
-                    holder.setInitParameter("debug", debug);
-                }
-
-                // holder.start ();
-                context.start();
-                mountpoints.setProperty(appName, pattern);
-            }
-
-            // register as XML-RPC handler
-            xmlrpcHandlers.put(app.getXmlRpcHandlerName(), app);
-            app.start();
-        } catch (Exception x) {
-            Server.getLogger().log("Couldn't register and start app: " + x);
-            x.printStackTrace();
+    /**
+     *  Bind an application by name
+     */
+    public void register(String appName) {
+        AppDescriptor desc = (AppDescriptor) descriptors.get(appName);
+        if (desc != null) {
+            desc.bind();
         }
     }
 
     /**
-     *
+     *  Stop an application by name
+     */
+    public void stop(String appName) {
+        AppDescriptor desc = (AppDescriptor) descriptors.get(appName);
+        if (desc != null) {
+            desc.stop();
+        }
+    }
+
+
+    /**
+     * Start all applications listed in the properties
      */
     public void startAll() {
         try {
@@ -294,33 +150,14 @@ public class ApplicationManager implements XmlRpcHandler {
                 String appName = (String) e.nextElement();
 
                 if (appName.indexOf(".") == -1) {
-                    start(appName);
+                    AppDescriptor desc = new AppDescriptor(appName);
+                    desc.start();
                 }
             }
 
-            for (Enumeration e = props.keys(); e.hasMoreElements();) {
-                String appName = (String) e.nextElement();
-
-                if (appName.indexOf(".") == -1) {
-                    register(appName);
-                }
-            }
-
-            if (server.http != null) {
-                // add handler for static files.
-                File staticContent = new File(server.getHopHome(), "static");
-
-                Server.getLogger().log("Serving static content from " +
-                                       staticContent.getAbsolutePath());
-
-                HttpContext context = server.http.addContext("/static/*");
-
-                context.setResourceBase(staticContent.getAbsolutePath());
-
-                ResourceHandler handler = new ResourceHandler();
-
-                context.addHandler(handler);
-                context.start();
+            for (Enumeration e = descriptors.elements(); e.hasMoreElements();) {
+                AppDescriptor appDesc = (AppDescriptor) e.nextElement();
+                appDesc.bind();
             }
 
             lastModified = System.currentTimeMillis();
@@ -331,13 +168,13 @@ public class ApplicationManager implements XmlRpcHandler {
     }
 
     /**
-     *
+     *  Stop all running applications.
      */
     public void stopAll() {
-        for (Enumeration en = applications.keys(); en.hasMoreElements();) {
-            String appName = (String) en.nextElement();
+        for (Enumeration en = descriptors.elements(); en.hasMoreElements();) {
+            AppDescriptor appDesc = (AppDescriptor) en.nextElement();
 
-            stop(appName);
+            appDesc.stop();
         }
     }
 
@@ -376,19 +213,19 @@ public class ApplicationManager implements XmlRpcHandler {
         Application app = (Application) xmlrpcHandlers.get(handler);
 
         if (app == null) {
+            app = (Application) xmlrpcHandlers.get("*");
+            // use the original method name, the handler is resolved within the app.
+            method2 = method;
+        }
+
+        if (app == null) {
             throw new Exception("Handler \"" + handler + "\" not found for " + method);
         }
 
         return app.executeXmlRpc(method2, params);
     }
 
-    private String getMountpoint(String appName) {
-        String mountpoint = props.getProperty(appName + ".mountpoint");
-
-        if (mountpoint == null) {
-            return "/" + URLEncoder.encode(appName);
-        }
-
+    private String getMountpoint(String mountpoint) {
         mountpoint = mountpoint.trim();
 
         if ("".equals(mountpoint)) {
@@ -400,15 +237,227 @@ public class ApplicationManager implements XmlRpcHandler {
         return mountpoint;
     }
 
+    private String joinMountpoint(String prefix, String suffix) {
+        if (prefix.endsWith("/") || suffix.startsWith("/")) {
+            return prefix+suffix;
+        } else {
+            return prefix+"/"+suffix;
+        }
+    }
+
     private String getPathPattern(String mountpoint) {
+        if (!mountpoint.startsWith("/")) {
+            mountpoint = "/"+mountpoint;
+        }
+
         if ("/".equals(mountpoint)) {
             return "/";
         }
 
-        if (!mountpoint.endsWith("/")) {
-            return mountpoint + "/*";
+        if (mountpoint.endsWith("/")) {
+            return mountpoint + "*";
         }
 
-        return mountpoint + "*";
+        return mountpoint + "/*";
+    }
+
+    /**
+     *  Inner class that describes an application and its start settings.
+     */
+    class AppDescriptor {
+
+        Application app;
+
+        String appName;
+        File appDir;
+        File dbDir;
+        String mountpoint;
+        String pathPattern;
+        String staticDir;
+        String staticMountpoint;
+        String xmlrpcHandlerName;
+        String cookieDomain;
+        String uploadLimit;
+        String debug;
+        String charset;
+        boolean encode;
+
+        /**
+         *  Creates an AppDescriptor from the properties.
+         */
+        AppDescriptor(String name) {
+            appName = name;
+            mountpoint = getMountpoint(props.getProperty(name+".mountpoint",
+                                        appName));
+            pathPattern = getPathPattern(mountpoint);
+            staticDir = props.getProperty(name+".static");
+            staticMountpoint = getPathPattern(props.getProperty(name+".staticMountpoint",
+                                        joinMountpoint(mountpoint, "static")));
+            cookieDomain = props.getProperty(name+".cookieDomain");
+            uploadLimit = props.getProperty(name+".uploadLimit");
+            debug = props.getProperty(name+".debug");
+            encode = "true".equalsIgnoreCase(props.getProperty(name +
+                                        ".responseEncoding"));
+            String appDirName = props.getProperty(name + ".appdir");
+            appDir = (appDirName == null) ? null : new File(appDirName);
+            String dbDirName = props.getProperty(name + ".dbdir");
+            dbDir = (dbDirName == null) ? null : new File(dbDirName);
+        }
+
+
+        void start() {
+            Server.getLogger().log("Building application " + appName);
+
+            try {
+                // create the application instance
+                app = new Application(appName, server, appDir, dbDir);
+
+                // register ourselves
+                descriptors.put(appName, this);
+                applications.put(appName, app);
+
+                // the application is started later in the register method, when it's bound
+                app.init();
+                app.start();
+            } catch (Exception x) {
+                Server.getLogger().log("Error creating application " + appName + ": " + x);
+                x.printStackTrace();
+            }
+        }
+
+        void stop() {
+            Server.getLogger().log("Stopping application " + appName);
+
+            // unbind application
+            unbind();
+
+            // stop application
+            try {
+                app.stop();
+                Server.getLogger().log("Stopped application " + appName);
+            } catch (Exception x) {
+                Server.getLogger().log("Couldn't stop app: " + x);
+            }
+
+            descriptors.remove(appName);
+            applications.remove(appName);
+        }
+
+        void bind() {
+            try {
+                Server.getLogger().log("Binding application " + appName);
+
+                // bind to RMI server
+                if (port > 0) {
+                    Naming.rebind("//:" + port + "/" + appName, new RemoteApplication(app));
+                }
+
+                // bind to Jetty HTTP server
+                if (server.http != null) {
+                    // if using embedded webserver (not AJP) set application URL prefix
+                    if (!app.hasExplicitBaseURI()) {
+                        app.setBaseURI(mountpoint);
+                    }
+
+                    ServletHttpContext context = new ServletHttpContext();
+
+                    context.setContextPath(pathPattern);
+                    server.http.addContext(context);
+
+                    if (encode) {
+                        context.addHandler(new ContentEncodingHandler());
+                    }
+
+                    ServletHolder holder = context.addServlet(appName, "/*",
+                                                          "helma.servlet.EmbeddedServletClient");
+
+                    holder.setInitParameter("application", appName);
+                    // holder.setInitParameter("mountpoint", mountpoint);
+
+                    if (cookieDomain != null) {
+                        holder.setInitParameter("cookieDomain", cookieDomain);
+                    }
+
+                    if (uploadLimit != null) {
+                        holder.setInitParameter("uploadLimit", uploadLimit);
+                    }
+
+                    if (debug != null) {
+                        holder.setInitParameter("debug", debug);
+                    }
+
+                    holder.setInitParameter("charset", app.getCharset());
+
+                    context.start();
+
+                    if (staticDir != null) {
+
+                        File staticContent = new File(staticDir);
+                        if (!staticContent.isAbsolute()) {
+                            staticContent = new File(server.getHopHome(), staticDir);
+                        }
+
+                        Server.getLogger().log("Serving static from " +
+                                       staticContent.getAbsolutePath());
+                        Server.getLogger().log("Mounting static at " +
+                                       staticMountpoint);
+
+                        HttpContext cx = server.http.addContext(staticMountpoint);
+
+                        cx.setResourceBase(staticContent.getAbsolutePath());
+
+                        ResourceHandler handler = new ResourceHandler();
+
+                        cx.addHandler(handler);
+                        cx.start();
+                    }
+                }
+
+                // register as XML-RPC handler
+                xmlrpcHandlerName = app.getXmlRpcHandlerName();
+                xmlrpcHandlers.put(xmlrpcHandlerName, app);
+                // app.start();
+            } catch (Exception x) {
+                Server.getLogger().log("Couldn't bind app: " + x);
+                x.printStackTrace();
+            }
+        }
+
+        void unbind() {
+            Server.getLogger().log("Unbinding application " + appName);
+
+            try {
+               // unbind from RMI server
+                if (port > 0) {
+                    Naming.unbind("//:" + port + "/" + appName);
+                }
+
+                // unbind from Jetty HTTP server
+                if (server.http != null) {
+                    HttpContext context = server.http.getContext(null, pathPattern);
+
+                    if (context != null) {
+                        context.stop();
+                        context.destroy();
+                    }
+
+                    if (staticDir != null) {
+                        context = server.http.getContext(null, staticMountpoint);
+
+                        if (context != null) {
+                            context.stop();
+                            context.destroy();
+                        }
+                    }
+                }
+
+                // unregister as XML-RPC handler
+                xmlrpcHandlers.remove(xmlrpcHandlerName);
+            } catch (Exception x) {
+                Server.getLogger().log("Couldn't unbind app: " + x);
+            }
+
+        }
+
     }
 }

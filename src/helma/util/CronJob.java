@@ -38,7 +38,7 @@ package helma.util;
  *     software without prior written permission. For written
  *     permission, please contact support@protomatter.com.
  *  
- *  5. Products derived from this software may not be called "Protomatter", 
+ *  5. Products derived from this software may not be called "Protomatter",
  *     nor may "Protomatter" appear in their name, without prior written
  *     permission of the Protomatter Software Project
  *     (support@protomatter.com).
@@ -62,7 +62,7 @@ import java.util.*;
 
 /**
  *  A cron entry, derived from Protomatter's CronEntry class.
- *  This class encapsulates a function call, a timeout value 
+ *  This class encapsulates a function call, a timeout value
  *  and a specification for when the given event should be
  *  delivered to the given topics.  The specification of when
  *  the event should be delivered is based on the UNIX cron
@@ -72,17 +72,18 @@ import java.util.*;
 
 public class CronJob {
 
-   // used as the value in hashtables
-   private static Object value = new Object();
-   private static Hashtable all = new Hashtable ();
+   private static HashSet all = new HashSet (2);
    private static String ALL_VALUE = "*";
+   static {
+      all.add (ALL_VALUE);
+   }
 
-   private Hashtable year;
-   private Hashtable month;
-   private Hashtable day;
-   private Hashtable weekday;
-   private Hashtable hour;
-   private Hashtable minute;
+   private HashSet year;
+   private HashSet month;
+   private HashSet day;
+   private HashSet weekday;
+   private HashSet hour;
+   private HashSet minute;
 
    private String name     = null;
    private String function = null;
@@ -161,21 +162,22 @@ public class CronJob {
      */
 
 
-  public static CronJob newJob (String functionName, String year, String month, String day, String weekday, String hour, String minute) {
+  public static CronJob newJob (String functionName, String year, String month,
+        String day, String weekday, String hour, String minute) {
     CronJob job = new CronJob (functionName);
     job.setFunction (functionName);
     if (year != null)
-        parseYear (job, year);
+        job.parseYear (year);
     if (month != null)
-        parseMonth (job, month);
+        job.parseMonth (month);
     if (day != null)
-        parseDay (job, day);
+        job.parseDay (day);
     if (weekday != null)
-        parseWeekDay (job, weekday);
+        job.parseWeekDay (weekday);
     if (hour != null)
-        parseHour (job, hour);
+        job.parseHour (hour);
     if (minute != null)
-        parseMinute (job, minute);
+        job.parseMinute (minute);
     return job;
   }
 
@@ -203,19 +205,19 @@ public class CronJob {
             if (jobSpec.equalsIgnoreCase("function")) {
                job.setFunction(value);
             } else if (jobSpec.equalsIgnoreCase("year")) {
-               parseYear (job, value);
+               job.parseYear (value);
             } else if (jobSpec.equalsIgnoreCase("month")) {
-               parseMonth (job, value);
+               job.parseMonth (value);
             } else if (jobSpec.equalsIgnoreCase("day")) {
-               parseDay (job, value);
+               job.parseDay (value);
             } else if (jobSpec.equalsIgnoreCase("weekday")) {
-               parseWeekDay (job, value);
+               job.parseWeekDay (value);
             } else if (jobSpec.equalsIgnoreCase("hour")) {
-               parseHour (job, value);
+               job.parseHour (value);
             } else if (jobSpec.equalsIgnoreCase("minute")) {
-               parseMinute (job, value);
+               job.parseMinute (value);
             } else if (jobSpec.equalsIgnoreCase("timeout")) {
-            	parseTimeout (job, value);
+               job.parseTimeout (value);
             }
          } catch (NoSuchElementException nsee) {
          }
@@ -249,9 +251,9 @@ public class CronJob {
     }
 
 
-   public static void parseYear (CronJob job, String value) {
+   public void parseYear (String value) {
       if (value.equals("*")) {
-         job.setAllYears(true);
+         setAllYears(true);
       } else {
          StringTokenizer st = new StringTokenizer(value.trim(), ",");
          while (st.hasMoreTokens()) {
@@ -260,54 +262,54 @@ public class CronJob {
                int start = Integer.parseInt(s.substring(0, s.indexOf("-")));
                int finish = Integer.parseInt(s.substring(s.indexOf("-") +1));
                for (int i=start; i<=finish; i++) {
-                  job.addYear(i);
+                  addYear(i);
                }
             } else {
                int y = Integer.parseInt(s);
-               job.addYear(y);
+               addYear(y);
             }
          }
       }
    }
 
-   public static void parseMonth (CronJob job, String value) {
+   public void parseMonth (String value) {
       if (value.equals("*")) {
-         job.setAllMonths(true);
+         setAllMonths(true);
       } else {
          StringTokenizer st = new StringTokenizer(value.trim(), ",");
          while (st.hasMoreTokens()) {
             String m = st.nextToken();
             if (m.equalsIgnoreCase("january"))
-               job.addMonth(Calendar.JANUARY);
+               addMonth(Calendar.JANUARY);
             if (m.equalsIgnoreCase("february"))
-               job.addMonth(Calendar.FEBRUARY);
+               addMonth(Calendar.FEBRUARY);
             if (m.equalsIgnoreCase("march"))
-               job.addMonth(Calendar.MARCH);
+               addMonth(Calendar.MARCH);
             if (m.equalsIgnoreCase("april"))
-               job.addMonth(Calendar.APRIL);
+               addMonth(Calendar.APRIL);
             if (m.equalsIgnoreCase("may"))
-               job.addMonth(Calendar.MAY);
+               addMonth(Calendar.MAY);
             if (m.equalsIgnoreCase("june"))
-               job.addMonth(Calendar.JUNE);
+               addMonth(Calendar.JUNE);
             if (m.equalsIgnoreCase("july"))
-               job.addMonth(Calendar.JULY);
+               addMonth(Calendar.JULY);
             if (m.equalsIgnoreCase("august"))
-               job.addMonth(Calendar.AUGUST);
+               addMonth(Calendar.AUGUST);
             if (m.equalsIgnoreCase("september"))
-               job.addMonth(Calendar.SEPTEMBER);
+               addMonth(Calendar.SEPTEMBER);
             if (m.equalsIgnoreCase("october"))
-               job.addMonth(Calendar.OCTOBER);
+               addMonth(Calendar.OCTOBER);
             if (m.equalsIgnoreCase("november"))
-               job.addMonth(Calendar.NOVEMBER);
+               addMonth(Calendar.NOVEMBER);
             if (m.equalsIgnoreCase("december"))
-               job.addMonth(Calendar.DECEMBER);
+               addMonth(Calendar.DECEMBER);
          }
       }
    }
 
-   public static void parseDay (CronJob job, String day) {
+   public void parseDay (String day) {
       if (day.equals("*")) {
-         job.setAllDays(true);
+         setAllDays(true);
       } else {
          StringTokenizer st = new StringTokenizer(day.trim(), ",");
          while (st.hasMoreTokens()) {
@@ -316,46 +318,46 @@ public class CronJob {
                int start = Integer.parseInt(s.substring(0, s.indexOf("-")));
                int finish = Integer.parseInt(s.substring(s.indexOf("-") +1));
                for (int i=start; i<=finish; i++) {
-                  job.addDay(i);
+                  addDay(i);
                }
             } else {
                int d = Integer.parseInt(s);
-               job.addDay(d);
+               addDay(d);
             }
          }
       }
    }
 
 
-   public static void parseWeekDay (CronJob job, String weekday) {
+   public void parseWeekDay (String weekday) {
       if (weekday.equals("*")) {
-         job.setAllWeekdays(true);
+         setAllWeekdays(true);
       } else {
          StringTokenizer st = new StringTokenizer(weekday.trim(), ",");
          while (st.hasMoreTokens()) {
             String d = st.nextToken();
             if (d.equalsIgnoreCase("monday"))
-               job.addWeekday(Calendar.MONDAY);
+               addWeekday(Calendar.MONDAY);
             if (d.equalsIgnoreCase("tuesday"))
-               job.addWeekday(Calendar.TUESDAY);
+               addWeekday(Calendar.TUESDAY);
             if (d.equalsIgnoreCase("wednesday"))
-               job.addWeekday(Calendar.WEDNESDAY);
+               addWeekday(Calendar.WEDNESDAY);
             if (d.equalsIgnoreCase("thursday"))
-               job.addWeekday(Calendar.THURSDAY);
+               addWeekday(Calendar.THURSDAY);
             if (d.equalsIgnoreCase("friday"))
-               job.addWeekday(Calendar.FRIDAY);
+               addWeekday(Calendar.FRIDAY);
             if (d.equalsIgnoreCase("saturday"))
-               job.addWeekday(Calendar.SATURDAY);
+               addWeekday(Calendar.SATURDAY);
             if (d.equalsIgnoreCase("sunday"))
-               job.addWeekday(Calendar.SUNDAY);
+               addWeekday(Calendar.SUNDAY);
          }
       }
    }
 
 
-   public static void parseHour (CronJob job, String hour) {
+   public void parseHour (String hour) {
       if (hour.equals("*")) {
-         job.setAllHours(true);
+         setAllHours(true);
       } else {
          StringTokenizer st = new StringTokenizer(hour.trim (), ",");
          while (st.hasMoreTokens()) {
@@ -364,20 +366,20 @@ public class CronJob {
                int start = Integer.parseInt(s.substring(0, s.indexOf("-")));
                int finish = Integer.parseInt(s.substring(s.indexOf("-") +1));
                for (int i=start; i<=finish; i++) {
-                  job.addHour(i);
+                  addHour(i);
                }
             } else {
                int h = Integer.parseInt(s);
-               job.addHour(h);
+               addHour(h);
             }
          }
       }
    }
 
 
-   public static void parseMinute (CronJob job, String minute) {
+   public void parseMinute (String minute) {
       if (minute.equals("*")) {
-         job.setAllMinutes(true);
+         setAllMinutes(true);
       } else {
          StringTokenizer st = new StringTokenizer(minute.trim (), ",");
          while (st.hasMoreTokens()) {
@@ -386,46 +388,44 @@ public class CronJob {
                int start = Integer.parseInt(s.substring(0, s.indexOf("-")));
                int finish = Integer.parseInt(s.substring(s.indexOf("-") +1));
                for (int i=start; i<=finish; i++) {
-                  job.addMinute(i);
+                  addMinute(i);
                }
             } else {
                int m = Integer.parseInt(s);
-               job.addMinute(m);
+               addMinute(m);
             }
          }
       }
    }
 
-
-   public static void parseTimeout (CronJob job, String timeout) {
+   public void parseTimeout (String timeout) {
       long timeoutValue = 1000 * Long.valueOf(timeout).longValue ();
-      job.setTimeout (timeoutValue);
+      setTimeout (timeoutValue);
    }
 
-	public static long nextFullMinute () {
-		long now = System.currentTimeMillis();
-      long millisAfterMinute = (now % 60000);
-		return (now + 60000 - millisAfterMinute);
-	}
+    public static long nextFullMinute () {
+        long now = System.currentTimeMillis();
+        long millisAfterMinute = (now % 60000);
+        return (now + 60000 - millisAfterMinute);
+    }
 
-	public static long millisToNextFullMinute () {
-		long now = System.currentTimeMillis();
-      long millisAfterMinute = (now % 60000);
-		return (60000 - millisAfterMinute);
-	}
+    public static long millisToNextFullMinute () {
+        long now = System.currentTimeMillis();
+        long millisAfterMinute = (now % 60000);
+        return (60000 - millisAfterMinute);
+    }
 
   /**
    *  Create an empty CronJob.
    */
    public CronJob (String name) {
       this.name = name;
-      all.put (ALL_VALUE, value);
-      year = new Hashtable (all);
-      month = new Hashtable (all);
-      day = new Hashtable (all);
-      weekday = new Hashtable (all);
-      hour = new Hashtable (all);
-      minute = new Hashtable (all);
+      year = new HashSet (all);
+      month = new HashSet (all);
+      day = new HashSet (all);
+      weekday = new HashSet (all);
+      hour = new HashSet (all);
+      minute = new HashSet (all);
    }
 
   /**
@@ -439,29 +439,29 @@ public class CronJob {
 
     // try and short-circuit as fast as possible.
     Integer theYear = new Integer(cal.get(Calendar.YEAR));
-    if (!year.containsKey(ALL_VALUE) && !year.containsKey(theYear))
+    if (!year.contains(ALL_VALUE) && !year.contains(theYear))
       return false;
 
     Integer theMonth = new Integer(cal.get(Calendar.MONTH));
-    if (!month.containsKey(ALL_VALUE) && !month.containsKey(theMonth))
+    if (!month.contains(ALL_VALUE) && !month.contains(theMonth))
       return false;
-    
+
     Integer theDay = new Integer(cal.get(Calendar.DAY_OF_MONTH));
-    if (!day.containsKey(ALL_VALUE) && !day.containsKey(theDay))
+    if (!day.contains(ALL_VALUE) && !day.contains(theDay))
       return false;
-    
+
     Integer theWeekDay = new Integer(cal.get(Calendar.DAY_OF_WEEK));
-    if (!weekday.containsKey(ALL_VALUE) && !weekday.containsKey(theWeekDay))
+    if (!weekday.contains(ALL_VALUE) && !weekday.contains(theWeekDay))
       return false;
-    
+
     Integer theHour = new Integer(cal.get(Calendar.HOUR_OF_DAY));
-    if (!hour.containsKey(ALL_VALUE) && !hour.containsKey(theHour))
+    if (!hour.contains(ALL_VALUE) && !hour.contains(theHour))
       return false;
-    
+
     Integer theMinute = new Integer(cal.get(Calendar.MINUTE));
-    if (!minute.containsKey(ALL_VALUE) && !minute.containsKey(theMinute))
+    if (!minute.contains(ALL_VALUE) && !minute.contains(theMinute))
       return false;
-    
+
     return true;
   }
 
@@ -472,7 +472,7 @@ public class CronJob {
   public void addYear(int year)
   {
     this.year.remove(ALL_VALUE);
-    this.year.put(new Integer(year), value);
+    this.year.add(new Integer(year));
   }
 
   /**
@@ -494,7 +494,7 @@ public class CronJob {
   public void setAllYears(boolean set)
   {
     if (set)
-      this.year.put(ALL_VALUE, value);
+      this.year.add(ALL_VALUE);
     else
       this.year.remove(ALL_VALUE);
   }
@@ -508,7 +508,7 @@ public class CronJob {
   public void addMonth(int month)
   {
     this.month.remove(ALL_VALUE);
-    this.month.put(new Integer(month), value);
+    this.month.add(new Integer(month));
   }
 
   /**
@@ -532,7 +532,7 @@ public class CronJob {
   public void setAllMonths(boolean set)
   {
     if (set)
-      this.month.put(ALL_VALUE, value);
+      this.month.add(ALL_VALUE);
     else
       this.month.remove(ALL_VALUE);
   }
@@ -544,7 +544,7 @@ public class CronJob {
   public void addDay(int day)
   {
     this.day.remove(ALL_VALUE);
-    this.day.put(new Integer(day), value);
+    this.day.add(new Integer(day));
   }
 
   /**
@@ -566,7 +566,7 @@ public class CronJob {
   public void setAllDays(boolean set)
   {
     if (set)
-      this.day.put(ALL_VALUE, value);
+      this.day.add(ALL_VALUE);
     else
       this.day.remove(ALL_VALUE);
   }
@@ -580,7 +580,7 @@ public class CronJob {
   public void addWeekday(int weekday)
   {
     this.weekday.remove(ALL_VALUE);
-    this.weekday.put(new Integer(weekday), value);
+    this.weekday.add(new Integer(weekday));
   }
 
   /**
@@ -604,7 +604,7 @@ public class CronJob {
   public void setAllWeekdays(boolean set)
   {
     if (set)
-      this.weekday.put(ALL_VALUE, value);
+      this.weekday.add(ALL_VALUE);
     else
       this.weekday.remove(ALL_VALUE);
   }
@@ -616,7 +616,7 @@ public class CronJob {
   public void addHour(int hour)
   {
     this.hour.remove(ALL_VALUE);
-    this.hour.put(new Integer(hour), value);
+    this.hour.add(new Integer(hour));
   }
 
   /**
@@ -638,7 +638,7 @@ public class CronJob {
   public void setAllHours(boolean set)
   {
     if (set)
-      this.hour.put(ALL_VALUE, value);
+      this.hour.add(ALL_VALUE);
     else
       this.hour.remove(ALL_VALUE);
   }
@@ -650,7 +650,7 @@ public class CronJob {
   public void addMinute(int minute)
   {
     this.minute.remove(ALL_VALUE);
-    this.minute.put(new Integer(minute), value);
+    this.minute.add(new Integer(minute));
   }
 
   /**
@@ -672,11 +672,10 @@ public class CronJob {
   public void setAllMinutes(boolean set)
   {
     if (set)
-      this.minute.put(ALL_VALUE, value);
+      this.minute.add(ALL_VALUE);
     else
       this.minute.remove(ALL_VALUE);
   }
-
 
   /**
    *  Set this entry's name
@@ -727,9 +726,10 @@ public class CronJob {
   {
     return this.timeout;
   }
-  
-  public String toString () {
-  		return "[CronJob " + name + "]";
-	}
-  
+
+  public String toString ()
+  {
+    return "[CronJob " + name + "]";
+  }
+
 }

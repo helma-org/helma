@@ -8,7 +8,7 @@
     <target name="init">
         <property name="Name" value="helma"/>
         <property name="year" value="1998-${year}"/>
-        <property name="version" value="1.3cvs"/>
+        <property name="version" value="1.2.5"/>
         <property name="project" value="helma"/>
         <property name="build.compiler" value="classic"/>
 
@@ -28,8 +28,7 @@
 
         <property name="jar.name" value="${project}"/>
         <property name="package.name" value="${project}-${version}"/>
-        <property name="antclick.name" value="antclick-1.0cvs"/>
-        <property name="antville.name" value="antville-1.0cvs"/>
+        <property name="antclick.name" value="antclick-1.0.1-pre1"/>
 
         <property name="debug" value="on"/>
         <property name="optimize" value="on"/>
@@ -68,8 +67,6 @@
         <echo message=" docs       --> tries to retrieve the HTML documentation "/>
         <echo message="                (may need proxy settings in startscript)"/>
         <echo message=" package    --> generates the distribution (zip and tar.gz)"/>
-        <echo message=" antville   --> generates the antville-distribution"/>
-        <echo message="                (zip and tar.gz)"/>
         <echo message=" antclick   --> generates the distribution (zip and tar.gz)"/>
         <echo message="                with antville preconfigured"/>
         <echo message=" app [name] --> gets an application from the cvs and zips it"/>
@@ -210,8 +207,8 @@
         <!-- copy all libraries except helma-YYYYMMDD.jar -->
         <copy todir="${build.work}/lib">
             <fileset dir="${home.dir}/lib">
-                <exclude name="**/helma*.jar" />
-                <include name="**/*.jar" />
+                <exclude name="helma*.jar" />
+                <include name="*.jar" />
             </fileset>
         </copy>
 
@@ -251,17 +248,6 @@
 
         <antcall target="package-manage" />
 
-        <!-- write out apps.properties file -->
-        <echo file="${build.work}/apps.properties" append="false">
-# list of applications to be started by helma
-base
-base.mountpoint = /
-bloggerapi
-himp
-gong
-lillebror
-manage
-</echo>
     </target>
 
 
@@ -360,14 +346,16 @@ manage
 
         <!-- unzip images -->
         <mkdir dir="${build.work}/static/images"/>
-        <unzip src="${build.work}/apps/antville/images.zip" dest="${build.work}/static/images" />
+        <unzip src="${build.work}/apps/antville/images.zip" dest="${build.work}/static/images">
+            <patternset>
+                <include name="**"/>
+            </patternset>
+        </unzip>
 
-        <!-- zip db_support directory and remove it afterwards -->
-        <zip zipfile="${build.work}/apps/antville/db_support.zip">
-            <zipfileset dir="${build.work}/apps/antville/db_support" prefix="db_support" includes="**" />
-        </zip>
-        <delete dir="${build.work}/apps/antville/db_support" />
-        <delete file="${build.work}/apps/antville/images.zip" />
+        <!-- delete antville's mysql-scripts, image-zip etc -->
+        <delete>
+            <fileset dir="${build.work}/apps/antville" includes="images.zip,*.sql" />
+        </delete>
 
         <!-- get and zip manage-app -->
         <antcall target="package-manage" />
@@ -408,38 +396,6 @@ manage
         <gzip zipfile="${build.dist}/${application}-${DSTAMP}.tar.gz" src="${build.dist}/${application}-${DSTAMP}.tar" />
 
         <delete file="${build.dist}/${application}-${DSTAMP}.tar" />
-        <delete dir="${build.work}" />
-    </target>
-
-    <!-- =================================================================== -->
-    <!-- Gets antville from the cvs, cleans and zips/targzs it               -->
-    <!-- =================================================================== -->
-    <target name="antville" depends="init">
-        <mkdir dir="${build.dist}" />
-        <mkdir dir="${build.work}" />
-
-        <!-- to retrieve special versions of an application insert
-        additional attributes: tag="TAGNAME" or date="1972-09-24 20:05" -->
-        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="antville" dest="${build.work}" />
-
-        <!-- zip db_support directory and remove it afterwards -->
-        <zip zipfile="${build.work}/antville/db_support.zip">
-            <zipfileset dir="${build.work}/antville/db_support" prefix="db_support" includes="**" />
-        </zip>
-        <delete dir="${build.work}/antville/db_support" />
-
-        <fixcrlf srcdir="${build.work}/antville/" eol="crlf" excludes="**/*.zip" />
-        <zip zipfile="${build.dist}/${antville.name}.zip" basedir="${build.work}" includes="**" />
-
-        <fixcrlf srcdir="${build.work}/antville/" eol="lf" eof="remove" excludes="**/*.zip" />
-        <tar tarfile="${build.dist}/${antville.name}.tar" basedir="${build.work}">
-           <tarfileset dir="${build.work}">
-               <include name="${build.work}/**"/>
-           </tarfileset>
-        </tar>
-        <gzip zipfile="${build.dist}/${antville.name}.tar.gz" src="${build.dist}/${antville.name}.tar" />
-
-        <delete file="${build.dist}/${antville.name}.tar"/>
         <delete dir="${build.work}" />
     </target>
 

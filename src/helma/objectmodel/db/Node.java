@@ -76,7 +76,7 @@ public final class Node implements INode, Serializable {
     transient private int state;
 
     /**
-     * This constructor is only used for instances of the NullNode subclass. Do not use for ordinary Nodes.
+     * This constructor is only used for NullNode instance. Do not use for ordinary Nodes.
      */
     Node() {
         created = lastmodified = System.currentTimeMillis();
@@ -145,183 +145,28 @@ public final class Node implements INode, Serializable {
     }
 
     /**
-     * Constructor used for nodes being stored in a relational database table.
+     * Initializer used for nodes being stored in a relational database table.
      */
-    public Node(DbMapping dbm, ResultSet rs, DbColumn[] columns, WrappedNodeManager nmgr)
-         throws SQLException, IOException {
+    public void init(DbMapping dbm, String id, String name, String protoName,
+                Hashtable propMap, WrappedNodeManager nmgr) {
         this.nmgr = nmgr;
 
         // see what prototype/DbMapping this object should use
-        dbmap = dbm;
+        this.dbmap = dbm;
+        // set the prototype name
+        this.prototype = protoName;
 
-        String protoField = dbmap.getPrototypeField();
+        this.id = id;
 
-        if (protoField != null) {
-            String protoName = rs.getString(protoField);
-
-            if (protoName != null) {
-                dbmap = nmgr.getDbMapping(protoName);
-
-                if (dbmap == null) {
-                    // invalid prototype name!
-                    System.err.println("Warning: Invalid prototype name: " + protoName +
-                                       " - using default");
-                    dbmap = dbm;
-                }
-            }
-        }
-
-        setPrototype(dbmap.getTypeName());
-
-        id = rs.getString(dbmap.getIDField());
-
-        // checkWriteLock ();
-        String nameField = dbmap.getNameField();
-
-        name = (nameField == null) ? id : rs.getString(nameField);
-
+        this.name = name;
+        // If name was not set from resultset, create a synthetical name now.
         if ((name == null) || (name.length() == 0)) {
-            name = dbmap.getTypeName() + " " + id;
+            this.name = dbmap.getTypeName() + " " + id;
         }
 
-        created = lastmodified = System.currentTimeMillis();
+        this.propMap = propMap;
 
-        for (int i = 0; i < columns.length; i++) {
-            Relation rel = columns[i].getRelation();
-
-            if ((rel == null) ||
-                    ((rel.reftype != Relation.PRIMITIVE) &&
-                    (rel.reftype != Relation.REFERENCE))) {
-                continue;
-            }
-
-            Property newprop = new Property(rel.propName, this);
-
-            switch (columns[i].getType()) {
-                case Types.BIT:
-                    newprop.setBooleanValue(rs.getBoolean(columns[i].getName()));
-
-                    break;
-
-                case Types.TINYINT:
-                case Types.BIGINT:
-                case Types.SMALLINT:
-                case Types.INTEGER:
-                    newprop.setIntegerValue(rs.getLong(columns[i].getName()));
-
-                    break;
-
-                case Types.REAL:
-                case Types.FLOAT:
-                case Types.DOUBLE:
-                    newprop.setFloatValue(rs.getDouble(columns[i].getName()));
-
-                    break;
-
-                case Types.DECIMAL:
-                case Types.NUMERIC:
-
-                    BigDecimal num = rs.getBigDecimal(columns[i].getName());
-
-                    if (num == null) {
-                        break;
-                    }
-
-                    if (num.scale() > 0) {
-                        newprop.setFloatValue(num.doubleValue());
-                    } else {
-                        newprop.setIntegerValue(num.longValue());
-                    }
-
-                    break;
-
-                case Types.VARBINARY:
-                case Types.BINARY:
-                    newprop.setStringValue(rs.getString(columns[i].getName()));
-
-                    break;
-
-                case Types.LONGVARBINARY:
-                case Types.LONGVARCHAR:
-
-                    try {
-                        newprop.setStringValue(rs.getString(columns[i].getName()));
-                    } catch (SQLException x) {
-                        Reader in = rs.getCharacterStream(columns[i].getName());
-                        char[] buffer = new char[2048];
-                        int read = 0;
-                        int r = 0;
-
-                        while ((r = in.read(buffer, read, buffer.length - read)) > -1) {
-                            read += r;
-
-                            if (read == buffer.length) {
-                                // grow input buffer
-                                char[] newBuffer = new char[buffer.length * 2];
-
-                                System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
-                                buffer = newBuffer;
-                            }
-                        }
-
-                        newprop.setStringValue(new String(buffer, 0, read));
-                    }
-
-                    break;
-
-                case Types.CHAR:
-                case Types.VARCHAR:
-                case Types.OTHER:
-                    newprop.setStringValue(rs.getString(columns[i].getName()));
-
-                    break;
-
-                case Types.DATE:
-                case Types.TIME:
-                case Types.TIMESTAMP:
-                    newprop.setDateValue(rs.getTimestamp(columns[i].getName()));
-
-                    break;
-
-                case Types.NULL:
-                    newprop.setStringValue(null);
-
-                    break;
-
-                // continue;
-                default:
-                    newprop.setStringValue(rs.getString(columns[i].getName()));
-
-                    break;
-            }
-
-            if (rs.wasNull()) {
-                newprop.setStringValue(null);
-            }
-
-            if (propMap == null) {
-                propMap = new Hashtable();
-            }
-
-            propMap.put(rel.propName.toLowerCase(), newprop);
-
-            // if the property is a pointer to another node, change the property type to NODE
-            if ((rel.reftype == Relation.REFERENCE) && rel.usesPrimaryKey()) {
-                // FIXME: References to anything other than the primary key are not supported
-                newprop.convertToNodeReference(rel.otherType);
-
-                // newprop.nhandle = new NodeHandle (new DbKey (rel.otherType, newprop.getStringValue ()));
-                // newprop.type = IProperty.NODE;
-            }
-
-            // mark property as clean, since it's fresh from the db
-            newprop.dirty = false;
-        }
-
-        // again set created and lastmodified. This is because
-        // lastmodified has been been updated, and we want both values to
-        // be identical to show that the node hasn't been changed since
-        // it was first created.
+        // set lastmodified and created timestamps and mark as clean
         created = lastmodified = System.currentTimeMillis();
         markAs(CLEAN);
     }
@@ -609,7 +454,7 @@ public final class Node implements INode, Serializable {
             } catch (Exception ignore) {
                 // just fall back to default method
             }
-
+            
             lastNameCheck = System.currentTimeMillis();
         }
 
@@ -914,7 +759,7 @@ public final class Node implements INode, Serializable {
 
                         if (pn != null) {
                             setParent((Node) pn);
-                            anonymous = !pinfo.named;
+                            // anonymous = !pinfo.named;
                             lastParentSet = System.currentTimeMillis();
 
                             return pn;
@@ -1577,7 +1422,7 @@ public final class Node implements INode, Serializable {
 
             // do not fetch subnodes for nodes that haven't been persisted yet or are in
             // the process of being persistified - except if "manual" subnoderelation is set.
-            if (subRel.aggressiveLoading &&
+            if (subRel.aggressiveLoading && subRel.getGroup() == null &&
                     (((state != TRANSIENT) && (state != NEW)) ||
                     (subnodeRelation != null))) {
                 // we don't want to load *all* nodes if we just want to count them
@@ -1813,23 +1658,28 @@ public final class Node implements INode, Serializable {
             }
 
             // so if we have a property relation and it does in fact link to another object...
-            if ((propRel != null) && propRel.isCollection()) {
+            if ((propRel != null) && (propRel.isCollection() || propRel.isComplexReference())) {
                 // in some cases we just want to create and set a generic node without consulting
                 // the NodeManager if it exists: When we get a collection (aka virtual node)
                 // from a transient node for the first time, or when we get a collection whose
                 // content objects are stored in the embedded XML data storage.
                 if ((state == TRANSIENT) && propRel.virtual) {
-                    INode node = new Node(propname, propRel.getPrototype(), nmgr);
+                    Node pn = new Node(propname, propRel.getPrototype(), nmgr);
 
-                    node.setDbMapping(propRel.getVirtualMapping());
-                    setNode(propname, node);
-                    prop = (Property) propMap.get(propname);
+                    pn.setDbMapping(propRel.getVirtualMapping());
+                    pn.setParent(this);
+                    if (propRel.needsPersistence()) {
+                        setNode(propname, pn);
+                        prop = (Property) propMap.get(propname);
+                    } else {
+                        prop = new Property(propname, this, pn);
+                    }
                 }
                 // if this is from relational database only fetch if this node
                 // is itself persistent.
-                else if ((state != TRANSIENT) && propRel.createPropertyOnDemand()) {
+                else if ((state != TRANSIENT) && propRel.createOnDemand()) {
                     // this may be a relational node stored by property name
-                    try {
+                    // try {
                         Node pn = nmgr.getNode(this, propname, propRel);
 
                         if (pn != null) {
@@ -1842,9 +1692,9 @@ public final class Node implements INode, Serializable {
 
                             prop = new Property(propname, this, pn);
                         }
-                    } catch (RuntimeException nonode) {
+                    // } catch (RuntimeException nonode) {
                         // wasn't a node after all
-                    }
+                    // }
                 }
             }
         }
@@ -1983,6 +1833,41 @@ public final class Node implements INode, Serializable {
         }
 
         return null;
+    }
+
+    /**
+     * Directly set a property on this node
+     *
+     * @param propname ...
+     * @param value ...
+     */
+    protected void set(String propname, Object value, int type) {
+        checkWriteLock();
+
+        if (propMap == null) {
+            propMap = new Hashtable();
+        }
+
+        propname = propname.trim();
+
+        String p2 = propname.toLowerCase();
+
+        Property prop = (Property) propMap.get(p2);
+
+        if (prop != null) {
+            prop.setValue(value, type);
+        } else {
+            prop = new Property(propname, this);
+            prop.setValue(value, type);
+            propMap.put(p2, prop);
+        }
+
+        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
+        lastmodified = System.currentTimeMillis();
+
+        if (state == CLEAN) {
+            markAs(MODIFIED);
+        }
     }
 
     /**
@@ -2324,6 +2209,17 @@ public final class Node implements INode, Serializable {
 
         String p2 = propname.toLowerCase();
 
+        Relation rel = (dbmap == null) ? null : dbmap.getPropertyRelation(propname);
+
+        if (rel != null && (rel.countConstraints() > 1 || rel.isComplexReference())) {
+            rel.setConstraints(this, n);
+            if (rel.isComplexReference()) {
+                Key key = new MultiKey(n.getDbMapping(), rel.getKeyParts(this));
+                nmgr.nmgr.registerNode(n, key);
+                return;
+            }
+        }
+
         Property prop = (propMap == null) ? null : (Property) propMap.get(p2);
 
         if (prop != null) {
@@ -2345,8 +2241,6 @@ public final class Node implements INode, Serializable {
         }
 
         prop.setNodeValue(n);
-
-        Relation rel = (dbmap == null) ? null : dbmap.getPropertyRelation(propname);
 
         if ((rel == null) || (rel.reftype == Relation.REFERENCE) || rel.virtual ||
                 (rel.otherType == null) || !rel.otherType.isRelational()) {
@@ -2434,6 +2328,15 @@ public final class Node implements INode, Serializable {
 
                 if (state == CLEAN) {
                     markAs(MODIFIED);
+                }
+            } else if (dbmap != null) {
+                // check if this is a complex constraint and we have to
+                // unset constraints.
+                Relation rel = dbmap.getExactPropertyRelation(propname);
+
+                if (rel != null && (rel.isComplexReference())) {
+                    p = getProperty(propname);
+                    rel.unsetConstraints(this, p.getNodeValue());
                 }
             }
         } catch (Exception ignore) {
@@ -2538,8 +2441,8 @@ public final class Node implements INode, Serializable {
      * This method walks down node path to the first non-virtual node and return it.
      *  limit max depth to 3, since there shouldn't be more then 2 layers of virtual nodes.
      */
-    public INode getNonVirtualParent() {
-        INode node = this;
+    public Node getNonVirtualParent() {
+        Node node = this;
 
         for (int i = 0; i < 5; i++) {
             if (node == null) {
@@ -2550,7 +2453,7 @@ public final class Node implements INode, Serializable {
                 return node;
             }
 
-            node = node.getParent();
+            node = (Node) node.getParent();
         }
 
         return null;

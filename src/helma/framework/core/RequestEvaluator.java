@@ -392,6 +392,11 @@ public final class RequestEvaluator implements Runnable {
                                     app.logEvent("Exception in " +
                                                  Thread.currentThread() + ": " + x);
 
+                                    // Dump the profiling data to System.err
+                                    if (app.debug && !(x instanceof ScriptingException)) {
+                                        x.printStackTrace ();
+                                    }
+                                    
                                     // set done to false so that the error will be processed
                                     done = false;
                                     error = x.getMessage();

@@ -17,12 +17,14 @@
 package helma.objectmodel.db;
 
 import helma.framework.core.Application;
+import helma.framework.core.Prototype;
 import helma.util.SystemProperties;
 import helma.util.Updatable;
 import java.sql.*;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 
@@ -74,6 +76,9 @@ public final class DbMapping implements Updatable {
 
     // Map of db columns by name
     HashMap columnMap;
+
+    // Array of aggressively loaded references
+    Relation[] joins;
 
     // pre-rendered select statement
     String selectString = null;
@@ -159,6 +164,7 @@ public final class DbMapping implements Updatable {
         return props.lastModified() != lastTypeChange;
     }
 
+
     /**
      * Read the mapping from the Properties. Return true if the properties were changed.
      * The read is split in two, this method and the rewire method. The reason is that in order
@@ -172,9 +178,6 @@ public final class DbMapping implements Updatable {
         // see if there is a field which specifies the prototype of objects, if different prototypes
         // can be stored in this table
         prototypeField = props.getProperty("_prototypefield");
-
-        // see if this prototype extends (inherits from) any other prototype
-        extendsProto = props.getProperty("_extends");
 
         dbSourceName = props.getProperty("_db");
 
@@ -220,19 +223,43 @@ public final class DbMapping implements Updatable {
 
         lastTypeChange = props.lastModified();
 
+        // see if this prototype extends (inherits from) any other prototype
+        extendsProto = props.getProperty("_extends");
+
+        if (extendsProto != null) {
+            parentMapping = app.getDbMapping(extendsProto);
+            if (parentMapping != null && parentMapping.needsUpdate()) {
+                parentMapping.update();
+            }
+        } else {
+            parentMapping = null;
+        }
+
+        // set the parent prototype in the corresponding Prototype object!
+        // this was previously done by TypeManager, but we need to do it
+        // ourself because DbMapping.update() may be called by other code than
+        // the TypeManager.
+        if (typename != null &&
+                !"global".equalsIgnoreCase(typename) &&
+                !"hopobject".equalsIgnoreCase(typename)) {
+            Prototype proto = app.getPrototypeByName(typename);
+            if (proto != null) {
+                if (extendsProto != null) {
+                    proto.setParentPrototype(app.getPrototypeByName(extendsProto));
+                } else if (!app.isJavaPrototype(typename)) {
+                    proto.setParentPrototype(app.getPrototypeByName("hopobject"));
+                }
+            }
+        }
+
         // null the cached columns and select string
         columns = null;
         columnMap.clear();
         selectString = insertString = updateString = null;
 
-        if (extendsProto != null) {
-            parentMapping = app.getDbMapping(extendsProto);
-        }
-
-        // if (tableName != null && dbSource != null) {
-        // app.logEvent ("set data dbSource for "+typename+" to "+dbSource);
         HashMap p2d = new HashMap();
         HashMap d2p = new HashMap();
+        ArrayList joinList = new ArrayList();
 
         for (Enumeration e = props.keys(); e.hasMoreElements();) {
             String propName = (String) e.nextElement();
@@ -259,7 +286,22 @@ public final class DbMapping implements Updatable {
                     if ((rel.columnName != null) &&
                             ((rel.reftype == Relation.PRIMITIVE) ||
                             (rel.reftype == Relation.REFERENCE))) {
-                        d2p.put(rel.columnName.toUpperCase(), rel);
+                        Relation old = (Relation) d2p.put(rel.columnName.toUpperCase(), rel);
+                        // check if we're overwriting another relation
+                        // if so, primitive relations get precendence to references
+                        if (old != null) {
+                            app.logEvent("*** Duplicate mapping for "+typename+"."+rel.columnName);
+                            if (old.reftype == Relation.PRIMITIVE) {
+                                d2p.put(old.columnName.toUpperCase(), old);
+                            }
+                        }
+                    }
+
+                    // check if a reference is aggressively fetched
+                    if ((rel.reftype == Relation.REFERENCE ||
+                             rel.reftype == Relation.COMPLEX_REFERENCE) &&
+                             rel.aggressiveLoading) {
+                        joinList.add(rel);
                     }
 
                     // app.logEvent ("Mapping "+propName+" -> "+dbField);
@@ -271,6 +313,9 @@ public final class DbMapping implements Updatable {
 
         prop2db = p2d;
         db2prop = d2p;
+
+        joins = new Relation[joinList.size()];
+        joins = (Relation[]) joinList.toArray(joins);
 
         String subnodeMapping = props.getProperty("_children");
 
@@ -806,18 +851,29 @@ public final class DbMapping implements Updatable {
 
             // ok, we have the meta data, now loop through mapping...
             int ncols = meta.getColumnCount();
-
-            columns = new DbColumn[ncols];
+            ArrayList list = new ArrayList(ncols);
 
             for (int i = 0; i < ncols; i++) {
                 String colName = meta.getColumnName(i + 1);
                 Relation rel = columnNameToRelation(colName);
 
-                columns[i] = new DbColumn(colName, meta.getColumnType(i + 1), rel);
+                DbColumn col = new DbColumn(colName, meta.getColumnType(i + 1), rel, this);
+                // if (col.isMapped()) {
+                    list.add(col);
+                // }
             }
+            columns = new DbColumn[list.size()];
+            columns = (DbColumn[]) list.toArray(columns);
         }
 
         return columns;
+    }
+
+    /**
+     *  Return the array of relations that are fetched with objects of this type.
+     */
+    public Relation[] getJoins() {
+        return joins;
     }
 
     /**
@@ -832,6 +888,7 @@ public final class DbMapping implements Updatable {
      */
     public DbColumn getColumn(String columnName)
                        throws ClassNotFoundException, SQLException {
+
         DbColumn col = (DbColumn) columnMap.get(columnName);
 
         if (col == null) {
@@ -849,10 +906,6 @@ public final class DbMapping implements Updatable {
                 }
             }
 
-            if (col == null) {
-                throw new SQLException("Column " + columnName + " not found in " + this);
-            }
-
             columnMap.put(columnName, col);
         }
 
@@ -860,12 +913,13 @@ public final class DbMapping implements Updatable {
     }
 
     /**
+     *  Get a StringBuffer initialized to the first part of the select statement
+     *  for objects defined by this DbMapping
      *
+     * @return the StringBuffer containing the first part of the select query
      *
-     * @return ...
-     *
-     * @throws SQLException ...
-     * @throws ClassNotFoundException ...
+     * @throws SQLException if the table meta data could not be retrieved
+     * @throws ClassNotFoundException if the JDBC driver class was not found
      */
     public StringBuffer getSelect() throws SQLException, ClassNotFoundException {
         String sel = selectString;
@@ -874,10 +928,42 @@ public final class DbMapping implements Updatable {
             return new StringBuffer(sel);
         }
 
-        StringBuffer s = new StringBuffer("SELECT * FROM ");
+        StringBuffer s = new StringBuffer("SELECT ");
+
+        /* DbColumn[] cols = columns;
+
+        if (cols == null) {
+            cols = getColumns();
+        }
+
+        for (int i = 0; i < cols.length; i++) {
+            s.append(cols[i].getName());
+            if (i < cols.length-1) {
+                s.append(',');
+            }
+        }
+
+        for (int i = 0; i < joins.length; i++) {
+        } */
+
+        s.append ("*");
+
+        s.append(" FROM ");
 
         s.append(getTableName());
         s.append(" ");
+
+        for (int i = 0; i < joins.length; i++) {
+            if (!joins[i].otherType.isRelational()) {
+                continue;
+            }
+            s.append("LEFT JOIN ");
+            s.append(joins[i].otherType.getTableName());
+            s.append(" AS _HLM_");
+            s.append(joins[i].propName);
+            s.append(" ON ");
+            joins[i].renderJoinConstraints(s);
+        }
 
         // cache rendered string for later calls.
         selectString = s.toString();
@@ -943,6 +1029,11 @@ public final class DbMapping implements Updatable {
 
         try {
             DbColumn col = getColumn(columnName);
+
+            // This is not a mapped column. In case of doubt, add quotes.
+            if (col == null) {
+                return true;
+            }
 
             switch (col.getType()) {
                 case Types.CHAR:
