@@ -114,7 +114,7 @@ public class SessionBean implements Serializable {
      * to store transient per-session data. It is reflected to the scripting
      * environment as session.data.
      */
-    public INode getdata() {
+    public INode getData() {
         return session.getCacheNode();
     }
 
@@ -124,7 +124,7 @@ public class SessionBean implements Serializable {
      *
      * @return ...
      */
-    public INode getuser() {
+    public INode getUser() {
         return session.getUserNode();
     }
 
@@ -142,7 +142,7 @@ public class SessionBean implements Serializable {
      *
      * @return ...
      */
-    public String getcookie() {
+    public String getCookie() {
         return session.getSessionID();
     }
 
@@ -151,7 +151,7 @@ public class SessionBean implements Serializable {
      *
      * @return ...
      */
-    public Date getlastActive() {
+    public Date getLastActive() {
         return new Date(session.lastTouched());
     }
 
@@ -160,7 +160,7 @@ public class SessionBean implements Serializable {
      *
      * @return ...
      */
-    public Date getonSince() {
+    public Date getOnSince() {
         return new Date(session.onSince());
     }
 
@@ -183,4 +183,27 @@ public class SessionBean implements Serializable {
     public void setLastModified(Date date) {
         session.setLastModified(date);
     }
+
+    /**
+     * Return the message that is to be displayed upon the next
+     * request within this session.
+     *
+     * @return
+     */
+    public String getMessage() {
+        return session.message;
+    }
+
+    /**
+     * Set a message to be displayed to this session's user. This
+     * can be used to save a message over to the next request when
+     * the current request can't be used to display a user visible
+     * message.
+     *
+     * @param msg
+     */
+    public void setMessage(String msg) {
+        session.message = msg;
+    }
+
 }
