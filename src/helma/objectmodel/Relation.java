@@ -269,7 +269,7 @@ public class Relation {
 	    throw new RuntimeException ("getGroupbyPropertyRelation called on non-group-by relation");
 	if (filter != null)
 	    return filter;
-	Relation vr =  new Relation (other, localField, remoteField, direction, true);
+	Relation vr =  new Relation (other, localField, remoteField, direction, subnodesAreProperties);
 	vr.order = order;
 	return vr;
     }
@@ -280,7 +280,7 @@ public class Relation {
     public Relation getGroupbyPropertyRelation () {
 	if (groupby == null)
 	    throw new RuntimeException ("getGroupbyPropertyRelation called on non-group-by relation");
-	Relation vr = new Relation (other, localField, remoteField, direction, true);
+	Relation vr = new Relation (other, localField, remoteField, direction, subnodesAreProperties);
 	vr.order = order;
 	return vr;
     }
