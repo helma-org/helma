@@ -14,7 +14,7 @@ file.</p>
 <font color="red"><% param.msg %></font>
 <form method="post">
 <input class="formEl" name="username" size="25" value="<% param.username %>"> (username)<br>
-<input class="formEl" name="password"  size="25"> (password)<br>
+<input class="formEl" type="password" name="password"  size="25"> (password)<br>
 <input class="formEl" type="submit" value="md5 encode"><br>
 </form>
 
