@@ -133,7 +133,8 @@ public class DbMapping {
 	        parent = parentRel.other;
 	    else
 	        parent = (DbMapping) app.getDbMapping (parentMapping);
-	}
+	} else
+	    parentRel = null;
 
 	String subnodeMapping = props.getProperty ("_subnodes");
 	if (subnodeMapping != null) {
@@ -142,7 +143,8 @@ public class DbMapping {
 	        subnodes = subnodesRel.other;
 	    else
 	        subnodes = (DbMapping) app.getDbMapping (subnodeMapping);
-	}
+	} else
+	    subnodesRel = null;
 
 	String propertiesMapping = props.getProperty ("_properties");
 	if (propertiesMapping != null) {
@@ -154,7 +156,8 @@ public class DbMapping {
 	    // take over groupby flag from subnodes, if properties are subnodes
 	    if (propertiesRel.subnodesAreProperties && subnodesRel != null)
 	        propertiesRel.groupby = subnodesRel.groupby;
-	}
+	} else
+	    propertiesRel = null;
 
 	IServer.getLogger().log ("rewiring: "+parent+" -> "+this+" -> "+subnodes);
     }
