@@ -65,9 +65,9 @@ public class MailObject extends ScriptableObject implements Serializable {
 
 
     /**
-     * Creates a new ESMail object.
+     * Creates a new MailObject.
      *
-     * @param mailx ...
+     * @param mprops the Mail properties
      */
     MailObject(Properties mprops) {
         this.status = OK;
@@ -114,7 +114,7 @@ public class MailObject extends ScriptableObject implements Serializable {
         ctor.put("props", ctor, props);
         String[] mailFuncs = {
                 "addBCC", "addCC", "addPart", "addText", "addTo",
-                "send", "setFrom", "setSubject", "setTo"
+                "send", "setFrom", "setSubject", "setText", "setTo"
                             };
         try {
             proto.defineFunctionProperties(mailFuncs, MailObject.class, 0);
@@ -126,11 +126,11 @@ public class MailObject extends ScriptableObject implements Serializable {
 
 
     /**
+     *  Set the error status of this message
      *
-     *
-     * @param status ...
+     * @param status the new error status
      */
-    public void setStatus(int status) {
+    protected void setStatus(int status) {
         // Only register the first error that occurrs
         if (this.status == 0) {
             this.status = status;
@@ -138,9 +138,9 @@ public class MailObject extends ScriptableObject implements Serializable {
     }
 
     /**
+     *  Returns the error status of this message.
      *
-     *
-     * @return ...
+     * @return the error status of this message
      */
     public int getStatus() {
         return status;
@@ -148,7 +148,7 @@ public class MailObject extends ScriptableObject implements Serializable {
 
 
     /**
-     *
+     *  Add some text to a plain text message.
      */
     public void addText(String text) {
         if (text != null) {
@@ -159,10 +159,20 @@ public class MailObject extends ScriptableObject implements Serializable {
         }
     }
 
+
     /**
+     *  Set the text to a plain text message, clearing any previous text.
+     */
+    public void setText(String text) {
+        if (text != null) {
+            buffer = new StringBuffer(text);
+        }
+    }
+
+    /**
+     *  Add a MIME message part to a multipart message
      *
-     *
-     * @param val ...
+     * @param val The part to add
      *
      * @throws Exception ...
      * @throws IOException ...
@@ -203,9 +213,9 @@ public class MailObject extends ScriptableObject implements Serializable {
     }
 
     /**
+     *  Set the subject of this message
      *
-     *
-     * @param val ...
+     * @param val the subject line
      *
      * @throws Exception ...
      */
@@ -218,9 +228,9 @@ public class MailObject extends ScriptableObject implements Serializable {
     }
 
     /**
+     * Set the Reply-to address for this message
      *
-     *
-     * @param add ...
+     * @param addstr the email address to set in the Reply-to header
      *
      * @throws Exception ...
      * @throws AddressException ...
@@ -237,9 +247,10 @@ public class MailObject extends ScriptableObject implements Serializable {
     }
 
     /**
+     * Set the From address for this message
      *
-     *
-     * @param add ...
+     * @param addstr the email address to set in the From header
+     * @param name the name this address belongs to
      *
      * @throws Exception ...
      * @throws AddressException ...
@@ -263,9 +274,10 @@ public class MailObject extends ScriptableObject implements Serializable {
 
 
     /**
+     * Set the To address for this message
      *
-     *
-     * @param add ...
+     * @param addstr the email address to set in the To header
+     * @param name the name this address belongs to
      *
      * @throws Exception ...
      * @throws AddressException ...
@@ -276,9 +288,10 @@ public class MailObject extends ScriptableObject implements Serializable {
 
 
     /**
+     * Add a To address for this message
      *
-     *
-     * @param add ...
+     * @param addstr the email address to set in the To header
+     * @param name the name this address belongs to
      *
      * @throws Exception ...
      * @throws AddressException ...
@@ -288,9 +301,10 @@ public class MailObject extends ScriptableObject implements Serializable {
     }
 
     /**
+     * ADd a CC address for this message
      *
-     *
-     * @param add ...
+     * @param addstr the email address to set in the CC header
+     * @param name the name this address belongs to
      *
      * @throws Exception ...
      * @throws AddressException ...
@@ -300,9 +314,10 @@ public class MailObject extends ScriptableObject implements Serializable {
     }
 
     /**
+     *  Add a BCC address for this message
      *
-     *
-     * @param add ...
+     * @param addstr the email address to set in the BCC header
+     * @param name the name this address belongs to
      *
      * @throws Exception ...
      * @throws AddressException ...
@@ -312,9 +327,11 @@ public class MailObject extends ScriptableObject implements Serializable {
     }
 
     /**
+     * Add a recipient for this message
      *
-     *
-     * @param add ...
+     * @param addstr the email address
+     * @param name the name this address belongs to
+     * @param type the type of the recipient such as To, CC, BCC
      *
      * @throws Exception ...
      * @throws AddressException ...
@@ -340,7 +357,7 @@ public class MailObject extends ScriptableObject implements Serializable {
 
 
     /**
-     *
+     *  Send the message.
      *
      * @throws Exception ...
      */
