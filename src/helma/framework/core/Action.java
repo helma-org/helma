@@ -6,7 +6,7 @@ package helma.framework.core;
 import java.util.*;
 import java.io.*;
 import helma.framework.*;
-import helma.objectmodel.IServer;
+import helma.util.Updatable;
 import FESI.Data.*;
 import FESI.Parser.*;
 import FESI.AST.ASTFormalParameterList;
@@ -24,7 +24,7 @@ import FESI.Exceptions.*;
  */
 
 
-public class Action {
+public class Action implements Updatable {
 
     String name;
     String functionName;
@@ -42,31 +42,39 @@ public class Action {
 	this.app = proto.app;
 	this.name = name;
 	this.file = file;
-	update (file);
+	update ();
+    }
+
+    /**
+     * Tell the type manager whether we need an update. this is the case when
+     * the file has been modified or deleted.
+     */
+    public boolean needsUpdate () {
+	return lastmod != file.lastModified () || !file.exists ();
     }
 
 
-    public void update (File f) {
+    public void update () {
 
-	this.file = f;
-	long fmod = file.lastModified ();
-	if (lastmod == fmod)
-	    return;
-
-	try {
-	    FileReader reader = new FileReader (file);
-	    char cbuf[] = new char[(int) file.length ()];
-	    reader.read (cbuf);
-	    reader.close ();
-	    String content = new String (cbuf);
-	    update (content);
-	} catch (Exception filex) {
-	    app.logEvent ("*** Error reading action file "+file+": "+filex);
+	if (!file.exists ()) {
+	    // remove functions declared by this from all object prototypes
+	    remove ();
+	} else {
+	    try {
+	        FileReader reader = new FileReader (file);
+	        char cbuf[] = new char[(int) file.length ()];
+	        reader.read (cbuf);
+	        reader.close ();
+	        String content = new String (cbuf);
+	        update (content);
+	    } catch (Exception filex) {
+	        app.logEvent ("*** Error reading action file "+file+": "+filex);
+	    }
+	
+	    lastmod = file.lastModified ();
 	}
-	lastmod = fmod;
     }
 
-    
 
     public void update (String content) throws Exception {
 	// app.logEvent ("Reading text template " + name);
@@ -87,8 +95,25 @@ public class Action {
 	        updateRequestEvaluator (reval);
 	    } catch (Exception ignore) {}
 	}
-   }
+    }
 
+    void remove () {
+	prototype.actions.remove (name);
+	prototype.updatables.remove (file.getName());
+
+	Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
+	while (evals.hasNext ()) {
+	    try {
+	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
+	        ObjectPrototype op = reval.getPrototype (prototype.getName());
+	        functionName = name+"_hop_action";
+	        ESValue esv = (ESValue) op.getProperty (functionName, functionName.hashCode());
+	        if (esv instanceof ConstructedFunctionObject || esv instanceof ThrowException) {
+	            op.deleteProperty (functionName, functionName.hashCode());
+	        }
+	    } catch (Exception ignore) {}
+	}
+    }
 
     public String getName () {
 	return name;

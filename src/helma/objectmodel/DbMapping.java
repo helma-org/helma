@@ -5,6 +5,7 @@ package helma.objectmodel;
 
 import helma.framework.core.Application;
 import helma.objectmodel.db.WrappedNodeManager;
+import helma.util.Updatable;
 import java.util.*;
 import java.sql.*;
 import com.workingdogs.village.*;
@@ -15,7 +16,7 @@ import com.workingdogs.village.*;
   * Database row bindings which are represented by instances of the Relation class.
   */
   
-public class DbMapping {
+public class DbMapping implements Updatable {
 
     Application app;
     String typename;
@@ -77,21 +78,25 @@ public class DbMapping {
 	idField = "id";
 
 	this.props = props;
-	read ();
+	update ();
 
 	app.putDbMapping (typename, this);
     }
+
+    /**
+     * Tell the type manager whether we need update() to be called
+     */
+    public boolean needsUpdate () {
+	return props.lastModified () != lastTypeChange;
+    }
+
 
     /**
      * Read the mapping from the Properties. Return true if the properties were changed.
      * The read is split in two, this method and the rewire method. The reason is that in order
      * for rewire to work, all other db mappings must have been initialized and registered.
      */
-    public synchronized boolean read () {
-
-	long lastmod = props.lastModified ();
-	if (lastmod == lastTypeChange)
-	    return false;
+    public synchronized void update () {
 
 	this.table = props.getProperty ("_tablename");
 	this.idgen = props.getProperty ("_idgen");
@@ -120,11 +125,10 @@ public class DbMapping {
 	} else
 	    parent = null;
 
-	lastTypeChange = lastmod;
+	lastTypeChange = props.lastModified ();
 	// set the cached schema & keydef to null so it's rebuilt the next time around
 	schema = null;
 	keydef = null;
-	return true;
     }
 
     /**

@@ -465,6 +465,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	String logDir = props.getProperty ("logdir");
 	if (logDir == null)
 	    logDir = "log";
+	// allow log to be redirected to System.out by setting logdir to "console"
+	if ("console".equalsIgnoreCase (logDir))
+	    return new Logger (System.out);
 	try {
 	   File helper = new File (logDir);
 	    if (home != null && !helper.isAbsolute ())

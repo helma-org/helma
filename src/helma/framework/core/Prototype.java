@@ -24,7 +24,7 @@ public class Prototype {
     String id;
     String name;
     Application app;
-    Hashtable templates, functions, actions, skins;
+    HashMap templates, functions, actions, skins, updatables;
     File codeDir;
     long lastUpdate;
 
@@ -158,18 +158,18 @@ public class Prototype {
                 } catch (EcmaScriptException ignore) {}
             }
 
-	for (Enumeration en = functions.elements(); en.hasMoreElements(); ) {
-	    FunctionFile ff = (FunctionFile) en.nextElement ();
+	for (Iterator it = functions.values().iterator(); it.hasNext(); ) {
+	    FunctionFile ff = (FunctionFile) it.next ();
 	    ff.updateRequestEvaluator (reval);
 	}
-	for (Enumeration en = templates.elements(); en.hasMoreElements(); ) {
-	    Template tmp = (Template) en.nextElement ();
+	for (Iterator it = templates.values().iterator(); it.hasNext(); ) {
+	    Template tmp = (Template) it.next ();
 	    try {
 	        tmp.updateRequestEvaluator (reval);
 	    } catch (EcmaScriptException ignore) {}
 	}
-	for (Enumeration en = actions.elements(); en.hasMoreElements(); ) {
-	    Action act = (Action) en.nextElement ();
+	for (Iterator it = actions.values().iterator(); it.hasNext(); ) {
+	    Action act = (Action) it.next ();
 	    try {
 	        act.updateRequestEvaluator (reval);
 	    } catch (EcmaScriptException ignore) {}

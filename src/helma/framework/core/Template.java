@@ -31,6 +31,7 @@ public class Template extends Action {
 	super (file, name, proto);
     }
 
+
     public void update (String content) throws Exception {
 	// IServer.getLogger().log ("Reading text template " + name);
 
@@ -161,7 +162,31 @@ public class Template extends Action {
 	        updateRequestEvaluator (reval);
 	    } catch (Exception ignore) {}
 	}
-   }
+    }
+
+    void remove () {
+	prototype.templates.remove (name);
+	prototype.updatables.remove (file.getName());
+
+	Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
+	while (evals.hasNext ()) {
+	    try {
+	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
+	        ObjectPrototype op = reval.getPrototype (prototype.getName());
+	        functionName = name;
+	        ESValue esv = (ESValue) op.getProperty (functionName, functionName.hashCode());
+	        if (esv instanceof ConstructedFunctionObject || esv instanceof ThrowException) {
+	            op.deleteProperty (functionName, functionName.hashCode());
+	        }
+	        String fname = name+"_as_string";
+	        esv = (ESValue) op.getProperty (fname, fname.hashCode());
+	        if (esv instanceof ConstructedFunctionObject || esv instanceof ThrowException) {
+	            op.deleteProperty (fname, fname.hashCode());
+	        }
+	    } catch (Exception ignore) {}
+	}
+    }
+
 
     public synchronized void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException {
         if (pfunc != null)

@@ -18,7 +18,7 @@ public class TypeManager implements Runnable {
 
     Application app;
     File appDir;
-    Hashtable prototypes;
+    HashMap prototypes;
     Prototype nodeProto;
     long idleSeconds = 120; // if idle for longer than 5 minutes, slow down
     boolean rewire;
@@ -53,7 +53,7 @@ public class TypeManager implements Runnable {
 	f = new File (appDir, "hopobject");
 	if (!f.exists())	
 	    f.mkdir ();
-	prototypes = new Hashtable ();
+	prototypes = new HashMap ();
 	registeredEvaluators = Collections.synchronizedList (new ArrayList (30));
 	nodeProto = null;
     }
@@ -154,10 +154,11 @@ public class TypeManager implements Runnable {
         idleSeconds = 0;
 
         String list[] = dir.list();
-        Hashtable ntemp = new Hashtable ();
-        Hashtable nfunc = new Hashtable ();
-        Hashtable nact = new Hashtable ();
-        Hashtable nskins = new Hashtable ();
+        HashMap ntemp = new HashMap ();
+        HashMap nfunc = new HashMap ();
+        HashMap nact = new HashMap ();
+        HashMap nskins = new HashMap ();
+        HashMap updatables = new HashMap (list.length);
 
         for (int i=0; i<list.length; i++) {
             File tmpfile = new File (dir, list[i]);
@@ -171,6 +172,7 @@ public class TypeManager implements Runnable {
             if (list[i].endsWith (app.templateExtension)) {
                 try {
                     Template t = new Template (tmpfile, tmpname, proto);
+                    updatables.put (list[i], t);
                     ntemp.put (tmpname, t);
                 } catch (Throwable x) {
                     app.logEvent ("Error creating prototype: "+x);
@@ -179,6 +181,7 @@ public class TypeManager implements Runnable {
             } else if (list[i].endsWith (app.scriptExtension) && tmpfile.length () > 0) {
                 try {
                     FunctionFile ff = new FunctionFile (tmpfile, tmpname, proto);
+                    updatables.put (list[i], ff);
                     nfunc.put (tmpname, ff);
                 } catch (Throwable x) {
                     app.logEvent ("Error creating prototype: "+x);
@@ -187,23 +190,29 @@ public class TypeManager implements Runnable {
             } else if (list[i].endsWith (app.actionExtension) && tmpfile.length () > 0) {
                 try {
                     Action af = new Action (tmpfile, tmpname, proto);
+                    updatables.put (list[i], af);
                     nact.put (tmpname, af);
                 } catch (Throwable x) {
                     app.logEvent ("Error creating prototype: "+x);
                 }
-           }  else if (list[i].endsWith (app.skinExtension)) {
+            }  else if (list[i].endsWith (app.skinExtension)) {
                 try {
                     SkinFile sf = new SkinFile (tmpfile, tmpname, proto);
+                    updatables.put (list[i], sf);
                     nskins.put (tmpname, sf);
                 } catch (Throwable x) {
                     app.logEvent ("Error creating prototype: "+x);
                 }
-           }
+            }
         }
+
+        updatables.put ("type.properties", proto.dbmap);
+
         proto.templates = ntemp;
         proto.functions = nfunc;
         proto.actions = nact;
         proto.skins = nskins;
+        proto.updatables = updatables;
 
         // init prototype on evaluators that are already initialized.
         Iterator evals = getRegisteredRequestEvaluators ();
@@ -218,95 +227,100 @@ public class TypeManager implements Runnable {
     public void updatePrototype (String name, File dir, Prototype proto) {
         // app.logEvent ("updating prototype "+name);
 
-        String list[] = dir.list();
-        Hashtable ntemp = new Hashtable ();
-        Hashtable nfunc = new Hashtable ();
-        Hashtable nact = new Hashtable ();
-        Hashtable nskins = new Hashtable ();
+        boolean needsUpdate = false;
 
+        // our plan is to do as little as possible, so first check if anything has changed at all...
+        for (Iterator i = proto.updatables.values().iterator(); i.hasNext(); ) {
+	Updatable upd = (Updatable) i.next();
+	if (upd.needsUpdate ())
+	    needsUpdate = true;
+        }
+
+        String list[] = dir.list();
         for (int i=0; i<list.length; i++) {
-            File tmpfile = new File (dir, list[i]);
-            int dot = list[i].indexOf (".");
+	String fn = list[i];
+	if (!proto.updatables.containsKey (fn)) {
+	    if (fn.endsWith (app.templateExtension) || fn.endsWith (app.scriptExtension) ||
+	    fn.endsWith (app.actionExtension) || fn.endsWith (app.scriptExtension) || "type.properties".equalsIgnoreCase (fn))
+	        needsUpdate = true;
+	}
+        }
+
+        if (!needsUpdate)
+	return;
+
+        // let the thread know we had to do something.
+        idleSeconds = 0;
+
+        // first go through new files and create new items
+        for (int i=0; i<list.length; i++) {
+            String fn = list[i];
+            int dot = fn.indexOf (".");
 
             if (dot < 0)
                 continue;
 
+            if (proto.updatables.containsKey (fn) || !(fn.endsWith (app.templateExtension) || fn.endsWith (app.scriptExtension) ||
+            fn.endsWith (app.actionExtension) || fn.endsWith (app.skinExtension) || "type.properties".equalsIgnoreCase (fn))) {
+                continue;
+            }
+
             String tmpname = list[i].substring(0, dot);
+            File tmpfile = new File (dir, list[i]);
+
             if (list[i].endsWith (app.templateExtension)) {
-                Template t = proto.getTemplate (tmpname);
-	   try {
-                    if (t == null) {
-                        t = new Template (tmpfile, tmpname, proto);
-                        idleSeconds = 0;
-	       } else if (t.lastmod != tmpfile.lastModified ()) {
-                        t.update (tmpfile);
-                        idleSeconds = 0;
-                    }
+                try {
+                    Template t = new Template (tmpfile, tmpname, proto);
+                    proto.updatables.put (list[i], t);
+                    proto.templates.put (tmpname, t);
                 } catch (Throwable x) {
                     app.logEvent ("Error updating prototype: "+x);
                 }
-                ntemp.put (tmpname, t);
 
             } else if (list[i].endsWith (app.scriptExtension) && tmpfile.length () > 0) {
-                FunctionFile ff = proto.getFunctionFile (tmpname);
                 try {
-                    if (ff == null) {
-                        ff = new FunctionFile (tmpfile, tmpname, proto);
-	           idleSeconds = 0;
-                    } else if (ff.lastmod != tmpfile.lastModified ()) {
-                        ff.update (tmpfile);
-	           idleSeconds = 0;
-                    }
+                    FunctionFile ff = new FunctionFile (tmpfile, tmpname, proto);
+                    proto.updatables.put (list[i], ff);
+                    proto.functions.put (tmpname, ff);
                 } catch (Throwable x) {
                     app.logEvent ("Error updating prototype: "+x);
                 }
-                nfunc.put (tmpname, ff);
 
-           }  else if (list[i].endsWith (app.actionExtension) && tmpfile.length () > 0) {
-                Action af = proto.getAction (tmpname);
+            }  else if (list[i].endsWith (app.actionExtension) && tmpfile.length () > 0) {
                 try {
-                    if (af == null) {
-                        af = new Action (tmpfile, tmpname, proto);
-	           idleSeconds = 0;
-                    } else if (af.lastmod != tmpfile.lastModified ()) {
-                        af.update (tmpfile);
-	           idleSeconds = 0;
-                    }
+                    Action af = new Action (tmpfile, tmpname, proto);
+                    proto.updatables.put (list[i], af);
+                    proto.actions.put (tmpname, af);
                 } catch (Throwable x) {
                     app.logEvent ("Error updating prototype: "+x);
                 }
-                nact.put (tmpname, af);
 
-           }  else if (list[i].endsWith (app.skinExtension)) {
-                SkinFile sf = proto.getSkinFile (tmpname);
-                try {
-                    if (sf == null) {
-                        sf = new SkinFile (tmpfile, tmpname, proto);
-	           idleSeconds = 0;
-                    } else if (sf.lastmod != tmpfile.lastModified ()) {
-                        sf.update (tmpfile);
-	           idleSeconds = 0;
-                    }
-                } catch (Throwable x) {
-                    app.logEvent ("Error updating prototype: "+x);
-                }
-                nskins.put (tmpname, sf);
-
-           } else if ("type.properties".equalsIgnoreCase (list[i])) {
-	    try {
-	        if (proto.dbmap.read ()) {
-	            idleSeconds = 0;
-	            rewire = true;
-	        }
-	    } catch (Exception ignore) {
-	        app.logEvent ("Error updating db mapping for type "+name+": "+ignore);
-	    }
-	}
+            }  else if (list[i].endsWith (app.skinExtension)) {
+                SkinFile sf = new SkinFile (tmpfile, tmpname, proto);
+                proto.updatables.put (list[i], sf);
+                proto.skins.put (tmpname, sf);
+            }
         }
-        proto.templates = ntemp;
-        proto.functions = nfunc;
-        proto.actions = nact;
-        proto.skins = nskins;
+
+        // next go through existing updatables
+        for (Iterator i = proto.updatables.values().iterator(); i.hasNext(); ) {
+            Updatable upd = (Updatable) i.next();
+
+            if (upd.needsUpdate ()) {
+                if (upd instanceof DbMapping)
+                    rewire = true;
+                try {
+                    upd.update ();
+                } catch (Exception x) {
+                     if (upd instanceof DbMapping)
+	            app.logEvent ("Error updating db mapping for type "+name+": "+x);
+                     else
+	            app.logEvent ("Error updating "+upd+" of prototye type "+name+": "+x);
+                }
+            }
+
+        }
+
     }
 
 
@@ -314,8 +328,8 @@ public class TypeManager implements Runnable {
     public void initRequestEvaluator (RequestEvaluator reval) {
         if (!registeredEvaluators.contains (reval))
             registeredEvaluators.add (reval);
-        for (Enumeration en = prototypes.elements(); en.hasMoreElements(); ) {
-            Prototype p = (Prototype) en.nextElement ();
+        for (Iterator it = prototypes.values().iterator(); it.hasNext(); ) {
+            Prototype p = (Prototype) it.next ();
             p.initRequestEvaluator (reval);
         }
         reval.initialized = true;

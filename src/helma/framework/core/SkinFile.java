@@ -5,7 +5,7 @@ package helma.framework.core;
 
 import java.util.*;
 import java.io.*;
-import helma.objectmodel.IServer;
+import helma.util.Updatable;
 
 
 /**
@@ -13,7 +13,7 @@ import helma.objectmodel.IServer;
  */
 
 
-public class SkinFile {
+public class SkinFile implements Updatable {
 
     String name;
     Prototype prototype;
@@ -30,17 +30,26 @@ public class SkinFile {
 	this.skin = null;
     }
 
+     /**
+     * Tell the type manager whether we need an update. this is the case when
+     * the file has been modified or deleted.
+     */
+    public boolean needsUpdate () {
+	return lastmod != file.lastModified () || !file.exists ();
+    }
 
-    public void update (File f) {
 
-	this.file = f;
+    public void update () {
 
-	long fmod = file.lastModified ();
-	// we only update this if we already have read the skin
-	if (skin == null || lastmod == fmod)
-	    return;
-
-	read ();
+	if (!file.exists ()) {
+	    // remove skin from  prototype
+	    prototype.skins.remove (name);
+	    prototype.updatables.remove (file.getName());
+	} else {
+	    // we only need to update if the skin has already been initialized
+	    if (skin != null)
+	        read ();
+	}
     }
 
     private void read () {
