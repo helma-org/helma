@@ -1016,7 +1016,7 @@ public class HopExtension {
             ESObject param = new ObjectPrototype (null, reval.evaluator);
             param.putProperty ("path", new ESString (path), "path".hashCode ());
             skin.render (reval, obj, param);
-            return new ESString (reval.res.popStringBuffer ());
+            return new ESString (reval.res.popStringBuffer ().trim ());
         }
     }
 
