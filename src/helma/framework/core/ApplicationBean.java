@@ -93,6 +93,11 @@ public class ApplicationBean implements Serializable {
 	return (INode[]) activeUsers.toArray (new INode[0]);
     }
 
+	public INode[] getRegisteredUsers () {
+	List registeredUsers = app.getRegisteredUsers ();
+	return (INode[]) registeredUsers.toArray (new INode[0]);
+	}
+
     public SessionBean[] getSessionsForUser (INode usernode)	{
 	if (usernode==null)
 	    return new SessionBean[0];

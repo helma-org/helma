@@ -646,6 +646,28 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	return list;
     }
 
+
+    /**
+     * Return a list of Helma nodes (HopObjects -  the database object representing the user,
+     *  not the session object) representing registered users of this application.
+     */
+	public List getRegisteredUsers () {
+	ArrayList list = new ArrayList ();
+	INode users = getUserRoot ();
+	// first try to get them from subnodes (db)
+	for (Enumeration e=users.getSubnodes(); e.hasMoreElements(); ) {
+	    list.add ((INode)e.nextElement ());
+	}
+	// if none, try to get them from properties (internal db)
+	if (list.size()==0) {
+	    for (Enumeration e=users.properties(); e.hasMoreElements(); ) {
+	        list.add (users.getNode ((String)e.nextElement (),false));
+	    }
+	}
+	return list;
+	}
+
+
     /**
      * Return an array of <code>SessionBean</code> objects currently associated with a given
      * Helma user.
