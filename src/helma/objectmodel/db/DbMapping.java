@@ -110,6 +110,9 @@ public final class DbMapping implements Updatable {
     // timestamp of last modification of an object of this type
     long lastDataChange;
 
+    // evict objects of this type when received via replication
+    private boolean evictOnReplication;
+
     /**
      * Create an empty DbMapping
      */
@@ -193,6 +196,8 @@ public final class DbMapping implements Updatable {
         protoField = props.getProperty("_prototype");
 
         String parentSpec = props.getProperty("_parent");
+
+        evictOnReplication = "true".equals(props.getProperty("_evictOnReplication"));
 
         if (parentSpec != null) {
             // comma-separated list of properties to be used as parent
@@ -457,6 +462,14 @@ public final class DbMapping implements Updatable {
         }
 
         return protoField;
+    }
+
+    /**
+     * Should objects of this type be evicted/discarded/reloaded when received via
+     * cache replication?
+     */
+    public boolean evictOnReplication() {
+        return evictOnReplication;
     }
 
     /**

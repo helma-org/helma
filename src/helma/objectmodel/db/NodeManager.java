@@ -507,7 +507,7 @@ public final class NodeManager {
             String name = columns[i].getName();
 
             if (((rel != null) && (rel.isPrimitive() || rel.isReference())) ||
-                    name.equals(nameField) || name.equals(prototypeField)) {
+                    name.equalsIgnoreCase(nameField) || name.equalsIgnoreCase(prototypeField)) {
                 b1.append(", " + columns[i].getName());
                 b2.append(", ?");
             }
@@ -1967,10 +1967,19 @@ public final class NodeManager {
                     dbm.setLastDataChange(now);
                 }
 
-                n.lastParentSet = -1;
                 n.setDbMapping(dbm);
                 n.nmgr = safe;
-                cache.put(n.getKey(), n);
+
+                if (dbm != null && dbm.evictOnReplication()) {
+                    Node oldNode = (Node) cache.get(n.getKey());
+
+                    if (oldNode != null) {
+                        evictNode(oldNode);
+                    }
+                } else {
+                    n.lastParentSet = -1;
+                    cache.put(n.getKey(), n);
+                }
             }
 
             for (Enumeration en = delete.elements(); en.hasMoreElements();) {
