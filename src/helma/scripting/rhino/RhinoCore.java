@@ -236,9 +236,9 @@ public final class RhinoCore {
                 // old generation and wasn't renewed -- delete it.
                 // System.err.println("DELETING OLD FUNC: "+key);
                 try {
-                    ((ScriptableObject) op).setAttributes(key, op, 0);
+                    ((ScriptableObject) op).setAttributes(key, 0);
                     op.delete(key);
-                } catch (PropertyException px) {
+                } catch (Exception px) {
                     System.err.println("Error unsetting property "+key+" on "+prototype);
                 }
             } else {
