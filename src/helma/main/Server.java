@@ -87,6 +87,8 @@ public class Server implements IPathElement, Runnable {
 
     // the XML-RPC server
     protected WebServer xmlrpc;
+    
+    Thread shutdownhook;
 
 
     /**
@@ -503,15 +505,40 @@ public class Server implements IPathElement, Runnable {
 
 
 
-    protected void start() {
+    public void start() {
         // Start running, finishing setup and then entering a loop to check changes
         // in the apps.properties file.
         mainThread = new Thread(this);
         mainThread.start();
     }
 
-    protected void stop() {
+    public void stop() {
         mainThread = null;
+        
+        getLogger().info("Shutting down Helma");
+
+        appManager.stopAll();
+
+        if (http != null) {
+            try {
+                http.stop();
+                http.destroy();
+            } catch (InterruptedException irx) {
+                // http.stop() interrupted by another thread. ignore.
+            }
+        }
+        
+        if (helmaLogging) {
+            Logging.shutdown();
+        }
+        
+        try {
+            Runtime.getRuntime().removeShutdownHook(shutdownhook);
+        } catch (Exception x) {
+            // invalid shutdown hook or already shutting down. ignore.
+        }
+        
+        server = null;
     }
 
     /**
@@ -646,7 +673,8 @@ public class Server implements IPathElement, Runnable {
             }
 
             // add shutdown hook to close running apps and servers on exit
-            Runtime.getRuntime().addShutdownHook(new HelmaShutdownHook(appManager));
+            shutdownhook = new HelmaShutdownHook();
+            Runtime.getRuntime().addShutdownHook(shutdownhook);
         } catch (Exception gx) {
             logger.error("Error initializing embedded database: " + gx);
             gx.printStackTrace();

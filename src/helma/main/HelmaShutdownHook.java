@@ -23,16 +23,7 @@ import org.apache.commons.logging.LogFactory;
  * ShutdownHook that shuts down all running Helma applications on exit.
  */
 public class HelmaShutdownHook extends Thread {
-    ApplicationManager appmgr;
 
-    /**
-     * Creates a new HelmaShutdownHook object.
-     *
-     * @param appmgr ...
-     */
-    public HelmaShutdownHook(ApplicationManager appmgr) {
-        this.appmgr = appmgr;
-    }
 
     /**
      *
@@ -40,12 +31,9 @@ public class HelmaShutdownHook extends Thread {
     public void run() {
         System.err.println("Shutting down Helma - please stand by...");
 
-        Server.getServer().getLogger().info("Shutting down Helma");
-
-        appmgr.stopAll();
-
-        if (LogFactory.getFactory() instanceof Logging) {
-            Logging.shutdown();
+        Server server = Server.getServer();
+        if (server != null) {
+            server.stop();
         }
      }
 }
