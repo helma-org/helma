@@ -670,7 +670,8 @@ public final class RhinoCore {
 
                     try {
                         result = engine.invoke(handler, hrefFunction,
-                                               new Object[] { basicHref }, false);
+                                               new Object[] { basicHref },
+                                               ScriptingEngine.ARGS_WRAP_DEFAULT);
                     } catch (ScriptingException x) {
                         throw new EvaluatorException("Error in hrefFunction: " + x);
                     }

@@ -17,6 +17,7 @@
 package helma.scripting.rhino;
 
 import helma.scripting.ScriptingException;
+import helma.scripting.ScriptingEngine;
 import helma.framework.core.*;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
@@ -144,7 +145,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
 
             hobj.init(core, node);
             if (proto != null) {
-                engine.invoke(hobj, "constructor", args, false);
+                engine.invoke(hobj, "constructor", args, ScriptingEngine.ARGS_WRAP_NONE);
             }
 
             return hobj;

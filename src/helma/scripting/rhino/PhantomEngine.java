@@ -32,7 +32,7 @@ public final class PhantomEngine extends RhinoEngine {
      *
      */
     public Object invoke(Object thisObject, String functionName, Object[] args,
-                         boolean xmlrpc) throws ScriptingException {
-        return super.invoke(thisObject, functionName, args, xmlrpc);
+                         int argsWrapMode) throws ScriptingException {
+        return super.invoke(thisObject, functionName, args, argsWrapMode);
     }
 }

@@ -236,7 +236,7 @@ public class RhinoEngine implements ScriptingEngine {
      * Invoke a function on some object, using the given arguments and global vars.
      */
     public Object invoke(Object thisObject, String functionName, Object[] args,
-                         boolean xmlrpc) throws ScriptingException {
+                         int argsWrapMode) throws ScriptingException {
         Scriptable eso = null;
 
         if (thisObject == null) {
@@ -246,11 +246,19 @@ public class RhinoEngine implements ScriptingEngine {
         }
         try {
             for (int i = 0; i < args.length; i++) {
-                // XML-RPC requires special argument conversion
-                if (xmlrpc) {
-                    args[i] = core.processXmlRpcArgument (args[i]);
-                } else if (args[i] != null) {
-                    args[i] = Context.toObject(args[i], global);
+                switch (argsWrapMode) {
+                    case ARGS_WRAP_DEFAULT:
+                        // wrap vanilla java objects unless they represent primitives
+                        if (args[i] != null && !(args[i] instanceof String)
+                                && !(args[i] instanceof Double
+                                && !(args[i] instanceof Boolean))) {
+                            args[i] = Context.toObject(args[i], global);
+                        }
+                        break;
+                    case ARGS_WRAP_XMLRPC:
+                        // XML-RPC requires special argument conversion
+                        args[i] = core.processXmlRpcArgument(args[i]);
+                        break;
                 }
             }
 
@@ -268,7 +276,7 @@ public class RhinoEngine implements ScriptingEngine {
 
             if ((retval == null) || (retval == Undefined.instance)) {
                 return null;
-            } else if (xmlrpc) {
+            } else if (argsWrapMode == ARGS_WRAP_XMLRPC) {
                 return core.processXmlRpcResponse (retval);
             } else {
                 return retval;
@@ -392,7 +400,7 @@ public class RhinoEngine implements ScriptingEngine {
         try {
             Object prop = so.get(propname, so);
 
-            if ((prop == null) || (prop == Undefined.instance) 
+            if ((prop == null) || (prop == Undefined.instance)
 	                       || (prop == ScriptableObject.NOT_FOUND)) {
                 return null;
             } else if (prop instanceof Wrapper) {

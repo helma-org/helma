@@ -29,6 +29,25 @@ import java.util.*;
  * to be usable by the Helma framework.
  */
 public interface ScriptingEngine {
+
+    /**
+     * Argument wrapping mode that indicates arguments are wrapped already
+     * and should be passed along unchanged.
+     */
+    public final int ARGS_WRAP_NONE = 0;
+
+    /**
+     * Argument wrapping mode that indicates arguments may be arbitrary
+     * Java objects that may need to be wrapped.
+     */
+    public final int ARGS_WRAP_DEFAULT = 1;
+
+    /**
+     * Argument wrapping mode that indicates this is an XML-RPC call and
+     * arguments should be processed accordingly.
+     */
+    public final int ARGS_WRAP_XMLRPC = 2;
+
     /**
      * Init the scripting engine with an application and a request evaluator
      */
@@ -57,9 +76,23 @@ public interface ScriptingEngine {
     /**
      * Invoke a function on some object, using the given arguments and global vars.
      * XML-RPC calls require special input and output parameter conversion.
+     *
+     * @param thisObject the object to invoke the function on, or null for
+     *                   global functions
+     * @param functionName the name of the function to be invoked
+     * @param args array of argument objects
+     * @param argsWrapMode indicated the way to process the arguments. Must be
+     *                   one of <code>ARGS_WRAP_NONE</code>,
+     *                          <code>ARGS_WRAP_DEFAULT</code>,
+     *                          <code>ARGS_WRAP_XMLRPC</code>
+     * @return the return value of the function
+     * @throws ScriptingException to indicate something went wrong
+     *                   with the invocation
      */
-    public Object invoke(Object thisObject, String functionName, Object[] args,
-                         boolean xmlrpc) throws ScriptingException;
+    public Object invoke(Object thisObject, String functionName,
+                         Object[] args, int argsWrapMode)
+            throws ScriptingException;
+
 
     /**
      *  Let the evaluator know that the current evaluation has been aborted.

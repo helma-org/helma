@@ -329,7 +329,8 @@ public final class RequestEvaluator implements Runnable {
                                                                             "onRequest")) {
                                             scriptingEngine.invoke(currentElement,
                                                                    "onRequest",
-                                                                   new Object[0], false);
+                                                                   new Object[0],
+                                                                   ScriptingEngine.ARGS_WRAP_DEFAULT);
                                         }
                                     } catch (RedirectException redir) {
                                         throw redir;
@@ -340,7 +341,8 @@ public final class RequestEvaluator implements Runnable {
 
                                     // do the actual action invocation
                                     scriptingEngine.invoke(currentElement, action,
-                                                           new Object[0], false);
+                                                           new Object[0],
+                                                           ScriptingEngine.ARGS_WRAP_DEFAULT);
                                 } catch (RedirectException redirect) {
                                     // res.redirect = redirect.getMessage ();
                                     // if there is a message set, save it on the user object for the next request
@@ -482,7 +484,7 @@ public final class RequestEvaluator implements Runnable {
                             skinDepth = 0;
 
                             result = scriptingEngine.invoke(currentElement, method, args,
-                                                            true);
+                                                            ScriptingEngine.ARGS_WRAP_XMLRPC);
                             commitTransaction();
                         } catch (Exception x) {
                             abortTransaction(false);
@@ -549,7 +551,7 @@ public final class RequestEvaluator implements Runnable {
                                 skinDepth = 0;
 
                                 result = scriptingEngine.invoke(thisObject, method, args,
-                                                                false);
+                                                                ScriptingEngine.ARGS_WRAP_DEFAULT);
                                 commitTransaction();
                             } catch (Exception x) {
                                 abortTransaction(false);
@@ -785,7 +787,7 @@ public final class RequestEvaluator implements Runnable {
      */
     public Object invokeDirectFunction(Object obj, String functionName, Object[] args)
                                 throws Exception {
-        return scriptingEngine.invoke(obj, functionName, args, false);
+        return scriptingEngine.invoke(obj, functionName, args, ScriptingEngine.ARGS_WRAP_DEFAULT);
     }
 
     /**
@@ -850,7 +852,8 @@ public final class RequestEvaluator implements Runnable {
 
     private Object getChildElement(Object obj, String name) throws ScriptingException {
         if (scriptingEngine.hasFunction(obj, "getChildElement")) {
-            return scriptingEngine.invoke(obj, "getChildElement", new Object[] {name}, false);
+            return scriptingEngine.invoke(obj, "getChildElement", new Object[] {name},
+                                          ScriptingEngine.ARGS_WRAP_DEFAULT);
         }
 
         if (obj instanceof IPathElement) {
