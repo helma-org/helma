@@ -617,7 +617,7 @@ public final class Node implements INode, Serializable {
             } catch (Exception ignore) {
                 // just fall back to default method
             }
-
+            
             lastNameCheck = System.currentTimeMillis();
         }
 
@@ -922,7 +922,7 @@ public final class Node implements INode, Serializable {
 
                         if (pn != null) {
                             setParent((Node) pn);
-                            anonymous = !pinfo.named;
+                            // anonymous = !pinfo.named;
                             lastParentSet = System.currentTimeMillis();
 
                             return pn;
