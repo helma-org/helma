@@ -314,7 +314,7 @@ public class FileObject extends ScriptableObject {
     }
    
    
-    public long getLength() {
+    public double getLength() {
        if (file == null) {
            setError(new IllegalArgumentException("Uninitialized File object"));
            return -1;
@@ -322,12 +322,12 @@ public class FileObject extends ScriptableObject {
        return file.length();
     }
   
-    public long lastModified() {
+    public double lastModified() {
        if (file == null) {
            setError(new IllegalArgumentException("Uninitialized File object"));
-           return 0L;
+           return (short) 0L;
        }
-       return file.lastModified();
+       return (short) file.lastModified();
     }
   
     public String error() {
@@ -440,7 +440,7 @@ public class FileObject extends ScriptableObject {
         return file.mkdirs();   // Using multi directory version
     }
     
-    public String [] list() {
+    public Object list() {
         if (file == null) return null;
         if(readerWriter != null) return null;
         if (!file.isDirectory()) return null;
