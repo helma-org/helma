@@ -277,19 +277,11 @@ public final class Node implements INode, Serializable {
 	        continue;
 
 	    Property newprop = new Property (rel.propName, this);
-	    
+
 	    switch (rel.getColumnType()) {
 
 	        case Types.BIT:
-	            String tmp = rs.getString (rel.getDbField());
-	            if (tmp == null)
-	                newprop.setBooleanValue (false);
-	            else if (tmp.equalsIgnoreCase ("true") ||
-	                     tmp.equalsIgnoreCase ("yes") || 
-	                     tmp.equals ("1"))
-	                newprop.setBooleanValue (true);
-	            else
-	                newprop.setBooleanValue (false);
+	            newprop.setBooleanValue (rs.getBoolean(rel.getDbField()));
 	            break;
 
 	        case Types.TINYINT:
@@ -307,11 +299,13 @@ public final class Node implements INode, Serializable {
 
 	        case Types.DECIMAL:
 	        case Types.NUMERIC:
-	            BigDecimal num = new BigDecimal (rs.getString (rel.getDbField()));
+	            BigDecimal num = rs.getBigDecimal (rel.getDbField());
+	            if (num == null) 
+	                break;
 	            if (num.scale() > 0)
-	                newprop.setFloatValue (rs.getDouble(rel.getDbField()));
+	                newprop.setFloatValue (num.doubleValue ());
 	            else
-	                newprop.setIntegerValue (rs.getLong(rel.getDbField()));
+	                newprop.setIntegerValue (num.longValue ());
 	            break;
 
 	        case Types.LONGVARBINARY:
