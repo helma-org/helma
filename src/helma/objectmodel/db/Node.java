@@ -49,7 +49,7 @@ public final class Node implements INode, Serializable {
 
     private void readObject (ObjectInputStream in) throws IOException {
 	try {
-	    // as a general rule of thumb, if a string can bu null use read/writeObject,
+	    // as a general rule of thumb, if a string can be null use read/writeObject,
 	    // if not it's save to use read/writeUTF.
 	    // version indicates the serialization version
 	    version = in.readShort ();
@@ -1429,6 +1429,8 @@ public final class Node implements INode, Serializable {
 	            String newStorage = newmap.getStorageTypeName ();
 	            if ((oldStorage == null && newStorage == null) ||
 	            		(oldStorage != null && oldStorage.equals (newStorage))) {
+	                dbmap.notifyDataChange ();
+	                newmap.notifyDataChange ();
 	                this.dbmap = newmap;
 	                this.prototype = value;
 	            }
