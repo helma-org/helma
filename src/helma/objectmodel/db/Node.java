@@ -314,7 +314,11 @@ public final class Node implements INode, Serializable {
      * setLastSubnodeChange is called when the transaction completes.
      */
     void registerSubnodeChange() {
-        if (Thread.currentThread() instanceof Transactor) {
+        // we do not fetch subnodes for nodes that haven't been persisted yet or are in
+        // the process of being persistified - except if "manual" subnoderelation is set.
+        if ((state == TRANSIENT || state == NEW) && subnodeRelation == null) {
+            return;
+        } else if (Thread.currentThread() instanceof Transactor) {
             Transactor tx = (Transactor) Thread.currentThread();
             tx.visitParentNode(this);
         }
@@ -558,7 +562,6 @@ public final class Node implements INode, Serializable {
      */
     public Key getKey() {
         if (state == TRANSIENT) {
-            Thread.dumpStack();
             throw new RuntimeException("getKey called on transient Node: " + this);
         }
 
