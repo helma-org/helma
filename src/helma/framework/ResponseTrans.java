@@ -80,14 +80,10 @@ public final class ResponseTrans implements Externalizable {
     static final long serialVersionUID = -8627370766119740844L;
 
     /**
-     * string fields that hold a user message
+     * the buffers used to build the single body parts -
+     * transient, response must be constructed before this is serialized
      */
-    public transient String message;
-
-    /**
-     * string fields that hold an error message
-     */
-    public transient String error;
+    public transient String title, head, body, message, error;
     
     static final int INITIAL_BUFFER_SIZE = 2048;
 
@@ -109,7 +105,7 @@ public final class ResponseTrans implements Externalizable {
 
     public ResponseTrans () {
 	super ();
-	message = error = null;
+	title = head = body = message = error = null;
 	values = new HashMap ();
 	handlers = new HashMap ();
     }
@@ -156,7 +152,7 @@ public final class ResponseTrans implements Externalizable {
 	response = null;
 	redir = null;
 	skin = null;
-	message = error = null;
+	title = head = body = message = error = null;
 	values.clear ();
 	lastModified = -1;
 	notModified = false;
