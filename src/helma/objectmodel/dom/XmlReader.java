@@ -158,6 +158,7 @@ public final class XmlReader extends DefaultHandler implements XmlConstants {
 
             if (!"".equals(prototype) && !"hopobject".equals(prototype)) {
                 currentNode.setPrototype(prototype);
+                currentNode.setDbMapping(nmgr.getDbMapping(prototype));
             }
 
             String key = id + "-" + prototype;
