@@ -679,7 +679,7 @@ public final class RhinoCore {
             cx.evaluateReader(op, reader, sourceName, firstline, null);
 
         } catch (Exception e) {
-            app.logEvent("Error parsing file " + sourceName + ": " + e.getClass());
+            app.logEvent("Error parsing file " + sourceName + ": " + e);
             // also write to standard out unless we're logging to it anyway
             if (!"console".equalsIgnoreCase(app.getProperty("logDir"))) {
                 System.err.println("Error parsing file " + sourceName + ": " + e);
