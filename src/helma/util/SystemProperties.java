@@ -13,8 +13,6 @@ import java.io.*;
  
 public final class SystemProperties extends Properties {
 
-    private Properties props;        // wrapped properties
-    private Properties newProps;    // used while building up props
     private SystemProperties defaultProps;  // the default/fallback properties.
     private File file;   // the underlying properties file from which we read.
     private long lastread, lastcheck, lastadd;  // time we last read/checked the underlying properties file
@@ -23,9 +21,10 @@ public final class SystemProperties extends Properties {
     // did a check, in milliseconds.
     final static long cacheTime = 1500l;
 
+    // map of additional properties
     private HashMap additionalProps = null;
 
-    /** 
+    /**
      *  Construct an empty properties object.
      */
     public SystemProperties () {
@@ -69,8 +68,8 @@ public final class SystemProperties extends Properties {
      */
     public SystemProperties (String filename, SystemProperties defaultProps) {
 	// System.err.println ("building sysprops with file "+filename+" and node "+node);
+	super (defaultProps);
 	this.defaultProps = defaultProps;
-	props = defaultProps == null ? new Properties () : new Properties (defaultProps);
 	file = filename == null ? null : new File (filename);
 	lastcheck = lastread = lastadd = 0;
     }
@@ -83,7 +82,7 @@ public final class SystemProperties extends Properties {
 	    return lastadd;
 	return Math.max (file.lastModified (), lastadd);
     }
-    
+
     /**
      *  Return a checksum that changes when something in the properties changes.
      */
@@ -123,16 +122,13 @@ public final class SystemProperties extends Properties {
 
 
     public synchronized void load (InputStream in) throws IOException {
-	newProps = defaultProps == null ?
-	    new Properties () : new Properties (defaultProps);
+	clear ();
 	super.load (in);
-	lastread = System.currentTimeMillis ();
-	props = newProps;
-	newProps = null;
 	if (additionalProps != null) {
-	    for (Iterator i=additionalProps.values().iterator(); i.hasNext(); ) 
-	        props.putAll ((Properties) i.next());
+	    for (Iterator i=additionalProps.values().iterator(); i.hasNext(); )
+	        putAll ((Properties) i.next());
 	}
+	lastread = System.currentTimeMillis ();
     }
 
 
@@ -146,13 +142,13 @@ public final class SystemProperties extends Properties {
 	if (additionalProps == null)
 	    additionalProps = new HashMap ();
 	additionalProps.put (key, p);
-	if (props != null)
-	    props.putAll (p);
-	else
-	    props = p;
+	putAll (p);
 	lastadd = System.currentTimeMillis ();
     }
-    
+
+    /** 
+     *  Remove an additional properties dictionary.
+     */
     public synchronized void removeProps (String key) {
 	if (additionalProps != null) {
 	    // remove added properties for this key. If we had
@@ -172,10 +168,7 @@ public final class SystemProperties extends Properties {
 	// cut off trailing whitespace
 	if (value != null)
 	    value = value.toString().trim();
-	if (newProps == null)
-	    return props.put (key.toString().toLowerCase(), value);
-	else
-	    return newProps.put (key.toString().toLowerCase(), value);
+	return super.put (key.toString().toLowerCase(), value);
     }
 
     /**
@@ -184,21 +177,14 @@ public final class SystemProperties extends Properties {
     public Object get (Object key) {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
-	return props.get (key.toString().toLowerCase());
+	return super.get (key.toString().toLowerCase());
     }
 
     /**
      *  Overrides method to act on the wrapped properties object.
      */
     public Object remove (Object key) {
-	return props.remove (key.toString().toLowerCase());
-    }
-
-    /**
-     *  Overrides method to act on the wrapped properties object.
-     */
-    public void clear () {
-	props.clear ();
+	return super.remove (key.toString().toLowerCase());
     }
 
     /**
@@ -207,7 +193,7 @@ public final class SystemProperties extends Properties {
     public boolean contains (Object obj) {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
-	return props.contains (obj);
+	return super.contains (obj);
     }
 
     /**
@@ -216,7 +202,7 @@ public final class SystemProperties extends Properties {
     public boolean containsKey (Object key) {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
-	return props.containsKey (key.toString().toLowerCase());
+	return super.containsKey (key.toString().toLowerCase());
     }
 
     /**
@@ -225,7 +211,7 @@ public final class SystemProperties extends Properties {
     public boolean isEmpty () {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
-	return props.isEmpty ();
+	return super.isEmpty ();
     }
 
     /**
@@ -234,7 +220,7 @@ public final class SystemProperties extends Properties {
     public String getProperty (String name) {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
-	return props.getProperty (name.toLowerCase());
+	return super.getProperty (name.toLowerCase());
     }
 
     /**
@@ -243,7 +229,7 @@ public final class SystemProperties extends Properties {
     public String getProperty (String name, String defaultValue) {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
-	return props.getProperty (name.toLowerCase(), defaultValue);
+	return super.getProperty (name.toLowerCase(), defaultValue);
     }
 
     /**
@@ -252,7 +238,7 @@ public final class SystemProperties extends Properties {
     public Enumeration keys () {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
-	return props.keys();
+	return super.keys();
     }
 
     /**
@@ -261,7 +247,7 @@ public final class SystemProperties extends Properties {
     public Set keySet () {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
-	return props.keySet();
+	return super.keySet();
     }
 
     /**
@@ -270,7 +256,7 @@ public final class SystemProperties extends Properties {
     public Enumeration elements () {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
-	return props.elements();
+	return super.elements();
     }
 
     /**
@@ -279,14 +265,14 @@ public final class SystemProperties extends Properties {
     public int size() {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
-	return props.size();
+	return super.size();
     }
 
     /**
      *  Overrides method to act on the wrapped properties object.
      */
     public String toString () {
-	return props.toString ();
+	return super.toString ();
     }
 
 }
