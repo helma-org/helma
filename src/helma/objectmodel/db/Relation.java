@@ -58,7 +58,7 @@ public final class Relation {
 
     // prefix to use for symbolic names of joined tables. The name is composed
     // from this prefix and the name of the property we're doing the join for
-    final static String JOIN_PREFIX = "_JOIN_";
+    final static String JOIN_PREFIX = "JOIN_";
 
     // direct mapping is a very powerful feature:
     // objects of some types can be directly accessed
