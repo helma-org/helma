@@ -18,13 +18,10 @@ package helma.framework.core;
 
 import helma.framework.*;
 import helma.objectmodel.ConcurrencyException;
-import helma.objectmodel.INode;
-import helma.scripting.*;
 import helma.util.HtmlEncoder;
 import helma.util.SystemMap;
 import helma.util.WrappedMap;
-import java.io.*;
-import java.net.URLEncoder;
+import helma.util.UrlEncoded;
 import java.util.*;
 
 /**
@@ -166,7 +163,7 @@ public final class Skin {
     public boolean containsMacro(String macroname) {
         for (int i = 0; i < macros.length; i++) {
             if (macros[i] instanceof Macro) {
-                Macro m = (Macro) macros[i];
+                Macro m = macros[i];
 
                 if (macroname.equals(m.fullName)) {
                     return true;
@@ -438,7 +435,7 @@ public final class Skin {
                         }
 
                         if (handlerObject == null) {
-                            // eiter because thisObject == null or the right object wasn't found 
+                            // eiter because thisObject == null or the right object wasn't found
                             // in the object's parent path. Check if a matching macro handler
                             // is registered with the response object (res.handlers).
                             handlerObject = reval.res.getMacroHandlers().get(handler);
@@ -494,7 +491,7 @@ public final class Skin {
 
                         // check if macro wrote out to response buffer
                         if (buffer.length() == (bufLength + preLength)) {
-                            // function didn't write out anything itself. 
+                            // function didn't write out anything itself.
                             // erase previously written prefix
                             if (preLength > 0) {
                                 buffer.setLength(bufLength);
@@ -653,7 +650,7 @@ public final class Skin {
                         break;
 
                     case ENCODE_URL:
-                        buffer.append(URLEncoder.encode(text));
+                        buffer.append(UrlEncoded.encode(text));
 
                         break;
 

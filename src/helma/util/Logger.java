@@ -393,7 +393,7 @@ public final class Logger {
     /**
      *  test main method
      */
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         Logger log = new Logger(".", "testlog");
         long start = System.currentTimeMillis();
 
@@ -409,8 +409,6 @@ public final class Logger {
         log.log("done: " + (System.currentTimeMillis() - start));
         System.err.println(System.currentTimeMillis() - start);
         log.close();
-
-        // System.exit (0);
     }
 
     /**

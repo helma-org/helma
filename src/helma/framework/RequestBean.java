@@ -16,9 +16,7 @@
 
 package helma.framework;
 
-import helma.framework.core.Application;
 import java.io.Serializable;
-import java.util.Date;
 import java.util.Map;
 
 /**

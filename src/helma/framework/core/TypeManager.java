@@ -16,7 +16,6 @@
 
 package helma.framework.core;
 
-import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
 import helma.scripting.*;
 import helma.util.*;
@@ -355,7 +354,6 @@ public final class TypeManager {
 
             /* if (System.currentTimeMillis() - proto.getLastCheck() < 1000)
                return; */
-            File dir = proto.getDirectory();
             HashSet updateSet = null;
             HashSet createSet = null;
 

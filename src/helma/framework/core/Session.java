@@ -19,7 +19,6 @@ package helma.framework.core;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import java.io.*;
-import java.net.URLEncoder;
 import java.util.*;
 
 /**

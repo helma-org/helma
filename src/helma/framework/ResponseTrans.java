@@ -17,7 +17,6 @@
 package helma.framework;
 
 import helma.framework.core.Skin;
-import helma.objectmodel.*;
 import helma.util.*;
 import java.io.*;
 import java.security.*;

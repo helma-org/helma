@@ -24,13 +24,10 @@ import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.scripting.*;
 import helma.util.*;
-import org.apache.xmlrpc.*;
 import java.io.*;
 import java.lang.reflect.*;
 import java.net.MalformedURLException;
-import java.net.URLEncoder;
 import java.rmi.*;
-import java.rmi.server.*;
 import java.util.*;
 
 /**
@@ -861,7 +858,7 @@ public final class Application implements IPathElement, Runnable {
 
         // first try to get them from subnodes (db)
         for (Enumeration e = users.getSubnodes(); e.hasMoreElements();) {
-            list.add((INode) e.nextElement());
+            list.add(e.nextElement());
         }
 
         // if none, try to get them from properties (internal db)
@@ -979,7 +976,7 @@ public final class Application implements IPathElement, Runnable {
 
         try {
             INode users = getUserRoot();
-            Node unode = (Node) users.getNode(uname);
+            Node unode = (Node) users.getChildElement(uname);
             String pw = unode.getString("password");
 
             if ((pw != null) && pw.equals(password)) {
@@ -1442,7 +1439,7 @@ public final class Application implements IPathElement, Runnable {
                         r.start();
                     } else {
                         try {
-                            thisEvaluator.invokeFunction((INode) null, j.getFunction(),
+                            thisEvaluator.invokeFunction(null, j.getFunction(),
                                                          new Object[0], j.getTimeout());
                         } catch (Exception ex) {
                             logEvent("error running " + j + ": " + ex.toString());
@@ -1820,7 +1817,7 @@ public final class Application implements IPathElement, Runnable {
                 p.writeInt(sessions.size());
 
                 for (Enumeration e = sessions.elements(); e.hasMoreElements();) {
-                    p.writeObject((Session) e.nextElement());
+                    p.writeObject(e.nextElement());
                 }
             }
 
@@ -1892,7 +1889,7 @@ public final class Application implements IPathElement, Runnable {
 
         public void run() {
             try {
-                thisEvaluator.invokeFunction((INode) null, job.getFunction(),
+                thisEvaluator.invokeFunction(null, job.getFunction(),
                                              new Object[0], job.getTimeout());
             } catch (Exception ex) {
                 // gets logged in RequestEvaluator

@@ -17,7 +17,6 @@
 package helma.framework;
 
 import java.rmi.*;
-import java.util.Vector;
 
 /**
  * RMI interface for an application. Currently only execute is used and supported.

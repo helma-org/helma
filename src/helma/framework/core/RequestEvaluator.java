@@ -20,7 +20,6 @@ import helma.framework.*;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.scripting.*;
-import helma.util.*;
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -884,7 +883,7 @@ public final class RequestEvaluator implements Runnable {
         }
     }
 
-    private synchronized void checkThread() throws InterruptedException {
+    private synchronized void checkThread() {
         if (app.stopped) {
             throw new ApplicationStoppedException();
         }

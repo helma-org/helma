@@ -17,12 +17,9 @@
 package helma.servlet;
 
 import helma.framework.*;
-import java.io.*;
 import java.rmi.Naming;
-import java.rmi.RemoteException;
 import java.util.Hashtable;
 import javax.servlet.*;
-import javax.servlet.http.*;
 
 /**
  * This is the HOP servlet adapter. This class communicates with any

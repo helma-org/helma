@@ -16,7 +16,6 @@
 
 package helma.framework;
 
-import helma.objectmodel.*;
 import helma.util.Base64;
 import helma.util.SystemMap;
 import java.io.*;

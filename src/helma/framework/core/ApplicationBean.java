@@ -22,10 +22,8 @@ import helma.util.SystemMap;
 import helma.util.WrappedMap;
 import java.io.File;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -146,7 +144,7 @@ public class ApplicationBean implements Serializable {
             return null;
         }
 
-        Session session = session = app.checkSession(sessionID.trim());
+        Session session = app.checkSession(sessionID.trim());
 
         if (session == null) {
             return null;

@@ -18,11 +18,6 @@ package helma.main.launcher;
 
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.security.CodeSource;
-import java.security.PermissionCollection;
-import java.security.Permissions;
-import java.security.Policy;
-import java.util.Hashtable;
 
 /**
  * ClassLoader that is able to exclude certain packages from loading.

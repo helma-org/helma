@@ -19,7 +19,6 @@ package helma.framework.core;
 import helma.objectmodel.INode;
 import java.io.Serializable;
 import java.util.Date;
-import java.util.HashMap;
 
 /**
  * The SessionBean wraps a <code>Session</code> object and

@@ -18,7 +18,6 @@ package helma.util;
 
 import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
-import org.xml.sax.Parser;
 import org.xml.sax.SAXException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,15 +29,12 @@ import java.net.URL;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
 
 /**
  * 
  */
 public class XmlUtils {
     private static DocumentBuilderFactory domBuilderFactory = null;
-    private static SAXParserFactory saxParserFactory = null;
 
     /**
      *
@@ -89,13 +85,10 @@ public class XmlUtils {
      *
      * @return ...
      *
-     * @throws SAXException ...
      * @throws IOException ...
-     * @throws ParserConfigurationException ...
      */
     public static Document parseHtml(Object obj)
-                              throws SAXException, IOException, 
-                                     ParserConfigurationException {
+                              throws IOException {
         try {
             Class.forName("org.apache.html.dom.HTMLBuilder");
         } catch (Throwable notfound) {

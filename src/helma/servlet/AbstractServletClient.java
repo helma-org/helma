@@ -492,10 +492,6 @@ public abstract class AbstractServletClient extends HttpServlet {
 
 
     /**
-     * Put name value pair in map.
-     *
-     * @param b the character value byte
-     *
      * Put name and value pair in map.  When name already exist, add value
      * to array of values.
      */

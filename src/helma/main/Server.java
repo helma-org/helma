@@ -27,7 +27,6 @@ import org.mortbay.http.ajp.*;
 import org.mortbay.util.*;
 import java.io.*;
 import java.net.*;
-import java.rmi.*;
 import java.rmi.registry.*;
 import java.rmi.server.*;
 import java.util.*;
@@ -332,7 +331,7 @@ public class Server implements IPathElement, Runnable {
     /**
      *  static main entry point.
      */
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         // check if we are running on a Java 2 VM - otherwise exit with an error message
         String javaVersion = System.getProperty("java.version");
 

@@ -18,7 +18,6 @@ package helma.framework.core;
 
 import helma.util.Updatable;
 import java.io.*;
-import java.util.*;
 
 /**
  * This represents a File containing a Hop skin

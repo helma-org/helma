@@ -17,10 +17,7 @@
 package helma.servlet;
 
 import helma.framework.*;
-import java.io.*;
 import java.rmi.Naming;
-import java.rmi.RemoteException;
-import java.util.*;
 import javax.servlet.*;
 
 /**
