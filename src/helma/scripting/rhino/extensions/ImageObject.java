@@ -76,12 +76,15 @@ public class ImageObject {
                 } else if (args[0] instanceof byte[]) {
                     img = generator.createImage((byte[]) args[0]);
                 } else if (args[0] instanceof String) {
-                    String imgurl = args[0].toString();
-                    // if path name convert to file: url
-                    if (imgurl.indexOf(":") < 0) {
-                        imgurl = "file:" + imgurl;
+                    // the string could either be a url or a local filename, let's try both:
+                    String str = args[0].toString();
+                    try {
+                        URL url = new URL(str);
+                        img = generator.createImage(url);
+                    } catch (MalformedURLException e) {
+                        // try the local file now:
+                        img = generator.createImage(str);
                     }
-                    img = generator.createImage(imgurl);
                 }
             } else if (args.length == 2) {
                 if (args[0] instanceof Number &&
