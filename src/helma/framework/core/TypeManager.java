@@ -16,7 +16,7 @@ import java.io.*;
  * applications and updates the evaluators if anything has changed.
  */
 
-public class TypeManager implements Runnable {
+public class TypeManager {
 
     Application app;
     File appDir;
@@ -29,8 +29,6 @@ public class TypeManager implements Runnable {
     // this contains only those evaluatores which have already been initialized
     // and thus need to get updates
     List registeredEvaluators;
-
-    Thread typechecker;
 
 
     static HashSet standardTypes;
@@ -57,7 +55,7 @@ public class TypeManager implements Runnable {
 	}
 	prototypes = new HashMap ();
 	zipfiles = new HashMap ();
-	registeredEvaluators = Collections.synchronizedList (new ArrayList (30));
+	registeredEvaluators = Collections.synchronizedList (new ArrayList ());
     }
 
 
@@ -130,18 +128,12 @@ public class TypeManager implements Runnable {
 	    for (Iterator it=standardTypes.iterator (); it.hasNext (); ) {
 	        String pname = (String) it.next();
 	        if (prototypes.get (pname) == null) {
-	            File f = new File (appDir, pname);
-	            if (!f.exists() && !f.mkdir ())	
-	                app.logEvent ("Warning: directory "+f.getAbsolutePath ()+" could not be created.");
-	            else if (!f.isDirectory ())
-	                app.logEvent ("Warning: "+f.getAbsolutePath ()+" is not a directory.");
 	            Prototype proto = new Prototype (pname, app);
-	            registerPrototype (pname, f, proto, update);
 	            prototypes.put (pname, proto);
 	        }
 	    }
 	}
-
+	
 	if (rewire) {
 	    // there have been changes in the  DbMappings
 	    app.rewireDbMappings ();
@@ -161,7 +153,7 @@ public class TypeManager implements Runnable {
 	return true;
     }
 
-    public void start () {
+    /* public void start () {
     	stop ();
 	typechecker = new Thread (this, "Typechecker-"+app.getName());
 	typechecker.setPriority (Thread.MIN_PRIORITY);
@@ -192,7 +184,7 @@ public class TypeManager implements Runnable {
 	        checkPrototypes ();
 	    } catch (Exception ignore) {}
 	}
-    }
+    } */
 
 
     /**
