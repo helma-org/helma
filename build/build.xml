@@ -194,6 +194,11 @@
             </fileset>
         </copy>
 
+        <!-- copy the whole licenses-directory -->
+        <copy todir="${build.work}/licenses">
+            <fileset dir="${home.dir}/licenses" excludes="**/CVS**"/>
+        </copy>
+
         <!-- rename the current jar-file -->
         <copy file="${build.lib}/${jar.name}-${DSTAMP}.jar" tofile="${build.work}/lib/helma.jar"/>
 
