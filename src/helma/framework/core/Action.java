@@ -69,7 +69,7 @@ public class Action implements Updatable {
 	        reader.close ();
 	        String content = new String (cbuf);
 	        update (content);
-	    } catch (IOException filex) {
+	    } catch (Exception filex) {
 	        app.logEvent ("*** Error reading action file "+file+": "+filex);
 	    }
 	
