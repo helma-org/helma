@@ -19,6 +19,7 @@ package helma.objectmodel.db;
 import helma.framework.core.Application;
 import helma.objectmodel.*;
 import helma.util.CacheMap;
+import java.math.BigDecimal;
 import java.io.*;
 import java.sql.*;
 import java.util.*;
@@ -972,6 +973,7 @@ public final class NodeManager {
     public List getNodeIDs(Node home, Relation rel) throws Exception {
         // Transactor tx = (Transactor) Thread.currentThread ();
         // tx.timer.beginEvent ("getNodeIDs "+home);
+
         if ((rel == null) || (rel.otherType == null) || !rel.otherType.isRelational()) {
             // this should never be called for embedded nodes
             throw new RuntimeException("NodeMgr.getNodeIDs called for non-relational node " +
@@ -1114,7 +1116,10 @@ public final class NodeManager {
 
                 while (rs.next()) {
                     // create new Nodes.
-                    Node node = new Node(rel.otherType, rs, columns, safe);
+                    Node node = createNode(rel.otherType, rs, columns, 0);
+                    if (node == null) {
+                        continue;
+                    }
                     Key primKey = node.getKey();
 
                     retval.add(new NodeHandle(primKey));
@@ -1159,6 +1164,7 @@ public final class NodeManager {
                 Connection con = dbm.getConnection();
                 Statement stmt = con.createStatement();
                 DbColumn[] columns = dbm.getColumns();
+                Relation[] joins = dbm.getJoins();
                 StringBuffer q = dbm.getSelect();
 
                 try {
@@ -1166,6 +1172,8 @@ public final class NodeManager {
                     boolean needsQuotes = dbm.needsQuotes(idfield);
 
                     q.append("WHERE ");
+                    q.append(dbm.getTableName());
+                    q.append(".");
                     q.append(idfield);
                     q.append(" IN (");
 
@@ -1224,7 +1232,10 @@ public final class NodeManager {
 
                     while (rs.next()) {
                         // create new Nodes.
-                        Node node = new Node(dbm, rs, columns, safe);
+                        Node node = createNode(dbm, rs, columns, 0);
+                        if (node == null) {
+                            continue;
+                        }
                         Key primKey = node.getKey();
 
                         // for grouped nodes, collect subnode lists for the intermediary
@@ -1272,6 +1283,28 @@ public final class NodeManager {
                                 }
                             }
                         }
+
+                        int resultSetOffset = columns.length;
+                        // create joined objects
+                        for (int i = 0; i < joins.length; i++) {
+                            DbMapping jdbm = joins[i].otherType;
+                            node = createNode(jdbm, rs, jdbm.getColumns(), resultSetOffset);
+                            if (node != null) {
+                                primKey = node.getKey();
+                                // register new nodes with the cache. If an up-to-date copy
+                                // existed in the cache, use that.
+                                synchronized (cache) {
+                                    Node oldnode = (Node) cache.put(primKey, node);
+
+                                    if ((oldnode != null) &&
+                                            (oldnode.getState() != INode.INVALID)) {
+                                        // found an ok version in the cache, use it.
+                                        cache.put(primKey, oldnode);
+                                    }
+                                }
+                            }
+                            resultSetOffset += jdbm.getColumns().length;
+                        }
                     }
 
                     // If these are grouped nodes, build the intermediary group nodes
@@ -1292,6 +1325,8 @@ public final class NodeManager {
                             groupnode.lastSubnodeFetch = System.currentTimeMillis();
                         }
                     }
+                } catch (Exception x) {
+                    System.err.println ("ERROR IN PREFETCHNODES: "+x);
                 } finally {
                     if (stmt != null) {
                         try {
@@ -1455,6 +1490,8 @@ public final class NodeManager {
                 StringBuffer q = dbm.getSelect();
 
                 q.append("WHERE ");
+                q.append(dbm.getTableName());
+                q.append(".");
                 q.append(idfield);
                 q.append(" = ");
 
@@ -1476,7 +1513,7 @@ public final class NodeManager {
                     return null;
                 }
 
-                node = new Node(dbm, rs, columns, safe);
+                node = createNode(dbm, rs, columns, 0);
 
                 if (rs.next()) {
                     throw new RuntimeException("More than one value returned by query.");
@@ -1538,12 +1575,15 @@ public final class NodeManager {
                 if (home.getSubnodeRelation() != null && !rel.isComplexReference()) {
                     // combine our key with the constraints in the manually set subnode relation
                     q.append("WHERE ");
+                    q.append(dbm.getTableName());
+                    q.append(".");
                     q.append(rel.accessName);
                     q.append(" = '");
                     q.append(escape(kstr));
                     q.append("'");
-                    q.append(" AND ");
+                    q.append(" AND (");
                     q.append(home.getSubnodeRelation().trim().substring(5));
+                    q.append(")");
                 } else {
                     q.append(rel.buildQuery(home, home.getNonVirtualParent(), kstr,
                                             "WHERE ", false));
@@ -1561,7 +1601,7 @@ public final class NodeManager {
                     return null;
                 }
 
-                node = new Node(rel.otherType, rs, columns, safe);
+                node = createNode(rel.otherType, rs, columns, 0);
 
                 if (rs.next()) {
                     throw new RuntimeException("More than one value returned by query.");
@@ -1588,6 +1628,193 @@ public final class NodeManager {
 
         return node;
     }
+
+    /**
+     *  Create a new Node from a ResultSet.
+     */
+    public Node createNode(DbMapping dbm, ResultSet rs, DbColumn[] columns, int offset)
+                throws SQLException, IOException {
+        Hashtable propMap = new Hashtable();
+        String id = null;
+        String name = null;
+        String protoName = dbm.getTypeName();
+        DbMapping dbmap = dbm;
+
+        Node node = new Node();
+
+        for (int i = 0; i < columns.length; i++) {
+
+            // set prototype?
+            if (columns[i].isPrototypeField()) {
+                protoName = rs.getString(i+1+offset);
+
+                if (protoName != null) {
+                    dbmap = getDbMapping(protoName);
+
+                    if (dbmap == null) {
+                        // invalid prototype name!
+                        System.err.println("Warning: Invalid prototype name: " + protoName +
+                                       " - using default");
+                        dbmap = dbm;
+                    }
+                }
+            }
+
+            // set id?
+            if (columns[i].isIdField()) {
+                id = rs.getString(i+1+offset);
+                // if id == null, the object doesn't actually exist - return null
+                if (id == null) {
+                    return null;
+                }
+            }
+
+            // set name?
+            if (columns[i].isNameField()) {
+                name = rs.getString(i+1+offset);
+            }
+
+            Relation rel = columns[i].getRelation();
+
+            if ((rel == null) ||
+                    ((rel.reftype != Relation.PRIMITIVE) &&
+                    (rel.reftype != Relation.REFERENCE))) {
+                continue;
+            }
+
+            Property newprop = new Property(rel.propName, node);
+
+            switch (columns[i].getType()) {
+                case Types.BIT:
+                    newprop.setBooleanValue(rs.getBoolean(i+1+offset));
+
+                    break;
+
+                case Types.TINYINT:
+                case Types.BIGINT:
+                case Types.SMALLINT:
+                case Types.INTEGER:
+                    newprop.setIntegerValue(rs.getLong(i+1+offset));
+
+                    break;
+
+                case Types.REAL:
+                case Types.FLOAT:
+                case Types.DOUBLE:
+                    newprop.setFloatValue(rs.getDouble(i+1+offset));
+
+                    break;
+
+                case Types.DECIMAL:
+                case Types.NUMERIC:
+
+                    BigDecimal num = rs.getBigDecimal(i+1+offset);
+
+                    if (num == null) {
+                        break;
+                    }
+
+                    if (num.scale() > 0) {
+                        newprop.setFloatValue(num.doubleValue());
+                    } else {
+                        newprop.setIntegerValue(num.longValue());
+                    }
+
+                    break;
+
+                case Types.VARBINARY:
+                case Types.BINARY:
+                    newprop.setStringValue(rs.getString(i+1+offset));
+
+                    break;
+
+                case Types.LONGVARBINARY:
+                case Types.LONGVARCHAR:
+
+                    try {
+                        newprop.setStringValue(rs.getString(i+1+offset));
+                    } catch (SQLException x) {
+                        Reader in = rs.getCharacterStream(i+1+offset);
+                        char[] buffer = new char[2048];
+                        int read = 0;
+                        int r = 0;
+
+                        while ((r = in.read(buffer, read, buffer.length - read)) > -1) {
+                            read += r;
+
+                            if (read == buffer.length) {
+                                // grow input buffer
+                                char[] newBuffer = new char[buffer.length * 2];
+
+                                System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
+                                buffer = newBuffer;
+                            }
+                        }
+
+                        newprop.setStringValue(new String(buffer, 0, read));
+                    }
+
+                    break;
+
+                case Types.CHAR:
+                case Types.VARCHAR:
+                case Types.OTHER:
+                    newprop.setStringValue(rs.getString(i+1+offset));
+
+                    break;
+
+                case Types.DATE:
+                    newprop.setDateValue(rs.getDate(i+1+offset));
+
+                    break;
+
+                case Types.TIME:
+                    newprop.setDateValue(rs.getTime(i+1+offset));
+
+                    break;
+
+                case Types.TIMESTAMP:
+                    newprop.setDateValue(rs.getTimestamp(i+1+offset));
+
+                    break;
+
+                case Types.NULL:
+                    newprop.setStringValue(null);
+
+                    break;
+
+                // continue;
+                default:
+                    newprop.setStringValue(rs.getString(i+1+offset));
+
+                    break;
+            }
+
+            if (rs.wasNull()) {
+                newprop.setStringValue(null);
+            }
+
+            propMap.put(rel.propName.toLowerCase(), newprop);
+
+            // if the property is a pointer to another node, change the property type to NODE
+            if ((rel.reftype == Relation.REFERENCE) && rel.usesPrimaryKey()) {
+                // FIXME: References to anything other than the primary key are not supported
+                newprop.convertToNodeReference(rel.otherType);
+            }
+
+            // mark property as clean, since it's fresh from the db
+            newprop.dirty = false;
+        }
+
+        if (id == null) {
+            return null;
+        }
+
+        node.init(dbmap, id, name, protoName, propMap, safe);
+
+        return node;
+    }
+
 
     /**
      * Get a DbMapping for a given prototype name. This is just a proxy

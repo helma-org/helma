@@ -77,6 +77,9 @@ public final class DbMapping implements Updatable {
     // Map of db columns by name
     HashMap columnMap;
 
+    // Array of aggressively loaded references
+    Relation[] joins;
+
     // pre-rendered select statement
     String selectString = null;
     String insertString = null;
@@ -256,6 +259,7 @@ public final class DbMapping implements Updatable {
 
         HashMap p2d = new HashMap();
         HashMap d2p = new HashMap();
+        ArrayList joinList = new ArrayList();
 
         for (Enumeration e = props.keys(); e.hasMoreElements();) {
             String propName = (String) e.nextElement();
@@ -293,6 +297,13 @@ public final class DbMapping implements Updatable {
                         }
                     }
 
+                    // check if a reference is aggressively fetched
+                    if ((rel.reftype == Relation.REFERENCE ||
+                             rel.reftype == Relation.COMPLEX_REFERENCE) &&
+                             rel.aggressiveLoading) {
+                        joinList.add(rel);
+                    }
+
                     // app.logEvent ("Mapping "+propName+" -> "+dbField);
                 }
             } catch (Exception x) {
@@ -302,6 +313,9 @@ public final class DbMapping implements Updatable {
 
         prop2db = p2d;
         db2prop = d2p;
+
+        joins = new Relation[joinList.size()];
+        joins = (Relation[]) joinList.toArray(joins);
 
         String subnodeMapping = props.getProperty("_children");
 
@@ -844,15 +858,22 @@ public final class DbMapping implements Updatable {
                 Relation rel = columnNameToRelation(colName);
 
                 DbColumn col = new DbColumn(colName, meta.getColumnType(i + 1), rel, this);
-                if (col.isMapped()) {
+                // if (col.isMapped()) {
                     list.add(col);
-                }
+                // }
             }
             columns = new DbColumn[list.size()];
             columns = (DbColumn[]) list.toArray(columns);
         }
 
         return columns;
+    }
+
+    /**
+     *  Return the array of relations that are fetched with objects of this type.
+     */
+    public Relation[] getJoins() {
+        return joins;
     }
 
     /**
@@ -909,7 +930,7 @@ public final class DbMapping implements Updatable {
 
         StringBuffer s = new StringBuffer("SELECT ");
 
-        DbColumn[] cols = columns;
+        /* DbColumn[] cols = columns;
 
         if (cols == null) {
             cols = getColumns();
@@ -922,10 +943,27 @@ public final class DbMapping implements Updatable {
             }
         }
 
+        for (int i = 0; i < joins.length; i++) {
+        } */
+
+        s.append ("*");
+
         s.append(" FROM ");
 
         s.append(getTableName());
         s.append(" ");
+
+        for (int i = 0; i < joins.length; i++) {
+            if (!joins[i].otherType.isRelational()) {
+                continue;
+            }
+            s.append("LEFT JOIN ");
+            s.append(joins[i].otherType.getTableName());
+            s.append(" AS _HLM_");
+            s.append(joins[i].propName);
+            s.append(" ON ");
+            joins[i].renderJoinConstraints(s);
+        }
 
         // cache rendered string for later calls.
         selectString = s.toString();

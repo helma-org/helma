@@ -626,6 +626,8 @@ public final class Relation {
 
             String accessColumn = (accessName == null) ? otherType.getIDField() : accessName;
 
+            q.append(otherType.getTableName());
+            q.append(".");
             q.append(accessColumn);
             q.append(" = ");
 
@@ -678,19 +680,37 @@ public final class Relation {
     public String renderConstraints(INode home, INode nonvirtual)
                              throws SQLException {
         StringBuffer q = new StringBuffer();
-        String suffix = " AND ";
+        String prefix = " AND ";
 
         for (int i = 0; i < constraints.length; i++) {
+            q.append(prefix);
             constraints[i].addToQuery(q, home, nonvirtual);
-            q.append(suffix);
         }
 
         if (filter != null) {
+            q.append(prefix);
             q.append(filter);
-            q.append(suffix);
         }
 
         return q.toString();
+    }
+
+    public void renderJoinConstraints(StringBuffer select) {
+        for (int i = 0; i < constraints.length; i++) {
+            select.append(ownType.getTableName());
+            select.append(".");
+            select.append(constraints[i].localName);
+            select.append(" = _HLM_");
+            select.append(propName);
+            select.append(".");
+            select.append(constraints[i].foreignName);
+            if (i == constraints.length-1) {
+                select.append(" ");
+            } else {
+                select.append(" AND ");
+            }
+        }
+
     }
 
     /**
@@ -966,6 +986,8 @@ public final class Relation {
                 local = ref.getString(homeprop);
             }
 
+            q.append(otherType.getTableName());
+            q.append(".");
             q.append(foreignName);
             q.append(" = ");
 

@@ -76,7 +76,7 @@ public final class Node implements INode, Serializable {
     transient private int state;
 
     /**
-     * This constructor is only used for instances of the NullNode subclass. Do not use for ordinary Nodes.
+     * This constructor is only used for NullNode instance. Do not use for ordinary Nodes.
      */
     Node() {
         created = lastmodified = System.currentTimeMillis();
@@ -145,197 +145,28 @@ public final class Node implements INode, Serializable {
     }
 
     /**
-     * Constructor used for nodes being stored in a relational database table.
+     * Initializer used for nodes being stored in a relational database table.
      */
-    public Node(DbMapping dbm, ResultSet rs, DbColumn[] columns, WrappedNodeManager nmgr)
-            throws SQLException, IOException {
+    public void init(DbMapping dbm, String id, String name, String protoName,
+                Hashtable propMap, WrappedNodeManager nmgr) {
         this.nmgr = nmgr;
 
         // see what prototype/DbMapping this object should use
-        dbmap = dbm;
+        this.dbmap = dbm;
+        // set the prototype name
+        this.prototype = protoName;
 
-        created = lastmodified = System.currentTimeMillis();
+        this.id = id;
 
-        for (int i = 0; i < columns.length; i++) {
-
-            // set prototype?
-            if (columns[i].isPrototypeField()) {
-                String protoName = rs.getString(i+1);
-
-                if (protoName != null) {
-                    dbmap = nmgr.getDbMapping(protoName);
-
-                    if (dbmap == null) {
-                        // invalid prototype name!
-                        System.err.println("Warning: Invalid prototype name: " + protoName +
-                                       " - using default");
-                        dbmap = dbm;
-                    }
-                }
-            }
-
-            // set id?
-            if (columns[i].isIdField()) {
-                id = rs.getString(i+1);
-            }
-
-            // set name?
-            if (columns[i].isNameField()) {
-                name = rs.getString(i+1);
-            }
-
-            Relation rel = columns[i].getRelation();
-
-            if ((rel == null) ||
-                    ((rel.reftype != Relation.PRIMITIVE) &&
-                    (rel.reftype != Relation.REFERENCE))) {
-                continue;
-            }
-
-            Property newprop = new Property(rel.propName, this);
-
-            switch (columns[i].getType()) {
-                case Types.BIT:
-                    newprop.setBooleanValue(rs.getBoolean(i+1));
-
-                    break;
-
-                case Types.TINYINT:
-                case Types.BIGINT:
-                case Types.SMALLINT:
-                case Types.INTEGER:
-                    newprop.setIntegerValue(rs.getLong(i+1));
-
-                    break;
-
-                case Types.REAL:
-                case Types.FLOAT:
-                case Types.DOUBLE:
-                    newprop.setFloatValue(rs.getDouble(i+1));
-
-                    break;
-
-                case Types.DECIMAL:
-                case Types.NUMERIC:
-
-                    BigDecimal num = rs.getBigDecimal(i+1);
-
-                    if (num == null) {
-                        break;
-                    }
-
-                    if (num.scale() > 0) {
-                        newprop.setFloatValue(num.doubleValue());
-                    } else {
-                        newprop.setIntegerValue(num.longValue());
-                    }
-
-                    break;
-
-                case Types.VARBINARY:
-                case Types.BINARY:
-                    newprop.setStringValue(rs.getString(i+1));
-
-                    break;
-
-                case Types.LONGVARBINARY:
-                case Types.LONGVARCHAR:
-
-                    try {
-                        newprop.setStringValue(rs.getString(i+1));
-                    } catch (SQLException x) {
-                        Reader in = rs.getCharacterStream(i+1);
-                        char[] buffer = new char[2048];
-                        int read = 0;
-                        int r = 0;
-
-                        while ((r = in.read(buffer, read, buffer.length - read)) > -1) {
-                            read += r;
-
-                            if (read == buffer.length) {
-                                // grow input buffer
-                                char[] newBuffer = new char[buffer.length * 2];
-
-                                System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
-                                buffer = newBuffer;
-                            }
-                        }
-
-                        newprop.setStringValue(new String(buffer, 0, read));
-                    }
-
-                    break;
-
-                case Types.CHAR:
-                case Types.VARCHAR:
-                case Types.OTHER:
-                    newprop.setStringValue(rs.getString(i+1));
-
-                    break;
-
-                case Types.DATE:
-                    newprop.setDateValue(rs.getDate(i+1));
-
-                    break;
-
-                case Types.TIME:
-                    newprop.setDateValue(rs.getTime(i+1));
-
-                    break;
-
-                case Types.TIMESTAMP:
-                    newprop.setDateValue(rs.getTimestamp(i+1));
-
-                    break;
-
-                case Types.NULL:
-                    newprop.setStringValue(null);
-
-                    break;
-
-                // continue;
-                default:
-                    newprop.setStringValue(rs.getString(i+1));
-
-                    break;
-            }
-
-            if (rs.wasNull()) {
-                newprop.setStringValue(null);
-            }
-
-            if (propMap == null) {
-                propMap = new Hashtable();
-            }
-
-            propMap.put(rel.propName.toLowerCase(), newprop);
-
-            // if the property is a pointer to another node, change the property type to NODE
-            if ((rel.reftype == Relation.REFERENCE) && rel.usesPrimaryKey()) {
-                // FIXME: References to anything other than the primary key are not supported
-                newprop.convertToNodeReference(rel.otherType);
-
-                // newprop.nhandle = new NodeHandle (new DbKey (rel.otherType, newprop.getStringValue ()));
-                // newprop.type = IProperty.NODE;
-            }
-
-            // mark property as clean, since it's fresh from the db
-            newprop.dirty = false;
-        }
-
-        // set the prototype from the dbmap,
-        // which was possibly modified while reading the resultset
-        setPrototype(dbmap.getTypeName());
-
+        this.name = name;
         // If name was not set from resultset, create a synthetical name now.
         if ((name == null) || (name.length() == 0)) {
-            name = dbmap.getTypeName() + " " + id;
+            this.name = dbmap.getTypeName() + " " + id;
         }
 
-        // again set created and lastmodified. This is because
-        // lastmodified has been been updated, and we want both values to
-        // be identical to show that the node hasn't been changed since
-        // it was first created.
+        this.propMap = propMap;
+
+        // set lastmodified and created timestamps and mark as clean
         created = lastmodified = System.currentTimeMillis();
         markAs(CLEAN);
     }
