@@ -1077,7 +1077,7 @@ public final class Application implements IPathElement, Runnable {
     }
 
     private final void composeHref(Object elem, StringBuffer b, int pathCount) {
-        if ((elem == null) || (pathCount > 20)) {
+        if ((elem == null) || (pathCount > 50)) {
             return;
         }
 
@@ -1091,9 +1091,15 @@ public final class Application implements IPathElement, Runnable {
             return;
         }
 
-        composeHref(getParentElement(elem), b, pathCount++);
-        b.append(UrlEncoded.encode(getElementName(elem)));
-        b.append("/");
+        // recurse to parent element
+        composeHref(getParentElement(elem), b, ++pathCount);
+
+        // append ourselves
+        String ename = getElementName(elem);
+        if (ename != null) {
+            b.append(UrlEncoded.encode(ename));
+            b.append("/");
+        }
     }
 
     /**
