@@ -22,7 +22,7 @@ import FESI.Data.*;
 
 public class ESUser extends ESNode {
 
-    // if the user is online, this is his/her online session object
+    /** if the user is online, this is his/her online session object */
     public User user;
 
     public ESUser (INode node, RequestEvaluator eval, User user) {
@@ -73,7 +73,7 @@ public class ESUser extends ESNode {
 	else
 	    handle = null;
 	// we don't take over the transient cache from the node,
-	// because we always use the one from the user object.
+	// because we always stick to the one from the user object.
     }
 
     public void updateNodeFromUser () {
