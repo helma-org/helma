@@ -322,6 +322,10 @@ public final class RhinoCore {
             return;
         }
 
+        // init prototypes and/or update prototype checksums
+        app.typemgr.checkPrototypes();
+
+        // get a collection of all prototypes (code directories)
         Collection protos = app.getPrototypes();
 
         // in order to respect inter-prototype dependencies, we try to update

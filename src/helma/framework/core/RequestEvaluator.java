@@ -109,9 +109,7 @@ public final class RequestEvaluator implements Runnable {
 
         try {
             do {
-                // long startCheck = System.currentTimeMillis ();
-                app.typemgr.checkPrototypes();
-                // initialize scripting engine
+                // initialize scripting engine, in case it hasn't been initialized yet
                 initScriptingEngine();
                 // update scripting prototypes
                 scriptingEngine.updatePrototypes();
