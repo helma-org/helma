@@ -413,46 +413,43 @@ public final class Node implements INode, Serializable {
      * and a property value for named properties.
      */
     public String getElementName() {
-        // if subnodes are also mounted as properties, try to get the "nice" prop value
-        // instead of the id by turning the anonymous flag off.
-        long lastmod = lastmodified;
+        // for relational nodes we need to consult parent mapping to find element name
+        if (isRelational()) {
+            long lastmod = Math.max(lastmodified, dbmap.getLastTypeChange());
+        
+            if ((parentHandle != null) && (lastNameCheck < lastmod)) {
+                try {
+                    Node p = parentHandle.getNode(nmgr);
+                    DbMapping parentmap = p.getDbMapping();
+                    Relation prel = parentmap.getSubnodeRelation();
 
-        if (dbmap != null) {
-            lastmod = Math.max(lastmod, dbmap.getLastTypeChange());
-        }
-
-        if ((parentHandle != null) && (lastNameCheck < lastmod)) {
-            try {
-                Node p = parentHandle.getNode(nmgr);
-                DbMapping parentmap = p.getDbMapping();
-                Relation prel = parentmap.getSubnodeRelation();
-
-                if (prel != null) {
-                    if (prel.groupby != null) {
-                        setName(getString("groupname"));
-                        anonymous = false;
-                    } else if (prel.accessName != null) {
-                        String propname = dbmap.columnNameToProperty(prel.accessName);
-                        String propvalue = getString(propname);
-
-                        if ((propvalue != null) && (propvalue.length() > 0)) {
-                            setName(propvalue);
+                    if (prel != null) {
+                        if (prel.groupby != null) {
+                            setName(getString("groupname"));
                             anonymous = false;
-                        } else if (!anonymous && p.isParentOf(this)) {
+                        } else if (prel.accessName != null) {
+                            String propname = dbmap.columnNameToProperty(prel.accessName);
+                            String propvalue = getString(propname);
+
+                            if ((propvalue != null) && (propvalue.length() > 0)) {
+                                setName(propvalue);
+                                anonymous = false;
+                            } else if (!anonymous && p.isParentOf(this)) {
+                                anonymous = true;
+                            }
+                        } else {
                             anonymous = true;
                         }
-                    } else {
+                    } else if (!anonymous && p.isParentOf(this)) {
                         anonymous = true;
                     }
-                } else if (!anonymous && p.isParentOf(this)) {
-                    anonymous = true;
+                } catch (Exception ignore) {
+                    // FIXME: add proper NullPointer checks in try statement
+                    // just fall back to default method
                 }
-            } catch (Exception ignore) {
-                // FIXME: add proper NullPointer checks in try statement
-                // just fall back to default method
-            }
 
-            lastNameCheck = System.currentTimeMillis();
+                lastNameCheck = System.currentTimeMillis();
+            }
         }
 
         return (anonymous || (name == null) || (name.length() == 0)) ? id : name;
@@ -1354,7 +1351,7 @@ public final class Node implements INode, Serializable {
      * @return true if the given node is contained in this node's child list
      */
     public boolean isParentOf(Node n) {
-        if (dbmap != null) {
+        if (dbmap != null && n.isRelational()) {
             Relation subrel = dbmap.getSubnodeRelation();
             // if we're dealing with relational child nodes use
             // Relation.checkConstraints to avoid loading the child index.
