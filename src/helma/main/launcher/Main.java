@@ -31,11 +31,11 @@ import java.util.ArrayList;
  */
 public class Main {
     public static final String[] jars = {
-                                            "helma.jar", "jetty.jar", "crimson.jar",
-                                            "xmlrpc.jar", "servlet.jar", "regexp.jar",
+                                            "helma.jar", "rhino.jar", "jetty.jar",
+                                            "crimson.jar", "xmlrpc.jar", "servlet.jar",
                                             "mail.jar", "activation.jar",
                                             "netcomponents.jar", "jimi.jar",
-                                            "apache-dom.jar", "jdom.jar"
+                                            "apache-dom.jar"
                                         };
 
     /**
