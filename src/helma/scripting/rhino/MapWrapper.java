@@ -59,6 +59,7 @@ public class MapWrapper extends ScriptableObject {
         if (map == null) {
             map = new HashMap();
         }
+
         if (value instanceof Wrapper) {
             map.put(name, ((Wrapper) value).unwrap());
         } else {
@@ -82,7 +83,11 @@ public class MapWrapper extends ScriptableObject {
         Object obj = map.get(name);
 
         if (obj != null && !(obj instanceof Scriptable)) {
-            if (obj instanceof String) {
+            // do NOT wrap primitives - otherwise they'll be wrapped as Objects,
+            // which makes them unusable for many purposes (e.g. ==)
+            if (obj instanceof String ||
+                    obj instanceof Number ||
+                    obj instanceof Boolean) {
                 return obj;
             }
 
@@ -149,6 +154,14 @@ public class MapWrapper extends ScriptableObject {
         Object obj = map.get(Integer.toString(idx));
 
         if (obj != null && !(obj instanceof Scriptable)) {
+            // do NOT wrap primitives - otherwise they'll be wrapped as Objects,
+            // which makes them unusable for many purposes (e.g. ==)
+            if (obj instanceof String ||
+                    obj instanceof Number ||
+                    obj instanceof Boolean) {
+                return obj;
+            }
+
             return Context.toObject(obj, core.global);
         }
 
