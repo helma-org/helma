@@ -18,11 +18,6 @@ package helma.framework.core;
 
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.security.CodeSource;
-import java.security.Permission;
-import java.security.PermissionCollection;
-import java.security.Permissions;
-import java.util.Enumeration;
 
 /**
  * ClassLoader subclass with package accessible addURL method.

@@ -16,11 +16,8 @@
 
 package helma.framework.core;
 
-import helma.framework.*;
-import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
 import helma.scripting.*;
-import helma.util.Updatable;
 import helma.util.SystemMap;
 import java.io.*;
 import java.util.*;
