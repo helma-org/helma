@@ -42,8 +42,8 @@ public class ServeUtils
     {
 
     // Server identification.
-    public static final String serverName = "Hop";
-    public static final String serverVersion = "1.1 p1";
+    public static final String serverName = "Helma";
+    public static final String serverVersion = "1.2 p1";
     public static final String serverUrl = "http://helma.org/";
 
     /// Write a standard-format HTML address for this server.
@@ -91,3 +91,4 @@ public class ServeUtils
 	}
 
     }
+
