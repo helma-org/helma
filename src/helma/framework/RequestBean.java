@@ -45,6 +45,15 @@ public class RequestBean implements Serializable {
         return req.get(name);
     }
 
+
+    /**
+     * Return the method of the request. This may either be a HTTP method or
+     * one of the Helma pseudo methods defined in RequestTrans.
+     */
+    public String getMethod() {
+        return req.getMethod();
+    }
+
     /**
      *
      *

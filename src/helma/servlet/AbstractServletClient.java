@@ -89,7 +89,7 @@ public abstract class AbstractServletClient extends HttpServlet {
     abstract Application getApplication();
 
     /**
-     * Handle a GET request.
+     * Handle a request.
      *
      * @param request ...
      * @param response ...
@@ -97,28 +97,10 @@ public abstract class AbstractServletClient extends HttpServlet {
      * @throws ServletException ...
      * @throws IOException ...
      */
-    public void doGet(HttpServletRequest request, HttpServletResponse response)
-               throws ServletException, IOException {
-        execute(request, response, RequestTrans.GET);
-    }
-
-    /**
-     * Handle a POST request.
-     *
-     * @param request ...
-     * @param response ...
-     *
-     * @throws ServletException ...
-     * @throws IOException ...
-     */
-    public void doPost(HttpServletRequest request, HttpServletResponse response)
+    protected void service (HttpServletRequest request, HttpServletResponse response)
                 throws ServletException, IOException {
-        execute(request, response, RequestTrans.POST);
-    }
 
-    protected void execute(HttpServletRequest request, HttpServletResponse response,
-                           byte method) {
-        RequestTrans reqtrans = new RequestTrans(method);
+        RequestTrans reqtrans = new RequestTrans(request);
 
         try {
             // get the character encoding

@@ -18,6 +18,8 @@ package helma.framework;
 
 import helma.util.Base64;
 import helma.util.SystemMap;
+
+import javax.servlet.http.HttpServletRequest;
 import java.io.*;
 import java.util.*;
 
@@ -25,12 +27,26 @@ import java.util.*;
  * A Transmitter for a request from the servlet client. Objects of this
  * class are directly exposed to JavaScript as global property req.
  */
-public class RequestTrans implements Externalizable {
+public class RequestTrans implements Serializable {
+
     static final long serialVersionUID = 5398880083482000580L;
 
-    public final static byte GET = 0;
-    public final static byte POST = 1;
-    
+    // HTTP methods
+    public final static String GET = "GET";
+    public final static String POST = "POST";
+    public final static String DELETE = "DELETE";
+    public final static String HEAD = "HEAD";
+    public final static String OPTIONS = "OPTIONS";
+    public final static String PUT = "PUT";
+    public final static String TRACE = "TRACE";
+    // Helma pseudo-methods
+    public final static String XMLRPC = "XMLRPC";
+    public final static String EXTERNAL = "EXTERNAL";
+    public final static String INTERNAL = "INTERNAL";
+
+    // the servlet request, may be null
+    HttpServletRequest request;
+
     // the uri path of the request
     public String path;
 
@@ -40,8 +56,8 @@ public class RequestTrans implements Externalizable {
     // the map of form and cookie data
     private Map values;
     
-    // the request method - 0 for GET, 1 for POST
-    private byte httpMethod = GET;
+    // the HTTP request method
+    private String method;
 
     // timestamp of client-cached version, if present in request
     private long ifModifiedSince = -1;
@@ -60,16 +76,18 @@ public class RequestTrans implements Externalizable {
     /**
      *  Create a new Request transmitter with an empty data map.
      */
-    public RequestTrans() {
-        this(GET);
+    public RequestTrans(String method) {
+        this.method = method;
+        this.request = null;
         values = new SystemMap();
     }
 
     /**
      *  Create a new request transmitter with the given data map.
      */
-    public RequestTrans(byte method) {
-        httpMethod = method;
+    public RequestTrans(HttpServletRequest request) {
+        this.method = request.getMethod();
+        this.request = request;
         values = new SystemMap();
     }
 
@@ -99,6 +117,14 @@ public class RequestTrans implements Externalizable {
     }
 
     /**
+     * Returns the Servlet request represented by this RequestTrans instance.
+     * Returns null for internal and XML-RPC requests.
+     */
+    public HttpServletRequest getServletRequest() {
+        return request;
+    }
+
+    /**
      *  The hash code is computed from the session id if available. This is used to
      *  detect multiple identic requests.
      */
@@ -122,41 +148,25 @@ public class RequestTrans implements Externalizable {
     }
 
     /**
+     * Return the method of the request. This may either be a HTTP method or
+     * one of the Helma pseudo methods defined in this class.
+     */
+    public String getMethod() {
+        return method;
+    }
+
+    /**
      *  Return true if this object represents a HTTP GET Request.
      */
     public boolean isGet() {
-        return httpMethod == GET;
+        return GET.equalsIgnoreCase(method);
     }
 
     /**
      *  Return true if this object represents a HTTP GET Request.
      */
     public boolean isPost() {
-        return httpMethod == POST;
-    }
-
-    /**
-     * Custom externalization code for quicker serialization.
-     */
-    public void readExternal(ObjectInput s) throws ClassNotFoundException, IOException {
-        path = s.readUTF();
-        session = s.readUTF();
-        values = (Map) s.readObject();
-        httpMethod = s.readByte();
-        ifModifiedSince = s.readLong();
-        etags = (Set) s.readObject();
-    }
-
-    /**
-     * Custom externalization code for quicker serialization.
-     */
-    public void writeExternal(ObjectOutput s) throws IOException {
-        s.writeUTF(path);
-        s.writeUTF(session);
-        s.writeObject(values);
-        s.writeByte(httpMethod);
-        s.writeLong(ifModifiedSince);
-        s.writeObject(etags);
+        return POST.equalsIgnoreCase(method);
     }
 
     /**

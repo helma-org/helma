@@ -46,7 +46,7 @@ public final class RequestEvaluator implements Runnable {
     Object thisObject;
 
     // the method to be executed
-    String method;
+    String functionName;
 
     // the session object associated with the current request
     Session session;
@@ -108,7 +108,7 @@ public final class RequestEvaluator implements Runnable {
         Transactor localrtx = (Transactor) Thread.currentThread();
 
         try {
-            do {
+            do { // while (localrtx == rtx);
                 // initialize scripting engine, in case it hasn't been initialized yet
                 initScriptingEngine();
                 // update scripting prototypes
@@ -124,46 +124,37 @@ public final class RequestEvaluator implements Runnable {
 
                 requestPath = new RequestPath(app);
 
-                switch (reqtype) {
-                    case HTTP:
+                int tries = 0;
+                boolean done = false;
+                String error = null;
 
-                        int tries = 0;
-                        boolean done = false;
-                        String error = null;
+                while (!done) {
+                    currentElement = null;
 
-                        while (!done) {
-                            currentElement = null;
+                    try {
+                        // TODO: transaction names are not set for internal/xmlrpc/external requests
+                        // used for logging
+                        StringBuffer txname = new StringBuffer(app.getName());
+                        txname.append("/");
+                        txname.append((error == null) ? req.path : "error");
 
-                            try {
-                                // used for logging
-                                StringBuffer txname = new StringBuffer(app.getName());
+                        // begin transaction
+                        localrtx.begin(txname.toString());
 
-                                txname.append("/");
-                                txname.append((error == null) ? req.path : "error");
+                        String action = null;
 
-                                // begin transaction
-                                localrtx.begin(txname.toString());
+                        root = app.getDataRoot();
 
-                                String action = null;
+                        req.startTime = System.currentTimeMillis();
 
-                                root = app.getDataRoot();
+                        initGlobals(root);
 
-                                HashMap globals = new HashMap();
+                        if (error != null) {
+                            res.error = error;
+                        }
 
-                                globals.put("root", root);
-                                globals.put("session", new SessionBean(session));
-                                globals.put("req", new RequestBean(req));
-                                globals.put("res", new ResponseBean(res));
-                                globals.put("app", new ApplicationBean(app));
-                                globals.put("path", requestPath);
-                                req.startTime = System.currentTimeMillis();
-
-                                // enter execution context
-                                scriptingEngine.enterContext(globals);
-
-                                if (error != null) {
-                                    res.error = error;
-                                }
+                        switch (reqtype) {
+                            case HTTP:
 
                                 if (session.message != null) {
                                     // bring over the message from a redirect
@@ -179,7 +170,7 @@ public final class RequestEvaluator implements Runnable {
                                         // do not reset the requestPath so error handler can use the original one
                                         // get error handler action
                                         String errorAction = app.props.getProperty("error",
-                                                                                   "error");
+                                                "error");
 
                                         action = getAction(currentElement, errorAction);
 
@@ -187,7 +178,7 @@ public final class RequestEvaluator implements Runnable {
                                             throw new RuntimeException(error);
                                         }
                                     } else if ((req.path == null) ||
-                                                   "".equals(req.path.trim())) {
+                                            "".equals(req.path.trim())) {
                                         currentElement = root;
                                         requestPath.add(null, currentElement);
 
@@ -199,7 +190,7 @@ public final class RequestEvaluator implements Runnable {
                                     } else {
                                         // march down request path...
                                         StringTokenizer st = new StringTokenizer(req.path,
-                                                                                 "/");
+                                                "/");
                                         int ntokens = st.countTokens();
 
                                         // limit path to < 50 tokens
@@ -229,12 +220,12 @@ public final class RequestEvaluator implements Runnable {
                                             // try to interpret it as action name.
                                             if (i == (ntokens - 1)) {
                                                 action = getAction(currentElement,
-                                                                   pathItems[i]);
+                                                        pathItems[i]);
                                             }
 
                                             if (action == null) {
                                                 currentElement = getChildElement(currentElement,
-                                                                                 pathItems[i]);
+                                                        pathItems[i]);
 
                                                 // add object to request path if suitable
                                                 if (currentElement != null) {
@@ -269,7 +260,7 @@ public final class RequestEvaluator implements Runnable {
                                     res.status = 404;
 
                                     String notFoundAction = app.props.getProperty("notfound",
-                                                                                  "notfound");
+                                            "notfound");
 
                                     currentElement = root;
                                     action = getAction(currentElement, notFoundAction);
@@ -285,7 +276,7 @@ public final class RequestEvaluator implements Runnable {
                                 int l = requestPath.size();
                                 Prototype[] protos = new Prototype[l];
 
-                                for (int i=0; i<l; i++) {
+                                for (int i = 0; i < l; i++) {
 
                                     Object obj = requestPath.get(i);
 
@@ -301,7 +292,7 @@ public final class RequestEvaluator implements Runnable {
                                 // in a second pass, we register path objects with their indirect
                                 // (i.e. parent prototype) names, starting at the end and only
                                 // if the name isn't occupied yet.
-                                for (int i=l-1; i>=0; i--) {
+                                for (int i = l - 1; i >= 0; i--) {
                                     if (protos[i] != null) {
                                         protos[i].registerParents(macroHandlers, requestPath.get(i));
                                     }
@@ -326,11 +317,11 @@ public final class RequestEvaluator implements Runnable {
                                     // calling the actual action
                                     try {
                                         if (scriptingEngine.hasFunction(currentElement,
-                                                                            "onRequest")) {
+                                                "onRequest")) {
                                             scriptingEngine.invoke(currentElement,
-                                                                   "onRequest",
-                                                                   new Object[0],
-                                                                   ScriptingEngine.ARGS_WRAP_DEFAULT);
+                                                    "onRequest",
+                                                    new Object[0],
+                                                    ScriptingEngine.ARGS_WRAP_DEFAULT);
                                         }
                                     } catch (RedirectException redir) {
                                         throw redir;
@@ -341,235 +332,212 @@ public final class RequestEvaluator implements Runnable {
 
                                     // do the actual action invocation
                                     scriptingEngine.invoke(currentElement, action,
-                                                           new Object[0],
-                                                           ScriptingEngine.ARGS_WRAP_DEFAULT);
+                                            new Object[0],
+                                            ScriptingEngine.ARGS_WRAP_DEFAULT);
                                 } catch (RedirectException redirect) {
-                                    // res.redirect = redirect.getMessage ();
                                     // if there is a message set, save it on the user object for the next request
                                     if (res.message != null) {
                                         session.message = res.message;
                                     }
-
-                                    done = true;
                                 }
 
                                 // check if we're still the one and only or if the waiting thread has given up on us already
                                 commitTransaction();
                                 done = true;
-                            } catch (ConcurrencyException x) {
-                                res.reset();
-
-                                if (++tries < 8) {
-                                    // try again after waiting some period
-                                    abortTransaction(true);
-
-                                    try {
-                                        // wait a bit longer with each try
-                                        int base = 800 * tries;
-
-                                        Thread.sleep((long) (base + (Math.random() * base * 2)));
-                                    } catch (Exception ignore) {
-                                    }
-
-                                    continue;
-                                } else {
-                                    abortTransaction(false);
-
-                                    if (error == null) {
-                                        app.errorCount += 1;
-
-                                        // set done to false so that the error will be processed
-                                        done = false;
-                                        error = "Couldn't complete transaction due to heavy object traffic (tried " +
-                                                tries + " times)";
-                                    } else {
-                                        // error in error action. use traditional minimal error message
-                                        res.write("<b>Error in application '" +
-                                                  app.getName() + "':</b> <br><br><pre>" +
-                                                  error + "</pre>");
-                                        done = true;
-                                    }
-                                }
-                            } catch (Exception x) {
-                                abortTransaction(false);
-
-                                // If the transactor thread has been killed by the invoker thread we don't have to
-                                // bother for the error message, just quit.
-                                if (localrtx != rtx) {
-                                    break;
-                                }
-
-                                res.reset();
-
-                                // check if we tried to process the error already
-                                if (error == null) {
-                                    app.errorCount += 1;
-                                    app.logEvent("Exception in " +
-                                                 Thread.currentThread() + ": " + x);
-
-                                    // Dump the profiling data to System.err
-                                    if (app.debug && !(x instanceof ScriptingException)) {
-                                        x.printStackTrace ();
-                                    }
-
-                                    // set done to false so that the error will be processed
-                                    done = false;
-                                    error = x.getMessage();
-
-                                    if ((error == null) || (error.length() == 0)) {
-                                        error = x.toString();
-                                    }
-
-                                    if (error == null) {
-                                        error = "Unspecified error";
-                                    }
-                                } else {
-                                    // error in error action. use traditional minimal error message
-                                    res.write("<b>Error in application '" +
-                                              app.getName() + "':</b> <br><br><pre>" +
-                                              error + "</pre>");
-                                    done = true;
-                                }
-                            }
-                        }
-
-                        break;
-
-                    case XMLRPC:
-                    case EXTERNAL:
-
-                        try {
-                            localrtx.begin(app.getName() + ":ext-rpc:" + method);
-
-                            root = app.getDataRoot();
-
-                            HashMap globals = new HashMap();
-
-                            globals.put("root", root);
-                            globals.put("res", new ResponseBean(res));
-                            globals.put("app", new ApplicationBean(app));
-
-                            scriptingEngine.enterContext(globals);
-
-                            currentElement = root;
-
-                            if (method.indexOf('.') > -1) {
-                                StringTokenizer st = new StringTokenizer(method, ".");
-                                int cnt = st.countTokens();
-
-                                for (int i = 1; i < cnt; i++) {
-                                    String next = st.nextToken();
-
-                                    currentElement = getChildElement(currentElement,
-                                                                     next);
-                                }
-
-                                if (currentElement == null) {
-                                    throw new FrameworkException("Method name \"" +
-                                                                 method +
-                                                                 "\" could not be resolved.");
-                                }
-
-                                method = st.nextToken();
-                            }
-
-                            if (reqtype == XMLRPC) {
-                                // check XML-RPC access permissions
-                                String proto = app.getPrototypeName(currentElement);
-
-                                app.checkXmlRpcAccess(proto, method);
-                            }
-
-                            // reset skin recursion detection counter
-                            skinDepth = 0;
-
-                            result = scriptingEngine.invoke(currentElement, method, args,
-                                                            ScriptingEngine.ARGS_WRAP_XMLRPC);
-                            commitTransaction();
-                        } catch (Exception x) {
-                            abortTransaction(false);
-
-                            app.logEvent("Exception in " + Thread.currentThread() + ": " +
-                                         x);
-
-                            // If the transactor thread has been killed by the invoker thread we don't have to
-                            // bother for the error message, just quit.
-                            if (localrtx != rtx) {
-                                return;
-                            }
-
-                            this.exception = x;
-                        }
-
-                        break;
-
-
-                    case INTERNAL:
-
-                        // Just a human readable descriptor of this invocation
-                        String funcdesc = app.getName() + ":internal:" + method;
-
-                        // if thisObject is an instance of NodeHandle, get the node object itself.
-                        if ((thisObject != null) && thisObject instanceof NodeHandle) {
-                            thisObject = ((NodeHandle) thisObject).getNode(app.nmgr.safe);
-
-                            // see if a valid node was returned
-                            if (thisObject == null) {
-                                reqtype = NONE;
 
                                 break;
-                            }
-                        }
 
-                        // avoid going into transaction if called function doesn't exist.
-                        boolean functionexists = true;
+                            case XMLRPC:
+                            case EXTERNAL:
 
-                        // this only works for the (common) case that method is a plain
-                        // method name, not an obj.method path
-                        if (method.indexOf('.') < 0) {
-                            functionexists = scriptingEngine.hasFunction(thisObject, method);
-                        }
+                                try {
+                                    currentElement = root;
 
-                        if (!functionexists) {
-                            // function doesn't exist, nothing to do here.
-                            reqtype = NONE;
-                        } else {
-                            try {
-                                localrtx.begin(funcdesc);
+                                    if (functionName.indexOf('.') > -1) {
+                                        StringTokenizer st = new StringTokenizer(functionName, ".");
+                                        int cnt = st.countTokens();
 
-                                root = app.getDataRoot();
+                                        for (int i = 1; i < cnt; i++) {
+                                            String next = st.nextToken();
 
-                                HashMap globals = new HashMap();
+                                            currentElement = getChildElement(currentElement,
+                                                    next);
+                                        }
 
-                                globals.put("root", root);
-                                globals.put("res", new ResponseBean(res));
-                                globals.put("app", new ApplicationBean(app));
+                                        if (currentElement == null) {
+                                            throw new FrameworkException("Method name \"" +
+                                                    functionName +
+                                                    "\" could not be resolved.");
+                                        }
 
-                                scriptingEngine.enterContext(globals);
+                                        functionName = st.nextToken();
+                                    }
 
-                                // reset skin recursion detection counter
-                                skinDepth = 0;
+                                    if (reqtype == XMLRPC) {
+                                        // check XML-RPC access permissions
+                                        String proto = app.getPrototypeName(currentElement);
 
-                                result = scriptingEngine.invoke(thisObject, method, args,
-                                                                ScriptingEngine.ARGS_WRAP_DEFAULT);
-                                commitTransaction();
-                            } catch (Exception x) {
-                                abortTransaction(false);
+                                        app.checkXmlRpcAccess(proto, functionName);
+                                    }
 
-                                app.logEvent("Exception in " + Thread.currentThread() +
-                                             ": " + x);
+                                    // reset skin recursion detection counter
+                                    skinDepth = 0;
 
-                                // If the transactor thread has been killed by the invoker thread we don't have to
-                                // bother for the error message, just quit.
-                                if (localrtx != rtx) {
-                                    return;
+                                    result = scriptingEngine.invoke(currentElement, functionName, args,
+                                            ScriptingEngine.ARGS_WRAP_XMLRPC);
+                                    commitTransaction();
+                                } catch (Exception x) {
+                                    abortTransaction(false);
+
+                                    app.logEvent("Exception in " + Thread.currentThread() + ": " +
+                                            x);
+
+                                    // If the transactor thread has been killed by the invoker thread we don't have to
+                                    // bother for the error message, just quit.
+                                    if (localrtx != rtx) {
+                                        return;
+                                    }
+
+                                    this.exception = x;
                                 }
 
-                                this.exception = x;
+                                done = true;
+                                break;
+
+                            case INTERNAL:
+
+                                // TODO: transaction names are not set for internal/xmlrpc/external requests
+                                // Just a human readable descriptor of this invocation
+                                // String funcdesc = app.getName() + ":internal:" + functionName;
+
+                                // if thisObject is an instance of NodeHandle, get the node object itself.
+                                if ((thisObject != null) && thisObject instanceof NodeHandle) {
+                                    thisObject = ((NodeHandle) thisObject).getNode(app.nmgr.safe);
+
+                                    // see if a valid node was returned
+                                    if (thisObject == null) {
+                                        reqtype = NONE;
+
+                                        break;
+                                    }
+                                }
+
+                                // avoid going into transaction if called function doesn't exist.
+                                boolean functionexists = true;
+
+                                // this only works for the (common) case that method is a plain
+                                // method name, not an obj.method path
+                                if (functionName.indexOf('.') < 0) {
+                                    functionexists = scriptingEngine.hasFunction(thisObject, functionName);
+                                }
+
+                                if (!functionexists) {
+                                    // function doesn't exist, nothing to do here.
+                                    reqtype = NONE;
+                                } else {
+                                    try {
+
+                                        // reset skin recursion detection counter
+                                        skinDepth = 0;
+
+                                        result = scriptingEngine.invoke(thisObject, functionName, args,
+                                                ScriptingEngine.ARGS_WRAP_DEFAULT);
+                                        commitTransaction();
+                                    } catch (Exception x) {
+                                        abortTransaction(false);
+
+                                        app.logEvent("Exception in " + Thread.currentThread() +
+                                                ": " + x);
+
+                                        // If the transactor thread has been killed by the invoker thread we don't have to
+                                        // bother for the error message, just quit.
+                                        if (localrtx != rtx) {
+                                            return;
+                                        }
+
+                                        this.exception = x;
+                                    }
+                                }
+
+                                done = true;
+                                break;
+
+                        } // switch (reqtype)
+                    } catch (ConcurrencyException x) {
+                        res.reset();
+
+                        if (++tries < 8) {
+                            // try again after waiting some period
+                            abortTransaction(true);
+
+                            try {
+                                // wait a bit longer with each try
+                                int base = 800 * tries;
+
+                                Thread.sleep((long) (base + (Math.random() * base * 2)));
+                            } catch (Exception ignore) {
+                            }
+
+                            continue;
+                        } else {
+                            abortTransaction(false);
+
+                            if (error == null) {
+                                app.errorCount += 1;
+
+                                // set done to false so that the error will be processed
+                                done = false;
+                                error = "Couldn't complete transaction due to heavy object traffic (tried " +
+                                        tries + " times)";
+                            } else {
+                                // error in error action. use traditional minimal error message
+                                res.write("<b>Error in application '" +
+                                        app.getName() + "':</b> <br><br><pre>" +
+                                        error + "</pre>");
+                                done = true;
                             }
                         }
+                    } catch (Throwable x) {
+                        abortTransaction(false);
 
-                        break;
+                        // If the transactor thread has been killed by the invoker thread we don't have to
+                        // bother for the error message, just quit.
+                        if (localrtx != rtx) {
+                            break;
+                        }
+
+                        res.reset();
+
+                        // check if we tried to process the error already
+                        if (error == null) {
+                            app.errorCount += 1;
+                            app.logEvent("Exception in " +
+                                    Thread.currentThread() + ": " + x);
+
+                            // Dump the profiling data to System.err
+                            if (app.debug && !(x instanceof ScriptingException)) {
+                                x.printStackTrace();
+                            }
+
+                            // set done to false so that the error will be processed
+                            done = false;
+                            error = x.getMessage();
+
+                            if ((error == null) || (error.length() == 0)) {
+                                error = x.toString();
+                            }
+
+                            if (error == null) {
+                                error = "Unspecified error";
+                            }
+                        } else {
+                            // error in error action. use traditional minimal error message
+                            res.write("<b>Error in application '" +
+                                    app.getName() + "':</b> <br><br><pre>" +
+                                    error + "</pre>");
+                            done = true;
+                        }
+                    }
                 }
 
                 // exit execution context
@@ -657,10 +625,7 @@ public final class RequestEvaluator implements Runnable {
      */
     public synchronized ResponseTrans invokeHttp(RequestTrans req, Session session)
                                       throws Exception {
-        this.reqtype = HTTP;
-        this.req = req;
-        this.session = session;
-        this.res = new ResponseTrans(req);
+        initObjects(req, session);
 
         app.activeRequests.put(req, this);
 
@@ -701,22 +666,18 @@ public final class RequestEvaluator implements Runnable {
     /**
      *
      *
-     * @param method ...
+     * @param functionName ...
      * @param args ...
      *
      * @return ...
      *
      * @throws Exception ...
      */
-    public synchronized Object invokeXmlRpc(String method, Object[] args)
+    public synchronized Object invokeXmlRpc(String functionName, Object[] args)
                                      throws Exception {
-        this.reqtype = XMLRPC;
-        this.session = null;
-        this.method = method;
+        initObjects(XMLRPC, RequestTrans.XMLRPC);
+        this.functionName = functionName;
         this.args = args;
-        this.res = new ResponseTrans();
-        result = null;
-        exception = null;
 
         checkThread();
         wait(app.requestTimeout);
@@ -740,22 +701,18 @@ public final class RequestEvaluator implements Runnable {
     /**
      *
      *
-     * @param method ...
+     * @param functionName ...
      * @param args ...
      *
      * @return ...
      *
      * @throws Exception ...
      */
-    public synchronized Object invokeExternal(String method, Object[] args)
+    public synchronized Object invokeExternal(String functionName, Object[] args)
                                      throws Exception {
-        this.reqtype = EXTERNAL;
-        this.session = null;
-        this.method = method;
+        initObjects(EXTERNAL, RequestTrans.EXTERNAL);
+        this.functionName = functionName;
         this.args = args;
-        this.res = new ResponseTrans();
-        result = null;
-        exception = null;
 
         checkThread();
         wait();
@@ -823,14 +780,10 @@ public final class RequestEvaluator implements Runnable {
     public synchronized Object invokeInternal(Object object, String functionName,
                                               Object[] args, long timeout)
                                        throws Exception {
-        reqtype = INTERNAL;
-        session = null;
+        initObjects(INTERNAL, RequestTrans.INTERNAL);
         thisObject = object;
-        method = functionName;
+        this.functionName = functionName;
         this.args = args;
-        this.res = new ResponseTrans();
-        result = null;
-        exception = null;
 
         checkThread();
         wait(timeout);
@@ -850,6 +803,65 @@ public final class RequestEvaluator implements Runnable {
     }
 
 
+    /**
+     * Init this evaluator's objects from a RequestTrans for a HTTP request
+     *
+     * @param req
+     * @param session
+     */
+    private void initObjects(RequestTrans req, Session session) {
+        this.req = req;
+        this.reqtype = HTTP;
+        this.session = session;
+        res = new ResponseTrans(req);
+        // result = null;
+        // exception = null;
+    }
+
+    /**
+     * Init this evaluator's objects for an internal, external or XML-RPC type
+     * request.
+     *
+     * @param reqtype
+     * @param reqtypeName
+     */
+    private void initObjects(int reqtype, String reqtypeName) {
+        this.reqtype = reqtype;
+        this.req = new RequestTrans(reqtypeName);
+        session = new Session(functionName, app);
+        res = new ResponseTrans(req);
+        result = null;
+        exception = null;
+    }
+
+    /**
+     * Initialize the globals in the scripting engine for the current request.
+     *
+     * @param root
+     * @throws ScriptingException
+     */
+    private void initGlobals(Object root) throws ScriptingException {
+        HashMap globals = new HashMap();
+
+        globals.put("root", root);
+        globals.put("session", new SessionBean(session));
+        globals.put("req", new RequestBean(req));
+        globals.put("res", new ResponseBean(res));
+        globals.put("app", new ApplicationBean(app));
+        globals.put("path", requestPath);
+
+        // enter execution context
+        scriptingEngine.enterContext(globals);
+    }
+
+    /**
+     * Get the child element with the given name from the given object.
+     *
+     * @param obj
+     * @param name
+     * @return
+     * @throws ScriptingException
+     */
     private Object getChildElement(Object obj, String name) throws ScriptingException {
         if (scriptingEngine.hasFunction(obj, "getChildElement")) {
             return scriptingEngine.invoke(obj, "getChildElement", new Object[] {name},
@@ -864,8 +876,8 @@ public final class RequestEvaluator implements Runnable {
     }
 
     /**
-     *  Stop this request evaluator's current thread. If currently active kill the request, otherwise just
-     *  notify.
+     *  Stop this request evaluator's current thread.
+     *  If currently active kill the request, otherwise just notify.
      */
     public synchronized void stopThread() {
         Transactor t = rtx;
