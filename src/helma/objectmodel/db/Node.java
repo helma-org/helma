@@ -1618,24 +1618,7 @@ public final class Node implements INode, Serializable {
                              null :
                              dbmap.getExactPropertyRelation(propname);
 
-        // 1) check if this is a create-on-demand node property
-        if (rel != null && (rel.isVirtual() || rel.isComplexReference())) {
-            if (state != TRANSIENT) {
-                Node n = nmgr.getNode(this, propname, rel);
-
-                if (n != null) {
-                    if ((n.parentHandle == null) &&
-                            !"root".equalsIgnoreCase(n.getPrototype())) {
-                        n.setParent(this);
-                        n.name = propname;
-                        n.anonymous = false;
-                    }
-                    return new Property(propname, this, n);
-                }
-            }
-        }
-
-        // 2) check if the property is contained in the propMap
+        // 1) check if the property is contained in the propMap
         Property prop = propMap == null ? null :
                         (Property) propMap.get(propname.toLowerCase());
 
@@ -1671,6 +1654,24 @@ public final class Node implements INode, Serializable {
             setNode(propname, n);
             return (Property) propMap.get(propname.toLowerCase());
         }
+
+        // 2) check if this is a create-on-demand node property
+        if (rel != null && (rel.isVirtual() || rel.isComplexReference())) {
+            if (state != TRANSIENT) {
+                Node n = nmgr.getNode(this, propname, rel);
+
+                if (n != null) {
+                    if ((n.parentHandle == null) &&
+                            !"root".equalsIgnoreCase(n.getPrototype())) {
+                        n.setParent(this);
+                        n.name = propname;
+                        n.anonymous = false;
+                    }
+                    return new Property(propname, this, n);
+                }
+            }
+        }
+
 
         // 3) try to get the property from the database via accessname, if defined
         if (rel == null && dbmap != null && state != TRANSIENT) {
