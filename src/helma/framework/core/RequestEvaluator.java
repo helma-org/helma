@@ -233,7 +233,7 @@ public final class RequestEvaluator implements Runnable {
 	                    // try calling onRequest() function on object before
 	                    // calling the actual action
 	                    try {
-	                        scriptingEngine.invoke (currentElement, "onRequest", new Object[0]);
+	                        scriptingEngine.invoke (currentElement, "onRequest", new Object[0], false);
 	                    } catch (RedirectException redir) {
 	                        throw redir;
 	                    } catch (Exception ignore) {
@@ -241,7 +241,7 @@ public final class RequestEvaluator implements Runnable {
 	                    }
 
 	                    // do the actual action invocation
-	                    scriptingEngine.invoke (currentElement, action, new Object[0]);
+	                    scriptingEngine.invoke (currentElement, action, new Object[0], false);
 
 	                    localrtx.timer.endEvent (txname+" execute");
 	                } catch (RedirectException redirect) {
@@ -347,7 +347,7 @@ public final class RequestEvaluator implements Runnable {
 	            String proto = app.getPrototypeName (currentElement);
 	            app.checkXmlRpcAccess (proto, method);
 
-	            result = scriptingEngine.invoke (currentElement, method, args);
+	            result = scriptingEngine.invoke (currentElement, method, args, true);
 	            commitTransaction ();
 
 	        } catch (Exception wrong) {
@@ -397,7 +397,7 @@ public final class RequestEvaluator implements Runnable {
 
 	            scriptingEngine.enterContext (globals);
 
-	            result = scriptingEngine.invoke (thisObject, method, args);
+	            result = scriptingEngine.invoke (thisObject, method, args, false);
 	            commitTransaction ();
 
 	        } catch (Exception wrong) {
@@ -538,7 +538,7 @@ public final class RequestEvaluator implements Runnable {
     }
 
     public Object invokeDirectFunction (Object obj, String functionName, Object[] args) throws Exception {
-	return scriptingEngine.invoke (obj, functionName, args);
+	return scriptingEngine.invoke (obj, functionName, args, false);
     }
 
     public synchronized Object invokeFunction (Object object, String functionName, Object[] args)

@@ -322,7 +322,7 @@ public final class Skin {
 	            int oldLength = reval.res.getBufferLength ();
 	            if (reval.scriptingEngine.hasFunction (handlerObject, name+"_macro")) {
 	                // System.err.println ("Getting macro from function");
-	                v = reval.scriptingEngine.invoke (handlerObject, name+"_macro", arguments);
+	                v = reval.scriptingEngine.invoke (handlerObject, name+"_macro", arguments, false);
 	            } else {
 	                // System.err.println ("Getting macro from property");
 	                v = reval.scriptingEngine.get (handlerObject, name);
@@ -353,7 +353,7 @@ public final class Skin {
 	        throw timeout;
 	    } catch (Exception x) {
 	        x.printStackTrace();
-	        String msg = "[HopMacro error: "+x+"]";
+	        String msg = "[HopMacro error in "+this+": "+x+"]";
 	        reval.res.write (" "+msg+" ");
 	        app.logEvent (msg);
 	    }

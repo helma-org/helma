@@ -373,7 +373,7 @@ public final class FesiEvaluator implements ScriptingEngine {
     /**
      * Invoke a function on some object, using the given arguments and global vars.
      */
-    public Object invoke (Object thisObject, String functionName, Object[] args) throws ScriptingException {
+    public Object invoke (Object thisObject, String functionName, Object[] args, boolean xmlrpc) throws ScriptingException {
 	ESObject eso = null;
 	if (thisObject == null)
 	    eso = global;
@@ -382,15 +382,23 @@ public final class FesiEvaluator implements ScriptingEngine {
 	try {
 	    ESValue[] esv = args == null ? new ESValue[0] : new ESValue[args.length];
 	    for (int i=0; i<esv.length; i++) {
+	        // XML-RPC requires special argument conversion
+	        if (xmlrpc)
+	            esv[i] = processXmlRpcArgument (args[i]);
 	        // for java.util.Map objects, we use the special "tight" wrapper
 	        // that makes the Map look like a native object
-	        if (args[i] instanceof Map)
+	        else if (args[i] instanceof Map)
 	            esv[i] = new ESMapWrapper (this, (Map) args[i]);
 	        else
 	            esv[i] = ESLoader.normalizeValue (args[i], evaluator);
 	    }
 	    ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
-	    return retval == null ? null : retval.toJavaObject ();
+	    if (xmlrpc)
+	        return processXmlRpcResponse (retval);
+	    else if (retval == null)
+	        return null;
+	    else
+	         return retval.toJavaObject ();
 	} catch (Exception x) {
 	    // check if this is a redirect exception, which has been converted by fesi
 	    // into an EcmaScript exception, which is why we can't explicitly catch it
@@ -483,6 +491,93 @@ public final class FesiEvaluator implements ScriptingEngine {
 	    return null;
 	}
 	return null;
+    }
+
+    /**
+     *  Convert an input argument from Java to the scripting runtime
+     *  representation.
+     */
+    private ESValue processXmlRpcArgument (Object what) throws Exception {
+	if (what == null)
+	   return ESNull.theNull;
+	if (what instanceof Vector) {
+	    Vector v = (Vector) what;
+	    ArrayPrototype retval = new ArrayPrototype (evaluator.getArrayPrototype (), evaluator);
+	    int l = v.size ();
+	    for (int i=0; i<l; i++)
+	        retval.putProperty (i, processXmlRpcArgument (v.elementAt (i)));
+	    return retval;
+	}
+	if (what instanceof Hashtable) {
+	    Hashtable t = (Hashtable) what;
+	    ESObject retval = new ObjectPrototype (evaluator.getObjectPrototype (), evaluator);
+	    for (Enumeration e=t.keys(); e.hasMoreElements(); ) {
+	        String next = (String) e.nextElement ();
+	        retval.putProperty (next, processXmlRpcArgument (t.get (next)), next.hashCode ());
+	    }
+	    return retval;
+	}
+	if (what instanceof String)
+	   return new ESString (what.toString ());
+	if (what instanceof Number)
+	   return new ESNumber (new Double (what.toString ()).doubleValue ());
+	if (what instanceof Boolean)
+	   return ESBoolean.makeBoolean (((Boolean) what).booleanValue ());
+	if (what instanceof Date)
+	   return new DatePrototype (evaluator, (Date) what);
+	return ESLoader.normalizeValue (what, evaluator);
+    }
+
+
+    /**
+     * convert a JavaScript Object object to a generic Java object stucture.
+     */
+    public Object processXmlRpcResponse (ESValue what) throws EcmaScriptException {
+	if (what == null || what instanceof ESNull)
+	    return null;
+	if (what instanceof ArrayPrototype) {
+	    ArrayPrototype a = (ArrayPrototype) what;
+	    int l = a.size ();
+	    Vector v = new Vector ();
+	    for (int i=0; i<l; i++) {
+	        Object nj = processXmlRpcResponse (a.getProperty (i));
+	        v.addElement (nj);
+	    }
+	    return v;
+	}
+	if (what instanceof ObjectPrototype) {
+	    ObjectPrototype o = (ObjectPrototype) what;
+	    Hashtable t = new Hashtable ();
+	    for (Enumeration e=o.getProperties (); e.hasMoreElements (); ) {
+	        String next = (String) e.nextElement ();
+	        // We don't do deep serialization of HopObjects to avoid
+	        // that the whole web site structure is sucked out with one
+	        // object. Instead we return some kind of "proxy" objects
+	        // that only contain the prototype and id of the HopObject property.
+	        Object nj = null;
+	        ESValue esv = o.getProperty (next, next.hashCode ());
+	        if (esv instanceof ESNode) {
+	            INode node = ((ESNode) esv).getNode ();
+	            if (node != null) {
+	                Hashtable nt = new Hashtable ();
+	                nt.put ("id", node.getID());
+	                if (node.getPrototype() != null)
+	                    nt.put ("prototype", node.getPrototype ());
+	                nj = nt;
+	            }
+	        } else
+	            nj = processXmlRpcResponse (esv);
+	        if (nj != null)  // can't put null as value in hashtable
+	            t.put (next, nj);
+	    }
+	    return t;
+	}
+	if (what instanceof ESUndefined || what instanceof ESNull)
+	    return null;
+	Object jval = what.toJavaObject ();
+	if (jval instanceof Byte || jval instanceof Short)
+	    jval = new Integer (jval.toString ());
+	return jval;
     }
 
 

@@ -37,9 +37,10 @@ public interface ScriptingEngine {
 
 
     /**
-     * Invoke a function on some object, using the given arguments and global vars.
+     * Invoke a function on some object, using the given arguments and global vars. 
+     * XML-RPC calls require special input and output parameter conversion.
      */
-    public Object invoke (Object thisObject, String functionName, Object[] args)
+    public Object invoke (Object thisObject, String functionName, Object[] args, boolean xmlrpc)
 		throws ScriptingException;
 
     /**
