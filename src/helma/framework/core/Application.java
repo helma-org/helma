@@ -588,30 +588,48 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Create a new session if necessary.
      */
 	public Session checkSession (String sessionID)	{
-		Session session = getSession(sessionID);
-		if ( session==null )	{
-			session = new Session (sessionID, this);
-			sessions.put (sessionID, session);
-		}
-		return session;
+	Session session = getSession(sessionID);
+	if ( session==null )	{
+	    session = new Session (sessionID, this);
+	    sessions.put (sessionID, session);
+	}
+	return session;
 	}
 
+    /**
+     * Remove the session from the sessions-table and logout the user.
+     */
+	public void destroySession (String sessionID) {
+	logoutSession (getSession (sessionID));
+	sessions.remove (sessionID);
+	}
+
+    /**
+     * Remove the session from the sessions-table and logout the user.
+     */
+	public void destroySession (Session session) {
+	logoutSession (session);
+	sessions.remove (session.getSessionID ());
+	}
+
+    /**
+     * Return an array of session currently associated with a given Hop user object.
+     */
 	public Hashtable getSessionsForUsername (String username)	{
-		User u = (User)activeUsers.get(username);
-		if (u==null)
-			return null;
-		return u.getSessions();
+	User u = (User)activeUsers.get(username);
+	if (u==null)
+	    return null;
+	return u.getSessions();
 	}
-
 
     /**
      * Return the session currently associated with a given Hop session ID.
      */
     public Session getSession (String sessionID) {
-		if (sessionID == null)
-		    return null;
-		return (Session) sessions.get (sessionID);
-    }
+	if (sessionID == null)
+	    return null;
+	return (Session) sessions.get (sessionID);
+	}
 
     /**
      * Register a user with the given user name and password.
@@ -622,7 +640,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	uname = uname.toLowerCase ().trim ();
 	if ("".equals (uname))
 	    return null;
-
 	INode unode = null;
 	try {
 	    INode users = getUserRoot ();
@@ -642,8 +659,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	    unode.setName (uname);
 	    unode.setString (usernameProp, uname);
 	    unode.setString ("password", password);
-	    // users.setNode (uname, unode);
-	    // return users.getNode (uname, false);	
 	    return unode;
 	} catch (Exception x) {
 	    logEvent ("Error registering User: "+x);
@@ -654,48 +669,48 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     /**
      * Log in a user given his or her user name and password.
      */
-    public boolean loginSession (String uname, String password, Session s) {
-		// Check the name/password of a user and log it in to the current session
-		if (uname == null)
-		    return false;
-		uname = uname.toLowerCase ().trim ();
-		if ("".equals (uname))
-	    	return false;
-		try {
-	    	INode users = getUserRoot ();
-	    	Node unode = (Node)users.getNode (uname, false);
-	    	String pw = unode.getString ("password", false);
-	    	if (pw != null && pw.equals (password)) {
-				// let the old user-object forget about this session
-				logoutSession(s);
-	        	s.login (unode);
-	        	User u = (User)activeUsers.get(unode.getName());
-	        	if (u==null)	{
-			        activeUsers.put (unode.getName (), new User(unode.getHandle(), unode.getName(),s));
-				}	else	{
-					u.addSession(s);
-				}
-	        	return true;
-	    	}
-		} catch (Exception x) {
-	    	return false;
-		}
-		return false;
+    public boolean loginSession (String uname, String password, Session session) {
+	// Check the name/password of a user and log it in to the current session
+	if (uname == null)
+	    return false;
+	uname = uname.toLowerCase ().trim ();
+	if ("".equals (uname))
+    	return false;
+	try {
+    	INode users = getUserRoot ();
+    	Node unode = (Node)users.getNode (uname, false);
+    	String pw = unode.getString ("password", false);
+    	if (pw != null && pw.equals (password)) {
+			// let the old user-object forget about this session
+			logoutSession(session);
+        	session.login (unode);
+        	User u = (User)activeUsers.get(unode.getName());
+        	if (u==null) {
+		        activeUsers.put (unode.getName (), new User(unode.getHandle(), unode.getName(),session));
+			}	else	{
+				u.addSession(session);
+			}
+        	return true;
+    	}
+	} catch (Exception x) {
+    	return false;
+	}
+	return false;
     }
 
     /**
      * Log out a session from this application.
      */
-    public boolean logoutSession (Session s) {
-		if (s.isLoggedIn()==true) {
-	    	String uid = s.uid;
-			User u = (User) activeUsers.get (uid);
-			if (u.removeSession(s)==0)	{
-				activeUsers.remove (uid);
-			}
-			s.logout();
+    public boolean logoutSession (Session session) {
+	if (session.isLoggedIn()==true) {
+    	String uid = session.uid;
+		User u = (User) activeUsers.get (uid);
+		if (u.removeSession(session)==0)	{
+			activeUsers.remove (uid);
 		}
-		return true;
+		session.logout();
+	}
+	return true;
     }
 
     /**
@@ -743,24 +758,12 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	    if (rootproto != null && rootproto.equals (getPrototypeName (p)))
 	        break;
 	    b.insert (0, divider);
-
-	    // users always have a canonical URL like /users/username
-//	    if ("user".equals (getPrototypeName (p))) {
-//	        b.insert (0, URLEncoder.encode (getElementName (p)));
-//	        p = users;
-//	        break;
-//	    }
 	    b.insert (0, URLEncoder.encode (getElementName (p)));
 	    p = getParentElement (p);
 
 	    if (loopWatch++ > 20)
 	        break;
 	}
-
-//	if (p == users) {
-//	    b.insert (0, divider);
-//	    b.insert (0, "users");
-//	}
 
 	if (actionName != null)
 	    b.append (URLEncoder.encode (actionName));
@@ -975,14 +978,15 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	    int sessionTimeout = 30;
 	    try {
 	        sessionTimeout = Math.max (0, Integer.parseInt (props.getProperty ("sessionTimeout", "30")));
-	    } catch (Exception ignore) {}
+	    } catch (Exception ignore) {
+	    	System.out.println(ignore.toString());
+	    	}
 
 	    long now = System.currentTimeMillis ();
 
 	    // check if we should clean up user sessions
 	    if (now - lastCleanup > cleanupSleep) try {
 	        lastCleanup = now;
-	        // logEvent ("Cleaning up "+name+": " + sessions.size () + " sessions active");
 	        Hashtable cloned = (Hashtable) sessions.clone ();
 	        for (Enumeration e = cloned.elements (); e.hasMoreElements (); ) {
 	            Session session = (Session) e.nextElement ();
@@ -993,10 +997,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 //	                    } catch (Exception ignore) {}
 //	                    activeUsers.remove (session.uid);
 //	                }
-					logoutSession(session);
+					destroySession(session);
 	            }
 	        }
-	        // logEvent ("Cleaned up "+name+": " + sessions.size () + " sessions remaining");
 	    } catch (Exception cx) {
 	        logEvent ("Error cleaning up sessions: "+cx);
 	        cx.printStackTrace ();
