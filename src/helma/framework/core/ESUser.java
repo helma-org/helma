@@ -61,6 +61,15 @@ public class ESUser extends ESNode {
 	cacheWrapper = new ESNode (cache, eval);
     }
 
+    public void setNode (INode node) {
+	if (node != null) {
+	    this.node = node;
+	    eval.objectcache.put (node, this);
+	    // we don't take over the transient cache from the node,
+	    // because we always use the one from the user object.
+	}
+    }
+
 
     public String toString () {
 	return ("UserNode "+node.getNameOrID ());

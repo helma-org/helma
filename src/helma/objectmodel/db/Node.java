@@ -1691,10 +1691,6 @@ public class Node implements INode, Serializable {
 	return cacheNode;
     }
 
-    public synchronized void setCacheNode (INode cache) {
-	this.cacheNode = cache;
-    }
-
     // walk down node path to the first non-virtual node and return its id.
     // limit max depth to 3, since there shouldn't be more then 2 layers of virtual nodes.
     public String getNonVirtualHomeID () {

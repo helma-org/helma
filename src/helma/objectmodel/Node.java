@@ -768,10 +768,6 @@ public class Node implements INode, Serializable {
 	return cacheNode;
     }
 
-    public synchronized void setCacheNode (INode cache) {
-	this.cacheNode = cache;
-    }
-
 }
 
 

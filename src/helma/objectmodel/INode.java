@@ -47,7 +47,6 @@ public interface INode {
     public String getPrototype ();
     public void setPrototype (String prototype);
     public INode getCacheNode ();
-    public void setCacheNode (INode cache);
 
     /**
      *  node-related methods
