@@ -162,7 +162,7 @@ public class ResponseTrans implements Externalizable {
 	    buffer = new StringBuffer (512);
 	if (what != null)
 	    buffer.append (what.toString ());
-	buffer.append ("<br>\r\n");
+	buffer.append ("<br />\r\n");
     }
 
     /**
