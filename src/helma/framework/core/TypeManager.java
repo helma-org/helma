@@ -78,7 +78,7 @@ public class TypeManager implements Runnable, EcmaScriptTreeConstants {
 	                proto = new Prototype (protoDir, app);
 	                registerPrototype (list[i], protoDir, proto);
 	                prototypes.put (list[i], proto);
-	                if ("node".equalsIgnoreCase (list[i]))
+	                if ("hopobject".equalsIgnoreCase (list[i]))
 	                    nodeProto = proto;
 	                // give logger thread a chance to tell what's going on
 	                Thread.yield();
@@ -159,7 +159,7 @@ public class TypeManager implements Runnable, EcmaScriptTreeConstants {
                 op = reval.esUserPrototype;
             else if ("global".equalsIgnoreCase (name))
                 op = reval.global;
-            else if ("node".equalsIgnoreCase (name))
+            else if ("hopobject".equalsIgnoreCase (name))
                 op = reval.esNodePrototype;
             else {
                 op = new ObjectPrototype (reval.esNodePrototype, reval.evaluator);
