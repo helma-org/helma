@@ -35,7 +35,7 @@ import java.text.*;
 import java.io.*;
 
 /**
- * 
+ *
  */
 public class GlobalObject extends ImporterTopLevel {
     Application app;
@@ -186,7 +186,7 @@ public class GlobalObject extends ImporterTopLevel {
      * @return a parsed skin object
      */
     public Object createSkin(String str) {
-        return new Skin(str, app);
+        return Context.toObject(new Skin(str, app), this);
     }
 
     /**
@@ -386,7 +386,7 @@ public class GlobalObject extends ImporterTopLevel {
      */
     public String formatParagraphs(Object obj) {
         String str = toString(obj);
-        
+
         if (str == null) {
             return null;
         }
