@@ -131,7 +131,6 @@ public final class Prototype {
      * up-to-date and the lastCodeUpdate be set if there has been any changes.
      */
     public void checkForUpdates() {
-
         boolean updatedResources = false;
 
         // check if any resource the prototype knows about has changed or gone
@@ -141,7 +140,9 @@ public final class Prototype {
             try {
                 if (tracker.hasChanged()) {
                     updatedResources = true;
+                    // let tracker know we've seen the update
                     tracker.markClean();
+                    // if resource has gone remove it
                     if (!tracker.getResource().exists()) {
                         i.remove();
                         String name = tracker.getResource().getName();
@@ -167,7 +168,7 @@ public final class Prototype {
                         name.endsWith(TypeManager.scriptExtension) ||
                         name.endsWith(TypeManager.actionExtension) ||
                         name.endsWith(TypeManager.skinExtension)) {
-
+                    updatedResources = true;
                     if (name.endsWith(TypeManager.skinExtension)) {
                         addSkinResource(resources[i]);
                     } else {
