@@ -174,6 +174,20 @@ public class CacheMap  {
     // @see LruHashtable#get
     // @return the old value of the key, or null if it did not have one.
     public synchronized Object put (Object key, Object value) {
+
+	if (key instanceof helma.objectmodel.Key && value instanceof helma.objectmodel.db.Node) {
+	    helma.objectmodel.Key k = (helma.objectmodel.Key) key;
+	    helma.objectmodel.db.Node n = (helma.objectmodel.db.Node) value;
+	    helma.objectmodel.DbMapping dbm = n.getDbMapping ();
+	    String t1 = k.getType ();
+	    String t2 = dbm == null ? null: dbm.getTypeName();
+	    if (t1 != t2 && (t1 == null || !t1.equals (t2))) {
+	        helma.objectmodel.IServer.getLogger().log ("WARNING: "+t1+" != "+t2);
+	        System.err.println ("WARNING: "+t1+" != "+t2);
+	        Thread.dumpStack ();
+	    }
+	}
+
 	Object oldValue = newTable.put (key, value);
 	if (oldValue != null)
 	    return oldValue;
