@@ -19,7 +19,7 @@ public class XmlRpcClient implements XmlRpcHandler {
      
     URL url;
     String auth;
-   
+
     /** 
      * Construct a XML-RPC client with this URL.
      */
@@ -41,6 +41,12 @@ public class XmlRpcClient implements XmlRpcHandler {
 	this.url = new URL ("http://"+hostname+":"+port+"/RPC2");
     }
    
+    /**
+     * Return the URL for this XML-RPC client.
+     */
+    public URL getURL () {
+	return url;
+    }
 
     /**
      * Sets Authentication for this client. This will be sent as Basic Authentication header
@@ -55,10 +61,11 @@ public class XmlRpcClient implements XmlRpcHandler {
 	}
     }
 
-    /** 
+
+    /**
      * Generate an XML-RPC request and send it to the server. Parse the result and
      * return the corresponding Java object.
-     * 
+     *
      * @exception XmlRpcException: If the remote host returned a fault message.
      * @exception IOException: If the call could not be made because of lower level problems.
      */
@@ -68,10 +75,28 @@ public class XmlRpcClient implements XmlRpcHandler {
     	    Object retval =  worker.execute (method, params);
 	    return retval;
 	} finally {
-	    if (workers < 50 && !worker.fault)
+	    worker.reset ();
+	    if (workers < 20 && !worker.fault)
 	        pool.push (worker);
 	    else
 	        workers -= 1;
+	}
+    }
+
+    /**
+     * Generate an XML-RPC request and send it to the server in a new thread.
+     * This method returns immediately.
+     * If the callback parameter is not null, it will be called later to handle the result or error when the call is finished.
+     * 
+     */
+    public void executeAsync (String method, Vector params, AsyncCallback callback) {
+    	Worker worker = null;
+	try {
+	    worker = getWorker ();
+    	    worker.executeAsync (method, params, callback);
+	} catch (IOException iox) {
+	    if (callback != null)
+	        callback.handleError (iox, url, method);
 	}
     }
     
@@ -91,18 +116,49 @@ public class XmlRpcClient implements XmlRpcHandler {
     }
     
 
-    class Worker extends XmlRpc {
-    
+    class Worker extends XmlRpc implements Runnable {
+
+    String method;
+    Vector params;
     boolean fault;
     Object result = null; 
     StringBuffer strbuf;
+    AsyncCallback callback = null;
 
     public Worker () throws IOException {
     	super ();
     }
 
-
     public Object execute (String method, Vector params) throws XmlRpcException, IOException {
+	this.method = method;
+	this.params = params;
+	return executeCall ();
+    }
+
+    public void executeAsync (String method, Vector params, AsyncCallback callback) {
+	this.method = method;
+	this.params = params;
+	this.callback = callback;
+	Thread t = new Thread (this);
+	t.start ();
+    }
+
+    public void run () {
+	Object res = null;
+	try {
+	    res = executeCall ();
+	    // notify callback object
+	    if (callback != null)
+	        callback.handleResult (res, url, method);
+	} catch (Exception x) {
+                 if (callback != null)
+	        callback.handleError (x, url, method);
+	}
+	System.err.println ("GOT: "+result);
+    }
+
+
+    private Object executeCall () throws XmlRpcException, IOException {
 	fault = false;
 	long now = System.currentTimeMillis ();
     	try {
@@ -192,6 +248,15 @@ public class XmlRpcClient implements XmlRpcHandler {
 	    super.startElement (name, atts);
     }
 
+    /**
+     * Release possibly big per-call object references to allow them to be garbage collected
+     */
+    public void reset () {
+	result = null;
+	params = null;
+	callback = null;
+    }
+
     } // end of inner class Worker
     
     
@@ -211,7 +276,7 @@ public class XmlRpcClient implements XmlRpcHandler {
 	    }
 	    XmlRpcClient client = new XmlRpcClient (url);
 	    try {
-	        System.err.println (client.execute (method, v));
+	        /* System.err.println (*/client.executeAsync (method, v, null);
 	    } catch (Exception ex) {
 	        System.err.println ("Error: "+ex.getMessage());
 	    }
