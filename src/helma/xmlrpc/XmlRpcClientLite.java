@@ -16,7 +16,9 @@ import org.xml.sax.*;
  * when used with XmlRpc.setKeepAlive(true).
  */
 public class XmlRpcClientLite extends XmlRpcClient {
-     
+
+    static String auth;
+
     /**
      * Construct a XML-RPC client with this URL.
      */
@@ -37,90 +39,32 @@ public class XmlRpcClientLite extends XmlRpcClient {
     public XmlRpcClientLite (String hostname, int port) throws MalformedURLException {
 	super (hostname, port);
     }
-   
 
-    /** 
-     * Generate an XML-RPC request and send it to the server. Parse the result and
-     * return the corresponding Java object.
-     * 
-     * @exception XmlRpcException: If the remote host returned a fault message.
-     * @exception IOException: If the call could not be made because of lower level problems.
-     */
-    public Object execute (String method, Vector params) throws XmlRpcException, IOException {
-    	Worker worker = getWorker ();
-	try {
-    	    Object retval =  worker.execute (method, params);
-	    return retval;
-	} finally {
-	    if (workers < 50 && !worker.fault)
-	        pool.push (worker);
-	    else
-	        workers -= 1;
-	}
-    }
-    
-    Stack pool = new Stack ();
-    int workers = 0;
 
-    private final Worker getWorker () throws IOException {
+   synchronized Worker getWorker () throws IOException {
 	try {
-	    return (Worker) pool.pop ();
+	    Worker w = (Worker) pool.pop ();
+	    workers += 1;
+	    return w;
 	} catch (EmptyStackException x) {
-	    if (workers < 100) {
+	    if (workers < maxThreads) {
 	        workers += 1;
-	        return new Worker ();
+	        return new LiteWorker ();
 	    }
 	    throw new IOException ("XML-RPC System overload");
 	}
     }
     
-
-    class Worker extends XmlRpc implements Runnable {
+    class LiteWorker extends Worker implements Runnable {
     
-    boolean fault;
-    Object result = null; 
     HttpClient client = null;
-    StringBuffer strbuf;
-    String method;
-    Vector params;
-    AsyncCallback callback = null;
 
-    public Worker () {
+    public LiteWorker () {
     	super ();
     }
 
 
-    public Object execute (String method, Vector params) throws XmlRpcException, IOException {
-	this.method = method;
-	this.params = params;
-	return executeCall ();
-    }
-
-    public void executeAsync (String method, Vector params, AsyncCallback callback) {
-	this.method = method;
-	this.params = params;
-	this.callback = callback;
-	Thread t = new Thread (this);
-	t.start ();
-    }
-
-    public void run () {
-	Object res = null;
-	try {
-	    res = executeCall ();
-	    // notify callback object
-	    if (callback != null)
-	        callback.handleResult (res, url, method);
-	} catch (Exception x) {
-                 if (callback != null)
-	        callback.handleError (x, url, method);
-	} finally {
-	    reset ();
-	}
-	System.err.println ("GOT: "+result);
-    }
-
-    private Object executeCall () throws XmlRpcException, IOException {
+    Object execute (String method, Vector params) throws XmlRpcException, IOException {
 	long now = System.currentTimeMillis ();
 	fault = false;
     	try {
@@ -190,58 +134,6 @@ public class XmlRpcClientLite extends XmlRpcClient {
     }
 
 
-    /**
-     * Called when the return value has been parsed. 
-     */
-    void objectParsed (Object what) {
-	result = what;
-    }
-    
-    
-    /**
-     * Generate an XML-RPC request from a method name and a parameter vector.
-     */
-    void writeRequest (XmlWriter writer, String method, Vector params) throws IOException {
-	writer.startElement ("methodCall");
-
-	writer.startElement ("methodName");
-	writer.write (method);
-	writer.endElement ("methodName");
-
-	writer.startElement ("params");
-	int l = params.size ();
-	for (int i=0; i<l; i++) {
-	    writer.startElement ("param");
-	    writeObject (params.elementAt (i), writer);
-	    writer.endElement ("param");
-	}
-	writer.endElement ("params");
-	writer.endElement ("methodCall");
-    }
-
-    /**
-     * Overrides method in XmlRpc to handle fault repsonses.
-     */
-    public void startElement (String name, AttributeList atts) throws SAXException {
-	if ("fault".equals (name))
-	    fault = true;
-	else
-	    super.startElement (name, atts);
-    }
-
-    /**
-     * Release possibly big per-call object references to allow them to be garbage collected
-     */
-    public void reset () {
-	result = null;
-	params = null;
-	callback = null;
-	if (workers < 20 && !fault)
-	    pool.push (this);
-	else
-	    workers -= 1;
-
-    }
 
     } // end of class Worker
     
@@ -328,7 +220,7 @@ public class XmlRpcClientLite extends XmlRpcClient {
 	    } catch (IOException iox) {
 	        throw iox;
 	    } catch (Exception x) {
-	        x.printStackTrace ();
+	        // x.printStackTrace ();
 	        throw new IOException ("Server returned invalid Response.");
 	    }
 	    do {	
@@ -370,7 +262,7 @@ public class XmlRpcClientLite extends XmlRpcClient {
 	    closeConnection ();
 	}
 	
-  }
+    }
 
     /**
      * Just for testing.
@@ -380,13 +272,14 @@ public class XmlRpcClientLite extends XmlRpcClient {
 	try {
 	    String url = args[0];
 	    String method = args[1];
+	    XmlRpcClientLite client = new XmlRpcClientLite (url);
 	    Vector v = new Vector ();
 	    for (int i=2; i<args.length; i++) try {
 	        v.addElement (new Integer (Integer.parseInt (args[i])));
 	    } catch (NumberFormatException nfx) {
 	        v.addElement (args[i]);
 	    }
-	    XmlRpcClient client = new XmlRpcClientLite (url);
+	    // XmlRpc.setEncoding ("UTF-8");
 	    try {
 	        System.err.println (client.execute (method, v));
 	    } catch (Exception ex) {
