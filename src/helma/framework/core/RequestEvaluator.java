@@ -599,7 +599,9 @@ public final class RequestEvaluator implements Runnable {
     public synchronized void stopThread () {
 	app.logEvent ("Stopping Thread "+rtx);
 	Transactor t = rtx;
-	// evaluator.thread = null;
+	// let the scripting engine know that the 
+	// current transaction is being aborted.
+	scriptingEngine.abort ();
 	rtx = null;
 	if (t != null) {
 	    if (reqtype != NONE) {
@@ -608,8 +610,6 @@ public final class RequestEvaluator implements Runnable {
 	        try {
 	            t.abort ();
 	        } catch (Exception ignore) {}
-	        // FIXME: do not call deprecated method stop() on threads -
-	        // do we need a substitute for it?
 	    } else {
 	        notifyAll ();
 	    }
@@ -625,7 +625,6 @@ public final class RequestEvaluator implements Runnable {
 	if (rtx == null || !rtx.isAlive()) {
 	    // app.logEvent ("Starting Thread");
 	    rtx = new Transactor (this, app.threadgroup, app.nmgr);
-	    // evaluator.thread = rtx;
 	    rtx.start ();
 	} else {
 	    notifyAll ();
