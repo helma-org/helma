@@ -2,7 +2,6 @@
 // Copyright (c) Hannes Wallnöfer 1999-2000
 
 package helma.util;
-
 import java.io.*;
 import java.util.*;
 import java.text.*;
@@ -82,7 +81,8 @@ public final class Logger {
 	    logdir.mkdirs ();
 
 	try {
-	    rotateLogFile ();
+	    // create a new log file, append to an existing file
+	    writer = new PrintWriter (new FileWriter (logfile, true), false);
 	} catch (IOException iox) {
 	    System.err.println ("Error creating log "+canonicalName+": "+iox);
 	}
@@ -157,9 +157,8 @@ public final class Logger {
 	    return;
 	try {
 	    if (logfile != null &&
-			(logfile.length() > 10000000 || writer == null ||
-			!logfile.exists() || !logfile.canWrite())) {
-	        // rotate log files each 10 megs of if we can't write to it
+	          (writer == null || !logfile.exists() || !logfile.canWrite())) {
+	        // rotate the log file if we can't write to it
 	        rotateLogFile ();
 	    }
 
@@ -280,13 +279,30 @@ public final class Logger {
 	return (List) loggers.clone ();
     }
 
+    private static void rotateAllLogs () {
+    int nloggers = loggers.size();
+    for (int i=nloggers-1; i>=0; i--) {
+        Logger log = (Logger) loggers.get (i);
+        try {
+            log.rotateLogFile ();
+        } catch (IOException io) {
+            System.err.println ("Error rotating log " + log.getCanonicalName() + ": " + io.toString ());
+        }
+    }
+    }
+
     /**
      *  The static runner class that loops through all loggers.
      */
     static class Runner extends Thread {
 
 	public void run () {
+	    long nextMidnight = nextMidnight ();
 	    while (runner == this  && !isInterrupted ()) {
+            if (nextMidnight < System.currentTimeMillis ()) {
+                rotateAllLogs ();
+                nextMidnight = nextMidnight ();
+            }
 	        int nloggers = loggers.size();
 	        for (int i=nloggers-1; i>=0; i--) {
 	            try {
@@ -339,6 +355,16 @@ public final class Logger {
 	}
 
 
+    public static long nextMidnight () {
+        Calendar cal = Calendar.getInstance ();
+        cal.set (Calendar.DATE, 1 + cal.get(Calendar.DATE));
+        cal.set (Calendar.HOUR_OF_DAY, 0);
+        cal.set (Calendar.MINUTE, 0);
+        cal.set (Calendar.SECOND, 1);
+        // for testing, rotate the logs every minute:
+        // cal.set (Calendar.MINUTE, 1 + cal.get(Calendar.MINUTE));
+        return cal.getTimeInMillis ();
+    }
 
 
     /**
@@ -347,8 +373,12 @@ public final class Logger {
     public static void main (String[] args) throws IOException {
 	Logger log = new Logger (".", "testlog");
 	long start = System.currentTimeMillis ();
-	for (int i=0; i<50000; i++)
+	for (int i=0; i<1000; i++) {
 	    log.log ("test log entry "+i);
+	    try {
+	        Thread.sleep(100);
+	     } catch (InterruptedException ie) {    }
+	}
 	log.log ("done: "+(System.currentTimeMillis () - start));
 	System.err.println (System.currentTimeMillis () - start);
 	log.close ();
