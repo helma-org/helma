@@ -191,6 +191,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 
 	// the properties that map java class names to prototype names
 	classMapping = new SystemProperties (new File (appDir, "class.properties").getAbsolutePath ());
+
+	// get class name of root object if defined. Otherwise native Helma objectmodel will be used.
+	rootObjectClass = classMapping.getProperty ("root");
+
 	// the properties that map allowed public skin extensions to content types
 	skinExtensions = new SystemProperties (new File (appDir, "mime.properties").getAbsolutePath ());
 
@@ -200,9 +204,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	debug = "true".equalsIgnoreCase (props.getProperty ("debug"));
 	// checkSubnodes = !"false".equalsIgnoreCase (props.getProperty ("subnodeChecking"));
 	
-	// get class name of root object if defined. Otherwise native Helma objectmodel will be used.
-	rootObjectClass = props.getProperty ("rootObject");
-	
+
 	try {
 	    requestTimeout = Long.parseLong (props.getProperty ("requestTimeout", "60"))*1000l;
 	} catch (Exception ignore) {	}
@@ -478,14 +480,20 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	// check if we ought to create a rootObject from its class name
 	if (rootObjectClass != null) {
 	    // create custom root element.
-	    // NOTE: This is but a very rough first sketch of an implementation
-	    // and needs much more care.
-	    if (rootObject == null) try {
-	        Class c = Class.forName (rootObjectClass);
-	        rootObject = c.newInstance ();
-	    } catch (Throwable x) {
-	        System.err.println ("ERROR CREATING ROOT OBJECT: "+x);
-	    }
+	    if (rootObject == null)	{
+			try	{
+				if ( classMapping.containsKey("root.factory.class") && classMapping.containsKey("root.factory.method") )	{
+					Class c = Class.forName( classMapping.getProperty("root.factory.class") );
+					Method m = c.getMethod( classMapping.getProperty("root.factory.method"), null );
+					rootObject = m.invoke(c,null);
+				}	else	{
+					Class c = Class.forName( classMapping.getProperty("root") );
+					rootObject = c.newInstance();
+				}
+			}	catch ( Exception e )	{
+				throw new RuntimeException ( "Error creating root object: " + e.toString() );
+			}
+		}
 	    return rootObject;
 	}
 	// no custom root object is defined - use standard helma objectmodel
