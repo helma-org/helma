@@ -19,7 +19,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 
  
     protected String propname;
-    protected Node node;
+    protected TransientNode node;
 
     public String svalue;
     public boolean bvalue;
@@ -31,11 +31,11 @@ public final class Property implements IProperty, Serializable, Cloneable {
     public int type;
 
 
-    public Property (Node node) {
+    public Property (TransientNode node) {
 	this.node = node;
     }
 
-    public Property (String propname, Node node) {
+    public Property (String propname, TransientNode node) {
 	this.propname = propname;
 	this.node = node;
     }
