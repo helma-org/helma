@@ -8,6 +8,8 @@ import java.io.*;
 import helma.framework.*;
 import FESI.Data.*;
 import FESI.Exceptions.*;
+import helma.objectmodel.INode;
+import helma.objectmodel.IServer;
 
 
 /**
@@ -18,10 +20,8 @@ import FESI.Exceptions.*;
 public class Skin {
 
     Object[] parts;
-    RequestEvaluator reval;
 
-    public Skin (String content, RequestEvaluator reval) {
-	this.reval = reval;
+    public Skin (String content) {
 	parse (content);
     }
 
@@ -55,13 +55,15 @@ public class Skin {
              parts = partBuffer.toArray ();
    }
 
-    public String toString () {
+    public void render (RequestEvaluator reval, ESNode handlerNode) {
 	if (parts == null)
-	    return "";
-	StringBuffer b = new StringBuffer ();
-	for (int i=0; i<parts.length; i++)
-	    b.append (parts[i]);
-	return b.toString ();
+	    return;
+	for (int i=0; i<parts.length; i++) {
+	    if (parts[i] instanceof Macro)
+	        ((Macro) parts[i]).render (reval, handlerNode);
+	    else
+	        reval.res.write (parts[i]);
+	}
     }
 
     static final int HANDLER = 0;
@@ -73,11 +75,11 @@ public class Skin {
 
 	String handler;
 	String name;
-	ESObject parameters;
+	Hashtable parameters;
 
 	public Macro (String str) {
 
-	    parameters = new ObjectPrototype (null, reval.evaluator);
+	    parameters = new Hashtable ();
 
 	    int l = str.length ();
 	    char cnt[] = new char[l];
@@ -108,9 +110,7 @@ public class Skin {
 	            case '\'':
 	                if (!escape && state == PARAMVALUE) {
 	                    if (quotechar == cnt[i]) {
-	                        try {
-	                            parameters.putHiddenProperty (lastParamName, new ESString (b.toString()));
-	                        } catch (EcmaScriptException badluck) {}
+	                        parameters.put (lastParamName, b.toString());
 	                        b.setLength (0);
 	                        state = PARAMNAME;
 	                        quotechar = '\u0000';
@@ -133,9 +133,7 @@ public class Skin {
 	                    b.setLength (0);
 	                    state = PARAMNAME;
 	                } else if (state == PARAMVALUE && quotechar == '\u0000') {
-	                    try {
-	                        parameters.putHiddenProperty (lastParamName, new ESString (b.toString()));
-	                    } catch (EcmaScriptException badluck) {}
+	                    parameters.put (lastParamName, b.toString());
 	                    b.setLength (0);
 	                    state = PARAMNAME;
 	                } else if (state == PARAMVALUE)
@@ -156,43 +154,92 @@ public class Skin {
 	                escape = false;
 	        }
 	    }
-	    if (lastParamName != null && b.length() > 0) try {
-	        parameters.putHiddenProperty (lastParamName, new ESString (b.toString()));
-	    } catch (EcmaScriptException noluck) {}
+	    if (lastParamName != null && b.length() > 0)
+	        parameters.put (lastParamName, b.toString());
 	}
 
 
-	public String toString () {
+	public void render (RequestEvaluator reval, ESNode handlerNode) {
+
+	    if ("response".equalsIgnoreCase (handler)) {
+	        renderFromResponse (reval);
+	        return;
+	    }
 
 	    try {
 
-	        ESValue[] arguments = new ESValue[2];
-	        arguments[0] = new ESString (name);
-	        arguments[1] = parameters;
-	        ESNode handlerNode = null;
+	        ESObject handlerObject = null;
+
+	        ESValue[] arguments = new ESValue[1];
+	        ESRequestData par =  new ESRequestData (reval);
+	        par.setData (parameters);
+	        arguments[0] = par;
 
 	        if (handler != null) {
-	            int l = reval.reqPath.size();
-	            for (int i=l-1; i>=0; i--) {
-	                if (handler.equalsIgnoreCase (((ESNode) reval.reqPath.getProperty(i)).getPrototypeName())) {
-	                     handlerNode = (ESNode) reval.reqPath.getProperty(i);
-	                     break;
+	            // not a macro handled by global - check handler object
+	            if (handlerNode != null) {
+	                // was called with this object - check it or its parents for matching prototype
+	                if (!handler.equalsIgnoreCase (handlerNode.getPrototypeName ())) {
+	                    // the handler object is not what we want
+	                    INode n = handlerNode.getNode();
+	                    while (n != null) {
+	                        if (handler.equalsIgnoreCase (n.getPrototype())) {
+	                            handlerObject = reval.getNodeWrapper (n);
+	                            break;
+	                        }
+	                        n = n.getParent ();
+	                    }
+	                } else {
+	                    // we already have the right handler object
+	                    handlerObject = handlerNode;
 	                }
 	            }
-                     } else {
-	            handlerNode = (ESNode) reval.reqPath.getProperty(0);
+
+	            if (handlerObject == null) {
+	                // eiter because handlerNode == null or the right object wasn't found in the targetNode path
+	                // go check request path for an object with matching prototype
+	                int l = reval.reqPath.size();
+	                for (int i=l-1; i>=0; i--) {
+	                    if (handler.equalsIgnoreCase (((ESNode) reval.reqPath.getProperty(i)).getPrototypeName())) {
+	                         handlerObject = (ESNode) reval.reqPath.getProperty(i);
+	                         break;
+	                    }
+	                }
+	            }
+
+	        } else {
+	            // this is a global macro with no handler specified
+	            handlerObject = reval.global;
 	        }
 
-	        if (handlerNode != null) {
-	            return handlerNode.doIndirectCall (reval.evaluator, handlerNode, "handleMacro", arguments).toString();
+	        if (handlerObject != null) {
+	            handlerObject.doIndirectCall (reval.evaluator, handlerObject, name+"_macro", arguments);
 	        } else {
-	            return "[HopMacro unhandled: "+handler+"."+name+"]";
+	            String msg = "[HopMacro unhandled: "+handler+"."+name+"]";
+	            reval.res.write (" "+msg+" ");
+	            IServer.getLogger().log (msg);
 	        }
 	    } catch (Exception x) {
-	        return "[HopMacro error: "+x.getMessage()+"]";
+	        String msg = "[HopMacro error: "+x+"]";
+	        reval.res.write (" "+msg+" ");
+	        IServer.getLogger().log (msg);
 	    }
 	}
 
+	private void renderFromResponse (RequestEvaluator reval) {
+	    if ("title".equals (name))
+	        reval.res.write (reval.res.title);
+	    else if ("head".equals (name))
+	        reval.res.write (reval.res.head);
+	    else if ("body".equals (name))
+	        reval.res.write (reval.res.body);
+	    else if ("message".equals (name))
+	        reval.res.write (reval.res.message);
+	}
+
+	public String toString () {
+	    return "[HopMacro: "+handler+","+name+"]";
+	}
     }
 
 

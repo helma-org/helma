@@ -77,6 +77,8 @@ public class HopExtension {
         reval.esNodePrototype.putHiddenProperty ("href", new NodeHref ("href", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("setParent", new NodeSetParent ("setParent", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("invalidate", new NodeInvalidate ("invalidate", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, reval, false, false));
+        reval.esNodePrototype.putHiddenProperty("renderSkin_as_string", new RenderSkin ("renderSkin_as_string", evaluator, fp, reval, false, true));
 
         // methods that give access to properties and global user lists
         go.putHiddenProperty("Node", node); // register the constructor for a plain Node object.
@@ -97,7 +99,10 @@ public class HopExtension {
         go.putHiddenProperty("getXmlDocument", new GlobalGetXmlDocument ("getXmlDocument", evaluator, fp));
         go.putHiddenProperty("getHtmlDocument", new GlobalGetHtmlDocument ("getHtmlDocument", evaluator, fp));
         go.putHiddenProperty("jdomize", new GlobalJDOM ("jdomize", evaluator, fp));
-        go.putHiddenProperty("getSkin", new GlobalGetSkin ("getSkin", evaluator, fp, reval));
+        go.putHiddenProperty("getSkin", new GlobalGetSkin ("getSkin", evaluator, fp));
+        go.putHiddenProperty("createSkin", new GlobalCreateSkin ("createSkin", evaluator, fp));
+        go.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, reval, true, false));
+        go.putHiddenProperty("renderSkin_as_string", new RenderSkin ("renderSkin_as_string", evaluator, fp, reval, true, true));
         go.deleteProperty("exit", "exit".hashCode());
 
         // and some methods for session management from JS...
@@ -548,18 +553,65 @@ public class HopExtension {
         }
     }
 
+    /**
+     * Get a parsed Skin from the central skin repository
+     */
     class GlobalGetSkin extends BuiltinFunctionObject {
-        RequestEvaluator reval;
-        GlobalGetSkin (String name, Evaluator evaluator, FunctionPrototype fp, RequestEvaluator reval) {
+        GlobalGetSkin (String name, Evaluator evaluator, FunctionPrototype fp) {
             super (fp, evaluator, name, 1);
-            this.reval = reval;
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+            throw new EcmaScriptException ("getSkin() is not implemented yet, use createSkin() instead");
+        }
+    }
+
+    /**
+     * Get a parsed Skin from an app-managed skin text
+     */
+    class GlobalCreateSkin extends BuiltinFunctionObject {
+        GlobalCreateSkin (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 1);
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
             if (arguments.length != 1 || ESNull.theNull.equals (arguments[0]))
                 throw new EcmaScriptException ("getSkin must be called with one String argument!");
-            return new ESWrapper (new Skin (arguments[0].toString(), reval), evaluator);
+            return new ESWrapper (new Skin (arguments[0].toString()), evaluator);
         }
     }
+
+    /**
+     * Render a skin
+     */
+    class RenderSkin extends BuiltinFunctionObject {
+        RequestEvaluator reval;
+        boolean global;
+        boolean asString;
+        RenderSkin (String name, Evaluator evaluator, FunctionPrototype fp,
+                                 RequestEvaluator reval, boolean global, boolean asString) {
+            super (fp, evaluator, name, 1);
+            this.reval = reval;
+            this.global = global;
+            this.asString = asString;
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+            if (arguments.length != 1 || !(arguments[0] instanceof ESWrapper))
+                throw new EcmaScriptException ("renderSkin must be called with one Skin argument!");
+            try {
+                Skin skin = (Skin) ((ESWrapper) arguments[0]).toJavaObject ();
+                ESNode handlerNode = global ? null : (ESNode) thisObject;
+                if (asString)
+                    reval.res.pushStringBuffer ();
+                skin.render (reval, handlerNode);
+                if (asString)
+                    return  new ESString (reval.res.popStringBuffer ());
+            } catch (ClassCastException x) {
+                throw new EcmaScriptException ("renderSkin must be called with one Skin argument!");
+            }
+            return ESNull.theNull;
+        }
+    }
+
+
 
     class GlobalGetUser extends BuiltinFunctionObject {
         RequestEvaluator reval;

@@ -12,16 +12,16 @@ import helma.objectmodel.INode;
 
 
 /**
-  * An EcmaScript object to access the form data sent with a HTTP request
+  * An EcmaScript object that makes stuff in a hashtable accessible as its properties
   */
 
-public class ESRequestData extends ESWrapper {
+public class ESRequestData extends ESObject {
 
     private Hashtable data;
     private RequestEvaluator reval;
 
-    public ESRequestData (ESObject prototype, Evaluator evaluator, RequestEvaluator reval) {
-	super (prototype, evaluator);
+    public ESRequestData (RequestEvaluator reval) {
+	super (null, reval.evaluator);
 	this.reval = reval;
     }
     
@@ -33,11 +33,11 @@ public class ESRequestData extends ESWrapper {
      * Overridden to make the object read-only
      */
     public void putProperty(String propertyName, ESValue propertyValue, int hash) throws EcmaScriptException {
-	throw new EcmaScriptException ("Can't set property, req.data is read-only");
+	throw new EcmaScriptException ("Can't set property, object is read-only");
     }
     
     public boolean deleteProperty(String propertyName, int hash) throws EcmaScriptException {
-	throw new EcmaScriptException ("Can't delete property, req.data is read-only");
+	throw new EcmaScriptException ("Can't delete property, object is read-only");
     }
  
      public ESValue getProperty(String propertyName, int hash) throws EcmaScriptException {

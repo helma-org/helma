@@ -108,7 +108,7 @@ public class RequestEvaluator implements Runnable {
 	    appnode = new ESAppNode (app.appnode, this);
 	    global.putHiddenProperty ("app", appnode);
 	    reqPath = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
-	    reqData = new ESRequestData (evaluator.getObjectPrototype(), evaluator, this);
+	    reqData = new ESRequestData (this);
 
 	} catch (Exception e) {
 	    System.err.println("Cannot initialize interpreter");
