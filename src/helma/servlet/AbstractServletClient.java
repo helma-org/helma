@@ -13,7 +13,6 @@ import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.util.*;
 import helma.framework.*;
-import helma.objectmodel.Node;
 import helma.util.*;
 
 /**
@@ -41,7 +40,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 	port =  portstr == null ? 5055 : Integer.parseInt (portstr);
 
 	String upstr = init.getInitParameter ("uploadLimit");
-	uploadLimit =  upstr == null ? 500 : Integer.parseInt (upstr);
+	uploadLimit =  upstr == null ? 1024 : Integer.parseInt (upstr);
 
 	cookieDomain = init.getInitParameter ("cookieDomain");
 
@@ -138,7 +137,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 	        // File Upload
 	        Uploader up;
 	        try {
-	            if ((up = getUpload (uploadLimit, request)) != null) {
+	            if ((up = getUpload (request)) != null) {
 	                Hashtable upload = up.getParts ();
 	                for (Enumeration e = upload.keys(); e.hasMoreElements(); ) {
 	                    String nextKey = (String) e.nextElement ();
@@ -231,24 +230,20 @@ public abstract class AbstractServletClient extends HttpServlet {
 	
 
     public Uploader getUpload (HttpServletRequest request) throws Exception {
-	return getUpload (500, request);
-    }
-
-    public Uploader getUpload (int maxKbytes, HttpServletRequest request) throws Exception {
 	int contentLength = request.getContentLength ();
 	BufferedInputStream in = new BufferedInputStream (request.getInputStream ());
 	Uploader up = null;
 	try {
-	    if (contentLength > maxKbytes*1024) {
+	    if (contentLength > uploadLimit*1024) {
 	        // consume all input to make Apache happy
 	        byte b[] = new byte[1024];
 	        int read = 0;
 	        while (read > -1)
 	             read = in.read (b, 0, 1024);
-	        throw new RuntimeException ("Upload exceeds limit of "+maxKbytes+" kb.");
+	        throw new RuntimeException ("Upload exceeds limit of "+uploadLimit+" kb.");
 	    }
 	    String contentType = request.getContentType ();
-	    up = new Uploader(maxKbytes);
+	    up = new Uploader(uploadLimit);
 	    up.load (in, contentType, contentLength);
 	} finally {
 	    try { in.close (); } catch (Exception ignore) {}
