@@ -357,7 +357,7 @@ public class Skin {
 	    if (encoding == null || text == null)
 	        return text;
 	    if ("html".equalsIgnoreCase (encoding))
-	        return HtmlEncoder.encodeSoft (text);
+	        return HtmlEncoder.encode (text);
 	    if ("xml".equalsIgnoreCase (encoding))
 	        return HtmlEncoder.encodeXml (text);
 	    if ("form".equalsIgnoreCase (encoding))
