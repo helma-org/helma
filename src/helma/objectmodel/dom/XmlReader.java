@@ -22,7 +22,6 @@ import helma.objectmodel.db.NodeHandle;
 import helma.objectmodel.db.NodeManager;
 import helma.objectmodel.db.Property;
 
-
 public class XmlReader implements XmlConstants	{
 
 	private HashMap convertedNodes;
@@ -226,8 +225,14 @@ public class XmlReader implements XmlConstants	{
     			propMap.put (childElement.getTagName(), prop);
 			}
 		}
-		helmaNode.setPropMap  (propMap);
-		helmaNode.setSubnodes (subnodes);
+		if ( propMap.size()>0 )
+			helmaNode.setPropMap (propMap);
+		else
+			helmaNode.setPropMap (null);
+		if ( subnodes.size()>0 )
+			helmaNode.setSubnodes (subnodes);
+		else
+			helmaNode.setSubnodes (null);
 		return helmaNode;
 	}
 
