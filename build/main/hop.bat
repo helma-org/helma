@@ -35,7 +35,7 @@ rem set JAVA_OPTIONS=-server -Xmx128m
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :: Setting the script path
-set SCRIPT_DIR=%~d0%~p0
+set INSTALL_DIR=%~d0%~p0
 
 :: Using JAVA_HOME variable if defined. Otherwise,
 :: Java executable must be contained in PATH variable
@@ -48,7 +48,7 @@ if "%JAVA_HOME%"=="" goto default
 
 :: Setting HOP_HOME to script path if undefined
 if "%HOP_HOME%"=="" (
-   set HOP_HOME=%SCRIPT_DIR%
+   set HOP_HOME=%INSTALL_DIR%
 )
 cd %HOP_HOME%
 
@@ -76,4 +76,4 @@ if not "%HOP_HOME%"=="" (
 )
 
 :: Invoking the Java virtual machine
-%JAVACMD% %JAVA_OPTIONS% -jar launcher.jar %OPTIONS%
+%JAVACMD% %JAVA_OPTIONS% -jar "%INSTALL_DIR%\launcher.jar" %OPTIONS%
