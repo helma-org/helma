@@ -642,6 +642,8 @@ public final class NodeManager {
 	    String q = "SELECT "+map.getIDgen()+".nextval FROM dual";
 	    stmt = con.createStatement();
 	    ResultSet rs = stmt.executeQuery (q);
+	    if (!rs.next ())
+	        throw new SQLException ("Error creating ID from Sequence: empty recordset");
 	    retval = rs.getString (1);
 	} finally {
 	    // tx.timer.endEvent ("generateID "+map);
