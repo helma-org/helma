@@ -49,6 +49,8 @@ public abstract class AbstractServletClient extends HttpServlet {
 	uploadLimit =  upstr == null ? 1024 : Integer.parseInt (upstr);
 	// get cookie domain
 	cookieDomain = init.getInitParameter ("cookieDomain");
+	if (cookieDomain != null)
+	    cookieDomain = cookieDomain.toLowerCase();
 	// get default encoding
 	defaultEncoding = init.getInitParameter ("charset");
 	debug = ("true".equalsIgnoreCase (init.getInitParameter ("debug")));
@@ -73,7 +75,6 @@ public abstract class AbstractServletClient extends HttpServlet {
     protected void execute (HttpServletRequest request,
                             HttpServletResponse response, 
 	                    byte method) {
-	Cookie[] cookies = request.getCookies();
 
 	RequestTrans reqtrans = new RequestTrans (method);
 	// get app and path from original request path
@@ -120,11 +121,12 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    }
 
 	    // read cookies
-	    if (cookies != null) {
-	        for (int i=0; i < cookies.length;i++) try {
+	    Cookie[] reqCookies = request.getCookies();
+	    if (reqCookies != null) {
+	        for (int i=0; i < reqCookies.length;i++) try {
 	            // get Cookies
-	            String nextKey = cookies[i].getName ();
-	            String nextPart = cookies[i].getValue ();
+	            String nextKey = reqCookies[i].getName ();
+	            String nextPart = reqCookies[i].getValue ();
 	            if ("HopSession".equals (nextKey))
 	                reqtrans.session = nextPart;
 	            else
@@ -157,6 +159,14 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    if (remotehost != null)
 	        reqtrans.set ("http_remotehost", remotehost);
 
+	    // get the cookie domain to use for this response, if any.
+	    String resCookieDomain = cookieDomain;
+	    if (resCookieDomain != null) {
+	        // check if cookieDomain is valid for this response.
+	        // (note: cookieDomain is guaranteed to be lower case)
+	        if (host != null && host.toLowerCase().indexOf (cookieDomain) == -1)
+	           resCookieDomain = null;
+	    }
 	    // check if we need to create a session id. also handle the
 	    // case that the session id doesn't match the remote host address
 	    if (reqtrans.session == null || !reqtrans.session.startsWith (remotehost)) {
@@ -165,8 +175,8 @@ public abstract class AbstractServletClient extends HttpServlet {
 	            System.currentTimeMillis (), 36);
 	        Cookie c = new Cookie("HopSession", reqtrans.session);
 	        c.setPath ("/");
-	        if (cookieDomain != null)
-	            c.setDomain (cookieDomain);
+	        if (resCookieDomain != null)
+	            c.setDomain (resCookieDomain);
 	        response.addCookie(c);
 	    }
 
@@ -183,6 +193,16 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    reqtrans.path = getPathInfo (request);
 	    ResponseTrans restrans = execute (reqtrans);
 
+	    // set cookies
+	    int ncookies = restrans.countCookies();
+	    if (restrans.countCookies() > 0) {
+	        CookieTrans[] resCookies = restrans.getCookies ();
+	        for (int i = 0; i < resCookies.length; i++) try {
+	            Cookie c = resCookies[i].getCookie ("/", resCookieDomain);
+	            response.addCookie(c);
+	        } catch (Exception ignore) {}
+	    }
+	    // write response
 	    writeResponse (request, response, restrans);
 
 	} catch (Exception x) {
@@ -209,15 +229,6 @@ public abstract class AbstractServletClient extends HttpServlet {
     void writeResponse (HttpServletRequest req,
                         HttpServletResponse res,
                         ResponseTrans hopres) {
-
-	int ncookies = hopres.countCookies();
-	if (hopres.countCookies() > 0) {
-	    CookieTrans[] cookies = hopres.getCookies ();
-	    for (int i = 0; i < cookies.length; i++) try {
-	        Cookie c = cookies[i].getCookie ("/", cookieDomain);
-	        res.addCookie(c);
-	    } catch (Exception ignore) {}
-	}
 
 	if (hopres.getETag() != null) {
 	    res.setHeader ("ETag", hopres.getETag());
