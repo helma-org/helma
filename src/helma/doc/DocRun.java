@@ -23,15 +23,15 @@ public class DocRun {
     /**
      *  Description of the Field
      */
-    public static String actionExtension;
+    public static String actionExtension = ".hac";
     /**
      *  Description of the Field
      */
-    public static String scriptExtension;
+    public static String scriptExtension = ".js";
     /**
      *  Description of the Field
      */
-    public static String templateExtension;
+    public static String templateExtension = ".hsp";
     /**
      *  Description of the Field
      */
@@ -42,7 +42,7 @@ public class DocRun {
      */
     public static String hopHomeDir;
 
-    private static Hashtable options;
+    public static Hashtable options = new Hashtable();
 
     String appName;
     DocApplication app;
