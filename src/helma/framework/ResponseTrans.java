@@ -128,6 +128,18 @@ public class ResponseTrans implements Externalizable {
     }
 
 
+    /**
+     * Encode HTML entities, but leave newlines alone. This is for the content of textarea forms.
+     */
+    public void encodeForm (Object what) {
+	if (what != null) {
+	    if (buffer == null)
+	        buffer = new StringBuffer (512);
+	    HtmlEncoder.encodeAll (what.toString (), buffer, false);
+	}
+    }
+
+
     public void append (String what) {
 	if (what != null) {
 	    if (buffer == null)

@@ -98,6 +98,7 @@ public class HopExtension {
         go.putHiddenProperty("getURL", new GlobalGetURL ("getURL", evaluator, fp));
         go.putHiddenProperty("encode", new GlobalEncode ("encode", evaluator, fp));
         go.putHiddenProperty("encodeXml", new GlobalEncodeXml ("encodeXml", evaluator, fp));
+        go.putHiddenProperty("encodeForm", new GlobalEncodeForm ("encodeForm", evaluator, fp));
         go.putHiddenProperty("format", new GlobalFormat ("format", evaluator, fp));
         go.putHiddenProperty("stripTags", new GlobalStripTags ("stripTags", evaluator, fp));
         go.putHiddenProperty("getXmlDocument", new GlobalGetXmlDocument ("getXmlDocument", evaluator, fp));
@@ -833,6 +834,17 @@ public class HopExtension {
             if (arguments.length < 1)
                 return  ESNull.theNull;
             return new ESString (HtmlEncoder.encodeXml (arguments[0].toString ()));
+        }
+    }
+
+    class GlobalEncodeForm extends BuiltinFunctionObject {
+        GlobalEncodeForm (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 1);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+            if (arguments.length < 1)
+                return  ESNull.theNull;
+            return new ESString (HtmlEncoder.encodeFormValue (arguments[0].toString ()));
         }
     }
 
