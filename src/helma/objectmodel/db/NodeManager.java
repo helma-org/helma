@@ -539,7 +539,8 @@ public final class NodeManager {
                 String name = columns[i].getName();
 
                 if (!((rel != null) && (rel.isPrimitive() || rel.isReference())) &&
-                        !name.equals(nameField) && !name.equals(prototypeField)) {
+                        !name.equalsIgnoreCase(nameField) &&
+                        !name.equalsIgnoreCase(prototypeField)) {
                     continue;
                 }
 
@@ -616,9 +617,9 @@ public final class NodeManager {
                         }
                     }
                 } else {
-                    if (name.equals(nameField)) {
+                    if (name.equalsIgnoreCase(nameField)) {
                         stmt.setString(stmtNumber, node.getName());
-                    } else if (name.equals(prototypeField)) {
+                    } else if (name.equalsIgnoreCase(prototypeField)) {
                         stmt.setString(stmtNumber, node.getPrototype());
                     } else {
                         stmt.setNull(stmtNumber, columns[i].getType());
