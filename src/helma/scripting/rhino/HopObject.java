@@ -910,7 +910,10 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      */
     public Object[] getIds() {
         if (node == null) {
-            return super.getIds();
+            // HopObject prototypes always return an empty array in order not to
+            // pollute actual HopObjects properties. Call getAllIds() to get
+            // a list of properties from a HopObject prototype.
+            return new Object[0];
         }
 
         checkNode();
