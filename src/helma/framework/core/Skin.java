@@ -21,9 +21,9 @@ import java.util.*;
 public final class Skin {
 
     private Macro[] parts;
-    private final Application app;
-    private final char[] source;
-    private final int sourceLength;
+    private Application app;
+    private char[] source;
+    private int sourceLength;
     private HashSet sandbox;
 
 

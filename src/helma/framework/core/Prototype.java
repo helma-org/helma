@@ -22,14 +22,14 @@ import helma.util.Updatable;
 
 public final class Prototype {
 
-    final String name;
-    final Application app;
+    String name;
+    Application app;
 
-    final HashMap templates;
-    final HashMap functions;
-    final HashMap actions;
-    final HashMap skins;
-    final HashMap updatables;
+    HashMap templates;
+    HashMap functions;
+    HashMap actions;
+    HashMap skins;
+    HashMap updatables;
     
     // a map of this prototype's skins as raw strings 
     // used for exposing skins to application (script) code (via app.skinfiles).
