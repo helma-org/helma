@@ -489,7 +489,9 @@ public class RequestEvaluator implements Runnable {
 	                    current = esu;
 	                }
 	            }
-	            esresult = current.doIndirectCall (evaluator, current, method, new ESValue[0]);
+	            // call internal functions only if they're specified
+	            if (current.getProperty (method, method.hashCode()) != ESUndefined.theUndefined)
+	                esresult = current.doIndirectCall (evaluator, current, method, new ESValue[0]);
 	            commitTransaction ();
 
 	        } catch (Throwable wrong) {
