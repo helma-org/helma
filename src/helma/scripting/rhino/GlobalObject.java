@@ -191,7 +191,7 @@ public class GlobalObject extends ImporterTopLevel {
     public Object getDBConnection(String dbsource) throws Exception {
         if (dbsource == null)
             throw new EvaluatorException("Wrong number of arguments in getDBConnection(dbsource)");
-        DbSource dbsrc = app.getDbSource (dbsource.toLowerCase ());
+        DbSource dbsrc = app.getDbSource (dbsource);
         if (dbsrc == null)
             throw new EvaluatorException("DbSource "+dbsource+" does not exist");
         DatabaseObject db = new DatabaseObject (dbsrc);
