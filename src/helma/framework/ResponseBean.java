@@ -182,7 +182,7 @@ public class ResponseBean implements Serializable {
      *
      * @param cache ...
      */
-    public void setcache(boolean cache) {
+    public void setCache(boolean cache) {
         res.cache = cache;
     }
 
