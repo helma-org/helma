@@ -27,3 +27,8 @@ function translateType (filter) {
 }
 
 
+function getApplication () {
+	return this.getParentElement ();
+}
+
+
