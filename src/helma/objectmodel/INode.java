@@ -6,6 +6,7 @@ package helma.objectmodel;
 import java.util.*;
 import java.io.*;
 import helma.framework.IPathElement;
+import helma.objectmodel.db.DbMapping;
 
 /**
  * Interface that all Nodes implement. Currently, there are two implementations:
@@ -22,7 +23,6 @@ public interface INode extends INodeState, IPathElement {
 
     public String getID ();
     public String getName ();
-    // public String get ();  // get name or id depending if it's a named or an anonymous node.
     public void setDbMapping (DbMapping dbmap);
     public DbMapping getDbMapping ();
     public int getState ();
