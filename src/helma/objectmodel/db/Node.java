@@ -1483,7 +1483,10 @@ public class Node implements INode, Serializable {
 	// check if types match, otherwise throw exception
 	DbMapping nmap = dbmap == null ? null : dbmap.getPropertyMapping (propname);
 	if (nmap != null && nmap != value.getDbMapping()) {
-	    throw new RuntimeException ("Can't set "+propname+" to object with prototype "+value.getPrototype()+", was expecting "+nmap.getTypeName());
+	    if (value.getDbMapping () == null)
+	        value.setDbMapping (nmap);
+	    else
+	        throw new RuntimeException ("Can't set "+propname+" to object with prototype "+value.getPrototype()+", was expecting "+nmap.getTypeName());
 	}
 
 	checkWriteLock ();
