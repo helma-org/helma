@@ -127,8 +127,8 @@ public final class Logger {
 	// if we are closed, drop message without further notice
 	if (closed)
 	    return;
-	// it's enough to render the date every 15 seconds
-	if (System.currentTimeMillis () - 15000 > dateLastRendered)
+	// it's enough to render the date every 5 seconds
+	if (System.currentTimeMillis () - 5000 > dateLastRendered)
 	    renderDate ();
 	entries.add (dateCache + msg);
     }
