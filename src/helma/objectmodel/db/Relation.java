@@ -701,7 +701,7 @@ public final class Relation {
                                                       : parent.getNonVirtualParent();
                 String value = null;
 
-                if (constraints[i].localKeyIsPrimary()) {
+                if (constraints[i].localKeyIsPrimary(home.getDbMapping())) {
                     value = home.getID();
                 } else if (ownType.isRelational()) {
                     value = home.getString(constraints[i].localProperty());
@@ -724,7 +724,6 @@ public final class Relation {
      */
     public void setConstraints(Node parent, Node child) {
         Node home = parent.getNonVirtualParent();
-
         for (int i = 0; i < constraints.length; i++) {
             // don't set groupby constraints since we don't know if the
             // parent node is the base node or a group node
@@ -744,7 +743,7 @@ public final class Relation {
             if (crel != null) {
                 // INode home = constraints[i].isGroupby ? parent : nonVirtual;
 
-                if (constraints[i].localKeyIsPrimary()) {
+                if (constraints[i].localKeyIsPrimary(home.getDbMapping())) {
                     // only set node if property in child object is defined as reference.
                     if (crel.reftype == REFERENCE) {
                         INode currentValue = child.getNode(crel.propName);
@@ -889,9 +888,9 @@ public final class Relation {
                    foreignName.equalsIgnoreCase(otherType.getIDField());
         }
 
-        public boolean localKeyIsPrimary() {
-            return (localName == null) ||
-                   localName.equalsIgnoreCase(ownType.getIDField());
+        public boolean localKeyIsPrimary(DbMapping homeMapping) {
+            return (homeMapping == null) || (localName == null) ||
+                   localName.equalsIgnoreCase(homeMapping.getIDField());
         }
 
         public String foreignProperty() {
