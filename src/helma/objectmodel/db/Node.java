@@ -748,7 +748,7 @@ public final class Node implements INode, Serializable {
                             pn = pn.getSubnode(getString(rel.propName));
                         }
 
-                        if (pn != null) {
+                        if (pn != null && pn.contains(this) >= 0) {
                             setParent((Node) pn);
                             lastParentSet = System.currentTimeMillis();
 
