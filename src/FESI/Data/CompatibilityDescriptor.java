@@ -78,6 +78,11 @@ class CompatibilityDescriptor {
       }
     }
       
-  } // convert
+  }
+  
+  // convert
             
-} // class CompatibilityDescriptor
+}
+
+// class CompatibilityDescriptor
+
