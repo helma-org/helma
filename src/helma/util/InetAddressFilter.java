@@ -71,12 +71,10 @@ public class InetAddressFilter {
                     pattern[i*2] = pattern[i*2+1] = 256;
                 } else if (next.length() == 0) {
                     pattern[i*2] = pattern[i*2+1] = 0;
-                } else if (next.length() <= 2) {
-                    pattern[i*2] = 0;
-                    pattern[i*2+1] = (byte) Integer.parseInt(next, 16);
                 } else {
-                    pattern[i*2] = (byte) Integer.parseInt(next.substring(0,2), 16);
-                    pattern[i*2+1] = (byte) Integer.parseInt(next.substring(2), 16);
+                    int n = Integer.parseInt(next, 16);
+                    pattern[i*2] = (byte) ((n & 0xff00) >> 8);
+                    pattern[i*2+1] = (byte) (n & 0xff);
                 }
             } else {
                 if ("*".equals(next)) {
@@ -86,7 +84,6 @@ public class InetAddressFilter {
                 }
             }
         }
-
         patterns.addElement(pattern);
     }
 
