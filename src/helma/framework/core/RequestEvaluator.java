@@ -225,13 +225,8 @@ public class RequestEvaluator implements Runnable {
 	                try {
 	                    localrtx.timer.beginEvent (txname+" execute");
 
-	                    int actionDot = action.lastIndexOf (".");
-	                    boolean isAction =  actionDot == -1;
 	                    // set the req.action property, cutting off the _action suffix
-	                    if (isAction)
-	                        req.action = action.substring (0, action.length()-7);
-	                    else
-	                        req.action = action;
+	                    req.action = action.substring (0, action.length()-7);
 
 	                    // try calling onRequest() function on object before
 	                    // calling the actual action
@@ -244,41 +239,7 @@ public class RequestEvaluator implements Runnable {
 	                    }
 
 	                    // do the actual action invocation
-	                    if (isAction) {
-	                        app.scriptingEngine.invoke (currentElement, action, new Object[0], globals, this);
-	                    } else {
-	                        Skin skin = app.skinmgr.getSkinInternal (app.appDir, app.getPrototype(currentElement).getName(),
-	                                         action.substring (0, actionDot), action.substring (actionDot+1));
-	                        if (skin != null)
-	                            skin.render (this, currentElement, null);
-	                        else
-	                            throw new RuntimeException ("Skin "+action+" not found in "+req.path);
-	                    }
-
-	                    // check if the script set the name of a skin to render in res.skin
-	                    if (res.skin != null) {
-	                        int dot = res.skin.indexOf (".");
-	                        Object skinObject = null;
-	                        String skinName = res.skin;
-	                        if (dot > -1) {
-	                            String soname = res.skin.substring (0, dot);
-	                            int l = requestPath.size();
-	                            for (int i=l-1; i>=0; i--) {
-	                                Object pathelem = requestPath.get (i);
-	                                if (soname.equalsIgnoreCase (app.getPrototypeName (pathelem))) {
-	                                    skinObject = pathelem;
-	                                    break;
-	                                }
-	                            }
-
-	                            if (skinObject == null)
-	                                throw new RuntimeException ("Skin "+res.skin+" not found in path.");
-	                            skinName = res.skin.substring (dot+1);
-	                        }
-	                        Object[] skinNameArg = new Object[1];
-	                        skinNameArg[0] = skinName;
-	                        app.scriptingEngine.invoke (skinObject, "renderSkin", skinNameArg, globals, this);
-	                    }
+	                    app.scriptingEngine.invoke (currentElement, action, new Object[0], globals, this);
 
 	                    localrtx.timer.endEvent (txname+" execute");
 	                } catch (RedirectException redirect) {
@@ -651,30 +612,15 @@ public class RequestEvaluator implements Runnable {
     public String getAction (Object obj, String action) {
 	if (obj == null)
 	    return null;
-	// check if this is a public skin, i.e. something with an extension
-	// like "home.html"
-	if (action != null && action.indexOf (".") > -1) {
-	    int dot = action.lastIndexOf (".");
-	    String extension = action.substring (dot+1);
-	    String contentType = app.skinExtensions.getProperty (extension);
-	    if (contentType != null) {
-	        res.contentType = contentType;
-	        return action;
-	    } else
-	        return null;
-	} else {
-	    String act = action == null ? "main_action" : action+"_action";
-	    try {
-	        if (app.scriptingEngine.hasFunction (obj, act, this))
-	            return act;
-	    } catch (ScriptingException x) {
-	        return null;
-	    }
+	String act = action == null ? "main_action" : action+"_action";
+	try {
+	    if (app.scriptingEngine.hasFunction (obj, act, this))
+	        return act;
+	} catch (ScriptingException x) {
+	    return null;
 	}
 	return null;
     }
-
-
 
 }
 
