@@ -465,17 +465,7 @@ public class ESNode extends ObjectPrototype {
 
     public Enumeration getProperties () {
              checkNode ();
-	class PropEnum implements Enumeration {
-	    Enumeration props = node.properties();
-	    public boolean hasMoreElements () {
-	        return props.hasMoreElements ();
-	    }
-	    public Object nextElement () {
-	        IProperty p = (IProperty) props.nextElement ();
-	        return p.getName();
-	    }
-	}
-	return new PropEnum ();
+	return node.properties ();
     }
 
 
