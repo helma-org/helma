@@ -107,9 +107,11 @@ public final class RequestEvaluator implements Runnable {
 	            try {
 
 	                // used for logging
-	                String txname = app.getName()+"/"+req.path;
+	                StringBuffer txname = new StringBuffer(app.getName());
+	                txname.append ("/");
+	                txname.append (error == null ? req.path : "error");
 	                // begin transaction
-	                localrtx.begin (txname);
+	                localrtx.begin (txname.toString());
 
 	                String action = null;
 
