@@ -13,7 +13,7 @@ import java.io.Serializable;
  * key of the node and unique within each HOP application. Currently only 
  * single keys are supported.
  */
-public class Key {
+public class Key implements Serializable {
 
     private String type;
     private String id;
