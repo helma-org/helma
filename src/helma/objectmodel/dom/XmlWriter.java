@@ -194,6 +194,8 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
         } else {
             writeln("<?xml version=\"1.0\" encoding=\"" + explicitEncoding + "\"?>");
         }
+        // add style sheet processing instruction
+        writeln("<?xml-stylesheet type=\"text/xsl\" href=\"helma.xsl\"?>");
 
         // writeln ("<!-- printed by helma object publisher     -->");
         // writeln ("<!-- created " + (new Date()).toString() + " -->" );
