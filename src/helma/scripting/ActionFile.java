@@ -93,7 +93,7 @@ public class ActionFile implements Updatable {
 	}
     }
 
-    protected void remove () {
+    public void remove () {
 	prototype.removeAction (name);
 	if (file != null)
 	    prototype.removeUpdatable (file.getName());
