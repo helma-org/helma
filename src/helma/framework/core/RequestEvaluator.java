@@ -608,8 +608,11 @@ public final class RequestEvaluator implements Runnable {
 	        try {
 	            t.abort ();
 	        } catch (Exception ignore) {}
+	        try {
+	            t.stop ();
+	        } catch (Exception ignore) {}
 	    } else {
-                     notifyAll ();
+	        notifyAll ();
 	    }
 	    t.closeConnections ();
 	}
