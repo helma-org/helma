@@ -143,7 +143,7 @@ import com.sleepycat.db.*;
 	    TimeZone.setDefault (TimeZone.getTimeZone (timezone));
 
 	getLogger().log ("Locale = "+Locale.getDefault());
-	getLogger().log ("TimeZone = "+TimeZone.getDefault());
+	getLogger().log ("TimeZone = "+TimeZone.getDefault().getDisplayName (Locale.getDefault ()));
 
 	dbSources = new Hashtable ();
 
