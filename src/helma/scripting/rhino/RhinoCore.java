@@ -886,8 +886,11 @@ public final class RhinoCore {
         public void prepareCompilation() {
             if ("global".equals(frameworkProto.getLowerCaseName())) {
                 tmpObjProto = new GlobalObject(RhinoCore.this, app);
-                tmpObjProto.setPrototype(global);
-                tmpObjProto.setParentScope(null);
+                // setting the prototype to global does not seem to be the right 
+                // thing to do. that and not using a GlobalObject instance 
+                // as temporary object proto resulted in bug 390.
+                tmpObjProto.setPrototype(null);
+                tmpObjProto.setParentScope(global);
             } else { 
                 tmpObjProto = new HopObject(frameworkProto.getName());
                 tmpObjProto.setPrototype(objProto);
