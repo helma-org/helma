@@ -158,14 +158,20 @@ public class ESNode extends ObjectPrototype {
     
 
    /**
-    *  Remove one or more subnodes.
+    *  Remove node itself or one or more subnodes.
     */
     public boolean remove (ESValue args[]) {
         checkNode ();
-        for (int i=0; i<args.length; i++) {
-            if (args[i] instanceof ESNode) {
-                ESNode esn = (ESNode) args[i];
-                node.removeNode (esn.getNode ());
+        // semantics: if called without arguments, remove self.
+        // otherwise, remove given subnodes.
+        if (args.length == 0) {
+            return node.remove ();
+        } else {
+            for (int i=0; i<args.length; i++) {
+                if (args[i] instanceof ESNode) {
+                    ESNode esn = (ESNode) args[i];
+                    node.removeNode (esn.getNode ());
+                }
             }
         }
         return true;
@@ -292,12 +298,29 @@ public class ESNode extends ObjectPrototype {
     }
 
 
+    /**
+     *  Retrieve a property from the node object or the underlying EcmaScript prototype.
+     *  Normally we would first check the node object and then the prototype, but since
+     *  node properties are potentially expensive to look up because they require database
+     *  queries, we do the prototype lookup first. This usually doesn't cause any confusion
+     *  because generally things are divided cleanly between prototype and object - the
+     *  first holds the functions, the latter the mapped data properties.
+     */
     public ESValue getProperty(String propertyName, int hash) throws EcmaScriptException {
 	checkNode ();
 	// eval.app.logEvent ("get property called: "+propertyName);
 	ESValue retval = super.getProperty (propertyName, hash);
 	if (! (retval instanceof ESUndefined))
 	    return retval;
+	return getNodeProperty (propertyName);
+    }
+
+    /**
+     *  Retrieve a property only from the node itself, not the underlying EcmaScript prototype object.
+     *  This is called directly when we call get(x) on a hopobject, since we don't want to return
+     *  the prototype functions in that case.
+     */
+    public ESValue getNodeProperty (String propertyName) throws EcmaScriptException {
 
 	// persistent or persistent capable nodes have a cache property that's a transient node.
 	// it it hasn't requested before, initialize it now
@@ -313,7 +336,7 @@ public class ESNode extends ObjectPrototype {
 	    String rel = node.getSubnodeRelation ();
 	    return rel == null ?  (ESValue) ESNull.theNull :  new ESString (rel);
 	}
-	
+
 	if ("_id".equals (propertyName))
 	    return new ESString (node.getID ());
 	if ("_parent".equals (propertyName)) {
@@ -323,7 +346,7 @@ public class ESNode extends ObjectPrototype {
 	    else
 	        return ESNull.theNull;
 	}
-	
+
 	// this is not very nice, but as a hack we return the id of a node as node.__id__
 	if (propertyName.startsWith ("__") && propertyName.endsWith ("__"))
 	    return getInternalProperty (propertyName);
@@ -340,7 +363,7 @@ public class ESNode extends ObjectPrototype {
 	    }
 	    if (p.getType () == IProperty.BOOLEAN)
 	        return ESBoolean.makeBoolean (p.getBooleanValue ());
-	    if (p.getType () == IProperty.DATE) 
+	    if (p.getType () == IProperty.DATE)
 	        return new DatePrototype (evaluator, p.getDateValue ());
 	    if (p.getType () == IProperty.INTEGER)
 	        return new ESNumber ((double) p.getIntegerValue ());
@@ -356,12 +379,6 @@ public class ESNode extends ObjectPrototype {
 	    if (p.getType () == IProperty.JAVAOBJECT)
 	        return ESLoader.normalizeObject (p.getJavaObjectValue (), evaluator);
 	}
-	
-	// these are predefined
-	// if ("created".equalsIgnoreCase (propertyName))
-	//     return new DatePrototype (evaluator, node.created ());	
-	// if ("lastmodified".equalsIgnoreCase (propertyName))
-	//     return new DatePrototype (evaluator, node.lastModified ());
 
 	// as last resort, try to get property as anonymous subnode
 	INode anon = node.getSubnode (propertyName);
@@ -371,6 +388,10 @@ public class ESNode extends ObjectPrototype {
 	return ESNull.theNull;
     }
 
+    /**
+     *  Some internal properties defined for every Node object. These are most commonly
+     *  used for debugging Helma applications.
+     */
     private ESValue getInternalProperty (String propertyName) throws EcmaScriptException {
 	if ("__id__".equalsIgnoreCase (propertyName)) {
 	    return new ESString (node.getID ());
@@ -441,8 +462,8 @@ public class ESNode extends ObjectPrototype {
         return getNode ();
     }
 
-    /** 
-     * An ESNode equals another object if it is an ESNode that wraps the same INode 
+    /**
+     * An ESNode equals another object if it is an ESNode that wraps the same INode
      * or the wrapped INode itself. FIXME: doesen't check dbmapping/type!
      */
     public boolean equals (Object what) {
@@ -458,59 +479,13 @@ public class ESNode extends ObjectPrototype {
                 return (node == other.node);
         }
         return false;
-    }	
-  
+    }
+
+    public ESValue getDefaultValue(int hint) throws EcmaScriptException {
+        return new ESString (this.toString());
+    }
+
 } // class ESNode
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
