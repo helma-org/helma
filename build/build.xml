@@ -212,6 +212,9 @@
             </fileset>
         </copy>
 
+        <!-- create lib/ext directory -->
+        <mkdir dir="${build.work}/lib/ext"/>
+
         <!-- copy the whole licenses-directory -->
         <copy todir="${build.work}/licenses">
             <fileset dir="${home.dir}/licenses" excludes="**/CVS**"/>
