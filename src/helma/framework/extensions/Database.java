@@ -21,7 +21,7 @@
 package helma.framework.extensions;
 
 import helma.framework.core.Application;
-import helma.objectmodel.DbSource;
+import helma.objectmodel.db.DbSource;
 import FESI.Parser.*;
 import FESI.AST.*;
 import FESI.Interpreter.*;
