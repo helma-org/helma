@@ -6,6 +6,7 @@ package helma.framework;
 import java.io.*;
 import java.util.*;
 import helma.objectmodel.*;
+import helma.xmlrpc.Base64;
 
 /**
  * A Transmitter for a request from the servlet client. Objects of this 
@@ -30,6 +31,9 @@ public class RequestTrans implements Externalizable {
 
     // the name of the action being invoked
     public transient String action;
+
+	private transient String httpUsername;
+	private transient String httpPassword;
 
     static final long serialVersionUID = 5398880083482000580L;
 
@@ -132,4 +136,41 @@ public class RequestTrans implements Externalizable {
 	s.writeObject (values);
 	s.writeByte (httpMethod);
     }
+
+	public String getUsername()	{
+		if ( httpUsername!=null )
+			return httpUsername;
+		String auth = (String)get("authorization");
+		if ( auth==null || "".equals(auth) )	{
+			return null;
+		}
+		decodeHttpAuth(auth);
+		return httpUsername;
+	}
+
+	public String getPassword()	{
+		if ( httpPassword!=null )
+			return httpPassword;
+		String auth = (String)get("authorization");
+		if ( auth==null || "".equals(auth) )	{
+			return null;
+		}
+		decodeHttpAuth(auth);
+		return httpPassword;
+	}
+
+	private void decodeHttpAuth(String auth)	{
+		if ( auth==null )
+			return;
+		StringTokenizer tok;
+		if( auth.startsWith("Basic ") )
+			tok = new StringTokenizer ( new String( Base64.decode((auth.substring(6)).toCharArray()) ), ":" );
+		else
+			tok = new StringTokenizer ( new String( Base64.decode(auth.toCharArray()) ), ":" );
+		try	{	httpUsername = tok.nextToken();	}
+		catch ( NoSuchElementException e )	{	httpUsername = null;	}
+		try	{	httpPassword = tok.nextToken();	}
+		catch ( NoSuchElementException e )	{	httpPassword = null;	}
+	}
+
 }
