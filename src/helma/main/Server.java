@@ -238,8 +238,7 @@ public class Server implements IPathElement, Runnable {
 
         // use the directory where server.properties is located:
         if (config.homeDir == null && config.propFile != null) {
-//            config.homeDir = config.propFile.getAbsoluteFile().getParentFile();
-            config.homeDir = config.propFile.getParentFile();
+            config.homeDir = config.propFile.getAbsoluteFile().getParentFile();
         }
 
         if (!config.hasPropFile()) {
