@@ -286,6 +286,27 @@ public class Relation {
 	}
     }
 
+    /**
+     * Does this relation describe a virtual (collection) node?
+     */
+    public boolean isVirtual () {
+	return virtual;
+    }
+
+    /**
+     * Return the prototype to be used for object reached by this relation
+     */
+    public String getPrototype () {
+	return prototype;
+    }
+
+    /**
+     * Return the name of the local property this relation is defined for
+     */
+    public String getPropName () {
+	return propName;
+    }
+
 
     /**
      * Add a constraint to the current list of constraints
