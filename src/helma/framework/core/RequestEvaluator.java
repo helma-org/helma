@@ -58,7 +58,7 @@ public final class RequestEvaluator implements Runnable {
     static final int XMLRPC = 2;      // via XML-RPC
     static final int INTERNAL = 3;     // generic function call, e.g. by scheduler
 
-    public int skinDepth;
+    protected int skinDepth;
 
     /**
      *  Create a new RequestEvaluator for this application.
