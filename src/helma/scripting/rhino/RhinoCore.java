@@ -42,7 +42,7 @@ public final class RhinoCore {
     public final Application app;
 
     // the global object
-    Scriptable global;
+    GlobalObject global;
 
     // caching table for JavaScript object wrappers
     WeakHashMap wrappercache;
@@ -82,7 +82,7 @@ public final class RhinoCore {
         try {
             GlobalObject g = new GlobalObject(this, app, context);
 
-            global = context.initStandardObjects(g);
+            global = (GlobalObject) context.initStandardObjects(g);
             ScriptableObject.defineClass(global, HopObject.class);
             ScriptableObject.defineClass(global, FileObject.class);
             ScriptableObject.defineClass(global, FtpObject.class);
@@ -90,7 +90,8 @@ public final class RhinoCore {
             XmlRpcObject.init(global);
             MailObject.init(global, app.getProperties());
             putPrototype("hopobject",
-                         ScriptableObject.getClassPrototype(global, "HopObject"));
+                    (ScriptableObject) ScriptableObject
+                    .getClassPrototype(global, "HopObject"));
             putPrototype("global", global);
 
             // add some convenience functions to string, date and number prototypes
@@ -135,53 +136,28 @@ public final class RhinoCore {
 
     /**
      *   Initialize a prototype without fully parsing its script files.
+     *
+     *  @param prototype the prototype to be created
      */
     synchronized void initPrototype(Prototype prototype) {
-        // System.err.println ("FESI INIT PROTO "+prototype);
-        Scriptable op = null;
+
         String name = prototype.getName();
 
-        // get the prototype's prototype if possible and necessary
-        Scriptable opp = null;
-        Prototype parent = prototype.getParentPrototype();
+        // check if the prototype info exists already
+        ScriptableObject op = getRawPrototype(name);
 
-        if (parent != null) {
-            // see if parent prototype is already registered. if not, register it
-            opp = getRawPrototype(parent.getName());
-
-            if (opp == null) {
-                initPrototype(parent);
-                opp = getRawPrototype(parent.getName());
-            }
-        }
-
-        if (!"global".equalsIgnoreCase(name) && !"hopobject".equalsIgnoreCase(name) &&
-                (opp == null)) {
-            if (app.isJavaPrototype(name)) {
-                opp = null;
-            } else {
-                opp = getRawPrototype("hopobject");
-            }
-        }
-
-        // if prototype doesn't exist (i.e. is a standard prototype built by HopExtension), create it.
-        op = getRawPrototype(name);
-
+        // if prototype info doesn't exist (i.e. is a standard prototype
+        // built by HopExtension), create it.
         if (op == null) {
             try {
-                op = new HopObject(name); // context.newObject (global /*, "HopObject" */);
-                op.setPrototype(opp);
+                op = new HopObject(name);
                 op.setParentScope(global);
-                op.put("prototypename", op, name);
+                // op.put("prototypename", op, name);
             } catch (Exception ignore) {
                 System.err.println("Error creating prototype: " + ignore);
                 ignore.printStackTrace();
             }
-
             putPrototype(name, op);
-        } else {
-            // set parent prototype just in case it has been changed
-            op.setPrototype(opp);
         }
 
         // Register a constructor for all types except global.
@@ -201,69 +177,92 @@ public final class RhinoCore {
 
     /**
      *   Set up a prototype, parsing and compiling all its script files.
+     *
+     *  @param prototype the prototype to update/evaluate/compile
+     *  @param info the info, containing the object proto, last update time and
+     *         the set of compiled functions properties
      */
-    synchronized void evaluatePrototype(Prototype prototype) {
-        // System.err.println ("FESI EVALUATE PROTO "+prototype+" FOR "+this);
-        Scriptable op = null;
+    synchronized void evaluatePrototype(Prototype prototype, TypeInfo info) {
+        // System.err.println("EVALUATING PROTO: "+prototype);
+        Scriptable op = info.objectPrototype;
 
-        // get the prototype's prototype if possible and necessary
-        Scriptable opp = null;
-        Prototype parent = prototype.getParentPrototype();
+        // set the parent prototype in case it hasn't been done before
+        // or it has changed...
+        setParentPrototype(prototype, op);
 
-        if (parent != null) {
-            // see if parent prototype is already registered. if not, register it
-            opp = getPrototype(parent.getName());
-
-            if (opp == null) {
-                evaluatePrototype(parent);
-                opp = getPrototype(parent.getName());
-            }
-        }
-
-        String name = prototype.getName();
-
-        if (!"global".equalsIgnoreCase(name) && !"hopobject".equalsIgnoreCase(name) &&
-                (opp == null)) {
-            if (app.isJavaPrototype(name)) {
-                opp = null;
-            } else {
-                opp = getPrototype("hopobject");
-            }
-        }
-
-        // if prototype doesn't exist (i.e. is a standard prototype built by HopExtension), create it.
-        op = getPrototype(name);
-
-        if (op == null) {
-            try {
-                op = new HopObject(name); // context.newObject (global /*, "HopObject" */);
-                op.setPrototype(opp);
-                op.setParentScope(global);
-                op.put("prototypename", op, name);
-            } catch (Exception ignore) {
-                System.err.println("Error creating prototype: " + ignore);
-                ignore.printStackTrace();
-            }
-
-            putPrototype(name, op);
-        } else {
-            // reset prototype to original state
-            resetPrototype(op);
-
-            // set parent prototype just in case it has been changed
-            op.setPrototype(opp);
-        }
-
+        // loop through the prototype's code elements and evaluate them
+        // first the zipped ones ...
         for (Iterator it = prototype.getZippedCode().values().iterator(); it.hasNext();) {
             Object code = it.next();
 
-            evaluate(prototype, code);
+            evaluate(prototype, op, code);
         }
 
+        // then the unzipped ones (this is to make sure unzipped code overwrites zipped code)
         for (Iterator it = prototype.getCode().values().iterator(); it.hasNext();) {
             Object code = it.next();
 
-            evaluate(prototype, code);
+            evaluate(prototype, op, code);
+        }
+
+        // loop through function properties defined for this proto and
+        // remove those which are left over from the previous generation
+        // and haven't been renewed in this pass.
+        Set oldFunctions = info.compiledFunctions;
+        Set newFunctions = new HashSet();
+        Object[] keys = ((ScriptableObject) op).getAllIds();
+        for (int i = 0; i < keys.length; i++) {
+            String key = keys[i].toString();
+            if (info.predefinedProperties.contains(key)) {
+                // don't mess with properties we didn't set
+                continue;
+            }
+            Object prop = op.get(key, op);
+            if (oldFunctions.contains(prop) && prop instanceof NativeFunction) {
+                // if this is a function compiled from script, it's from the
+                // old generation and wasn't renewed -- delete it.
+                System.err.println("DELETING OLD FUNC: "+key);
+                try {
+                    ((ScriptableObject) op).setAttributes(key, op, 0);
+                    op.delete(key);
+                } catch (PropertyException px) {
+                    System.err.println("Error unsetting property "+key+" on "+prototype);
+                }
+            } else {
+                newFunctions.add(prop);
+            }
+        }
+
+        info.compiledFunctions = newFunctions;
+        info.lastUpdate = prototype.getLastUpdate();
+    }
+
+    /**
+     *  Set the parent prototype on the ObjectPrototype.
+     *
+     *  @param prototype the prototype spec
+     *  @param op the prototype object
+     */
+    private void setParentPrototype(Prototype prototype, Scriptable op) {
+        String name = prototype.getName();
+
+        if (!"global".equalsIgnoreCase(name) && !"hopobject".equalsIgnoreCase(name)) {
+
+            // get the prototype's prototype if possible and necessary
+            Scriptable opp = null;
+            Prototype parent = prototype.getParentPrototype();
+
+            if (parent != null) {
+                // see if parent prototype is already registered. if not, register it
+                opp = getPrototype(parent.getName());
+            }
+
+            if (opp == null && !app.isJavaPrototype(name)) {
+                // FIXME: does this ever occur?
+                opp = getPrototype("hopobject");
+            }
+
+            op.setPrototype(opp);
         }
     }
 
@@ -271,14 +270,17 @@ public final class RhinoCore {
      *  This is a version of org.mozilla.javascript.FunctionObject.addAsConstructor()
      *  that does not set the constructor property in the prototype. This is because
      *  we want our own scripted constructor function to prevail, if it is defined.
+     *
+     * @param name the name of the constructor
+     * @param op the object prototype
      */
-    private void installConstructor(String name, Scriptable prototype) {
+    private void installConstructor(String name, Scriptable op) {
         FunctionObject fo = new FunctionObject(name, HopObject.hopObjCtor, global);
 
         ScriptRuntime.setFunctionProtoAndParent(global, fo);
-        fo.setImmunePrototypeProperty(prototype);
+        fo.setImmunePrototypeProperty(op);
 
-        prototype.setParentScope(fo);
+        op.setParentScope(fo);
 
         ScriptableObject.defineProperty(global, name, fo, ScriptableObject.DONTENUM);
 
@@ -286,25 +288,10 @@ public final class RhinoCore {
     }
 
     /**
-     *  Return an object prototype to its initial state, removing all application specific
-     *  functions.
-     */
-    synchronized void resetPrototype(Scriptable op) {
-        Object[] ids = op.getIds();
-
-        for (int i = 0; i < ids.length; i++) {
-            /* String prop = en.nextElement ().toString ();
-               try {
-                   ESValue esv = op.getProperty (prop, prop.hashCode ());
-                   if (esv instanceof ConstructedFunctionObject || esv instanceof FesiActionAdapter.ThrowException)
-                       op.deleteProperty (prop, prop.hashCode());
-               } catch (Exception x) {} */
-        }
-    }
-
-    /**
      *  This method is called before an execution context is entered to let the
-     *  engine know it should update its prototype information.
+     *  engine know it should update its prototype information. The update policy
+     *  here is to check for update those prototypes which already have been compiled
+     *  before. Others will be updated/compiled on demand.
      */
     public synchronized void updatePrototypes() {
         if ((System.currentTimeMillis() - lastUpdate) < 1000L) {
@@ -334,14 +321,71 @@ public final class RhinoCore {
                     app.typemgr.updatePrototype(p);
 
                     if (p.getLastUpdate() > info.lastUpdate) {
-                        evaluatePrototype(p);
-                        info.lastUpdate = p.getLastUpdate();
+                        evaluatePrototype(p, info);
                     }
                 }
             }
         }
 
         lastUpdate = System.currentTimeMillis();
+    }
+
+    /**
+     * Get a raw prototype, i.e. in potentially unfinished state
+     * without checking if it needs to be updated.
+     */
+    private ScriptableObject getRawPrototype(String protoName) {
+        if (protoName == null) {
+            return null;
+        }
+
+        TypeInfo info = (TypeInfo) prototypes.get(protoName);
+
+        return (info == null) ? null : info.objectPrototype;
+    }
+
+    /**
+     *  Get the object prototype for a prototype name and initialize/update it
+     *  if necessary. The policy here is to update the prototype only if it
+     *  hasn't been updated before, otherwise we assume it already was updated
+     *  by updatePrototypes(), which is called for each request.
+     */
+    public Scriptable getPrototype(String protoName) {
+        if (protoName == null) {
+            return null;
+        }
+
+        TypeInfo info = (TypeInfo) prototypes.get(protoName);
+
+        if ((info != null) && (info.lastUpdate == 0)) {
+            Prototype p = app.typemgr.getPrototype(protoName);
+
+            if (p != null) {
+                app.typemgr.updatePrototype(p);
+
+                if (p.getLastUpdate() > info.lastUpdate) {
+                    evaluatePrototype(p, info);
+                }
+
+                // set info.lastUpdate to 1 if it is 0 so we know we
+                // have initialized this prototype already, even if
+                // it is empty (i.e. doesn't contain any scripts/skins/actions)
+                if (info.lastUpdate == 0) {
+                    info.lastUpdate = 1;
+                }
+            }
+        }
+
+        return (info == null) ? null : info.objectPrototype;
+    }
+
+    /**
+     * Register an object prototype for a prototype name.
+     */
+    private void putPrototype(String protoName, ScriptableObject op) {
+        if ((protoName != null) && (op != null)) {
+            prototypes.put(protoName, new TypeInfo(op, protoName));
+        }
     }
 
     /**
@@ -375,7 +419,6 @@ public final class RhinoCore {
      *  Convert an input argument from Java to the scripting runtime
      *  representation.
      */
-
     public Object processXmlRpcArgument (Object what) throws Exception {
         if (what == null)
             return null;
@@ -412,7 +455,6 @@ public final class RhinoCore {
     /**
      * convert a JavaScript Object object to a generic Java object stucture.
      */
-
     public Object processXmlRpcResponse (Object what) throws Exception {
         if (what instanceof NativeJavaObject) {
             what = ((NativeJavaObject) what).unwrap();
@@ -454,51 +496,6 @@ public final class RhinoCore {
             }
         }
         return what;
-       /* if (what == null || what instanceof ESNull)
-           return null;
-       if (what instanceof ArrayPrototype) {
-           ArrayPrototype a = (ArrayPrototype) what;
-           int l = a.size ();
-           Vector v = new Vector ();
-           for (int i=0; i<l; i++) {
-               Object nj = processXmlRpcResponse (a.getProperty (i));
-               v.addElement (nj);
-           }
-           return v;
-       }
-       if (what instanceof ObjectPrototype) {
-           ObjectPrototype o = (ObjectPrototype) what;
-           Hashtable t = new Hashtable ();
-           for (Enumeration e=o.getProperties (); e.hasMoreElements (); ) {
-               String next = (String) e.nextElement ();
-               // We don't do deep serialization of HopObjects to avoid
-               // that the whole web site structure is sucked out with one
-               // object. Instead we return some kind of "proxy" objects
-               // that only contain the prototype and id of the HopObject property.
-               Object nj = null;
-               ESValue esv = o.getProperty (next, next.hashCode ());
-               if (esv instanceof ESNode) {
-                   INode node = ((ESNode) esv).getNode ();
-                   if (node != null) {
-                       Hashtable nt = new Hashtable ();
-                       nt.put ("id", node.getID());
-                       if (node.getPrototype() != null)
-                           nt.put ("prototype", node.getPrototype ());
-                       nj = nt;
-                   }
-               } else
-                   nj = processXmlRpcResponse (esv);
-               if (nj != null)  // can't put null as value in hashtable
-                   t.put (next, nj);
-           }
-           return t;
-       }
-       if (what instanceof ESUndefined || what instanceof ESNull)
-           return null;
-       Object jval = what.toJavaObject ();
-       if (jval instanceof Byte || jval instanceof Short)
-           jval = new Integer (jval.toString ());
-       return jval; */
     }
 
 
@@ -507,63 +504,6 @@ public final class RhinoCore {
      */
     public Application getApplication() {
         return app;
-    }
-
-    /**
-     * Get a raw prototype, i.e. in potentially unfinished state
-     * without checking if it needs to be updated.
-     */
-    private Scriptable getRawPrototype(String protoName) {
-        if (protoName == null) {
-            return null;
-        }
-
-        TypeInfo info = (TypeInfo) prototypes.get(protoName);
-
-        return (info == null) ? null : info.objectPrototype;
-    }
-
-    /**
-     *  Get the object prototype for a prototype name and initialize/update it
-     *  if necessary.
-     */
-    public Scriptable getPrototype(String protoName) {
-        if (protoName == null) {
-            return null;
-        }
-
-        TypeInfo info = (TypeInfo) prototypes.get(protoName);
-
-        if ((info != null) && (info.lastUpdate == 0)) {
-            Prototype p = app.typemgr.getPrototype(protoName);
-
-            if (p != null) {
-                app.typemgr.updatePrototype(p);
-
-                if (p.getLastUpdate() > info.lastUpdate) {
-                    info.lastUpdate = p.getLastUpdate();
-                    evaluatePrototype(p);
-                }
-
-                // set info.lastUpdate to 1 if it is 0 so we know we 
-                // have initialized this prototype already, even if 
-                // it is empty (i.e. doesn't contain any scripts/skins/actoins
-                if (info.lastUpdate == 0) {
-                    info.lastUpdate = 1;
-                }
-            }
-        }
-
-        return (info == null) ? null : info.objectPrototype;
-    }
-
-    /**
-     * Register an object prototype for a certain prototype name.
-     */
-    private void putPrototype(String protoName, Scriptable op) {
-        if ((protoName != null) && (op != null)) {
-            prototypes.put(protoName, new TypeInfo(op, protoName));
-        }
     }
 
 
@@ -645,44 +585,9 @@ public final class RhinoCore {
         return esn;
     }
 
-    /**
-     *  Register a new Node wrapper with the wrapper cache. This is used by the
-     * Node constructor.
-     */
-    /* public void putNodeWrapper(INode n, Scriptable esn) {
-        wrappercache.put(n, esn);
-    } */
-
-    private synchronized void evaluate(Prototype prototype, Object code) {
-        if (code instanceof FunctionFile) {
-            FunctionFile funcfile = (FunctionFile) code;
-            File file = funcfile.getFile();
-
-            if (file != null) {
-                try {
-                    FileReader fr = new FileReader(file);
-
-                    updateEvaluator(prototype, fr, funcfile.getSourceName(), 1);
-                } catch (IOException iox) {
-                    app.logEvent("Error updating function file: " + iox);
-                }
-            } else {
-                StringReader reader = new StringReader(funcfile.getContent());
-
-                updateEvaluator(prototype, reader, funcfile.getSourceName(), 1);
-            }
-        } else if (code instanceof ActionFile) {
-            ActionFile action = (ActionFile) code;
-            RhinoActionAdapter fa = new RhinoActionAdapter(action);
-
-            try {
-                updateEvaluator(prototype, new StringReader(fa.function),
-                                action.getSourceName(), 0);
-            } catch (Exception esx) {
-                app.logEvent("Error parsing " + action + ": " + esx);
-            }
-        }
-    }
+    /////////////////////////////////////////////
+    // skin related methods
+    /////////////////////////////////////////////
 
     protected static Object[] unwrapSkinpath(Object[] skinpath) {
         if (skinpath != null) {
@@ -721,25 +626,64 @@ public final class RhinoCore {
         return param;
     }
 
-    private synchronized void updateEvaluator(Prototype prototype, Reader reader,
-                                              String sourceName, int firstline) {
-        // context = Context.enter(context);
-        try {
-            Scriptable op = getPrototype(prototype.getName());
+    ////////////////////////////////////////////////
+    // private evaluation/compilation methods
+    ////////////////////////////////////////////////
 
+    private synchronized void evaluate(Prototype prototype, Scriptable op, Object code) {
+        if (code instanceof FunctionFile) {
+            FunctionFile funcfile = (FunctionFile) code;
+            File file = funcfile.getFile();
+
+            if (file != null) {
+                try {
+                    FileReader fr = new FileReader(file);
+
+                    updateEvaluator(prototype, op, fr, funcfile.getSourceName(), 1);
+                } catch (IOException iox) {
+                    app.logEvent("Error updating function file: " + iox);
+                }
+            } else {
+                StringReader reader = new StringReader(funcfile.getContent());
+
+                updateEvaluator(prototype, op, reader, funcfile.getSourceName(), 1);
+            }
+        } else if (code instanceof ActionFile) {
+            ActionFile action = (ActionFile) code;
+            RhinoActionAdapter fa = new RhinoActionAdapter(action);
+
+            try {
+                updateEvaluator(prototype, op, new StringReader(fa.function),
+                                action.getSourceName(), 0);
+            } catch (Exception esx) {
+                app.logEvent("Error parsing " + action + ": " + esx);
+            }
+        }
+    }
+
+    private synchronized void updateEvaluator(Prototype prototype, Scriptable op,
+                                        Reader reader, String sourceName, int firstline) {
+        // System.err.println("UPDATE EVALUATOR: "+prototype+" - "+sourceName);
+        try {
             // get the current context
             Context cx = Context.getCurrentContext();
 
             // do the update, evaluating the file
             cx.evaluateReader(op, reader, sourceName, firstline, null);
+
         } catch (Throwable e) {
-            app.logEvent("Error parsing function file " + sourceName + ": " + e);
+            app.logEvent("Error parsing file " + sourceName + ": " + e);
+            // also write to standard out unless we're logging to it anyway
+            if (!"console".equalsIgnoreCase(app.getProperty("logDir"))) {
+                System.err.println("Error parsing file " + sourceName + ": " + e);
+            }
             // e.printStackTrace();
         } finally {
             if (reader != null) {
                 try {
                     reader.close();
                 } catch (IOException ignore) {
+                    // shouldn't happen
                 }
             }
         }
@@ -756,13 +700,27 @@ public final class RhinoCore {
      *  TypeInfo helper class
      */
     class TypeInfo {
-        Scriptable objectPrototype;
+        // the object prototype for this type
+        ScriptableObject objectPrototype;
+        // timestamp of last update
         long lastUpdate = 0;
+        // the prototype name
         String protoName;
+        // a set of property values that were defined in last script compliation
+        Set compiledFunctions;
+        // a set of property keys that were present before first script compilation
+        final Set predefinedProperties;
 
-        public TypeInfo(Scriptable op, String name) {
+        public TypeInfo(ScriptableObject op, String name) {
             objectPrototype = op;
             protoName = name;
+            compiledFunctions = new HashSet(0);
+            // remember properties already defined on this object prototype
+            predefinedProperties = new HashSet();
+            Object[] keys = op.getAllIds();
+            for (int i = 0; i < keys.length; i++) {
+                predefinedProperties.add(keys[i].toString());
+            }
         }
 
         public String toString() {
