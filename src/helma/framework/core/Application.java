@@ -35,8 +35,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     protected NodeManager nmgr;
 
     // the class name of the scripting environment implementation
-    static final String scriptEnvironmentName = "helma.scripting.fesi.Environment";
-    ScriptingEnvironment scriptEnv;
+    ScriptingEnvironment scriptingEngine;
 
     // the root of the website, if a custom root object is defined.
     // otherwise this is managed by the NodeManager and not cached here.
@@ -48,6 +47,11 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     * has been updated prior to each evaluation.
     */
     public TypeManager typemgr;
+
+    /**
+     * The skin manager for this application
+     */
+    protected SkinManager skinmgr;
 
     /**
     *  Each application has one internal request evaluator for calling
@@ -227,7 +231,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     /**
      * Get the application ready to run, initializing the evaluators and type manager.
      */
-    public void init () throws DbException {
+    public void init () throws DbException, ScriptingException {
+	scriptingEngine = new helma.scripting.fesi.FesiScriptingEnvironment ();
+	scriptingEngine.init (this, props);
 
 	eval = new RequestEvaluator (this);
 	logEvent ("Starting evaluators for "+name);
@@ -248,6 +254,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	typemgr = new TypeManager (this);
 	typemgr.createPrototypes ();
 	// logEvent ("Started type manager for "+name);
+
+	skinmgr = new SkinManager (this);
 
 	rootMapping = getDbMapping ("root");
 	userMapping = getDbMapping ("user");
@@ -366,7 +374,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	            try {
 	                RequestEvaluator re = (RequestEvaluator) freeThreads.pop ();
 	                allThreads.removeElement (re);
-	                typemgr.unregisterRequestEvaluator (re);
+	                // typemgr.unregisterRequestEvaluator (re);
 	                re.stopThread ();
 	            } catch (EmptyStackException empty) {
 	                return false;
@@ -520,6 +528,13 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	return nmgr.safe;
     }
 
+    /**
+     *  Return a transient node that is shared by all evaluators of this application ("app node")
+     */
+    public INode getAppNode () {
+	return appnode;
+    }
+
 
     /**
      * Returns a Node representing a registered user of this application by his or her user name.
@@ -552,9 +567,16 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Return a collection containing all prototypes defined for this application
      */
     public Collection getPrototypes () {
-    return typemgr.prototypes.values ();
+	return typemgr.prototypes.values ();
     }
 
+    /**
+     *  Retrurn a skin for a given object. The skin is found by determining the prototype
+     *  to use for the object, then looking up the skin for the prototype.
+     */
+    public Skin getSkin (Object object, String skinname, Object[] skinpath) {
+	return skinmgr.getSkin (object, skinname, skinpath); // not yet implemented
+    }
 
     /**
      * Return the user currently associated with a given Hop session ID. This may be
@@ -815,6 +837,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * within the Helma scripting and rendering framework.
      */
     public String getPrototypeName (Object obj) {
+	if (obj == null)
+	    return "global";
 	// check if e implements the IPathElement interface
 	if (obj instanceof IPathElement)
 	    // e implements the getPrototype() method
@@ -903,6 +927,14 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 
 
     /**
+     *  Get scripting environment for this application
+     */
+    public ScriptingEnvironment getScriptingEnvironment () {
+	return scriptingEngine;
+    }
+
+
+    /**
      * The run method performs periodic tasks like executing the scheduler method and
      * kicking out expired user sessions.
      */
@@ -917,7 +949,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 
 	try {
 	    eval.invokeFunction ((INode) null, "onStart", new Object[0]);
-	} catch (Exception ignore) {}
+	} catch (Exception ignore) {
+	    System.err.println ("Error in "+name+"/onStart(): "+ignore);
+	}
 
 	while (Thread.currentThread () == worker) {
 	    // get session timeout
@@ -1022,7 +1056,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Check whether a prototype is for scripting a java class, i.e. if there's an entry
      * for it in the class.properties file.
      */
-    protected boolean isJavaPrototype (String typename) {
+    public boolean isJavaPrototype (String typename) {
 	for (Enumeration en = classMapping.elements(); en.hasMoreElements(); ) {
 	    String value = (String) en.nextElement ();
 	    if (typename.equals (value))
@@ -1129,7 +1163,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      *
      */
     public int countMaxActiveEvaluators () {
-	return typemgr.countRegisteredRequestEvaluators () -1;
+	// return typemgr.countRegisteredRequestEvaluators () -1;
+	// not available due to framework refactoring
+	return -1;
     }
 
     /**
@@ -1194,7 +1230,7 @@ class XmlRpcInvoker implements XmlRpcHandler {
 	RequestEvaluator ev = null;
 	try {
 	    ev = app.getEvaluator ();
-	    retval = ev.invokeXmlRpc (method, argvec);
+	    retval = ev.invokeXmlRpc (method, argvec.toArray());
 	}  finally {
 	    app.releaseEvaluator (ev);
 	}

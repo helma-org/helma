@@ -225,7 +225,7 @@ public class TypeManager {
 
                 } else if (list[i].endsWith (app.actionExtension) && tmpfile.length () > 0) {
                     try {
-                        Action af = new Action (tmpfile, tmpname, proto);
+                        ActionFile af = new ActionFile (tmpfile, tmpname, proto);
                         updatables.put (list[i], af);
                         nact.put (tmpname, af);
                     } catch (Throwable x) {
@@ -257,11 +257,12 @@ public class TypeManager {
         proto.updatables = updatables;
 
         // init prototype on evaluators that are already initialized.
-        Iterator evals = getRegisteredRequestEvaluators ();
+        /* Iterator evals = getRegisteredRequestEvaluators ();
         while (evals.hasNext ()) {
             RequestEvaluator reval = (RequestEvaluator) evals.next ();
             proto.initRequestEvaluator (reval);
-        }
+        }*/
+        app.scriptingEngine.updatePrototype (proto);
 
     }
 
@@ -303,9 +304,9 @@ public class TypeManager {
 
         if (!needsUpdate)
 	return;
-	
+
         proto.lastUpdate = System.currentTimeMillis ();
-	
+
         // let the thread know we had to do something.
         idleSeconds = 0;
         // app.logEvent ("TypeManager: Updating prototypes for "+app.getName()+": "+updatables);
@@ -347,7 +348,7 @@ public class TypeManager {
 
             }  else if (list[i].endsWith (app.actionExtension)) {
                 try {
-                    Action af = new Action (tmpfile, tmpname, proto);
+                    ActionFile af = new ActionFile (tmpfile, tmpname, proto);
                     proto.updatables.put (list[i], af);
                     proto.actions.put (tmpname, af);
                 } catch (Throwable x) {
@@ -362,29 +363,29 @@ public class TypeManager {
         }
 
         // next go through existing updatables
-        if (updatables == null)
-            return;
-        for (Iterator i = updatables.iterator(); i.hasNext(); ) {
-            Updatable upd = (Updatable) i.next();
+        if (updatables != null) {
+            for (Iterator i = updatables.iterator(); i.hasNext(); ) {
+                Updatable upd = (Updatable) i.next();
 
-            if (upd.needsUpdate ()) {
-                if (upd instanceof DbMapping)
-                    rewire = true;
-                try {
-                    upd.update ();
-                } catch (Exception x) {
-                     if (upd instanceof DbMapping)
-	            app.logEvent ("Error updating db mapping for type "+name+": "+x);
-                     else
-	            app.logEvent ("Error updating "+upd+" of prototye type "+name+": "+x);
+                if (upd.needsUpdate ()) {
+                    if (upd instanceof DbMapping)
+                        rewire = true;
+                    try {
+                        upd.update ();
+                    } catch (Exception x) {
+                         if (upd instanceof DbMapping)
+                            app.logEvent ("Error updating db mapping for type "+name+": "+x);
+                         else
+                            app.logEvent ("Error updating "+upd+" of prototye type "+name+": "+x);
+                    }
                 }
             }
         }
+        app.scriptingEngine.updatePrototype (proto);
     }
 
 
-
-    public void initRequestEvaluator (RequestEvaluator reval) {
+    /*public void initRequestEvaluator (RequestEvaluator reval) {
         if (!registeredEvaluators.contains (reval))
             registeredEvaluators.add (reval);
         for (Iterator it = prototypes.values().iterator(); it.hasNext(); ) {
@@ -404,7 +405,7 @@ public class TypeManager {
 
     public int countRegisteredRequestEvaluators () {
         return registeredEvaluators.size ();
-    }
+    } */
 
 }
 

@@ -1,8 +1,9 @@
-// Action.java
+// ActionFile.java
 // Copyright (c) Hannes Wallnöfer 1998-2000
  
-package helma.scripting;
+package helma.scripting.fesi;
 
+import helma.scripting.*;
 import java.util.Vector;
 import java.util.Iterator;
 import java.io.*;
@@ -20,90 +21,46 @@ import FESI.Exceptions.*;
 
 
 /**
- * An Action is a JavaScript function that is exposed as a URI. It is 
- * usually represented by a file with extension .hac (hop action file)
- * that contains the pure JavaScript body of the function. 
+ *  An class that updates fesi interpreters with actionfiles and templates.
  */
 
 
-public class Action implements Updatable {
+public class FesiActionAdapter {
 
-    String name;
-    String functionName;
     Prototype prototype;
     Application app;
-    File file;
-    long lastmod;
-
+    String sourceName;
     // this is the parsed function which can be easily applied to RequestEvaluator objects
     TypeUpdater pfunc;
 
-
-    public Action (File file, String name, Prototype proto) {
-	this.prototype = proto;
-	this.app = proto.getApplication ();
-	this.name = name;
-	this.file = file;
-	if (file != null)
-	    update ();
-    }
-
-    /**
-     * Tell the type manager whether we need an update. this is the case when
-     * the file has been modified or deleted.
-     */
-    public boolean needsUpdate () {
-	return lastmod != file.lastModified ();
-    }
-
-
-    public void update () {
-
-	if (!file.exists ()) {
-	    // remove functions declared by this from all object prototypes
-	    remove ();
-	} else {
-	    try {
-	        FileReader reader = new FileReader (file);
-	        char cbuf[] = new char[(int) file.length ()];
-	        reader.read (cbuf);
-	        reader.close ();
-	        String content = new String (cbuf);
-	        update (content);
-	    } catch (Exception filex) {
-	        app.logEvent ("*** Error reading action file "+file+": "+filex);
-	    }
-	
-	    lastmod = file.lastModified ();
+    public FesiActionAdapter (ActionFile action) {
+	prototype = action.getPrototype ();
+	app = action.getApplication ();
+	String content = action.getContent ();
+	String functionName = action.getFunctionName ();
+	sourceName = action.toString ();
+	try {
+	    pfunc = parseFunction (functionName, "arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10", content);
+	} catch (Throwable x) {
+	    String message = x.getMessage ();
+	    pfunc =  new ErrorFeedback (functionName, message);
 	}
     }
 
-
-    public void update (String content) throws Exception {
+    /* protected void update (FesiEvaluator fesi) throws Exception {
 	// app.logEvent ("Reading text template " + name);
 
-	functionName = name+"_action";
-
-             try {
-	    pfunc = parseFunction (functionName, "arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10", content);
-             } catch (Throwable x) {
-                 String message = x.getMessage ();
-                 pfunc =  new ErrorFeedback (functionName, message);
-             }
-
-	Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
+	FesiScriptingEnvironment scriptEnv = (FesiScriptingEnvironment) app.getScriptingEnvironment ();
+	Iterator evals = scriptEnv.getEvaluators().iterator();
 	while (evals.hasNext ()) {
 	    try {
-	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
-	        updateRequestEvaluator (reval);
+	        FesiEvaluator fesi = (FesiEvaluator) evals.next ();
+	        updateEvaluator (fesi);
 	    } catch (Exception ignore) {}
 	}
-    }
+    } */
 
-    void remove () {
-	prototype.actions.remove (name);
-	prototype.updatables.remove (file.getName());
-
+   /* protected void remove () {
 	Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
 	while (evals.hasNext ()) {
 	    try {
@@ -116,23 +73,12 @@ public class Action implements Updatable {
 	        }
 	    } catch (Exception ignore) {}
 	}
-    }
+    } */
 
-    public String getName () {
-	return name;
-    }
 
-    public String getFunctionName () {
-	return functionName;
-    }
-
-    public String toString () {
-	return prototype.getName()+"/"+file.getName();
-    }
-
-    public synchronized void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException {
+    public synchronized void updateEvaluator (FesiEvaluator fesi) throws EcmaScriptException {
         if (pfunc != null)
-            pfunc.updateRequestEvaluator (reval);
+            pfunc.updateEvaluator (fesi);
     }
 
     protected TypeUpdater parseFunction (String funcname, String params, String body) throws EcmaScriptException {
@@ -176,10 +122,10 @@ public class Action implements Updatable {
             sl = (ASTStatementList) parser.StatementList();
             is.close();
         } catch (ParseException x) {
-            app.logEvent ("Error parsing file "+app.getName()+":"+prototype.getName()+"/"+file.getName()+": "+x);
+            app.logEvent ("Error parsing file "+app.getName()+":"+sourceName+": "+x);
             throw new EcmaScriptParseException (x, new StringEvaluationSource(fulltext, null));
         } catch (Exception x) {
-            app.logEvent ("Error parsing file "+app.getName()+":"+prototype.getName()+"/"+file.getName()+": "+x);
+            app.logEvent ("Error parsing file "+app.getName()+":"+sourceName+": "+x);
             throw new RuntimeException (x.getMessage ());
         }
 
@@ -204,15 +150,15 @@ public class Action implements Updatable {
 	this.functionName = functionName;
         }
 
-        public void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException {
+        public void updateEvaluator (FesiEvaluator fesi) throws EcmaScriptException {
 
-	ObjectPrototype op = reval.getPrototype (prototype.getName());
+	ObjectPrototype op = fesi.getPrototype (prototype.getName());
 
-	EcmaScriptVariableVisitor vdvisitor = reval.evaluator.getVarDeclarationVisitor();
+	EcmaScriptVariableVisitor vdvisitor = fesi.evaluator.getVarDeclarationVisitor();
 	Vector vnames = vdvisitor.processVariableDeclarations(sl, fes);
 
 	FunctionPrototype fp = ConstructedFunctionObject.makeNewConstructedFunction (
-		reval.evaluator, functionName, fes,
+		fesi.evaluator, functionName, fes,
 		fullFunctionText, fpl.getArguments(), vnames, sl);
 	op.putHiddenProperty (functionName, fp);
         }
@@ -228,12 +174,12 @@ public class Action implements Updatable {
             errorMessage = msg;
         }
 
-        public void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException {
+        public void updateEvaluator (FesiEvaluator fesi) throws EcmaScriptException {
 
-            ObjectPrototype op = reval.getPrototype (prototype.getName ());
+            ObjectPrototype op = fesi.getPrototype (prototype.getName ());
 
-            FunctionPrototype fp = (FunctionPrototype) reval.evaluator.getFunctionPrototype ();
-            FunctionPrototype func = new ThrowException (functionName, reval.evaluator, fp, errorMessage);
+            FunctionPrototype fp = (FunctionPrototype) fesi.evaluator.getFunctionPrototype ();
+            FunctionPrototype func = new ThrowException (functionName, fesi.evaluator, fp, errorMessage);
             op.putHiddenProperty (functionName, func);
 
         }
@@ -254,38 +200,8 @@ public class Action implements Updatable {
     }
 
     interface TypeUpdater {
-        public void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException;
+        public void updateEvaluator (FesiEvaluator fesi) throws EcmaScriptException;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

@@ -27,8 +27,8 @@ public class ESUser extends ESNode {
     /** if the user is online, this is his/her online session object */
     public User user;
 
-    public ESUser (INode node, RequestEvaluator eval, User user) {
-	super (eval.esUserPrototype, eval.evaluator, node, eval);
+    public ESUser (INode node, FesiEvaluator eval, User user) {
+	super (eval.getPrototype("user"), eval.getEvaluator(), node, eval);
 	this.user = user;
 	if (user != null) {
 	    cache = user.getCache ();

@@ -72,16 +72,14 @@ public class ZippedAppFile implements Updatable {
 	                    String name = fname.substring (0, fname.lastIndexOf ("."));
 	                    String content = getZipEntryContent (zip, entry);
 	                    // System.err.println ("["+content+"]");
-	                    Action act = new Action (null, name, proto);
-	                    act.update (content);
+	                    ActionFile act = new ActionFile (content, name, proto);
 	                    proto.actions.put (name, act);
 	                }
 	                else if (fname.endsWith (".hsp")) {
 	                    String name = fname.substring (0, fname.lastIndexOf ("."));
 	                    String content = getZipEntryContent (zip, entry);
 	                    // System.err.println ("["+content+"]");
-	                    Template tmp = new Template (null, name, proto);
-	                    tmp.update (content);
+	                    Template tmp = new Template (content, name, proto);
 	                    proto.templates.put (name, tmp);
 	                }
 	                else if (fname.endsWith (".skin")) {

@@ -8,11 +8,8 @@ import java.util.Iterator;
 import java.io.*;
 import helma.framework.*;
 import helma.scripting.*;
-import helma.scripting.fesi.*;
 import helma.objectmodel.*;
 import helma.util.Updatable;
-import FESI.Data.*;
-import FESI.Exceptions.EcmaScriptException;
 
 
 /**
@@ -66,12 +63,12 @@ public class Prototype {
 
 	// if parent has changed, update ES-prototypes in request evaluators
 	if (parent != old) {
-	    Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
+	    /* Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
 	    while (evals.hasNext ()) {
 	        try {
 	            RequestEvaluator reval = (RequestEvaluator) evals.next ();
 	            ObjectPrototype op = reval.getPrototype (getName());
-	            // use hopobject (node) as prototype even if prototype is null - 
+	            // use hopobject (node) as prototype even if prototype is null -
 	            // this is the case if no hopobject directory exists
 	            ObjectPrototype opp = parent == null ?
 	            	reval.esNodePrototype : reval.getPrototype (parent.getName ());
@@ -81,7 +78,7 @@ public class Prototype {
 	            op.setPrototype (opp);
 	        } catch (Exception ignore) {
 	        }
-	    }
+	    } */
 	}
     }
 
@@ -97,8 +94,8 @@ public class Prototype {
 	return (FunctionFile) functions.get (ffname);
     }
 
-    public Action getAction (String afname) {
-	return (Action) actions.get (afname);
+    public ActionFile getActionFile (String afname) {
+	return (ActionFile) actions.get (afname);
     }
 
     public SkinFile getSkinFile (String sfname) {
@@ -128,74 +125,9 @@ public class Prototype {
 	    }
 	}
 	return upd;
-	
-    }
-
-    public void initRequestEvaluator (RequestEvaluator reval) {
-	// see if we already registered with this evaluator
-	if (reval.getPrototype (name) != null)
-	    return;
-	
-	ObjectPrototype op = null;
-
-	// get the prototype's prototype if possible and necessary
-	ObjectPrototype opp = null;
-	if (parent != null) {
-	    // see if parent prototype is already registered. if not, register it
-	    opp = reval.getPrototype (parent.getName ());
-	    if (opp == null) {
-	        parent.initRequestEvaluator (reval);
-	        opp = reval.getPrototype (parent.getName ());
-	    }
-	}
-	if (!"global".equalsIgnoreCase (name) && !"hopobject".equalsIgnoreCase (name) && opp == null) {
-	    if (isJavaPrototype)
-	        opp = reval.esObjectPrototype;
-	    else
-	        opp = reval.esNodePrototype;
-	}
-
-	if ("user".equalsIgnoreCase (name)) {
-	    op = reval.esUserPrototype;
-	    op.setPrototype (opp);
-	} else if ("global".equalsIgnoreCase (name))
-	    op = reval.global;
-	else if ("hopobject".equalsIgnoreCase (name))
-	    op = reval.esNodePrototype;
-	else {
-	    op = new ObjectPrototype (opp, reval.evaluator);
-	    try {
-	        op.putProperty ("prototypename", new ESString (name), "prototypename".hashCode ());
-	    } catch (EcmaScriptException ignore) {}
-	}
-	reval.putPrototype (name, op);
-
-	// Register a constructor for all types except global.
-	// This will first create a node and then call the actual (scripted) constructor on it.
-	if (!"global".equalsIgnoreCase (name)) {
-	    try {
-	        FunctionPrototype fp = (FunctionPrototype) reval.evaluator.getFunctionPrototype();
-	        reval.global.putHiddenProperty (name, new NodeConstructor (name, fp, reval));
-	    } catch (EcmaScriptException ignore) {}
-	}
-	for (Iterator it = functions.values().iterator(); it.hasNext(); ) {
-	    FunctionFile ff = (FunctionFile) it.next ();
-	    ff.updateRequestEvaluator (reval);
-	}
-	for (Iterator it = templates.values().iterator(); it.hasNext(); ) {
-	    Template tmp = (Template) it.next ();
-	    try {
-	        tmp.updateRequestEvaluator (reval);
-	    } catch (EcmaScriptException ignore) {}
-	}
-	for (Iterator it = actions.values().iterator(); it.hasNext(); ) {
-	    Action act = (Action) it.next ();
-	    try {
-	        act.updateRequestEvaluator (reval);
-	    } catch (EcmaScriptException ignore) {}
-	}
 
     }
+
 
 
     public String toString () {

@@ -20,16 +20,16 @@ import java.util.*;
 public class ESMapWrapper extends ESWrapper {
 
     private Map data;
-    private RequestEvaluator reval;
+    private FesiEvaluator fesi;
 
-    public ESMapWrapper (RequestEvaluator reval) {
-	super (new Object(), reval.evaluator);
-	this.reval = reval;
+    public ESMapWrapper (FesiEvaluator fesi) {
+	super (new Object(), fesi.getEvaluator ());
+	this.fesi = fesi;
     }
 
-    public ESMapWrapper (RequestEvaluator reval, Map data) {
-	super (new Object(), reval.evaluator);
-	this.reval = reval;
+    public ESMapWrapper (FesiEvaluator fesi, Map data) {
+	super (new Object(), fesi.getEvaluator ());
+	this.fesi = fesi;
 	this.data = data;
     }
 
@@ -63,7 +63,7 @@ public class ESMapWrapper extends ESWrapper {
 	if (val instanceof  String)
 	    return new ESString ((String) val);
 	else if (val instanceof INode)
-	    return reval.getNodeWrapper ((INode) val);
+	    return fesi.getNodeWrapper ((INode) val);
 	else if (val instanceof ESValue)
 	    return (ESValue) val;
 	return ESLoader.normalizeValue(val, evaluator);

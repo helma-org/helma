@@ -278,9 +278,9 @@ public class Skin {
 	            if (handlerObject == null) {
 	                // eiter because thisObject == null or the right object wasn't found in the object's parent path
 	                // go check request path for an object with matching prototype
-	                int l = reval.reqPath.size();
+	                int l = reval.requestPath.size();
 	                for (int i=l-1; i>=0; i--) {
-	                    Object pathelem = reval.reqPath.getProperty (i).toJavaObject ();
+	                    Object pathelem = reval.requestPath.get (i);
 	                    if (handler.equalsIgnoreCase (app.getPrototypeName (pathelem))) {
 	                         handlerObject = pathelem;
 	                         break;
@@ -302,12 +302,12 @@ public class Skin {
 	            // if so, the macro evaluates to the function. Otherwise,
 	            // a property/field with the name is used, if defined.
 	            Object v = null;
-	            if (reval.hasFunction (handlerObject, name+"_macro")) {
+	            if (app.scriptingEngine.hasFunction (handlerObject, name+"_macro", reval)) {
 	                // System.err.println ("Getting macro from function");
-	                v = reval.invokeDirectFunction (handlerObject, name+"_macro", arguments);
+	                v = app.scriptingEngine.invoke (handlerObject, name+"_macro", arguments, null, reval);
 	            } else {
 	                // System.err.println ("Getting macro from property");
-	                v = reval.getProperty (handlerObject, name);
+	                v = app.scriptingEngine.get (handlerObject, name, reval);
 	            }
 	            if (v != null)
 	                writeToResponse (v.toString (), reval.res);
