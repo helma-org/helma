@@ -466,7 +466,10 @@ public final class RhinoCore {
             for (int i=0; i<ids.length; i++) {
                 if (ids[i] instanceof String) {
                     String key = (String) ids[i];
-                    ht.put(key, processXmlRpcResponse(no.get(key, no)));
+                    Object o = no.get(key, no);
+                    if (o != null) {
+                        ht.put(key, processXmlRpcResponse(o));
+                    }
                 }
             }
             what = ht;
