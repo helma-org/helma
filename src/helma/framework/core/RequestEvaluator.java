@@ -939,7 +939,12 @@ public class RequestEvaluator implements Runnable {
             if (op == null)
                 op = esNodePrototype;
 
-            esn = new ESNode (op, evaluator, n, this);
+
+            DbMapping dbm = n.getDbMapping ();
+            if (dbm != null && dbm.isInstanceOf ("user"))
+                esn = new ESUser (n, this, null);
+            else
+                esn = new ESNode (op, evaluator, n, this);
 
             objectcache.put (n, esn);
             // app.logEvent ("Wrapper for "+n+" created");
