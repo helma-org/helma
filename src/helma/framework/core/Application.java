@@ -947,8 +947,8 @@ public final class Application extends UnicastRemoteObject implements IRemoteApp
     public void run () {
 	long cleanupSleep = 60000;    // thread sleep interval (fixed)
 	long scheduleSleep = 60000;  // interval for scheduler invocation
-	long lastScheduler = System.currentTimeMillis ();
-	long lastCleanup = lastScheduler;
+	long lastScheduler = 0;    // run scheduler immediately
+	long lastCleanup = System.currentTimeMillis ();
 
 	// logEvent ("Starting scheduler for "+name);
 	// as first thing, invoke function onStart in the root object
