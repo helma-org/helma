@@ -32,14 +32,9 @@ public class XmlDatabase implements IDatabase {
     public void commitTransaction (ITransaction txn) throws DatabaseException	{    }
     public void abortTransaction (ITransaction txn) throws DatabaseException	{    }
 
-	public String nextID()	{
+	public String nextID() throws ObjectNotFoundException	{
 		if (idgen==null)	{
-			try	{
-				getIDGenerator(null);
-			}	catch ( Exception e )	{
-				System.err.println("couldn't load IDGenerator");
-				return "";
-			}
+			getIDGenerator(null);
 		}
 		return idgen.newID();
 	}
@@ -63,31 +58,23 @@ public class XmlDatabase implements IDatabase {
         try     {
 			XmlReader reader = new XmlReader (nmgr);
             Node node = (Node)reader.read (f,null);
-		    System.out.println("getNode("+kstr+")="+node.toString() );
-		    node.dump();
 			return node;
         }	catch ( RuntimeException x )   { 
-			// fixme: do logging, not just printing...
-			System.err.println("runtimeexception: " + x.toString());
-            x.printStackTrace();
+			nmgr.app.logEvent("error reading node from XmlDatbase: " + x.toString() );
             throw new ObjectNotFoundException(x.toString());
         }
     }
 
     public void saveNode (ITransaction txn, String kstr, INode node) throws Exception {
-		System.out.println("save("+kstr+","+node.toString()+"):" );
 		XmlWriter writer = new XmlWriter (new File (dbBaseDir,kstr+".xml") ); 
 		writer.setMaxLevels(1);
-		// FIXME: synchronize here?
 		boolean result = writer.write((Node)node); 
 		writer.close(); 
-		System.out.println("\n");
     }
 
     public void deleteNode (ITransaction txn, String kstr) throws Exception {
 		File f = new File (dbBaseDir, kstr+".xml");
 		f.delete();
-		System.out.println("delete("+kstr+")" );
     }
 
 

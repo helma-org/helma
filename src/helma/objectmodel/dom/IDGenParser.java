@@ -15,10 +15,8 @@ public class IDGenParser	{
 		try	{
 			Document document = XmlUtil.parse(new FileInputStream (file));
 			org.w3c.dom.Element tmp = (Element)document.getDocumentElement().getElementsByTagName("counter").item(0);
-			System.out.println( tmp.toString() +  " / "+ XmlUtil.getTextContent(tmp) );
 			return new IDGenerator( Long.parseLong (XmlUtil.getTextContent(tmp)) );
 		}	catch (Exception e)		{
-			System.err.println(e.toString());
 			throw new ObjectNotFoundException(e.toString());
 		}
     }
