@@ -4,6 +4,7 @@
 package helma.image;
 
 import java.awt.*;
+import java.awt.image.*;
 import java.net.URL;
 
 /**
@@ -117,7 +118,32 @@ public class ImageGenerator extends Window {
 	}
 	return rimg;
     }
-    
+
+    public ImageWrapper createPaintableImage (ImageWrapper iw, ImageFilter filter) {
+	ImageWrapper rimg = null;
+	MediaTracker tracker = new MediaTracker (this);
+	try {
+	    FilteredImageSource fis = new FilteredImageSource (iw.getSource(), filter);
+	    Image img1 = createImage (fis);
+	    tracker.addImage (img1, 0);
+	    tracker.waitForAll ();
+	    int w = img1.getWidth (null);
+	    int h = img1.getHeight (null);
+	    Image img = createImage (w, h);
+	    Graphics g = img.getGraphics ();
+	    g.drawImage (img1, 0, 0, null);
+	    try {
+	        rimg = new ActivatedImageWrapper (img, g, w, h, this);
+	    } catch (NoClassDefFoundError notfound) {
+	        rimg = new SunImageWrapper (img, g, w, h, this);
+	    } catch (ClassNotFoundException notfound) {
+	        rimg = new SunImageWrapper (img, g, w, h, this);
+	    }
+	} catch (Exception x) {}
+	return rimg;
+    }
+
+
      public Image createImage (String filename) {
 	Image img = null;
 	MediaTracker tracker = new MediaTracker (this);

@@ -77,18 +77,6 @@ public class RemoteImage extends UnicastRemoteObject implements IRemoteImage {
 	wrapped.saveAs (filename);
     }
     
-    public void readFrom (String filename) {
-	wrapped.readFrom (filename);
-    }
-    
-    public byte[] getBytes (String type) { 
-	return wrapped.getBytes (type);
-    }
-    
-    public void setBytes (byte[] bytes, String type) {
-	wrapped.setBytes (bytes, type);
-    }
-
     public void fillString (String str) {
 	wrapped.fillString (str);
     }
