@@ -144,9 +144,9 @@ public class RequestEvaluator implements Runnable {
         try {
 	do {
 
-	    long startCheck = System.currentTimeMillis ();
+	    // long startCheck = System.currentTimeMillis ();
 	    app.typemgr.checkPrototypes ();
-	    System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
+	    // System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
 	
 	    IPathElement root, currentElement;
 	    // reset skinManager
