@@ -58,6 +58,7 @@ public final class RequestEvaluator implements Runnable {
     static final int XMLRPC = 2;      // via XML-RPC
     static final int INTERNAL = 3;     // generic function call, e.g. by scheduler
 
+    public int skinDepth;
 
     /**
      *  Create a new RequestEvaluator for this application.
@@ -230,6 +231,9 @@ public final class RequestEvaluator implements Runnable {
 	                    // set the req.action property, cutting off the _action suffix
 	                    req.action = action.substring (0, action.length()-7);
 
+	                    // reset skin recursion detection counter
+	                    skinDepth = 0;
+
 	                    // try calling onRequest() function on object before
 	                    // calling the actual action
 	                    try {
@@ -239,6 +243,9 @@ public final class RequestEvaluator implements Runnable {
 	                    } catch (Exception ignore) {
 	                        // function is not defined or caused an exception, ignore
 	                    }
+
+	                    // reset skin recursion detection counter
+	                    skinDepth = 0;
 
 	                    // do the actual action invocation
 	                    scriptingEngine.invoke (currentElement, action, new Object[0], false);
@@ -346,6 +353,8 @@ public final class RequestEvaluator implements Runnable {
 	            // check XML-RPC access permissions
 	            String proto = app.getPrototypeName (currentElement);
 	            app.checkXmlRpcAccess (proto, method);
+	            // reset skin recursion detection counter
+	            skinDepth = 0;
 
 	            result = scriptingEngine.invoke (currentElement, method, args, true);
 	            commitTransaction ();
@@ -396,6 +405,8 @@ public final class RequestEvaluator implements Runnable {
 	            globals.put ("app", app);
 
 	            scriptingEngine.enterContext (globals);
+	            // reset skin recursion detection counter
+	            skinDepth = 0;
 
 	            result = scriptingEngine.invoke (thisObject, method, args, false);
 	            commitTransaction ();
