@@ -26,8 +26,6 @@ import java.util.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
-import org.apache.commons.codec.DecoderException;
-
 /**
  * This is an abstract Hop servlet adapter. This class communicates with hop applications
  * via RMI. Subclasses are either one servlet per app, or one servlet that handles multiple apps
@@ -712,7 +710,7 @@ public abstract class AbstractServletClient extends HttpServlet {
     }
 
     String getPathInfo(HttpServletRequest req)
-            throws DecoderException, UnsupportedEncodingException {
+            throws UnsupportedEncodingException {
         StringTokenizer t = new StringTokenizer(req.getContextPath(), "/");
         int prefixTokens = t.countTokens();
 
