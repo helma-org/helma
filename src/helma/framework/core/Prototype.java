@@ -8,11 +8,8 @@ import java.util.Iterator;
 import java.io.*;
 import helma.framework.*;
 import helma.scripting.*;
-import helma.scripting.fesi.*;
 import helma.objectmodel.*;
 import helma.util.Updatable;
-// import FESI.Data.*;
-// import FESI.Exceptions.EcmaScriptException;
 
 
 /**
