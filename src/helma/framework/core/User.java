@@ -7,7 +7,7 @@ import java.io.*;
 import java.util.*;
 import java.net.URLEncoder;
 import helma.objectmodel.*;
-import helma.objectmodel.db.NodeHandle;
+import helma.objectmodel.db.*;
 
 /**
  * This represents a user who is currently using the Hop application. This does
@@ -24,7 +24,7 @@ public class User implements Serializable {
     NodeHandle nhandle;
     DbMapping umap;
     long onSince, lastTouched;
-    Node cache;
+    TransientNode cache;
     String message;
 
     public User (String sid, Application app) {
@@ -33,7 +33,7 @@ public class User implements Serializable {
     	this.app = app;
     	setNode (null);
     	umap = app.getDbMapping ("user");
-	cache = new Node ("[session cache]");
+	cache = new TransientNode ("[session cache]");
 	cache.setPrototype ("user");
 	cache.setDbMapping (umap);
 	sessionID = sid;

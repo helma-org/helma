@@ -5,7 +5,7 @@
 package helma.framework.core;
 
 import helma.objectmodel.*;
-import helma.objectmodel.db.NodeHandle;
+import helma.objectmodel.db.*;
 import helma.util.*;
 import FESI.Interpreter.*;
 import FESI.Exceptions.*;
@@ -52,13 +52,13 @@ public class ESNode extends ObjectPrototype {
 	// eval.app.logEvent ("in ESNode constructor: "+o.getClass ());
 	this.eval = eval;
 	if (obj == null)
-	    node = new Node (null);
+	    node = new TransientNode (null);
 	else if (obj instanceof ESWrapper)
 	    node = (INode) ((ESWrapper) obj).getJavaObject ();
 	else if (obj instanceof INode)
 	    node = (INode) obj;
 	else
-	    node = new Node (obj.toString ());
+	    node = new TransientNode (obj.toString ());
 	// set node handle to wrapped node
 	if (node instanceof helma.objectmodel.db.Node)
 	    handle = ((helma.objectmodel.db.Node) node).getHandle ();
@@ -384,7 +384,7 @@ public class ESNode extends ObjectPrototype {
 	if ("__hash__".equals (propertyName))
 	    return new ESString (""+node.hashCode ());
 	if ("__node__".equals (propertyName))
-	    return ESLoader.normalizeObject (node, evaluator);
+	    return new ESWrapper (node, evaluator);
 	return ESNull.theNull;
     }
 

@@ -9,8 +9,7 @@ import java.rmi.*;
 import java.rmi.server.*;
 import helma.framework.*;
 import helma.objectmodel.*;
-import helma.objectmodel.db.NodeManager;
-import helma.objectmodel.db.WrappedNodeManager;
+import helma.objectmodel.db.*;
 import helma.xmlrpc.*;
 import helma.util.*;
 import FESI.Data.*;
@@ -153,7 +152,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	dbMappings = new Hashtable ();
 	dbSources = new Hashtable ();
 
-	appnode = new Node ("app");
+	appnode = new TransientNode ("app");
 	xmlrpc = IServer.getXmlRpcServer ();
 	xmlrpcAccess = new XmlRpcAccess (this);
     }

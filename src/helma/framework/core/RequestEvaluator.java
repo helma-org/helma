@@ -9,7 +9,7 @@ import java.util.Enumeration;
 import java.util.StringTokenizer;
 import java.io.*;
 import helma.objectmodel.*;
-import helma.objectmodel.db.Transactor;
+import helma.objectmodel.db.*;
 import helma.framework.*;
 import helma.framework.extensions.*;
 import helma.xmlrpc.fesi.*;
@@ -111,7 +111,7 @@ public class RequestEvaluator implements Runnable {
 	    dbx.setApplication (this.app);
 
 	    // fake a cache member like the one found in ESNodes
-	    global.putHiddenProperty ("cache", new ESNode (new Node ("cache"), this));
+	    global.putHiddenProperty ("cache", new ESNode (new TransientNode ("cache"), this));
 	    global.putHiddenProperty ("undefined", ESUndefined.theUndefined);
 	    appnode = new ESAppNode (app.appnode, this);
 	    global.putHiddenProperty ("app", appnode);
@@ -529,6 +529,8 @@ public class RequestEvaluator implements Runnable {
 	            if (msg == null || msg.length () == 0)
 	                msg = wrong.toString ();
 	            app.logEvent ("Error executing "+funcdesc+": "+msg);
+	            if (app.debug)
+	                wrong.printStackTrace ();
 	            this.exception = new Exception (msg);
 	        }
 	        break;
@@ -917,188 +919,4 @@ public class RequestEvaluator implements Runnable {
 
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

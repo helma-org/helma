@@ -8,8 +8,8 @@ import java.util.zip.*;
 import java.io.*;
 import helma.framework.*;
 import helma.util.Updatable;
-import helma.objectmodel.SystemProperties;
-import helma.objectmodel.DbMapping;
+import helma.util.SystemProperties;
+import helma.objectmodel.db.DbMapping;
 
 /**
  * This represents a Zip-File which may contain other Updatables for one or more prototypes.

@@ -135,7 +135,7 @@ public class Skin {
 	                if (escape)
 	                    b.append (cnt[i]);
 	                escape = !escape;
-	                break;;
+	                break;
 	            case '"':
 	            case '\'':
 	                if (!escape && state == PARAMVALUE) {
