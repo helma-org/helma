@@ -41,7 +41,7 @@ public class DocProperties extends DocFileElement	{
 		}
 	}
 
-	protected Properties getProperties () {
+	public Properties getProperties () {
 		return props;
 	}
 

@@ -52,8 +52,14 @@ public class DocSkin extends DocFileElement	{
 				if (j > i+2) {
 					String str = (new String (source, i+2, j-i)).trim ();
 					str = str.substring (0, str.indexOf(" "));
-					if (!partBuffer.contains(str))
+					if (str.indexOf(".")>-1 && 
+						(str.startsWith ("param.")
+						 || str.startsWith ("response.")
+						 || str.startsWith("request.")
+						 || str.startsWith ("session.")
+						) && !partBuffer.contains(str)) {
 						partBuffer.add (str);
+					}
 					start = j+2;
 				}
 				i = j+1;

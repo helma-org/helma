@@ -62,6 +62,16 @@ public class DocPrototype extends DocDirElement	{
 		}
 	}
 
+	public DocPrototype getParentPrototype () {
+		return parentPrototype;
+	}
+
+
+	public DocProperties getTypeProperties () {
+		return typeProperties;
+	}
+
+
 	/**
 	  * runs through the prototype directory and parses all helma files
 	  */
