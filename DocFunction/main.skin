@@ -1,0 +1,14 @@
+
+
+<h2>
+	<a href="<% docprototype.href action="main" %>">Prototype <% docprototype.name %></a><br>
+	<% this.fullname %>
+</h2>
+
+<div class="list_property">
+	<small>	<i>in <% docprototype.name%>/<% this.location %>:</i></small>
+</div>
+
+
+<pre><% this.source %></pre>
+

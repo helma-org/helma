@@ -1,0 +1,42 @@
+<% this.skin name="head" %>
+
+<table width="100%" border="0" cellspacing="0" cellpadding="3">
+<tr>
+	<td class="list_separator" colspan="3">application</td>
+</tr>
+<tr>
+	<td class="list_property" align="right" width="200">active sessions:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.countSessions %></td>
+</tr>
+<tr>
+	<td class="list_property" align="right" width="200"><a href="<% this.href action="main" %>?showusers=true">logged-in users:</a></td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.users %>&nbsp;</td>
+</tr>
+<tr>
+	<td class="list_property" align="right" width="200">active evaluators:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.countActiveEvaluators %></td>
+</tr>
+<tr>
+	<td class="list_property" align="right" width="200">free evaluators:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.countFreeEvaluators %></td>
+</tr>
+<tr>
+	<td class="list_property" align="right" width="200">5min-request-avg:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.getRequestAvg %></td>
+</tr>
+<tr>
+	<td class="list_property" align="right" width="200">uptime:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.uptime %></td>
+</tr>
+<tr>
+	<td class="list_separator" colspan="3">app.properties</td>
+</tr>
+<% this.properties prefix="<tr><td class=\"list_property\" align=\"right\" width=\"200\">" separator="</td><td class=\"list_property\" width=\"5\">&nbsp;</td><td class=\"list_property\" align=\"left\">" suffix="</td></tr>" %>
+</table>
+

@@ -1,0 +1,14 @@
+<font size="+1"><b><% this.name %></b></font>
+
+<div class="list_apps">
+	<li><b><a href="<% this.href action="main" %>?action=reload&redirect=<% this.requestpath %>">reload AppDoc</a>
+	<li><b><a href="<% this.href action="main" %>">Application</a></b>
+	<li><b><a href="<% this.href action="main" %>?action=index">Index</a>
+</div>
+
+<p></p>
+<p>
+	<i>Prototypes:</i><br />
+	<% this.prototypes skin="navig" %>
+</p>
+

@@ -1,0 +1,8 @@
+<p><big>AppDoc <% this.name %></big>
+<br/>
+	-&gt;
+	<a href="<% this.parentlink %>">AppManager</a> |
+	<a href="<% this.parentlink action="redirectpublic" %>">public</a>
+</p>
+
+

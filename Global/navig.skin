@@ -1,0 +1,17 @@
+<p><a href="<% root.href action="main" %>"><img src="<% root.href action="image" %>" title="helma" border="0" width="174" height="35" align="baseline" style="border-width:3px;border-color:white;"></a></p>
+<!--<p>at <b><a href="<% root.href action="main" %>?action=server"><% root.hostname %></a></b></p>-->
+
+<div class="list_apps">
+	<i><% root.appCount filter="active" singular=" app" plural=" apps"%> on <% root.hostname %></i>
+</div>
+
+<% root.appList filter="active" %>
+
+<p></p>
+
+<div class="list_apps">
+	<i>and <% root.appCount filter="disabled" %> disabled apps:</i>
+</div>
+
+<% root.appList filter="disabled" skin="navig_disabled" %>
+

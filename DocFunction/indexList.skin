@@ -1,0 +1,5 @@
+<tr>
+	<td width="200" class="list_property"><b><a href="<% this.prototypehref %>#<% this.name %>"><% this.name %></a></b></td>
+	<td class="list_property"><% this.typename %> in <% this.prototypename %>
+	<td class="list_property"><small>(<a href="<% this.href action="main" %>"><% this.prototypename %>/<% this.location %></a>)</small></td>
+</tr>

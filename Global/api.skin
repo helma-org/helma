@@ -1,0 +1,17 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<HTML>
+<% skin name="head" %>
+<body>
+
+<table width="90%" border="0" cellspacing="1" cellpadding="5" bgcolor="#000000">
+<tr>
+	<td width="200" nowrap align="left" valign="top" bgcolor="#cccc99">
+	<p><a href="<% root.href action="main" %>"><img src="<% root.href action="image" %>" title="helma" border="0" width="174" height="35" align="baseline" style="border-width:3px;border-color:white;"></a></p>
+	<% docapplication.skin name="navig" %></td>
+	<td align="left" valign="top" bgcolor="#ffffff"><% response.body %></td>
+</tr>
+</table>
+
+
+</body>
+</html>

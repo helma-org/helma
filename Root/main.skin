@@ -1,0 +1,101 @@
+<big><% this.hostname %> (<% this.hostaddress %>)</big><br/><br/>
+
+<table border="0" cellspacing="0" cellpadding="3">
+
+<tr>
+	<td class="list_separator" colspan="3">helma</td>
+</tr>
+
+<tr>
+	<td class="list_property" align="right" width="200">uptime:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.uptime %></td>
+</tr>
+
+<tr>
+	<td class="list_property" align="right" width="200">version:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.version %></td>
+</tr>
+
+<tr>
+	<td class="list_property" align="right" width="200">homedir:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.home %></td>
+</tr>
+
+<tr>
+	<td class="list_property" align="right" width="200" valign="top">total active sessions</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.countSessions %></td>
+</tr>
+<tr>
+	<td class="list_property" align="right" width="200" valign="top">total request 5-min-avg</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.countRequests %></td>
+</tr>
+
+<tr>
+	<td class="list_separator" colspan="3">jre</td>
+</tr>
+
+<tr>
+	<td class="list_property" align="right" width="200">free memory:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.jvmFreeMemory %></td>
+</tr>
+
+
+<tr>
+	<td class="list_property" align="right" width="200">used memory:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.jvmUsedMemory %></td>
+</tr>
+
+<tr>
+	<td class="list_property" align="right" width="200">total memory:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.jvmTotalMemory %></td>
+</tr>
+
+<tr>
+	<td class="list_property" align="right" width="200">java:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.jvm %></td>
+</tr>
+<tr>
+	<td class="list_property" align="right" width="200">javahome:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.jvmHome %></td>
+</tr>
+<tr>
+	<td class="list_property" align="right" width="200">os:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.os %></td>
+</tr>
+<tr>
+	<td class="list_property" align="right" width="200">localtime:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% now %></td>
+</tr>
+<tr>
+	<td class="list_property" align="right" width="200" valign="top">timezone:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.timezone %></td>
+</tr>
+<tr>
+	<td class="list_property" align="right" width="200" valign="top">loaded Jars:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.jvmJars %></td>
+</tr>
+
+<tr>
+	<td class="list_separator" colspan="3">server.properties</td>
+</tr>
+
+<% this.properties prefix="<tr><td class=\"list_property\" align=\"right\" width=\"200\">" separator="</td><td class=\"list_property\" width=\"5\">&nbsp;</td><td class=\"list_property\" align=\"left\">" suffix="</td></tr>" %>
+</table>
+
+
+
+

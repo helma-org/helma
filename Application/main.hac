@@ -1,0 +1,10 @@
+/**
+  * renders AppManager
+  */
+
+if ( checkAddress()==false )	return;
+if ( checkAuth(this)==false )	return;
+
+res.skin="global";
+res.body = this.renderSkinAsString("main");
+

@@ -1,0 +1,23 @@
+/**
+  * prints session- and thread-stats for mrtg-tool
+  * doesn't check username or password, so that we don't have
+  * to write them cleartext in a mrtg-configfile
+  */
+
+if ( checkAddress()==false )	return;
+
+if ( this.isActive()==false )	{
+	res.write ( "0\n0\n0\n0\n");
+	return;
+}
+
+if ( req.data.action=="sessions" )	{
+	res.write ( this.sessions.size() + "\n0\n0\n0\n" );
+	return;
+}
+
+if ( req.data.action=="threads" )	{
+	res.write ( this.countActiveEvaluators() + "\n" + this.countFreeEvaluators() + "\n0\n0\n");
+	return;
+}
+	

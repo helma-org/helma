@@ -1,0 +1,10 @@
+
+if ( checkAddress()==false )	return;
+if ( checkAuth()==false )		return;
+
+if ( req.data.value!=null )	{
+	res.write ( calcMD5(req.data.value) );
+}	else	{
+	res.write ( '<html><head></head><body><form method=post action=makekey><input type=password name=value><input type=submit></form></body></html>' );
+}
+

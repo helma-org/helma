@@ -1,0 +1,23 @@
+if ( checkAddress()==false )	return;
+if ( checkAuth(this)==false )	return;
+
+if ( req.data.action=="reload" )	{
+	var appObj = root.getChildElement(this.name);
+	appObj.docApp = new Packages.helma.doc.DocApplication( this.name, this.location );
+	if ( req.data.redirect != null && req.data.redirect != "" )
+		res.redirect ( getProperty("baseURI") + req.data.redirect );
+	else
+		res.redirect ( this.href("main") );
+	return;
+}
+
+if ( req.data.action=="index" )	{
+	res.body = this.renderSkinAsString("index");
+}	else	{
+	res.body = this.renderSkinAsString("main");
+}
+
+res.skin = "api";
+res.title = "Application " + this.name;
+
+

@@ -1,0 +1,10 @@
+<p><big>AppManager <% this.title %></big>
+<% this.description prefix="<br/>" %>
+	<br/>
+	-&gt;
+	<a href="<% this.href action="api" %>/main">AppDoc</a> |
+	<a href="<% this.url %>">public</a> | 
+	<a href="<% root.href action="main" %>?app=<% this.title %>&action=flush">flush</a> |
+	<a href="<% root.href action="main" %>?app=<% this.title %>&action=restart">restart</a> |
+	<a href="<% root.href action="main" %>?app=<% this.title %>&action=stop">stop</a>
+</p>
