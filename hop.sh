@@ -5,7 +5,7 @@
 export HOP_PORT=8080 
 
 export JARS=lib/helma.jar:lib/crimson.jar:lib/village.jar:lib/jsdk.jar
-export JARS=$JARS:lib/regexp.jar:lib/netcomponents.jar:lib/jimi.jar
+export JARS=$JARS:lib/regexp.jar:lib/netcomponents.jar:lib/jimi.jar:lib/apache-dom.jar
 export JARS=$JARS:lib/mail.jar:lib/activation.jar:lib/mysql.jar:lib/jdom.jar:lib/minml.jar
 
 java -classpath $CLASSPATH:$JARS helma.main.Server -w $HOP_PORT
