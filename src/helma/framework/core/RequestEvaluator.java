@@ -144,7 +144,10 @@ public class RequestEvaluator implements Runnable {
         try {
 	do {
 
+	    long startCheck = System.currentTimeMillis ();
 	    app.typemgr.checkPrototypes ();
+	    System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
+	
 	    IPathElement root, currentElement;
 	    // reset skinManager
 	    skinmanagers = null;
@@ -481,7 +484,17 @@ public class RequestEvaluator implements Runnable {
 	        esresult = ESNull.theNull;
 	        // Just a human readable descriptor of this invocation
 	        String funcdesc = app.getName()+":internal/"+method;
-	        try {
+	
+	        // avoid going into transaction if called function doesn't exist
+	        boolean functionexists = true;
+	        if (current != null) try {
+	            functionexists = global.getProperty (method, method.hashCode()) != ESUndefined.theUndefined;
+	        } catch (EcmaScriptException x) {}
+	
+	        if (!functionexists)
+	            // global function doesn't exist, nothing to do here.
+	            reqtype = NONE;
+	        else try {
 	            localrtx.begin (funcdesc);
 
 	            root = app.getDataRoot ();
@@ -525,6 +538,7 @@ public class RequestEvaluator implements Runnable {
 	                wrong.printStackTrace ();
 	            this.exception = new Exception (msg);
 	        }
+
 	        break;
 
 	    }
