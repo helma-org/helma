@@ -29,7 +29,7 @@
 // Moved to helma.util to use java.util.HashMap instead of java.util.Hashtable
 package helma.util;
 
-import java.util.*;
+import java.util.HashMap;
 
 /// A Hashtable that expires least-recently-used objects.
 // <P>
