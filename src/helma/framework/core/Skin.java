@@ -372,9 +372,9 @@ public class Skin {
 	    String encoding = (String) parameters.get ("encoding");
 	    String prefix = (String) parameters.get ("prefix");
 	    String suffix = (String) parameters.get ("suffix");
-	    res.write (encode (prefix, encoding));
+	    res.write (prefix);
 	    res.write (encode (text, encoding));
-	    res.write (encode (suffix, encoding));
+	    res.write (suffix);
 	}
 
 	/**
