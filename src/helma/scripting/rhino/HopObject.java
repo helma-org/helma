@@ -736,7 +736,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
      *  to return the prototype functions in that case.
      */
     private Object getFromNode(String name) {
-        if (node != null) {
+        if (node != null && name != null && name.length() > 0) {
 
             checkNode();
 
