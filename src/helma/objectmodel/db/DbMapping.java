@@ -8,6 +8,7 @@ import helma.util.Updatable;
 import helma.util.SystemProperties;
 import java.util.HashMap;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.StringTokenizer;
 import java.sql.*;
 import com.workingdogs.village.*;
@@ -95,7 +96,7 @@ public class DbMapping implements Updatable {
 	parent = null;
 	// subnodes = null;
 	// properties = null;
-	idField = "id";
+	idField = "ID";
     }
 
     /**
@@ -112,7 +113,7 @@ public class DbMapping implements Updatable {
 	parent = null;
 	// subnodes = null;
 	// properties = null;
-	idField = "id";
+	idField = "ID";
 
 	this.props = props;
 	update ();
@@ -160,7 +161,7 @@ public class DbMapping implements Updatable {
 	}
 
 	// id field must not be null, default is "id"
-	idField = props.getProperty ("_id", "id");
+	idField = props.getProperty ("_id", "ID");
 
 	nameField = props.getProperty ("_name");
 
@@ -212,7 +213,7 @@ public class DbMapping implements Updatable {
 	            if (rel.columnName != null &&
 	            		(rel.reftype == Relation.PRIMITIVE ||
 	            		rel.reftype == Relation.REFERENCE))
-	                d2p.put (rel.columnName, rel);
+	                d2p.put (rel.columnName.toUpperCase (), rel);
 	            // app.logEvent ("Mapping "+propName+" -> "+dbField);
 	        }
 	    } catch (Exception x) {
@@ -396,7 +397,7 @@ public class DbMapping implements Updatable {
 	    return null;
 	if (table == null && parentMapping != null)
 	    return parentMapping.columnNameToProperty (columnName);
-	Relation rel = (Relation) db2prop.get (columnName);
+	Relation rel = (Relation) db2prop.get (columnName.toUpperCase ());
 	if (rel != null  && (rel.reftype == Relation.PRIMITIVE || rel.reftype == Relation.REFERENCE))
 	    return rel.propName;
 	return null;
@@ -424,7 +425,7 @@ public class DbMapping implements Updatable {
 	    return null;
 	if (table == null && parentMapping != null)
 	    return parentMapping.columnNameToRelation (columnName);
-	return (Relation) db2prop.get (columnName);
+	return (Relation) db2prop.get (columnName.toUpperCase ());
     }
 
     /**
@@ -670,10 +671,10 @@ public class DbMapping implements Updatable {
 	return prop2db;
     }
 
-    public HashMap getDB2Prop () {
+    public Iterator getDBPropertyIterator () {
 	if (table == null && parentMapping != null)
-	    return parentMapping.getDB2Prop ();
-	return db2prop;
+	    return parentMapping.getDBPropertyIterator ();
+	return db2prop.values ().iterator ();
     }
 
     /**
