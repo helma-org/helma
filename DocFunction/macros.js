@@ -87,35 +87,50 @@ function type_macro (param) {
   * macro returning nicely formatted sourcecode of this method.
   * code is encoded, &gt% %&lt;-tags are colorcoded, line numbers are added
   */
-function source_macro(par)	{
-	var str = this.getContent ();
-	var arr = str.split("<%");
-	var str2 = "";
-	for ( var i=0; i<arr.length; i++ )	{
-		str2 += encode(arr[i]);
-		if ( i<arr.length-1 )
-			str2 += '<font color="#aa3300">&lt;%';
+function source_macro(param) {
+    var sourcecode = this.getContent();
+    if (param.as=="highlighted") {
+
+        sourcecode = encode(sourcecode);
+
+        // highlight macro tags
+        r = new RegExp("&lt;%","gim");
+        sourcecode = sourcecode.replace(r, '<font color="#aa3300">&lt;%');
+
+        r = new RegExp("%&gt;","gim");
+        sourcecode = sourcecode.replace(r, '%&gt;</font>');
+
+        // highlight js-comments
+        r = new RegExp("^([ \\t]*//.*)", "gm");
+        sourcecode = sourcecode.replace(r, '<font color="#33aa00">$1</font>');
+
+        // highlight quotation marks, but not for skins
+        if (this.getTypeName() != "Skin") {
+            r = new RegExp("(&quot;.*?&quot;)", "gm");
+            sourcecode = sourcecode.replace(r, '<font color="#9999aa">$1</font>');
+            r = new RegExp("(\'[\']*\')", "gm");
+            sourcecode = sourcecode.replace(r, '<font color="#9999aa">$1</font>');
+        }
+
+        // remove all CR and LF, just <br> remains
+        var r = new RegExp("[\\r\\n]","gm");
+        sourcecode = sourcecode.replace(r, "");
+
+	    var arr = sourcecode.split("<br />");
+	    for (var i=0; i<arr.length; i++) {
+		    res.write('<font color="#aaaaaa">' + (i+1) + ':</font> ');
+		    if (i<99) {
+		        res.write(' ');
+		    }
+		    if (i<9) {
+		        res.write(' ');
+		    }
+    		res.write(arr[i] + "\n");
+    	}
+
+	} else {
+	    res.write(sourcecode);
 	}
-	var arr = str2.split("%&gt;");
-	var str3 = "";
-	for ( var i=0; i<arr.length; i++ )	{
-		str3 += arr[i];
-		if ( i<arr.length-1 )
-			str3 += '%&gt;</font>';
-	}
-	var arr = str3.split("<br />");
-	var str4 = "";
-	for ( var i=0; i<arr.length; i++ )	{
-		str4 += '<font color="#aaaaaa">' + (i+1) + ':</font> '
-		if (i<99)	str4+=' ';
-		if (i<9)	str4+=' ';
-		// Hack: remove leading returns/line feeds in each line
-		while (arr[i].length>0 && 
-				(arr[i][0] == '\n' || arr[i][0] == '\r'))
-			arr[i] = arr[i].substring(1);
-		str4 += arr[i] + "<br />";
-	}
-	return ( str4 );
 }
 
 

@@ -24,7 +24,7 @@
 <table width="90%" border="0" cellspacing="1" cellpadding="5">
 <tr>
 	<td>Sourcecode in <% this.location %>:
-	<pre><% this.source %></pre>
+	<pre><% this.source as="highlighted" %></pre>
 	</td>
 </tr>
 
