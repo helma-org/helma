@@ -10,24 +10,24 @@ import java.text.*;
 import helma.objectmodel.*;
 
 /**
- * A property implementation for Nodes stored inside a database. Basically 
+ * A property implementation for Nodes stored inside a database. Basically
  * the same as for transient nodes, with a few hooks added.
  */
 public final class Property implements IProperty, Serializable, Cloneable {
 
 
-    protected String propname;
-    protected Node node;
+    private String propname;
+    private Node node;
 
-    protected String svalue;
-    protected boolean bvalue;
-    protected long lvalue;
-    protected double dvalue;
+    private String svalue;
+    private boolean bvalue;
+    private long lvalue;
+    private double dvalue;
     // protected String nvalueID;
-    protected NodeHandle nhandle;
-    protected Object jvalue;
+    private NodeHandle nhandle;
+    private Object jvalue;
 
-    protected int type;
+    private int type;
 
     transient boolean dirty;
 
@@ -221,6 +221,19 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	dirty = true;
     }
 
+    public NodeHandle getNodeHandle () {
+	return nhandle;
+    }
+    
+    public void convertToNodeReference (DbMapping dbm) {
+	String id = getStringValue ();
+	if (id == null)
+	    nhandle = null;
+	else 
+	    nhandle = new NodeHandle (new DbKey (dbm, id));
+	type = NODE;
+    }
+
     public void setJavaObjectValue (Object value) {
 	if (type == NODE)
 	    unregisterNode ();
@@ -281,7 +294,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	case FLOAT:
 	    return Double.toString (dvalue);
 	case NODE:
-	    return nhandle.getID ();
+	    return nhandle == null ? null : nhandle.getID ();
 	case JAVAOBJECT:
 	    return jvalue == null ? null : jvalue.toString ();
 	}

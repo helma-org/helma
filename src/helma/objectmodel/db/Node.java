@@ -127,16 +127,16 @@ public final class Node implements INode, Serializable {
     /**
      * used by Xml deserialization
      */
-     public void setPropMap (Hashtable propMap)	{
+    public void setPropMap (Hashtable propMap)	{
 	this.propMap = propMap;
-     }
+    }
 
     /**
      * used by Xml deserialization
      */
-     public void setSubnodes (List subnodes)	{
+    public void setSubnodes (List subnodes)	{
 	this.subnodes = subnodes;
-}
+    }
 
     private transient String prototype;
 
@@ -282,12 +282,14 @@ public final class Node implements INode, Serializable {
 
 	    Value val = rec.getValue (rel.getDbField ());
 
-	    if (val.isNull ())
-	        continue;
+	    // if (val.isNull ())
+	    //     continue;
 
 	    Property newprop = new Property (rel.propName, this);
 
-	    switch (val.type ()) {
+	    if (val.isNull ())
+	        newprop.setStringValue (null);
+	    else switch (val.type ()) {
 
 	        case Types.BIT:
 	            newprop.setBooleanValue (val.asBoolean());
@@ -335,7 +337,9 @@ public final class Node implements INode, Serializable {
 	            break;
 
 	        case Types.NULL:
-	            continue;
+	            newprop.setStringValue (null);
+	            break;
+	            // continue;
 
 	        default:
 	            newprop.setStringValue (val.asString());
@@ -345,15 +349,17 @@ public final class Node implements INode, Serializable {
 	    if(propMap == null)
 	        propMap = new Hashtable ();
 	    propMap.put (rel.propName.toLowerCase(), newprop);
-	    // mark property as clean, since it's fresh from the db
-	    newprop.dirty = false;
 
 	    // if the property is a pointer to another node, change the property type to NODE
 	    if (rel.reftype == Relation.REFERENCE && rel.usesPrimaryKey ()) {
 	        // FIXME: References to anything other than the primary key are not supported
-	        newprop.nhandle = new NodeHandle (new DbKey (rel.otherType, newprop.getStringValue ()));
-	        newprop.type = IProperty.NODE;
+	        newprop.convertToNodeReference (rel.otherType);
+	        // newprop.nhandle = new NodeHandle (new DbKey (rel.otherType, newprop.getStringValue ()));
+	        // newprop.type = IProperty.NODE;
 	    }
+
+	    // mark property as clean, since it's fresh from the db
+	    newprop.dirty = false;
 	}
 	// again set created and lastmodified. This is because
 	// lastmodified has been been updated, and we want both values to
@@ -916,7 +922,7 @@ public final class Node implements INode, Serializable {
 	Node retval = null;
 
 	if (subid != null) {
-	
+
 	    loadNodes ();
 	    if (subnodes == null || subnodes.size() == 0)
 	        return null;
@@ -1109,7 +1115,7 @@ public final class Node implements INode, Serializable {
 	if (propMap != null) {
 	    for (Enumeration e2 = propMap.elements (); e2.hasMoreElements (); ) {
 	        Property p = (Property) e2.nextElement ();
-	        if (p != null && p.type == Property.NODE)
+	        if (p != null && p.getType() == Property.NODE)
 	            p.unregisterNode ();
 	    }
 	}
@@ -1215,6 +1221,23 @@ public final class Node implements INode, Serializable {
 	}
     }
 
+    public void prefetchChildren (int startIndex, int length) throws Exception {
+	if (length < 1)
+	    return;
+	if (startIndex < 0)
+	    return;
+	loadNodes ();
+	if (subnodes == null)
+	    return;
+	int l = Math.min (subnodes.size()-startIndex, length);
+	if (l < 1)
+	    return;
+	Key[] keys = new Key[l];
+	for (int i=startIndex; i<startIndex+l; i++)
+	    keys[i] = ((NodeHandle) subnodes.get (i)).getKey ();
+	nmgr.nmgr.prefetchNodes (this, dbmap.getSubnodeRelation (), keys);
+    }
+
     public Enumeration getSubnodes () {
 	loadNodes ();
 	class Enum implements Enumeration {
@@ -1290,10 +1313,9 @@ public final class Node implements INode, Serializable {
 	// See if this could be a relationally linked node which still doesn't know
 	// (i.e, still thinks it's just the key as a string)
 	DbMapping pmap = dbmap == null ? null : dbmap.getExactPropertyMapping (propname);
-	if (pmap != null && prop != null && prop.type != IProperty.NODE) {
-	    // this is a relational node stored by id but we still think it's just a string. fix it
-	    prop.nhandle = new NodeHandle (new DbKey (pmap, prop.getStringValue ()));
-	    prop.type = IProperty.NODE;
+	if (pmap != null && prop != null && prop.getType() != IProperty.NODE) {
+	    // this is a relational node stored by id but we still think it's just a string. Fix it
+	    prop.convertToNodeReference (pmap);
 	}
 
 	// the property does not exist in our propmap - see if we can create it on the fly,
@@ -1645,7 +1667,7 @@ public final class Node implements INode, Serializable {
 
 	Property prop = propMap == null ? null : (Property) propMap.get (p2);
 	if (prop != null) {
-	    if (prop.type == IProperty.NODE && n.getHandle ().equals (prop.nhandle)) {
+	    if (prop.getType() == IProperty.NODE && n.getHandle ().equals (prop.getNodeHandle())) {
 	        // nothing to do, just clean up locks and return
 	        if (state == CLEAN) clearWriteLock ();
 	        if (n.state == CLEAN) n.clearWriteLock ();
@@ -1705,7 +1727,7 @@ public final class Node implements INode, Serializable {
 	    Property p = (Property) propMap.remove (propname.toLowerCase ());
 	    if (p != null) {
 	        checkWriteLock ();
-	        if (p.type == Property.NODE)
+	        if (p.getType() == Property.NODE)
 	            p.unregisterNode ();
 	        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
 	        lastmodified = System.currentTimeMillis ();

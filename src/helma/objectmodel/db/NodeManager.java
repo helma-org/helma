@@ -159,7 +159,8 @@ public final class NodeManager {
 
 
     /**
-    *  Get a node by key.
+    *  Get a node by key. This is called from a node that already holds
+    *  a reference to another node via a NodeHandle/Key.
     */
     public Node getNode (Key key) throws Exception {
 
@@ -217,6 +218,8 @@ public final class NodeManager {
 
     /**
     *  Get a node by relation, using the home node, the relation and a key to apply.
+    *  In contrast to getNode (Key key), this is usually called when we don't yet know
+    *  whether such a node exists.
     */
     public Node getNode (Node home, String kstr, Relation rel) throws Exception {
 
@@ -361,7 +364,7 @@ public final class NodeManager {
     */
     public void insertNode (IDatabase db, ITransaction txn, Node node) throws Exception {
 
-	Transactor tx = (Transactor) Thread.currentThread ();
+	// Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("insertNode "+node);
 
 	DbMapping dbm = node.getDbMapping ();
@@ -369,7 +372,7 @@ public final class NodeManager {
 	if (dbm == null || !dbm.isRelational ()) {
 	    db.saveNode (txn, node.getID (), node);
 	} else {
-	    app.logEvent ("inserting relational node: "+node.getID ());
+	    // app.logEvent ("inserting relational node: "+node.getID ());
 	    TableDataSet tds = null;
 	    try {
 	        tds = new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
@@ -439,7 +442,7 @@ public final class NodeManager {
     */
     public void updateNode (IDatabase db, ITransaction txn, Node node) throws Exception {
 
-	Transactor tx = (Transactor) Thread.currentThread ();
+	// Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("updateNode "+node);
 
 	DbMapping dbm = node.getDbMapping ();
@@ -542,7 +545,7 @@ public final class NodeManager {
     */
     public void deleteNode (IDatabase db, ITransaction txn, Node node) throws Exception {
 
-	Transactor tx = (Transactor) Thread.currentThread ();
+	// Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("deleteNode "+node);
 
 	DbMapping dbm = node.getDbMapping ();
@@ -572,7 +575,7 @@ public final class NodeManager {
      */
     public synchronized String generateMaxID (DbMapping map) throws Exception {
 
-	Transactor tx = (Transactor) Thread.currentThread ();
+	// Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("generateID "+map);
 
 	QueryDataSet qds = null;
@@ -606,7 +609,7 @@ public final class NodeManager {
      */
     public String generateID (DbMapping map) throws Exception {
 
-	Transactor tx = (Transactor) Thread.currentThread ();
+	// Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("generateID "+map);
 
 	QueryDataSet qds = null;
@@ -633,7 +636,7 @@ public final class NodeManager {
      */
     public List getNodeIDs (Node home, Relation rel) throws Exception {
 
-	Transactor tx = (Transactor) Thread.currentThread ();
+	// Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNodeIDs "+home);
 
 	if (rel == null || rel.otherType == null || !rel.otherType.isRelational ()) {
@@ -710,7 +713,7 @@ public final class NodeManager {
 	if (rel.groupby != null)
 	    return getNodeIDs (home, rel);
 
-	Transactor tx = (Transactor) Thread.currentThread ();
+	// Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNodes "+home);
 
 	if (rel == null || rel.otherType == null || !rel.otherType.isRelational ()) {
@@ -732,7 +735,7 @@ public final class NodeManager {
 	            if (rel.getOrder () != null)
 	                tds.order (rel.getOrder ());
 	        }
-	
+
 	        if (logSql)
 	           app.logEvent ("### getNodes: "+tds.getSelectString());
 
@@ -740,7 +743,7 @@ public final class NodeManager {
 	            tds.fetchRecords (rel.maxSize);
 	        else
 	            tds.fetchRecords ();
-	
+
 	        for (int i=0; i<tds.size (); i++) {
 	            // create new Nodes.
 	            Record rec = tds.getRecord (i);
@@ -766,6 +769,109 @@ public final class NodeManager {
 	}
     }
 
+    /**
+     *
+     */
+    public void prefetchNodes (Node home, Relation rel, Key[] keys) throws Exception {
+
+	DbMapping dbm = rel.otherType;
+	if (dbm == null || !dbm.isRelational ()) {
+	    // this does nothing for objects in the embedded database
+	    return;
+	} else {
+	    int missing = cache.containsKeys (keys);
+	    if (missing > 0) {
+	        TableDataSet tds =  new TableDataSet (dbm.getConnection (),
+					dbm.getSchema (),
+					dbm.getKeyDef ());
+	        try {
+	            String idfield = rel.groupby != null ? rel.groupby : dbm.getIDField ();
+	            boolean needsQuotes = dbm.needsQuotes (idfield);
+	            StringBuffer whereBuffer = new StringBuffer (idfield);
+	            whereBuffer.append (" in (");
+	            boolean first = true;
+	            for (int i=0; i<keys.length; i++) {
+	                if (keys[i] != null) {
+	                    if (!first)
+	                        whereBuffer.append (',');
+	                    else
+	                        first = false;
+	                    if (needsQuotes) {
+	                        whereBuffer.append ("'");
+	                        whereBuffer.append (escape (keys[i].getID ()));
+	                        whereBuffer.append ("'");
+	                    } else {
+	                        whereBuffer.append (keys[i].getID ());
+	                    }
+	                }
+	            }
+	            whereBuffer.append (')');
+	            if (rel.groupby != null) {
+	                whereBuffer.insert (0, rel.renderConstraints (home, home.getNonVirtualParent ()));
+	            }
+	            tds.where (whereBuffer.toString ());
+
+	            if (logSql)
+	               app.logEvent ("### prefetchNodes: "+tds.getSelectString());
+
+	            tds.fetchRecords ();
+
+	            String groupbyProp = null;
+	            HashMap groupbySubnodes = null;
+	            if (rel.groupby != null) {
+	                groupbyProp = dbm.columnNameToProperty (rel.groupby);
+	                groupbySubnodes = new HashMap();
+	            }
+
+	            for (int i=0; i<tds.size (); i++) {
+	                // create new Nodes.
+	                Record rec = tds.getRecord (i);
+	                Node node = new Node (dbm, rec, safe);
+	                Key primKey = node.getKey ();
+
+	                // for grouped nodes, collect subnode lists for the intermediary
+	                // group nodes.
+	                if (groupbyProp != null) {
+	                    String groupbyName = node.getString (groupbyProp, false);
+	                    List sn = (List) groupbySubnodes.get (groupbyName);
+	                    if (sn == null) {
+	                        sn = new ExternalizableVector ();
+	                        groupbySubnodes.put (groupbyName, sn);
+	                    }
+	                    sn.add (new NodeHandle (primKey));
+	                }
+
+	                // register new nodes with the cache. If an up-to-date copy
+	                // existed in the cache, use that.
+	                synchronized (cache) {
+	                    Node oldnode = (Node) cache.put (primKey, node);
+	                    if (oldnode != null && oldnode.getState() != INode.INVALID) {
+	                        cache.put (primKey, oldnode);
+	                    }
+	                }
+	            }
+	            // If these are grouped nodes, build the intermediary group nodes
+	            // with the subnod lists we created
+	            if (groupbyProp != null) {
+	                for (Iterator i=groupbySubnodes.keySet().iterator(); i.hasNext(); ) {
+	                    String groupname = (String) i.next();
+	                    if (groupname == null) continue;
+	                    Node groupnode = home.getGroupbySubnode (groupname, true);
+	                    cache.put (groupnode.getKey(), groupnode);
+	                    groupnode.setSubnodes ((List) groupbySubnodes.get(groupname));
+	                    groupnode.lastSubnodeFetch = System.currentTimeMillis ();
+	                }
+	            }
+	        } finally {
+	            if (tds != null)  try {
+	                tds.close ();
+	            } catch (Exception ignore) {}
+	        }
+	    }
+	}
+    }
+
+
 
     /**
      * Count the nodes contained in the child collection of the home node
@@ -773,7 +879,7 @@ public final class NodeManager {
      */
     public int countNodes (Node home, Relation rel) throws Exception {
 
-	Transactor tx = (Transactor) Thread.currentThread ();
+	// Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("countNodes "+home);
 
 	if (rel == null || rel.otherType == null || !rel.otherType.isRelational ()) {
@@ -822,7 +928,7 @@ public final class NodeManager {
      */
     public Vector getPropertyNames (Node home, Relation rel) throws Exception {
 
-	Transactor tx = (Transactor) Thread.currentThread ();
+	// Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNodeIDs "+home);
 
 	if (rel == null || rel.otherType == null || !rel.otherType.isRelational ()) {

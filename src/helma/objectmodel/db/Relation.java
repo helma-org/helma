@@ -342,6 +342,8 @@ public final class Relation {
 	vr.filter = filter;
 	vr.constraints = constraints;
 	vr.addConstraint (new Constraint (null, null, groupby, true));
+	vr.aggressiveLoading = aggressiveLoading;
+	vr.aggressiveCaching = aggressiveCaching;
 	return vr;
     }
 
@@ -393,13 +395,30 @@ public final class Relation {
 	    q.append (filter);
 	}
 	if (groupby != null) {
-	    q.append (" GROUP BY "+groupby);
+	    q.append (prefix);
+	    q.append (groupby);
+	    q.append (" IS NOT NULL GROUP BY "+groupby);
 	    if (useOrder && groupbyorder != null)
 	        q.append (" ORDER BY "+groupbyorder);
 	} else if (useOrder && order != null)
 	    q.append (" ORDER BY "+order);
 	return q.toString ();
     }
+
+    public String renderConstraints (INode home, INode nonvirtual) throws SQLException {
+	StringBuffer q = new StringBuffer ();
+	String suffix = " AND ";
+	for (int i=0; i<constraints.length; i++) {
+	    constraints[i].addToQuery (q, home, nonvirtual);
+	    q.append (suffix);
+	}
+	if (filter != null) {
+	    q.append (filter);
+	    q.append (suffix);
+	}
+	return q.toString ();
+    }
+
 
     /**
      * Get the order section to use for this relation
