@@ -599,14 +599,14 @@ public final class HopExtension {
                 if (con instanceof HttpURLConnection)
                     resCode = ((HttpURLConnection) con).getResponseCode();
                 ByteArrayOutputStream body = new ByteArrayOutputStream ();
-                InputStream in = con.getInputStream ();
                 if (length != 0 && resCode != 304) {
+                    InputStream in = new BufferedInputStream(con.getInputStream ());
                     byte[] b = new byte[1024];
                     int read;
                     while ((read = in.read (b)) > -1)
                         body.write (b, 0, read);
+                    in.close ();
                 }
-                in.close ();
                 MimePart mime = new MimePart (filename, body.toByteArray(), contentType);
                 if (lastmod > 0)
                     mime.lastModified = new Date(lastmod);
