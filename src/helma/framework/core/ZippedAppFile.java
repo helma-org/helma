@@ -63,10 +63,6 @@ public class ZippedAppFile implements Updatable {
         } else {
             ZipFile zip = null;
 
-            // collect created protos - we need this to check DbMappings for each created
-            // prototype afterwards
-            HashSet newPrototypes = new HashSet();
-
             try {
                 lastmod = file.lastModified();
 
@@ -98,7 +94,6 @@ public class ZippedAppFile implements Updatable {
 
                         if (proto == null) {
                             proto = app.typemgr.createPrototype(dir, null);
-                            newPrototypes.add(proto);
                         }
 
                         if (fname.endsWith(".hac")) {
@@ -157,6 +152,9 @@ public class ZippedAppFile implements Updatable {
                 }
             } catch (Throwable x) {
                 System.err.println("Error updating ZipFile: " + x);
+                if (app.debug) {
+                    x.printStackTrace();
+                }
             } finally {
                 try {
                     zip.close();
