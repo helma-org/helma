@@ -702,8 +702,7 @@ public final class Node implements INode, Serializable {
         // check what's specified in the type.properties for this node.
         ParentInfo[] parentInfo = null;
 
-        if (isRelational() &&
-                (lastParentSet <= Math.max(dbmap.getLastTypeChange(), lastmodified))) {
+        if (lastParentSet <= Math.max(dbmap.getLastTypeChange(), lastmodified)) {
             parentInfo = dbmap.getParentInfo();
         }
 
@@ -756,7 +755,10 @@ public final class Node implements INode, Serializable {
                         }
                     } catch (Exception ignore) {
                     }
-                } else if (i == parentInfo.length-1) {
+                }
+                if (i == parentInfo.length-1) {
+                    // if we came till here and we didn't find a parent.
+                    // set parent to null.
                     setParent(null);
                     lastParentSet = System.currentTimeMillis();
                 }
