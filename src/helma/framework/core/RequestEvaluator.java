@@ -433,75 +433,10 @@ public final class RequestEvaluator implements Runnable {
                         break;
 
                     case XMLRPC:
-
-                        try {
-                            localrtx.begin(app.getName() + ":xmlrpc:" + method);
-
-                            root = app.getDataRoot();
-
-                            HashMap globals = new HashMap();
-
-                            globals.put("root", root);
-                            globals.put("res", new ResponseBean(res));
-                            globals.put("app", new ApplicationBean(app));
-
-                            scriptingEngine.enterContext(globals);
-
-                            currentElement = root;
-
-                            if (method.indexOf('.') > -1) {
-                                StringTokenizer st = new StringTokenizer(method, ".");
-                                int cnt = st.countTokens();
-
-                                for (int i = 1; i < cnt; i++) {
-                                    String next = st.nextToken();
-
-                                    currentElement = getChildElement(currentElement,
-                                                                     next);
-                                }
-
-                                if (currentElement == null) {
-                                    throw new FrameworkException("Method name \"" +
-                                                                 method +
-                                                                 "\" could not be resolved.");
-                                }
-
-                                method = st.nextToken();
-                            }
-
-                            // check XML-RPC access permissions
-                            String proto = app.getPrototypeName(currentElement);
-
-                            app.checkXmlRpcAccess(proto, method);
-
-                            // reset skin recursion detection counter
-                            skinDepth = 0;
-
-                            result = scriptingEngine.invoke(currentElement, method, args,
-                                                            true);
-                            commitTransaction();
-                        } catch (Exception x) {
-                            abortTransaction(false);
-
-                            app.logEvent("Exception in " + Thread.currentThread() + ": " +
-                                         x);
-
-                            // If the transactor thread has been killed by the invoker thread we don't have to
-                            // bother for the error message, just quit.
-                            if (localrtx != rtx) {
-                                return;
-                            }
-
-                            this.exception = x;
-                        }
-
-                        break;
-
-
                     case EXTERNAL:
 
                         try {
-                            localrtx.begin(app.getName() + ":external:" + method);
+                            localrtx.begin(app.getName() + ":ext-rpc:" + method);
 
                             root = app.getDataRoot();
 
@@ -533,6 +468,13 @@ public final class RequestEvaluator implements Runnable {
                                 }
 
                                 method = st.nextToken();
+                            }
+
+                            if (reqtype == XMLRPC) {
+                                // check XML-RPC access permissions
+                                String proto = app.getPrototypeName(currentElement);
+
+                                app.checkXmlRpcAccess(proto, method);
                             }
 
                             // reset skin recursion detection counter
