@@ -44,7 +44,7 @@ public class HopExtension {
 
         ESObject op = evaluator.getObjectPrototype();
 
-        ////////// The editor functions for String, Boolean and Number are deprecated!
+        // The editor functions for String, Boolean and Number are deprecated!
         ESObject sp = evaluator.getStringPrototype ();
         sp.putHiddenProperty ("editor", new StringEditor ("editor", evaluator, fp));
         ESObject np = evaluator.getNumberPrototype ();
@@ -55,11 +55,14 @@ public class HopExtension {
         ESObject dp = evaluator.getDatePrototype ();
         dp.putHiddenProperty ("format", new DatePrototypeFormat ("format", evaluator, fp));
 
-        reval.esNodePrototype = new ObjectPrototype(op, evaluator);  // the Node prototype
-
-        reval.esUserPrototype = new ObjectPrototype (reval.esNodePrototype, evaluator);  // the User prototype
-
-        ESObject node = new NodeConstructor ("Node", fp, reval); // the Node constructor
+        // generic (Java wrapper) object prototype
+        reval.esObjectPrototype = new ObjectPrototype (op, evaluator);
+        // the Node prototype
+        reval.esNodePrototype = new ObjectPrototype(op, evaluator);
+        // the User prototype
+        reval.esUserPrototype = new ObjectPrototype (reval.esNodePrototype, evaluator);
+        // the Node constructor
+        ESObject node = new NodeConstructor ("Node", fp, reval);
 
         // register the default methods of Node objects in the Node prototype
         reval.esNodePrototype.putHiddenProperty ("add", new NodeAdd ("add", evaluator, fp));
@@ -81,6 +84,11 @@ public class HopExtension {
         reval.esNodePrototype.putHiddenProperty ("invalidate", new NodeInvalidate ("invalidate", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, false, false));
         reval.esNodePrototype.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, true));
+
+        // default methods for generic Java wrapper object prototype
+        reval.esObjectPrototype.putHiddenProperty ("href", new NodeHref ("href", evaluator, fp));
+        reval.esObjectPrototype.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, false, false));
+        reval.esObjectPrototype.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, true));
 
         // methods that give access to properties and global user lists
         go.putHiddenProperty("Node", node); // register the constructor for a plain Node object.
