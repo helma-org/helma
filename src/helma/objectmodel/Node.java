@@ -52,7 +52,7 @@ public class Node implements INode, Serializable {
     }
     
     /**
-     * Erstellt einen neuen Node. 
+     *  Make a new Node object with a given name
      */
     public Node (String n) {
 	id = generateID ();
@@ -61,7 +61,7 @@ public class Node implements INode, Serializable {
     }
 
     /**
-     * Erstellt einen Clone eines Nodes in der "lokalen" Implementierung von INode. 
+     *  Create a clone of a given node that implements this class
     */ 
     public Node (INode node, Hashtable ntable, boolean conversionRoot) {
 	this.id = generateID ();
@@ -79,7 +79,9 @@ public class Node implements INode, Serializable {
 	    addNode (nextc);
 	}
  	for (Enumeration e = node.properties (); e.hasMoreElements (); ) {
-	    IProperty next = (IProperty) e.nextElement ();
+	    IProperty next = node.get ((String) e.nextElement (), false);
+	    if (next == null)
+	        continue;
 	    int t = next.getType ();
 	    if (t == IProperty.NODE) {
 	        INode n = next.getNodeValue ();
@@ -355,7 +357,7 @@ public class Node implements INode, Serializable {
 	    }
 	    for (Enumeration e2 = n.properties (); e2.hasMoreElements (); ) {
 	        // tell all nodes that are properties of n that they are no longer used as such
-	        Property p = (Property) e2.nextElement ();
+	        Property p = (Property) n.get ((String) e2.nextElement (), false);
 	        if (p != null && p.type == Property.NODE)
 	            p.unregisterNode ();
 	    }
@@ -410,7 +412,7 @@ public class Node implements INode, Serializable {
      */ 
 
     public Enumeration properties () {
-	return propMap == null ? new Vector ().elements () : propMap.elements ();
+	return propMap == null ? new EmptyEnumeration () : propMap.keys ();
     }
 
 

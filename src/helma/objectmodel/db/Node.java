@@ -126,10 +126,7 @@ public class Node implements INode, Serializable {
 	this.id = Key.makeVirtualID (parentmap, parentID, propname);
 	this.name = propname;
 	this.anonymous = false;
-	if (prototype == null)
-	    setPrototype ("");
-	else
-	    setPrototype (prototype);
+	setPrototype (prototype);
 	this.state = VIRTUAL;
     }
 
@@ -289,7 +286,9 @@ public class Node implements INode, Serializable {
 	    addNode (nextc);
 	}
  	for (Enumeration e = node.properties (); e.hasMoreElements (); ) {
-	    IProperty next = (IProperty) e.nextElement ();
+	    IProperty next = node.get ((String) e.nextElement (), false);
+	    if (next == null)
+	        continue;
 	    int t = next.getType ();
 	    if (t == IProperty.NODE) {
 	        INode n = next.getNodeValue ();
@@ -809,8 +808,10 @@ public class Node implements INode, Serializable {
 	    Relation gsrel = srel.getGroupbySubnodeRelation();
 	    dbm.setSubnodeMapping (srel.other);
 	    dbm.setSubnodeRelation (gsrel);
-	    dbm.setPropertyMapping (prel.other);
-	    dbm.setPropertyRelation (prel.getGroupbyPropertyRelation());
+	    if (prel != null) {
+	        dbm.setPropertyMapping (prel.other);
+	        dbm.setPropertyRelation (prel.getGroupbyPropertyRelation());
+	    }
 	    node.setDbMapping (dbm);
 	    String snrel = "WHERE "+srel.groupby +"='"+sid+"'";
 	    if (gsrel.direction == Relation.BACKWARD)
@@ -819,7 +820,9 @@ public class Node implements INode, Serializable {
 	        snrel += " ORDER BY "+gsrel.order;
 	    node.setSubnodeRelation (snrel);
 	    return node;
-	} catch (Exception noluck) {}
+	} catch (Exception noluck) {
+	    IServer.getLogger ().log ("Error creating group-by node for "+sid+": "+noluck);
+	}
 	return null;
     }
 
@@ -1047,7 +1050,7 @@ public class Node implements INode, Serializable {
      */
     public Enumeration properties () {
 
-	final Relation prel = dbmap == null ? null : dbmap.getPropertyRelation ();
+	/* final Relation prel = dbmap == null ? null : dbmap.getPropertyRelation ();
 	final DbMapping pmap = prel == null ? null : prel.other;
 	if (pmap != null && pmap.isRelational ()) {
 	    class Enum implements Enumeration {
@@ -1076,9 +1079,11 @@ public class Node implements INode, Serializable {
 	        }	
 	    }
 	    return new Enum ();
-	}
-
-	return propMap == null ? new Vector ().elements () : propMap.elements ();
+	} */
+	if (dbmap != null && dbmap.prop2db.size() > 0)
+	    return dbmap.prop2db.keys();
+	else
+	    return propMap == null ? new EmptyEnumeration () : propMap.keys ();
 
 	// NOTE: we don't enumerate node properties here
 	// return propMap == null ? new Vector ().elements () : propMap.elements ();
@@ -1696,8 +1701,8 @@ public class Node implements INode, Serializable {
 	        n.makePersistentCapable ();
 	}
  	for (Enumeration e = properties (); e.hasMoreElements (); ) {
-	    IProperty next = (IProperty) e.nextElement ();
-	    if (next.getType () == IProperty.NODE) {
+	    IProperty next = get ((String) e.nextElement (), false);
+	    if (next != null && next.getType () == IProperty.NODE) {
 	        Node n = (Node) next.getNodeValue ();
 	        if (n != null && n.state == TRANSIENT)
 	            n.makePersistentCapable ();
