@@ -273,7 +273,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	if (worker != null)
 	    worker.interrupt ();
 	worker = null;
-	typemgr.stop ();
 
 	xmlrpc.removeHandler (this.name);
 
