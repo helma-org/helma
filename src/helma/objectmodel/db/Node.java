@@ -158,6 +158,8 @@ public class Node implements INode, Serializable {
 	        m = nmgr.getDbMapping (protoName);
 	        if (m == null) {
 	            // invalid prototype name!
+	            System.err.println ("Warning: Invalid prototype name: "+protoName+" - using default");
+	            m = dbmap;
 	        }
 	    }
 	}
@@ -960,6 +962,8 @@ public class Node implements INode, Serializable {
 	            if (gsrel.order != null)
 	                snrel += " ORDER BY "+gsrel.order;
 	            node.setSubnodeRelation (snrel);
+	            // set prototype of groupby-node
+	            node.setPrototype (gsrel.prototype);
 	        } else {
 	            setNode (sid, node);
 	            subnodes.add (node.getID ());
