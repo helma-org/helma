@@ -174,11 +174,19 @@ public final class TypeManager {
 
 
     /**
-    * Update a prototype based on the directory which defines it.
+    * Update a prototype to the files in the prototype directory.
     */
     public void updatePrototype (String name) {
         // System.err.println ("UPDATE PROTO: "+app.getName()+"/"+name);
         Prototype proto = getPrototype (name);
+        updatePrototype (proto);
+    }
+
+    /**
+    * Update a prototype to the files in the prototype directory.
+    */
+    public void updatePrototype (Prototype proto) {
+
         if (proto == null)
             return;
         if (System.currentTimeMillis() - proto.getLastCheck() < 1000)
@@ -188,7 +196,7 @@ public final class TypeManager {
         if (System.currentTimeMillis() - proto.getLastCheck() < 1000)
             return;
 
-        File dir = new File (appDir, name);
+        File dir = new File (appDir, proto.getName());
         boolean needsUpdate = false;
         HashSet updatables = null;
 
@@ -295,9 +303,9 @@ public final class TypeManager {
                         upd.update ();
                     } catch (Exception x) {
                          if (upd instanceof DbMapping)
-                            app.logEvent ("Error updating db mapping for type "+name+": "+x);
+                            app.logEvent ("Error updating db mapping for type "+proto.getName()+": "+x);
                          else
-                            app.logEvent ("Error updating "+upd+" of prototye type "+name+": "+x);
+                            app.logEvent ("Error updating "+upd+" of prototye type "+proto.getName()+": "+x);
                     }
                 }
             }
