@@ -6,8 +6,6 @@ package helma.framework.core;
 import java.io.*;
 import java.util.*;
 import helma.framework.*;
-import FESI.Data.*;
-import FESI.Exceptions.*;
 import helma.scripting.*;
 import helma.scripting.fesi.*;
 import helma.objectmodel.INode;
@@ -87,24 +85,14 @@ public class Skin {
     /**
      * Render this skin
      */
-    public void render (RequestEvaluator reval, ESObject thisObject, ESObject paramObject) throws RedirectException {
+    public void render (RequestEvaluator reval, Object thisObject, HashMap paramObject) throws RedirectException {
 	
 	if (parts == null)
 	    return;
 	
-	IPathElement elem = null;
-	
-	if (thisObject != null) {
-	    try {
-	        elem = (IPathElement) thisObject.toJavaObject ();
-	    } catch (ClassCastException wrongClass) {
-	        throw new RuntimeException ("Can't render a skin on something that is not a path element: "+wrongClass);
-	    }
-	}
-	
 	for (int i=0; i<parts.length; i++) {
 	    if (parts[i] instanceof Macro)
-	        ((Macro) parts[i]).render (reval, thisObject, elem, paramObject);
+	        ((Macro) parts[i]).render (reval, thisObject, paramObject);
 	    else
 	        reval.res.write (parts[i]);
 	}
@@ -237,7 +225,7 @@ public class Skin {
 	/**
 	 *  Render the macro given a handler object
 	 */
-	public void render (RequestEvaluator reval, ESObject thisObject, IPathElement elem, ESObject paramObject) throws RedirectException {
+	public void render (RequestEvaluator reval, Object thisObject, HashMap paramObject) throws RedirectException {
 
 	    if (sandbox != null && !sandbox.contains (getFullName ())) {
 	        String h = handler == null ? "global" : handler;
@@ -256,30 +244,33 @@ public class Skin {
 
 	    try {
 
-	        ESObject handlerObject = null;
+	        Object handlerObject = null;
 
-	        ESValue[] arguments = new ESValue[1];
+	        Object[] arguments = new Object[1];
 	        ESRequestData par =  new ESRequestData (reval);
 	        par.setData (parameters);
 	        arguments[0] = par;
+	
+	        // flag to tell whether we found our invocation target object
+	        boolean objectFound = true;
 
 	        if (handler != null) {
 	            if ("currentuser".equalsIgnoreCase (handler)) {
 	                // as a special convention, we use "currentuser" to access macros in the current user object
-	                handlerObject = reval.getNodeWrapper (reval.user.getNode ());
-	            } else if (elem != null) {
+	                handlerObject = reval.user.getNode ();
+	            } else if (thisObject != null) {
 	                // not a global macro - need to find handler object
 	                // was called with this object - check it or its parents for matching prototype
-	                if (!handler.equalsIgnoreCase ("this") && !handler.equalsIgnoreCase (elem.getPrototype ())) {
+	                if (!handler.equalsIgnoreCase ("this") && !handler.equalsIgnoreCase (app.getPrototypeName (thisObject))) {
 	                    // the handler object is not what we want
-	                    IPathElement n = elem;
+	                    Object n = thisObject;
 	                    // walk down parent chain to find handler object
 	                    while (n != null) {
-	                        if (handler.equalsIgnoreCase (n.getPrototype())) {
-	                            handlerObject = reval.getElementWrapper (n);
+	                        if (handler.equalsIgnoreCase (app.getPrototypeName (n))) {
+	                            handlerObject = n;
 	                            break;
 	                        }
-	                        n = n.getParentElement ();
+	                        n = app.getParentElement (n);
 	                    }
 	                } else {
 	                    // we already have the right handler object
@@ -292,22 +283,27 @@ public class Skin {
 	                // go check request path for an object with matching prototype
 	                int l = reval.reqPath.size();
 	                for (int i=l-1; i>=0; i--) {
-	                    IPathElement pathelem = (IPathElement) reval.reqPath.getProperty (i).toJavaObject ();
-	                    if (handler.equalsIgnoreCase (pathelem.getPrototype ())) {
-	                         handlerObject = (ESNode) reval.reqPath.getProperty(i);
+	                    Object pathelem = reval.reqPath.getProperty (i).toJavaObject ();
+	                    if (handler.equalsIgnoreCase (app.getPrototypeName (pathelem))) {
+	                         handlerObject = pathelem;
 	                         break;
 	                    }
 	                }
 	            }
+	
+	            // the macro handler object couldn't be found
+	            if (handlerObject == null)
+	                objectFound = false;
 
 	        } else {
 	            // this is a global macro with no handler specified
-	            handlerObject = reval.global;
+	            handlerObject = null;
 	        }
 
-	        if (handlerObject != null) {
-	            ESValue v = handlerObject.doIndirectCall (reval.evaluator, handlerObject, name+"_macro", arguments);
-	            if (v != ESUndefined.theUndefined && v != ESNull.theNull)
+	        if (objectFound) {
+	            Object v = reval.invokeDirectFunction (handlerObject, name+"_macro", arguments);
+	            // ESValue v = handlerObject.doIndirectCall (reval.evaluator, handlerObject, name+"_macro", arguments);
+	            if (v != null)
 	                reval.res.write (v);
 	        } else {
 	            String msg = "[HopMacro unhandled: "+getFullName()+"]";
@@ -319,6 +315,7 @@ public class Skin {
 	    } catch (ConcurrencyException concur) {
 	        throw concur;
 	    } catch (Exception x) {
+	        x.printStackTrace();
 	        String msg = "[HopMacro error: "+x+"]";
 	        reval.res.write (" "+msg+" ");
 	        app.logEvent (msg);
@@ -344,16 +341,14 @@ public class Skin {
 	        reval.res.write (encode (value.toString (), encoding));
 	}
 
-	private void renderFromParam (RequestEvaluator reval, ESObject paramObject) {
+	private void renderFromParam (RequestEvaluator reval, HashMap paramObject) {
 	    String encoding = (String) parameters.get ("encoding");
 	    if (paramObject == null)
 	        reval.res.write ("[HopMacro error: Skin requires a parameter object]");
 	    else {
-	        try {
-	            ESValue value = paramObject.getProperty (name, name.hashCode());
-	            if (value != null && value != ESUndefined.theUndefined && value != ESNull.theNull)
-	                reval.res.write (encode (value.toString (), encoding));
-	        } catch (EcmaScriptException ignore) {}
+	        Object value = paramObject.get (name);
+	        if (value != null)
+	            reval.res.write (encode (value.toString (), encoding));
 	    }
 	}
 	
