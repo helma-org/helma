@@ -272,7 +272,7 @@ import com.sleepycat.db.*;
 	            if (hopHome != null && !helper.isAbsolute ())
                               helper = new File (hopHome, logDir);
 	            logDir = helper.getAbsolutePath ();
-	            logger = new Logger (logDir, "hop");
+	            logger = Logger.getLogger (logDir, "hop");
 	        } catch (IOException iox) {
 	            System.err.println ("Could not create Logger for log/hop: "+iox);
 	            // fallback to System.out
