@@ -1176,13 +1176,13 @@ public final class Application implements IPathElement, Runnable {
         if (args == null) {
             args = new Object[0];
         }
-        
+
         if (reval != null) {
             try {
                 return reval.invokeDirectFunction(obj, func, args);
             } catch (Exception x) {
                 if (debug) {
-                    System.err.println("Error in Application.invokeFunction (" + 
+                    System.err.println("Error in Application.invokeFunction (" +
                                         func + "): " + x);
                 }
             }
@@ -1315,6 +1315,28 @@ public final class Application implements IPathElement, Runnable {
     }
 
     ////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Log an application error
+     */
+    public void logError(String msg, Throwable error) {
+        if (eventLog == null) {
+            eventLog = getLogger(eventLogName);
+        }
+
+        eventLog.error(msg, error);
+    }
+
+    /**
+     * Log an application error
+     */
+    public void logError(String msg) {
+        if (eventLog == null) {
+            eventLog = getLogger(eventLogName);
+        }
+
+        eventLog.error(msg);
+    }
 
     /**
      * Log a generic application event
