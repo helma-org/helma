@@ -255,7 +255,7 @@ public class Serve implements ServletContext, Runnable
 	    {
 	    servlet.init( new ServeConfig( (ServletContext) this ) );
 	    registry.put( urlPat, servlet );
-	    servlets.put( servlet.getClass().getName(), servlet );
+	    servlets.put( urlPat, servlet );
 	    }
 	catch ( ServletException e )
 	    {
@@ -266,12 +266,17 @@ public class Serve implements ServletContext, Runnable
     public void removeServlet( String urlPat )
 	{
 	registry.remove (urlPat);
+	servlets.remove (urlPat);
 	}
 
     public void setDefaultServlet (Servlet servlet) {
 	defaultServlet = servlet;
     }
-	
+
+    public void removeDefaultServlet () {
+	defaultServlet = null;
+    }
+
     /// Register a standard set of Servlets.  These will return
     // files or directory listings, and run CGI programs, much like a
     // standard HTTP server.
@@ -665,10 +670,10 @@ class ServeConnection implements Runnable, HttpServletRequest, HttpServletRespon
 	    	servlet = serve.defaultServlet;
 	    if ( servlet != null )
 		runServlet( (HttpServlet) servlet );
-	    else if ( "/".equals( reqUriPath ))
+	    /* else if ( "/".equals( reqUriPath ))
 		sendRedirect (serve.props.getProperty ("rootapp", "base"));
 	    else if ( !reqUriPath.endsWith ("/"))
-	 	sendRedirect (reqUriPath+"/");
+	 	sendRedirect (reqUriPath+"/"); */
 	    else // Not found
 	             sendError (404, "Not Found",
 		"<p>If you are looking for a specific app, try <tt>/appname</tt>.</p>"+
