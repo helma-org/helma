@@ -28,8 +28,10 @@ public class User implements Serializable {
 	this.nid = null;
     	this.app = app;
     	setNode (null);
+    	umap = app.getDbMapping ("user");
 	cache = new Node (sid);
 	cache.setPrototype ("user");
+	cache.setDbMapping (umap);
 	sessionID = sid;
 	onSince = System.currentTimeMillis ();
 	lastTouched = onSince;
@@ -48,7 +50,6 @@ public class User implements Serializable {
 	} else {
 	    uid = n.getNameOrID ();
 	    nid = n.getID ();
-	    umap = n.getDbMapping ();
 	}
     }
 
