@@ -154,40 +154,6 @@ public class TypeManager {
 	return true;
     }
 
-    /* public void start () {
-    	stop ();
-	typechecker = new Thread (this, "Typechecker-"+app.getName());
-	typechecker.setPriority (Thread.MIN_PRIORITY);
-	typechecker.start ();
-    }
-
-    public void stop () {
-	if (typechecker != null && typechecker.isAlive ())
-	    typechecker.interrupt ();
-	typechecker = null;
-    }
-
-    public void run () {
-
-	while (Thread.currentThread () == typechecker) {
-	    idleSeconds++;
-	    try {
-	        // for each idle minute, add 300 ms to sleeptime until 5 secs are reached.
-	        // (10 secs are reached after 30 minutes of idle state)
-	        // the above is all false.
-	        long sleeptime = 1000 + Math.min (idleSeconds*30, 4000);
-	        typechecker.sleep (sleeptime);
-	    } catch (InterruptedException x) {
-	        // app.logEvent ("Typechecker interrupted");
-	        break;
-	    }
-	    try {
-	        checkPrototypes ();
-	    } catch (Exception ignore) {}
-	}
-    } */
-
-
     /**
     *   Get a prototype defined for this application
     */
