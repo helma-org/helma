@@ -29,7 +29,7 @@ public class DocTag	{
 			StringTokenizer tok = new StringTokenizer(rawTag);
 			String kindstr = tok.nextToken().toLowerCase();
 			for ( int i=0; i<kindNames.length; i++ )	{
-				if ( kindstr.equals(kindNames[i]) )	{
+				if ( kindstr.startsWith(kindNames[i]) )	{
 					kind = i;
 					break;
 				}
@@ -50,8 +50,9 @@ public class DocTag	{
 	public String getText()	{		return (text!=null && !text.equals("null"))?text:"";	}
 
 	public String toString()	{
-		return ( (name!=null)?name+" ":"" ) + text;
+		return "[" + ((name!=null)?name+" ":"" ) + text + "]";
 	}
+
 
 
 }
