@@ -209,6 +209,7 @@ public class RequestEvaluator implements Runnable {
 	                req.data = reqData;
 	                resData.setData (res.getResponseData());
 	                res.data = resData;
+	                res.skinpath = app.getProperty ("skinpath");
 
 	                try {
 
@@ -832,7 +833,18 @@ public class RequestEvaluator implements Runnable {
 	if (skin != null) {
 	    return skin;
 	}
-	// Skin skin = null;
+	// check for skin path
+	if (res.skinpath != null) {
+	    File f = new File (res.skinpath, proto.getName());
+	    f = new File (f, skinname+".skin");
+	    if (f.exists ()) {
+	        SkinFile sf = new SkinFile (f, skinname, proto);
+	        skin = sf.getSkin ();
+	        if (skin != null)
+	            return skin;
+	    }
+	}
+	// check for Helma-internal skinmanager nodes
 	if (skinmanagers == null)
 	    getSkinManagers ();
 	do {
