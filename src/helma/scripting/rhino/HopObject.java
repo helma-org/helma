@@ -765,9 +765,12 @@ public class HopObject extends ScriptableObject implements Wrapper {
 
             checkNode();
 
-            // Everything starting with an underscore is interpreted as internal property
+            // Property names starting with an underscore is interpreted 
+            // as internal properties
             if (name.charAt(0) == '_') {
-                return getInternalProperty(name);
+                Object value = getInternalProperty(name);
+                if (value != NOT_FOUND)
+                    return value;
             }
 
             if ("subnodeRelation".equals(name)) {
