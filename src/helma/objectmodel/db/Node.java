@@ -737,16 +737,19 @@ public final class Node implements INode, Serializable {
 
     public INode addNode (INode elem, int where) {
 
-    	Node node = null;
-    	if (elem instanceof Node)
+	Node node = null;
+	if (elem instanceof Node)
 	    node = (Node) elem;
-	else 
+	else
 	    throw new RuntimeException ("Can't add fixed-transient node to a persistent node");
-	
-	// only lock node if it has to be modified for a change in subnodes
-	if (!ignoreSubnodeChange ())
-	    checkWriteLock ();
-	node.checkWriteLock ();
+
+	// only lock nodes if parent node is not transient
+	if (state != TRANSIENT) {
+	    // only lock parent if it has to be modified for a change in subnodes
+	    if (!ignoreSubnodeChange ())
+	        checkWriteLock ();
+	    node.checkWriteLock ();
+	}
 	
 	// if subnodes are defined via realation, make sure its constraints are enforced.
 	if (dbmap != null && dbmap.getSubnodeRelation () != null)
@@ -1640,19 +1643,21 @@ public final class Node implements INode, Serializable {
 	        throw new RuntimeException ("Can't set "+propname+" to object with prototype "+value.getPrototype()+", was expecting "+nmap.getTypeName());
 	}
 
-	checkWriteLock ();
+	if (state != TRANSIENT)
+	    checkWriteLock ();
 
-    	Node n = null;
-    	if (value instanceof Node)
+	Node n = null;
+	if (value instanceof Node)
 	    n = (Node) value;
-	else 
+	else
 	    throw new RuntimeException ("Can't add fixed-transient node to a persistent node");
 
 	// if the new node is marked as TRANSIENT and this node is not, mark new node as NEW
 	if (state != TRANSIENT && n.state == TRANSIENT)
 	    n.makePersistentCapable ();
 
-	n.checkWriteLock ();
+	if (state != TRANSIENT)
+	    n.checkWriteLock ();
 
 	// check if the main identity of this node is as a named property
 	// or as an anonymous node in a collection
@@ -1700,10 +1705,12 @@ public final class Node implements INode, Serializable {
 	// this is done anyway when the node becomes persistent.
 	if (n.state != TRANSIENT) {
 	    // check node in with transactor cache
-	    String nID = n.getID();
-	    DbMapping dbm = n.getDbMapping ();
+	    // String nID = n.getID();
+	    // DbMapping dbm = n.getDbMapping ();
 	    Transactor tx = (Transactor) Thread.currentThread ();
-	    tx.visitCleanNode (new DbKey (dbm, nID), n);
+	    // tx.visitCleanNode (new DbKey (dbm, nID), n);
+	    // UPDATE: using n.getKey() instead of manually constructing key. HW 2002/09/13
+	    tx.visitCleanNode (n.getKey(), n);
 	    // if the field is not the primary key of the property, also register it
 	    if (rel != null && rel.accessor != null && state != TRANSIENT) {
 	        Key secKey = new SyntheticKey (getKey (), propname);
