@@ -109,9 +109,9 @@ function tags_macro()	{
 function args_macro()	{
 	var ct = this.countTags(Packages.helma.doc.DocTag.ARG);
 	for ( var i=0; i<ct; i++)	{
-		res.write ( " arg" + (i+1) );
-		if ( i<(ct-1) )	res.write (",");
-		else	res.write (" ");
+		res.write ( "arg" + (i+1) );
+		if ( i<(ct-1) )	res.write (", ");
+		else	res.write ("");
 	}
 }
 
@@ -136,7 +136,7 @@ function source_macro(par)	{
 		if ( i<arr.length-1 )
 			str3 += '%&gt;</font>';
 	}
-	var arr = str3.split("<br>");
+	var arr = str3.split("<br />");
 	var str4 = "";
 	for ( var i=0; i<arr.length; i++ )	{
 		str4 += '<font color="#aaaaaa">' + (i+1) + ':</font> '
