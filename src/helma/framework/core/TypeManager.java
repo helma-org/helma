@@ -10,7 +10,6 @@ import helma.util.*;
 import java.util.*;
 import java.io.*;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.net.MalformedURLException;
 
 /**
@@ -61,17 +60,7 @@ public final class TypeManager {
         prototypes = new HashMap ();
         zipfiles = new HashMap ();
         jarfiles = new HashSet ();
-        URL[] urls = ((URLClassLoader) TypeManager.class.getClassLoader()).getURLs();
-        URL helmajar = null;
-        for (int i=0; i<urls.length; i++) {
-            String url = urls[i].toString().toLowerCase();
-            if (url.endsWith ("helma.jar")) {
-                helmajar = urls[i];
-                break;
-            }
-        }
-        if (helmajar == null) 
-            throw new RuntimeException ("helma.jar not found in embedding classpath");
+        URL helmajar = new URL ("file:"+app.home.getAbsolutePath()+"/lib/helma.jar");
         loader = new AppClassLoader(app.getName(), new URL[] { helmajar });
     }
 

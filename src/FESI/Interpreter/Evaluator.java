@@ -33,8 +33,6 @@ import java.util.StringTokenizer;
 import java.io.*;
 import java.util.zip.*;
 
-import helma.scripting.fesi.FesiEngine;
-
 /**
  * Defines the evaluation interface and contains the evaluation context.
  * <P><B>Important:</B> This object is also used as the synchronization
@@ -43,11 +41,11 @@ import helma.scripting.fesi.FesiEngine;
  * for speed reasons.
  */
 public class Evaluator {
-  
+
   // used to stop thread, 06.12.99 Hannes Wallnoefer
   public volatile Thread thread;
   // used to retrieve wrappers with correct Prototype for path elements in ESLoader
-  public final FesiEngine engine;
+  public helma.scripting.fesi.FesiEngine engine;
 
   private static String eol = System.getProperty("line.separator", "\n");
 
@@ -55,7 +53,7 @@ public class Evaluator {
    * Return the version identifier of the interpreter
    */
   public static String getVersion() {
-      return "1.1.5 (29-July-2000)";
+      return "1.1.4 (30-Jan-2000)";
   }
     
   /**
@@ -106,25 +104,16 @@ public class Evaluator {
        varDeclarationVisitor =  new EcmaScriptVariableVisitor(this);
        // evaluationVisitor = new EcmaScriptEvaluateVisitor(this);
        globalObject = GlobalObject.makeGlobalObject(this);
-       packageObject = engine == null ? 
-           new ESPackages(this) : 
-           new ESPackages(this, engine.getClassLoader ());
+       packageObject = new ESPackages(this);
+       
        extensions = new Hashtable(); // forget extensions
+       
   }
-
+  
   /**
    * Create a new empty evaluator
    */
   public Evaluator () {
-      this.engine = null;
-      reset();
-  }
-
-  /**
-   * Create a new empty evaluator
-   */
-  public Evaluator (FesiEngine engine) {
-      this.engine = engine;
       reset();
   }
   
@@ -294,7 +283,6 @@ public class Evaluator {
     */
     public void setDatePrototype(ESObject o) {
         datePrototype = o;
-
     }
     /**
      * Get the Date prototype object
@@ -311,6 +299,7 @@ public class Evaluator {
     public ESObject getPackageObject() {
         return packageObject;
     }
+
 
    //------------------------------------------------------------
    // Extension support
@@ -514,16 +503,11 @@ public class Evaluator {
    */
    public ESValue evaluateEvalString(String theSource) throws EcmaScriptException {
      ESValue theValue = ESUndefined.theUndefined;
-    ASTProgram programNode = null;
-    StringEvaluationSource es = new StringEvaluationSource(theSource, null);
-    	// Hack - this ensures correct parsing of // comments
-    	// even if no EOL is present (as in an eval('1//a'))
-    	if (!theSource.endsWith("\n")) {
-    		theSource += "\n";
-    	}
     java.io.StringReader is = 
             new java.io.StringReader(theSource);
     EcmaScript parser = new EcmaScript(is);
+    ASTProgram programNode = null;
+    StringEvaluationSource es = new StringEvaluationSource(theSource, null);
     try {
         // ASTProgram n = parser.Program();
         programNode = (ASTProgram)parser.Program();
@@ -776,6 +760,7 @@ public class Evaluator {
    // currentEvaluationSource = es; 
     try {
         for (Enumeration e = localVariableNames.elements() ; e.hasMoreElements() ;) {
+
              String variable =(String)(e.nextElement()); 
              createVariable(variable, variable.hashCode());
          }    
@@ -851,8 +836,6 @@ public class Evaluator {
     EcmaScriptEvaluateVisitor evaluationVisitor = new EcmaScriptEvaluateVisitor(this);
     try {   
 
-       // Hannes Wallnoefer, 2002/11/29: Pass thisObject to EcmaScriptFunctionVisitor so that 
-       // functions are assigned to the prototype instead of the global object
        functionDeclarationVisitor.processFunctionDeclarations(node, program.getEvaluationSource(), thisObject);
        Vector variables = program.getVariableNames();
        for (Enumeration e = variables.elements() ; e.hasMoreElements() ;) {
@@ -990,11 +973,6 @@ public class Evaluator {
     ESValue v = null;
     EvaluationSource es = new UserEvaluationSource(source, null);
     try {
-    	// Hack - this ensures correct parsing of // comments
-    	// even if no EOL is present (as in an eveal command)/
-    	if (!text.endsWith("\n")) {
-    		text += "\n";
-    	}
        is = new java.io.StringReader(text);
        v = evaluate(is, globalObject, es, false);
     } finally {
@@ -1026,6 +1004,7 @@ public class Evaluator {
   synchronized public ESValue evaluate(File file, ESObject thisObject) 
               throws EcmaScriptException, IOException {
     EvaluationSource es = new FileEvaluationSource(file.getPath(), null);
+
     FileReader fr = null;
     ESValue value = null;
     try {
@@ -1071,11 +1050,6 @@ public class Evaluator {
     java.io.StringReader is = null;
     ESValue v = null;
     EvaluationSource es = new StringEvaluationSource(theSource, null);
-    	// Hack - this ensures correct parsing of // comments
-    	// even if no EOL is present (as in an eveal command)/
-    	if (!theSource.endsWith("\n")) {
-    		theSource += "\n";
-    	}
     try {
        is = new java.io.StringReader(theSource);
        v = evaluate(is, thisObject, es, returnAccepted);

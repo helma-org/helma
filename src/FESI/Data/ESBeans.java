@@ -53,7 +53,7 @@ public class ESBeans extends ESLoader {
      */
     public ESBeans(String packageName, 
                      ESBeans previousPackage,
-                     ClassLoader classLoader, 
+                     LocalClassLoader classLoader, 
                      Evaluator evaluator) {
         super(packageName,previousPackage,classLoader,evaluator);
     }
@@ -94,7 +94,7 @@ public class ESBeans extends ESLoader {
                  throw new EcmaScriptException("Missing class directory or jar file name");
              }
              String directoryOrJar = arguments[0].toString();
-             ClassLoader classLoader =     
+             LocalClassLoader classLoader =     
                      LocalClassLoader.makeLocalClassLoader(directoryOrJar);
               return new ESBeans(null, null, classLoader, evaluator);
          } else {

@@ -929,14 +929,6 @@ public final class Application implements IPathElement, Runnable {
 	}
 	return null;
     }
-    
-
-    /**
-     *  Return the application's classloader
-     */
-    public ClassLoader getClassLoader () {
-	return typemgr.loader;
-    }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     ///   The following methods mimic the IPathElement interface. This allows us

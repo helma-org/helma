@@ -51,11 +51,7 @@ public final class DocTag	{
 			String name = "";
 			if (tok.hasMoreTokens ())
 				name = tok.nextToken ();
-			String comment = "";
-			try {
-				comment = content.substring (name.length ()+1).trim ();
-			} catch (StringIndexOutOfBoundsException e) { }
-			return new DocTag (kind, name, comment);
+			return new DocTag (kind, name, content.substring (name.length ()+1).trim ());
 		} else {
 			return new DocTag (kind, "", content);
 		}

@@ -580,13 +580,7 @@ public final class NodeManager {
 	    try {
 	        Connection con = dbm.getConnection ();
 	        st = con.createStatement ();
-	        st.executeUpdate (new StringBuffer ("DELETE FROM ")
-	            .append(dbm.getTableName ())
-	            .append(" WHERE ")
-	            .append(dbm.getIDField())
-	            .append(" = ")
-	            .append(node.getID())
-	            .toString());
+	        st.executeUpdate ("DELETE FROM "+dbm.getTableName ()+" WHERE "+dbm.getIDField ()+" = "+node.getID ());
 	    } finally {
 	        if (st != null) try {
 	            st.close ();
@@ -611,11 +605,7 @@ public final class NodeManager {
 	Statement stmt = null;
 	try {
 	    Connection con = map.getConnection ();
-	    String q = new StringBuffer("SELECT MAX(")
-	        .append(map.getIDField())
-	        .append(") FROM ")
-	        .append(map.getTableName())
-	        .toString();
+	    String q = "SELECT MAX("+map.getIDField()+") FROM "+map.getTableName();
 	    stmt = con.createStatement ();
 	    ResultSet rs = stmt.executeQuery (q);
 	    // check for empty table
@@ -649,10 +639,7 @@ public final class NodeManager {
 	String retval = null;
 	try {
 	    Connection con = map.getConnection ();
-	    String q = new StringBuffer("SELECT ")
-	        .append(map.getIDgen())
-	        .append(".nextval FROM dual")
-	        .toString();
+	    String q = "SELECT "+map.getIDgen()+".nextval FROM dual";
 	    stmt = con.createStatement();
 	    ResultSet rs = stmt.executeQuery (q);
 	    if (!rs.next ())
@@ -690,28 +677,15 @@ public final class NodeManager {
 
 	    Statement stmt = null;
 	    try {
-
+	
 	        String q = null;
-
+	
 	        if (home.getSubnodeRelation() != null) {
 	            // subnode relation was explicitly set
-	            q = new StringBuffer("SELECT ")
-	                .append(idfield)
-	                .append(" FROM ")
-	                .append(table)
-	                .append(" ")
-	                .append(home.getSubnodeRelation())
-	                .toString();
+	            q = "SELECT "+idfield+" FROM "+table+" "+home.getSubnodeRelation();
 	        } else {
 	            // let relation object build the query
-	            q = new StringBuffer("SELECT ")
-	                .append(idfield)
-	                .append(" FROM ")
-	                .append(table)
-	                .append(rel.buildQuery (home,
-	                        home.getNonVirtualParent (), null,
-	                        " WHERE ", true))
-	                .toString();
+	            q = "SELECT "+idfield+" FROM "+table + rel.buildQuery (home, home.getNonVirtualParent (), null, " WHERE ", true);
 	        }
 
 	        if (logSql)
@@ -721,7 +695,7 @@ public final class NodeManager {
 	        if (rel.maxSize > 0)
 	            stmt.setMaxRows (rel.maxSize);
 	        ResultSet result = stmt.executeQuery (q);
-
+	
 	        // problem: how do we derive a SyntheticKey from a not-yet-persistent Node?
 	        Key k = rel.groupby != null ?  home.getKey (): null;
 	        while (result.next ()) {
@@ -732,8 +706,8 @@ public final class NodeManager {
 	                continue;
 	            // make the proper key for the object, either a generic DB key or a groupby key
 	            Key key = rel.groupby == null ?
-	                (Key) new DbKey (rel.otherType, kstr) :
-	                (Key) new SyntheticKey (k, kstr);
+	            		(Key) new DbKey (rel.otherType, kstr) :
+	            		(Key) new SyntheticKey (k, kstr);
 	            retval.add (new NodeHandle (key));
 	            // if these are groupby nodes, evict nullNode keys
 	            if (rel.groupby != null) {
@@ -776,7 +750,7 @@ public final class NodeManager {
 
 	    Connection con = dbm.getConnection ();
 	    Statement stmt = con.createStatement ();
-	    DbColumn[] columns = dbm.getColumns ();
+	    String[] columns = dbm.getColumns ();
 	    StringBuffer q = dbm.getSelect ();
 	    try {
 	        if (home.getSubnodeRelation() != null) {
@@ -834,7 +808,7 @@ public final class NodeManager {
 	    if (missing > 0) {
 	        Connection con = dbm.getConnection ();
 	        Statement stmt = con.createStatement ();
-	        DbColumn[] columns = dbm.getColumns ();
+	        String[] columns = dbm.getColumns ();
 	        StringBuffer q = dbm.getSelect ();
 	        try {
 	            String idfield = rel.groupby != null ? rel.groupby : dbm.getIDField ();
@@ -861,10 +835,8 @@ public final class NodeManager {
 	            q.append (") ");
 	            if (rel.groupby != null) {
 	                q.append (rel.renderConstraints (home, home.getNonVirtualParent ()));
-	                if (rel.order != null) {
-	                    q.append (" ORDER BY ");
-	                    q.append (rel.order);
-	                }
+	                if (rel.order != null)
+	                    q.append (" ORDER BY "+rel.order);
 	            }
 
 	            if (logSql)
@@ -965,27 +937,19 @@ public final class NodeManager {
 
 	    Statement stmt = null;
 	    try {
-
+	
 	        String q = null;
 	        if (home.getSubnodeRelation() != null) {
 	            // use the manually set subnoderelation of the home node
-	            q = new StringBuffer("SELECT count(*) FROM ")
-	                .append(table)
-	                .append(" ")
-	                .append(home.getSubnodeRelation())
-	                .toString();
+	            q = "SELECT count(*) FROM "+table+" "+home.getSubnodeRelation();
 	        } else {
 	            // let relation object build the query
-	            q = new StringBuffer("SELECT count(*) FROM ")
-	                .append(table)
-	                .append(rel.buildQuery (home, home.getNonVirtualParent(), 
-	                        null, " WHERE ", false))
-	                .toString();
+	            q = "SELECT count(*) FROM "+table + rel.buildQuery (home, home.getNonVirtualParent (), null, " WHERE ", false);
 	        }
-
+	
 	        if (logSql)
 	            app.logEvent ("### countNodes: "+q);
-
+	
 	        stmt = con.createStatement();
 
 	        ResultSet rs = stmt.executeQuery (q);
@@ -1026,13 +990,7 @@ public final class NodeManager {
 	    Statement stmt = null;
 
 	    try {
-	        String q = new StringBuffer("SELECT ")
-	            .append(namefield)
-	            .append(" FROM ")
-	            .append(table)
-	            .append(" ORDER BY ")
-	            .append(namefield)
-	            .toString();
+	        String q = "SELECT "+namefield+" FROM "+table+" ORDER BY "+namefield;
 	        stmt = con.createStatement ();
 
 	        if (logSql)
@@ -1079,7 +1037,7 @@ public final class NodeManager {
 	        Connection con = dbm.getConnection ();
 	        stmt = con.createStatement ();
 
-	        DbColumn[] columns = dbm.getColumns ();
+	        String[] columns = dbm.getColumns ();
 	        StringBuffer q = dbm.getSelect ();
 	        q.append ("WHERE ");
 	        q.append (idfield);
@@ -1141,7 +1099,7 @@ public final class NodeManager {
 	        DbMapping dbm = rel.otherType;
 
 	        Connection con = dbm.getConnection ();
-	        DbColumn[] columns = dbm.getColumns ();
+	        String[] columns = dbm.getColumns ();
 	        StringBuffer q = dbm.getSelect ();
 	        if (home.getSubnodeRelation () != null) {
 	            // combine our key with the constraints in the manually set subnode relation
@@ -1186,7 +1144,7 @@ public final class NodeManager {
     }
 
     /**
-     * Get a DbMapping for a given prototype name. This is just a proxy
+     * Get a DbMapping for a given prototype name. This is just a proxy 
      * method to the app's getDbMapping() method.
      */
     public DbMapping getDbMapping (String protoname) {

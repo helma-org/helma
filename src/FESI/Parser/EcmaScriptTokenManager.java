@@ -1654,13 +1654,6 @@ final void SkipLexicalActions(Token matchedToken)
 {
    switch(jjmatchedKind)
    {
-      case 8 :
-         if (image == null)
-            image = new StringBuffer(new String(input_stream.GetSuffix(jjimageLen + (lengthOfMatch = jjmatchedPos + 1))));
-         else
-            image.append(new String(input_stream.GetSuffix(jjimageLen + (lengthOfMatch = jjmatchedPos + 1))));
-                                                 input_stream.backup(1);
-         break;
       default :
          break;
    }
