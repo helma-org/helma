@@ -178,6 +178,8 @@ public final class Relation {
 	    maxSize = Integer.parseInt (max);
 	} catch (NumberFormatException nfe) {
 	    maxSize = 0;
+	} else {
+	    maxSize = 0;
 	}
 	// get group by property
 	groupby = props.getProperty (propName+".group");
