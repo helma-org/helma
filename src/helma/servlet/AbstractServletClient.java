@@ -272,10 +272,14 @@ public abstract class AbstractServletClient extends HttpServlet {
 	BufferedInputStream in = new BufferedInputStream (request.getInputStream ());
 	if (contentLength > uploadLimit*1024) {
 	    // consume all input to make Apache happy
-	    byte b[] = new byte[1024];
+	    byte b[] = new byte[4096];
 	    int read = 0;
-	    while (in.available () > 0)
-	         read = in.read (b, 0, 1024);
+	    int sum = 0;
+	    while (read > -1 && sum < contentLength) {
+	         read = in.read (b, 0, 4096);
+	         if (read > 0)
+	             sum += read;
+	    }
 	    throw new RuntimeException ("Upload exceeds limit of "+uploadLimit+" kb.");
 	}
 	String contentType = request.getContentType ();
