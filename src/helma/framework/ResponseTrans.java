@@ -49,9 +49,9 @@ public final class ResponseTrans implements Externalizable {
     public boolean cache = true;
 
     /**
-     * Used for HTTP response code, if 0 code 200 OK will be used.
+     * Value for HTTP response code, defaults to 200 (OK).
      */
-    public int status = 0;
+    public int status = 200;
 
     /**
      * Used for HTTP authentication
