@@ -63,7 +63,7 @@ public final class DbMapping implements Updatable {
     private HashMap prop2db;
 
     // Map of db columns to Relations objects.
-    // Case insensitive, keys are stored in upper case so 
+    // Case insensitive, keys are stored in upper case so
     // lookups must do a toUpperCase().
     private HashMap db2prop;
 
@@ -103,7 +103,7 @@ public final class DbMapping implements Updatable {
     private long lastID;
 
     // timestamp of last modification of the mapping (type.properties)
-    // init value is -1 so we know we have to run update once even if 
+    // init value is -1 so we know we have to run update once even if
     // the underlying properties file is non-existent
     long lastTypeChange = -1;
 
@@ -1030,24 +1030,44 @@ public final class DbMapping implements Updatable {
      *
      * @return ...
      */
-    public StringBuffer getInsert() {
+    public String getInsert() throws ClassNotFoundException, SQLException {
         String ins = insertString;
 
         if (ins != null) {
-            return new StringBuffer(ins);
+            return ins;
         }
 
-        StringBuffer s = new StringBuffer("INSERT INTO ");
+        StringBuffer b1 = new StringBuffer("INSERT INTO ");
+        b1.append(getTableName());
+        b1.append(" ( ");
+        b1.append(getIDField());
 
-        s.append(getTableName());
-        s.append(" ( ");
-        s.append(getIDField());
+        StringBuffer b2 = new StringBuffer(" ) VALUES ( ?");
+
+        DbColumn[] cols = getColumns();
+
+        for (int i = 0; i < cols.length; i++) {
+            Relation rel = cols[i].getRelation();
+            String name = cols[i].getName();
+
+            if (((rel != null) && (rel.isPrimitive() ||
+                    rel.isReference())) ||
+                    name.equalsIgnoreCase(getNameField()) ||
+                    name.equalsIgnoreCase(getPrototypeField())) {
+                b1.append(", " + cols[i].getName());
+                b2.append(", ?");
+            }
+        }
+
+        b1.append(b2.toString());
+        b1.append(" )");
 
         // cache rendered string for later calls.
-        insertString = s.toString();
+        ins = insertString = b1.toString();
 
-        return s;
+        return ins;
     }
+
 
     /**
      *

@@ -508,34 +508,17 @@ public final class NodeManager {
             throw new NullPointerException("Error inserting relational node: Connection is null");
         }
 
+        String insertString = dbm.getInsert();
+        PreparedStatement stmt = con.prepareStatement(insertString);
+
         // app.logEvent ("inserting relational node: "+node.getID ());
         DbColumn[] columns = dbm.getColumns();
-
-        StringBuffer b1 = dbm.getInsert();
-        StringBuffer b2 = new StringBuffer(" ) VALUES ( ?");
 
         String nameField = dbm.getNameField();
         String prototypeField = dbm.getPrototypeField();
 
-        for (int i = 0; i < columns.length; i++) {
-            Relation rel = columns[i].getRelation();
-            String name = columns[i].getName();
-
-            if (((rel != null) && (rel.isPrimitive() || rel.isReference())) ||
-                    name.equalsIgnoreCase(nameField) || name.equalsIgnoreCase(prototypeField)) {
-                b1.append(", " + columns[i].getName());
-                b2.append(", ?");
-            }
-        }
-
-        b1.append(b2.toString());
-        b1.append(" )");
-
-        // Connection con = dbm.getConnection();
-        PreparedStatement stmt = con.prepareStatement(b1.toString());
-
         if (logSql) {
-            app.logEvent("### insertNode: " + b1.toString());
+            app.logEvent("### insertNode: " + insertString);
         }
 
         try {
