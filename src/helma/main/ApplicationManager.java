@@ -84,6 +84,7 @@ public class ApplicationManager {
 	                        app.setBaseURI (mountpoint);
 	                    ServletHttpContext context = new ServletHttpContext ();
 	                    context.setContextPath(pattern);
+	                    context.addHandler(new ContentEncodingHandler());
 	                    server.http.addContext (context);
 	                    ServletHolder holder = context.addServlet (appName, "/*", "helma.servlet.EmbeddedServletClient");
 	                    holder.setInitParameter ("application", appName);
@@ -170,6 +171,7 @@ public class ApplicationManager {
 	        String pattern = getPathPattern (mountpoint);
 	        ServletHttpContext context = new ServletHttpContext ();
 	        context.setContextPath(pattern);
+	        context.addHandler(new ContentEncodingHandler());
 	        server.http.addContext (context);
 	        ServletHolder holder = context.addServlet (appName, "/*", "helma.servlet.EmbeddedServletClient");
 	        holder.setInitParameter ("application", appName);
