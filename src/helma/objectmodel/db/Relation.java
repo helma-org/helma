@@ -377,14 +377,14 @@ public class Relation {
 	    maxSize = 0;
 	}
 	// get group by property
-	groupby = props.getProperty (propName+".groupby");
+	groupby = props.getProperty (propName+".group");
 	if (groupby != null && groupby.trim().length() == 0)
 	    groupby = null;
 	if (groupby != null) {
-	    groupbyorder = props.getProperty (propName+".groupby.order");
+	    groupbyorder = props.getProperty (propName+".group.order");
 	    if (groupbyorder != null && groupbyorder.trim().length() == 0)
 	        groupbyorder = null;
-	    groupbyprototype = props.getProperty (propName+".groupby.prototype");
+	    groupbyprototype = props.getProperty (propName+".group.prototype");
 	    if (groupbyprototype != null && groupbyprototype.trim().length() == 0)
 	        groupbyprototype = null;
 	    // aggressive loading and caching is not supported for groupby-nodes
