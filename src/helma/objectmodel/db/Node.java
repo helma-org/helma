@@ -35,8 +35,8 @@ public final class Node implements INode, Serializable {
     // Other nodes that link to this node. Used for reference counting/checking
     private List links;
 
-    private long created;
-    private long lastmodified;
+    protected long created;
+    protected long lastmodified;
 
     private String id, name;
     // is this node's main identity as a named property or an
