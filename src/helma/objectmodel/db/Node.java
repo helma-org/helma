@@ -1227,6 +1227,10 @@ public final class Node implements INode, Serializable {
 	return new Enum ();
     }
 
+	public List getSubnodeList()	{
+		return subnodes;
+	}
+
     private boolean ignoreSubnodeChange () {
 	// return true if a change in subnodes can be ignored because it is
 	// stored in the subnodes themselves.
@@ -1263,7 +1267,9 @@ public final class Node implements INode, Serializable {
 	// return propMap == null ? new Vector ().elements () : propMap.elements ();
     }
 
-
+	public Hashtable getPropMap()	{
+		return propMap;
+	}
 
     public IProperty get (String propname, boolean inherit) {
 	return getProperty (propname, inherit);
