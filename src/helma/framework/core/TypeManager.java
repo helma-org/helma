@@ -301,7 +301,7 @@ public final class TypeManager {
      * @return a collection containing the prototypes
      */
     public Collection getPrototypes() {
-        return prototypes.values();
+        return Collections.unmodifiableCollection(prototypes.values());
     }
 
     /**
