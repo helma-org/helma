@@ -36,7 +36,7 @@ import java.util.*;
  * Helma server main class.
  */
 public class Server implements IPathElement, Runnable {
-    public static final String version = "1.2.3 (2003/03/07)";
+    public static final String version = "1.2.4 (2003/04/15)";
 
     // server-wide properties
     static SystemProperties appsProps;
