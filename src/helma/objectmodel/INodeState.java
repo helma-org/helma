@@ -16,9 +16,6 @@
 
 package helma.objectmodel;
 
-import java.io.*;
-import java.util.*;
-
 /**
  * Interface that defines states of nodes
  */

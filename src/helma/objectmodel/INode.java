@@ -18,7 +18,6 @@ package helma.objectmodel;
 
 import helma.framework.IPathElement;
 import helma.objectmodel.db.DbMapping;
-import java.io.*;
 import java.util.*;
 
 /**
