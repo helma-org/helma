@@ -24,7 +24,7 @@ import com.sleepycat.db.*;
  
  public class Server {
 
-    public static final String version = "1.2 pre 2001/11/20";
+    public static final String version = "1.2 prc 2 2001/11/26";
 
     public static boolean useTransactions = true;
     public static boolean paranoid;
@@ -96,8 +96,6 @@ import com.sleepycat.db.*;
 	        usageError = true;
 	}
 
-	System.out.println ("Helma "+version);
-
 	if (usageError ) {
 	    System.out.println ("usage: java helma.objectmodel.db.Server [-h dir] [-f file] [-p port] [-w port] [-t]");
 	    System.out.println ("  -h dir     Specify hop home directory");
@@ -135,6 +133,10 @@ import com.sleepycat.db.*;
 
 	// create hopHome File object
 	hopHome = new File (homeDir);
+
+	// from now on it's safe to call getLogger()
+
+	getLogger().log ("Starting Helma "+version);
 
 	getLogger().log ("propfile = "+propfile);
 	getLogger().log ("hopHome = "+hopHome);
