@@ -258,7 +258,9 @@ public class Skin {
 	        Object handlerObject = null;
 
 	        Object[] arguments = new Object[1];
-	        arguments[0] = parameters;
+	        // pass a clone of the parameter map so if the script changes it,
+	        // we still keep the original version.
+	        arguments[0] = parameters.clone ();
 
 	        // flag to tell whether we found our invocation target object
 	        boolean objectFound = true;
