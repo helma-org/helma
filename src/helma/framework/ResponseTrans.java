@@ -16,24 +16,14 @@ import helma.util.*;
 public class ResponseTrans implements Externalizable {
 
     public String contentType = "text/html";
-    // the actual response
-    private byte[] response = null;
-    // contains the redirect URL
-    public String redirect = null;
 
-    // cookies
-    public String cookieKeys[];
-    public String cookieValues[];
-    public int cookieDays[];
-    int nCookies = 0;
+    public String charset;
 
     // used to allow or disable client side caching
     public boolean cache = true;
 
-    // the buffer used to build the response
-    private transient StringBuffer buffer = null;
-    // these are used to implement the _as_string variants for Hop templates.
-    private transient Stack buffers;
+    // Used for HTTP response code, if 0 code 200 OK will be used.
+    public int status = 0;
 
     // the buffers used to build the single body parts -
     // transient, response must be constructed before this is serialized
@@ -41,6 +31,24 @@ public class ResponseTrans implements Externalizable {
 
     // name of the skin to be rendered  after completion, if any
     public transient String skin = null;
+
+    // the actual response
+    private byte[] response = null;
+
+    // contains the redirect URL
+    String redir = null;
+
+    // cookies
+    String cookieKeys[];
+    String cookieValues[];
+    int cookieDays[];
+    int nCookies = 0;
+
+
+    // the buffer used to build the response
+    private transient StringBuffer buffer = null;
+    // these are used to implement the _as_string variants for Hop templates.
+    private transient Stack buffers;
 
 
     public ResponseTrans () {
@@ -52,7 +60,7 @@ public class ResponseTrans implements Externalizable {
 	if (buffer != null)
 	    buffer.setLength (0);
 	response = null;
-	redirect = null;
+	redir = null;
 	skin = null;
 	title = head = body = message = error = "";
     }
@@ -149,8 +157,12 @@ public class ResponseTrans implements Externalizable {
     }
 
     public void redirect (String url) throws RedirectException {
-	redirect = url;
+	redir = url;
 	throw new RedirectException (url);
+    }
+
+    public String getRedirect () {
+	return redir;
     }
 
     /**
@@ -159,10 +171,6 @@ public class ResponseTrans implements Externalizable {
      * generate a better error message, but it must be byte[].
      */
     public void writeBinary (byte[] what) {
-	/* if (what == null || !(what instanceof byte[])) {
-	    String type = what == null ? "null" : what.getClass ().getName();
-	    throw new RuntimeException ("Parameter for res.writeBinary must be byte[], but was "+type);
-	}  */
 	response = what;
     }
 
@@ -171,12 +179,18 @@ public class ResponseTrans implements Externalizable {
      * This has to be called after writing to this response has finished and before it is shipped back to the
      * web server. Transforms the string buffer into a char array to minimize size.
      */
-    public synchronized void close () {
+    public synchronized void close (String cset) throws UnsupportedEncodingException {
+	// only use default charset if not explicitly set for this response.
+	if (charset == null)
+	    charset = cset;
+
+	boolean error = false;
 	if (response == null) {
 	    if (buffer != null) {
 	        try {
-	            response = buffer.toString ().getBytes ("ISO-8859-1");
-	        } catch (UnsupportedEncodingException badenc) {
+	            response = buffer.toString ().getBytes (charset);
+	        } catch (UnsupportedEncodingException uee) {
+	            error = true;
 	            response = buffer.toString ().getBytes ();
 	        }
 	        buffer = null; // make sure this is done only once, even with more requsts attached
@@ -185,6 +199,9 @@ public class ResponseTrans implements Externalizable {
 	    }
 	}
 	notifyAll ();
+	// if there was a problem with the encoding, let the app know
+	if (error)
+	    throw new UnsupportedEncodingException (charset);
     }
 
     /**
@@ -262,23 +279,25 @@ public class ResponseTrans implements Externalizable {
     public void readExternal (ObjectInput s) throws ClassNotFoundException, IOException {
 	contentType = (String) s.readObject ();
 	response = (byte[]) s.readObject ();
-	redirect = (String) s.readObject ();
+	redir = (String) s.readObject ();
 	cookieKeys = (String[]) s.readObject ();
 	cookieValues = (String[]) s.readObject ();
 	cookieDays = (int[]) s.readObject ();
 	nCookies = s.readInt ();
 	cache = s.readBoolean ();
+	status = s.readInt ();
     }
 
     public void writeExternal (ObjectOutput s) throws IOException {
 	s.writeObject (contentType);
 	s.writeObject (response);
-	s.writeObject (redirect);
+	s.writeObject (redir);
 	s.writeObject (cookieKeys);
 	s.writeObject (cookieValues);
 	s.writeObject (cookieDays);
 	s.writeInt (nCookies);
 	s.writeBoolean (cache);
+	s.writeInt (status);
     }
 
 }
