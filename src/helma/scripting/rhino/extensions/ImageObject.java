@@ -32,7 +32,6 @@ import java.lang.reflect.Method;
  * Extension to provide Helma with Image processing features.
  */
 public class ImageObject {
-    static ImageGenerator imggen;
     static Scriptable global;
 
     /**
@@ -57,39 +56,36 @@ public class ImageObject {
                 Function ctorObj, boolean inNewExpr) {
         Object img = null;
         try {
-            if (imggen == null) {
-                try {
-                    imggen = new ImageGenerator();
-                } catch (UnsatisfiedLinkError noawt) {
-                    System.err.println("Error creating Image: " + noawt);
-                    throw new RuntimeException("Error creating Image: " + noawt);
-                }
-            }
+            ImageGenerator generator = ImageGenerator.getInstance();
 
             if (args.length == 1) {
                 if (args[0] instanceof NativeJavaArray) {
-                    Object obj = ((NativeJavaArray) args[0]).unwrap();
-                    if (obj instanceof byte[]) {
-                        img = imggen.createImage((byte[]) obj);
+                    Object array = ((NativeJavaArray) args[0]).unwrap();
+                    if (array instanceof byte[]) {
+                        img = generator.createImage((byte[]) array);
                     }
                 } else if (args[0] instanceof byte[]) {
-                    img = imggen.createImage((byte[]) args[0]);
+                    img = generator.createImage((byte[]) args[0]);
                 } else if (args[0] instanceof String) {
                     String imgurl = args[0].toString();
-                    img = imggen.createPaintableImage(imgurl);
+                    img = generator.createImage(imgurl);
                 }
             } else if (args.length == 2) {
                 if (args[0] instanceof Number &&
                                    args[1] instanceof Number) {
-                    img = imggen.createPaintableImage(((Number) args[0]).intValue(),
+                    img = generator.createImage(((Number) args[0]).intValue(),
                                                           ((Number) args[1]).intValue());
                 } else if (args[0] instanceof NativeJavaObject &&
                         args[1] instanceof NativeJavaObject) {
                     // create a new image from an existing one and an image filter
                     Object wrapper = ((NativeJavaObject) args[0]).unwrap();
-                    Object filter = ((NativeJavaObject) args[1]).unwrap();
-                    img = imggen.createPaintableImage((ImageWrapper) wrapper,
-                                                          (ImageFilter) filter);
+                    if (wrapper instanceof ImageWrapper) {
+                        Object filter = ((NativeJavaObject) args[1]).unwrap();
+                        if (filter instanceof ImageFilter)
+                            img = generator.createImage((ImageWrapper) wrapper, (ImageFilter) filter);
+                        else if (filter instanceof BufferedImageOp)
+                            img = generator.createImage((ImageWrapper) wrapper, (BufferedImageOp) filter);
+                    }
                 } else {
                     throw new RuntimeException("Error creating Image from args "+args[0]+","+args[1]);
                 }
