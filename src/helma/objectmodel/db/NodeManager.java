@@ -92,7 +92,7 @@ public final class NodeManager {
             }
         }
 
-        db = new XmlDatabase(dbHome, null, this);
+        db = new XmlDatabase(dbHome, this);
         initDb();
     }
 

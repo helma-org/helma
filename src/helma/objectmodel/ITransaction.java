@@ -19,9 +19,29 @@ package helma.objectmodel;
 
 /**
  * This interface is kept for databases that are able
- * to run transactions. Transactions were used for the
- * Berkeley database and might be used in other future
- * databases, so we leave transactions in.
+ * to run transactions.
  */
 public interface ITransaction {
+
+    public final int ADDED = 0;
+    public final int UPDATED = 1;
+    public final int DELETED = 2;
+
+    /**
+     * Complete the transaction by making its changes persistent.
+     */
+    public void commit() throws DatabaseException;
+
+    /**
+     * Rollback the transaction, forgetting the changed items
+     */
+    public void abort() throws DatabaseException;
+
+    /**
+     * Adds a resource to the list of resources encompassed by this transaction
+     *
+     * @param res the resource to add
+     * @param status the status of the resource (ADDED|UPDATED|DELETED)
+     */
+    public void addResource(Object res, int status) throws DatabaseException;
 }

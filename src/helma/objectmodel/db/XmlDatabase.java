@@ -25,13 +25,14 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * A simple XML-database
  */
 public final class XmlDatabase implements IDatabase {
-    private String dbHome;
-    private File dbBaseDir;
+
+    private File dbHomeDir;
     private NodeManager nmgr;
     private IDGenerator idgen;
 
@@ -43,19 +44,17 @@ public final class XmlDatabase implements IDatabase {
      * Creates a new XmlDatabase object.
      *
      * @param dbHome ...
-     * @param dbFilename ...
      * @param nmgr ...
      *
      * @throws DatabaseException ...
      * @throws RuntimeException ...
      */
-    public XmlDatabase(String dbHome, String dbFilename, NodeManager nmgr)
+    public XmlDatabase(String dbHome, NodeManager nmgr)
                 throws DatabaseException {
-        this.dbHome = dbHome;
         this.nmgr = nmgr;
-        dbBaseDir = new File(dbHome);
+        dbHomeDir = new File(dbHome);
 
-        if (!dbBaseDir.exists() && !dbBaseDir.mkdirs()) {
+        if (!dbHomeDir.exists() && !dbHomeDir.mkdirs()) {
             throw new RuntimeException("Couldn't create DB-directory");
         }
 
@@ -63,48 +62,47 @@ public final class XmlDatabase implements IDatabase {
     }
 
     /**
-     *
+     * Shut down the database
      */
     public void shutdown() {
+        // nothing to do
     }
 
     /**
+     * Start a new transaction.
      *
-     *
-     * @return ...
-     *
-     * @throws DatabaseException ...
+     * @return the new tranaction object
+     * @throws DatabaseException
      */
     public ITransaction beginTransaction() throws DatabaseException {
-        return null;
+        return new Transaction();
     }
 
     /**
+     * committ the given transaction, makint its changes persistent
      *
-     *
-     * @param txn ...
-     *
-     * @throws DatabaseException ...
+     * @param txn
+     * @throws DatabaseException
      */
     public void commitTransaction(ITransaction txn) throws DatabaseException {
+        txn.commit();
     }
 
     /**
+     * Abort the given transaction
      *
-     *
-     * @param txn ...
-     *
-     * @throws DatabaseException ...
+     * @param txn
+     * @throws DatabaseException
      */
     public void abortTransaction(ITransaction txn) throws DatabaseException {
+        txn.abort();
     }
 
     /**
+     * Get the next free id to use for new objects
      *
-     *
-     * @return ...
-     *
-     * @throws ObjectNotFoundException ...
+     * @return
+     * @throws ObjectNotFoundException
      */
     public String nextID() throws ObjectNotFoundException {
         if (idgen == null) {
@@ -115,17 +113,15 @@ public final class XmlDatabase implements IDatabase {
     }
 
     /**
+     * Get the id-generator
      *
-     *
-     * @param txn ...
-     *
-     * @return ...
-     *
-     * @throws ObjectNotFoundException ...
+     * @param txn
+     * @return
+     * @throws ObjectNotFoundException
      */
     public IDGenerator getIDGenerator(ITransaction txn)
                                throws ObjectNotFoundException {
-        File file = new File(dbBaseDir, "idgen.xml");
+        File file = new File(dbHomeDir, "idgen.xml");
 
         this.idgen = IDGenParser.getIDGenerator(file);
 
@@ -133,36 +129,39 @@ public final class XmlDatabase implements IDatabase {
     }
 
     /**
+     * Write the id-generator to file
      *
-     *
-     * @param txn ...
-     * @param idgen ...
-     *
-     * @throws IOException ...
+     * @param txn
+     * @param idgen
+     * @throws IOException
      */
     public void saveIDGenerator(ITransaction txn, IDGenerator idgen)
                          throws IOException {
-        File file = new File(dbBaseDir, "idgen.xml");
+        File tmp = File.createTempFile("idgen.xml.", ".tmp", dbHomeDir);
 
-        IDGenParser.saveIDGenerator(idgen, file);
+        IDGenParser.saveIDGenerator(idgen, tmp);
         this.idgen = idgen;
+
+        File file = new File(dbHomeDir, "idgen.xml");
+        Resource res = new Resource(file, tmp);
+        txn.addResource(res, ITransaction.ADDED);
     }
 
     /**
+     * Retrieves a Node from the database.
      *
-     *
-     * @param txn ...
-     * @param kstr ...
-     *
-     * @return ...
-     *
-     * @throws Exception ...
-     * @throws ObjectNotFoundException ...
+     * @param txn
+     * @param kstr
+     * @return
+     * @throws IOException
+     * @throws ObjectNotFoundException
+     * @throws ParserConfigurationException
+     * @throws SAXException
      */
     public INode getNode(ITransaction txn, String kstr)
                   throws IOException, ObjectNotFoundException,
                          ParserConfigurationException, SAXException {
-        File f = new File(dbBaseDir, kstr + ".xml");
+        File f = new File(dbHomeDir, kstr + ".xml");
 
         if (!f.exists()) {
             throw new ObjectNotFoundException("Object not found for key " + kstr + ".");
@@ -174,68 +173,160 @@ public final class XmlDatabase implements IDatabase {
 
             return node;
         } catch (RuntimeException x) {
-            nmgr.app.logEvent("error reading node from XmlDatbase: " + x.toString());
+            nmgr.app.logError("Error reading " +f+": " + x.toString());
             throw new ObjectNotFoundException(x.toString());
         }
     }
 
     /**
+     * Write the node to a temporary file.
      *
-     *
-     * @param txn ...
-     * @param kstr ...
-     * @param node ...
-     *
-     * @throws Exception ...
+     * @param txn the transaction we're in
+     * @param kstr the node's key
+     * @param node the node to save
+     * @throws IOException
      */
     public void saveNode(ITransaction txn, String kstr, INode node)
                   throws IOException {
         XmlWriter writer = null;
-        File file = new File(dbBaseDir, kstr + ".xml");
+        File tmp = File.createTempFile(kstr + ".xml.", ".tmp", dbHomeDir);
 
         if (encoding != null) {
-            writer = new XmlWriter(file, encoding);
+            writer = new XmlWriter(tmp, encoding);
         } else {
-            writer = new XmlWriter(file);
+            writer = new XmlWriter(tmp);
         }
 
         writer.setMaxLevels(1);
-
-        writer.write((Node) node);
-
+        writer.write(node);
         writer.close();
+
+        File file = new File(dbHomeDir, kstr+".xml");
+        Resource res = new Resource(file, tmp);
+        txn.addResource(res, ITransaction.ADDED);
     }
 
     /**
+     * Marks an element from the database as deleted
      *
-     *
-     * @param txn ...
-     * @param kstr ...
-     *
-     * @throws Exception ...
+     * @param txn
+     * @param kstr
+     * @throws IOException
      */
     public void deleteNode(ITransaction txn, String kstr)
                     throws IOException {
-        File f = new File(dbBaseDir, kstr + ".xml");
-
-        f.delete();
+        Resource res = new Resource(new File(dbHomeDir, kstr+".xml"), null);
+        txn.addResource(res, ITransaction.DELETED);
     }
 
     /**
+     * set the file encoding to use
      *
-     *
-     * @param enc ...
+     * @param encoding the database's file encoding
      */
     public void setEncoding(String encoding) {
         this.encoding = encoding;
     }
 
     /**
+     * get the file encoding used by this database
      *
-     *
-     * @return ...
+     * @return the file encoding used by this database
      */
     public String getEncoding() {
         return encoding;
     }
+
+    class Transaction implements ITransaction {
+
+        ArrayList writeFiles = new ArrayList();
+        ArrayList deleteFiles = new ArrayList();
+
+        /**
+         * Complete the transaction by making its changes persistent.
+         */
+        public void commit() throws DatabaseException {
+            // move through updated/created files and persist them
+            int l = writeFiles.size();
+            for (int i=0; i<l; i++) {
+                Resource res = (Resource) writeFiles.get(i);
+                try {
+                    if (res.tmpfile.renameTo(res.file)) {
+                        nmgr.app.logEvent(res.tmpfile+" -> "+res.file);
+                        res.tmpfile.delete();
+                    } else {
+                        nmgr.app.logError("*** Error committing "+res.file);
+                        nmgr.app.logError("*** Committed version is in "+res.tmpfile);
+                    }
+                } catch (SecurityException ignore) {
+                    // shouldn't happen
+                }
+            }
+
+            // move through deleted files and delete them
+            l = deleteFiles.size();
+            for (int i=0; i<l; i++) {
+                Resource res = (Resource) deleteFiles.get(i);
+                try {
+                    res.file.delete();
+                } catch (SecurityException ignore) {
+                    // shouldn't happen
+                }
+            }
+            // clear registered resources
+            writeFiles.clear();
+            deleteFiles.clear();
+        }
+
+        /**
+         * Rollback the transaction, forgetting the changed items
+         */
+        public void abort() throws DatabaseException {
+            int l = writeFiles.size();
+            for (int i=0; i<l; i++) {
+                Resource res = (Resource) writeFiles.get(i);
+                try {
+                    res.tmpfile.delete();
+                } catch (SecurityException ignore) {
+                    // shouldn't happen
+                }
+            }
+
+            // clear registered resources
+            writeFiles.clear();
+            deleteFiles.clear();
+        }
+
+        /**
+         * Adds a resource to the list of resources encompassed by this transaction
+         *
+         * @param res the resource to add
+         * @param status the status of the resource (ADDED|UPDATED|DELETED)
+         */
+        public void addResource(Object res, int status)
+               throws DatabaseException {
+            if (status == DELETED) {
+                deleteFiles.add(res);
+            } else {
+                writeFiles.add(res);
+            }
+        }
+
+    }
+
+    /**
+     * A holder class for two files, the temporary file and the permanent one
+     */
+    class Resource {
+        File tmpfile;
+        File file;
+
+        public Resource(File file, File tmpfile) {
+            this.file = file;
+            this.tmpfile = tmpfile;
+        }
+    }
+
 }
+
+
