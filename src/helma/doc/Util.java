@@ -5,20 +5,6 @@ import java.util.*;
 
 public final class Util {
 	
-	static Vector excluded = new Vector ();
-	
-	public static void addExlude (String str) {
-		excluded.add (str.toLowerCase ());
-	}
-
-	public static boolean isExcluded (String str) {
-		if (excluded.size ()==0) {
-			excluded.add ("cvs");
-			excluded.add (".docs");
-		}
-		return (excluded.contains (str.toLowerCase ()));
-	}
-
 	public static String chopDelimiters (String line) {
 		if (line==null)
 			return null;
