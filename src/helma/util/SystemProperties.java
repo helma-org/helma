@@ -160,6 +160,9 @@ public final class SystemProperties extends Properties {
      *  otherwise changes will be lost whe the file is next modified.
      */
     public Object put (Object key, Object value) {
+	// cut off trailing whitespace
+	if (value != null)
+	    value = value.toString().trim();
 	if (newProps == null)
 	    return props.put (key.toString().toLowerCase(), value);
 	else
