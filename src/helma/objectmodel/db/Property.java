@@ -236,10 +236,10 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	        // check if this is a forward relation, i.e. if we point to a field in the value object
 	        // if so, we may use something else than the object's id to refer to it.
 	        if (!rel.virtual && rel.direction == Relation.FORWARD) {
-	            if (rel.remoteField == null  || vmap.getIDField().equals (rel.remoteField)) {
+	            if (rel.usesPrimaryKey ()) {
 	                this.nvalueID = value.getID ();
 	            } else try {
-	                this.nvalueID = value.getString (vmap.columnNameToProperty (rel.remoteField).propname, false);
+	                this.nvalueID = value.getString (vmap.columnNameToProperty (rel.getRemoteField()).propname, false);
 	            } catch (Exception x) {
 	                throw new RuntimeException ("Can't set "+propname+" to "+value+": error retrieving target property");
 	            }

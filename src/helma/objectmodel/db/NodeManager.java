@@ -140,7 +140,6 @@ public final class NodeManager {
 	if (kstr == null)
 	    return null;
 
-
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNode "+kstr);
 	Key key = tx.key;
@@ -176,7 +175,6 @@ public final class NodeManager {
 
 	if (node != null)
 	    tx.visitCleanNode (key.duplicate(), node);
-
 	// tx.timer.endEvent ("getNode "+kstr);
 	return node;
     }
@@ -191,19 +189,18 @@ public final class NodeManager {
 
 	Key key = tx.key;
 	// If what we want is a virtual node create a "synthetic" key
-	if (rel.virtual /*&& home.getState() != INode.VIRTUAL */  || rel.groupby != null)
+	if (rel.virtual  || rel.groupby != null)
 	    key.recycle (null,  home.getKey ().getVirtualID (kstr));
 	// if a key for a node from within the DB
 	else
 	    key.recycle (rel.other, rel.getKeyID (home, kstr));
 
-
 	// See if Transactor has already come across this node
 	Node node = tx.getVisitedNode (key);
 
 	if (node != null && node.getState() != Node.INVALID) {
-// System.err.println ("CACHE HIT THREAD 2");
 	    // tx.timer.endEvent ("getNode "+kstr);
+
 	    // if we didn't fetch the node via its primary key, refresh the primary key in the cache.
 	    // otherwise we risk cache corroption (duplicate node creation) if the node is fetched by its primary key
 	    if (!rel.usesPrimaryKey ()) {
@@ -223,12 +220,21 @@ public final class NodeManager {
 	node = (Node) cache.get (key);
 
 	if (node == null || node.getState() == Node.INVALID) {
-// System.err.println ("CACHE MISS 2");
+
 	    // The requested node isn't in the shared cache. Synchronize with key to make sure only one
 	    // version is fetched from the database.
 
 	    node = getNodeByRelation (db, tx.txn, home, kstr, rel);
+
+	    // HACK: on some occasions (groupby nodes), transactor.key is used recursively
+	    // so re-initializing it here is the safest thing to do.
+	    if (rel.virtual  || rel.groupby != null)
+	        key.recycle (null,  home.getKey ().getVirtualID (kstr));
+	    else
+	        key.recycle (rel.other, rel.getKeyID (home, kstr));
+
 	    if (node != null) {
+
 	        Key primKey = node.getKey ();
 	        boolean keyIsPrimary = primKey.equals (key);
 	        synchronized (cache) {
@@ -244,7 +250,6 @@ public final class NodeManager {
 	        } // synchronized
 	    }
 	} else {
-// System.err.println ("CACHE HIT 2");
 	    // update primary key in cache, see above
 	    if (!rel.usesPrimaryKey ()) {
 	        synchronized (cache) {
@@ -317,32 +322,32 @@ public final class NodeManager {
 	            if (p != null && rel != null) {
 	                switch (p.getType ()) {
 	                    case IProperty.STRING:
-	                        rec.setValue (rel.localField, p.getStringValue ());
+	                        rec.setValue (rel.getDbField(), p.getStringValue ());
 	                        break;
 	                    case IProperty.BOOLEAN:
-	                        rec.setValue (rel.localField, p.getBooleanValue ());
+	                        rec.setValue (rel.getDbField(), p.getBooleanValue ());
 	                        break;
 	                    case IProperty.DATE:
 	                        Timestamp t = new Timestamp (p.getDateValue ().getTime ());
-	                        rec.setValue (rel.localField, t);
+	                        rec.setValue (rel.getDbField(), t);
 	                        break;
 	                    case IProperty.INTEGER:
-	                        rec.setValue (rel.localField, p.getIntegerValue ());
+	                        rec.setValue (rel.getDbField(), p.getIntegerValue ());
 	                        break;
 	                    case IProperty.FLOAT:
-	                        rec.setValue (rel.localField, p.getFloatValue ());
+	                        rec.setValue (rel.getDbField(), p.getFloatValue ());
 	                        break;
 	                    case IProperty.NODE:
 	                        if (rel.direction == Relation.FORWARD) {
 	                            // INode n = p.getNodeValue ();
 	                            // String foreignID = n == null ? null : n.getID ();
-	                            rec.setValue (rel.localField, p.getStringValue ());
+	                            rec.setValue (rel.getDbField(), p.getStringValue ());
 	                        }
 	                        break;
 	                }
 	                p.dirty = false;
-	            } else if (rel != null && rel.localField != null) {
-	                rec.setValueNull (rel.localField);
+	            } else if (rel != null && rel.getDbField() != null) {
+	                rec.setValueNull (rel.getDbField());
 	            }
 	        }
 	        rec.markForInsert ();
@@ -388,26 +393,26 @@ public final class NodeManager {
 	                if (p.dirty) {
 	                    switch (p.getType ()) {
 	                        case IProperty.STRING:
-	                            rec.setValue (rel.localField, p.getStringValue ());
+	                            rec.setValue (rel.getDbField(), p.getStringValue ());
 	                            break;
 	                        case IProperty.BOOLEAN:
-	                            rec.setValue (rel.localField, p.getBooleanValue ());
+	                            rec.setValue (rel.getDbField(), p.getBooleanValue ());
 	                            break;
 	                        case IProperty.DATE:
 	                            Timestamp t = new Timestamp (p.getDateValue ().getTime ());
-	                            rec.setValue (rel.localField, t);
+	                            rec.setValue (rel.getDbField(), t);
 	                            break;
 	                        case IProperty.INTEGER:
-	                            rec.setValue (rel.localField, p.getIntegerValue ());
+	                            rec.setValue (rel.getDbField(), p.getIntegerValue ());
 	                            break;
 	                        case IProperty.FLOAT:
-	                            rec.setValue (rel.localField, p.getFloatValue ());
+	                            rec.setValue (rel.getDbField(), p.getFloatValue ());
 	                            break;
 	                        case IProperty.NODE:
 	                            if (rel.direction == Relation.FORWARD) {
 	                                // INode n = p.getNodeValue ();
 	                                // String foreignID = n == null ? null : n.getID ();
-	                                rec.setValue (rel.localField, p.getStringValue ());
+	                                rec.setValue (rel.getDbField(), p.getStringValue ());
 	                            }
 	                            break;
 	                    }
@@ -415,9 +420,9 @@ public final class NodeManager {
 	                    p.dirty = false;
 	                }
 
-	            } else if (rel != null && rel.localField != null) {
+	            } else if (rel != null && rel.getDbField() != null) {
 	                updated++;
-	                rec.setValueNull (rel.localField);
+	                rec.setValueNull (rel.getDbField());
 	            }
 	        }
 	        if (updated > 0) {
@@ -524,7 +529,7 @@ public final class NodeManager {
 	            String q = "SELECT "+idfield+" FROM "+table;
 	            if (subrel.direction == Relation.BACKWARD) {
 	                String homeid = home.getNonVirtualHomeID (); //  home.getState() == Node.VIRTUAL ? home.parentID : home.getID ();
-	                q += " WHERE "+subrel.remoteField+" = '"+homeid+"'";
+	                q += " WHERE "+subrel.getRemoteField()+" = '"+homeid+"'";
 	            }
 	            // set order, if specified and if not using subnode's relation
 	            if (rel.groupby != null)
@@ -581,7 +586,7 @@ public final class NodeManager {
 	            tds.where (home.getSubnodeRelation().trim().substring(5));
 	        } else if (subrel.direction == Relation.BACKWARD) {
 	            String homeid = home.getState() == Node.VIRTUAL ? home.parentID : home.getID ();
-	            tds.where (subrel.remoteField+" = '"+homeid+"'");
+	            tds.where (subrel.getRemoteField()+" = '"+homeid+"'");
 	            // set order if specified
 	            if (rel.order != null)
 	                 tds.order (rel.order);
@@ -644,7 +649,7 @@ public final class NodeManager {
 	            qds = new QueryDataSet (con, "SELECT count(*) FROM "+table+" "+home.getSubnodeRelation());
 	        } else if (subrel.direction == Relation.BACKWARD) {
 	            String homeid = home.getState() == Node.VIRTUAL ? home.parentID : home.getID ();
-	            qds = new QueryDataSet (con, "SELECT count(*) FROM "+table+" WHERE "+subrel.remoteField+" = '"+homeid+"'");
+	            qds = new QueryDataSet (con, "SELECT count(*) FROM "+table+" WHERE "+subrel.getRemoteField()+" = '"+homeid+"'");
 	        } else {
 	            qds = new QueryDataSet (con, "SELECT count(*) FROM "+table);
 	        }
@@ -775,7 +780,7 @@ public final class NodeManager {
 	                        subrel = subrel.getFilter ();
 	                    if (subrel != null && subrel.direction == Relation.BACKWARD) {
 	                        where.append (" and ");
-	                        where.append (subrel.remoteField);
+	                        where.append (subrel.getRemoteField());
 	                        where.append (" = '");
 	                        where.append (homeid);
 	                        where.append ("'");
