@@ -9,7 +9,7 @@ import javax.servlet.http.*;
 import java.io.*;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
-import java.util.*;
+import java.util.HashMap;
 import helma.framework.IRemoteApp;
 
 /**
