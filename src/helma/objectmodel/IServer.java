@@ -46,7 +46,7 @@ public abstract class IServer {
     public static Logger getLogger () {
 	if (logger == null) {
 	    String logDir = sysProps.getProperty ("logdir");
-	    if (logDir == null) {
+	    if (logDir == null || "console".equalsIgnoreCase (logDir)) {
 	        logger = new Logger (System.out);
 	    } else {
 	        try {
