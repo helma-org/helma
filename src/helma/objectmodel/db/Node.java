@@ -415,6 +415,7 @@ public class Node implements INode, Serializable {
     public String getNameOrID () {
 	// if subnodes are also mounted as properties, try to get the "nice" prop value
 	// instead of the id by turning the anonymous flag off.
+
 	if (parentmap != null) {
 	    Relation prel = parentmap.getPropertyRelation();
 	    if (prel != null && prel.subnodesAreProperties && !prel.usesPrimaryKey ()) try {
@@ -422,11 +423,13 @@ public class Node implements INode, Serializable {
 	        String propvalue = getString (localrel.propname, false);
 	        if (propvalue != null && propvalue.length() > 0) {
 	            setName (propvalue);
-	            // anonymous = false;
+	            anonymous = false;
 	            // nameProp = localrel.propname;
+	        } else {
+	            anonymous = true;
 	        }
 	    } catch (Exception ignore) {
-	        // just fall back to ID
+	        // just fall back to default method
 	    }
 	}
     	return anonymous || name == null || name.length() == 0 ? id : name;
@@ -1535,6 +1538,7 @@ public class Node implements INode, Serializable {
 
 	prop.setNodeValue (n);
 	Relation rel = dbmap == null ? null : dbmap.getPropertyRelation (propname);
+
 	if (rel == null || rel.direction == Relation.FORWARD || rel.virtual || rel.other == null || !rel.other.isRelational()) {
 	    // the node must be stored as explicit property
 	    propMap.put (p2, prop);
