@@ -306,7 +306,7 @@ manage
 
         <!-- unzip images -->
         <mkdir dir="${build.work}/static/antville"/>
-        <unzip src="${build.work}/apps/antville/images.zip" dest="${build.work}/static/antville">
+        <unzip src="${build.work}/apps/antville/images.zip" dest="${build.work}/static/images">
             <patternset>
                 <include name="**"/>
             </patternset>
