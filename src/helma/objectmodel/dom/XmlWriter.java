@@ -17,23 +17,15 @@
 package helma.objectmodel.dom;
 
 
-// import java.util.Set;
-import helma.objectmodel.*;
 import helma.objectmodel.INode;
 import helma.objectmodel.IProperty;
 import helma.objectmodel.TransientNode;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Node;
 import helma.util.HtmlEncoder;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
+
+import java.io.*;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;

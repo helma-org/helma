@@ -16,27 +16,21 @@
 
 package helma.objectmodel.dom;
 
-import helma.objectmodel.INode;
-import helma.objectmodel.db.DbKey;
-import helma.objectmodel.db.DbMapping;
-import helma.objectmodel.db.ExternalizableVector;
-import helma.objectmodel.db.Node;
-import helma.objectmodel.db.NodeHandle;
-import helma.objectmodel.db.NodeManager;
-import helma.objectmodel.db.Property;
-import org.xml.sax.*;
+import helma.objectmodel.db.*;
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
-// import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
-import javax.xml.parsers.*;
 
 /**
  * 

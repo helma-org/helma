@@ -18,7 +18,9 @@ package helma.objectmodel.dom;
 
 import helma.objectmodel.ObjectNotFoundException;
 import helma.objectmodel.db.IDGenerator;
-import org.w3c.dom.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
 import java.io.*;
 import java.util.Date;
 

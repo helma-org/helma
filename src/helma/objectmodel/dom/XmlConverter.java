@@ -16,14 +16,18 @@
 
 package helma.objectmodel.dom;
 
-import helma.objectmodel.*;
+import helma.objectmodel.INode;
+import helma.objectmodel.TransientNode;
 import helma.util.SystemProperties;
 import org.w3c.dom.*;
 import org.xml.sax.InputSource;
+
 import java.io.*;
-import java.net.*;
-import java.util.*;
-import javax.xml.parsers.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * 
