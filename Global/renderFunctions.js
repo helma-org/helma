@@ -74,26 +74,18 @@ function renderLocation (docEl, param) {
   */
 function renderTags (docEl, param) {
 	var skinname = (param.skin) ? param.skin : "main";
-	var type = -1;
-	if (param.type=="param" || param.type=="params")
-		type = Packages.helma.doc.DocTag.PARAMETER;
-	else if (param.type=="return" || param.type=="returns")
-		type = Packages.helma.doc.DocTag.RETURN;
-	else if (param.type=="author")
-		type = Packages.helma.doc.DocTag.AUTHOR;
-	else if (param.type=="version")
-		type = Packages.helma.doc.DocTag.VERSION;
-	else if (param.type=="see")
-		type = Packages.helma.doc.DocTag.SEE;
-	else if (param.type=="deprecated")
-		type = Packages.helma.doc.DocTag.DEPRECATED;
-	else if (param.type=="overrides")
-		type = Packages.helma.doc.DocTag.OVERRIDES;
+	var type = param.type;
+	if (type=="params")
+		type = "param";
+	else if (type=="returns")
+		type = "return";
+    else if (type=="arg")
+        type = "param";
 	var str = "";
 	var arr = docEl.listTags ();
 	for (var i=0; i<arr.length; i++) {
 		if (arr[i].getType () == type) {
-			if (param.type=="see" || param.type=="overrides") {
+			if (type=="see" || type=="overrides") {
 				param.link = renderReference (arr[i], docEl);
 			}
 			str += arr[i].renderSkinAsString (skinname, param);
