@@ -29,7 +29,7 @@ public class User implements Serializable {
     	this.app = app;
     	setNode (null);
     	umap = app.getDbMapping ("user");
-	cache = new Node (sid);
+	cache = new Node ("[session cache]");
 	cache.setPrototype ("user");
 	cache.setDbMapping (umap);
 	sessionID = sid;
