@@ -884,14 +884,15 @@ public final class RhinoCore {
          * code against.
          */
         public void prepareCompilation() {
-            tmpObjProto = new ScriptableObject() {
-                public String getClassName() {
-                    return frameworkProto.getName();
-                }
-            };
-            tmpObjProto.setPrototype(objProto);
-            if (!"global".equals(frameworkProto.getLowerCaseName()))
+            if ("global".equals(frameworkProto.getLowerCaseName())) {
+                tmpObjProto = new GlobalObject(RhinoCore.this, app);
+                tmpObjProto.setPrototype(global);
+                tmpObjProto.setParentScope(null);
+            } else { 
+                tmpObjProto = new HopObject(frameworkProto.getName());
+                tmpObjProto.setPrototype(objProto);
                 tmpObjProto.setParentScope(global);
+            }
         }
 
         /**
@@ -923,6 +924,13 @@ public final class RhinoCore {
                 // copy them over to the actual prototype object
                 int attributes = tmpObjProto.getAttributes(key);
                 Object value = tmpObjProto.get(key, tmpObjProto);
+                if (value instanceof ScriptableObject) {
+                    // switch parent scope to actual prototype
+                    ScriptableObject obj = (ScriptableObject) value;
+                    if (obj.getParentScope() == tmpObjProto) {
+                        obj.setParentScope(objProto);
+                    } 
+                }
                 objProto.defineProperty(key, value, attributes); 
             }
 
