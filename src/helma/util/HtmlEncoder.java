@@ -269,9 +269,9 @@ public final class HtmlEncoder {
 	            ret.append ('\n');
 	            if (encodeNewline) {
 	                ret.append ("<br>");
-	                break;
 	            }
-	         default: 
+	            break;
+	         default:
 	             if (c < 160)
 	                 ret.append ((char) c);
 	             else if (c >= 160 && c <= 255)
