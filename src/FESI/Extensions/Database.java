@@ -338,10 +338,10 @@ class ESRowSet extends ESObject {
         this.statement = statement;
         this.resultSet = resultSet;
         
-        if (sql==null) throw new NullPointerException();
-        if (resultSet==null) throw new NullPointerException();
-        if (statement==null) throw new NullPointerException();
-        if (database==null) throw new NullPointerException();
+        if (sql==null) throw new NullPointerException("sql");
+        if (resultSet==null) throw new NullPointerException("resultSet");
+        if (statement==null) throw new NullPointerException("statement");
+        if (database==null) throw new NullPointerException("database");
         
         try {
             
