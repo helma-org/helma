@@ -59,22 +59,34 @@ public class TypeManager implements Runnable {
     }
 
 
+    /**
+     * Run through application's prototype directories and create prototypes, but don't
+     * compile or evaluate any scripts.
+     */
     public void createPrototypes () {
 	check (false);
     }
 
 
+    /**
+     * Run through application's prototype directories and check if anything has been updated.
+     * If so, update prototypes and scripts.
+     */
     public synchronized void checkPrototypes () {
 	if (System.currentTimeMillis () - lastCheck  < 500l)
 	    return;
+	try {
+	    check (true);
+	} catch (Exception ignore) {}
 	lastCheck = System.currentTimeMillis ();
-	check (true);
     }
 
+    /**
+     * Run through application's prototype directories and check if anything has been updated.
+     */
     public void check (boolean update) {
 	// long now = System.currentTimeMillis ();
 	// System.out.print ("checking "+Thread.currentThread ());
-// long total = System.currentTimeMillis();
 	File[] list = appDir.listFiles ();
 	if (list == null)
 	    throw new RuntimeException ("Can't read app directory "+appDir+" - check permissions");
@@ -109,9 +121,8 @@ public class TypeManager implements Runnable {
 	        zipped.update ();
 	    }
 	}
-// System.err.println ("TOTAL: "+(System.currentTimeMillis () - total));
 	if (rewire) {
-	    // there have been changes @ DbMappings
+	    // there have been changes in the  DbMappings
 	    app.rewireDbMappings ();
 	    rewire = false;
 	}
@@ -122,11 +133,9 @@ public class TypeManager implements Runnable {
     private boolean isValidTypeName (String str) {
     	if (str == null)
     	    return false;
-    	int l = str.length ();
-    	if (l == 0)
-    	    return false;
-	for (int i=0; i<l; i++)
-	    if (!Character.isJavaIdentifierPart (str.charAt (i)))
+    	char[] c = str.toCharArray ();
+	for (int i=0; i<c.length; i++)
+	    if (!Character.isJavaIdentifierPart (c[i]))
 	        return false;
 	return true;
     }
@@ -283,21 +292,22 @@ public class TypeManager implements Runnable {
     public void updatePrototype (String name, File dir, Prototype proto) {
 
         boolean needsUpdate = false;
-        HashSet updatables = new HashSet ();
+        HashSet updatables = null;
 
         // our plan is to do as little as possible, so first check if anything has changed at all...
         for (Iterator i = proto.updatables.values().iterator(); i.hasNext(); ) {
             Updatable upd = (Updatable) i.next();
             if (upd.needsUpdate ()) {
+                if (updatables == null)
+                    updatables = new HashSet ();
                 needsUpdate = true;
                 updatables.add (upd);
             }
         }
 
-        String[] list = new String[0];
         // check if file have been created since last update
         if (proto.lastUpdate < dir.lastModified ()) {
-            list = dir.list();
+            String[] list = dir.list();
             for (int i=0; i<list.length; i++) {
 	    String fn = list[i];
 	    if (!proto.updatables.containsKey (fn)) {
@@ -318,9 +328,10 @@ public class TypeManager implements Runnable {
 	
         // let the thread know we had to do something.
         idleSeconds = 0;
-        app.logEvent ("TypeManager: Updating prototypes for "+app.getName()+": "+updatables);
+        // app.logEvent ("TypeManager: Updating prototypes for "+app.getName()+": "+updatables);
 
         // first go through new files and create new items
+        String[] list = dir.list ();
         for (int i=0; i<list.length; i++) {
             String fn = list[i];
             int dot = fn.indexOf (".");
@@ -371,6 +382,8 @@ public class TypeManager implements Runnable {
         }
 
         // next go through existing updatables
+        if (updatables == null)
+            return;
         for (Iterator i = updatables.iterator(); i.hasNext(); ) {
             Updatable upd = (Updatable) i.next();
 
@@ -391,7 +404,7 @@ public class TypeManager implements Runnable {
 
 
 
-    public void initRequestEvaluator (RequestEvaluator reval) {
+    public synchronized void initRequestEvaluator (RequestEvaluator reval) {
         if (!registeredEvaluators.contains (reval))
             registeredEvaluators.add (reval);
         for (Iterator it = prototypes.values().iterator(); it.hasNext(); ) {
