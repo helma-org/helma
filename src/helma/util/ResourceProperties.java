@@ -37,7 +37,7 @@ public final class ResourceProperties extends Properties {
     private boolean ignoreCase = true;
 
     // Cached checksum of last check
-    private long lastChecksum = -1;
+    private long lastChecksum = 0;
 
     // Time of last check
     private long lastCheck = 0;
@@ -137,11 +137,7 @@ public final class ResourceProperties extends Properties {
      */
     public boolean needsUpdate() {
         lastCheck = System.currentTimeMillis();
-        if (getChecksum() != lastChecksum) {
-            return true;
-        } else {
-            return false;
-        }
+        return (getChecksum() != lastChecksum);
     }
 
     /**
