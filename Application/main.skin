@@ -25,7 +25,7 @@
 	<td class="list_property" align="left"><% this.countFreeEvaluators %></td>
 </tr>
 <tr>
-	<td class="list_property" align="right" width="200">5min-request-avg:</td>
+	<td class="list_property" align="right" width="200">requests / 5 min:</td>
 	<td class="list_property" width="5">&nbsp;</td>
 	<td class="list_property" align="left"><% this.getRequestAvg %></td>
 </tr>
