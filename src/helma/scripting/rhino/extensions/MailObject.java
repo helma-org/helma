@@ -177,39 +177,45 @@ public class MailObject extends ScriptableObject implements Serializable {
      * @throws Exception ...
      * @throws IOException ...
      */
-    public void addPart(Object obj, Object filename) throws Exception {
-        if (obj == null || obj == Undefined.instance) {
-            throw new IOException("mail.addPart called with wrong number of arguments.");
-        }
-
-        if (multipart == null) {
-            multipart = new MimeMultipart();
-        }
-
-        MimeBodyPart part = new MimeBodyPart();
-
-        if (obj instanceof String) {
-            part.setContent(obj.toString(), "text/plain");
-        } else if (obj instanceof File) {
-            FileDataSource source = new FileDataSource((File) obj);
-
-            part.setDataHandler(new DataHandler(source));
-        } else if (obj instanceof MimePart) {
-            MimePartDataSource source = new MimePartDataSource((MimePart) obj);
-
-            part.setDataHandler(new DataHandler(source));
-        }
-
-        // check if an explicit file name was given for this part
-        if (filename != null && filename != Undefined.instance) {
-            try {
-                part.setFileName(filename.toString());
-            } catch (Exception x) {
-                // FIXME: error setting file name ... should we ignore this or throw an exception?
+    public void addPart(Object obj, Object filename) {
+        try {
+            if (obj == null || obj == Undefined.instance) {
+                throw new IOException("mail.addPart called with wrong number of arguments.");
             }
+
+            if (multipart == null) {
+                multipart = new MimeMultipart();
+            }
+
+            MimeBodyPart part = new MimeBodyPart();
+
+            if (obj instanceof String) {
+                part.setContent(obj.toString(), "text/plain");
+            } else if (obj instanceof File) {
+                FileDataSource source = new FileDataSource((File) obj);
+
+                part.setDataHandler(new DataHandler(source));
+            } else if (obj instanceof MimePart) {
+                MimePartDataSource source = new MimePartDataSource((MimePart) obj);
+
+                part.setDataHandler(new DataHandler(source));
+            }
+
+            // check if an explicit file name was given for this part
+            if (filename != null && filename != Undefined.instance) {
+                try {
+                    part.setFileName(filename.toString());
+                } catch (Exception x) {
+                    // FIXME: error setting file name ... should we ignore this or throw an exception?
+                }
+            }
+
+            multipart.addBodyPart(part);
+        } catch (Exception mx) {
+            System.err.println("Error in MailObject.addPart(): "+mx);
+            setStatus(MIMEPART);
         }
 
-        multipart.addBodyPart(part);
     }
 
     /**
@@ -219,12 +225,17 @@ public class MailObject extends ScriptableObject implements Serializable {
      *
      * @throws Exception ...
      */
-    public void setSubject(Object subject) throws Exception {
-        if (subject == null || subject == Undefined.instance) {
-            return;
-        }
+    public void setSubject(Object subject) {
+            if (subject == null || subject == Undefined.instance) {
+                return;
+            }
 
-        message.setSubject(MimeUtility.encodeWord(subject.toString()));
+        try {
+            message.setSubject(MimeUtility.encodeWord(subject.toString()));
+        } catch (Exception mx) {
+            System.err.println("Error in MailObject.setSubject(): "+mx);
+            setStatus(SUBJECT);
+        }
     }
 
     /**
@@ -235,15 +246,20 @@ public class MailObject extends ScriptableObject implements Serializable {
      * @throws Exception ...
      * @throws AddressException ...
      */
-    public void setReplyTo(String addstr) throws Exception {
-        if (addstr.indexOf("@") < 0) {
-            throw new AddressException();
+    public void setReplyTo(String addstr) {
+        try {
+            if (addstr.indexOf("@") < 0) {
+                throw new AddressException();
+            }
+
+            Address[] replyTo = new Address[1];
+
+            replyTo[0] = new InternetAddress(addstr);
+            message.setReplyTo(replyTo);
+        } catch (Exception mx) {
+            System.err.println("Error in MailObject.setReplyTo(): "+mx);
+            setStatus(REPLYTO);
         }
-
-        Address[] replyTo = new Address[1];
-
-        replyTo[0] = new InternetAddress(addstr);
-        message.setReplyTo(replyTo);
     }
 
     /**
@@ -255,21 +271,26 @@ public class MailObject extends ScriptableObject implements Serializable {
      * @throws Exception ...
      * @throws AddressException ...
      */
-    public void setFrom(String addstr, Object name) throws Exception {
-        if (addstr.indexOf("@") < 0) {
-            throw new AddressException();
-        }
+    public void setFrom(String addstr, Object name) {
+        try {
+            if (addstr.indexOf("@") < 0) {
+                throw new AddressException();
+            }
 
-        Address address = null;
+            Address address = null;
 
-        if (name != null && name != Undefined.instance) {
-            address = new InternetAddress(addstr,
+            if (name != null && name != Undefined.instance) {
+                address = new InternetAddress(addstr,
                                           MimeUtility.encodeWord(name.toString()));
-        } else {
-            address = new InternetAddress(addstr);
-        }
+            } else {
+                address = new InternetAddress(addstr);
+            }
 
-        message.setFrom(address);
+            message.setFrom(address);
+        } catch (Exception mx) {
+            System.err.println("Error in MailObject.setFrom(): "+mx);
+            setStatus(FROM);
+        }
     }
 
 
@@ -282,8 +303,14 @@ public class MailObject extends ScriptableObject implements Serializable {
      * @throws Exception ...
      * @throws AddressException ...
      */
-    public void setTo(String addstr, Object name) throws Exception {
-        addRecipient(addstr, name, Message.RecipientType.TO);
+    public void setTo(String addstr, Object name) {
+        try {
+            addRecipient(addstr, name, Message.RecipientType.TO);
+        } catch (Exception mx) {
+            System.err.println("Error in MailObject.setTo(): "+mx);
+            setStatus(TO);
+        }
+
     }
 
 
@@ -296,8 +323,14 @@ public class MailObject extends ScriptableObject implements Serializable {
      * @throws Exception ...
      * @throws AddressException ...
      */
-    public void addTo(String addstr, Object name) throws Exception {
-        addRecipient(addstr, name, Message.RecipientType.TO);
+    public void addTo(String addstr, Object name) {
+        try {
+            addRecipient(addstr, name, Message.RecipientType.TO);
+        } catch (Exception mx) {
+            System.err.println("Error in MailObject.addTO(): "+mx);
+            setStatus(TO);
+        }
+
     }
 
     /**
@@ -309,8 +342,13 @@ public class MailObject extends ScriptableObject implements Serializable {
      * @throws Exception ...
      * @throws AddressException ...
      */
-    public void addCC(String addstr, Object name) throws Exception {
-        addRecipient(addstr, name, Message.RecipientType.CC);
+    public void addCC(String addstr, Object name) {
+        try {
+            addRecipient(addstr, name, Message.RecipientType.CC);
+        } catch (Exception mx) {
+            System.err.println("Error in MailObject.addCC(): "+mx);
+            setStatus(CC);
+        }
     }
 
     /**
@@ -322,8 +360,13 @@ public class MailObject extends ScriptableObject implements Serializable {
      * @throws Exception ...
      * @throws AddressException ...
      */
-    public void addBCC(String addstr, Object name) throws Exception {
-        addRecipient(addstr, name, Message.RecipientType.BCC);
+    public void addBCC(String addstr, Object name) {
+        try {
+            addRecipient(addstr, name, Message.RecipientType.BCC);
+        } catch (Exception mx) {
+            System.err.println("Error in MailObject.addBCC(): "+mx);
+            setStatus(BCC);
+        }
     }
 
     /**
@@ -358,28 +401,35 @@ public class MailObject extends ScriptableObject implements Serializable {
 
     /**
      *  Send the message.
-     *
-     * @throws Exception ...
      */
-    public void send() throws Exception {
-        if (buffer != null) {
-            // if we also have a multipart body, add
-            // plain string as first part to it.
-            if (multipart != null) {
-                MimeBodyPart part = new MimeBodyPart();
+    public void send() {
+        // only send message if everything's ok
+        if (status != OK) {
+            System.err.println("Error sending mail. Status="+status);
+        }
+        try {
+            if (buffer != null) {
+                // if we also have a multipart body, add
+                // plain string as first part to it.
+                if (multipart != null) {
+                    MimeBodyPart part = new MimeBodyPart();
 
-                part.setContent(buffer.toString(), "text/plain");
-                multipart.addBodyPart(part, 0);
+                    part.setContent(buffer.toString(), "text/plain");
+                    multipart.addBodyPart(part, 0);
+                    message.setContent(multipart);
+                } else {
+                    message.setText(buffer.toString());
+                }
+            } else if (multipart != null) {
                 message.setContent(multipart);
             } else {
-                message.setText(buffer.toString());
+                message.setText("");
             }
-        } else if (multipart != null) {
-            message.setContent(multipart);
-        } else {
-            message.setText("");
-        }
 
-        Transport.send(message);
+            Transport.send(message);
+        } catch (Exception mx) {
+            System.err.println("Error in MailObject.send(): "+mx);
+            setStatus(SEND);
+        }
     }
 }
