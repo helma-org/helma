@@ -963,9 +963,15 @@ public class Node implements INode, Serializable {
 	                dbm.setPropertyRelation (prel.getGroupbyPropertyRelation());
 	            }
 	            node.setDbMapping (dbm);
+	            // one day, Relation should be smart enough to generate the subnode clause
+	            // on the fly. Until then, we prepare it statically for each groupby node.
+	            // This has the drawback that updates in the type definition won't affect already created
+	            // groupby objects.
 	            String snrel = "WHERE "+srel.groupby +"='"+sid+"'";
 	            if (gsrel.direction == Relation.BACKWARD)
 	                snrel += " AND "+gsrel.getRemoteField()+"='"+getNonVirtualHomeID()+"'";
+	            if (gsrel.filter != null)
+	                snrel += " AND "+gsrel.filter;
 	            if (gsrel.order != null)
 	                snrel += " ORDER BY "+gsrel.order;
 	            node.setSubnodeRelation (snrel);
