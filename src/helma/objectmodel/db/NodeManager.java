@@ -1046,9 +1046,9 @@ public final class NodeManager {
 
 	        if (!rs.next ())
 	            return null;
-	        if (!rs.isLast ())
-	            throw new RuntimeException ("More than one value returned by query.");
 	        node = new Node (dbm, rs, safe);
+	        if (rs.next ())
+	            throw new RuntimeException ("More than one value returned by query.");
 
 	    } finally {
 	        if (stmt != null) try {
@@ -1114,9 +1114,9 @@ public final class NodeManager {
 
 	        if (!rs.next ())
 	            return null;
-	        if (!rs.isLast ())
-	            throw new RuntimeException ("More than one value returned by query.");
 	        node = new Node (rel.otherType, rs, safe);
+	        if (rs.next ())
+	            throw new RuntimeException ("More than one value returned by query.");
 
 	        // Check if node is already cached with primary Key.
 	        if (!rel.usesPrimaryKey()) {
