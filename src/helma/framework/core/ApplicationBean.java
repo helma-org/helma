@@ -120,15 +120,19 @@ public class ApplicationBean implements Serializable {
     // getter methods for readonly properties of this application
 
     public int getcacheusage () {
-    return app.getCacheUsage ();
+	return app.getCacheUsage ();
     }
 
     public INode getdata() {
 	return app.getCacheNode ();
     }
+    
+    public Map getmodules() {
+	return app.modules;
+    }
 
     public String getdir () {
-    return app.getAppDir ().getAbsolutePath ();
+	return app.getAppDir ().getAbsolutePath ();
     }
 
     public Date getupSince () {
