@@ -1134,27 +1134,7 @@ public final class NodeManager {
                         }
                     }
 
-                    int resultSetOffset = columns.length;
-                    // create joined objects
-                    for (int i = 0; i < joins.length; i++) {
-                        DbMapping jdbm = joins[i].otherType;
-                        node = createNode(jdbm, rs, jdbm.getColumns(), resultSetOffset);
-                        if (node != null) {
-                            primKey = node.getKey();
-                            // register new nodes with the cache. If an up-to-date copy
-                            // existed in the cache, use that.
-                            synchronized (cache) {
-                                Node oldnode = (Node) cache.put(primKey, node);
-
-                                if ((oldnode != null) &&
-                                        (oldnode.getState() != INode.INVALID)) {
-                                    // found an ok version in the cache, use it.
-                                    cache.put(primKey, oldnode);
-                                }
-                            }
-                        }
-                        resultSetOffset += jdbm.getColumns().length;
-                    }
+                    fetchJoinedNodes(rs, joins, columns.length);
                 }
 
             } finally {
@@ -1308,27 +1288,7 @@ public final class NodeManager {
                             }
                         }
 
-                        int resultSetOffset = columns.length;
-                        // create joined objects
-                        for (int i = 0; i < joins.length; i++) {
-                            DbMapping jdbm = joins[i].otherType;
-                            node = createNode(jdbm, rs, jdbm.getColumns(), resultSetOffset);
-                            if (node != null) {
-                                primKey = node.getKey();
-                                // register new nodes with the cache. If an up-to-date copy
-                                // existed in the cache, use that.
-                                synchronized (cache) {
-                                    Node oldnode = (Node) cache.put(primKey, node);
-
-                                    if ((oldnode != null) &&
-                                            (oldnode.getState() != INode.INVALID)) {
-                                        // found an ok version in the cache, use it.
-                                        cache.put(primKey, oldnode);
-                                    }
-                                }
-                            }
-                            resultSetOffset += jdbm.getColumns().length;
-                        }
+                        fetchJoinedNodes(rs, joins, columns.length);
                     }
 
                     // If these are grouped nodes, build the intermediary group nodes
@@ -1540,27 +1500,7 @@ public final class NodeManager {
 
                 node = createNode(dbm, rs, columns, 0);
 
-                int resultSetOffset = columns.length;
-                // create joined objects
-                for (int i = 0; i < joins.length; i++) {
-                    DbMapping jdbm = joins[i].otherType;
-                    node = createNode(jdbm, rs, jdbm.getColumns(), resultSetOffset);
-                    if (node != null) {
-                        Key primKey = node.getKey();
-                        // register new nodes with the cache. If an up-to-date copy
-                        // existed in the cache, use that.
-                        synchronized (cache) {
-                            Node oldnode = (Node) cache.put(primKey, node);
-
-                            if ((oldnode != null) &&
-                                        (oldnode.getState() != INode.INVALID)) {
-                                // found an ok version in the cache, use it.
-                                cache.put(primKey, oldnode);
-                            }
-                        }
-                    }
-                    resultSetOffset += jdbm.getColumns().length;
-                }
+                fetchJoinedNodes(rs, joins, columns.length);
 
                 if (rs.next()) {
                     throw new RuntimeException("More than one value returned by query.");
@@ -1651,6 +1591,8 @@ public final class NodeManager {
 
                 node = createNode(rel.otherType, rs, columns, 0);
 
+                fetchJoinedNodes(rs, joins, columns.length);
+
                 if (rs.next()) {
                     throw new RuntimeException("More than one value returned by query.");
                 }
@@ -1663,28 +1605,6 @@ public final class NodeManager {
                     if ((existing != null) && (existing.getState() != Node.INVALID)) {
                         node = existing;
                     }
-                }
-
-                int resultSetOffset = columns.length;
-                // create joined objects
-                for (int i = 0; i < joins.length; i++) {
-                    DbMapping jdbm = joins[i].otherType;
-                    node = createNode(jdbm, rs, jdbm.getColumns(), resultSetOffset);
-                    if (node != null) {
-                        Key primKey = node.getKey();
-                        // register new nodes with the cache. If an up-to-date copy
-                        // existed in the cache, use that.
-                        synchronized (cache) {
-                            Node oldnode = (Node) cache.put(primKey, node);
-
-                            if ((oldnode != null) &&
-                                        (oldnode.getState() != INode.INVALID)) {
-                                // found an ok version in the cache, use it.
-                                cache.put(primKey, oldnode);
-                            }
-                        }
-                    }
-                    resultSetOffset += jdbm.getColumns().length;
                 }
 
             } finally {
@@ -1884,6 +1804,34 @@ public final class NodeManager {
         node.init(dbmap, id, name, protoName, propMap, safe);
 
         return node;
+    }
+
+    /**
+     *  Fetch nodes that are fetched additionally to another node via join.
+     */
+    private void fetchJoinedNodes(ResultSet rs, Relation[] joins, int offset)
+            throws ClassNotFoundException, SQLException, IOException {
+        int resultSetOffset = offset;
+        // create joined objects
+        for (int i = 0; i < joins.length; i++) {
+            DbMapping jdbm = joins[i].otherType;
+            Node node = createNode(jdbm, rs, jdbm.getColumns(), resultSetOffset);
+            if (node != null) {
+                Key primKey = node.getKey();
+                // register new nodes with the cache. If an up-to-date copy
+                // existed in the cache, use that.
+                synchronized (cache) {
+                    Node oldnode = (Node) cache.put(primKey, node);
+
+                    if ((oldnode != null) &&
+                            (oldnode.getState() != INode.INVALID)) {
+                        // found an ok version in the cache, use it.
+                        cache.put(primKey, oldnode);
+                    }
+                }
+            }
+            resultSetOffset += jdbm.getColumns().length;
+        }
     }
 
 
