@@ -84,6 +84,7 @@ public final class RhinoCore {
             ScriptableObject.defineClass(global, FileObject.class);
             ScriptableObject.defineClass(global, FtpObject.class);
             ImageObject.init(global);
+            XmlRpcObject.init(global);
             MailObject.init(global, app.getProperties());
             putPrototype("hopobject",
                          ScriptableObject.getClassPrototype(global, "HopObject"));
@@ -378,15 +379,23 @@ public final class RhinoCore {
      *  representation.
      */
 
-    public Object processXmlRpcArgument (Object what, Context cx) throws Exception {
+    public Object processXmlRpcArgument (Object what) throws Exception {
         if (what == null)
             return null;
         if (what instanceof Vector) {
             Vector v = (Vector) what;
-            return Context.toObject(v.toArray(), global);
+            Object[] a = v.toArray();
+            for (int i=0; i<a.length; i++) {
+                a[i] = processXmlRpcArgument(a[i]);
+            }
+            return Context.toObject(a, global);
         }
         if (what instanceof Hashtable) {
             Hashtable t = (Hashtable) what;
+            for (Enumeration e=t.keys(); e.hasMoreElements(); ) {
+                Object key = e.nextElement();
+                t.put(key, processXmlRpcArgument(t.get(key)));
+            }
             return Context.toObject(new SystemMap(t), global);
         }
         if (what instanceof String)
@@ -398,7 +407,7 @@ public final class RhinoCore {
         if (what instanceof Date) {
             Date d = (Date) what;
             Object[] args = { new Long(d.getTime()) };
-            return cx.newObject(global, "Date", args);
+            return Context.getCurrentContext().newObject(global, "Date", args);
         }
         return Context.toObject(what, global);
     }

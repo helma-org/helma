@@ -288,7 +288,7 @@ public final class RhinoEngine implements ScriptingEngine {
                        esv[i] = ESLoader.normalizeValue (args[i], evaluator); */
                 // XML-RPC requires special argument conversion
                 if (xmlrpc) {
-                    args[i] = core.processXmlRpcArgument (args[i], Context.getCurrentContext());
+                    args[i] = core.processXmlRpcArgument (args[i]);
                 } else {
                     args[i] = context.toObject(args[i], global);
                 }
