@@ -65,7 +65,7 @@ public class SkinManager {
     }
 
 
-    private Skin getSkinInternal (Object skinset, String prototype, String skinname, String extension) {
+    protected Skin getSkinInternal (Object skinset, String prototype, String skinname, String extension) {
 	if (prototype == null || skinset == null)
 	    return null;
 	// check if the skinset object is a HopObject (db based skin)
