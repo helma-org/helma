@@ -24,6 +24,32 @@ sites). The Helma Url space can be thought of as an analogy to the Document
 Object Model (Dom) in client-side JavaScript.
 
 
+===================
+SYSTEM REQUIREMENTS
+===================
+
+WINDOWS:
+1) On Windows Hop won't run with Microsoft's version of Java (jview).
+You can get a compatible Java runtime from Sun or IBM:
+http://java.sun.com/j2se/1.3/jre/download-windows.html
+http://www.ibm.com/java/jdk/download/
+2) In the Windows start script I've hardcoded c:\java\lib\classes.zip 
+in the CLASSPATH argument. Not good.
+
+MACINTOSH:
+1) If you are using the Mac version you should own a G3 CPU and/or 
+have MRJ 2.2 (http://www.apple.com/java) installed. Other platforms 
+have less frustration potential. The Mac OS version currently is not
+up-to-date (version 0.1).
+
+LINUX
+The recomended virtual machine for running Hop on Linux is Blackdown's 
+port of JDK 1.2.2 RC4 (http://www.blackdown.org/java-linux/mirrors.html). 
+JDK 1.1.7v3 will work, but much slower and show a lot of CPU activity 
+even when the Hop is idle. IBM's version of JDK 1.1.8 also works well, 
+but this JVM has some problems of its own with thread handling.
+
+
 ============================
 INSTALLING AND RUNNING HELMA
 ============================
