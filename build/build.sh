@@ -2,9 +2,10 @@
 
 # --------------------------------------------
 # Default == jar
-# "checkout"       target gets sources from helma.org
-# "compile"        target compiles java sources
-# "jar"            target compiles and builds jar
+# "snapshot"       target compiles and builds jar in src/ and lib/
+# "checkout"       target gets sources from helma.org in src/
+# "compile"        target compiles java sources in work/
+# "jar"            target compiles and builds jar in work/
 # "javadoc"        target builds the javadoc
 # "package"        target builds core + jar + javadoc + distribution
 # --------------------------------------------
@@ -45,5 +46,4 @@ echo "JAVA_HOME: ${JAVA_HOME}"
 BUILDFILE=build.xml
 
 ${JAVA_HOME}/bin/java -classpath ${CP} org.apache.tools.ant.Main -buildfile ${BUILDFILE} ${TARGET}
-
 

@@ -2,10 +2,11 @@
 
 
 REM --------------------------------------------
-REM Defualt == jar
-REM "checkout"       target gets sources from helma.org
-REM "compile"        target compiles java sources
-REM "jar"            target compiles and builds jar
+REM Default == jar
+REM "snapshot"       target compiles and builds jar in src/ and lib/
+REM "checkout"       target gets sources from helma.org in src/
+REM "compile"        target compiles java sources in work/
+REM "jar"            target compiles and builds jar in work/
 REM "javadoc"        target builds the javadoc
 REM "package"        target builds core + jar + javadoc + distribution
 REM --------------------------------------------
@@ -45,3 +46,4 @@ echo "Please, set the JAVA_HOME variable in your environment to match the"
 echo "location of the Java Virtual Machine you want to use."
 
 :end
+

@@ -24,7 +24,7 @@ For checking out the source files from Helma's CVS you also need a local install
 STARTING BUILD
 ==============
 
-The build system is started by invoking the shell script appropriate to your platform, ie. build.sh for *nix (Linux, NetBSD etc.) and build.bat for Windows systems.
+The build system is started by invoking the shell script appropriate to your platform, ie. build.sh for *nix (Linux, NetBSD etc.) and build.bat for Windows systems. You need to modify the script and set the JAVA_HOME to fit your system.
 
 The generic syntax is
 
@@ -33,23 +33,47 @@ The generic syntax is
 The parameter "target" specifies one of the following build targets.
 
 
+BUILD A SNAPSHOT
+================
+
+To build a helma.jar with the most up-to-date version of helma yourself you need to run
+
+./build checkout
+
+and
+
+./build snapshot
+
+
 BUILD TARGETS
 =============
 
 checkout
-	Fetches (or updates, resp.) the Helma source files from the CVS and copies them into the src/ directory (which will be created if necessary).
+    Fetches (or updates, resp.) the Helma source code in the src/-directory from the CVS. If you've still got the sourcecode that came with the distribution in there, you need to move that away first.
+
+snapshot
+	Runs snapshotcompile and stuffs the class files as .jar archive in the lib directory. The file is named helma-yyyymmdd.jar.
+
+snapshotcompile
+	Compiles the source files contained in the src/hop directory into the classes directory (which will be created if necessary). You can use the source files from your distribution or you can get the most recent version by checking out the "hop"-module from the cvs.
+
+fullcheckout
+	Fetches (or updates, resp.) everything that's needed to create a full Helma distribution (source files, build files, libs, demo-apps) from the CVS and copies them into the work/checkout/ directory (which will be created if necessary).
 
 compile
-	Compiles the source files contained in the src/ directory into the class/ directory (which will be created if necessary).
+	Compiles the source files contained in the work/checkout/hop/ directory into the work/classes/ directory (which will be created if necessary).
 
 jar
-	Stuffs the files in class/ together and saves them as .jar archive in the build directory. The file is named helma-yyyymmdd.jar.
+	Stuffs the files in work/classes/ together and saves them as .jar archive in the work directory. The file is named helma-yyyymmdd.jar.
 	
-javadoc
-	Creates the Java API documentation for the Helma classes. The resulting files are saved into the docs/apidocs/ directory (which will be created if necessary).
+javadocs
+	Creates the Java API documentation for the Helma classes. The resulting files are saved into the work/docs/api/ directory (which will be created if necessary).
+
+helmadocs
+	Gets the documentation from helma.org via http in a printable version. (still some way to go..)
 
 package
-	Builds all previous targets (checkout, compile, jar, javadoc) and saves the created files in the directory helma-1.x/ (with 1.x being the version number). All directories will be created if necessary.
+	Builds all previous targets (checkout, compile, jar, javadoc) and saves the created files in the directory work/helma-1.x/ (with 1.x being the version number). All directories will be created if necessary.
 
 package-zip
 	Same as "package". Additionally, the files in the output directory will be compressed as .zip file.
@@ -63,5 +87,5 @@ package-all
 
 --
 
-This README was last updated on 8 November 2001 by tobi@helma.org.
+This README was last updated on 26 April 2002. Questions? tobi@helma.org
 
