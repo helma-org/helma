@@ -171,7 +171,7 @@ public final class Logger {
 	
 	if (runner == null || !runner.isAlive ()) {
 	    runner = new Runner ();
-	    runner.setPriority (Thread.NORM_PRIORITY-1);
+	    // runner.setPriority (Thread.NORM_PRIORITY-1);
 	    runner.start ();
 	}
     }
