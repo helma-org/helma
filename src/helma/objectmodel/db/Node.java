@@ -247,9 +247,9 @@ public final class Node implements INode, Serializable {
 
 	created = lastmodified = System.currentTimeMillis ();
 
-	for (Enumeration e=dbmap.getDB2Prop ().elements (); e.hasMoreElements();  ) {
+	for (Iterator i=dbmap.getDB2Prop().values().iterator(); i.hasNext(); ) {
 
-	    Relation rel = (Relation) e.nextElement ();
+	    Relation rel = (Relation) i.next ();
 	    // NOTE: this should never be the case, since we're just looping through
 	    // mappnigs with a local db column
 	    if (rel.reftype != Relation.PRIMITIVE && rel.reftype != Relation.REFERENCE)
@@ -1206,7 +1206,11 @@ public final class Node implements INode, Serializable {
 
 	if (dbmap != null && dbmap.getProp2DB ().size() > 0)
 	    // return the properties defined in type.properties, if there are any
-	    return dbmap.getProp2DB ().keys();
+	    return new Enumeration () {
+	        Iterator i = dbmap.getProp2DB().keySet().iterator();
+	        public boolean hasMoreElements() {return i.hasNext();}
+	        public Object nextElement () {return i.next();}
+	    };
 
 	Relation prel = dbmap == null ? null : dbmap.getPropertyRelation ();
 	if (prel != null && prel.accessor != null && !prel.subnodesAreProperties

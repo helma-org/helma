@@ -9,11 +9,7 @@ import helma.framework.core.Application;
 import com.sleepycat.db.*;
 import java.sql.*;
 import java.io.*;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Properties;
-import java.util.Vector;
-import java.util.Enumeration;
+import java.util.*;
 import com.workingdogs.village.*;
 
 /**
@@ -385,10 +381,11 @@ public final class NodeManager {
 	        if (nameField != null)
 	            rec.setValue (nameField, node.getName ());
 
-	        for (Enumeration e=dbm.getProp2DB ().keys(); e.hasMoreElements(); ) {
-	            String propname = (String) e.nextElement ();
+	        for (Iterator i=dbm.getProp2DB().entrySet().iterator(); i.hasNext(); ) {
+	            Map.Entry e = (Map.Entry) i.next ();
+	            String propname = (String) e.getKey ();
+	            Relation rel = (Relation) e.getValue ();
 	            Property p = node.getProperty (propname, false);
-	            Relation rel = dbm.propertyToRelation (propname);
 
 	            if (p != null && rel != null) {
 	                switch (p.getType ()) {
@@ -460,9 +457,10 @@ public final class NodeManager {
 
 	        int updated = 0;
 
-	        for (Enumeration e=dbm.getProp2DB ().keys(); e.hasMoreElements(); ) {
-	            String propname = (String) e.nextElement ();
-	            Relation rel = dbm.propertyToRelation (propname);
+	        for (Iterator i=dbm.getProp2DB().entrySet().iterator(); i.hasNext(); ) {
+	            Map.Entry e = (Map.Entry) i.next ();
+	            String propname = (String) e.getKey ();
+	            Relation rel = (Relation) e.getValue ();
 
 	            // skip properties that don't need to be updated before fetching them
 	            if (rel != null && (rel.readonly || rel.virtual ||
