@@ -31,7 +31,7 @@ import java.util.zip.GZIPOutputStream;
  * thread (the static runner thread in helma.util.Logging) which is why they
  * are not synchronized, although they're not threadsafe.
  *
- * @author Stefan Pollack
+ * @author Stefan Pollach
  * @author Daniel Ruthardt
  * @author Hannes Wallnoefer
  */

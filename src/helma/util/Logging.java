@@ -26,7 +26,7 @@ import java.util.*;
  *  simple console logging and logging to files that are rotated and
  *  gzipped each night.
  *
- * @author Stefan Pollack
+ * @author Stefan Pollach
  * @author Daniel Ruthardt
  * @author Hannes Wallnoefer
  */
