@@ -29,8 +29,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     SystemProperties props, dbProps;
     File home, appDir, dbDir;
     protected NodeManager nmgr;
-    protected static WebServer xmlrpc;
-    protected XmlRpcAccess xmlrpcAccess;
 
     // the class name of the scripting environment implementation
     static final String scriptEnvironmentName = "helma.scripting.fesi.Environment";
@@ -76,7 +74,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
     // Two logs for each application: events and accesses
     Logger eventLog, accessLog;
-    
+
     protected String templateExtension, scriptExtension, actionExtension, skinExtension;
 
     // A transient node that is shared among all evaluators
@@ -84,6 +82,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     protected volatile long requestCount = 0;
     protected volatile long xmlrpcCount = 0;
     protected volatile long errorCount = 0;
+
+    protected static WebServer xmlrpc;
+    protected XmlRpcAccess xmlrpcAccess;
+    private String xmlrpcHandlerName;
 
     // the URL-prefix to use for links into this application
     private String baseURI;
@@ -245,7 +247,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
 	nmgr = new NodeManager (this, dbDir.getAbsolutePath (), props);
 	
-	String xmlrpcHandlerName = props.getProperty ("xmlrpcHandlerName", this.name);
+	xmlrpcHandlerName = props.getProperty ("xmlrpcHandlerName", this.name);
 	if (xmlrpc != null)
 	    xmlrpc.addHandler (xmlrpcHandlerName, new XmlRpcInvoker (this));
 
@@ -274,7 +276,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	    worker.interrupt ();
 	worker = null;
 
-	xmlrpc.removeHandler (this.name);
+	if (xmlrpc != null && xmlrpcHandlerName != null)
+	    xmlrpc.removeHandler (xmlrpcHandlerName);
 
 	// stop evaluators
 	if (allThreads != null) {
