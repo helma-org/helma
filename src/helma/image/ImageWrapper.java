@@ -233,6 +233,18 @@ public class ImageWrapper {
     }
 
     /**
+     * Draws another image to this image.
+     * 
+     * @param filename ...
+     * @param x ...
+     * @param y ...
+     */
+    public void drawImage(ImageWrapper image, int x, int y) 
+        throws IOException {
+        getGraphics().drawImage(image.getImage(), x, y, null);
+    }
+
+    /**
      * Draws a filled rectangle to this image.
      * 
      * @param x ...
