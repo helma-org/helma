@@ -46,10 +46,11 @@ public class RequestEvaluator implements Runnable {
     Object result;
     Exception exception;
     protected ArrayPrototype reqPath;
-    private ESRequestData reqData;
+    private ESMapWrapper reqData;
 
     // vars for FESI EcmaScript support
     public Evaluator evaluator;
+    public ObjectPrototype esObjectPrototype;
     public ObjectPrototype esNodePrototype;
     public ObjectPrototype esUserPrototype;
 
@@ -118,7 +119,7 @@ public class RequestEvaluator implements Runnable {
 	    appnode = new ESAppNode (app.appnode, this);
 	    global.putHiddenProperty ("app", appnode);
 	    reqPath = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
-	    reqData = new ESRequestData (this);
+	    reqData = new ESMapWrapper (this);
 
 	} catch (Exception e) {
 	    System.err.println("Cannot initialize interpreter");
@@ -199,7 +200,7 @@ public class RequestEvaluator implements Runnable {
 	                global.putHiddenProperty ("path", reqPath);
 	                global.putHiddenProperty ("app", appnode);
 	                // set and mount the request data object
-	                reqData.setData (req.getReqData());
+	                reqData.setData (req.getRequestData());
 	                req.data = reqData;
 
 	                try {
@@ -662,7 +663,12 @@ public class RequestEvaluator implements Runnable {
 	    eso = getElementWrapper (obj);
 	ESValue[] esv = args == null ? new ESValue[0] : new ESValue[args.length];
 	for (int i=0; i<esv.length; i++)
-	    esv[i] = ESLoader.normalizeValue (args[i], evaluator);
+	    // for java.util.Map objects, we use the special "tight" wrapper
+	    // that makes the Map look like a native object
+	    if (args[i] instanceof Map)
+	        esv[i] = new ESMapWrapper (this, (Map) args[i]);
+	    else
+	        esv[i] = ESLoader.normalizeValue (args[i], evaluator);
 	ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
 	return retval == null ? null : retval.toJavaObject ();
     }
@@ -899,7 +905,7 @@ public class RequestEvaluator implements Runnable {
 	ObjectPrototype op = getPrototype (prototypeName);
 
 	if (op == null)
-	    op = esNodePrototype;
+	    op = esObjectPrototype;
 
 	return new ESGenericObject (op, evaluator, e);
     }
