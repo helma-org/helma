@@ -3,36 +3,33 @@
  
 package helma.objectmodel.db;
 
-import helma.framework.IReplicatedApp;
 import java.rmi.*;
 import java.util.*;
 
 /**
  * This class replicates the updates of transactions to other applications via RMI
  */
- 
+
 public class Replicator implements Runnable {
 
     Vector urls;
-    Vector apps;
     Vector add, delete, currentAdd, currentDelete;
     Thread runner;
+    NodeManager nmgr;
 
-    public Replicator () {
+    public Replicator (NodeManager nmgr) {
 	urls = new Vector ();
-	apps = new Vector ();
 	add = new Vector ();
 	delete = new Vector ();
+	this.nmgr = nmgr;
 	runner = new Thread (this);
 	runner.start ();
     }
 
     public void addUrl (String url) {
 	urls.addElement (url);
-    }
-
-    public void addApp (IReplicatedApp app) {
-	apps.addElement (app);
+	if (nmgr.logReplication)
+	    nmgr.app.logEvent ("Adding replication listener: "+url);
     }
 
     public void run () {
@@ -40,18 +37,13 @@ public class Replicator implements Runnable {
 	    if (prepareReplication ()) {
 	        for (int i=0; i<urls.size(); i++) {
 	            try {
-	                IReplicatedApp app = (IReplicatedApp) Naming.lookup ((String) urls.elementAt (i));
-	                app.replicateCache (currentAdd, currentDelete);
+	                String url = (String) urls.elementAt (i);
+	                IReplicationListener listener = (IReplicationListener) Naming.lookup (url);
+	                listener.replicateCache (currentAdd, currentDelete);
+	                if (nmgr.logReplication)
+	                    nmgr.app.logEvent ("Sent cache replication event: "+add.size()+" added, "+delete.size()+" deleted");
 	            } catch (Exception x) {
-	                System.err.println ("ERROR REPLICATING CACHE: "+x);
-	            }
-	        }
-	        for (int i=0; i<apps.size(); i++) {
-	            try {
-	                IReplicatedApp app = (IReplicatedApp) apps.elementAt (i);
-	                app.replicateCache (currentAdd, currentDelete);
-	            } catch (Exception x) {
-	                System.err.println ("ERROR REPLICATING CACHE: "+x);
+	                nmgr.app.logEvent ("Error sending cache replication event: "+x);
 	            }
 	        }
 	    }

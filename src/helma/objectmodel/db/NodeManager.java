@@ -32,6 +32,7 @@ public final class NodeManager {
     private long idBaseValue = 1l;
 
     private boolean logSql;
+    protected boolean logReplication;
 
     // a wrapper that catches some Exceptions while accessing this NM
     public final WrappedNodeManager safe;
@@ -53,12 +54,19 @@ public final class NodeManager {
 	safe = new WrappedNodeManager (this);
 	// nullNode = new Node ();
 
+	logSql = "true".equalsIgnoreCase(props.getProperty ("logsql"));
+	logReplication = "true".equalsIgnoreCase(props.getProperty ("logReplication"));
+
+
 	String replicationUrl = props.getProperty ("replicationUrl");
 	if (replicationUrl != null) {
-	    replicator = new Replicator ();
+	    if (logReplication)
+	        app.logEvent ("Setting up replication listener at "+replicationUrl);
+	    replicator = new Replicator (this);
 	    replicator.addUrl (replicationUrl);
-	} else
+	} else {
 	    replicator = null;
+	}
 
 	// get the initial id generator value
 	String idb = props.getProperty ("idBaseValue");
@@ -69,8 +77,6 @@ public final class NodeManager {
 
 	db = new XmlDatabase (dbHome, null, this);
 	initDb ();
-
-	logSql = "true".equalsIgnoreCase(props.getProperty ("logsql"));
     }
 
     /**
@@ -80,6 +86,7 @@ public final class NodeManager {
 	int cacheSize = Integer.parseInt (props.getProperty ("cachesize", "1000"));
 	cache.setCapacity (cacheSize);
 	logSql = "true".equalsIgnoreCase(props.getProperty ("logsql"));
+	logReplication = "true".equalsIgnoreCase(props.getProperty ("logReplication"));
     }
 
    /**
@@ -1170,20 +1177,14 @@ public final class NodeManager {
 	return replicator;
     }
 
-    /**
-    *  Register a remote application as listener to updates in this cache.
-    */
-    public void registerReplicatedApp (helma.framework.IReplicatedApp rapp) {
-	if (replicator == null)
-	    replicator = new Replicator ();
-	replicator.addApp (rapp);
-    }
-	
+
     /**
     *  Receive notification from a remote app that objects in its cache have been
     * modified.
     */
     public void replicateCache (Vector add, Vector delete) {
+	if (logReplication)
+	    app.logEvent ("Received cache replication event: "+add.size()+" added, "+delete.size()+" deleted");
 	synchronized (cache) {
 	    for (Enumeration en=add.elements(); en.hasMoreElements(); ) {
 	        Node n = (Node) en.nextElement ();
