@@ -12,8 +12,10 @@ public final class Util {
 	}
 
 	public static boolean isExcluded (String str) {
-		if (excluded.size ()==0)
+		if (excluded.size ()==0) {
 			excluded.add ("cvs");
+			excluded.add (".docs");
+		}
 		return (excluded.contains (str.toLowerCase ()));
 	}
 

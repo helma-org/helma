@@ -51,7 +51,10 @@ public class DocSkin extends DocFileElement	{
 				}
 				if (j > i+2) {
 					String str = (new String (source, i+2, j-i)).trim ();
-					str = str.substring (0, str.indexOf(" "));
+					if (str.endsWith("%>"))
+						str = str.substring (0, str.length()-2);
+					if (str.indexOf (" ")>-1)
+						str = str.substring (0, str.indexOf(" "));
 					if (str.indexOf(".")>-1 && 
 						(str.startsWith ("param.")
 						 || str.startsWith ("response.")

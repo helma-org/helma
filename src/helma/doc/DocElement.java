@@ -211,6 +211,7 @@ public abstract class DocElement implements IPathElement	{
 	 			buf.append (line+"\n");
 	 			line = in.readLine ();
  			}
+ 			in.close ();
  			return buf.toString();
  		}	catch (IOException e)	{
  			return ("");
