@@ -174,10 +174,10 @@ public class HopObject extends ScriptableObject implements Wrapper {
     }
 
     /**
+     * Render a skin to the response buffer.
      *
-     *
-     * @param skin ...
-     * @param param ...
+     * @param skin The skin object or name
+     * @param param An optional parameter object
      *
      * @return ...
      */
@@ -203,10 +203,10 @@ public class HopObject extends ScriptableObject implements Wrapper {
     }
 
     /**
+     *  Render a skin and return its output as string.
      *
-     *
-     * @param skin ...
-     * @param param ...
+     * @param skin The skin object or name
+     * @param param An optional parameter object
      *
      * @return ...
      */
@@ -235,9 +235,9 @@ public class HopObject extends ScriptableObject implements Wrapper {
     }
 
     /**
+     * Get the href (URL path) of this object within the application.
      *
-     *
-     * @param action ...
+     * @param action the action name, or null/undefined for the "main" action.
      *
      * @return ...
      */
@@ -260,9 +260,9 @@ public class HopObject extends ScriptableObject implements Wrapper {
     }
 
     /**
+     * Get a childObject by name/id or index
      *
-     *
-     * @param id ...
+     * @param id The name/id or index, depending if the argument is a String or Number.
      *
      * @return ...
      */
@@ -285,6 +285,28 @@ public class HopObject extends ScriptableObject implements Wrapper {
             return Context.toObject(n, core.global);
         }
     }
+
+    /**
+     * Get a child object by ID
+     *
+     * @param id the child id.
+     *
+     * @return ...
+     */
+    public Object jsFunction_getById(Object id) {
+        if ((node == null) || (id == null) || id == Undefined.instance) {
+            return null;
+        }
+
+        Object n = node.getSubnode(id.toString());
+
+        if (n == null) {
+            return null;
+        } else {
+            return Context.toObject(n, core.global);
+        }
+    }
+
 
     /**
      *
