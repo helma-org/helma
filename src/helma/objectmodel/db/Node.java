@@ -1613,24 +1613,14 @@ public final class Node implements INode, Serializable {
         if (propname == null) {
             return null;
         }
-        
-        Relation rel = dbmap == null ? 
-                             null : 
+
+        Relation rel = dbmap == null ?
+                             null :
                              dbmap.getExactPropertyRelation(propname);
-                                
+
         // 1) check if this is a create-on-demand node property
-        if (rel != null && (rel.isCollection() || rel.isComplexReference())) {
-            if (state == TRANSIENT && rel.isCollection()) {
-                // When we get a collection from a transient node for the first time, or when
-                // we get a collection whose content objects are stored in the embedded
-                // XML data storage, we just want to create and set a generic node without
-                // consulting the NodeManager about it. 
-                Node n = new Node(propname, rel.getPrototype(), nmgr);
-                n.setDbMapping(rel.getVirtualMapping());
-                n.setParent(this);
-                setNode(propname, n);
-                return (Property) propMap.get(propname.toLowerCase());
-            } else if (state != TRANSIENT) {
+        if (rel != null && (rel.isVirtual() || rel.isComplexReference())) {
+            if (state != TRANSIENT) {
                 Node n = nmgr.getNode(this, propname, rel);
 
                 if (n != null) {
@@ -1655,7 +1645,7 @@ public final class Node implements INode, Serializable {
                 if (rel.otherType != null && prop.getType() != Property.NODE) {
                     prop.convertToNodeReference(rel.otherType);
                 }
-                if (rel.isCollection()) {
+                if (rel.isVirtual()) {
                     // property was found in propMap and is a collection - this is
                     // a collection holding non-relational objects. set DbMapping and
                     // NodeManager
@@ -1670,6 +1660,16 @@ public final class Node implements INode, Serializable {
                 }
             }
             return prop;
+        } else if (state == TRANSIENT && rel != null && rel.isVirtual()) {
+            // When we get a collection from a transient node for the first time, or when
+            // we get a collection whose content objects are stored in the embedded
+            // XML data storage, we just want to create and set a generic node without
+            // consulting the NodeManager about it.
+            Node n = new Node(propname, rel.getPrototype(), nmgr);
+            n.setDbMapping(rel.getVirtualMapping());
+            n.setParent(this);
+            setNode(propname, n);
+            return (Property) propMap.get(propname.toLowerCase());
         }
 
         // 3) try to get the property from the database via accessname, if defined
