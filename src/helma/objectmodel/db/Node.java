@@ -179,7 +179,7 @@ public final class Node implements INode, Serializable {
      */
     public Node (String name, String id, String prototype, WrappedNodeManager nmgr) {
 	this.nmgr = nmgr;
- 	this.id = id;
+	this.id = id;
 	this.name = name == null || "".equals (name) ? id : name;
 	if (prototype != null)
 	    setPrototype (prototype);
@@ -235,7 +235,7 @@ public final class Node implements INode, Serializable {
      * Constructor used for nodes being stored in a relational database table.
      */
     public Node (DbMapping dbm, ResultSet rs, DbColumn[] columns, WrappedNodeManager nmgr)
-                 throws SQLException {
+                 throws SQLException, IOException {
 
 	this.nmgr = nmgr;
 	// see what prototype/DbMapping this object should use
@@ -302,13 +302,32 @@ public final class Node implements INode, Serializable {
 	                newprop.setIntegerValue (num.longValue ());
 	            break;
 
-	        case Types.LONGVARBINARY:
 	        case Types.VARBINARY:
 	        case Types.BINARY:
 	            newprop.setStringValue (rs.getString(columns[i].getName()));
 	            break;
 
+	        case Types.LONGVARBINARY:
 	        case Types.LONGVARCHAR:
+	            try {
+	                newprop.setStringValue (rs.getString(columns[i].getName()));
+	            } catch (SQLException x) {
+	                Reader in = rs.getCharacterStream(columns[i].getName());
+	                char[] buffer = new char[2048];
+	                int read = 0, r = 0;
+	                while ((r = in.read (buffer, read, buffer.length-read)) > -1) {
+	                    read += r;
+	                    if (read == buffer.length) {
+	                        // grow input buffer
+	                        char[] newBuffer = new char[buffer.length*2];
+	                        System.arraycopy (buffer, 0, newBuffer, 0, buffer.length);
+	                        buffer = newBuffer;
+	                    }
+	                }
+	                newprop.setStringValue (new String(buffer, 0, read));
+	            }
+	            break;
+
 	        case Types.CHAR:
 	        case Types.VARCHAR:
 	        case Types.OTHER:
