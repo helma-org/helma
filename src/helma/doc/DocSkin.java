@@ -53,15 +53,19 @@ public class DocSkin extends DocFileElement	{
 					String str = (new String (source, i+2, j-i)).trim ();
 					if (str.endsWith("%>"))
 						str = str.substring (0, str.length()-2);
-					if (str.indexOf (" ")>-1)
-						str = str.substring (0, str.indexOf(" "));
-					if (str.indexOf(".")>-1 && 
-						(str.startsWith ("param.")
-						 || str.startsWith ("response.")
-						 || str.startsWith("request.")
-						 || str.startsWith ("session.")
-						) && !partBuffer.contains(str)) {
-						partBuffer.add (str);
+					if (str.startsWith ("//")) {
+					   parseComment (str);
+					} else {
+						if (str.indexOf (" ")>-1)
+							str = str.substring (0, str.indexOf(" "));
+						if (str.indexOf(".")>-1 && 
+							(str.startsWith ("param.")
+						 	|| str.startsWith ("response.")
+						 	|| str.startsWith("request.")
+						 	|| str.startsWith ("session.")
+							) && !partBuffer.contains(str)) {
+							partBuffer.add (str);
+						}
 					}
 					start = j+2;
 				}
