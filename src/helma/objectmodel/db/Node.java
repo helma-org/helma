@@ -737,6 +737,9 @@ public final class Node implements INode, Serializable {
                     // see if dbmapping specifies anonymity for this node
                     if (pinfo.virtualname != null) {
                         pn = pn.getNode(pinfo.virtualname);
+                        if (pn == null)
+                            System.err.println("Error: Can't retrieve parent "+
+                                               "node "+pinfo+" for "+this);
                     }
 
                     DbMapping dbm = (pn == null) ? null : pn.getDbMapping();
