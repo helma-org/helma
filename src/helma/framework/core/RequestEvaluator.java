@@ -66,7 +66,6 @@ public class RequestEvaluator implements Runnable {
 	"helma.xmlrpc.fesi.FesiRpcExtension",
 	"helma.framework.extensions.ImageExtension",
 	"helma.framework.extensions.FtpExtension",
-	"helma.framework.extensions.Database",
 	"FESI.Extensions.JavaAccess",
 	"FESI.Extensions.OptionalRegExp"};
 
@@ -105,6 +104,8 @@ public class RequestEvaluator implements Runnable {
 	    hopx.initializeExtension (this);
 	    mailx = (MailExtension) evaluator.addExtension ("helma.framework.extensions.MailExtension");
 	    mailx.setProperties (this.app.props);
+	    Database dbx = (Database) evaluator.addExtension ("helma.framework.extensions.Database");
+	    dbx.setApplication (this.app);
 
 	    // fake a cache member like the one found in ESNodes
 	    global.putHiddenProperty ("cache", new ESNode (new Node ("cache"), this));
