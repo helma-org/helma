@@ -194,10 +194,12 @@ public class Transactor extends Thread {
 
 	if (active) {
 	    active = false;
-	    nmgr.db.abortTransaction (txn);
-	    txn = null;
+	    if (txn != null) {
+	        nmgr.db.abortTransaction (txn);
+	        txn = null;
+	    }
+	    IServer.getLogger().log (tname+" aborted after "+(System.currentTimeMillis()-tstart)+" millis");
 	}
-	IServer.getLogger().log (tname+" aborted after "+(System.currentTimeMillis()-tstart)+" millis");
     }
 
     public synchronized void kill () {
@@ -206,22 +208,15 @@ public class Transactor extends Thread {
 	// evaluator, so we can hope that it stops without doing anything else.
 	try {
 	    join (500);
-	} catch (InterruptedException ir) {
-	    Thread.currentThread().interrupt();
-	}
+	} catch (InterruptedException ir) {}
 
 	// Interrupt the thread if it has not noticed the flag (e.g. because it is busy
 	// reading from a network socket).
 	if (isAlive()) {
 	    interrupt ();
 	    try {
-	        join (3000);
-	    } catch (InterruptedException ignore) {
-	        Thread.currentThread().interrupt();
-	    }
-	    if (isAlive())
-	        // Sorry to be so rude...
-	        stop (new TimeoutException());
+	        join (1000);
+	    } catch (InterruptedException ir) {}
 	}
     }
 
