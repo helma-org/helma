@@ -21,6 +21,7 @@ public class ESMapWrapper extends ESWrapper {
 
     private Map data;
     private FesiEvaluator fesi;
+    private boolean readonly = false;
 
     public ESMapWrapper (FesiEvaluator fesi) {
 	super (new Object(), fesi.getEvaluator ());
@@ -33,6 +34,10 @@ public class ESMapWrapper extends ESWrapper {
 	this.data = data;
     }
 
+	public void setReadonly (boolean readonly) {
+	this.readonly = readonly;
+	}
+
     public void setData (Map data) {
 	this.data = data;
     }
@@ -43,12 +48,18 @@ public class ESMapWrapper extends ESWrapper {
     public void putProperty(String propertyName, ESValue propertyValue, int hash) throws EcmaScriptException {
 	if (data == null)
 	    data = new HashMap ();
-	data.put (propertyName, propertyValue);
+	if (readonly==false)
+	    data.put (propertyName, propertyValue);
+	else
+	    throw new EcmaScriptException ("object is readonly");
     }
     
     public boolean deleteProperty(String propertyName, int hash) throws EcmaScriptException {
-	data.remove (propertyName);
-	return true;
+	if (readonly==false) {
+	    data.remove (propertyName);
+	    return true;
+	} else
+	    return false;
     }
  
      public ESValue getProperty(String propertyName, int hash) throws EcmaScriptException {
