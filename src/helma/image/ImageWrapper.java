@@ -456,45 +456,6 @@ public class ImageWrapper {
     }
     
     /**
-     * Saves the image. Image format is deduced from mimeType.
-     * 
-     * @param out ...
-     * @param mimeType ...
-     * @throws IOException
-     */
-    public void saveAs(OutputStream out, String mimeType)
-        throws IOException {
-        generator.write(this, out, mimeType, -1f, false); // -1 means default quality
-    }
-    
-    /**
-     * Saves the image. Image format is deduced from mimeType.
-     * 
-     * @param out ...
-     * @param mimeType ...
-     * @param quality ...
-     * @throws IOException
-     */
-    public void saveAs(OutputStream out, String mimeType, float quality)
-        throws IOException {
-        generator.write(this, out, mimeType, quality, false);
-    }
-
-    /**
-     * Saves the image. Image format is deduced from mimeType.
-     * 
-     * @param out ...
-     * @param mimeType ...
-     * @param quality ...
-     * @param alpha ...
-     * @throws IOException
-     */
-    public void saveAs(OutputStream out, String mimeType, float quality, boolean alpha)
-        throws IOException {
-        generator.write(this, out, mimeType, quality, alpha);
-    }
-    
-    /**
      * Sets the palette index of the transparent color for Images with an
      * IndexColorModel. This can be used together with
      * {@link helma.image.ImageWrapper#getPixel}.
