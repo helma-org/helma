@@ -29,7 +29,7 @@
 
         <property name="jar.name" value="${project}"/>
         <property name="package.name" value="${project}-${version}"/>
-        <property name="antclick.name" value="antclick-1.0.1-pre1"/>
+        <property name="antclick.name" value="antclick-1.1pre2"/>
 
         <property name="debug" value="on"/>
         <property name="optimize" value="on"/>
@@ -351,8 +351,7 @@
         <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="antville" dest="${build.work}/apps" />
 
         <!-- unzip images -->
-        <mkdir dir="${build.work}/static/images"/>
-        <unzip src="${build.work}/apps/antville/images.zip" dest="${build.work}/static/images">
+        <unzip src="${build.work}/apps/antville/images.zip" dest="${build.work}/static">
             <patternset>
                 <include name="**"/>
             </patternset>
