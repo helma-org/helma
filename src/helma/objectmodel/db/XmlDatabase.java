@@ -20,6 +20,7 @@ import helma.objectmodel.*;
 import helma.objectmodel.dom.IDGenParser;
 import helma.objectmodel.dom.XmlDatabaseReader;
 import helma.objectmodel.dom.XmlWriter;
+import helma.framework.core.Application;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -32,27 +33,24 @@ import java.util.ArrayList;
  */
 public final class XmlDatabase implements IDatabase {
 
-    private File dbHomeDir;
-    private NodeManager nmgr;
-    private IDGenerator idgen;
+    protected File dbHomeDir;
+    protected Application app;
+    protected NodeManager nmgr;
+    protected IDGenerator idgen;
 
     // character encoding to use when writing files.
     // use standard encoding by default.
-    private String encoding = null;
+    protected String encoding = null;
 
     /**
-     * Creates a new XmlDatabase object.
-     *
-     * @param dbHome ...
-     * @param nmgr ...
-     *
-     * @throws DatabaseException ...
-     * @throws RuntimeException ...
+     * Initializes the database from an application.
+     * @param app
+     * @throws DatabaseException
      */
-    public XmlDatabase(String dbHome, NodeManager nmgr)
-                throws DatabaseException {
-        this.nmgr = nmgr;
-        dbHomeDir = new File(dbHome);
+    public void init(File dbHome, Application app) throws DatabaseException {
+        this.app = app;
+        nmgr = app.getNodeManager();
+        dbHomeDir = dbHome;
 
         if (!dbHomeDir.exists() && !dbHomeDir.mkdirs()) {
             throw new DatabaseException("Can't create database directory "+dbHomeDir);
@@ -68,7 +66,70 @@ public final class XmlDatabase implements IDatabase {
             copyStylesheet(stylesheet);
         }
 
-        this.encoding = nmgr.app.getCharset();
+        this.encoding = app.getCharset();
+
+        // get the initial id generator value
+        long idBaseValue;
+        try {
+            idBaseValue = Long.parseLong(app.getProperty("idBaseValue", "1"));
+            // 0 and 1 are reserved for root nodes
+            idBaseValue = Math.max(1L, idBaseValue);
+        } catch (NumberFormatException ignore) {
+            idBaseValue = 1L;
+        }
+
+        ITransaction txn = null;
+
+        try {
+            txn = beginTransaction();
+
+            try {
+                idgen = getIDGenerator(txn);
+
+                if (idgen.getValue() < idBaseValue) {
+                    idgen.setValue(idBaseValue);
+                }
+            } catch (ObjectNotFoundException notfound) {
+                // will start with idBaseValue+1
+                idgen = new IDGenerator(idBaseValue);
+            }
+
+            // check if we need to set the id generator to a base value
+            Node node = null;
+
+            try {
+                node = (Node) getNode(txn, "0");
+                node.nmgr = nmgr.safe;
+            } catch (ObjectNotFoundException notfound) {
+                node = new Node("root", "0", "Root", nmgr.safe);
+                node.setDbMapping(app.getDbMapping("root"));
+                saveNode(txn, node.getID(), node);
+                // register node with nodemanager cache
+                nmgr.registerNode(node);
+            }
+
+            try {
+                node = (Node) getNode(txn, "1");
+                node.nmgr = nmgr.safe;
+            } catch (ObjectNotFoundException notfound) {
+                node = new Node("users", "1", null, nmgr.safe);
+                node.setDbMapping(app.getDbMapping("__userroot__"));
+                saveNode(txn, node.getID(), node);
+                // register node with nodemanager cache
+                nmgr.registerNode(node);
+            }
+
+            commitTransaction(txn);
+        } catch (Exception x) {
+            x.printStackTrace();
+
+            try {
+                abortTransaction(txn);
+            } catch (Exception ignore) {
+            }
+
+            throw (new DatabaseException("Error initializing db"));
+        }
     }
     
     /**
@@ -123,6 +184,14 @@ public final class XmlDatabase implements IDatabase {
      * @throws DatabaseException
      */
     public void commitTransaction(ITransaction txn) throws DatabaseException {
+        if (idgen.dirty) {
+            try {
+                saveIDGenerator(txn);
+                idgen.dirty = false;                
+            } catch (IOException x) {
+                throw new DatabaseException(x.toString());
+            }
+        }
         txn.commit();
     }
 
@@ -170,15 +239,13 @@ public final class XmlDatabase implements IDatabase {
      * Write the id-generator to file.
      *
      * @param txn
-     * @param idgen
      * @throws IOException
      */
-    public void saveIDGenerator(ITransaction txn, IDGenerator idgen)
+    public void saveIDGenerator(ITransaction txn)
                          throws IOException {
         File tmp = File.createTempFile("idgen.xml.", ".tmp", dbHomeDir);
 
         IDGenParser.saveIDGenerator(idgen, tmp);
-        this.idgen = idgen;
 
         File file = new File(dbHomeDir, "idgen.xml");
         if (file.exists() && !file.canWrite()) {
@@ -211,7 +278,7 @@ public final class XmlDatabase implements IDatabase {
 
             return node;
         } catch (Exception x) {
-            nmgr.app.logError("Error reading " +f, x);
+            app.logError("Error reading " +f, x);
             throw new IOException(x.toString());
         }
     }
@@ -303,8 +370,8 @@ public final class XmlDatabase implements IDatabase {
                         res.tmpfile.delete();
                     } else {
                         // error - leave tmp file and print a message
-                        nmgr.app.logError("*** Error committing "+res.file);
-                        nmgr.app.logError("*** Committed version is in "+res.tmpfile);
+                        app.logError("*** Error committing "+res.file);
+                        app.logError("*** Committed version is in "+res.tmpfile);
                     }
                 } catch (SecurityException ignore) {
                     // shouldn't happen

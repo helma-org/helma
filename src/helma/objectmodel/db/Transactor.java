@@ -309,13 +309,6 @@ public class Transactor extends Thread {
                     dbm.setLastDataChange(now);
                 }
             }
-
-            // save the id-generator for the embedded db, if necessary
-            if (nmgr.idgen.dirty) {
-                nmgr.db.saveIDGenerator(txn, nmgr.idgen);
-                nmgr.idgen.dirty = false;
-            }
-        
         }
         
         long now = System.currentTimeMillis();

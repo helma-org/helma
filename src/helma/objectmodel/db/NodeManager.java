@@ -22,6 +22,7 @@ import helma.objectmodel.*;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.io.File;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
@@ -39,8 +40,6 @@ public final class NodeManager {
     protected Application app;
     private ObjectCache cache;
     protected IDatabase db;
-    protected IDGenerator idgen;
-    private long idBaseValue = 1L;
     private boolean logSql;
     private Log sqlLog = null;
     protected boolean logReplication;
@@ -62,7 +61,7 @@ public final class NodeManager {
      * application properties. An embedded database will be
      * created in dbHome if one doesn't already exist.
      */
-    public void init(String dbHome, Properties props)
+    public void init(File dbHome, Properties props)
             throws DatabaseException, ClassNotFoundException,
                    IllegalAccessException, InstantiationException {
         String cacheImpl = props.getProperty("cacheimpl", "helma.util.CacheMap");
@@ -85,19 +84,8 @@ public final class NodeManager {
             addNodeChangeListener(replicator);
         }
 
-        // get the initial id generator value
-        String idb = props.getProperty("idBaseValue");
-
-        if (idb != null) {
-            try {
-                idBaseValue = Long.parseLong(idb);
-                idBaseValue = Math.max(1L, idBaseValue); // 0 and 1 are reserved for root nodes
-            } catch (NumberFormatException ignore) {
-            }
-        }
-
-        db = new XmlDatabase(dbHome, this);
-        initDb();
+        db = new XmlDatabase();
+        db.init(dbHome, app);
     }
 
     /**
@@ -114,59 +102,6 @@ public final class NodeManager {
      * Method used to create the root node and id-generator, if they don't exist already.
      */
     public void initDb() throws DatabaseException {
-        ITransaction txn = null;
-
-        try {
-            txn = db.beginTransaction();
-
-            try {
-                idgen = db.getIDGenerator(txn);
-
-                if (idgen.getValue() < idBaseValue) {
-                    idgen.setValue(idBaseValue);
-                    db.saveIDGenerator(txn, idgen);
-                }
-            } catch (ObjectNotFoundException notfound) {
-                // will start with idBaseValue+1
-                idgen = new IDGenerator(idBaseValue);
-                db.saveIDGenerator(txn, idgen);
-            }
-
-            // check if we need to set the id generator to a base value
-            Node node = null;
-
-            try {
-                node = (Node) db.getNode(txn, "0");
-                node.nmgr = safe;
-            } catch (ObjectNotFoundException notfound) {
-                node = new Node("root", "0", "Root", safe);
-                node.setDbMapping(app.getDbMapping("root"));
-                db.saveNode(txn, node.getID(), node);
-                registerNode(node); // register node with nodemanager cache
-            }
-
-            try {
-                node = (Node) db.getNode(txn, "1");
-                node.nmgr = safe;
-            } catch (ObjectNotFoundException notfound) {
-                node = new Node("users", "1", null, safe);
-                node.setDbMapping(app.getDbMapping("__userroot__"));
-                db.saveNode(txn, node.getID(), node);
-                registerNode(node); // register node with nodemanager cache
-            }
-
-            db.commitTransaction(txn);
-        } catch (Exception x) {
-            System.err.println(x);
-            x.printStackTrace();
-
-            try {
-                db.abortTransaction(txn);
-            } catch (Exception ignore) {
-            }
-
-            throw (new DatabaseException("Error initializing db"));
-        }
     }
 
     /**
