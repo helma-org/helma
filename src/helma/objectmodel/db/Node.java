@@ -626,7 +626,7 @@ public final class Node implements INode, Serializable {
     /**
      * Set this node's parent node.
      */
-    protected void setParent(Node parent) {
+    public void setParent(Node parent) {
         parentHandle = (parent == null) ? null : parent.getHandle();
     }
 
@@ -702,7 +702,7 @@ public final class Node implements INode, Serializable {
         // check what's specified in the type.properties for this node.
         ParentInfo[] parentInfo = null;
 
-        if (dbmap != null && lastParentSet <= Math.max(dbmap.getLastTypeChange(), lastmodified)) {
+        if (isRelational() && lastParentSet <= Math.max(dbmap.getLastTypeChange(), lastmodified)) {
             parentInfo = dbmap.getParentInfo();
         }
 
