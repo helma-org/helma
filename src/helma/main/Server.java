@@ -28,13 +28,14 @@ import com.sleepycat.db.*;
  public class Server implements Runnable {
 
 
-    public static boolean useTransactions, paranoid;
-    
+    public static boolean useTransactions = true;
+    public static boolean paranoid;
+    public static String dbFilename = "hop.db";
+
     private ApplicationManager appManager;
 
     private  Thread mainThread;
 
-    public static String dbFilename = "hop.db";
     static String propfile;
     static String dbPropfile = "db.properties";
     static String appsPropfile;
@@ -260,7 +261,7 @@ import com.sleepycat.db.*;
 
     }
 
-    public static Logger getLogger () {
+    protected static Logger getLogger () {
 	if (logger == null) {
 	    String logDir = sysProps.getProperty ("logdir");
 	    if (logDir == null || "console".equalsIgnoreCase (logDir)) {
