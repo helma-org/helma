@@ -178,9 +178,13 @@ public class ApplicationManager implements XmlRpcHandler {
      */
     public void stopAll() {
         for (Enumeration en = descriptors.elements(); en.hasMoreElements();) {
-            AppDescriptor appDesc = (AppDescriptor) en.nextElement();
+            try {
+                AppDescriptor appDesc = (AppDescriptor) en.nextElement();
 
-            appDesc.stop();
+                appDesc.stop();
+            } catch (Exception x) {
+                // ignore exception in application shutdown
+            }
         }
     }
 
