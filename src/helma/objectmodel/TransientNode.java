@@ -377,7 +377,7 @@ public class TransientNode implements INode, Serializable {
 	// check if we have to create a virtual node
 	if (prop == null && dbmap != null) {
 	    Relation rel = dbmap.getPropertyRelation (propname);
-	    if (rel != null && rel.virtual) {
+	    if (rel != null && rel.isVirtual ()) {
 	        prop = makeVirtualNode (propname, rel);
 	    }
 	}
@@ -385,7 +385,7 @@ public class TransientNode implements INode, Serializable {
     }
 
     private Property makeVirtualNode (String propname, Relation rel) {
-	INode node = new helma.objectmodel.db.Node (rel.propName, rel.prototype, dbmap.getWrappedNodeManager());
+	INode node = new helma.objectmodel.db.Node (rel.getPropName (), rel.getPrototype (), dbmap.getWrappedNodeManager());
 	// node.setState (TRANSIENT);
 	// make a db mapping good enough that the virtual node finds its subnodes
 	DbMapping dbm = new DbMapping ();
