@@ -27,7 +27,7 @@ import java.util.ArrayList;
 
 /**
  *  Helma bootstrap class. Figures out Helma home directory, sets up class path and
- *  lauchnes main class.
+ *  lauchnes main class. This class must be invoked from a jar file in order to work.
  */
 public class Main {
     public static final String[] jars = {
@@ -69,21 +69,28 @@ public class Main {
                 //    jar:<url>!/{entry}
                 // we strip away the jar: prefix and the !/{entry} suffix
                 // to get the original jar file URL
-                installDir = launcherUrl.toString().substring(4);
 
-                int excl = installDir.indexOf("!");
+                String jarUrl = launcherUrl.toString();
 
-                if (excl > -1) {
-                    installDir = installDir.substring(0, excl);
-                    launcherUrl = new URL(installDir);
-
-                    File f = new File(launcherUrl.getPath());
-
-                    installDir = f.getParentFile().getCanonicalPath();
+                if (!jarUrl.startsWith("jar:") || jarUrl.indexOf("!") < 0) {
+                    throw new RuntimeException("  Unable to get JAR URL from "+jarUrl);
                 }
+
+                jarUrl = jarUrl.substring(4);
+
+                int excl = jarUrl.indexOf("!");
+
+                jarUrl = jarUrl.substring(0, excl);
+                launcherUrl = new URL(jarUrl);
+
+                File f = new File(launcherUrl.getPath());
+
+                installDir = f.getParentFile().getCanonicalPath();
+
             } catch (Exception x) {
                 // unable to get Helma installation dir from launcher jar
-                System.err.println("Unable to get Helma installation directory: " + x);
+                System.err.println("Unable to get Helma installation directory: ");
+                System.err.println(x.getMessage());
                 System.exit(2);
             }
         }
