@@ -178,7 +178,7 @@ public final class RhinoCore {
             try {
                 FunctionObject fp = new FunctionObject(name, HopObject.hopObjCtor, global);
 
-                fp.addAsConstructor(global, op);
+                installConstructor(fp, op);
             } catch (Exception ignore) {
                 System.err.println("Error adding ctor for " + name + ": " + ignore);
                 ignore.printStackTrace();
@@ -246,16 +246,16 @@ public final class RhinoCore {
         // Register a constructor for all types except global.
         // This will first create a new prototyped hopobject and then calls
         // the actual (scripted) constructor on it.
-        if (!"global".equalsIgnoreCase(name) && !"root".equalsIgnoreCase(name)) {
+        /* if (!"global".equalsIgnoreCase(name) && !"root".equalsIgnoreCase(name)) {
             try {
                 FunctionObject fp = new FunctionObject(name, HopObject.hopObjCtor, global);
 
-                fp.addAsConstructor(global, op);
+                installConstructor(fp, op);
             } catch (Exception ignore) {
                 System.err.println("Error adding ctor for " + name + ": " + ignore);
                 ignore.printStackTrace();
             }
-        }
+        } */
 
         for (Iterator it = prototype.getZippedCode().values().iterator(); it.hasNext();) {
             Object code = it.next();
@@ -268,6 +268,23 @@ public final class RhinoCore {
 
             evaluate(prototype, code);
         }
+    }
+
+    /**
+     *  This is a version of org.mozilla.javascript.FunctionObject.addAsConstructor()
+     *  that does not set the constructor property in the prototype. This is because
+     *  we want our own scripted constructor function to prevail, if it is defined.
+     */
+    private void installConstructor(FunctionObject fo, Scriptable prototype) {
+        ScriptRuntime.setFunctionProtoAndParent(global, fo);
+        fo.setImmunePrototypeProperty(prototype);
+
+        prototype.setParentScope(fo);
+
+        String name = prototype.getClassName();
+        ScriptableObject.defineProperty(global, name, fo, ScriptableObject.DONTENUM);
+
+        fo.setParentScope(global);
     }
 
     /**
@@ -518,7 +535,7 @@ public final class RhinoCore {
 
         Scriptable w = (Scriptable) wrappercache.get(e);
 
-        if (e == null) {
+        if (w == null) {
             // Gotta find out the prototype name to use for this object...
             String prototypeName = app.getPrototypeName(e);
 
