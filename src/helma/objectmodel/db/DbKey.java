@@ -46,9 +46,9 @@ public final class DbKey implements Key, Serializable {
     /**
      *
      *
-     * @param what ...
+     * @param what the other key to be compared with this one
      *
-     * @return ...
+     * @return true if both keys are identical
      */
     public boolean equals(Object what) {
         if (what == this) {
@@ -69,7 +69,7 @@ public final class DbKey implements Key, Serializable {
     /**
      *
      *
-     * @return ...
+     * @return this key's hash code
      */
     public int hashCode() {
         if (hashcode == 0) {
@@ -84,7 +84,7 @@ public final class DbKey implements Key, Serializable {
     /**
      *
      *
-     * @return ...
+     * @return the key of this key's object's parent object
      */
     public Key getParentKey() {
         return null;
@@ -93,7 +93,7 @@ public final class DbKey implements Key, Serializable {
     /**
      *
      *
-     * @return ...
+     * @return the unique storage name for this key's object
      */
     public String getStorageName() {
         return storageName;
@@ -102,7 +102,7 @@ public final class DbKey implements Key, Serializable {
     /**
      *
      *
-     * @return ...
+     * @return this key's object's id
      */
     public String getID() {
         return id;
@@ -111,7 +111,7 @@ public final class DbKey implements Key, Serializable {
     /**
      *
      *
-     * @return ...
+     * @return a string representation for this key
      */
     public String toString() {
         return (storageName == null) ? ("[" + id + "]") : (storageName + "[" + id + "]");
