@@ -724,6 +724,8 @@ public class RequestEvaluator implements Runnable {
     }
 	
     private Skin getSkinFromNode (INode node, String prototype, String skinname) {
+	if (prototype == null)
+	    return null;
 	INode n = node.getNode (prototype, false);
 	if (n != null) {
 	    n = n.getNode (skinname, false);
