@@ -382,6 +382,10 @@ public final class FesiEngine implements ScriptingEngine {
 	    eso = global;
 	else
 	    eso = getElementWrapper (thisObject);
+	// Workaround to let the evaluator know about the current thread
+	// even if enterContext() has not been called yet. Otherwise, 
+	// a TimeoutException would be thrown.
+	evaluator.thread = Thread.currentThread ();
 	try {
 	    ESValue[] esv = args == null ? new ESValue[0] : new ESValue[args.length];
 	    for (int i=0; i<esv.length; i++) {
