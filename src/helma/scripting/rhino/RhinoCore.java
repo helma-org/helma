@@ -44,6 +44,8 @@ public final class RhinoCore {
 
     // table containing JavaScript prototypes
     Hashtable prototypes;
+
+    // timestamp of last type update
     long lastUpdate = 0;
 
     // the wrap factory
@@ -323,7 +325,7 @@ public final class RhinoCore {
             // only update prototype if it has already been initialized.
             // otherwise, this will be done on demand
             // System.err.println ("CHECKING PROTO "+proto+": "+type);
-            if (type.lastUpdate > 0) {
+            if (type.lastUpdate > -1) {
                 Prototype p = app.typemgr.getPrototype(type.protoName);
 
                 if (p != null) {
@@ -393,7 +395,10 @@ public final class RhinoCore {
 
         TypeInfo type = (TypeInfo) prototypes.get(protoName);
 
-        if ((type != null) && (type.lastUpdate == 0)) {
+        // if type exists and hasn't been evaluated (used) yet, evaluate it now.
+        // otherwise, it has already been evaluated for this request by updatePrototypes(),
+        // which is called before a request is handled.
+        if ((type != null) && (type.lastUpdate == -1)) {
             Prototype p = app.typemgr.getPrototype(protoName);
 
             if (p != null) {
@@ -401,13 +406,6 @@ public final class RhinoCore {
 
                 if (p.getLastUpdate() > type.lastUpdate) {
                     evaluatePrototype(p, type);
-                }
-
-                // set type.lastUpdate to 1 if it is 0 so we know we
-                // have initialized this prototype already, even if
-                // it is empty (i.e. doesn't contain any scripts/skins/actions)
-                if (type.lastUpdate == 0) {
-                    type.lastUpdate = 1;
                 }
             }
         }
@@ -833,8 +831,10 @@ public final class RhinoCore {
         // the object prototype for this type
         ScriptableObject objectPrototype;
 
-        // timestamp of last update
-        long lastUpdate = 0;
+        // timestamp of last update. This is -1 so even an empty prototype directory
+        // (with lastUpdate == 0) gets evaluated at least once, which is necessary
+        // to get the prototype chain set.
+        long lastUpdate = -1;
 
         // the prototype name
         String protoName;
