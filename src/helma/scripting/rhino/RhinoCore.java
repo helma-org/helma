@@ -310,7 +310,7 @@ public final class RhinoCore implements ScopeProvider {
      *  here is to check for update those prototypes which already have been compiled
      *  before. Others will be updated/compiled on demand.
      */
-    public synchronized void updatePrototypes() {
+    public synchronized void updatePrototypes() throws IOException {
         if ((System.currentTimeMillis() - lastUpdate) < 1000L) {
             return;
         }

@@ -94,14 +94,14 @@ public final class TypeManager {
      * Run through application's prototype directories and create prototypes, but don't
      * compile or evaluate any scripts.
      */
-    public void createPrototypes() {
+    public void createPrototypes() throws IOException {
         // create standard prototypes.
         for (int i = 0; i < standardTypes.length; i++) {
             createPrototype(standardTypes[i], null);
         }
 
         // loop through directories and create prototypes
-        checkFiles();
+        checkRepositories();
     }
 
     /**
@@ -109,14 +109,12 @@ public final class TypeManager {
      * has been updated.
      * If so, update prototypes and scripts.
      */
-    public synchronized void checkPrototypes() {
+    public synchronized void checkPrototypes() throws IOException {
         if ((System.currentTimeMillis() - lastCheck) < 1000L) {
             return;
         }
 
-        try {
-            checkFiles();
-        } catch (Exception ignore) {}
+        checkRepositories();
 
         lastCheck = System.currentTimeMillis();
     }
@@ -162,17 +160,13 @@ public final class TypeManager {
      * Run through application's prototype sources and check if
      * there are any prototypes to be created.
      */
-    private void checkFiles() {
+    private void checkRepositories() throws IOException {
         // check if any files have been created/removed since last time we checked...
         for (int i = 0; i < repositories.length; i++) {
-            try {
-                if (repositories[i].lastModified() > modified[i]) {
-                    modified[i] = repositories[i].lastModified();
+            if (repositories[i].lastModified() > modified[i]) {
+                modified[i] = repositories[i].lastModified();
 
-                    checkRepository(repositories[i]);
-                }
-            } catch (IOException iox) {
-                iox.printStackTrace();
+                checkRepository(repositories[i]);
             }
         }
 

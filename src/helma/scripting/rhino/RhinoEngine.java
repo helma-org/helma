@@ -149,7 +149,7 @@ public class RhinoEngine implements ScriptingEngine {
      *  This method is called before an execution context is entered to let the
      *  engine know it should update its prototype information.
      */
-    public void updatePrototypes() {
+    public void updatePrototypes() throws IOException {
         context = Context.enter();
         context.setCompileFunctionsWithDynamicScope(true);
         context.setApplicationClassLoader(app.getClassLoader());

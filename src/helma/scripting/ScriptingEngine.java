@@ -61,7 +61,7 @@ public interface ScriptingEngine {
      *  evaluation is entered to let the Engine know it should update
      *  its prototype information
      */
-    public void updatePrototypes();
+    public void updatePrototypes() throws IOException, ScriptingException;
 
     /**
      *  This method is called when an execution context for a request

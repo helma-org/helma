@@ -277,7 +277,11 @@ public final class Application implements IPathElement, Runnable {
 
         // create and init type mananger
         typemgr = new TypeManager(this);
-        typemgr.createPrototypes();
+        try {
+            typemgr.createPrototypes();
+        } catch (Exception x) {
+            logError("Error creating prototypes", x);
+        }
 
         // set the context classloader. Note that this must be done before
         // using the logging framework so that a new LogFactory gets created
