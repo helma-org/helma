@@ -26,7 +26,9 @@ function countSessions_macro(par)	{
 	var arr = this.getApplications();
 	var sum = 0;
 	for ( var i=0; i<arr.length; i++ )	{
-		sum += arr[i].sessions.size();
+		if ( arr[i].getName()!=app.__app__.getName() )	{
+			sum += arr[i].sessions.size();
+		}
 	}
 	return sum + formatCount(sum,par);
 }
@@ -37,11 +39,18 @@ function countSessions_macro(par)	{
   * @see global.formatCount
   */
 function countRequests_macro(par)	{
+	if ( app.requestStat==null )	{
+		return;
+	}
 	var arr = this.getApplications();
 	var sum = 0;
 	for ( var i=0; i<arr.length; i++ )	{
-		var obj = app.requestStat.get(arr[i].name);
-		sum += obj.last5Min;
+		if ( arr[i].getName()!=app.__app__.getName() )	{
+			var obj = app.requestStat.get(arr[i].name);
+			if ( obj!=null )	{
+				sum += obj.last5Min;
+			}
+		}
 	}
 	return sum + formatCount(sum,par);
 }
