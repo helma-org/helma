@@ -104,9 +104,11 @@ public class ImageGenerator {
 
 	Image img;
 	int w, h;
+	boolean waiting;
 
 	ImageLoader (Image img) {
 	    this.img = img;
+	    waiting = true;
 	}
 
 	int getWidth () {
@@ -123,7 +125,10 @@ public class ImageGenerator {
 	    if (w == -1 || h == -1) try {
 	        wait (30000);
 	    } catch (InterruptedException x) {
+	        waiting = false;
 	        return;
+	    } finally {
+	        waiting = false;
 	    }
 	    // if width and height haven't been set, throw tantrum
 	    if (w == -1 || h == -1) {
@@ -142,20 +147,14 @@ public class ImageGenerator {
 	        w = width;
 	    if (h == -1 && (infoflags & HEIGHT) > 0)
 	        h = height;
-	    if (h > -1 && w > -1 && (infoflags & ALLBITS) > 0) {
+	    if (h > -1 && w > -1) {
 	        // we know all we want to know. notify waiting thread that
 	        // the image is loaded and ready to be used.
 	        notifyAll ();
 	        return false;
 	    }
 	    // check if there was an error
-	    if ((infoflags & ERROR) > 0) {
-	        notifyAll ();
-	        return false;
-	    }
-	    // TODO: If image production was aborted, but no error was reported,
-	    // we might want to start production again. For now, we just give up.
-	    if ((infoflags & ABORT) > 0) {
+	    if (!waiting || (infoflags & ERROR) > 0 || (infoflags & ABORT) > 0) {
 	        notifyAll ();
 	        return false;
 	    }
