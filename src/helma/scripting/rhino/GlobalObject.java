@@ -63,7 +63,7 @@ public class GlobalObject extends ImporterTopLevel {
                                    "renderSkin", "renderSkinAsString", "getProperty",
                                    "authenticate", "createSkin", "format", "encode",
                                    "encodeXml", "encodeForm", "stripTags", "formatParagraphs",
-                                   "getXmlDocument", "getHtmlDocument",
+                                   "getXmlDocument", "getHtmlDocument", "seal",
                                    "getDBConnection", "getURL", "write", "writeln"
                                };
 
@@ -415,6 +415,30 @@ public class GlobalObject extends ImporterTopLevel {
         System.out.println(str);
     }
 
+     /**
+     * The seal function seals all supplied arguments.
+     */
+    public static void seal(Context cx, Scriptable thisObj, Object[] args,
+                            Function funObj)
+    {
+        for (int i = 0; i != args.length; ++i) {
+            Object arg = args[i];
+            if (!(arg instanceof ScriptableObject) || arg == Undefined.instance)
+            {
+                if (!(arg instanceof Scriptable) || arg == Undefined.instance)
+                {
+                    throw new EvaluatorException("seal() can only be applied to Objects");
+                } else {
+                    throw new EvaluatorException("seal() can only be applied to Objects");
+                }
+            }
+        }
+
+        for (int i = 0; i != args.length; ++i) {
+            Object arg = args[i];
+            ((ScriptableObject)arg).sealObject();
+        }
+    }
 
     /**
      *
