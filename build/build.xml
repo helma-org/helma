@@ -10,8 +10,8 @@
     <!-- =================================================================== -->
     <target name="init">
         <property name="Name" value="helma"/>
-        <property name="year" value="1998-2001"/>
-        <property name="version" value="1.2pre2"/>
+        <property name="year" value="1998-2002"/>
+        <property name="version" value="1.2pre3"/>
         <property name="project" value="helma"/>
         <property name="build.compiler" value="classic"/>
         <property name="build.dir" value=".."/>
@@ -69,6 +69,7 @@
         <cvs cvsRoot="${cvs.root}" package="apps/himp" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/bloggerapi" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="apps/lillebror" dest="${build.checkout}"/>
+        <cvs cvsRoot="${cvs.root}" package="apps/manage" dest="${build.checkout}"/>
 
     </target>
 
@@ -198,11 +199,14 @@
         </copy>
 
         <copy todir="${final.dir}/apps">
-            <fileset dir="${build.checkout}/apps" excludes="**/CVS"/>
+            <fileset dir="${build.checkout}/apps" excludes="**/CVS,manage/**"/>
         </copy>
 
         <copy file="${build.dir}/${jar.name}-${DSTAMP}.jar" tofile="${final.dir}/lib/helma.jar"/>
         <chmod file="${final.dir}/hop.sh" perm="755"/>
+
+        <mkdir dir="${final.dir}/apps/manage"/>
+		  	<zip zipfile="${final.dir}/apps/manage/manage.zip" basedir="${build.checkout}/apps/manage/" includes="**"/>
 
    </target>
 
@@ -232,27 +236,14 @@
     </target>
 
     <!-- =================================================================== -->
-    <!-- Packages the distribution with ZIP and TAG-GZIP                     -->
+    <!-- Packages the distribution with ZIP and TAR-GZIP                     -->
     <!-- =================================================================== -->
     <target name="package-all" depends="package-zip, package-tgz">
     </target>
 
 
     <!-- =================================================================== -->
-    <!-- Packages and FTPs the distribution with ZIP and TAG-GZIP            -->
-    <!-- =================================================================== -->
-    <target name="ftp-all" depends="package-all">
-        <ftp server="piefke.helma.at"
-            userid="anonymous"
-            password="tobi@helma.at">
-            <fileset dir="${build.dir}">
-                 <include name="${Name}-${version}.zip,${Name}-${version}.tar.gz"/>
-            </fileset>
-        </ftp>
-    </target>
-
-    <!-- =================================================================== -->
-    <!-- This is just a test                                                 -->
+    <!-- These are just some tests                                           -->
     <!-- =================================================================== -->
     <target name="ftp-test" depends="">
          <ftp server="piefke.helma.at"
@@ -264,10 +255,10 @@
         </ftp>
     </target>
     
+		<target name="test1" depends="init">
+      <mkdir dir="${build.checkout}"/>
+      <cvs cvsRoot="${cvs.root}" package="apps/manage" dest="${build.checkout}"/>
+			<zip zipfile="../manage.zip" basedir="${build.checkout}/apps/manage/" includes="**"/>
+    </target>
+
 </project>
-
-
-
-
-
-
