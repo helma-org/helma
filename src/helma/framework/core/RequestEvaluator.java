@@ -1020,7 +1020,7 @@ public class RequestEvaluator implements Runnable {
 	    if (func != null && func instanceof FunctionPrototype)
 	        return true;
 	} catch (EcmaScriptException esx) {
-	    System.err.println ("Error in getProperty: "+esx);
+	    // System.err.println ("Error in getProperty: "+esx);
 	    return false;
 	}
 	return false;
@@ -1040,12 +1040,17 @@ public class RequestEvaluator implements Runnable {
 		"password".equalsIgnoreCase (propname))
 	    return "[macro access to password property not allowed]";
 
-	DbMapping dbm = app.getDbMapping (prototypeName);
-	if (dbm != null) {
-	    Relation rel = dbm.propertyToRelation (propname);
-	    if (rel == null || !rel.isPrimitive ())
-	        return "[property \""+propname+"\" is not defined for "+prototypeName+"]";
+	// if this is a HopObject, check if the property is defined
+	// in the type.properties db-mapping.
+	if (obj instanceof INode) {
+	    DbMapping dbm = app.getDbMapping (prototypeName);
+	    if (dbm != null) {
+	        Relation rel = dbm.propertyToRelation (propname);
+	        if (rel == null || !rel.isPrimitive ())
+	            return "[property \""+propname+"\" is not defined for "+prototypeName+"]";
+	    }
 	}
+
 	ESObject eso = getElementWrapper (obj);
 	try {
 	    ESValue prop = eso.getProperty (propname, propname.hashCode());
