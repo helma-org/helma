@@ -163,7 +163,7 @@ public class JavaObject extends NativeJavaObject {
         }
 
         obj = prototype.get(name, start);
-        if (obj != null && obj != UniqueTag.NOT_FOUND) {
+        if (obj != null && obj != NOT_FOUND) {
             return obj;
         }
 
