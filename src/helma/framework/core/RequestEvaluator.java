@@ -583,7 +583,12 @@ public final class RequestEvaluator implements Runnable {
 	return scriptingEngine.invoke (obj, functionName, args, false);
     }
 
-    public synchronized Object invokeFunction (Object object, String functionName, Object[] args)
+	public synchronized Object invokeFunction (Object object, String functionName, Object[] args) throws Exception {
+	    // give internal call more time (15 minutes) to complete
+		return invokeFunction (object, functionName, args, 60000l*15);
+   }
+
+    public synchronized Object invokeFunction (Object object, String functionName, Object[] args, long timeout)
 		throws Exception {
 	reqtype = INTERNAL;
 	session = null;
@@ -595,7 +600,7 @@ public final class RequestEvaluator implements Runnable {
 	exception = null;
 
 	checkThread ();
-	wait (60000l*15); // give internal call more time (15 minutes) to complete
+	wait (timeout);
 
 	if (reqtype != NONE) {
 	    stopThread ();
