@@ -22,7 +22,7 @@ import Acme.LruHashtable;
  * This is the implementation of ScriptingEnvironment for the FESI EcmaScript interpreter.
  */
 
-public final class FesiEvaluator implements ScriptingEnvironment {
+public final class FesiEvaluator implements ScriptingEngine {
 
     // the application we're running in
     public Application app;
@@ -56,9 +56,7 @@ public final class FesiEvaluator implements ScriptingEnvironment {
     // remember global variables from last invokation to be able to
     // do lazy cleanup
     Map lastGlobals = null;
-	
-    // remember which protos are up to date
-    HashSet validatedTypes = new HashSet ();
+
 
     public FesiEvaluator (Application app, RequestEvaluator reval) {
 	this.app = app;
@@ -100,7 +98,7 @@ public final class FesiEvaluator implements ScriptingEnvironment {
 	}
 	// always fully initialize global prototype, because
 	// we always need it and there's no chance to trigger
-	// creation when it's needed.
+	// creation on demand.
 	getPrototype ("global");
     }
 
@@ -141,7 +139,7 @@ public final class FesiEvaluator implements ScriptingEnvironment {
 	}
 
 	// Register a constructor for all types except global.
-	// This will first create a new prototyped hopobject and then calls 
+	// This will first create a new prototyped hopobject and then calls
                   // the actual (scripted) constructor on it.
 	if (!"global".equalsIgnoreCase (name)) {
              if (!"root".equalsIgnoreCase (name) && !"user".equalsIgnoreCase (name))
@@ -149,7 +147,7 @@ public final class FesiEvaluator implements ScriptingEnvironment {
 	        FunctionPrototype fp = (FunctionPrototype) evaluator.getFunctionPrototype();
 	        evaluator.getGlobalObject().putHiddenProperty (name, new NodeConstructor (name, fp, this));
 	    } catch (EcmaScriptException ignore) {}
-	} 
+	}
 	// app.typemgr.updatePrototype (prototype.getName());
 	// evaluatePrototype (prototype);
     }
@@ -232,18 +230,135 @@ public final class FesiEvaluator implements ScriptingEnvironment {
 	    String prop = en.nextElement ().toString ();
 	    try {
 	        ESValue esv = op.getProperty (prop, prop.hashCode ());
-	        if (esv instanceof ConstructedFunctionObject || esv instanceof FesiActionAdapter.ThrowException) 
+	        if (esv instanceof ConstructedFunctionObject || esv instanceof FesiActionAdapter.ThrowException)
 	            op.deleteProperty (prop, prop.hashCode());
 	    } catch (Exception x) {}
 	}
     }
 
 
+    /**
+     *  This method is called when an execution context for a request
+     *  evaluation is entered. The globals parameter contains the global values
+     *  to be applied during this executino context.
+     */
+    public void enterContext (HashMap globals) throws ScriptingException {
+	// first loop through existing prototypes and update them if necessary
+	for (Enumeration e=prototypes.elements(); e.hasMoreElements(); ) {
+	    TypeInfo info = (TypeInfo) e.nextElement ();
+	    // only update prototype if it has already been initialized. 
+	    // otherwise, this will be done on demand
+	    if (info.lastUpdate > 0) {
+	        Prototype p = app.typemgr.getPrototype (info.protoName);
+	        if (p != null) {
+	            app.typemgr.updatePrototype(info.protoName);
+	            if (p.getLastUpdate () > info.lastUpdate) {
+	                evaluatePrototype(p);
+	                info.lastUpdate = p.getLastUpdate ();
+	            }
+	        }
+	    }
+	}
+	// set globals on the global object
+	if (globals != null && globals != lastGlobals) {
+	    // loop through global vars and set them
+	    for (Iterator i=globals.keySet().iterator(); i.hasNext(); ) {
+	        String k = (String) i.next();
+	        Object v = globals.get (k);
+	        ESValue sv = null;
+	        try {
+	            // we do a lot of extra work to make access to global variables
+	            // comfortable to EcmaScript coders, i.e. we use a lot of custom wrappers
+	            // that expose properties and functions in a special way instead of just going
+	            // with the standard java object wrappers.
+                    if (v instanceof RequestTrans)
+                        ((RequestTrans) v).data = new ESMapWrapper (this, ((RequestTrans) v).getRequestData ());
+                    else if (v instanceof ResponseTrans)
+                        ((ResponseTrans) v).data = new ESMapWrapper (this, ((ResponseTrans) v).getResponseData ());
+                    if (v instanceof Map)
+                        sv = new ESMapWrapper (this, (Map) v);
+                    else if ("path".equals (k)) {
+                        ArrayPrototype parr = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
+                        List path = (List) v;
+                        // register path elements with their prototype
+                        for (int j=0; j<path.size(); j++) {
+                            Object pathElem = path.get (j);
+                            ESValue wrappedElement = getElementWrapper (pathElem);
+                            parr.putProperty (j, wrappedElement);
+                            String protoname = app.getPrototypeName (pathElem);
+                            if (protoname != null)
+                                parr.putHiddenProperty (protoname, wrappedElement);
+                        }
+                        sv = parr;
+                    } else if ("user".equals (k)) {
+                        sv = getNodeWrapper ((User) v);
+                    } else if ("app".equals (k)) {
+                        sv = new ESAppNode ((INode) v, this);
+                    }
+                    else
+                        sv = ESLoader.normalizeValue (v, evaluator);
+
+		    /* if (v instanceof Map) {
+	                sv = new ESMapWrapper (this, (Map) v);
+	            } else if ("path".equals (k)) {
+	                ArrayPrototype parr = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
+	                List path = (List) v;
+	                // register path elements with their prototype
+	                for (int j=0; j<path.size(); j++) {
+	                    Object pathElem = path.get (j);
+	                    ESValue wrappedElement = getElementWrapper (pathElem);
+	                    parr.putProperty (j, wrappedElement);
+	                    String protoname = app.getPrototypeName (pathElem);
+	                    if (protoname != null)
+	                        parr.putHiddenProperty (protoname, wrappedElement);
+	                }
+	                sv = parr;
+	            } else if ("req".equals (k)) {
+	                sv = new ESBeanWrapper (new RequestBean ((RequestTrans) v), this);
+	            } else if ("res".equals (k)) {
+	                sv = new ESBeanWrapper (new ResponseBean ((ResponseTrans) v), this);
+	            } else if ("session".equals (k)) {
+	                sv = new ESBeanWrapper (new SessionBean ((Session)v), this);
+	            } else if ("app".equals (k)) {
+	                sv = new ESBeanWrapper (new ApplicationBean ((Application)v), this);
+	            } else {
+	                sv = ESLoader.normalizeValue (v, evaluator);
+	            } */
+	            global.putHiddenProperty (k, sv);
+	        } catch (Exception x) {
+	            app.logEvent ("Error setting global variable "+k+": "+x);
+	        }
+	    }
+	}
+	// remember the globals set on this evaluator
+	lastGlobals = globals;
+    }
+
+    /**
+     *   This method is called to let the scripting engine know that the current
+     *   execution context has terminated.
+     */
+    public void exitContext () {
+	// loop through previous globals and unset them, if necessary.
+	if (lastGlobals != null) {
+	    GlobalObject global = evaluator.getGlobalObject ();
+	    for (Iterator i=lastGlobals.keySet().iterator(); i.hasNext(); ) {
+	        String g = (String) i.next ();
+	        try {
+	            global.deleteProperty (g, g.hashCode());
+	        } catch (Exception x) {
+	            System.err.println ("Error resetting global property: "+g);
+	        }
+	    }
+	    lastGlobals = null;
+	}
+    }
+
 
     /**
      * Invoke a function on some object, using the given arguments and global vars.
      */
-    public Object invoke (Object thisObject, String functionName, Object[] args, HashMap globals) throws ScriptingException {
+    public Object invoke (Object thisObject, String functionName, Object[] args) throws ScriptingException {
 	ESObject eso = null;
 	if (thisObject == null)
 	    eso = global;
@@ -263,56 +378,6 @@ public final class FesiEvaluator implements ScriptingEnvironment {
 	        else
 	            esv[i] = ESLoader.normalizeValue (args[i], evaluator);
 	    }
-
-	    if (globals != null && globals != lastGlobals) {
-		    validatedTypes.clear();
-	        // remember all global variables before invocation
-	        Set tmpGlobal = new HashSet ();
-	        for (Enumeration en = global.getAllProperties(); en.hasMoreElements(); ) {
-	            tmpGlobal.add (en.nextElement ().toString ());
-	        }
-	        globalVariables = tmpGlobal;
-
-	        // loop through global vars and set them
-	        for (Iterator i=globals.keySet().iterator(); i.hasNext(); ) {
-	            String k = (String) i.next();
-	            Object v = globals.get (k);
-	            ESValue sv = null;
-	            // we do a lot of extra work to make access to global variables
-	            // comfortable to EcmaScript coders, i.e. we use a lot of custom wrappers
-	            // that expose properties and functions in a special way instead of just going
-	            // with the standard java object wrappers.
-	            if (v instanceof RequestTrans)
-	                ((RequestTrans) v).data = new ESMapWrapper (this, ((RequestTrans) v).getRequestData ());
-	            else if (v instanceof ResponseTrans)
-	                ((ResponseTrans) v).data = new ESMapWrapper (this, ((ResponseTrans) v).getResponseData ());
-	            if (v instanceof Map)
-	                sv = new ESMapWrapper (this, (Map) v);
-	            else if ("path".equals (k)) {
-	                ArrayPrototype parr = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
-	                List path = (List) v;
-	                // register path elements with their prototype
-	                for (int j=0; j<path.size(); j++) {
-	                    Object pathElem = path.get (j);
-	                    ESValue wrappedElement = getElementWrapper (pathElem);
-	                    parr.putProperty (j, wrappedElement);
-	                    String protoname = app.getPrototypeName (pathElem);
-	                    if (protoname != null)
-	                        parr.putHiddenProperty (protoname, wrappedElement);
-	                }
-	                sv = parr;
-	            } else if ("user".equals (k)) {
-	                sv = getNodeWrapper ((User) v);
-	            } else if ("app".equals (k)) {
-	                sv = new ESAppNode ((INode) v, this);
-	            }
-	            else
-	                sv = ESLoader.normalizeValue (v, evaluator);
-	            global.putHiddenProperty (k, sv);
-	        }
-	        // remember the globals set on this evaluator
-	        lastGlobals = globals;
-	    }
 	    evaluator.thread = Thread.currentThread ();
 	    ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
 	    return retval == null ? null : retval.toJavaObject ();
@@ -331,23 +396,6 @@ public final class FesiEvaluator implements ScriptingEnvironment {
 	    }
 	    throw new ScriptingException (msg);
 	} finally {
-	    // remove global variables that have been added during invocation.
-	    // this are typically undeclared variables, and we don't want them to
-	    // endure from one request to the next since this leads to buggy code that
-	    // relies on requests being served by the same evaluator, which is typically the
-	    // case under development conditions but not in deployment.
-	    /* if (globalVariables != null) {
-	        for (Enumeration en = global.getAllProperties(); en.hasMoreElements(); ) {
-	            String g = en.nextElement ().toString ();
-	            try {
-	                if (!globalVariables.contains (g) &&
-				!(global.getProperty (g, g.hashCode()) instanceof BuiltinFunctionObject))
-	                    global.deleteProperty (g, g.hashCode());
-	            } catch (Exception x) {
-	                System.err.println ("Error resetting global property: "+g);
-	            }
-	        }
-	    } */
 	}
     }
 
@@ -356,15 +404,12 @@ public final class FesiEvaluator implements ScriptingEnvironment {
      * Check if an object has a function property (public method if it
      * is a java object) with that name.
      */
-    public boolean hasFunction (Object obj, String fname) {    
+    public boolean hasFunction (Object obj, String fname) {
 	// System.err.println ("HAS_FUNC: "+fname);
-	ESObject eso = null;
-	if (obj == null)
-	    eso = evaluator.getGlobalObject ();
-	else
-	    eso = getElementWrapper (obj);
+	String protoname = app.getPrototypeName (obj);
 	try {
-	    ESValue func = eso.getProperty (fname, fname.hashCode());
+	    ObjectPrototype op = getPrototype (protoname);
+	    ESValue func = op.getProperty (fname, fname.hashCode());
 	    if (func != null && func instanceof FunctionPrototype)
 	        return true;
 	} catch (EcmaScriptException esx) {
@@ -440,20 +485,20 @@ public final class FesiEvaluator implements ScriptingEnvironment {
     }
 
     /**
-     *  Get the object prototype for a prototype name
+     *  Get the object prototype for a prototype name and initialize/update it
+     *  if necessary.
      */
     public ObjectPrototype getPrototype (String protoName) {
         if (protoName == null)
             return null;
         TypeInfo info = (TypeInfo) prototypes.get (protoName);
-        if (info != null && !validatedTypes.contains (protoName)) {
+        if (info != null && info.lastUpdate == 0) {
             Prototype p = app.typemgr.getPrototype (protoName);
             if (p != null) {
-                validatedTypes.add (protoName);
                 app.typemgr.updatePrototype(protoName);
                 if (p.getLastUpdate () > info.lastUpdate) {
-                    evaluatePrototype(p);
                     info.lastUpdate = p.getLastUpdate ();
+                    evaluatePrototype(p);
                 }
             }
         }
@@ -465,7 +510,7 @@ public final class FesiEvaluator implements ScriptingEnvironment {
      */
     public void putPrototype (String protoName, ObjectPrototype op) {
         if (protoName != null && op != null)
-            prototypes.put (protoName, new TypeInfo (op));
+            prototypes.put (protoName, new TypeInfo (op, protoName));
     }
 
 
@@ -636,10 +681,14 @@ public final class FesiEvaluator implements ScriptingEnvironment {
 
 
     class TypeInfo {
+
         ObjectPrototype objectPrototype;
         long lastUpdate = 0;
-        public TypeInfo (ObjectPrototype op) {
+        String protoName;
+
+        public TypeInfo (ObjectPrototype op, String name) {
             objectPrototype = op;
+            protoName = name;
         }
     }
 
