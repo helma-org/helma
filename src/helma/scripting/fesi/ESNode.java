@@ -238,7 +238,7 @@ public class ESNode extends ObjectPrototype {
         }
 
         if (!(what[1] instanceof ESNode)) {
-            throw new EcmaScriptException("Can ony add Node objects as subnodes");
+            throw new EcmaScriptException("Can only add Node objects as subnodes");
         }
 
         ESNode esn = (ESNode) what[1];
@@ -341,23 +341,6 @@ public class ESNode extends ObjectPrototype {
         ((Node) node).prefetchChildren(start, length);
     }
 
-    /**
-     *  This used to be different from add(), it isn't anymore. It's left here for
-     *  compatibility.
-     */
-    public boolean link(ESValue[] args) {
-        checkNode();
-
-        for (int i = 0; i < args.length; i++) {
-            if (args[i] instanceof ESNode) {
-                ESNode esn = (ESNode) args[i];
-
-                node.addNode(esn.getNode());
-            }
-        }
-
-        return true;
-    }
 
     /**
      *
