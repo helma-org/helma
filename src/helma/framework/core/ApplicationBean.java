@@ -299,7 +299,7 @@ public class ApplicationBean implements Serializable {
     }
 
     // getter methods for readonly properties of this application
-    public int getcacheusage() {
+    public int getCacheusage() {
         return app.getCacheUsage();
     }
 
@@ -308,7 +308,7 @@ public class ApplicationBean implements Serializable {
      *
      * @return ...
      */
-    public INode getdata() {
+    public INode getData() {
         return app.getCacheNode();
     }
 
@@ -317,7 +317,7 @@ public class ApplicationBean implements Serializable {
      *
      * @return ...
      */
-    public Map getmodules() {
+    public Map getModules() {
         return app.modules;
     }
 
@@ -326,7 +326,7 @@ public class ApplicationBean implements Serializable {
      *
      * @return ...
      */
-    public String getdir() {
+    public String getDir() {
         return app.getAppDir().getAbsolutePath();
     }
 
@@ -335,7 +335,7 @@ public class ApplicationBean implements Serializable {
      *
      * @return ...
      */
-    public String getname() {
+    public String getName() {
         return app.getName();
     }
 
@@ -344,7 +344,7 @@ public class ApplicationBean implements Serializable {
      *
      * @return ...
      */
-    public Date getupSince() {
+    public Date getUpSince() {
         return new Date(app.starttime);
     }
 
@@ -353,7 +353,7 @@ public class ApplicationBean implements Serializable {
      *
      * @return ...
      */
-    public long getrequestCount() {
+    public long getRequestCount() {
         return app.getRequestCount();
     }
 
@@ -362,7 +362,7 @@ public class ApplicationBean implements Serializable {
      *
      * @return ...
      */
-    public long getxmlrpcCount() {
+    public long getXmlrpcCount() {
         return app.getXmlrpcCount();
     }
 
@@ -371,7 +371,7 @@ public class ApplicationBean implements Serializable {
      *
      * @return ...
      */
-    public long geterrorCount() {
+    public long getErrorCount() {
         return app.getErrorCount();
     }
 
@@ -389,7 +389,7 @@ public class ApplicationBean implements Serializable {
      *
      * @return ...
      */
-    public Map getproperties() {
+    public Map getProperties() {
         if (properties == null) {
             properties = new WrappedMap(app.getProperties());
             properties.setReadonly(true);
@@ -402,7 +402,7 @@ public class ApplicationBean implements Serializable {
      *
      * @return ...
      */
-    public int getfreeThreads() {
+    public int getFreeThreads() {
         return app.countFreeEvaluators();
     }
 
@@ -411,7 +411,7 @@ public class ApplicationBean implements Serializable {
      *
      * @return ...
      */
-    public int getactiveThreads() {
+    public int getActiveThreads() {
         return app.countActiveEvaluators();
     }
 
@@ -420,7 +420,7 @@ public class ApplicationBean implements Serializable {
      *
      * @return ...
      */
-    public int getmaxThreads() {
+    public int getMaxThreads() {
         return app.countEvaluators();
     }
 
@@ -429,7 +429,7 @@ public class ApplicationBean implements Serializable {
      *
      * @param n ...
      */
-    public void setmaxThreads(int n) {
+    public void setMaxThreads(int n) {
         // add one to the number to compensate for the internal scheduler.
         app.setNumberOfEvaluators(n + 1);
     }

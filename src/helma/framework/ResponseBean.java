@@ -173,7 +173,7 @@ public class ResponseBean implements Serializable {
     }
 
     // property-related methods:
-    public boolean getcache() {
+    public boolean getCache() {
         return res.cache;
     }
 
@@ -191,7 +191,7 @@ public class ResponseBean implements Serializable {
      *
      * @return ...
      */
-    public String getcharset() {
+    public String getCharset() {
         return res.charset;
     }
 
@@ -200,7 +200,7 @@ public class ResponseBean implements Serializable {
      *
      * @param charset ...
      */
-    public void setcharset(String charset) {
+    public void setCharset(String charset) {
         res.charset = charset;
     }
 
@@ -209,7 +209,7 @@ public class ResponseBean implements Serializable {
      *
      * @return ...
      */
-    public String getcontentType() {
+    public String getContentType() {
         return res.contentType;
     }
 
@@ -218,7 +218,7 @@ public class ResponseBean implements Serializable {
      *
      * @param contentType ...
      */
-    public void setcontentType(String contentType) {
+    public void setContentType(String contentType) {
         res.contentType = contentType;
     }
 
@@ -227,7 +227,7 @@ public class ResponseBean implements Serializable {
      *
      * @return ...
      */
-    public Map getdata() {
+    public Map getData() {
         return res.getResponseData();
     }
 
@@ -236,7 +236,7 @@ public class ResponseBean implements Serializable {
      *
      * @return ...
      */
-    public Map gethandlers() {
+    public Map getHandlers() {
         return res.getMacroHandlers();
     }
 
@@ -245,7 +245,7 @@ public class ResponseBean implements Serializable {
      *
      * @return ...
      */
-    public String geterror() {
+    public String getError() {
         return res.error;
     }
 
@@ -254,7 +254,7 @@ public class ResponseBean implements Serializable {
      *
      * @return ...
      */
-    public String getmessage() {
+    public String getMessage() {
         return res.message;
     }
 
@@ -263,7 +263,7 @@ public class ResponseBean implements Serializable {
      *
      * @param message ...
      */
-    public void setmessage(String message) {
+    public void setMessage(String message) {
         res.message = message;
     }
 
@@ -272,7 +272,7 @@ public class ResponseBean implements Serializable {
      *
      * @return ...
      */
-    public String getrealm() {
+    public String getRealm() {
         return res.realm;
     }
 
@@ -281,7 +281,7 @@ public class ResponseBean implements Serializable {
      *
      * @param realm ...
      */
-    public void setrealm(String realm) {
+    public void setRealm(String realm) {
         res.realm = realm;
     }
 
@@ -290,7 +290,7 @@ public class ResponseBean implements Serializable {
      *
      * @param arr ...
      */
-    public void setskinpath(Object[] arr) {
+    public void setSkinpath(Object[] arr) {
         res.setSkinpath(arr);
     }
 
@@ -299,7 +299,7 @@ public class ResponseBean implements Serializable {
      *
      * @return ...
      */
-    public Object[] getskinpath() {
+    public Object[] getSkinpath() {
         return res.getSkinpath();
     }
 
@@ -308,7 +308,7 @@ public class ResponseBean implements Serializable {
      *
      * @return ...
      */
-    public int getstatus() {
+    public int getStatus() {
         return res.status;
     }
 
@@ -317,7 +317,7 @@ public class ResponseBean implements Serializable {
      *
      * @param status ...
      */
-    public void setstatus(int status) {
+    public void setStatus(int status) {
         res.status = status;
     }
 
@@ -384,8 +384,8 @@ public class ResponseBean implements Serializable {
     }
 
     /////////////////////////////////////
-    // The following are legacy methods used by 
-    // Helma templates (*.hsp files) and shouldn't 
+    // The following are legacy methods used by
+    // Helma templates (*.hsp files) and shouldn't
     // be used otherwise.
     ////////////////////////////////////
     public void pushStringBuffer() {

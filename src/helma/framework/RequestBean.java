@@ -75,7 +75,7 @@ public class RequestBean implements Serializable {
     }
 
     // property related methods:
-    public String getaction() {
+    public String getAction() {
         return req.action;
     }
 
@@ -84,7 +84,7 @@ public class RequestBean implements Serializable {
      *
      * @return ...
      */
-    public Map getdata() {
+    public Map getData() {
         return req.getRequestData();
     }
 
@@ -93,7 +93,7 @@ public class RequestBean implements Serializable {
      *
      * @return ...
      */
-    public long getruntime() {
+    public long getRuntime() {
         return (System.currentTimeMillis() - req.startTime);
     }
 
@@ -102,7 +102,7 @@ public class RequestBean implements Serializable {
      *
      * @return ...
      */
-    public String getpassword() {
+    public String getPassword() {
         return req.getPassword();
     }
 
@@ -111,7 +111,7 @@ public class RequestBean implements Serializable {
      *
      * @return ...
      */
-    public String getpath() {
+    public String getPath() {
         return req.path;
     }
 
@@ -120,19 +120,8 @@ public class RequestBean implements Serializable {
      *
      * @return ...
      */
-    public String getusername() {
+    public String getUsername() {
         return req.getUsername();
     }
 
-    /* public Date getLastModified () {
-       long since = req.getIfModifiedSince ();
-       if (since < 0)
-           return null;
-       else
-           return new Date (since);
-       }
-       public void setLastModified () {
-       throw new RuntimeException ("The lastModified property of the Request object is read-only. "+
-               "Set lastModified on the Response object if you want to mark the last modification date of a resource.");
-       } */
 }
