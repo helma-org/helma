@@ -64,6 +64,8 @@ public class ESMapWrapper extends ESWrapper {
 	    return new ESString ((String) val);
 	else if (val instanceof INode)
 	    return fesi.getNodeWrapper ((INode) val);
+	else if (val instanceof Map)
+		return new ESMapWrapper (fesi, (Map)val);
 	else if (val instanceof ESValue)
 	    return (ESValue) val;
 	return ESLoader.normalizeValue(val, evaluator);
