@@ -70,7 +70,7 @@ public class ApplicationManager {
     private void start (String appName) {
 	Server.getLogger().log ("Building application "+appName);
 	try {
-	    Application app = new Application (appName, Server.sysProps, Server.dbProps, hopHome);
+	    Application app = new Application (appName, hopHome, Server.sysProps, Server.dbProps);
 	    applications.put (appName, app);
 	    // if we're running with the embedded web server, set app base uri to /appname
 	    if (server.websrv != null)

@@ -37,7 +37,7 @@ public class StandaloneServletClient extends AbstractServletClient {
 	    File propfile = new File (serverProps);
 	    File hopHome = new File (propfile.getParent());
 	    SystemProperties sysProps = new SystemProperties (propfile.getAbsolutePath());
-	    app = new Application (appName, sysProps, null, hopHome);
+	    app = new Application (appName, hopHome, sysProps, null);
 	    app.start ();
 	} catch (Exception x) {
 	    System.err.println ("Error starting Application "+appName+": "+x);
