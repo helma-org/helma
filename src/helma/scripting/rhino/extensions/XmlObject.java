@@ -141,7 +141,7 @@ public class XmlObject {
         }
 
         try {
-            XmlReader reader = new XmlReader();
+            XmlReader reader = new XmlReader(core.app.getWrappedNodeManager());
             INode result = reader.read(new File(file), node);
 
             return core.getNodeWrapper(result);
@@ -188,7 +188,7 @@ public class XmlObject {
         }
 
         try {
-            XmlReader reader = new XmlReader();
+            XmlReader reader = new XmlReader(core.app.getWrappedNodeManager());
             INode result = reader.read(new StringReader(str), node);
 
             return core.getNodeWrapper(result);

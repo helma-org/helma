@@ -17,6 +17,7 @@
 package helma.objectmodel.dom;
 
 import helma.objectmodel.INode;
+import helma.objectmodel.db.WrappedNodeManager;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -45,11 +46,13 @@ public final class XmlReader extends DefaultHandler implements XmlConstants {
     private String elementName = null;
     private StringBuffer charBuffer = null;
     boolean parsingHopObject;
+    WrappedNodeManager nmgr;
 
     /**
      * Creates a new XmlReader object.
      */
-    public XmlReader() {
+    public XmlReader(WrappedNodeManager nmgr) {
+        this.nmgr = nmgr;
     }
 
     /**
@@ -189,6 +192,12 @@ public final class XmlReader extends DefaultHandler implements XmlConstants {
             String prototyperef = atts.getValue("prototyperef");
             String key = idref + "-" + prototyperef;
             INode n = (INode) convertedNodes.get(key);
+
+            // if not a reference to a node we already read, try to
+            // resolve against the NodeManager.
+            if (n == null) {
+                n = nmgr.getNode(idref, nmgr.getDbMapping(prototyperef));
+            }
 
             if (n != null) {
                 if ("hop:child".equals(qName)) {

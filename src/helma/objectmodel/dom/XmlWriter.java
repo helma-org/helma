@@ -20,6 +20,7 @@ package helma.objectmodel.dom;
 import helma.objectmodel.INode;
 import helma.objectmodel.IProperty;
 import helma.objectmodel.TransientNode;
+import helma.objectmodel.INodeState;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Node;
 import helma.util.HtmlEncoder;
@@ -43,7 +44,10 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
     private SimpleDateFormat format = new SimpleDateFormat(DATEFORMAT);
     private boolean dbmode = true;
 
-    // Only add encoding to XML declaration if it was explicitly set, not when we're using 
+    // the helma.objectmodel.INodeState of the node we're writing
+    public int rootState;
+
+    // Only add encoding to XML declaration if it was explicitly set, not when we're using
     // the platform's standard encoding.
     private String explicitEncoding;
 
@@ -182,6 +186,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
      * the cache of already converted nodes.
      */
     public boolean write(INode node) throws IOException {
+        rootState = node.getState();
         convertedNodes = new Vector();
 
         if (explicitEncoding == null) {
@@ -228,6 +233,13 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 
         if (convertedNodes.contains(node)) {
             writeReferenceTag(node, elementName, propName);
+        } else if (rootState == INodeState.TRANSIENT &&
+                   node.getState() > INodeState.TRANSIENT) {
+            // if we are writing a transient node, and that node
+            // holds a reference to a persistent one, just write a
+            // reference tag to that persistent node.
+            writeReferenceTag(node, elementName, propName);
+
         } else {
             convertedNodes.addElement(node);
             writeTagOpen(node, elementName, propName);
