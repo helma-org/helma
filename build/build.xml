@@ -168,6 +168,14 @@
         <antcall target="package-tgz">
             <param name="filename" value="${package.name}"/>
         </antcall>
+        
+        <!-- make the src distributions -->
+        <antcall target="package-src-zip">
+            <param name="filename" value="${package.name}"/>
+        </antcall>
+        <antcall target="package-src-tgz">
+            <param name="filename" value="${package.name}"/>
+        </antcall>
 
         <!-- clean up -->
         <delete dir="${build.work}"/>
@@ -210,14 +218,14 @@
         <copy file="${build.lib}/${jar.name}-${DSTAMP}.jar" tofile="${build.work}/lib/helma.jar"/>
 
         <!-- zip the sourcecode -->
-        <mkdir dir="${build.work}/src"/>
+        <!-- mkdir dir="${build.work}/src"/>
         <tar tarfile="${build.work}/src/helma-src.tar" basedir="${build.src}/">
              <tarfileset dir="${build.src}">
                   <include name="${build.src}/**"/>
              </tarfileset>
         </tar>
         <gzip zipfile="${build.work}/src/helma-src.tar.gz" src="${build.work}/src/helma-src.tar"/>
-        <delete file="${build.work}/src/helma-src.tar"/>
+        <delete file="${build.work}/src/helma-src.tar"/ -->
     </target>
 
 
@@ -291,10 +299,38 @@ manage
     <!-- needs parameter ${filename} for final dist-file                     -->
     <!-- =================================================================== -->
     <target name="package-zip" depends="init">
-    	<mkdir dir="${build.dist}" />
+        <mkdir dir="${build.dist}" />
         <fixcrlf srcdir="${build.work}" eol="crlf" includes="**/*.txt, **/*.properties, **/*.hac, **/*.js, **/*.skin, **/*.xml" />
         <zip zipfile="${build.dist}/${filename}.zip">
             <zipfileset dir="${build.work}" prefix="${filename}" includes="**" />
+        </zip>
+    </target>
+
+
+    <!-- =================================================================== -->
+    <!-- Packages Helma src and build directories with TAR-GZIP              -->
+    <!-- needs parameter ${filename} for final dist-file                     -->
+    <!-- =================================================================== -->
+    <target name="package-src-tgz" depends="init">
+        <mkdir dir="${build.dist}" />
+        <tar tarfile="${build.dist}/${filename}-src.tar">
+            <tarfileset prefix="${filename}" dir="${home.dir}"
+                includes="src/**,build/**,license.txt,licenses/**"/>
+        </tar>
+        <gzip zipfile="${build.dist}/${filename}-src.tar.gz" src="${build.dist}/${filename}-src.tar"/>
+        <delete file="${build.dist}/${filename}-src.tar"/>
+    </target>
+
+
+    <!-- =================================================================== -->
+    <!-- Packages Helma src and build directories with ZIP                   -->
+    <!-- needs parameter ${filename} for final dist-file                     -->
+    <!-- =================================================================== -->
+    <target name="package-src-zip" depends="init">
+        <mkdir dir="${build.dist}" />
+        <zip zipfile="${build.dist}/${filename}-src.zip">
+            <zipfileset dir="${home.dir}" prefix="${filename}" 
+             includes="src/**,build/**,license.txt,licenses/**" />
         </zip>
     </target>
 
