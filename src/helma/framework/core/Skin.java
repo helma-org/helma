@@ -20,7 +20,7 @@ import java.util.*;
 
 public final class Skin {
 
-    private Macro[] parts;
+    private Macro[] macros;
     private Application app;
     private char[] source;
     private int sourceLength;
@@ -84,8 +84,8 @@ public final class Skin {
 	    }
 	}
 
-	parts = new Macro[partBuffer.size()];
-	partBuffer.toArray (parts);
+	macros = new Macro[partBuffer.size()];
+	partBuffer.toArray (macros);
     }
 
     /**
@@ -104,7 +104,7 @@ public final class Skin {
 	if (++reval.skinDepth > 50)
 	    throw new RuntimeException ("Recursive skin invocation suspected");
 
-	if (parts == null) {
+	if (macros == null) {
 	    reval.res.writeCharArray (source, 0, sourceLength);
 	    reval.skinDepth--;
 	    return;
@@ -113,14 +113,14 @@ public final class Skin {
 	try {
 	    int written = 0;
 	    Map handlerCache = null;
-	    if (parts.length > 3) {
+	    if (macros.length > 3) {
 	        handlerCache = new HashMap();
 	    }
-	    for (int i=0; i<parts.length; i++) {
-	        if (parts[i].start > written)
-	            reval.res.writeCharArray (source, written, parts[i].start-written);
-	        parts[i].render (reval, thisObject, paramObject, handlerCache);
-	        written = parts[i].end;
+	    for (int i=0; i<macros.length; i++) {
+	        if (macros[i].start > written)
+	            reval.res.writeCharArray (source, written, macros[i].start-written);
+	        macros[i].render (reval, thisObject, paramObject, handlerCache);
+	        written = macros[i].end;
 	    }
 	    if (written < sourceLength)
 	        reval.res.writeCharArray (source, written, sourceLength-written);
@@ -133,9 +133,9 @@ public final class Skin {
      * Check if a certain macro is present in this skin. The macro name is in handler.name notation
      */
     public boolean containsMacro (String macroname) {
-	for (int i=0; i<parts.length; i++) {
-	    if (parts[i] instanceof Macro) {
-	        Macro m = (Macro) parts[i];
+	for (int i=0; i<macros.length; i++) {
+	    if (macros[i] instanceof Macro) {
+	        Macro m = (Macro) macros[i];
 	        if (macroname.equals (m.fullName))
 	            return true;
 	    }
@@ -158,6 +158,13 @@ public final class Skin {
     static final int PARAMNAME = 2;
     static final int PARAMVALUE = 3;
 
+    static final int ENCODE_NONE = 0;
+    static final int ENCODE_HTML = 1;
+    static final int ENCODE_XML = 2;
+    static final int ENCODE_FORM = 3;
+    static final int ENCODE_URL = 4;
+    static final int ENCODE_ALL = 5;
+
     class Macro {
 
 	final int start, end;
@@ -166,8 +173,8 @@ public final class Skin {
 	String fullName;
 	String prefix;
 	String suffix;
-	String encoding;
 	String defaultValue;
+	int encoding = ENCODE_NONE;
 	Map parameters = null;
 
 	public Macro (int start, int end) {
@@ -264,7 +271,7 @@ public final class Skin {
 
 	}
 
-	
+
 	private boolean setSpecialParameter (String name, String value) {
 	    if ("prefix".equals (name)) {
 	        prefix = value;
@@ -273,7 +280,16 @@ public final class Skin {
 	        suffix = value;
 	        return true;
 	    } else if ("encoding".equals (name)) {
-	        encoding = value;
+	        if ("html".equalsIgnoreCase (value))
+	            encoding = ENCODE_HTML;
+	        else if ("xml".equalsIgnoreCase (value))
+	            encoding = ENCODE_XML;
+	        else if ("form".equalsIgnoreCase (value))
+	            encoding = ENCODE_FORM;
+	        else if ("url".equalsIgnoreCase (value))
+	            encoding = ENCODE_URL;
+	        else if ("all".equalsIgnoreCase (value))
+	            encoding = ENCODE_ALL;
 	        return true;
 	    } else if ("default".equals (name)) {
 	        defaultValue = value;
@@ -347,16 +363,9 @@ public final class Skin {
 	                }
 
 	                if (handlerObject == null) {
-	                    // eiter because thisObject == null or the right object wasn't found in the object's parent path
-	                    // go check request path for an object with matching prototype
-	                    /* int l = reval.requestPath.size();
-	                    for (int i=l-1; i>=0; i--) {
-	                        Object pathelem = reval.requestPath.get (i);
-	                        if (handler.equals (app.getPrototypeName (pathelem))) {
-	                            handlerObject = pathelem;
-	                            break;
-	                        }
-	                    } */
+	                    // eiter because thisObject == null or the right object wasn't found 
+	                    // in the object's parent path. Check if a matching macro handler
+	                    // is registered with the response object (res.handlers).
 	                    handlerObject = reval.res.getMacroHandlers().get (handler);
 	                }
 
@@ -380,12 +389,14 @@ public final class Skin {
 
 	            String funcName = name+"_macro";
 	            if (reval.scriptingEngine.hasFunction (handlerObject, funcName)) {
+	                
+	                StringBuffer buffer = reval.res.getBuffer();
 	                // remember length of response buffer before calling macro
-	                int bufLength = reval.res.getBufferLength ();
+	                int bufLength = buffer.length();
 	                // remember length of buffer with prefix written out
 	                int preLength = 0;
 	                if (prefix != null) {
-	                    reval.res.write (prefix);
+	                    buffer.append (prefix);
 	                    preLength = prefix.length();
 	                }
 
@@ -396,24 +407,36 @@ public final class Skin {
 	                //     parameters = new HashMap ();
 	                Object[] arguments = { parameters == null ?
 	                    new HashMap () :
-	                    new HashMap (parameters) };
+	                    new HashMap (parameters)
+	                };
 
-	                Object v = reval.scriptingEngine.invoke (handlerObject, funcName, arguments, false);
+	                Object value = reval.scriptingEngine.invoke (handlerObject, funcName, arguments, false);
+
 	                // check if macro wrote out to response buffer
-	                if (reval.res.getBufferLength () == bufLength + preLength) {
-	                    // function didn't write out anything itself
+	                if (buffer.length () == bufLength + preLength) {
+	                    // function didn't write out anything itself. 
+	                    // erase previously written prefix
 	                    if (preLength > 0)
-	                        reval.res.setBufferLength (bufLength);
-	                    writeToResponse (v, reval.res, true);
+	                        buffer.setLength (bufLength);
+	                    // write out macro's return value
+	                    writeResponse (value, buffer, true);
 	                } else {
-	                    if (suffix != null)
-	                        reval.res.write (suffix);
-	                    writeToResponse (v, reval.res, false);
+	                    if (encoding != ENCODE_NONE) {
+	                        // if an encoding is specified, re-encode the macro's output
+	                        String output = buffer.substring (bufLength + preLength);
+	                        buffer.setLength (bufLength);
+	                        writeResponse (output, buffer, false);
+	                    } else {
+	                        // no re-encoding needed, just append suffix
+	                        if (suffix != null)
+	                            buffer.append (suffix);
+	                    }
+	                    writeResponse (value, buffer, false);
 	                }
 	            } else {
 	                // System.err.println ("Getting macro from property");
-	                Object v = reval.scriptingEngine.get (handlerObject, name);
-	                writeToResponse (v, reval.res, true);
+	                Object value = reval.scriptingEngine.get (handlerObject, name);
+	                writeResponse (value, reval.res.getBuffer(), true);
 	            }
 	        } else {
 	            String msg = "[HopMacro unhandled: "+fullName+"]";
@@ -445,21 +468,21 @@ public final class Skin {
 	        value = reval.res.error;  
 	    if (value == null)  
 	        value = reval.res.get (name);
-	    writeToResponse (value, reval.res, true);
+	    writeResponse (value, reval.res.getBuffer(), true);
 	}
 
 	private void renderFromRequest (RequestEvaluator reval) {
 	    if (reval.req == null)
 	        return;
 	    Object value = reval.req.get (name);
-	    writeToResponse (value, reval.res, true);
+	    writeResponse (value, reval.res.getBuffer(), true);
 	}
 
 	private void renderFromSession (RequestEvaluator reval) {
 	    if (reval.session == null)
 	        return;
 	    Object value = reval.session.getCacheNode().getString (name);
-	    writeToResponse (value, reval.res, true);
+	    writeResponse (value, reval.res.getBuffer(), true);
 	}
 
 	private void renderFromParam (RequestEvaluator reval, Map paramObject) {
@@ -467,14 +490,14 @@ public final class Skin {
 	        reval.res.write ("[HopMacro error: Skin requires a parameter object]");
 	    else {
 	        Object value = paramObject.get (name);
-	        writeToResponse (value, reval.res, true);
+	        writeResponse (value, reval.res.getBuffer(), true);
 	    }
 	}
 
 	/**
 	 * Utility method for writing text out to the response object.
 	 */
-	void writeToResponse (Object value, ResponseTrans res, boolean useDefault) {
+	void writeResponse (Object value, StringBuffer buffer, boolean useDefault) {
 	    String text;
 	    if (value == null) {
 	        if (useDefault)
@@ -484,36 +507,39 @@ public final class Skin {
 	    } else {
 	        text = value.toString ();
 	    }
-	    if (text == null || text.length() == 0)
-	        return;
-	    if (encoding != null)
-	        text = encode (text, encoding);
-	    res.write (prefix);
-	    res.write (text);
-	    res.write (suffix);
-	}
-
-	/**
-	 * Utility method for performing different kind of character
-	 * encodings on the macro output.
-	 */
-	String encode (String text, String encoding) {
-	    if ("html".equalsIgnoreCase (encoding))
-	        return HtmlEncoder.encode (text);
-	    if ("xml".equalsIgnoreCase (encoding))
-	        return HtmlEncoder.encodeXml (text);
-	    if ("form".equalsIgnoreCase (encoding))
-	        return HtmlEncoder.encodeFormValue (text);
-	    if ("url".equalsIgnoreCase (encoding))
-	        return URLEncoder.encode (text);
-	    return text;
+	    if (text != null && text.length() > 0) {
+	        if (prefix != null)
+	            buffer.append (prefix);
+	        switch (encoding) {
+	            case ENCODE_NONE:
+	                buffer.append (text);
+	                break;
+	            case ENCODE_HTML:
+	                HtmlEncoder.encode (text, buffer);
+	                break;
+	            case ENCODE_XML:
+	                HtmlEncoder.encodeXml (text, buffer);
+	                break;
+	            case ENCODE_FORM:
+	                HtmlEncoder.encodeFormValue (text, buffer);
+	                break;
+	            case ENCODE_URL:
+	                buffer.append (URLEncoder.encode (text));
+	                break;
+	            case ENCODE_ALL:
+	                HtmlEncoder.encodeAll (text, buffer);
+	                break;
+	        }
+	        if (suffix != null)
+	            buffer.append (suffix);
+	    }
 	}
 
 
 	public String toString () {
 	    return "[HopMacro: "+fullName+"]";
 	}
-	
+
 
 	/**
 	 * Return the full name of the macro in handler.name notation
