@@ -30,6 +30,7 @@ import helma.util.SystemProperties;
 import helma.util.Updatable;
 import org.mozilla.javascript.*;
 import java.io.*;
+import java.text.*;
 import java.util.*;
 
 /**
@@ -90,6 +91,17 @@ public final class RhinoCore {
             putPrototype("hopobject",
                          ScriptableObject.getClassPrototype(global, "HopObject"));
             putPrototype("global", global);
+
+            // add some convenience functions to string, date and number prototypes
+            Scriptable stringProto = ScriptableObject.getClassPrototype(global, "String");
+            stringProto.put("trim", stringProto, new StringTrim());
+
+            Scriptable dateProto = ScriptableObject.getClassPrototype(global, "Date");
+            dateProto.put("format", dateProto, new DateFormat());
+
+            Scriptable numberProto = ScriptableObject.getClassPrototype(global, "Number");
+            numberProto.put("format", numberProto, new NumberFormat());
+
             initialize();
         } catch (Exception e) {
             System.err.println("Cannot initialize interpreter");
@@ -809,6 +821,37 @@ public final class RhinoCore {
         }
     }
 
+    class StringTrim extends BaseFunction {
+        public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
+            String str = thisObj.toString();
+            return str.trim();
+        }
+    }
+
+    class DateFormat extends BaseFunction {
+        public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
+            Date date = new Date((long) ScriptRuntime.toNumber(thisObj));
+            SimpleDateFormat df = null;
+            if (args.length > 0 && args[0] != Undefined.instance) {
+                df = new SimpleDateFormat(args[0].toString());
+            } else {
+                df = new SimpleDateFormat();
+            }
+            return df.format(date);
+        }
+    }
+
+    class NumberFormat extends BaseFunction {
+        public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
+            DecimalFormat df = null;
+            if (args.length > 0 && args[0] != Undefined.instance) {
+                df = new DecimalFormat(args[0].toString());
+            } else {
+                df = new DecimalFormat("#,##0.00");
+            }
+            return df.format(ScriptRuntime.toNumber(thisObj)).toString();
+        }
+    }
 
 }
 
