@@ -171,7 +171,7 @@ public final class RequestEvaluator implements Runnable {
                                         String errorAction = app.props.getProperty("error",
                                                 "error");
 
-                                        action = getAction(currentElement, errorAction);
+                                        action = getAction(currentElement, errorAction, null);
 
                                         if (action == null) {
                                             throw new RuntimeException(error);
@@ -181,7 +181,7 @@ public final class RequestEvaluator implements Runnable {
                                         currentElement = root;
                                         requestPath.add(null, currentElement);
 
-                                        action = getAction(currentElement, null);
+                                        action = getAction(currentElement, null, req.getMethod());
 
                                         if (action == null) {
                                             throw new FrameworkException("Action not found");
@@ -219,7 +219,7 @@ public final class RequestEvaluator implements Runnable {
                                             // try to interpret it as action name.
                                             if (i == (ntokens - 1)) {
                                                 action = getAction(currentElement,
-                                                        pathItems[i]);
+                                                        pathItems[i], req.getMethod());
                                             }
 
                                             if (action == null) {
@@ -239,7 +239,7 @@ public final class RequestEvaluator implements Runnable {
                                         }
 
                                         if (action == null) {
-                                            action = getAction(currentElement, null);
+                                            action = getAction(currentElement, null, req.getMethod());
                                         }
 
                                         if (action == null) {
@@ -262,7 +262,7 @@ public final class RequestEvaluator implements Runnable {
                                             "notfound");
 
                                     currentElement = root;
-                                    action = getAction(currentElement, notFoundAction);
+                                    action = getAction(currentElement, notFoundAction, null);
 
                                     if (action == null) {
                                         throw new FrameworkException(notfound.getMessage());
@@ -938,15 +938,36 @@ public final class RequestEvaluator implements Runnable {
      * Check if an action with a given name is defined for a scripted object. If it is,
      * return the action's function name. Otherwise, return null.
      */
-    public String getAction(Object obj, String action) {
-        if (obj == null) {
+    public String getAction(Object obj, String action, String method) {
+        if (obj == null)
             return null;
+
+        if (action == null)
+            action = "main";
+
+        StringBuffer buffer = new StringBuffer(action).append("_action");
+
+        // append HTTP method to action name
+        if (method != null) {
+            // record length so we can check without method
+            // afterwards for GET, POST, HEAD requests
+            int length = buffer.length();
+
+            // append _methodname
+            buffer.append('_').append(method.toLowerCase());
+            if (scriptingEngine.hasFunction(obj, buffer.toString()))
+                return buffer.toString();
+
+            // cut off method in case it has been appended
+            buffer.setLength(length);
         }
 
-        String act = (action == null) ? "main_action" : (action + "_action");
-
-        if (scriptingEngine.hasFunction(obj, act)) {
-            return act;
+        // if no method specified or "ordinary" request try action without method
+        if (method == null || "GET".equalsIgnoreCase(method) ||
+                              "POST".equalsIgnoreCase(method) ||
+                              "HEAD".equalsIgnoreCase(method)) {
+            if (scriptingEngine.hasFunction(obj, buffer.toString()))
+                return buffer.toString();
         }
 
         return null;
