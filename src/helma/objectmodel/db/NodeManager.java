@@ -360,8 +360,8 @@ public final class NodeManager {
     }
 
     /**
-    * Remove a node from the node cache. If at a later time it is  accessed again, it will be
-    * refetched from the database.
+    * Remove a node from the node cache. If at a later time it is accessed again,
+    * it will be refetched from the database.
     */
     public void evictNode (Node node) {
 	node.setState (INode.INVALID);
@@ -369,7 +369,21 @@ public final class NodeManager {
     }
 
     /**
-     * Used when a key stops being valid for a node.
+    * Remove a node from the node cache. If at a later time it is accessed again,
+    * it will be refetched from the database.
+    */
+    public void evictNodeByKey (Key key) {
+	Node n = (Node) cache.remove (key);
+	if (n != null) {
+	    n.setState (INode.INVALID);
+	    if (!(key instanceof DbKey))
+	        cache.remove (n.getKey ());
+	}
+    }
+
+    /**
+     * Used when a key stops being valid for a node. The cached node itself
+     * remains valid, if it is present in the cache by other keys.
      */
     public void evictKey (Key key) {
 	cache.remove (key);

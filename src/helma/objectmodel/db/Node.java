@@ -435,9 +435,9 @@ public final class Node implements INode, Serializable {
 	Relation rel = getDbMapping ().getSubnodeRelation ();
 	if (rel != null) {
 	    if (rel.usesPrimaryKey()) {
-	        nmgr.evictKey (new DbKey (getDbMapping().getSubnodeMapping(), key));
+	        nmgr.evictNodeByKey (new DbKey (getDbMapping().getSubnodeMapping(), key));
 	    } else {
-	        nmgr.evictKey (new SyntheticKey (getKey(), key));
+	        nmgr.evictNodeByKey (new SyntheticKey (getKey(), key));
 	    }
 	}
     }
