@@ -684,8 +684,6 @@ public class HopObject extends ScriptableObject implements Wrapper {
                     node.setFloat(name, ScriptRuntime.toNumber(s));
                 } else if ("Boolean".equals(s.getClassName())) {
                     node.setBoolean(name, ScriptRuntime.toBoolean(s));
-                } else if (s instanceof MapWrapper) {
-                    node.setJavaObject(name, ((MapWrapper) s).unwrap());
                 } else {
                     node.setJavaObject(name, s);
                 }
