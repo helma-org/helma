@@ -711,6 +711,7 @@ public final class Node implements INode, Serializable {
         // check if current parent candidate matches presciption,
         // if not, try to get one that does.
         if (parentInfo != null) {
+
             for (int i = 0; i < parentInfo.length; i++) {
 
                 ParentInfo pinfo = parentInfo[i];
@@ -746,7 +747,7 @@ public final class Node implements INode, Serializable {
                         if ((dbm != null) && (dbm.getSubnodeGroupby() != null)) {
                             // check for groupby
                             rel = dbmap.columnNameToRelation(dbm.getSubnodeGroupby());
-                            pn = (Node) pn.getSubnode(getString(rel.propName));
+                            pn = (Node) pn.getChildElement(getString(rel.propName));
                         }
 
                         if (pn != null && pn.isParentOf(this)) {
@@ -1176,6 +1177,9 @@ public final class Node implements INode, Serializable {
                     // If we created the group node, we register it with the
                     // nodemanager. Otherwise, we just evict whatever was there before
                     if (create) {
+                        // register group node with transactor
+                        Transactor tx = (Transactor) Thread.currentThread();
+                        tx.visitCleanNode(node);
                         nmgr.registerNode(node);
                     } else {
                         nmgr.evictKey(node.getKey());
