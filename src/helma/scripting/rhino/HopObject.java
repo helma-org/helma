@@ -453,6 +453,31 @@ public class HopObject extends ScriptableObject implements Wrapper {
     }
 
     /**
+     *  Return a JS array of child objects with the given start and length.
+     *
+     * @return A JavaScript Array containing the specified child objexts
+     */
+    public Scriptable jsFunction_list(int start, int length) {
+        if (start < 0 || length < 0) {
+            throw new EvaluatorException("Arguments must not be negative in HopObject.list(start, length)");
+        }
+
+        checkNode();
+
+        jsFunction_prefetchChildren(start, length);
+        ArrayList a = new ArrayList();
+
+        for (int i=start; i<start+length; i++) {
+            INode n = node.getSubnodeAt(i);
+            if (n != null) {
+                a.add(Context.toObject(n, core.global));
+            }
+        }
+
+        return Context.getCurrentContext().newArray(core.global, a.toArray());
+    }
+
+    /**
      *
      *
      * @param child ...
