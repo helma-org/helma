@@ -76,6 +76,10 @@ public class Key {
 	return ptype+"/"+pid + "~" + sid;
     }
 
+    public String getType () {
+	return type;
+    }
+
     public String toString () {
 	return type+"["+id+"]";
     }
