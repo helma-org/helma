@@ -19,6 +19,24 @@ function href_macro(par)	{
 
 
 /**
+  * macro rendering page head
+  */
+function head_macro(par)	{
+	var obj = new Object();
+	obj.path = this.getPath();
+	this.renderSkin("head",obj);
+}
+
+
+/**
+  * utility function for head_macro, rendering link to app
+  */
+function getPath()	{
+	return( '<a href="' + this.href("main")  + '">' + this.name + '</a>' );
+}
+
+
+/**
   * link to the "real" application object (ie not the DocApplication)
   */
 function parentlink_macro(par)	{

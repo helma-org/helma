@@ -19,6 +19,28 @@ function href_macro(par)	{
 
 
 /**
+  * macro rendering page head
+  */
+function head_macro(par)	{
+	var obj = new Object();
+	obj.path = this.getPath();
+	var appObj = this.getApplication();
+	appObj.renderSkin("head",obj);
+}
+
+
+/**
+  * utility function for head_macro, rendering link to app and to prototype
+  */
+function getPath()	{
+	var appObj = this.getApplication();
+	var str = appObj.getPath();
+	str += '/<a href="' + this.href("main") + '">' + this.name + '</a>';
+	return( str );
+}
+
+
+/**
   * macro returning the comment for this prototype
   */
 function comment_macro(par)	{

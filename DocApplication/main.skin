@@ -1,4 +1,4 @@
-<% this.skin name="head" %>
+<% this.head %>
 
 <table width="100%" border="0" cellspacing="0" cellpadding="3">
 <tr>

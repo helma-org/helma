@@ -1,5 +1,4 @@
-
-<h2>Prototype <% this.name %></h2>
+<% this.head %>
 
 <% this.actions %>
 <% this.skins %>
