@@ -120,6 +120,10 @@ public class ApplicationBean implements Serializable {
 
 	// property related methods:
 
+	public INode getcache() {
+		return app.getCacheNode ();
+	}
+
 	public Date getupSince () {
 		return new Date (app.starttime);
 	}
