@@ -37,6 +37,9 @@ public class Skin {
 	parse (content);
     }
 
+    /**
+     * Parse a skin object from source text
+     */
     public void parse (String content) {
 
 	this.source = content;
@@ -68,10 +71,16 @@ public class Skin {
              parts = partBuffer.toArray ();
     }
 
+    /**
+     * Get the raw source text this skin was parsed from
+     */
     public String getSource () {
 	return source;
     }
 
+    /**
+     * Render this skin
+     */
     public void render (RequestEvaluator reval, ESObject thisObject, ESObject paramObject) throws RedirectException {
 	
 	if (parts == null)
@@ -93,6 +102,25 @@ public class Skin {
 	    else
 	        reval.res.write (parts[i]);
 	}
+    }
+
+    /**
+     * Check if a certain macro is present in this skin. The macro name is in handler.name notation
+     */
+    public boolean containsMacro (String macroname) {
+	for (int i=0; i<parts.length; i++) {
+	    if (parts[i] instanceof Macro) {
+	        Macro m = (Macro) parts[i];
+	        String mname = null;
+	        if (m.handler == null)
+	            mname = m.name;
+	        else
+	            mname = m.handler+"."+m.name;
+	        if (macroname.equals (mname))
+	            return true;
+	    }
+	}
+	return false;
     }
 
     static final int HANDLER = 0;
