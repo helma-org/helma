@@ -75,10 +75,6 @@ public class ApplicationManager {
 	    // if we're running with the embedded web server, set app base uri to /appname
 	    if (server.websrv != null && !"base".equalsIgnoreCase (appName))
 	        app.setBaseURI ("/"+java.net.URLEncoder.encode (appName));
-	    // check if the root object of the application is the Server itself
-	    boolean self = "self".equalsIgnoreCase (props.getProperty (appName));
-	    if (self)
-	        app.setDataRoot (server);
 	    // the application is started later in the register method, when it's bound
 	    app.init ();
 	} catch (Exception x) {

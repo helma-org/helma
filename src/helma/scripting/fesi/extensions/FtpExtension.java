@@ -80,8 +80,8 @@ class ESFtpClient extends ESObject {
         try {
           ftpclient = new FTPClient ();
           ftpclient.connect (server);
-          ftpclient.login (arguments[0].toString(), arguments[1].toString());
-          return ESBoolean.makeBoolean (true);
+          boolean b = ftpclient.login (arguments[0].toString(), arguments[1].toString());
+          return ESBoolean.makeBoolean (b);
         } catch (Exception x) {
           return ESBoolean.makeBoolean (false);
         } catch (NoClassDefFoundError x) {

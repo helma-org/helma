@@ -147,6 +147,12 @@ public final class SystemProperties extends Properties {
 	return props.elements();
     }
 
+	public int size()	{
+	if (System.currentTimeMillis () - lastcheck > cacheTime)
+	    checkFile ();
+	return props.size();
+	}	
+
     public String toString () {
 	return props.toString ();
     }

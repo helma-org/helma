@@ -191,6 +191,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 
 	// the properties that map java class names to prototype names
 	classMapping = new SystemProperties (new File (appDir, "class.properties").getAbsolutePath ());
+
+	// get class name of root object if defined. Otherwise native Helma objectmodel will be used.
+	rootObjectClass = classMapping.getProperty ("root");
+
 	// the properties that map allowed public skin extensions to content types
 	skinExtensions = new SystemProperties (new File (appDir, "mime.properties").getAbsolutePath ());
 
@@ -200,9 +204,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	debug = "true".equalsIgnoreCase (props.getProperty ("debug"));
 	// checkSubnodes = !"false".equalsIgnoreCase (props.getProperty ("subnodeChecking"));
 	
-	// get class name of root object if defined. Otherwise native Helma objectmodel will be used.
-	rootObjectClass = props.getProperty ("rootObject");
-	
+
 	try {
 	    requestTimeout = Long.parseLong (props.getProperty ("requestTimeout", "60"))*1000l;
 	} catch (Exception ignore) {	}
@@ -478,13 +480,19 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	// check if we ought to create a rootObject from its class name
 	if (rootObjectClass != null) {
 	    // create custom root element.
-	    // NOTE: This is but a very rough first sketch of an implementation
-	    // and needs much more care.
-	    if (rootObject == null) try {
-	        Class c = Class.forName (rootObjectClass);
-	        rootObject = c.newInstance ();
-	    } catch (Throwable x) {
-	        System.err.println ("ERROR CREATING ROOT OBJECT: "+x);
+	    if (rootObject == null) {
+	        try {
+	            if ( classMapping.containsKey("root.factory.class") && classMapping.containsKey("root.factory.method") ) {
+	                Class c = Class.forName( classMapping.getProperty("root.factory.class") );
+	                Method m = c.getMethod( classMapping.getProperty("root.factory.method"), null );
+	                rootObject = m.invoke(c, null);
+	            } else {
+	                Class c = Class.forName( classMapping.getProperty("root") );
+	                rootObject = c.newInstance();
+	            }
+	        } catch ( Exception e )	{
+	            throw new RuntimeException ( "Error creating root object: " + e.toString() );
+	        }
 	    }
 	    return rootObject;
 	}
@@ -553,17 +561,17 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * a registered or an anonymous user.
      */
     public User getUser (String sessionID) {
-    	if (sessionID == null)
+	if (sessionID == null)
 	    return null;
 
-    	User u = (User) sessions.get (sessionID);
-    	if (u != null) {
-    	    u.touch ();
+	User u = (User) sessions.get (sessionID);
+	if (u != null) {
+	    u.touch ();
 	} else {
 	    u = new User (sessionID, this);
 	    sessions.put (sessionID, u);
 	}
- 	return u;
+	return u;
     }
 
 
@@ -571,8 +579,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Register a user with the given user name and password.
      */
     public INode registerUser (String uname, String password) {
-    	// Register a user who already has a user object
-    	// (i.e. who has been surfing around)
+	// Register a user who already has a user object
+	// (i.e. who has been surfing around)
 	if (uname == null)
 	    return null;
 	uname = uname.toLowerCase ().trim ();
@@ -611,8 +619,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Log in a user given his or her user name and password.
      */
     public boolean loginUser (String uname, String password, ESUser u) {
-    	// Check the name/password of a user who already has a user object 
-    	// (i.e. who has been surfing around)
+	// Check the name/password of a user who already has a user object
+	// (i.e. who has been surfing around)
 	if (uname == null)
 	    return false;
 	uname = uname.toLowerCase ().trim ();
@@ -629,7 +637,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        activeUsers.put (unode.getName (), u.user);
 	        return true;
 	    }
-	        
+
 	} catch (Exception x) {
 	    return false;
 	}
@@ -821,35 +829,35 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     ///   this is useful for scripting and url-building in the base-app.
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	public String getElementName()	{
-		return name;
-	}
+    public String getElementName()	{
+	return name;
+    }
 
-	public IPathElement getChildElement(String name)	{
-		// as Prototype and the helma.scripting-classes don't offer enough information
-		// we use the classes from helma.doc-pacakge for introspection.
-		// the first time an url like /appname/api/ is parsed, the application is read again
-		// parsed for comments and exposed as an IPathElement
-		if ( name.equals("api") )	{
-			if ( docApp==null )	{
-				try	{
-					docApp = new DocApplication( this.name,appDir.toString() );
-				}	catch ( DocException e )	{
-					return null;
-				}
-			}
-			return docApp;			
-		}
-		return null;
+    public IPathElement getChildElement(String name)	{
+	// as Prototype and the helma.scripting-classes don't offer enough information
+	// we use the classes from helma.doc-pacakge for introspection.
+	// the first time an url like /appname/api/ is parsed, the application is read again
+	// parsed for comments and exposed as an IPathElement
+	if (name.equals("api")) {
+	    if ( docApp==null ) {
+	        try {
+	            docApp = new DocApplication( this.name,appDir.toString() );
+	        } catch ( DocException e ) {
+	            return null;
+	        }
+	    }
+	    return docApp;
 	}
+	return null;
+    }
 
-	public IPathElement getParentElement() {
-		return helma.main.Server.getServer();
-	}
+    public IPathElement getParentElement() {
+	return helma.main.Server.getServer();
+    }
 
-	public String getPrototype() {
-		return "application";
-	}
+    public String getPrototype() {
+	return "application";
+    }
 
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -858,7 +866,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Get the logger object for logging generic events
      */
     public void logEvent (String msg) {
-	if (eventLog == null)
+	if (eventLog == null || eventLog.isClosed ())
 	    eventLog = getLogger ("event");
 	eventLog.log (msg);
     }
@@ -867,7 +875,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Get the logger object for logging access events
      */
     public void logAccess (String msg) {
-	if (accessLog == null)
+	if (accessLog == null || accessLog.isClosed ())
 	    accessLog = getLogger ("access");
 	accessLog.log (msg);
     }
@@ -883,19 +891,13 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	// allow log to be redirected to System.out by setting logdir to "console"
 	if ("console".equalsIgnoreCase (logDir))
 	    return new Logger (System.out);
-	try {
-	    File helper = new File (logDir);
-	    // construct the fully qualified log name
-	    String fullLogname = name +"_"+logname;
-	    if (home != null && !helper.isAbsolute ())
-                      helper = new File (home, logDir);
-	    logDir = helper.getAbsolutePath ();
-	    log = Logger.getLogger (logDir, fullLogname);
-	} catch (IOException iox) {
-	    System.err.println ("Could not create log "+logname+" for application "+name+": "+iox);
-	    // fallback to System.out
-	    log = new Logger (System.out);
-	}
+	File helper = new File (logDir);
+	// construct the fully qualified log name
+	String fullLogname = name +"_"+logname;
+	if (home != null && !helper.isAbsolute ())
+	    helper = new File (home, logDir);
+	logDir = helper.getAbsolutePath ();
+	log = Logger.getLogger (logDir, fullLogname);
 	return log;
     }
 
@@ -915,7 +917,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 
 	try {
 	    eval.invokeFunction ((INode) null, "onStart", new Object[0]);
-	} catch (Exception ignore) {}	
+	} catch (Exception ignore) {}
 
 	while (Thread.currentThread () == worker) {
 	    // get session timeout
@@ -956,7 +958,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        Object val = null;
 	        try {
 	            val = eval.invokeFunction ((INode) null, "scheduler", new Object[0]);
-	        } catch (Exception ignore) {}	
+	        } catch (Exception ignore) {}
 	        try {
 	            int ret = ((Number) val).intValue ();
 	            if (ret < 1000)
@@ -1057,12 +1059,12 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	return name;
     }
 
-	/**
-	 * Return the directory of this application
-	 */
-	public File getAppDir()	{
-		return appDir;
-	}
+    /**
+     * Return the directory of this application
+     */
+    public File getAppDir()	{
+	return appDir;
+    }
 
     /**
      * Get the DbMapping associated with a prototype name in this application
@@ -1156,7 +1158,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      */
     public void printThreadStats () {
 	logEvent ("Thread Stats for "+name+": "+threadgroup.activeCount()+" active");
-    	Runtime rt = Runtime.getRuntime ();
+	Runtime rt = Runtime.getRuntime ();
 	long free = rt.freeMemory ();
 	long total = rt.totalMemory ();
 	logEvent ("Free memory: "+(free/1024)+" kB");
@@ -1170,15 +1172,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	xmlrpcAccess.checkAccess (proto, method);
     }
 
-    /**
-     * Decides whether subnode condition should be checked for cached nodes. This is on by default
-     * and can be switched off by adding "subnodeChecking=false" in the app.properties file.
-     * It is recommended to leave it on except you suffer severe performance problems and know what you do.
-     */
-    /* public boolean doesSubnodeChecking () {
-	return checkSubnodes;
-    }*/
-
 }
 
 
@@ -1186,13 +1179,13 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
  * XML-RPC handler class for this application.
  */
 class XmlRpcInvoker implements XmlRpcHandler {
-    	
+
     Application app;
 
     public XmlRpcInvoker (Application app) {
-    	this.app = app;
+	this.app = app;
     }
-    	
+
     public Object execute (String method, Vector argvec) throws Exception {
 
 	app.xmlrpcCount += 1;
@@ -1236,9 +1229,11 @@ class XmlRpcAccess {
 
     /*
      * create internal representation of  XML-RPC-Permissions. They're encoded in the app property
-    * file like this:
+    *  file like this:
+    *
     *    xmlrpcAccess = root.sayHello, story.countMessages, user.login
-    * i.e. a prototype.method entry for each function callable via XML-RPC.
+    *
+    *  i.e. a prototype.method entry for each function callable via XML-RPC.
     */
     private void init () {
 	String newAccessprop = app.props.getProperty ("xmlrpcaccess");

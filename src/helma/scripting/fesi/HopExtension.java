@@ -56,6 +56,8 @@ public class HopExtension {
         ESObject dp = evaluator.getDatePrototype ();
         dp.putHiddenProperty ("format", new DatePrototypeFormat ("format", evaluator, fp));
 
+		sp.putHiddenProperty ("trim",   new StringTrim ("trim", evaluator, fp));
+
         // generic (Java wrapper) object prototype
         reval.esObjectPrototype = new ObjectPrototype (op, evaluator);
         // the Node prototype
@@ -397,6 +399,14 @@ public class HopExtension {
         }
     }
 
+	class StringTrim extends BuiltinFunctionObject	{
+		StringTrim (String name, Evaluator evaluator, FunctionPrototype fp)	{
+			super (fp, evaluator, name, 1);
+		}
+		public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException	{
+			return new ESString ( thisObject.toString().trim() );
+		}
+	}
 
     class UserLogin extends BuiltinFunctionObject {
         UserLogin (String name, Evaluator evaluator, FunctionPrototype fp) {

@@ -73,8 +73,8 @@ public abstract class AbstractServletClient extends HttpServlet {
 		throws ServletException, IOException {
 	execute (request, response, HTTP_POST);
     }
-	
-	
+
+
     protected void execute (HttpServletRequest request, HttpServletResponse response, byte method) {
 	String protocol = request.getProtocol ();
 	Cookie[] cookies = request.getCookies();
@@ -87,52 +87,8 @@ public abstract class AbstractServletClient extends HttpServlet {
 
 	try {
 
-	    if (cookies != null) {
-	        for (int i=0; i < cookies.length;i++) try {	// get Cookies
-	            String nextKey = cookies[i].getName ();
-	            String nextPart = cookies[i].getValue ();
-	            if ("HopSession".equals (nextKey))
-	                reqtrans.session = nextPart;
-	            else
-	                reqtrans.set (nextKey, nextPart);
-	        } catch (Exception badCookie) {}
-	    }
-
-	    // check if we need to create a session id
-	    if (reqtrans.session == null) {
-	        reqtrans.session = Long.toString (Math.round (Math.random ()*Long.MAX_VALUE), 16);
-	        reqtrans.session += "@"+Long.toString (System.currentTimeMillis (), 16);
-	        Cookie c = new Cookie("HopSession", reqtrans.session);
-	        c.setPath ("/");
-	        if (cookieDomain != null)
-	            c.setDomain (cookieDomain);
-	        response.addCookie(c);
-	    }
-
-	    String host = request.getHeader ("Host");
-	    if (host != null) {
-	        host = host.toLowerCase();
-	        reqtrans.set ("http_host", host);
-	    }
-
-	    String referer = request.getHeader ("Referer");
-	    if (referer != null)
-	        reqtrans.set ("http_referer", referer);
-
-	    String remotehost = request.getRemoteAddr ();
-	    if (remotehost != null)
-	        reqtrans.set ("http_remotehost", remotehost);
-
-	    String browser = request.getHeader ("User-Agent");
-	    if (browser != null)
-	        reqtrans.set ("http_browser", browser);
-
-		String authorization = request.getHeader("authorization");
-		if ( authorization != null )
-			reqtrans.set ("authorization", authorization );
-
+	    // read and set http parameters
 	    for (Enumeration e = request.getParameterNames(); e.hasMoreElements(); ) {
-	        // Params parsen
 	        String nextKey = (String)e.nextElement();
 	        String[] paramValues = request.getParameterValues(nextKey);
 	        if (paramValues != null) {
@@ -142,6 +98,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 	        }
 	    }
 
+	    // check for MIME file uploads
 	    String contentType = request.getContentType();
 	    if (contentType != null && contentType.indexOf("multipart/form-data")==0) {
 	        // File Upload
@@ -162,6 +119,53 @@ public abstract class AbstractServletClient extends HttpServlet {
 	            reqtrans.set ("uploadError", uploadErr);
 	        }
 	    }
+
+	    // read cookies
+	    if (cookies != null) {
+	        for (int i=0; i < cookies.length;i++) try {
+	            // get Cookies
+	            String nextKey = cookies[i].getName ();
+	            String nextPart = cookies[i].getValue ();
+	            if ("HopSession".equals (nextKey))
+	                reqtrans.session = nextPart;
+	            else
+	                reqtrans.set (nextKey, nextPart);
+	        } catch (Exception badCookie) {}
+	    }
+
+	    // check if we need to create a session id
+	    if (reqtrans.session == null) {
+	        reqtrans.session = Long.toString (Math.round (Math.random ()*Long.MAX_VALUE), 16);
+	        reqtrans.session += "@"+Long.toString (System.currentTimeMillis (), 16);
+	        Cookie c = new Cookie("HopSession", reqtrans.session);
+	        c.setPath ("/");
+	        if (cookieDomain != null)
+	            c.setDomain (cookieDomain);
+	        response.addCookie(c);
+	    }
+
+	    // do standard HTTP variables
+	    String host = request.getHeader ("Host");
+	    if (host != null) {
+	        host = host.toLowerCase();
+	        reqtrans.set ("http_host", host);
+	    }
+
+	    String referer = request.getHeader ("Referer");
+	    if (referer != null)
+	        reqtrans.set ("http_referer", referer);
+
+	    String remotehost = request.getRemoteAddr ();
+	    if (remotehost != null)
+	        reqtrans.set ("http_remotehost", remotehost);
+
+	    String browser = request.getHeader ("User-Agent");
+	    if (browser != null)
+	        reqtrans.set ("http_browser", browser);
+
+	    String authorization = request.getHeader("authorization");
+	    if ( authorization != null )
+	        reqtrans.set ("authorization", authorization );
 
 	    // get RMI ref to application and execute request
 	    IRemoteApp app = getApp (appID);

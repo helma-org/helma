@@ -54,7 +54,7 @@ public class DbMapping implements Updatable {
     HashMap db2prop;
 
     // db field used as primary key
-    String idField;
+    private String idField;
     // db field used as object name
     String nameField;
     // db field used to identify name of prototype to use for object instantiation
@@ -94,9 +94,8 @@ public class DbMapping implements Updatable {
 	db2prop = new HashMap ();
 
 	parent = null;
-	// subnodes = null;
-	// properties = null;
-	idField = "ID";
+
+	idField = null;
     }
 
     /**
@@ -111,9 +110,8 @@ public class DbMapping implements Updatable {
 	db2prop = new HashMap ();
 
 	parent = null;
-	// subnodes = null;
-	// properties = null;
-	idField = "ID";
+
+	idField = null;
 
 	this.props = props;
 	update ();
@@ -160,8 +158,9 @@ public class DbMapping implements Updatable {
 	    }
 	}
 
-	// id field must not be null, default is "id"
-	idField = props.getProperty ("_id", "ID");
+	// if id field is null, we assume "ID" as default. We don't set it
+	// however, so that if null we check the parent prototype first.
+	idField = props.getProperty ("_id");
 
 	nameField = props.getProperty ("_name");
 
@@ -367,7 +366,7 @@ public class DbMapping implements Updatable {
     public String getIDField () {
 	if (idField == null && parentMapping != null)
 	    return parentMapping.getIDField ();
-	return idField;
+	return idField == null ? "ID" : idField;
     }
 
     /**
@@ -632,7 +631,7 @@ public class DbMapping implements Updatable {
 	KeyDef k = keydef;
 	if (k != null)
 	    return k;
-	keydef = new KeyDef ().addAttrib (idField);
+	keydef = new KeyDef ().addAttrib (getIDField ());
 	return keydef;	
     }
 
