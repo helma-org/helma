@@ -4,13 +4,16 @@
 <tr>
 <td width="500" align="left" valign="top" bgcolor="#ffffff">
 
-<big>Choose username and password for helma's manager:</big><br>
+<big>Username and password for helma's manager:</big><br>
 
-Please choose an username and password combination to access the
-manage application of this server. They will be saved md5-encoded
-to the server.properties file. Later you can change these settings
-either manually by editing the server.properties file or through
-this webinterface in manage/makekey
+<p>Please choose an username and password combination to access the
+manage application of this server. They will be appended md5-encoded
+to the server.properties file. You can change the settings manually
+by editing the server.properties file or through this webinterface
+in manage/makekey (from localhost only!).</p>
+<p>This is a stupid script and doesn't check wheter these properties
+are already set in this file. So if you've already set username and
+password you need to delete the old values manually.</p>
 
 <font color="red"><% param.msg %></font>
 <form method="post">
@@ -20,9 +23,9 @@ this webinterface in manage/makekey
 <input class="formEl" type="submit" value="save to server.properties"><br>
 </form>
 
-Username and password are transmitted in an unsafe cleartext way.
-Therefore you're strongly discouraged to use any given combination
-that is normally protected through ssh.
+<p><b>Warning:</b> The used http-authorization transmits username and password
+in an unsafe cleartext way. Therefore you're strongly discouraged to
+use any given combination that is normally protected through SSH.</p>
 
 </td></tr>
 </table>
