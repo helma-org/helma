@@ -15,7 +15,7 @@ public final class SyntheticKey implements Key, Serializable {
 
     private final Key parentKey;
     private final String name;
-    private final int hash;
+    // private final int hash;
 
 
     /**
@@ -24,7 +24,7 @@ public final class SyntheticKey implements Key, Serializable {
     public SyntheticKey (Key key, String name) {
 	this.parentKey = key;
 	this.name = name;
-	hash = name.hashCode () + key.hashCode ();
+	// hash = name.hashCode () + key.hashCode ();
     }
 
 
@@ -40,7 +40,8 @@ public final class SyntheticKey implements Key, Serializable {
     }
 
     public int hashCode () {
-	return hash;
+	// return hash;
+	return name.hashCode () + parentKey.hashCode ();
     }
 
 
@@ -62,6 +63,7 @@ public final class SyntheticKey implements Key, Serializable {
 
 
 }
+
 
 
 

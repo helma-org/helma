@@ -5,6 +5,7 @@ package helma.objectmodel;
 
 import java.io.Serializable;
 
+
 /**
  * This is the internal representation of a database key. It is constructed 
  * out of the database URL, the table name, the user name and the database 
@@ -15,7 +16,7 @@ public final class DbKey implements Key, Serializable {
 
     private final String storageName;
     private final String id;
-    private final int hash;
+    // private transient int hash;
 
 
     /**
@@ -24,13 +25,10 @@ public final class DbKey implements Key, Serializable {
     public DbKey (DbMapping dbmap, String id) {
 	this.id = id;
 	this.storageName = dbmap == null ? null : dbmap.getStorageTypeName ();
-	hash = id.hashCode ();
     }
 
 
     public boolean equals (Object what) {
-	if (what == this)
-	    return true;
 	try {
 	    DbKey k = (DbKey) what;
 	    return (storageName == k.storageName || storageName.equals (k.storageName)) &&
@@ -41,7 +39,8 @@ public final class DbKey implements Key, Serializable {
     }
 
     public int hashCode () {
-	return hash;
+	return storageName == null ? id.hashCode () : storageName.hashCode() + id.hashCode ();
+	// return hash;
     }
 
     public Key getParentKey () {
@@ -63,6 +62,7 @@ public final class DbKey implements Key, Serializable {
 
 
 }
+
 
 
 
