@@ -3,19 +3,19 @@
 /**
   * scheduler function, runs global.appStat every minute
   */
-function scheduler()	{
+function scheduler() {
 	appStat();
 	return 60000;
 }
 
 
 /**
-  * initializes app.requestStat storage on startup,
-  * creates app.addressFilter
+  * initializes app.data.requestStat storage on startup,
+  * creates app.data.addressFilter
   */
-function onStart()	{
-	app.requestStat = new HopObject();
-	app.addressFilter = createAddressFilter();
+function onStart() {
+	app.data.requestStat = new HopObject();
+	app.data.addressFilter = createAddressFilter();
 }
 
 /**
@@ -36,29 +36,29 @@ function createAddressFilter()	{
 				var result = tryEval("filter.addAddress(str);");
 			}
 			if ( result.error==null )	{
-				app.__app__.logEvent( "allowed address for app manage: " + str );
+				app.log( "allowed address for app manage: " + str );
 			}
 		}
 	}	else	{
-		app.__app__.logEvent("no addresses allowed for app manage, all access will be denied");
+		app.log("no addresses allowed for app manage, all access will be denied");
 	}
 	return filter;
 }
 
 
 /** 
-  * updates the request stats in app.requestStat every 5 minutes
+  * updates the request stats in app.data.requestStat every 5 minutes
   */
 function appStat()	{
-	if ( app.requestStat==null )	{
-		app.requestStat = new HopObject();
+	if ( app.data.requestStat==null )	{
+		app.data.requestStat = new HopObject();
 	}
-	if( (new Date()-300000) < app.requestStat.lastRun )	{
+	if( (new Date()-300000) < app.data.requestStat.lastRun )	{
 		return;
 	}
 	var arr = root.getApplications();
 	for ( var i=0; i<arr.length; i++ )	{
-		var tmp = app.requestStat.get(arr[i].getName());
+		var tmp = app.data.requestStat.get(arr[i].getName());
 		if ( tmp==null )	{
 			tmp = new HopObject();
 			tmp.lastTotal = 0;
@@ -67,9 +67,9 @@ function appStat()	{
 		var ct = arr[i].getRequestCount();
 		tmp.last5Min = ct - tmp.lastTotal;
 		tmp.lastTotal = ct;
-		app.requestStat.set(arr[i].getName(), tmp);
+		app.data.requestStat.set(arr[i].getName(), tmp);
 	}
-	app.requestStat.lastRun = new Date();
+	app.data.requestStat.lastRun = new Date();
 }
 
 
@@ -116,8 +116,8 @@ function checkAuth(appObj)	{
 		return createAuth();
 	}
 
-	var uname = req.getUsername();
-	var pwd   = req.getPassword();
+	var uname = req.username;
+	var pwd   = req.password;
 
 	if ( uname==null || uname=="" || pwd==null || pwd=="" )
 		return forceAuth();
@@ -145,8 +145,8 @@ function checkAuth(appObj)	{
   * check access to the base-app by ip-addresses
   */
 function checkAddress()	{
-	if ( !app.addressFilter.matches(java.net.InetAddress.getByName(req.data.http_remotehost)) )	{
-		app.__app__.logEvent("denied request from " + req.data.http_remotehost );
+	if ( !app.data.addressFilter.matches(java.net.InetAddress.getByName(req.data.http_remotehost)) )	{
+		app.log("denied request from " + req.data.http_remotehost );
 		return forceStealth();
 	}	else	{
 		return true;
@@ -213,7 +213,7 @@ function createAuth()	{
 		f.open();
 		f.write(str);
 		f.close();
-		app.__app__.logEvent( req.data.http_remotehost + " saved new adminUsername/adminPassword to server.properties");
+		app.log( req.data.http_remotehost + " saved new adminUsername/adminPassword to server.properties");
 		res.redirect ( root.href("main") );
 	
 	}	else	{
@@ -226,4 +226,5 @@ function createAuth()	{
 		return false;
 	}
 }
+
 

@@ -1,8 +1,8 @@
 if ( checkAddress()==false )	return;
 if ( checkAuth(this)==false )	return;
 
-res.body = this.renderSkinAsString("main");
-res.skin = "api";
-res.title = "Application " + this.name;
+res.data.body = this.renderSkinAsString("main");
+res.data.title = "Application " + this.name;
+renderSkin ("api");
 
 

@@ -1,4 +1,3 @@
-
 /**
   * main action, show server-stats
   * perform start, stop, restart and flush-action
@@ -40,7 +39,6 @@ if ( req.data.app!=null && req.data.app!="" && req.data.action!=null && req.data
 // output only to root
 if ( checkAuth()==false )	return;
 
-res.skin = "global";
-res.title = "Helma Object Publisher - Serverinfo";
-res.body = this.renderSkinAsString("main");
-
+res.data.title = "Helma Object Publisher - Serverinfo";
+res.data.body = this.renderSkinAsString("main");
+renderSkin("global");

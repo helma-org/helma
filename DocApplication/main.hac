@@ -12,12 +12,12 @@ if ( req.data.action=="reload" )	{
 }
 
 if ( req.data.action=="index" )	{
-	res.body = this.renderSkinAsString("index");
+	res.data.body = this.renderSkinAsString("index");
 }	else	{
-	res.body = this.renderSkinAsString("main");
+	res.data.body = this.renderSkinAsString("main");
 }
 
-res.skin = "api";
-res.title = "Application " + this.name;
+res.data.title = "Application " + this.name;
+renderSkin("api");
 
 
