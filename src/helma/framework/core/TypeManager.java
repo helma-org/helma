@@ -23,14 +23,20 @@ public final class TypeManager {
     HashMap prototypes;
     HashMap zipfiles;
     long lastCheck = 0;
-    // boolean rewire;
+    long appDirMod = 0;
 
+    // the hopobject prototype
+    Prototype hopobjectProto;
+    // the global prototype
+    Prototype globalProto;
+    
     final static String[] standardTypes = {"user", "global", "root", "hopobject"};
+
     final static String templateExtension = ".hsp";
     final static String scriptExtension = ".js";
     final static String actionExtension = ".hac";
     final static String skinExtension = ".skin";
- 
+
     public TypeManager (Application app) {
         this.app = app;
         appDir = app.appDir;
@@ -38,7 +44,7 @@ public final class TypeManager {
         if (appDir.list().length == 0) {
             for (int i=0; i<standardTypes.length; i++) {
                 File f = new File (appDir, standardTypes[i]);
-                if (!f.exists() && !f.mkdir ())	
+                if (!f.exists() && !f.mkdir ())
                     app.logEvent ("Warning: directory "+f.getAbsolutePath ()+" could not be created.");
                 else if (!f.isDirectory ())
                     app.logEvent ("Warning: "+f.getAbsolutePath ()+" is not a directory.");
@@ -54,17 +60,20 @@ public final class TypeManager {
      * compile or evaluate any scripts.
      */
     public void createPrototypes () {
+        // create standard prototypes.
+        registerPrototype ("root", new File (appDir, "root"),
+                new Prototype ("root", app));
+        registerPrototype ("user", new File (appDir, "user"),
+                new Prototype ("user", app));
+        // hopobject prototype is special in that we keep a reference
+        // to it, since we need it regularly when setting parent prototypes.
+        hopobjectProto = new Prototype ("hopobject", app);
+        registerPrototype ("hopobject", new File (appDir, "hopobject"), hopobjectProto);
+        // same with global prototype
+        globalProto = new Prototype ("global", app);
+        registerPrototype ("global", new File (appDir, "global"), globalProto);
         // loop through directories and create prototypes
         checkFiles ();
-        // check if standard prototypes have been created
-        // if not, create them.
-        for (int i=0; i<standardTypes.length; i++) {
-            String pname = standardTypes[i];
-            if (prototypes.get (pname) == null) {
-                Prototype proto = new Prototype (pname, app);
-                registerPrototype (pname, new File (appDir, pname), proto);
-            }
-        }
     }
 
 
@@ -86,48 +95,37 @@ public final class TypeManager {
      * there are any prototypes to be created.
      */
     public void checkFiles () {
-	// long now = System.currentTimeMillis ();
-	// System.out.print ("checking prototypes for  "+app);
-	File[] list = appDir.listFiles ();
-	if (list == null)
-	    throw new RuntimeException ("Can't read app directory "+appDir+" - check permissions");
-	for (int i=0; i<list.length; i++) {
-	    String filename = list[i].getName ();
-	    Prototype proto = getPrototype (filename);
-	    // if prototype doesn't exist, create it
-	    if (proto == null) {
-	        // leave out ".." and other directories that contain "."
-	        if (filename.indexOf ('.') < 0 && list[i].isDirectory () && isValidTypeName (filename)) {
-	            // create new prototype
-	            proto = new Prototype (filename, app);
-	            registerPrototype (filename, list[i], proto);
-	            // give logger thread a chance to tell what's going on
-	            // Thread.yield();
-	        } else if (filename.toLowerCase().endsWith (".zip") && !list[i].isDirectory ()) {
-	            ZippedAppFile zipped = (ZippedAppFile) zipfiles.get (filename);
+	// check if any files have been created/removed since last time we
+	// checked...
+	if (appDir.lastModified() > appDirMod) {
+	    appDirMod = appDir.lastModified ();
+	    String[] list = appDir.list ();
+	    if (list == null)
+	        throw new RuntimeException ("Can't read app directory "+appDir+" - check permissions");
+	    for (int i=0; i<list.length; i++) {
+	        if (list[i].endsWith (".zip")) {
+	            ZippedAppFile zipped = (ZippedAppFile) zipfiles.get (list[i]);
 	            if (zipped == null) {
-	                zipped = new ZippedAppFile (list[i], app);
-	                zipfiles.put (filename, zipped);
+	                File f = new File (appDir, list[i]);
+	                if (!f.isDirectory ()) {
+	                    zipped = new ZippedAppFile (f, app);
+	                    zipfiles.put (list[i], zipped);
+	                }
+	            }
+	            continue;
+	        }
+	        if (list[i].indexOf ('.') > -1)
+	            continue;
+	        Prototype proto = getPrototype (list[i]);
+	        // if prototype doesn't exist, create it
+	        if (proto == null  && isValidTypeName (list[i])) {
+	            File f = new File (appDir, list[i]);
+	            if (f.isDirectory ()) {
+	                // create new prototype
+	                proto = new Prototype (list[i], app);
+	                registerPrototype (list[i], f, proto);
 	            }
 	        }
-	    }
-	}
-
-	// loop through prototypes and check if type.properties needs updates
-	// it's important that we do this _after_ potentially new prototypes 
-	// have been created in the previous loop.
-	for (Iterator i=prototypes.values().iterator(); i.hasNext(); ) {
-	    Prototype proto = (Prototype) i.next ();
-	    // update prototype's type mapping
-	    DbMapping dbmap = proto.getDbMapping ();
-	    if (dbmap != null && dbmap.needsUpdate ()) {
-	        dbmap.update ();
-	        // set parent prototype, in case it has changed.
-	        String parentName = dbmap.getExtends ();
-	        if (parentName != null)
-	            proto.setParentPrototype (getPrototype (parentName));
-	        else
-	            proto.setParentPrototype (null);
 	    }
 	}
 
@@ -136,6 +134,26 @@ public final class TypeManager {
 	    ZippedAppFile zipped = (ZippedAppFile) it.next ();
 	    if (zipped.needsUpdate ()) {
 	        zipped.update ();
+	    }
+	}
+
+	// loop through prototypes and check if type.properties needs updates
+	// it's important that we do this _after_ potentially new prototypes
+	// have been created in the previous loop.
+	for (Iterator i=prototypes.values().iterator(); i.hasNext(); ) {
+	    Prototype proto = (Prototype) i.next ();
+	    // update prototype's type mapping
+	    DbMapping dbmap = proto.getDbMapping ();
+	    if (dbmap != null && dbmap.needsUpdate ()) {
+	        dbmap.update ();
+	        if (proto != hopobjectProto && proto != globalProto) {
+	            // set parent prototype, in case it has changed.
+	            String parentName = dbmap.getExtends ();
+	            if (parentName != null)
+	                proto.setParentPrototype (getPrototype (parentName));
+	            else if (!app.isJavaPrototype (proto.getName()))
+	                proto.setParentPrototype (hopobjectProto);
+	        }
 	    }
 	}
 
@@ -237,7 +255,7 @@ public final class TypeManager {
             }
         }
 
-        // next we check if files have been created since last update
+        // next we check if files have been created or removed since last update
         if (proto.getLastCheck() < dir.lastModified ()) {
             String[] list = dir.list();
             for (int i=0; i<list.length; i++) {
