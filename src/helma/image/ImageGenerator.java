@@ -46,7 +46,11 @@ public abstract class ImageGenerator {
         if (generator == null) {
             // first see wether an image wrapper class was specified in
             // server.properties:
-            String className = Server.getServer().getProperty("imageGenerator");
+            String className = null;
+            if (Server.getServer() != null) {
+                className = Server.getServer().getProperty("imageGenerator");
+            }
+
             Class generatorClass = null;
             if (className == null) {
                 // if no class is defined, try the default ones:
