@@ -162,12 +162,14 @@ public final class HtmlEncoder {
     static {
 	allTags.add ("a");
 	allTags.add ("abbr");
+	allTags.add ("acronym");
 	allTags.add ("address");
 	allTags.add ("applet");
 	allTags.add ("area");
 	allTags.add ("b");
 	allTags.add ("base");
 	allTags.add ("basefont");
+	allTags.add ("bdo");
 	allTags.add ("bgsound");
 	allTags.add ("big");
 	allTags.add ("blink");
@@ -183,6 +185,7 @@ public final class HtmlEncoder {
 	allTags.add ("col");
 	allTags.add ("colgroup");
 	allTags.add ("del");
+	allTags.add ("dfn");
 	allTags.add ("dir");
 	allTags.add ("div");
 	allTags.add ("dl");
@@ -211,6 +214,7 @@ public final class HtmlEncoder {
 	allTags.add ("ins");
 	allTags.add ("isindex");
 	allTags.add ("kbd");
+	allTags.add ("label");
 	allTags.add ("li");
 	allTags.add ("link");
 	allTags.add ("listing");
@@ -220,6 +224,7 @@ public final class HtmlEncoder {
 	allTags.add ("meta");
 	allTags.add ("nobr");
 	allTags.add ("noframes");
+	allTags.add ("noscript");
 	allTags.add ("object");
 	allTags.add ("ol");
 	allTags.add ("option");
