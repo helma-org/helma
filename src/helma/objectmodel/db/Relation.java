@@ -350,7 +350,7 @@ public final class Relation {
                 cnst.addElement(new Constraint(local, foreign, false));
             }
         }
-        
+
         // parse constraints logic
         if (cnst.size() > 1) {
             String logic = props.getProperty(propName + ".logicalOperator");
@@ -366,7 +366,7 @@ public final class Relation {
         } else {
             logicalOperator = AND;
         }
-        
+
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -393,7 +393,11 @@ public final class Relation {
     }
 
     /**
-     *  Returns true if this Relation describes a collection object property
+     *  Returns true if this Relation describes a collection.
+     *  <b>NOTE:</b> this will return true both for collection objects
+     *  (aka virtual nodes) and direct child object relations, so
+     *  isVirtual() should be used to identify relations that define
+     *  <i>collection properties</i>!
      */
     public boolean isCollection() {
         return reftype == COLLECTION;
@@ -443,7 +447,7 @@ public final class Relation {
         if (otherType == null) {
             return false;
         }
-        
+
         return virtual ||
             (otherType.isRelational() && accessName != null) ||
             (groupby != null) || isComplexReference();
@@ -872,7 +876,7 @@ public final class Relation {
         }
         q.append(')');
     }
-	
+
     /**
      *
      *
@@ -896,7 +900,7 @@ public final class Relation {
         if (filter != null) {
             appendFilter(q, nonvirtual, prefix);
         }
-		
+
         return q.toString();
     }
 
