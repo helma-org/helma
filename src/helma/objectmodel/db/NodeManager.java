@@ -26,6 +26,9 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 /**
  * The NodeManager is responsible for fetching Nodes from the internal or
  * external data sources, caching them in a least-recently-used Hashtable,
@@ -39,6 +42,7 @@ public final class NodeManager {
     protected IDGenerator idgen;
     private long idBaseValue = 1L;
     private boolean logSql;
+    private Log sqlLog = null;
     protected boolean logReplication;
     private ArrayList listeners = new ArrayList();
 
@@ -2038,13 +2042,19 @@ public final class NodeManager {
 
     private void logSqlStatement(String type, String table,
                                  long logTimeStart, long logTimeStop, String statement) {
-        app.logEvent(new StringBuffer().append(type)
-                                       .append(" ")
-                                       .append(table)
-                                       .append(" ")
-                                       .append((logTimeStop - logTimeStart))
-                                       .append(": ")
-                                       .append(statement.toString())
-                                       .toString());
+        // init sql-log if necessary
+        if (sqlLog == null) {
+            String sqlLogName = app.getProperty("sqlLog", "helma."+app.getName()+".sql");
+            sqlLog = LogFactory.getLog(sqlLogName);
+        }
+
+        sqlLog.info(new StringBuffer().append(type)
+                                      .append(" ")
+                                      .append(table)
+                                      .append(" ")
+                                      .append((logTimeStop - logTimeStart))
+                                      .append(": ")
+                                      .append(statement.toString())
+                                      .toString());
     }
 }
