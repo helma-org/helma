@@ -10,7 +10,6 @@
         <property name="year" value="1998-${year}"/>
         <property name="version" value="1.4.1-rc1"/>
         <property name="project" value="helma"/>
-        <property name="build.compiler" value="classic"/>
 
         <property name="cvs.root.apps" value=":pserver:anonymous@adele.helma.at:/opt/cvs/apps"/>
         <property name="cvs.root.helma" value=":pserver:anonymous@adele.helma.at:/opt/cvs/helma"/>
@@ -182,7 +181,7 @@
         </antcall>
 
         <!-- clean up -->
-        <delete dir="${build.work}"/>
+        <!-- delete dir="${build.work}"/ -->
     </target>
 
 
