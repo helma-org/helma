@@ -179,7 +179,7 @@ public class FileServlet extends HttpServlet
 
     protected void serveFile( HttpServletRequest req, HttpServletResponse res, boolean headOnly, String path, String filename, File file ) throws IOException
 	{
-	log( "getting " + path );
+	// log( "getting " + path );
 	if ( ! file.canRead() )
 	    {
 	    res.sendError( HttpServletResponse.SC_FORBIDDEN );
