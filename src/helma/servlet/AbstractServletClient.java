@@ -165,7 +165,12 @@ public abstract class AbstractServletClient extends HttpServlet {
                             String nextKey = (String) e.nextElement();
                             Object nextPart = parts.get(nextKey);
 
-                            reqtrans.set(nextKey, nextPart);
+                            if (nextPart instanceof List) {
+                                reqtrans.set(nextKey, ((List) nextPart).get(0));
+                                reqtrans.set(nextKey+"_array", ((List) nextPart).toArray());
+                            } else {
+                                reqtrans.set(nextKey, nextPart);
+                            }
                         }
                     }
                 } catch (Exception upx) {

@@ -124,12 +124,27 @@ public class FileUpload {
                 }
             }
 
-            if (filename != null) {
-                MimePart part = new MimePart(filename, newb, type);
+            Object existingValue = parts.get(name);
+            Object newValue = null;
 
-                parts.put(name, part);
+            if (filename != null) {
+                newValue = new MimePart(filename, newb, type);
             } else {
-                parts.put(name, new String(newb, encoding));
+                newValue = new String(newb, encoding);
+            }
+
+            if (existingValue == null) {
+                // no previous value, just add new object
+                parts.put(name, newValue);
+            } else if (existingValue instanceof ArrayList) {
+                // already multiple values, add to list
+                ((ArrayList) existingValue).add(newValue);
+            } else {
+                // already one value, convert to list
+                ArrayList list = new ArrayList();
+                list.add(existingValue);
+                list.add(newValue);
+                parts.put(name, list);
             }
         }
     }
