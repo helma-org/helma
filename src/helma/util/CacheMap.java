@@ -83,7 +83,7 @@ public class CacheMap  {
 	eachCapacity = initialCapacity / nBuckets + 1;
 	oldTable = new HashMap (eachCapacity, loadFactor);
 	newTable = new HashMap (eachCapacity, loadFactor);
-	// System.out.println ("CREATED NEW CACHEMAP: CAP="+initialCapacity+" EACH="+eachCapacity);
+	// System.out.println ("CREATED NEW CACHEMAP: CAP="+initialCapacity+" EACH="+eachCapacity+"  THRES="+threshold);
     }
 
     /// Constructs a new, empty hashtable with the specified initial 
@@ -184,7 +184,7 @@ public class CacheMap  {
 	    if (size() >= threshold) {
 		// Rotate the tables.
 		oldTable = newTable;
-		newTable.clear ();
+		newTable = new HashMap (eachCapacity, loadFactor);
 	    }
 	}
 	return oldValue;
