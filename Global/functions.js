@@ -30,14 +30,16 @@ function createAddressFilter()	{
 		var arr = str.split(",");
 		for ( var i in arr )	{
 			var str = new java.lang.String(arr[i]);
-			var result = tryEval("filter.addAddress(str.trim());");
-			if ( result.error!=null )	{
-				var str = java.net.InetAddress.getByName(str.trim()).getHostAddress();
-				var result = tryEval("filter.addAddress(str);");
-			}
-			if ( result.error==null )	{
-				app.log( "allowed address for app manage: " + str );
-			}
+            try {
+                filter.addAddress(str.trim());
+            } catch (a) {
+                try {
+                    var str = java.net.InetAddress.getByName(str.trim()).getHostAddress();
+                    filter.addAddress (str);
+                } catch (b) {
+                    app.log ("error using address " + arr[i] + ": " + b);
+                }
+            }
 		}
 	}	else	{
 		app.log("no addresses allowed for app manage, all access will be denied");
