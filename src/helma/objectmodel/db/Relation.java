@@ -17,12 +17,13 @@
 package helma.objectmodel.db;
 
 import helma.framework.core.Application;
-import helma.objectmodel.*;
+import helma.objectmodel.INode;
+
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
-import java.util.Map;
-import java.util.HashMap;
 
 /**
  * This describes how a property of a persistent Object is stored in a
@@ -119,7 +120,7 @@ public final class Relation {
     /**
      * Reads a relation entry from a line in a properties file.
      */
-    public Relation(String desc, String propName, DbMapping ownType, Properties props) {
+    public Relation(String propName, DbMapping ownType) {
         this.ownType = ownType;
         this.propName = propName;
         otherType = null;
@@ -423,6 +424,10 @@ public final class Relation {
      *  - complex reference nodes
      */
     public boolean createOnDemand() {
+        if (otherType == null) {
+            return false;
+        }
+        
         return virtual ||
             (otherType.isRelational() && accessName != null) ||
             (groupby != null) || isComplexReference();

@@ -19,8 +19,11 @@ package helma.objectmodel.db;
 import helma.framework.core.Application;
 import helma.objectmodel.*;
 import helma.util.CacheMap;
+
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
 import java.math.BigDecimal;
-import java.io.*;
 import java.sql.*;
 import java.util.*;
 
@@ -215,24 +218,21 @@ public final class NodeManager {
 
         if ((node == null) || (node.getState() == Node.INVALID)) {
             // The requested node isn't in the shared cache.
-            // Synchronize with key to make sure only one version is
-            // fetched from the database.
             if (key instanceof SyntheticKey) {
                 Node parent = getNode(key.getParentKey());
                 Relation rel = parent.dbmap.getPropertyRelation(key.getID());
 
-                if ((rel == null) || (rel.groupby != null)) {
-                    node = parent.getGroupbySubnode(key.getID(), true);
-                } else if (rel != null) {
-                    node = getNode(parent, key.getID(), rel);
+                if (rel != null) {
+                    return getNode(parent, key.getID(), rel);
                 } else {
                     node = null;
                 }
-            } else {
+            } else if (key instanceof DbKey) {
                 node = getNodeByKey(tx.txn, (DbKey) key);
             }
 
             if (node != null) {
+                // synchronize with cache
                 synchronized (cache) {
                     Node oldnode = (Node) cache.put(node.getKey(), node);
 
@@ -241,8 +241,8 @@ public final class NodeManager {
                         cache.put(node.getKey(), oldnode);
                         node = oldnode;
                     }
-                }
-                 // synchronized
+                }  
+                // end of cache-synchronized section
             }
         }
 
@@ -279,10 +279,9 @@ public final class NodeManager {
             // generated on the fly
             key = new SyntheticKey(home.getKey(), kstr);
         } else {
-            // if a key for a node from within the DB
-            // FIXME: This should never apply, since for every relation-based loading
-            // Synthetic Keys are used. Right?
+            // refers to a node through its primary database key
             key = new DbKey(rel.otherType, kstr);
+            return getNode(key);
         }
 
         // See if Transactor has already come across this node

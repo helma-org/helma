@@ -17,18 +17,17 @@
 package helma.objectmodel.db;
 
 import helma.framework.IPathElement;
-import helma.objectmodel.*;
-import helma.util.*;
-import java.io.*;
-import java.math.BigDecimal;
-import java.sql.*;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.List;
-import java.util.StringTokenizer;
-import java.util.Vector;
+import helma.objectmodel.ConcurrencyException;
+import helma.objectmodel.INode;
+import helma.objectmodel.IProperty;
+import helma.objectmodel.TransientNode;
+import helma.util.EmptyEnumeration;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.util.*;
 
 /**
  * An implementation of INode that can be stored in the internal database or
@@ -181,8 +180,6 @@ public final class Node implements INode, Serializable {
             // if not it's save to use read/writeUTF.
             // version indicates the serialization version
             version = in.readShort();
-
-            String rawParentID = null;
 
             if (version < 9) {
                 throw new IOException("Can't read pre 1.3.0 HopObject");
@@ -418,12 +415,17 @@ public final class Node implements INode, Serializable {
     public String getElementName() {
         // if subnodes are also mounted as properties, try to get the "nice" prop value
         // instead of the id by turning the anonymous flag off.
-        long lastmod = Math.max(dbmap.getLastTypeChange(), lastmodified);
+        long lastmod = lastmodified;
+
+        if (dbmap != null) {
+            lastmod = Math.max(lastmod, dbmap.getLastTypeChange());
+        }
+
         if ((parentHandle != null) && (lastNameCheck < lastmod)) {
             try {
                 Node p = parentHandle.getNode(nmgr);
                 DbMapping parentmap = p.getDbMapping();
-                Relation prel = parentmap.getPropertyRelation();
+                Relation prel = parentmap.getSubnodeRelation();
 
                 if ((prel != null) && prel.hasAccessName()) {
                     String propname = dbmap.columnNameToProperty(prel.accessName);
@@ -672,7 +674,7 @@ public final class Node implements INode, Serializable {
 
             if (parentmap != null) {
                 // first try to retrieve name via generic property relation of parent
-                Relation prel = parentmap.getPropertyRelation();
+                Relation prel = parentmap.getSubnodeRelation();
 
                 if ((prel != null) && (prel.otherType == dbmap) &&
                         (prel.accessName != null)) {
@@ -880,7 +882,7 @@ public final class Node implements INode, Serializable {
 
             // check if properties are subnodes (_properties.aresubnodes=true)
             if ((dbmap != null) && (node.dbmap != null)) {
-                Relation prel = dbmap.getPropertyRelation();
+                Relation prel = dbmap.getSubnodeRelation();
 
                 if ((prel != null) && (prel.accessName != null)) {
                     Relation localrel = node.dbmap.columnNameToRelation(prel.accessName);
@@ -1027,26 +1029,26 @@ public final class Node implements INode, Serializable {
             Relation rel = dbmap.getExactPropertyRelation(name);
 
             if (rel != null) {
-                return (IPathElement) getNode(name);
+                return getNode(name);
             }
 
             rel = dbmap.getSubnodeRelation();
 
             if ((rel != null) && (rel.groupby == null) && (rel.accessName != null)) {
                 if ((rel.otherType != null) && rel.otherType.isRelational()) {
-                    return (IPathElement) nmgr.getNode(this, name, rel);
+                    return nmgr.getNode(this, name, rel);
                 } else {
-                    return (IPathElement) getNode(name);
+                    return getNode(name);
                 }
             }
 
-            return (IPathElement) getSubnode(name);
+            return getSubnode(name);
         } else {
             // no dbmapping - just try child collection first, then named property.
-            IPathElement child = (IPathElement) getSubnode(name);
+            IPathElement child = getSubnode(name);
 
             if (child == null) {
-                child = (IPathElement) getNode(name);
+                child = getNode(name);
             }
 
             return child;
@@ -1266,7 +1268,7 @@ public final class Node implements INode, Serializable {
 
         // check if subnodes are also accessed as properties. If so, also unset the property
         if ((dbmap != null) && (node.dbmap != null)) {
-            Relation prel = dbmap.getPropertyRelation();
+            Relation prel = dbmap.getSubnodeRelation();
 
             if ((prel != null) && (prel.accessName != null)) {
                 Relation localrel = node.dbmap.columnNameToRelation(prel.accessName);
@@ -1552,7 +1554,7 @@ public final class Node implements INode, Serializable {
             return dbmap.getPropertyEnumeration();
         }
 
-        Relation prel = (dbmap == null) ? null : dbmap.getPropertyRelation();
+        Relation prel = (dbmap == null) ? null : dbmap.getSubnodeRelation();
 
         if ((prel != null) && prel.hasAccessName() && (prel.otherType != null) &&
                 prel.otherType.isRelational()) {
@@ -1600,89 +1602,97 @@ public final class Node implements INode, Serializable {
                getParent();
     }
 
+    /**
+     *
+     *
+     * @param propname ...
+     *
+     * @return ...
+     */
     protected Property getProperty(String propname) {
-        // nmgr.logEvent ("GETTING PROPERTY: "+propname);
         if (propname == null) {
             return null;
         }
+        
+        Relation rel = dbmap == null ? 
+                             null : 
+                             dbmap.getExactPropertyRelation(propname);
+                                
+        // 1) check if this is a create-on-demand node property
+        if (rel != null && (rel.isCollection() || rel.isComplexReference())) {
+            if (state == TRANSIENT && rel.isCollection()) {
+                // When we get a collection from a transient node for the first time, or when
+                // we get a collection whose content objects are stored in the embedded
+                // XML data storage, we just want to create and set a generic node without
+                // consulting the NodeManager about it. 
+                Node n = new Node(propname, rel.getPrototype(), nmgr);
+                n.setDbMapping(rel.getVirtualMapping());
+                n.setParent(this);
+                setNode(propname, n);
+                return (Property) propMap.get(propname.toLowerCase());
+            } else if (state != TRANSIENT) {
+                Node n = nmgr.getNode(this, propname, rel);
 
-        Property prop = (propMap == null) ? null
-                                          : (Property) propMap.get(propname.toLowerCase());
-
-        // See if this could be a relationally linked node which still doesn't know
-        // (i.e, still thinks it's just the key as a string)
-        DbMapping pmap = (dbmap == null) ? null : dbmap.getExactPropertyMapping(propname);
-
-        if ((pmap != null) && (prop != null) && (prop.getType() != IProperty.NODE)) {
-            // this is a relational node stored by id but we still think it's just a string.
-            // Fix it.
-            prop.convertToNodeReference(pmap);
-        }
-
-        // the property does not exist in our propmap - see if we should create it on the fly,
-        // either because it is mapped to an object from relational database or defined as
-        // collection aka virtual node
-        if (dbmap != null) {
-            // the explicitly defined property mapping
-            Relation propRel = dbmap.getPropertyRelation(propname);
-
-            // property was not found in propmap
-            if (prop == null) {
-                // if no property relation is defined for this specific property name,
-                // use the generic property relation, if one is defined.
-                if (propRel == null) {
-                    propRel = dbmap.getPropertyRelation();
-                }
-
-                // so if we have a property relation and it does in fact link to another object...
-                if ((propRel != null) && (propRel.isCollection() ||
-                                          propRel.isComplexReference())) {
-                    // in some cases we just want to create and set a generic node without
-                    // consulting the NodeManager if it exists: When we get a collection
-                    // (aka virtual node) from a transient node for the first time, or when
-                    // we get a collection whose content objects are stored in the embedded
-                    // XML data storage.
-                    if ((state == TRANSIENT) && propRel.virtual) {
-                        Node pn = new Node(propname, propRel.getPrototype(), nmgr);
-
-                        pn.setDbMapping(propRel.getVirtualMapping());
-                        pn.setParent(this);
-                        setNode(propname, pn);
-                        prop = (Property) propMap.get(propname);
+                if (n != null) {
+                    if ((n.parentHandle == null) &&
+                            !"root".equalsIgnoreCase(n.getPrototype())) {
+                        n.setParent(this);
+                        n.name = propname;
+                        n.anonymous = false;
                     }
-                    // if this is from relational database only fetch if this node
-                    // is itself persistent.
-                    else if ((state != TRANSIENT) && propRel.createOnDemand()) {
-                        // this may be a relational node stored by property name
-                        Node pn = nmgr.getNode(this, propname, propRel);
-
-                        if (pn != null) {
-                            if ((pn.parentHandle == null) &&
-                                    !"root".equalsIgnoreCase(pn.getPrototype())) {
-                                pn.setParent(this);
-                                pn.name = propname;
-                                pn.anonymous = false;
-                            }
-
-                            prop = new Property(propname, this, pn);
-                        }
-                    }
-                }
-            } else if (propRel != null && propRel.isVirtual()) {
-                // prop was found and explicit property relation is collection -
-                // this is a collection node containing objects stored in the embedded db
-                Node pn = (Node) prop.getNodeValue();
-                if (pn != null) {
-                    // do set DbMapping for embedded db collection nodes
-                    pn.setDbMapping(propRel.getVirtualMapping());
-                    // also set node manager in case this is a mountpoint node
-                    // that came in through replication
-                    pn.nmgr = nmgr;
+                    return new Property(propname, this, n);
                 }
             }
         }
 
-        return prop;
+        // 2) check if the property is contained in the propMap
+        Property prop = propMap == null ? null :
+                        (Property) propMap.get(propname.toLowerCase());
+
+        if (prop != null) {
+            if (rel != null) {
+                // Is a relational node stored by id but things it's a string or int. Fix it.
+                if (rel.otherType != null && prop.getType() != Property.NODE) {
+                    prop.convertToNodeReference(rel.otherType);
+                }
+                if (rel.isCollection()) {
+                    // property was found in propMap and is a collection - this is
+                    // a collection holding non-relational objects. set DbMapping and
+                    // NodeManager
+                    Node n = (Node) prop.getNodeValue();
+                    if (n != null) {
+                        // do set DbMapping for embedded db collection nodes
+                        n.setDbMapping(rel.getVirtualMapping());
+                        // also set node manager in case this is a mountpoint node
+                        // that came in through replication
+                        n.nmgr = nmgr;
+                    }
+                }
+            }
+            return prop;
+        }
+
+        // 3) try to get the property from the database via accessname, if defined
+        if (rel == null && dbmap != null && state != TRANSIENT) {
+            rel = dbmap.getSubnodeRelation();
+
+            if (rel != null && rel.otherType != null) {
+                Node n = nmgr.getNode(this, propname, rel);
+
+                if (n != null) {
+                    if ((n.parentHandle == null) &&
+                        !"root".equalsIgnoreCase(n.getPrototype())) {
+                        n.setParent(this);
+                        n.name = propname;
+                        n.anonymous = false;
+                    }
+                    return new Property(propname, this, n);
+                }
+            }
+        }
+
+        // 4) nothing to be found - return null
+        return null;
     }
 
     /**
@@ -1896,7 +1906,7 @@ public final class Node implements INode, Serializable {
             // check if this node is already registered with the old name; if so, remove it.
             // then set parent's property to this node for the new name value
             DbMapping parentmap = parent.getDbMapping();
-            Relation propRel = parentmap.getPropertyRelation();
+            Relation propRel = parentmap.getSubnodeRelation();
             String dbcolumn = dbmap.propertyToColumnName(propname);
 
             if ((propRel != null) && (propRel.accessName != null) &&

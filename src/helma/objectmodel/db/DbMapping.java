@@ -20,13 +20,9 @@ import helma.framework.core.Application;
 import helma.framework.core.Prototype;
 import helma.util.SystemProperties;
 import helma.util.Updatable;
+
 import java.sql.*;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.StringTokenizer;
+import java.util.*;
 
 /**
  * A DbMapping describes how a certain type of  Nodes is to mapped to a
@@ -35,76 +31,76 @@ import java.util.StringTokenizer;
  */
 public final class DbMapping implements Updatable {
     // DbMappings belong to an application
-    Application app;
+    protected Application app;
 
     // prototype name of this mapping
     private String typename;
 
     // properties from where the mapping is read
-    SystemProperties props;
+    private SystemProperties props;
 
     // name of data dbSource to which this mapping writes
-    DbSource dbSource;
+    private DbSource dbSource;
 
     // name of datasource
-    String dbSourceName;
+    private String dbSourceName;
 
     // name of db table
-    String tableName;
+    private String tableName;
 
     // list of properties to try for parent
-    ParentInfo[] parentInfo;
+    private ParentInfo[] parentInfo;
 
     // Relations describing subnodes and properties.
-    Relation subRelation;
-    Relation propRelation;
+    protected Relation subRelation;
+    protected Relation propRelation;
 
     // if this defines a subnode mapping with groupby layer,
     // we need a DbMapping for those groupby nodes
-    DbMapping groupbyMapping;
+    private DbMapping groupbyMapping;
 
     // Map of property names to Relations objects
-    HashMap prop2db;
+    private HashMap prop2db;
 
     // Map of db columns to Relations objects.
     // Case insensitive, keys are stored in upper case so 
     // lookups must do a toUpperCase().
-    HashMap db2prop;
+    private HashMap db2prop;
 
     // list of columns to fetch from db
-    DbColumn[] columns = null;
+    private DbColumn[] columns = null;
 
     // Map of db columns by name
-    HashMap columnMap;
+    private HashMap columnMap;
 
     // Array of aggressively loaded references
-    Relation[] joins;
+    private Relation[] joins;
 
     // pre-rendered select statement
-    String selectString = null;
-    String insertString = null;
-    String updateString = null;
+    private String selectString = null;
+    private String insertString = null;
+    private String updateString = null;
 
     // db field used as primary key
     private String idField;
 
     // db field used as object name
-    String nameField;
+    private String nameField;
 
     // db field used to identify name of prototype to use for object instantiation
-    String protoField;
+    private String protoField;
 
     // name of parent prototype, if any
-    String extendsProto;
+    private String extendsProto;
 
     // dbmapping of parent prototype, if any
-    DbMapping parentMapping;
+    private DbMapping parentMapping;
 
     // descriptor for key generation method
     private String idgen;
 
     // remember last key generated for this table
-    long lastID;
+    private long lastID;
 
     // timestamp of last modification of the mapping (type.properties)
     // init value is -1 so we know we have to run update once even if 
@@ -262,7 +258,7 @@ public final class DbMapping implements Updatable {
                     Relation rel = (Relation) prop2db.get(propName.toLowerCase());
 
                     if (rel == null) {
-                        rel = new Relation(dbField, propName, this, props);
+                        rel = new Relation(propName, this);
                     }
 
                     rel.update(dbField, props);
@@ -312,7 +308,7 @@ public final class DbMapping implements Updatable {
             try {
                 // check if subnode relation already exists. If so, reuse it
                 if (subRelation == null) {
-                    subRelation = new Relation(subnodeMapping, "_children", this, props);
+                    subRelation = new Relation("_children", this);
                 }
 
                 subRelation.update(subnodeMapping, props);
@@ -695,7 +691,7 @@ public final class DbMapping implements Updatable {
      *
      * @return ...
      */
-    public Relation getPropertyRelation() {
+    private Relation getPropertyRelation() {
         if ((propRelation == null) && (parentMapping != null)) {
             return parentMapping.getPropertyRelation();
         }

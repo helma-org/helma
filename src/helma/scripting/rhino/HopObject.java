@@ -17,7 +17,6 @@
 package helma.scripting.rhino;
 
 import helma.scripting.ScriptingException;
-import helma.framework.*;
 import helma.framework.core.*;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
@@ -28,7 +27,6 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -192,8 +190,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
     /**
      * Render a skin to the response buffer.
      *
-     * @param skin The skin object or name
-     * @param param An optional parameter object
+     * @param skinobj The skin object or name
+     * @param paramobj An optional parameter object
      *
      * @return ...
      */
@@ -221,8 +219,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
     /**
      *  Render a skin and return its output as string.
      *
-     * @param skin The skin object or name
-     * @param param An optional parameter object
+     * @param skinobj The skin object or name
+     * @param paramobj An optional parameter object
      *
      * @return ...
      */
@@ -295,19 +293,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
 
         if (id instanceof Number) {
             n = get(((Number) id).intValue(), this);
-        } else if (id instanceof String) {
-            // HopObject.get() is more often called for child elements than for
-            // ordinary properties, so try a getChildElement() first. This seems
-            // to have quite an impact on get() performance.
-            n = node.getChildElement(id.toString());
-
-            if (n != null) {
-               return Context.toObject(n, core.global);
-            }
-
+        } else if (id != null) {
             n = getFromNode(id.toString());
-        } else {
-            throw new RuntimeException("Invalid type for id argument in HopObject.get(): "+id);
         }
 
         // since we're calling Scriptable.get() methods, we'll get NOT_FOUND rather
@@ -350,7 +337,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
      */
     public boolean jsFunction_set(Object id, Object value) {
         if (id == Undefined.instance || value == Undefined.instance) {
-            throw new RuntimeException("HopObject.set() called with wrong number of arguments");
+            throw new EvaluatorException("HopObject.set() called with wrong number of arguments");
         }
         if ((node == null)) {
             return false;
@@ -361,7 +348,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
         if (id instanceof Number) {
 
             if (!(value instanceof HopObject)) {
-                throw new RuntimeException("Can only set HopObjects as child objects in HopObject.set()");
+                throw new EvaluatorException("Can only set HopObjects as child objects in HopObject.set()");
             }
 
             int idx = (((Number) id).intValue());
@@ -369,10 +356,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
 
             node.addNode(n, idx);
 
-        } else if (id instanceof String) {
+        } else if (id != null) {
             put(id.toString(), this, value);
-        } else {
-            throw new RuntimeException("Invalid type for id argument in HopObject.set(): "+id);
         }
 
         return true;
@@ -844,7 +829,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
     /**
      *
      *
-     * @param name ...
+     * @param idx ...
      * @param start ...
      *
      * @return ...
@@ -862,7 +847,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
     /**
      *
      *
-     * @param name ...
+     * @param idx ...
      * @param start ...
      *
      * @return ...
