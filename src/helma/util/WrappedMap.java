@@ -19,6 +19,7 @@ package helma.util;
 import java.util.Map;
 import java.util.Set;
 import java.util.Collection;
+import java.util.HashMap;
 
 /**
  *  A Map that wraps another map and can be set to read-only.
@@ -31,6 +32,12 @@ public class WrappedMap implements Map {
     // is this map readonly?
     boolean readonly = false;
 
+    // isolate changes from the wrapped map?
+    boolean copyOnWrite = false;
+
+    public final static int READ_ONLY = 1;
+    public final static int COPY_ON_WRITE = 2;
+
     /**
      *  Constructor
      */
@@ -40,6 +47,18 @@ public class WrappedMap implements Map {
                 "Argument must not be null in WrappedMap constructor");
         }
         wrapped = map;
+    }
+
+    /**
+     *  Constructor
+     */
+    public WrappedMap(Map map, int mode) {
+        this(map);
+        if (mode == READ_ONLY) {
+            readonly = true;
+        } else if (mode == COPY_ON_WRITE) {
+            copyOnWrite = true;
+        }
     }
 
     /**
@@ -54,6 +73,20 @@ public class WrappedMap implements Map {
      */
     public boolean isReadonly() {
         return readonly;
+    }
+
+    /**
+     *  Set the copyOnWrite flag on or off
+     */
+    public void setCopyOnWrite(boolean cow) {
+        copyOnWrite = cow;
+    }
+
+    /**
+     *  Is this map copyOnWrite?
+     */
+    public boolean isCopyOnWrite() {
+        return copyOnWrite;
     }
 
     // Methods from interface java.util.Map -
@@ -86,12 +119,20 @@ public class WrappedMap implements Map {
         if (readonly) {
             throw new RuntimeException("Attempt to modify readonly map");
         }
+        if (copyOnWrite) {
+            wrapped = new HashMap (wrapped);
+            copyOnWrite = false;
+        }
         return wrapped.put(key, value);
     }
 
     public Object remove(Object key) {
         if (readonly) {
             throw new RuntimeException("Attempt to modify readonly map");
+        }
+        if (copyOnWrite) {
+            wrapped = new HashMap (wrapped);
+            copyOnWrite = false;
         }
         return wrapped.remove(key);
     }
@@ -100,12 +141,20 @@ public class WrappedMap implements Map {
         if (readonly) {
             throw new RuntimeException("Attempt to modify readonly map");
         }
+        if (copyOnWrite) {
+            wrapped = new HashMap (wrapped);
+            copyOnWrite = false;
+        }
         wrapped.putAll(t);
     }
 
     public void clear() {
         if (readonly) {
             throw new RuntimeException("Attempt to modify readonly map");
+        }
+        if (copyOnWrite) {
+            wrapped = new HashMap (wrapped);
+            copyOnWrite = false;
         }
         wrapped.clear();
     }
