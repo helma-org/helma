@@ -29,6 +29,11 @@ public class ResponseTrans implements Externalizable {
     // transient, response must be constructed before this is serialized
     public transient String title, head, body, message, error;
 
+    // Generic container for response data items. This is used to
+    // pass response fragments to skins, which can assemble them
+    // through the <% response.xxx %> macro.
+    public transient Object data;
+
     // name of the skin to be rendered  after completion, if any
     public transient String skin = null;
 
