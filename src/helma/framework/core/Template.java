@@ -3,8 +3,10 @@
  
 package helma.framework.core;
 
-import java.util.*;
 import java.io.*;
+import java.util.Vector;
+import java.util.Iterator;
+import java.util.StringTokenizer;
 import helma.framework.*;
 import FESI.Data.*;
 import FESI.Exceptions.*;
