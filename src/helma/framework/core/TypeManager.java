@@ -61,17 +61,12 @@ public final class TypeManager {
      */
     public void createPrototypes () {
         // create standard prototypes.
-        registerPrototype ("root", new File (appDir, "root"),
-                new Prototype ("root", app));
-        registerPrototype ("user", new File (appDir, "user"),
-                new Prototype ("user", app));
-        // hopobject prototype is special in that we keep a reference
-        // to it, since we need it regularly when setting parent prototypes.
-        hopobjectProto = new Prototype ("hopobject", app);
-        registerPrototype ("hopobject", new File (appDir, "hopobject"), hopobjectProto);
-        // same with global prototype
-        globalProto = new Prototype ("global", app);
-        registerPrototype ("global", new File (appDir, "global"), globalProto);
+        createPrototype ("root");
+        createPrototype ("user");
+        // get references to hopobject and global protos,
+        // since we need it regularly when setting parent prototypes.
+        hopobjectProto = createPrototype ("hopobject");
+        globalProto = createPrototype ("global");
         // loop through directories and create prototypes
         checkFiles ();
     }
@@ -122,8 +117,7 @@ public final class TypeManager {
 	            File f = new File (appDir, list[i]);
 	            if (f.isDirectory ()) {
 	                // create new prototype
-	                proto = new Prototype (list[i], app);
-	                registerPrototype (list[i], f, proto);
+	                createPrototype (list[i], f);
 	            }
 	        }
 	    }
@@ -159,6 +153,17 @@ public final class TypeManager {
 
     }
 
+    protected void removeZipFile (String zipname) {
+	zipfiles.remove (zipname);
+	for (Iterator i=prototypes.values().iterator(); i.hasNext(); ) {
+	    Prototype proto = (Prototype) i.next ();
+	    // update prototype's type mapping
+	    DbMapping dbmap = proto.getDbMapping ();
+	    SystemProperties props = dbmap.getProperties();
+	    props.removeProps (zipname);
+	}
+    }
+
 
     private boolean isValidTypeName (String str) {
 	if (str == null)
@@ -183,33 +188,26 @@ public final class TypeManager {
      * caller (e.g. ZippedAppFile).
      */
     public Prototype createPrototype (String typename) {
-	Prototype p = getPrototype (typename);
-	if (p == null) {
-	    p = new Prototype (typename, app);
-	    prototypes.put (typename, p);
-	}
-	return p;
+	return createPrototype (typename, new File (appDir, typename));
     }
 
 
     /**
      *  Create a prototype from a directory containing scripts and other stuff
      */
-    public void registerPrototype (String name, File dir, Prototype proto) {
-        // System.err.println ("REGISTER PROTO: "+app.getName()+"/"+name);
-        // app.logEvent ("registering prototype "+name);
-
-        // Create and register type properties file
-        File propfile = new File (dir, "type.properties");
-        SystemProperties props = new SystemProperties (propfile.getAbsolutePath ());
-        DbMapping dbmap = new DbMapping (app, name, props);
-        // we don't need to put the DbMapping into proto.updatables, because
-        // dbmappings are checked separately in checkFiles for each request
-        // proto.updatables.put ("type.properties", dbmap);
-        proto.setDbMapping (dbmap);
-
-        // put the prototype into our map
-        prototypes.put (name, proto);
+    public Prototype createPrototype (String typename, File dir) {
+	Prototype proto = new Prototype (typename, app);
+	// Create and register type properties file
+	File propfile = new File (dir, "type.properties");
+	SystemProperties props = new SystemProperties (propfile.getAbsolutePath ());
+	DbMapping dbmap = new DbMapping (app, typename, props);
+	// we don't need to put the DbMapping into proto.updatables, because
+	// dbmappings are checked separately in checkFiles for each request
+	// proto.updatables.put ("type.properties", dbmap);
+	proto.setDbMapping (dbmap);
+	// put the prototype into our map
+	prototypes.put (typename, proto);
+	return proto;
     }
 
 
