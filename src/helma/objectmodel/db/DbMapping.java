@@ -11,7 +11,6 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 import java.sql.*;
-import com.workingdogs.village.*;
 
 /**
   * A DbMapping describes how a certain type of  Nodes is to mapped to a
@@ -83,11 +82,6 @@ public final class DbMapping implements Updatable {
     private String idgen;
     // remember last key generated for this table
     long lastID;
-
-    // the (village) schema of the database table
-    Schema schema = null;
-    // the (village) keydef of the db table
-    KeyDef keydef = null;
 
     // timestamp of last modification of the mapping (type.properties)
     long lastTypeChange;
@@ -191,10 +185,7 @@ public final class DbMapping implements Updatable {
 	}
 
 	lastTypeChange = props.lastModified ();
-	// null the cached schema & keydef so it's rebuilt the next time around
-	schema = null;
-	keydef = null;
-	// same with columns and select string
+	// null the cached columns and select string
 	columns = null;
 	columnMap.clear();
 	selectString = insertString = updateString = null;
@@ -565,22 +556,6 @@ public final class DbMapping implements Updatable {
 	return false;
     }
 
-    /**
-     * Return a Village Schema object for this DbMapping.
-     */
-    public synchronized Schema getSchema () throws ClassNotFoundException, SQLException, DataSetException {
-        if (!isRelational ())
-            throw new SQLException ("Can't get Schema for non-relational data mapping");
-        if (source == null && parentMapping != null)
-            return parentMapping.getSchema ();
-        // Use local variable s to avoid synchronization (schema may be nulled elsewhere)
-        Schema s = schema;
-        if (s != null)
-            return s;
-        schema = new Schema ().schema (getConnection (), table, "*");
-        return schema;
-    }
-
 
     /**
      * Return an array of DbColumns for the relational table mapped by this DbMapping.
@@ -702,21 +677,6 @@ public final class DbMapping implements Updatable {
 	}
     }
 
-    /**
-     * Return a Village Schema object for this DbMapping.
-     */
-    public synchronized KeyDef getKeyDef () {
-	if (!isRelational ())
-	    throw new RuntimeException ("Can't get KeyDef for non-relational data mapping");
-	if (source == null && parentMapping != null)
-	    return parentMapping.getKeyDef ();
-	// Use local variable s to avoid synchronization (keydef may be nulled elsewhere)
-	KeyDef k = keydef;
-	if (k != null)
-	    return k;
-	keydef = new KeyDef ().addAttrib (getIDField ());
-	return keydef;	
-    }
 
     public String toString () {
 	if (typename == null)
