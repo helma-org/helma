@@ -542,13 +542,47 @@ public class Node implements INode, Serializable {
 
     /**
      * This version of setParent additionally marks the node as anonymous or non-anonymous,
-     * depending on the string argument.
+     * depending on the string argument. This is the version called from the scripting framework,
+     * while the one argument version is called from within the objectmodel classes only.
      */
     public void setParent (Node parent, String propertyName) {
-	this.parentID = parent == null ? null : parent.getID();
-	this.parentmap = parent == null ? null : parent.getDbMapping();
+	// we only do that for relational nodes.
+	if (dbmap == null || !dbmap.isRelational ())
+	    return;
+
+	String oldParentID = parentID;
+	parentID = parent == null ? null : parent.getID();
+	parentmap = parent == null ? null : parent.getDbMapping();
+
+	if (parentID == null || parentID.equals (oldParentID))
+	    // nothing changed, no need to find access property
+	    return;
+
 	if (propertyName == null) {
-	    this.anonymous = true;
+	    // see if we can find out the propertyName by ourselfes by looking at the
+	    // parent's property relation
+	    String newname = null;
+	    if (parentmap != null) {
+	        // first try to retrieve name via generic property relation of parent
+	        Relation prel = parentmap.getPropertyRelation ();
+	        if (prel != null && prel.other == dbmap && prel.direction == Relation.DIRECT) {
+	            // reverse look up property used to access this via parent
+	            String dbfield = prel.getRemoteField ();
+	            if (dbfield != null) {
+	                Relation proprel = (Relation) dbmap.db2prop.get (dbfield);
+	                if (proprel != null && proprel.propname != null)
+	                    newname = getString (proprel.propname, false);
+	            }
+	        }
+	    }
+
+	    // did we find a new name for this
+	    if (newname == null) {
+	        this.anonymous = true;
+	    } else {
+	        this.anonymous = false;
+	        this.name = newname;
+	    }
 	} else {
 	    this.anonymous = false;
 	    this.name = propertyName;
@@ -855,8 +889,8 @@ public class Node implements INode, Serializable {
 	                snrel += " ORDER BY "+gsrel.order;
 	            node.setSubnodeRelation (snrel);
 	        } else {
-	            subnodes.addElement (node.getID ());
 	            setNode (sid, node);
+	            subnodes.addElement (node.getID ());
 	        }
 	        return node;
 	    }
@@ -1090,40 +1124,21 @@ public class Node implements INode, Serializable {
      */
     public Enumeration properties () {
 
-	/* final Relation prel = dbmap == null ? null : dbmap.getPropertyRelation ();
-	final DbMapping pmap = prel == null ? null : prel.other;
-	if (pmap != null && pmap.isRelational ()) {
-	    class Enum implements Enumeration {
-	        // get relational property nodes from db
-	        Vector propnodes = nmgr.getNodes (Node.this, prel.subnodesAreProperties ?
-		dbmap.getSubnodeRelation () : prel);
-	        // add non-relational properties from propMap
-	        Enumeration penum = propMap == null ? null : propMap.elements ();
-	        int size = propnodes.size ();
-	        int psize =  propMap == null ? 0 : propMap.size();
-	        int count = 0;
-	        public boolean hasMoreElements () {
-	            return count < size+psize;
-	        }
-	        public Object nextElement () {
-	            // first deliver local, non-relational properties ....
-	            if (penum != null && penum.hasMoreElements ()) {
-	                count++;
-	                return penum.nextElement ();
-	            }
-	            // .... then the relational ones.
-	            Node n = nmgr.getNode ((String) propnodes.elementAt (count - psize), pmap);
-	            Property prop = new Property (n.getName (), Node.this, n);
-	            count++;
-                         return prop;
-	        }	
-	    }
-	    return new Enum ();
-	} */
 	if (dbmap != null && dbmap.prop2db.size() > 0)
+	    // return the properties defined in type.properties, if there are any
 	    return dbmap.prop2db.keys();
-	else
-	    return propMap == null ? new EmptyEnumeration () : propMap.keys ();
+
+	Relation prel = dbmap == null ? null : dbmap.getPropertyRelation ();
+	if (prel != null && prel.direction == Relation.DIRECT && !prel.subnodesAreProperties
+			&& prel.other != null && prel.other.isRelational ())
+	    // return names of objects from a relational db table
+	    return nmgr.getPropertyNames (this, prel).elements ();
+	else if (propMap != null)
+	    // return the actually explicitly stored properties
+	    return propMap.keys ();
+
+	// sorry, no properties for this Node
+	return new EmptyEnumeration ();
 
 	// NOTE: we don't enumerate node properties here
 	// return propMap == null ? new Vector ().elements () : propMap.elements ();
