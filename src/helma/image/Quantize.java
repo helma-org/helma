@@ -1,7 +1,38 @@
 /*
- * @(#)Quantize.java    0.90 9/19/00 Adam Doppelt
+ * Helma License Notice
+ *
+ * The contents of this file are subject to the Helma License
+ * Version 2.0 (the "License"). You may not use this file except in
+ * compliance with the License. A copy of the License is available at
+ * http://adele.helma.org/download/helma/license.txt
+ *
+ * Copyright 1998-2003 Helma Software. All Rights Reserved.
+ *
+ * $RCSfile$
+ * $Author$
+ * $Revision$
+ * $Date$
  */
+
 package helma.image;
+
+import java.awt.image.*;
+
+/*
+ * @(#)Quantize.java    0.90 9/19/00 Adam Doppelt
+ * 
+ * Modifications by JŸrg Lehni:
+ * 
+ * - Support for alpha-channels.
+ * - Returns a BufferedImage of TYPE_BYTE_INDEXED with a IndexColorModel.
+ * - Dithering of images through helma.image.DiffusionFilterOp by setting
+ *   the dither parameter to true.
+ * - Support for a transparent color, which is correctly rendered by GIFEncoder.
+ *   All pixels with alpha < 0x80 are converted to this color when the parameter
+ *   alphaToBitmask is set to true.
+ * - Removed the SQUARES lookup tables as multiplications of integer values
+ *   shouldn't take more than one clock nowadays anyhow.
+ */
 
 /**
  * An efficient color quantization algorithm, adapted from the C++
@@ -155,7 +186,7 @@ public class Quantize {
 %  Therefore, to avoid building a fully populated tree, QUANTIZE: (1)
 %  Initializes data structures for nodes only as they are needed;  (2)
 %  Chooses a maximum depth for the tree as a function of the desired
-%  number of colors in the output image (currently log2(colormap size)).
+%  number of colors in the output image (currently log2(colorMap size)).
 %
 %  For each pixel in the input image, classification scans downward from
 %  the root of the color description tree. At each level of the tree it
@@ -212,7 +243,7 @@ public class Quantize {
 %  the tree.
 %
 %  Assignment generates the output image from the pruned tree. The
-%  output image consists of two parts: (1)  A color map, which is an
+%  outpu				t image consists of two parts: (1)  A color map, which is an
 %  array of color descriptions (RGB triples) for each color present in
 %  the output image;  (2)  A pixel array, which represents each pixel as
 %  an index into the color map array.
@@ -239,20 +270,21 @@ public class Quantize {
 */
     
     final static boolean QUICK = true;
-    
+
     final static int MAX_RGB = 255;
     final static int MAX_NODES = 266817;
     final static int MAX_TREE_DEPTH = 8;
+    final static int MAX_CHILDREN = 16;
 
     // these are precomputed in advance
-    static int SQUARES[];
+    //    static int SQUARES[];
     static int SHIFT[];
 
     static {
-        SQUARES = new int[MAX_RGB + MAX_RGB + 1];
-        for (int i= -MAX_RGB; i <= MAX_RGB; i++) {
-            SQUARES[i + MAX_RGB] = i * i;
-        }
+        /*
+         * SQUARES = new int[MAX_RGB + MAX_RGB + 1]; for (int i= -MAX_RGB; i <=
+         * MAX_RGB; i++) { SQUARES[i + MAX_RGB] = i * i; }
+         */
 
         SHIFT = new int[MAX_TREE_DEPTH + 1];
         for (int i = 0; i < MAX_TREE_DEPTH + 1; ++i) {
@@ -261,39 +293,63 @@ public class Quantize {
     }
 
     /**
-     * Reduce the image to the given number of colors. The pixels are
-     * reduced in place.
+     * Reduce the image to the given number of colors. The pixels are reduced in
+     * place.
+     * 
      * @return The new color palette.
      */
-    public static int[] quantizeImage(int pixels[][], int max_colors) {
-        Cube cube = new Cube(pixels, max_colors);
+    public static BufferedImage process(BufferedImage source, int maxColors,
+        boolean dither, boolean alphaToBitmask) {
+        int type = source.getType();
+        int[] pixels;
+        // try to get the direct pixels of the BufferedImage
+        // this works for images of type INT_RGB, INT_ARGB and INT_ARGB_PRE
+        // for all others, a new array with rgb pixels is created!
+        if (type == BufferedImage.TYPE_INT_RGB
+            || type == BufferedImage.TYPE_INT_ARGB
+            || type == BufferedImage.TYPE_INT_ARGB_PRE) {
+            pixels = ((DataBufferInt) source.getRaster().getDataBuffer()).getData();
+        } else {
+            pixels = source.getRGB(0, 0, source.getWidth(), source.getHeight(), null, 0, source.getWidth());
+        }
+        Cube cube = new Cube(source, pixels, maxColors, dither, alphaToBitmask);
         cube.classification();
         cube.reduction();
-        cube.assignment();
-        return cube.colormap;
+        return cube.assignment();
     }
-    
+
     static class Cube {
-        int pixels[][];
-        int max_colors;
-        int colormap[];
-        
+        BufferedImage source;
+        int[] pixels;
+        int maxColors;
+        byte colorMap[][];
+
         Node root;
         int depth;
 
+        boolean dither;
+        boolean alphaToBitmask;
+        boolean addTransparency;
+        // firstColor is set to 1 when when addTransparency is true!
+        int firstColor = 0;
+
         // counter for the number of colors in the cube. this gets
         // recalculated often.
-        int colors;
+        int numColors;
 
         // counter for the number of nodes in the tree
-        int nodes;
+        int numNodes;
 
-        Cube(int pixels[][], int max_colors) {
+        Cube(BufferedImage source, int[] pixels, int maxColors, boolean dither,
+            boolean alphaToBitmask) {
+            this.source = source;
             this.pixels = pixels;
-            this.max_colors = max_colors;
+            this.maxColors = maxColors;
+            this.dither = dither;
+            this.alphaToBitmask = alphaToBitmask;
 
-            int i = max_colors;
-            // tree_depth = log max_colors
+            int i = maxColors;
+            // tree_depth = log maxColors
             //                 4
             for (depth = 1; i != 0; depth++) {
                 i /= 4;
@@ -306,107 +362,108 @@ public class Quantize {
             } else if (depth < 2) {
                 depth = 2;
             }
-            
+
             root = new Node(this);
         }
 
         /*
-         * Procedure Classification begins by initializing a color
-         * description tree of sufficient depth to represent each
-         * possible input color in a leaf. However, it is impractical
-         * to generate a fully-formed color description tree in the
-         * classification phase for realistic values of cmax. If
-         * colors components in the input image are quantized to k-bit
-         * precision, so that cmax= 2k-1, the tree would need k levels
-         * below the root node to allow representing each possible
-         * input color in a leaf. This becomes prohibitive because the
-         * tree's total number of nodes is 1 + sum(i=1,k,8k).
-         *
-         * A complete tree would require 19,173,961 nodes for k = 8,
-         * cmax = 255. Therefore, to avoid building a fully populated
-         * tree, QUANTIZE: (1) Initializes data structures for nodes
-         * only as they are needed; (2) Chooses a maximum depth for
-         * the tree as a function of the desired number of colors in
-         * the output image (currently log2(colormap size)).
-         *
-         * For each pixel in the input image, classification scans
-         * downward from the root of the color description tree. At
-         * each level of the tree it identifies the single node which
-         * represents a cube in RGB space containing It updates the
-         * following data for each such node:
-         *
-         *   number_pixels : Number of pixels whose color is contained
-         *   in the RGB cube which this node represents;
-         *
-         *   unique : Number of pixels whose color is not represented
-         *   in a node at lower depth in the tree; initially, n2 = 0
-         *   for all nodes except leaves of the tree.
-         *
-         *   total_red/green/blue : Sums of the red, green, and blue
-         *   component values for all pixels not classified at a lower
-         *   depth. The combination of these sums and n2 will
-         *   ultimately characterize the mean color of a set of pixels
-         *   represented by this node.
+         * Procedure Classification begins by initializing a color description
+         * tree of sufficient depth to represent each possible input color in a
+         * leaf. However, it is impractical to generate a fully-formed color
+         * description tree in the classification phase for realistic values of
+         * cmax. If colors components in the input image are quantized to k-bit
+         * precision, so that cmax= 2k-1, the tree would need k levels below the
+         * root node to allow representing each possible input color in a leaf.
+         * This becomes prohibitive because the tree's total number of nodes is
+         * 1 + sum(i=1,k,8k).
+         * 
+         * A complete tree would require 19,173,961 nodes for k = 8, cmax = 255.
+         * Therefore, to avoid building a fully populated tree, QUANTIZE: (1)
+         * Initializes data structures for nodes only as they are needed; (2)
+         * Chooses a maximum depth for the tree as a function of the desired
+         * number of colors in the output image (currently log2(colorMap size)).
+         * 
+         * For each pixel in the input image, classification scans downward from
+         * the root of the color description tree. At each level of the tree it
+         * identifies the single node which represents a cube in RGB space
+         * containing It updates the following data for each such node:
+         * 
+         * numPixels : Number of pixels whose color is contained in the RGB cube
+         * which this node represents;
+         * 
+         * unique : Number of pixels whose color is not represented in a node at
+         * lower depth in the tree; initially, n2 = 0 for all nodes except
+         * leaves of the tree.
+         * 
+         * totalRed/green/blue : Sums of the red, green, and blue component
+         * values for all pixels not classified at a lower depth. The
+         * combination of these sums and n2 will ultimately characterize the
+         * mean color of a set of pixels represented by this node.
          */
         void classification() {
-            int pixels[][] = this.pixels;
+            addTransparency = false;
+            firstColor = 0;
+            for (int i = 0; i < pixels.length; i++) {
+                int pixel = pixels[i];
+                int red = (pixel >> 16) & 0xff;
+                int green = (pixel >> 8) & 0xff;
+                int blue = (pixel >> 0) & 0xff;
+                int alpha = (pixel >> 24) & 0xff;
+                if (alphaToBitmask)
+                    alpha = alpha < 0x80 ? 0 : 0xff;
 
-            int width = pixels.length;
-            int height = pixels[0].length;
-
-            // convert to indexed color
-            for (int x = width; x-- > 0; ) {
-                for (int y = height; y-- > 0; ) {
-                    int pixel = pixels[x][y];
-                    int red   = (pixel >> 16) & 0xFF;
-                    int green = (pixel >>  8) & 0xFF;
-                    int blue  = (pixel >>  0) & 0xFF;
-
+                if (alpha > 0) {
                     // a hard limit on the number of nodes in the tree
-                    if (nodes > MAX_NODES) {
-                        System.out.println("pruning");
+                    if (numNodes > MAX_NODES) {
+                        //	System.out.println("pruning");
                         root.pruneLevel();
                         --depth;
                     }
 
                     // walk the tree to depth, increasing the
-                    // number_pixels count for each node
+                    // numPixels count for each node
                     Node node = root;
                     for (int level = 1; level <= depth; ++level) {
-                        int id = (((red   > node.mid_red   ? 1 : 0) << 0) |
-                                  ((green > node.mid_green ? 1 : 0) << 1) |
-                                  ((blue  > node.mid_blue  ? 1 : 0) << 2));
-                        if (node.child[id] == null) {
+                        int id = (((red > node.midRed ? 1 : 0) << 0)
+                            | ((green > node.midGreen ? 1 : 0) << 1)
+                            | ((blue > node.midBlue ? 1 : 0) << 2) | ((alpha > node.midAlpha ? 1
+                            : 0) << 3));
+                        if (node.children[id] == null) {
                             new Node(node, id, level);
                         }
-                        node = node.child[id];
-                        node.number_pixels += SHIFT[level];
+                        node = node.children[id];
+                        node.numPixels += SHIFT[level];
                     }
 
                     ++node.unique;
-                    node.total_red   += red;
-                    node.total_green += green;
-                    node.total_blue  += blue;
+                    node.totalRed += red;
+                    node.totalGreen += green;
+                    node.totalBlue += blue;
+                    node.totalAlpha += alpha;
+                } else if (!addTransparency) {
+                    addTransparency = true;
+                    numColors++;
+                    firstColor = 1; // start at 1 as 0 will be the transparent
+                                    // color
                 }
             }
         }
 
         /*
-         * reduction repeatedly prunes the tree until the number of
-         * nodes with unique > 0 is less than or equal to the maximum
-         * number of colors allowed in the output image.
-         *
-         * When a node to be pruned has offspring, the pruning
-         * procedure invokes itself recursively in order to prune the
-         * tree from the leaves upward.  The statistics of the node
-         * being pruned are always added to the corresponding data in
-         * that node's parent.  This retains the pruned node's color
-         * characteristics for later averaging.
+         * reduction repeatedly prunes the tree until the number of nodes with
+         * unique > 0 is less than or equal to the maximum number of colors
+         * allowed in the output image.
+         * 
+         * When a node to be pruned has offspring, the pruning procedure invokes
+         * itself recursively in order to prune the tree from the leaves upward.
+         * The statistics of the node being pruned are always added to the
+         * corresponding data in that node's parent. This retains the pruned
+         * node's color characteristics for later averaging.
          */
         void reduction() {
             int threshold = 1;
-            while (colors > max_colors) {
-                colors = 0;
+            while (numColors > maxColors) {
+                numColors = firstColor;
                 threshold = root.reduce(threshold, Integer.MAX_VALUE);
             }
         }
@@ -416,75 +473,113 @@ public class Quantize {
          */
         static class Search {
             int distance;
-            int color_number;
+            int colorIndex;
         }
 
         /*
-         * Procedure assignment generates the output image from the
-         * pruned tree. The output image consists of two parts: (1) A
-         * color map, which is an array of color descriptions (RGB
-         * triples) for each color present in the output image; (2) A
-         * pixel array, which represents each pixel as an index into
-         * the color map array.
-         *
-         * First, the assignment phase makes one pass over the pruned
-         * color description tree to establish the image's color map.
-         * For each node with n2 > 0, it divides Sr, Sg, and Sb by n2.
-         * This produces the mean color of all pixels that classify no
-         * lower than this node. Each of these colors becomes an entry
-         * in the color map.
-         *
-         * Finally, the assignment phase reclassifies each pixel in
-         * the pruned tree to identify the deepest node containing the
-         * pixel's color. The pixel's value in the pixel array becomes
-         * the index of this node's mean color in the color map.
+         * Procedure assignment generates the output image from the pruned tree.
+         * The output image consists of two parts: (1) A color map, which is an
+         * array of color descriptions (RGB triples) for each color present in
+         * the output image; (2) A pixel array, which represents each pixel as
+         * an index into the color map array.
+         * 
+         * First, the assignment phase makes one pass over the pruned color
+         * description tree to establish the image's color map. For each node
+         * with n2 > 0, it divides Sr, Sg, and Sb by n2. This produces the mean
+         * color of all pixels that classify no lower than this node. Each of
+         * these colors becomes an entry in the color map.
+         * 
+         * Finally, the assignment phase reclassifies each pixel in the pruned
+         * tree to identify the deepest node containing the pixel's color. The
+         * pixel's value in the pixel array becomes the index of this node's
+         * mean color in the color map.
          */
-        void assignment() {
-            colormap = new int[colors];
+        BufferedImage assignment() {
+            colorMap = new byte[4][numColors];
 
-            colors = 0;
-            root.colormap();
-  
-            int pixels[][] = this.pixels;
+            if (addTransparency) {
+                // if a transparency color is added, firstColor was set to 1,
+                // so color 0 can be used for this
+                colorMap[0][0] = 0;
+                colorMap[1][0] = 0;
+                colorMap[2][0] = 0;
+                colorMap[3][0] = 0;
+            }
+            numColors = firstColor;
+            root.mapColors();
 
-            int width = pixels.length;
-            int height = pixels[0].length;
+            // determine bit depth for palette
+            int depth;
+            for (depth = 1; depth <= 8; depth++)
+                if ((1 << depth) >= numColors)
+                    break;
 
-            Search search = new Search();
-            
-            // convert to indexed color
-            for (int x = width; x-- > 0; ) {
-                for (int y = height; y-- > 0; ) {
-                    int pixel = pixels[x][y];
-                    int red   = (pixel >> 16) & 0xFF;
-                    int green = (pixel >>  8) & 0xFF;
-                    int blue  = (pixel >>  0) & 0xFF;
+            // create the right color model, depending on transparency settings:
+            IndexColorModel icm;
+            if (alphaToBitmask) {
+                if (addTransparency)
+                    icm = new IndexColorModel(depth, numColors, colorMap[0],
+                        colorMap[1], colorMap[2], 0);
+                else
+                    icm = new IndexColorModel(depth, numColors, colorMap[0],
+                        colorMap[1], colorMap[2]);
+            } else {
+                icm = new IndexColorModel(depth, numColors, colorMap[0],
+                    colorMap[1], colorMap[2], colorMap[3]);
+            }
+            // create the indexed BufferedImage:
+            BufferedImage dest = new BufferedImage(source.getWidth(),
+                source.getHeight(), BufferedImage.TYPE_BYTE_INDEXED, icm);
 
-                    // walk the tree to find the cube containing that color
-                    Node node = root;
-                    for ( ; ; ) {
-                        int id = (((red   > node.mid_red   ? 1 : 0) << 0) |
-                                  ((green > node.mid_green ? 1 : 0) << 1) |
-                                  ((blue  > node.mid_blue  ? 1 : 0) << 2)  );
-                        if (node.child[id] == null) {
-                            break;
-                        }
-                        node = node.child[id];
-                    }
+            boolean firstOut = true;
+            if (dither)
+                new DiffusionFilterOp().filter(source, dest);
+            else {
+                Search search = new Search();
+                // convert to indexed color
+                byte[] dst = ((DataBufferByte) dest.getRaster().getDataBuffer()).getData();
 
-                    if (QUICK) {
-                        // if QUICK is set, just use that
-                        // node. Strictly speaking, this isn't
-                        // necessarily best match.
-                        pixels[x][y] = node.color_number;
+                for (int i = 0; i < pixels.length; i++) {
+                    int pixel = pixels[i];
+                    int red = (pixel >> 16) & 0xff;
+                    int green = (pixel >> 8) & 0xff;
+                    int blue = (pixel >> 0) & 0xff;
+                    int alpha = (pixel >> 24) & 0xff;
+                    if (alphaToBitmask)
+                        alpha = alpha < 0x80 ? 0 : 0xff;
+
+                    if (alpha == 0 && addTransparency) {
+                        dst[i] = 0; // transparency color is at 0
                     } else {
-                        // Find the closest color.
-                        search.distance = Integer.MAX_VALUE;
-                        node.parent.closestColor(red, green, blue, search);
-                        pixels[x][y] = search.color_number;
+                        // walk the tree to find the cube containing that color
+                        Node node = root;
+                        for (;;) {
+                            int id = (((red > node.midRed ? 1 : 0) << 0)
+                                | ((green > node.midGreen ? 1 : 0) << 1)
+                                | ((blue > node.midBlue ? 1 : 0) << 2) | ((alpha > node.midAlpha ? 1
+                                : 0) << 3));
+                            if (node.children[id] == null) {
+                                break;
+                            }
+                            node = node.children[id];
+                        }
+
+                        if (QUICK) {
+                            // if QUICK is set, just use that
+                            // node. Strictly speaking, this isn't
+                            // necessarily best match.
+                            dst[i] = (byte) node.colorIndex;
+                        } else {
+                            // Find the closest color.
+                            search.distance = Integer.MAX_VALUE;
+                            node.parent.closestColor(red, green, blue, alpha,
+                                search);
+                            dst[i] = (byte) search.colorIndex;
+                        }
                     }
                 }
             }
+            return dest;
         }
 
         /**
@@ -496,82 +591,87 @@ public class Quantize {
             // parent node
             Node parent;
 
-            // child nodes
-            Node child[];
-            int nchild;
+            // children nodes
+            Node children[];
+            int numChildren;
 
             // our index within our parent
             int id;
             // our level within the tree
             int level;
             // our color midpoint
-            int mid_red;
-            int mid_green;
-            int mid_blue;
+            int midRed;
+            int midGreen;
+            int midBlue;
+            int midAlpha;
 
             // the pixel count for this node and all children
-            int number_pixels;
-            
+            int numPixels;
+
             // the pixel count for this node
             int unique;
             // the sum of all pixels contained in this node
-            int total_red;
-            int total_green;
-            int total_blue;
+            int totalRed;
+            int totalGreen;
+            int totalBlue;
+            int totalAlpha;
 
-            // used to build the colormap
-            int color_number;
+            // used to build the colorMap
+            int colorIndex;
 
             Node(Cube cube) {
                 this.cube = cube;
                 this.parent = this;
-                this.child = new Node[8];
+                this.children = new Node[MAX_CHILDREN];
                 this.id = 0;
                 this.level = 0;
 
-                this.number_pixels = Integer.MAX_VALUE;
-            
-                this.mid_red   = (MAX_RGB + 1) >> 1;
-                this.mid_green = (MAX_RGB + 1) >> 1;
-                this.mid_blue  = (MAX_RGB + 1) >> 1;
+                this.numPixels = Integer.MAX_VALUE;
+
+                this.midRed = (MAX_RGB + 1) >> 1;
+                this.midGreen = (MAX_RGB + 1) >> 1;
+                this.midBlue = (MAX_RGB + 1) >> 1;
+                this.midAlpha = (MAX_RGB + 1) >> 1;
             }
-        
+
             Node(Node parent, int id, int level) {
                 this.cube = parent.cube;
                 this.parent = parent;
-                this.child = new Node[8];
+                this.children = new Node[MAX_CHILDREN];
                 this.id = id;
                 this.level = level;
 
                 // add to the cube
-                ++cube.nodes;
+                ++cube.numNodes;
                 if (level == cube.depth) {
-                    ++cube.colors;
+                    ++cube.numColors;
                 }
 
                 // add to the parent
-                ++parent.nchild;
-                parent.child[id] = this;
+                ++parent.numChildren;
+                parent.children[id] = this;
 
                 // figure out our midpoint
                 int bi = (1 << (MAX_TREE_DEPTH - level)) >> 1;
-                mid_red   = parent.mid_red   + ((id & 1) > 0 ? bi : -bi);
-                mid_green = parent.mid_green + ((id & 2) > 0 ? bi : -bi);
-                mid_blue  = parent.mid_blue  + ((id & 4) > 0 ? bi : -bi);
+                midRed = parent.midRed + ((id & 1) > 0 ? bi : -bi);
+                midGreen = parent.midGreen + ((id & 2) > 0 ? bi : -bi);
+                midBlue = parent.midBlue + ((id & 4) > 0 ? bi : -bi);
+                midAlpha = parent.midAlpha + ((id & 8) > 0 ? bi : -bi);
             }
 
             /**
-             * Remove this child node, and make sure our parent
-             * absorbs our pixel statistics.
+             * Remove this children node, and make sure our parent absorbs our
+             * pixel statistics.
              */
             void pruneChild() {
-                --parent.nchild;
+                --parent.numChildren;
                 parent.unique += unique;
-                parent.total_red     += total_red;
-                parent.total_green   += total_green;
-                parent.total_blue    += total_blue;
-                parent.child[id] = null;
-                --cube.nodes;
+                parent.totalRed += totalRed;
+                parent.totalGreen += totalGreen;
+                parent.totalBlue += totalBlue;
+                parent.totalAlpha += totalAlpha;
+                parent.children[id] = null;
+                --cube.numNodes;
                 cube = null;
                 parent = null;
             }
@@ -580,10 +680,10 @@ public class Quantize {
              * Prune the lowest layer of the tree.
              */
             void pruneLevel() {
-                if (nchild != 0) {
-                    for (int id = 0; id < 8; id++) {
-                        if (child[id] != null) {
-                            child[id].pruneLevel();
+                if (numChildren != 0) {
+                    for (int id = 0; id < MAX_CHILDREN; id++) {
+                        if (children[id] != null) {
+                            children[id].pruneLevel();
                         }
                     }
                 }
@@ -593,78 +693,82 @@ public class Quantize {
             }
 
             /**
-             * Remove any nodes that have fewer than threshold
-             * pixels. Also, as long as we're walking the tree:
-             *
-             *  - figure out the color with the fewest pixels
-             *  - recalculate the total number of colors in the tree
+             * Remove any nodes that have fewer than threshold pixels. Also, as
+             * long as we're walking the tree: - figure out the color with the
+             * fewest pixels - recalculate the total number of colors in the
+             * tree
              */
-            int reduce(int threshold, int next_threshold) {
-                if (nchild != 0) {
-                    for (int id = 0; id < 8; id++) {
-                        if (child[id] != null) {
-                            next_threshold = child[id].reduce(threshold, next_threshold);
+            int reduce(int threshold, int nextThreshold) {
+                if (numChildren != 0) {
+                    for (int id = 0; id < MAX_CHILDREN; id++) {
+                        if (children[id] != null) {
+                            nextThreshold = children[id].reduce(threshold,
+                                nextThreshold);
                         }
                     }
                 }
-                if (number_pixels <= threshold) {
+                if (numPixels <= threshold) {
                     pruneChild();
                 } else {
                     if (unique != 0) {
-                        cube.colors++;
+                        cube.numColors++;
                     }
-                    if (number_pixels < next_threshold) {
-                        next_threshold = number_pixels;
+                    if (numPixels < nextThreshold) {
+                        nextThreshold = numPixels;
                     }
                 }
-                return next_threshold;
+                return nextThreshold;
             }
 
             /*
-             * colormap traverses the color cube tree and notes each
-             * colormap entry. A colormap entry is any node in the
-             * color cube tree where the number of unique colors is
-             * not zero.
+             * mapColors traverses the color cube tree and notes each colorMap
+             * entry. A colorMap entry is any node in the color cube tree where
+             * the number of unique colors is not zero.
              */
-            void colormap() {
-                if (nchild != 0) {
-                    for (int id = 0; id < 8; id++) {
-                        if (child[id] != null) {
-                            child[id].colormap();
+            void mapColors() {
+                if (numChildren != 0) {
+                    for (int id = 0; id < MAX_CHILDREN; id++) {
+                        if (children[id] != null) {
+                            children[id].mapColors();
                         }
                     }
                 }
                 if (unique != 0) {
-                    int r = ((total_red   + (unique >> 1)) / unique);
-                    int g = ((total_green + (unique >> 1)) / unique);
-                    int b = ((total_blue  + (unique >> 1)) / unique);
-                    cube.colormap[cube.colors] = (((    0xFF) << 24) |
-                                                  ((r & 0xFF) << 16) |
-                                                  ((g & 0xFF) <<  8) |
-                                                  ((b & 0xFF) <<  0));
-                    color_number = cube.colors++;
+                    int add = unique >> 1;
+                    cube.colorMap[0][cube.numColors] = (byte) ((totalRed + add) / unique);
+                    cube.colorMap[1][cube.numColors] = (byte) ((totalGreen + add) / unique);
+                    cube.colorMap[2][cube.numColors] = (byte) ((totalBlue + add) / unique);
+                    cube.colorMap[3][cube.numColors] = (byte) ((totalAlpha + add) / unique);
+                    colorIndex = cube.numColors++;
                 }
             }
 
-            /* ClosestColor traverses the color cube tree at a
-             * particular node and determines which colormap entry
-             * best represents the input color.
+            /*
+             * ClosestColor traverses the color cube tree at a particular node
+             * and determines which colorMap entry best represents the input
+             * color.
              */
-            void closestColor(int red, int green, int blue, Search search) {
-                if (nchild != 0) {
-                    for (int id = 0; id < 8; id++) {
-                        if (child[id] != null) {
-                            child[id].closestColor(red, green, blue, search);
+            void closestColor(int red, int green, int blue, int alpha,
+                Search search) {
+                if (numChildren != 0) {
+                    for (int id = 0; id < MAX_CHILDREN; id++) {
+                        if (children[id] != null) {
+                            children[id].closestColor(red, green, blue, alpha,
+                                search);
                         }
                     }
                 }
 
                 if (unique != 0) {
-                    int color = cube.colormap[color_number];
-                    int distance = distance(color, red, green, blue);
+                    int distance = distance(
+                        cube.colorMap[0][colorIndex] & 0xff,
+                        cube.colorMap[1][colorIndex] & 0xff,
+                        cube.colorMap[2][colorIndex] & 0xff,
+                        cube.colorMap[3][colorIndex] & 0xff, red, green, blue,
+                        alpha);
                     if (distance < search.distance) {
                         search.distance = distance;
-                        search.color_number = color_number;
+                        search.colorIndex = colorIndex;
                     }
                 }
             }
@@ -672,10 +776,18 @@ public class Quantize {
             /**
              * Figure out the distance between this node and som color.
              */
-            final static int distance(int color, int r, int g, int b) {
-                return (SQUARES[((color >> 16) & 0xFF) - r + MAX_RGB] +
-                        SQUARES[((color >>  8) & 0xFF) - g + MAX_RGB] +
-                        SQUARES[((color >>  0) & 0xFF) - b + MAX_RGB]);
+            final static int distance(int r1, int g1, int b1, int a1, int r2,
+                int g2, int b2, int a2) {
+                int da = a1 - a2;
+                int dr = r1 - r2;
+                int dg = g1 - g2;
+                int db = b1 - b2;
+
+                return da * da + dr * dr + dg * dg + db * db;
+//                return (SQUARES[r1 - r2 + MAX_RGB] +
+//                     SQUARES[g1 - g2 + MAX_RGB] +
+//                     SQUARES[b1 - b2 + MAX_RGB] +
+//                     SQUARES[a1 - a2 + MAX_RGB]);
             }
 
             public String toString() {
@@ -688,11 +800,13 @@ public class Quantize {
                 buf.append(' ');
                 buf.append(level);
                 buf.append(" [");
-                buf.append(mid_red);
+                buf.append(midRed);
                 buf.append(',');
-                buf.append(mid_green);
+                buf.append(midGreen);
                 buf.append(',');
-                buf.append(mid_blue);
+                buf.append(midBlue);
+                buf.append(',');
+                buf.append(midAlpha);
                 buf.append(']');
                 return new String(buf);
             }
