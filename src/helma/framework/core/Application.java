@@ -104,7 +104,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     Properties classMapping;
 
     // a cache for parsed skin objects
-    CacheMap skincache = new CacheMap (100, 0.75f);
+    public CacheMap skincache = new CacheMap (200, 0.80f);
 
     /**
      *  Zero argument constructor needed for RMI
@@ -892,9 +892,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	                if (u.uid != null) {
 	                    try {
 	                        eval.invokeFunction (u, "onLogout", new Object[0]);
-	                    } catch (Exception ignore) {
-	                        ignore.printStackTrace ();
-	                    }
+	                    } catch (Exception ignore) {}
 	                    activeUsers.remove (u.uid);
 	                }
 	                sessions.remove (u.getSessionID ());
@@ -980,7 +978,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	DbSource dbs = (DbSource) dbSources.get (dbSrcName);
 	if (dbs != null)
 	    return dbs;
-	if (dbProps.getProperty (dbSrcName+".url") != null && dbProps.getProperty (dbSrcName+".driver") != null) {	
+	if (dbProps.getProperty (dbSrcName+".url") != null && dbProps.getProperty (dbSrcName+".driver") != null) {
 	    try {
 	        dbs = new DbSource (name, dbProps);
 	        dbSources.put (dbSrcName, dbs);
@@ -1011,6 +1009,12 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
      */
     public void putDbMapping (String typename, DbMapping dbmap) {
 	dbMappings.put (typename, dbmap);
+    }
+    /**
+     * Proxy method to get a property from the applications properties.
+     */
+    public String getProperty (String propname) {
+	return props.getProperty (propname);
     }
 
     /**
