@@ -478,7 +478,7 @@ public final class NodeManager {
     /**
      * Generates an ID for the table by finding out the maximum current value
      */
-    public String generateSQLID (DbMapping map) throws Exception {
+    public synchronized String generateSQLID (DbMapping map) throws Exception {
 
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("generateID "+map);
@@ -491,7 +491,9 @@ public final class NodeManager {
 	    qds = new QueryDataSet (con, q);
 	    qds.fetchRecords ();
 	    long currMax = qds.getRecord (0).getValue (1).asLong ();
-	    retval = Long.toString (currMax+1);
+	    currMax = Math.max (currMax+1, map.lastID+1);
+	    map.lastID = currMax;
+	    retval = Long.toString (currMax);
 	} finally {
 	    // tx.timer.endEvent ("generateID "+map);
 	    if (qds != null) {

@@ -44,6 +44,7 @@ public class DbMapping {
     private String idgen;
     // id generator for dbs that don't support sequences
     private String sqlidgen;
+    public long lastID;
 
 
     Schema schema = null;
