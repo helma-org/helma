@@ -35,6 +35,7 @@ public class ActionFile implements Updatable {
 	this.name = name;
 	this.sourceName = file.getParentFile().getName()+"/"+file.getName();
 	this.file = file;
+	this.lastmod = file.lastModified ();
 	this.content = null;
     }
 
