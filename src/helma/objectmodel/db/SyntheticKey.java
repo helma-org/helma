@@ -16,6 +16,9 @@ public final class SyntheticKey implements Key, Serializable {
     private final Key parentKey;
     private final String name;
 
+    // lazily initialized hashcode
+    private transient int hashcode = 0;
+
 
     /**
      * make a key for a persistent Object, describing its datasource and id.
@@ -39,7 +42,9 @@ public final class SyntheticKey implements Key, Serializable {
     }
 
     public int hashCode () {
-	return name.hashCode () + parentKey.hashCode ();
+	if (hashcode == 0)
+	    hashcode = 17 + 37*name.hashCode () + 37*parentKey.hashCode ();
+	return hashcode;
     }
 
 

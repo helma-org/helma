@@ -21,6 +21,9 @@ public final class DbKey implements Key, Serializable {
     // the id that defines this key's object within the above storage space
     private final String id;
 
+    // lazily initialized hashcode
+    private transient int hashcode = 0;
+
     /**
      * make a key for a persistent Object, describing its datasource and id.
      */
@@ -44,7 +47,12 @@ public final class DbKey implements Key, Serializable {
     }
 
     public int hashCode () {
-	return storageName == null ? id.hashCode () : storageName.hashCode() + id.hashCode ();
+	if (hashcode == 0) {
+	    hashcode =  storageName == null ?
+		17 + 37*id.hashCode () :
+		17 + 37*storageName.hashCode() + +37*id.hashCode ();
+	}
+	return hashcode;
     }
 
     public Key getParentKey () {
