@@ -55,7 +55,11 @@ public final class XmlDatabase implements IDatabase {
         dbHomeDir = new File(dbHome);
 
         if (!dbHomeDir.exists() && !dbHomeDir.mkdirs()) {
-            throw new RuntimeException("Couldn't create DB-directory");
+            throw new DatabaseException("Can't create database directory "+dbHomeDir);
+        }
+
+        if (!dbHomeDir.canWrite()) {
+            throw new DatabaseException("No write permission for database directory "+dbHomeDir);
         }
 
         this.encoding = nmgr.app.getCharset();
@@ -143,6 +147,9 @@ public final class XmlDatabase implements IDatabase {
         this.idgen = idgen;
 
         File file = new File(dbHomeDir, "idgen.xml");
+        if (file.exists() && !file.canWrite()) {
+            throw new IOException("No write permission for "+file);
+        }
         Resource res = new Resource(file, tmp);
         txn.addResource(res, ITransaction.ADDED);
     }
@@ -202,6 +209,9 @@ public final class XmlDatabase implements IDatabase {
         writer.close();
 
         File file = new File(dbHomeDir, kstr+".xml");
+        if (file.exists() && !file.canWrite()) {
+            throw new IOException("No write permission for "+file);
+        }
         Resource res = new Resource(file, tmp);
         txn.addResource(res, ITransaction.ADDED);
     }
@@ -251,10 +261,12 @@ public final class XmlDatabase implements IDatabase {
             for (int i=0; i<l; i++) {
                 Resource res = (Resource) writeFiles.get(i);
                 try {
+                    // move temporary file to permanent name
                     if (res.tmpfile.renameTo(res.file)) {
-                        nmgr.app.logEvent(res.tmpfile+" -> "+res.file);
+                        // success - delete tmp file
                         res.tmpfile.delete();
                     } else {
+                        // error - leave tmp file and print a message
                         nmgr.app.logError("*** Error committing "+res.file);
                         nmgr.app.logError("*** Committed version is in "+res.tmpfile);
                     }
@@ -267,6 +279,7 @@ public final class XmlDatabase implements IDatabase {
             l = deleteFiles.size();
             for (int i=0; i<l; i++) {
                 Resource res = (Resource) deleteFiles.get(i);
+                // delete files enlisted as deleted
                 try {
                     res.file.delete();
                 } catch (SecurityException ignore) {
@@ -285,6 +298,7 @@ public final class XmlDatabase implements IDatabase {
             int l = writeFiles.size();
             for (int i=0; i<l; i++) {
                 Resource res = (Resource) writeFiles.get(i);
+                // delete tmp files created by this transaction
                 try {
                     res.tmpfile.delete();
                 } catch (SecurityException ignore) {
@@ -328,5 +342,4 @@ public final class XmlDatabase implements IDatabase {
     }
 
 }
-
 
