@@ -108,10 +108,9 @@ function checkAuth(appObj)	{
 	var ok = false;
 
 	// check against root
-	var rootUsername = root.getProperty("adminusername");
-	var rootPassword = root.getProperty("adminpassword");
+	var adminAccess = root.getProperty("adminAccess");
 
-	if ( rootUsername==null || rootUsername=="" || rootPassword==null || rootPassword=="" )	{
+	if (adminAccess==null || adminAccess=="")	{
 		return createAuth();
 	}
 
@@ -121,10 +120,9 @@ function checkAuth(appObj)	{
 	if ( uname==null || uname=="" || pwd==null || pwd=="" )
 		return forceAuth();
 
-	var md5username = Packages.helma.util.MD5Encoder.encode(uname);
-	var md5password = Packages.helma.util.MD5Encoder.encode(pwd);
+	var md5key = Packages.helma.util.MD5Encoder.encode(uname + "-" + pwd);
 
-	if ( md5username==rootUsername && md5password==rootPassword )
+	if (md5key==adminAccess)
 		return true;
 
 	if (appObj!=null && appObj.isActive())	{
@@ -200,9 +198,9 @@ function createAuth()	{
 			renderSkin("pwdform",obj);
 			return false;
 		}
-		var str = "adminUsername=" + Packages.helma.util.MD5Encoder.encode(req.data.username) + "<br>\n";
-		str += "adminPassword=" + Packages.helma.util.MD5Encoder.encode(req.data.password) + "<br>";
+		var str = "adminAccess=" + Packages.helma.util.MD5Encoder.encode(req.data.username + "-" + req.data.password) + "<br>\n";
 		res.write ("<pre>" + str + "</pre>");
+		return false;
 	
 	}	else	{
 		// no input from webform, so print it
