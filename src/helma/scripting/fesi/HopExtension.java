@@ -592,8 +592,9 @@ public class HopExtension {
                     skin = reval.getSkin (thisObject, arguments[0].toString ());
                 if (asString)
                     reval.res.pushStringBuffer ();
+                Object javaObj = thisObject == null ? null : thisObject.toJavaObject ();
                 if (skin != null)
-                    skin.render (reval, thisObject.toJavaObject (), params);
+                    skin.render (reval, javaObj, params);
                 else
                     reval.res.write ("[Skin not found: "+arguments[0]+"]");
                 if (asString)
