@@ -8,6 +8,7 @@ import java.lang.reflect.*;
 import java.rmi.*;
 import java.rmi.server.*;
 import helma.framework.*;
+import helma.scripting.*;
 import helma.scripting.fesi.*;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
@@ -33,13 +34,28 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
     // the class name of the scripting environment implementation
     static final String scriptEnvironmentName = "helma.scripting.fesi.Environment";
+    ScriptingEnvironment scriptEnv;
 
+    // the root of the website, if a custom root object is defined.
+    // otherwise this is managed by the NodeManager and not cached here.
+    Object rootObject = null;
+    String rootObjectClass;
 
-    private String baseURI;
-
+    /**
+    *  The type manager checks if anything in the application's prototype definitions
+    * has been updated prior to each evaluation.
+    */
     public TypeManager typemgr;
 
+    /**
+    *  Each application has one internal request evaluator for calling
+    * the scheduler and other internal functions.
+    */
     RequestEvaluator eval;
+
+    /**
+    * Collections for evaluator thread pooling
+    */
     protected Stack freeThreads;
     protected Vector allThreads;
 
@@ -69,19 +85,20 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     protected volatile long xmlrpcCount = 0;
     protected volatile long errorCount = 0;
 
+    // the URL-prefix to use for links into this application
+    private String baseURI;
+
     private DbMapping rootMapping, userRootMapping, userMapping;
 
-    // the root of the website, if a custom root object is defined.
-    // otherwise this is managed by the NodeManager and not cached here.
-    IPathElement rootObject = null;
-    String rootObjectClass;
+    // boolean checkSubnodes;
 
-    boolean checkSubnodes;
-
+    // name of respone encoding
     String charset;
 
+    // password file to use for authenticate() function
     private CryptFile pwfile;
 
+    // a cache for parsed skin objects
     CacheMap skincache = new CacheMap (100, 0.75f);
 
     /**
@@ -92,10 +109,20 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     }
 
     /**
+     * Build an application with the given name in the home directory. Server-wide properties will
+     * be created if the files are present, but they don't have to.
+     */
+    public Application (String name, File home) throws RemoteException, IllegalArgumentException {
+	this (name, home,
+		new SystemProperties (new File (home, "server.properties").getAbsolutePath ()),
+		new SystemProperties (new File (home, "db.properties").getAbsolutePath ()));
+    }
+
+    /**
      * Build an application with the given name, app and db properties and app base directory. The
      * app directories will be created if they don't exist already.
      */
-    public Application (String name, SystemProperties sysProps, SystemProperties sysDbProps, File home)
+    public Application (String name, File home, SystemProperties sysProps, SystemProperties sysDbProps)
 		    throws RemoteException, IllegalArgumentException {
 	
 	if (name == null || name.trim().length() == 0)
@@ -104,9 +131,14 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	this.name = name;
 	this.home = home;
 
+	// give the Helma Thread group a name so the threads can be recognized
 	threadgroup = new ThreadGroup ("TX-"+name);
 
-	String appHome = sysProps.getProperty ("appHome");
+	// check the system props to see if custom app directory is set.
+	// otherwise use <home>/apps/<appname>
+	String appHome = null;
+	if (sysProps != null)
+	    appHome = sysProps.getProperty ("appHome");
 	if (appHome != null && !"".equals (appHome.trim()))
 	    appDir = new File (appHome);
 	else
@@ -115,7 +147,11 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	if (!appDir.exists())	
 	    appDir.mkdirs ();
 
-	String dbHome = sysProps.getProperty ("dbHome");
+	// check the system props to see if custom embedded db directory is set.
+	// otherwise use <home>/db/<appname>
+	String dbHome = null;
+	if (sysProps != null)
+	    dbHome = sysProps.getProperty ("dbHome");
 	if (dbHome != null && !"".equals (dbHome.trim()))
 	    dbDir = new File (dbHome);
 	else
@@ -124,21 +160,25 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	if (!dbDir.exists())	
 	    dbDir.mkdirs ();
 
+	// create app-level properties
 	File propfile = new File (appDir, "app.properties");
 	props = new SystemProperties (propfile.getAbsolutePath (), sysProps);
 
+	// create app-level db sources
 	File dbpropfile = new File (appDir, "db.properties");
 	dbProps = new SystemProperties (dbpropfile.getAbsolutePath (), sysDbProps);
 
+	// the passwd file, to be used with the authenticate() function
 	File pwf = new File (home, "passwd");
 	CryptFile parentpwfile = new CryptFile (pwf, null);
 	pwf = new File (appDir, "passwd");
 	pwfile = new CryptFile (pwf, parentpwfile);
 
+	// character encoding to be used for responses
 	charset = props.getProperty ("charset", "ISO-8859-1");
 
 	debug = "true".equalsIgnoreCase (props.getProperty ("debug"));
-	checkSubnodes = !"false".equalsIgnoreCase (props.getProperty ("subnodeChecking"));
+	// checkSubnodes = !"false".equalsIgnoreCase (props.getProperty ("subnodeChecking"));
 	
 	// get class name of root object if defined. Otherwise native Helma objectmodel will be used.
 	rootObjectClass = props.getProperty ("rootObject");
@@ -163,7 +203,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     }
 
     /**
-     * Finish initializing the application
+     * Get the application ready to run, initializing the evaluators and type manager.
      */
     public void init () throws DbException {
 
@@ -386,22 +426,43 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	nmgr.replicateCache (add, delete);
     }
 
-
-    public void ping () {
+        public void ping () {
 	// do nothing
+    }
+
+    /**
+     * Reset the application's object cache, causing all objects to be refetched from
+     * the database.
+     */
+    public void clearCache () {
+	nmgr.clearCache ();
+    }
+
+
+    /**
+     *  Set the application's root element to an arbitrary object. After this is called
+     *  with a non-null object, the helma node manager will be bypassed. This function
+     * can be used to script and publish any Java object structure with Helma.
+     */
+    public void setDataRoot (Object root) {
+	this.rootObject = root;
     }
 
     /**
      * This method returns the root object of this application's object tree.
      */
-    public IPathElement getDataRoot () {
+    public Object getDataRoot () {
+	// if rootObject is set, immediately return it.
+	if (rootObject != null)
+	    return rootObject;
+	// check if we ought to create a rootObject from its class name
 	if (rootObjectClass != null) {
 	    // create custom root element.
 	    // NOTE: This is but a very rough first sketch of an implementation
 	    // and needs much more care.
 	    if (rootObject == null) try {
 	        Class c = Class.forName (rootObjectClass);
-	        rootObject = (IPathElement) c.newInstance ();
+	        rootObject = c.newInstance ();
 	    } catch (Throwable x) {
 	        System.err.println ("ERROR CREATING ROOT OBJECT: "+x);
 	    }
@@ -449,11 +510,14 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
      * Return a prototype for a given node. If the node doesn't specify a prototype,
      * return the generic hopobject prototype.
      */
-    public Prototype getPrototype (IPathElement n) {
-    	String protoname = n.getPrototype ();
+    public Prototype getPrototype (Object obj) {
+    	String protoname = getPrototypeName (obj);
 	if (protoname == null)
 	    return typemgr.getPrototype ("hopobject");
-	return typemgr.getPrototype (protoname);
+	Prototype p = typemgr.getPrototype (protoname);
+	if (p == null)
+	    p = typemgr.getPrototype ("hopobject");
+	return p;
     }
 
     /**
@@ -584,7 +648,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
      */
     public String getNodeHref (IPathElement elem, String actionName) {
 	// FIXME: will fail for non-node roots
-	IPathElement root = getDataRoot ();
+	Object root = getDataRoot ();
 	INode users = getUserRoot ();
 	
 	// check base uri and optional root prototype from app.properties
@@ -598,26 +662,26 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
 	String divider = "/";
 	StringBuffer b = new StringBuffer ();
-	IPathElement p = elem;
+	Object p = elem;
 	int loopWatch = 0;
 	
-	while  (p != null && p.getParentElement () != null && p != root) {
+	while  (p != null && getParentElement (p) != null && p != root) {
 	
-	    if (rootproto != null && rootproto.equals (p.getPrototype ()))
+	    if (rootproto != null && rootproto.equals (getPrototypeName (p)))
 	        break;
 	
 	    b.insert (0, divider);
 	
 	    // users always have a canonical URL like /users/username
-	    if ("user".equals (p.getPrototype ())) {
-	        b.insert (0, UrlEncoder.encode (p.getElementName ()));
+	    if ("user".equals (getPrototypeName (p))) {
+	        b.insert (0, UrlEncoder.encode (getElementName (p)));
 	        p = users;
 	        break;
 	    }
 	
-	    b.insert (0, UrlEncoder.encode (p.getElementName ()));
+	    b.insert (0, UrlEncoder.encode (getElementName (p)));
 	    	
-	    p = p.getParentElement ();
+	    p = getParentElement (p);
 
 	    if (loopWatch++ > 20)
 	        break;
@@ -653,6 +717,58 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	return debug;
     }
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///   The following methods minic the IPathElement interface. This allows as
+    ///   to script any Java object: If the object implements IPathElement (as does
+    ///   the Node class in Helma's internal objectmodel) then the corresponding
+    ///   method is called in the object itself. Otherwise, a corresponding script function
+    ///   is called on the object.
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     *  Return the name to be used to get this element from its parent
+     */
+    public String getElementName (Object obj) {
+	if (obj instanceof IPathElement)
+	    return ((IPathElement) obj).getElementName ();
+	return null;
+    }
+
+    /**
+     * Retrieve a child element of this object by name.
+     */
+    public Object getChildElement (Object obj, String name) {
+	if (obj instanceof IPathElement)
+	    return ((IPathElement) obj).getChildElement (name);
+	return null;
+    }
+
+    /**
+     * Return the parent element of this object.
+     */
+    public Object getParentElement (Object obj) {
+	if (obj instanceof IPathElement)
+	    return ((IPathElement) obj).getParentElement ();
+	return null;
+    }
+
+
+    /**
+     * Get the name of the prototype to be used for this object. This will
+     * determine which scripts, actions and skins can be called on it
+     * within the Helma scripting and rendering framework.
+     */
+    public String getPrototypeName (Object obj) {
+	// check if e implements the IPathElement interface
+	if (obj instanceof IPathElement)
+	    // e implements the getPrototype() method
+	    return ((IPathElement) obj).getPrototype ();
+	else
+	    // use java class name as prototype name
+	    return obj.getClass ().getName ();
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Get the logger object for logging generic events
@@ -945,9 +1061,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
      * and can be switched off by adding "subnodeChecking=false" in the app.properties file.
      * It is recommended to leave it on except you suffer severe performance problems and know what you do.
      */
-    public boolean doesSubnodeChecking () {
+    /* public boolean doesSubnodeChecking () {
 	return checkSubnodes;
-    }
+    }*/
 
 }
 

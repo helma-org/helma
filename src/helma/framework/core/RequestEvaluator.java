@@ -79,7 +79,6 @@ public class RequestEvaluator implements Runnable {
     static final int XMLRPC = 2;      // via XML-RPC
     static final int INTERNAL = 3;     // generic function call, e.g. by scheduler
 
-    // INode root, currentNode;
     INode[] skinmanagers;
 
     /**
@@ -147,7 +146,9 @@ public class RequestEvaluator implements Runnable {
 	        app.typemgr.initRequestEvaluator (this);
 	    // System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
 	
-	    IPathElement root, currentElement;
+	    // object refs to ressolve request path
+	    Object root, currentElement;
+	
 	    // reset skinManager
 	    skinmanagers = null;
 	    skincache.clear ();
@@ -279,20 +280,19 @@ public class RequestEvaluator implements Runnable {
 	                                    if (pathItems[i].length () == 0)
 	                                        continue;
 	
-	                                    currentElement = currentElement.getChildElement (pathItems[i]);
+	                                    currentElement = app.getChildElement (currentElement, pathItems[i]);
 
 	                                    // add object to request path if suitable
 	                                    if (currentElement != null) {
 	                                        // add to reqPath array
 	                                        current = getElementWrapper (currentElement);
 	                                        reqPath.putProperty (reqPath.size(), current);
-	                                        String pt = currentElement.getPrototype ();
+	                                        String pt = app.getPrototypeName (currentElement);
 	                                        if (pt != null) {
 	                                            // if a prototype exists, add also by prototype name
 	                                            reqPath.putHiddenProperty (pt, current);
 	                                        }
 	                                    }
-	                                    	
 	                                }
 	                            }
 	                        }
@@ -652,7 +652,7 @@ public class RequestEvaluator implements Runnable {
 	return result;
     }
 
-    public synchronized Object invokeFunction (IPathElement node, String functionName, Object[] args)
+    public synchronized Object invokeFunction (Object node, String functionName, Object[] args)
 		throws Exception {
 	ESObject obj = null;
 	if  (node == null)
@@ -859,19 +859,30 @@ public class RequestEvaluator implements Runnable {
     }
 
 
-    public ESObject getElementWrapper (IPathElement e) {
+    public ESObject getElementWrapper (Object e) {
 	
+	// check if e is an instance of a helma objectmodel node.
 	if (e instanceof INode)
 	    return getNodeWrapper ((INode) e);
 
-	String protoname = e.getPrototype ();
+	// Gotta find out the prototype name to use for this object...
+	String prototypeName = null;
+	// check if e implements the IPathElement interface
+	if (e instanceof IPathElement)
+	    // e implements the getPrototype() method
+	    prototypeName = ((IPathElement) e).getPrototype ();
+	else
+	    // use java class name as prototype name
+	    prototypeName = e.getClass ().getName ();
+	
+	ObjectPrototype op = getPrototype (prototypeName);
 
-	ObjectPrototype op = getPrototype (protoname);
 	if (op == null)
                   op = esNodePrototype;
 
 	return new ESGenericObject (op, evaluator, e);
     }
+
 
     /**
      *  Get a script wrapper for an implemntation of helma.objectmodel.INode
@@ -948,6 +959,10 @@ public class RequestEvaluator implements Runnable {
             prototypes.put (protoName, op);
     }
 
+    /**
+     *  Utility class to use for caching skins in a Hashtable.
+     *  The key consists out of two strings: prototype name and skin name.
+     */
     final class SkinKey {
 
 	final String first, second;
