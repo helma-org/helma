@@ -658,6 +658,9 @@ class ServeConnection implements Runnable, HttpServletRequest, HttpServletRespon
 	    if (reqQuery != null)
 	    	reqQuery = decode (reqQuery);
 	    Servlet servlet = (Servlet) serve.registry.get( reqUriPath );
+	    // maybe the application name without slash? try with slash appended
+	    if (servlet == null)
+	    	servlet = (Servlet) serve.registry.get (reqUriPath+"//");
 	    if (servlet == null)
 	    	servlet = serve.defaultServlet;
 	    if ( servlet != null )

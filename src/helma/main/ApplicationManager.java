@@ -94,7 +94,7 @@ public class ApplicationManager {
 	    if (server.websrv == null) {
 	        Naming.unbind ("//:"+port+"/"+appName);
 	    } else {
-	        server.websrv.removeServlet ("/"+appName+"/");
+	        // server.websrv.removeServlet ("/"+appName+"/");
 	        server.websrv.removeServlet ("/"+appName+"/*");
 	    }
 	    app.stop ();
@@ -116,7 +116,7 @@ public class ApplicationManager {
 	        if ("base".equalsIgnoreCase (appName))
 	            server.websrv.setDefaultServlet (servlet);
 	        else {
-	            server.websrv.addServlet ("/"+appName+"/", servlet);
+	            // server.websrv.addServlet ("/"+appName+"/", servlet);
 	            server.websrv.addServlet ("/"+appName+"/*", servlet);
 	        }
 	    }
