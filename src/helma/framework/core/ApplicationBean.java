@@ -1,6 +1,7 @@
 package helma.framework.core;
 
 import java.io.Serializable;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
@@ -185,6 +186,16 @@ public class ApplicationBean implements Serializable {
 	return skinz;
     }
 
+    public String getAppDir () {
+	return app.getAppDir().getAbsolutePath();
+    }
+
+    public String getServerDir () {
+	File f = app.getServerDir();
+	if (f == null)
+	    f = app.getAppDir();
+	return f.getAbsolutePath();
+    }
 
     public String toString() {
 	return "[Application " + app.getName() + "]";

@@ -1189,9 +1189,17 @@ public final class Application implements IPathElement, Runnable {
     /**
      * Return the directory of this application
      */
-    public File getAppDir()	{
+    public File getAppDir() {
 	return appDir;
     }
+
+    /**
+     * Return the directory of the Helma server
+     */
+    public File getServerDir() {
+	return home;
+    }
+
 
     /**
      * Get the DbMapping associated with a prototype name in this application
