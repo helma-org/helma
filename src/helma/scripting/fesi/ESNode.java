@@ -89,21 +89,6 @@ public class ESNode extends ObjectPrototype {
 	return node;
     }
 
-    /* public void setNode (INode node) {
-	if (node != null) {
-	    this.node = node;
-	    // set node handle to wrapped node
-	    if (node instanceof helma.objectmodel.db.Node)
-	        handle = ((helma.objectmodel.db.Node) node).getHandle ();
-	    else
-	        handle = null;
-	    eval.objectcache.put (node, this);
-	    // reset cache Node - will be reinitialized when needed
-	    cache = null;
-	    cacheWrapper = null;
-	}
-    } */
-
     public void setPrototype (String protoName) {
 	checkNode ();
 	node.setPrototype (protoName);
@@ -240,13 +225,20 @@ public class ESNode extends ObjectPrototype {
     public void putProperty(String propertyName, ESValue propertyValue, int hash) throws EcmaScriptException {
              checkNode ();
 	// eval.app.logEvent ("put property called: "+propertyName+", "+propertyValue.getClass());
-	if (/* "lastmodified".equalsIgnoreCase (propertyName) || "created".equalsIgnoreCase (propertyName) || */
-	        "cache".equalsIgnoreCase (propertyName))
+	if ("cache".equalsIgnoreCase (propertyName))
 	    throw new EcmaScriptException ("Can't modify read-only property \""+propertyName+"\".");
 
 	if ("subnodeRelation".equalsIgnoreCase (propertyName)) {
 	    node.setSubnodeRelation (propertyValue instanceof ESNull ? null : propertyValue.toString ());
 	    return;
+	}
+
+	// check if the property is write protected, i.e. the type.property file describes it as [readonly]
+	DbMapping dbm = node.getDbMapping ();
+	if (dbm != null) {
+	    Relation rel = dbm.getPropertyRelation (propertyName);
+	    if (rel != null && rel.isReadonly ())
+	        return;
 	}
 
 	if (propertyValue instanceof ESNull || propertyValue instanceof ESUndefined)
