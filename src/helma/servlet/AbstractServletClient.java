@@ -148,8 +148,9 @@ public abstract class AbstractServletClient extends HttpServlet {
 
 	    // check if we need to create a session id
 	    if (reqtrans.session == null) {
-	        reqtrans.session = Long.toString (Math.round (Math.random ()*Long.MAX_VALUE), 16);
-	        reqtrans.session += "@"+Long.toString (System.currentTimeMillis (), 16);
+	        reqtrans.session = Long.toString (
+	            Math.round (Math.random ()* Long.MAX_VALUE) -
+	            System.currentTimeMillis (), 36);
 	        Cookie c = new Cookie("HopSession", reqtrans.session);
 	        c.setPath ("/");
 	        if (cookieDomain != null)
