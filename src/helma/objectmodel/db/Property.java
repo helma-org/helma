@@ -45,8 +45,10 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	        value = in.readBoolean () ? Boolean.TRUE : Boolean.FALSE;
 	        break;
 	    case INTEGER:
-	    case DATE:
 	        value = new Long (in.readLong ());
+	        break;
+	    case DATE:
+	        value = new Date (in.readLong ());
 	        break;
 	    case FLOAT:
 	        value = new Double (in.readDouble ());
@@ -79,8 +81,10 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	    out.writeBoolean (((Boolean) value).booleanValue());
 	    break;
 	case INTEGER:
-	case DATE:
 	    out.writeLong (((Long) value).longValue());
+	    break;
+	case DATE:
+	    out.writeLong (((Date) value).getTime());
 	    break;
 	case FLOAT:
 	    out.writeDouble (((Double) value).doubleValue());
