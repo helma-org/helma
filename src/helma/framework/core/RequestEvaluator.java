@@ -421,7 +421,7 @@ public final class RequestEvaluator implements Runnable {
 	            globals.put ("res", res);
 	            globals.put ("app", app.getAppNode());
 
-	            scriptingEngine.invoke (thisObject, method, args, globals);
+	            result = scriptingEngine.invoke (thisObject, method, args, globals);
 	            commitTransaction ();
 
 	        } catch (Exception wrong) {
