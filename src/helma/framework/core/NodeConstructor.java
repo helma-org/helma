@@ -3,6 +3,7 @@
 
 package helma.framework.core;
 
+import helma.objectmodel.db.Node;
 import FESI.Data.*;
 import FESI.Exceptions.*;
 import FESI.Interpreter.*;
@@ -31,10 +32,12 @@ public class NodeConstructor extends BuiltinFunctionObject {
            ESNode node = null;
            if ("Node".equals (typename) || "hopobject".equalsIgnoreCase (typename)) {
                if (arguments.length == 0) {
-                   node = new ESNode (reval.esNodePrototype, this.evaluator, null, reval);
+                   Node n = new Node ((String) null, (String) null, reval.app.nmgr.safe);
+                   node = new ESNode (reval.esNodePrototype, this.evaluator, n, reval);
                    reval.objectcache.put (node.getNode (), node);
                } else {
-                   node = new ESNode (reval.esNodePrototype, this.evaluator, arguments[0], reval);
+                   Node n = new Node (arguments[0].toString(), (String) null, reval.app.nmgr.safe);
+                   node = new ESNode (reval.esNodePrototype, this.evaluator, n, reval);
                    reval.objectcache.put (node.getNode (), node);
                }
            } else {
@@ -43,7 +46,8 @@ public class NodeConstructor extends BuiltinFunctionObject {
                // is that we want to be able to use the specail features like subnode relations even for
                // transient nodes.
                ObjectPrototype op = reval.getPrototype (typename);
-               node = new ESNode (op, reval.evaluator, typename, reval);
+               Node n = new Node (typename, typename, reval.app.nmgr.safe);
+               node = new ESNode (op, reval.evaluator, n, reval);
                node.setPrototype (typename);
                node.getNode ().setDbMapping (reval.app.getDbMapping (typename));
                try {
