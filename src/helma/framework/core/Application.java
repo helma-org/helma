@@ -400,7 +400,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	String base = props.getProperty ("baseURI");
 	if (base != null)
 	    setBaseURI (base);
-	String href = n.getHref (root, users, tmpname, baseURI);
+	String href = n.getHref (root, users, tmpname, baseURI == null ? "/" : baseURI);
 	// add cache teaser
 	// href = href + "&tease="+((int) (Math.random ()*999));
 	return href;
