@@ -182,21 +182,11 @@ public final class NodeManager {
 	        node = getNodeByKey (tx.txn, (DbKey) key);
 	
 	    if (node != null) {
-	        Key primKey = node.getKey ();
-	        boolean keyIsPrimary = primKey.equals (key);
 	        synchronized (cache) {
-	            // check if node is already in cache with primary key
-	            Node oldnode = (Node) cache.put (primKey, node);
-	            // no need to check for oldnode != node because we fetched a new node from db
+	            Node oldnode = (Node) cache.put (node.getKey (), node);
 	            if (oldnode != null && !oldnode.isNullNode() && oldnode.getState () != Node.INVALID) {
-	                cache.put (primKey, oldnode);
-	                if (!keyIsPrimary) {
-	                    cache.put (key, oldnode);
-	                }
+	                cache.put (node.getKey (), oldnode);
 	                node = oldnode;
-	            } else if (!keyIsPrimary) {
-	                // cache node with secondary key
-	                cache.put (key, node);
 	            }
 	        }  // synchronized
 	    }
@@ -227,7 +217,7 @@ public final class NodeManager {
 	else
 	    // if a key for a node from within the DB
 	    // FIXME: This should never apply, since for every relation-based loading Synthetic Keys are used. Right?
-	    key = new DbKey (rel.other, kstr);
+	    key = new DbKey (rel.otherType, kstr);
 	
 	// See if Transactor has already come across this node
 	Node node = tx.getVisitedNode (key);
@@ -245,12 +235,13 @@ public final class NodeManager {
 
 	// check if we can use the cached node without further checks.
 	// we need further checks for subnodes fetched by name if the subnodes were changed.
-	if (!rel.virtual && rel.subnodesAreProperties && node != null && node.getState() != Node.INVALID) {
+	if (!rel.virtual && !rel.usesPrimaryKey () && node != null && node.getState() != Node.INVALID) {
 	    // check if node is null node (cached null)
 	    if (node.isNullNode ()) {
-	        if (node.created() < rel.other.getLastDataChange ())
+	        if (node.created() < rel.otherType.getLastDataChange ())
 	            node = null; //  cached null not valid anymore
-	    } else if (app.doesSubnodeChecking () && home.contains (node) < 0) {
+	    // } else if (app.doesSubnodeChecking () && home.contains (node) < 0) {
+	    } else if (!rel.checkConstraints (home, node)) {
 	        node = null;
 	    }
 	}
@@ -382,7 +373,7 @@ public final class NodeManager {
 	                        rec.setValue (rel.getDbField(), p.getFloatValue ());
 	                        break;
 	                    case IProperty.NODE:
-	                        if (rel.direction == Relation.FORWARD) {
+	                        if (rel.reftype == Relation.REFERENCE) {
 	                            // INode n = p.getNodeValue ();
 	                            // String foreignID = n == null ? null : n.getID ();
 	                            rec.setValue (rel.getDbField(), p.getStringValue ());
@@ -434,7 +425,8 @@ public final class NodeManager {
 	            Relation rel = dbm.propertyToRelation (propname);
 
 	            // skip properties that don't need to be updated before fetching them
-	            if (rel != null && (rel.readonly || rel.virtual || (rel.direction != Relation.FORWARD && rel.direction != Relation.PRIMITIVE)))
+	            if (rel != null && (rel.readonly || rel.virtual ||
+	            		(rel.reftype != Relation.REFERENCE && rel.reftype != Relation.PRIMITIVE)))
 	                continue;
 
 	            Property p = node.getProperty (propname, false);
@@ -465,7 +457,7 @@ public final class NodeManager {
 	                            rec.setValue (rel.getDbField(), p.getFloatValue ());
 	                            break;
 	                        case IProperty.NODE:
-	                            if (!rel.virtual && rel.direction == Relation.FORWARD) {
+	                            if (!rel.virtual && rel.reftype == Relation.REFERENCE) {
 	                                // INode n = p.getNodeValue ();
 	                                // String foreignID = n == null ? null : n.getID ();
 	                                updated++;
@@ -593,42 +585,26 @@ public final class NodeManager {
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNodeIDs "+home);
 
-	if (rel == null || rel.other == null || !rel.other.isRelational ()) {
+	if (rel == null || rel.otherType == null || !rel.otherType.isRelational ()) {
 	    // this should never be called for embedded nodes
 	    throw new RuntimeException ("NodeMgr.getNodeIDs called for non-relational node "+home);
 	} else {
 	    List retval = new ArrayList ();
 	    // if we do a groupby query (creating an intermediate layer of groupby nodes),
 	    // retrieve the value of that field instead of the primary key
-	    String idfield = rel.groupby == null ? rel.other.getIDField () : rel.groupby;
-	    Connection con = rel.other.getConnection ();
-	    String table = rel.other.getTableName ();
+	    String idfield = rel.groupby == null ? rel.otherType.getIDField () : rel.groupby;
+	    Connection con = rel.otherType.getConnection ();
+	    String table = rel.otherType.getTableName ();
 
 	    QueryDataSet qds = null;
 	    try {
-	        Relation subrel = rel;
-	        if (subrel.getSubnodeRelation () != null)
-	            subrel = subrel.getSubnodeRelation ();
-
+	
 	        if (home.getSubnodeRelation() != null) {
 	            // subnode relation was explicitly set
 	            qds = new QueryDataSet (con, "SELECT "+idfield+" FROM "+table+" "+home.getSubnodeRelation());
 	        } else {
 	            String q = "SELECT "+idfield+" FROM "+table;
-	            if (subrel.direction == Relation.BACKWARD) {
-	                String homeid = home.getNonVirtualHomeID ();
-	                q += " WHERE "+subrel.getRemoteField()+" = '"+homeid+"'";
-	                if (subrel.filter != null)
-	                    q += " AND "+subrel.filter;
-	                if (rel.dogroupby != null)
-	                    q += " AND " + rel.dogroupby + " = '" + home.getString ("groupname", false) +"'";
-	            } else if (subrel.filter != null)
-	                q += " WHERE "+subrel.filter;
-	            // set order, if specified and if not using subnode's relation
-	            if (rel.groupby != null)
-	                q += " GROUP BY "+rel.groupby+" ORDER BY "+(rel.groupbyorder == null ? rel.groupby : rel.groupbyorder);
-	            else if (rel.order != null)
-	                q += " ORDER BY "+rel.order;
+	            q += rel.buildQuery (home, home.getNonVirtualParent (), null);
 	            qds = new QueryDataSet (con, q);
 	        }
 
@@ -644,7 +620,7 @@ public final class NodeManager {
 	            String kstr = rec.getValue (1).asString ();
 	            // make the proper key for the object, either a generic DB key or a groupby key
 	            Key key = rel.groupby == null ?
-	            		(Key) new DbKey (rel.other, kstr) :
+	            		(Key) new DbKey (rel.otherType, kstr) :
 	            		(Key) new SyntheticKey (k, kstr);
 	            retval.add (new NodeHandle (key));
 	            // if these are groupby nodes, evict nullNode keys
@@ -679,39 +655,20 @@ public final class NodeManager {
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNodes "+home);
 
-	if (rel == null || rel.other == null || !rel.other.isRelational ()) {
+	if (rel == null || rel.otherType == null || !rel.otherType.isRelational ()) {
 	    // this should never be called for embedded nodes
 	    throw new RuntimeException ("NodeMgr.countNodes called for non-relational node "+home);
 	} else {
 	    List retval = new ArrayList ();
-	    DbMapping dbm = rel.other;
+	    DbMapping dbm = rel.otherType;
 
 	    TableDataSet tds =  new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
 	    try {
-	        Relation subrel = rel;
-	        if (subrel.getSubnodeRelation () != null)
-	            subrel = subrel.getSubnodeRelation ();
 
-	        if (home.getSubnodeRelation() != null) {
-	            // HACK: subnodeRelation includes a "where", but we need it without
-	            tds.where (home.getSubnodeRelation().trim().substring(5));
-	        } else if (subrel.direction == Relation.BACKWARD) {
-	            String homeid = home.getNonVirtualHomeID ();
-	            if (rel.filter != null)
-	                tds.where (subrel.getRemoteField()+" = '"+homeid+"' AND "+subrel.filter);
-	            else
-	                tds.where (subrel.getRemoteField()+" = '"+homeid+"'");
-	            // set order if specified
-	            if (rel.order != null)
-	                 tds.order (rel.order);
-	        } else {
-	            //  don't set where clause except for static filter, but set order.
-	            if (subrel.filter != null)
-	                tds.where (subrel.filter);
-	            if (rel.order != null)
-	                 tds.order (rel.order);
-	        }
-
+	        tds.where (rel.buildWhere (home, home.getNonVirtualParent (), null));
+	        if (rel.order != null)
+	            tds.order (rel.order);
+	
 	        if (logSql)
 	           app.logEvent ("### getNodes: "+tds.getSelectString());
 
@@ -719,7 +676,7 @@ public final class NodeManager {
 	        for (int i=0; i<tds.size (); i++) {
 	            // create new Nodes.
 	            Record rec = tds.getRecord (i);
-	            Node node = new Node (rel.other, rec, safe);
+	            Node node = new Node (rel.otherType, rec, safe);
 	            Key primKey = node.getKey ();
 	            retval.add (new NodeHandle (primKey));
 	            // do we need to synchronize on primKey here?
@@ -747,39 +704,22 @@ public final class NodeManager {
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("countNodes "+home);
 
-	if (rel == null || rel.other == null || !rel.other.isRelational ()) {
+	if (rel == null || rel.otherType == null || !rel.otherType.isRelational ()) {
 	    // this should never be called for embedded nodes
 	    throw new RuntimeException ("NodeMgr.countNodes called for non-relational node "+home);
 	} else {
 	    int retval = 0;
-	    Connection con = rel.other.getConnection ();
-	    String table = rel.other.getTableName ();
+	    Connection con = rel.otherType.getConnection ();
+	    String table = rel.otherType.getTableName ();
 
 	    QueryDataSet qds = null;
 	    try {
-	        Relation subrel = rel;
-	        if (subrel.getSubnodeRelation () != null)
-	            subrel = subrel.getSubnodeRelation ();
-
-	        if (home.getSubnodeRelation() != null) {
-	            qds = new QueryDataSet (con, "SELECT count(*) FROM "+table+" "+home.getSubnodeRelation());
-	        } else if (subrel.direction == Relation.BACKWARD) {
-	            String homeid = home.getNonVirtualHomeID ();
-	            String qstr = "SELECT count(*) FROM "+table+" WHERE "+subrel.getRemoteField()+" = '"+homeid+"'";
-	            if (subrel.filter != null)
-	                qstr += " AND "+subrel.filter;
-	            if (rel.dogroupby != null)
-	                qstr += " AND " + rel.dogroupby + " = '" + home.getString ("groupname", false) +"'";
-	            qds = new QueryDataSet (con, qstr);
-	        } else {
-	            String qstr = "SELECT count(*) FROM "+table;
-	            if (subrel.filter != null)
-	                qstr += " WHERE "+subrel.filter;
-	            qds = new QueryDataSet (con, qstr);
-	        }
-
+	        String qstr = "SELECT count(*) FROM "+table+rel.buildQuery (home, home.getNonVirtualParent (), null);
+	
 	        if (logSql)
-	            app.logEvent ("### countNodes: "+qds.getSelectString());
+	            app.logEvent ("### countNodes: "+qstr);
+	
+	        qds = new QueryDataSet (con, qstr);
 
 	        qds.fetchRecords ();
 	        if (qds.size () == 0)
@@ -805,16 +745,16 @@ public final class NodeManager {
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNodeIDs "+home);
 
-	if (rel == null || rel.other == null || !rel.other.isRelational ()) {
+	if (rel == null || rel.otherType == null || !rel.otherType.isRelational ()) {
 	    // this should never be called for embedded nodes
 	    throw new RuntimeException ("NodeMgr.getPropertyNames called for non-relational node "+home);
 	} else {
 	    Vector retval = new Vector ();
 	    // if we do a groupby query (creating an intermediate layer of groupby nodes),
 	    // retrieve the value of that field instead of the primary key
-	    String namefield = rel.getRemoteField ();
-	    Connection con = rel.other.getConnection ();
-	    String table = rel.other.getTableName ();
+	    String namefield = rel.accessor;
+	    Connection con = rel.otherType.getConnection ();
+	    String table = rel.otherType.getTableName ();
 
 	    QueryDataSet qds = null;
 
@@ -860,9 +800,7 @@ public final class NodeManager {
 	    if (node != null && dbm != null)
 	        node.setDbMapping (dbm);
 	} else {
-	    String idfield = key.getIDField ();
-	    if (idfield == null)
-	        idfield =dbm.getIDField ();
+	    String idfield =dbm.getIDField ();
 	
 	    TableDataSet tds = null;
 	    try {
@@ -906,62 +844,27 @@ public final class NodeManager {
 
 	} else if (rel != null && rel.groupby != null) {
 	    node = home.getGroupbySubnode (kstr, false);
-	    if (node == null && (rel.other == null || !rel.other.isRelational ())) {
+	    if (node == null && (rel.otherType == null || !rel.otherType.isRelational ())) {
 	        node = db.getNode (txn, kstr);
 	        node.nmgr = safe;
 	    }
 	    return node;
 
-	} else if (rel == null || rel.other == null || !rel.other.isRelational ()) {
+	} else if (rel == null || rel.otherType == null || !rel.otherType.isRelational ()) {
 	    node = db.getNode (txn, kstr);
 	    node.nmgr = safe;
-	    node.setDbMapping (rel.other);
+	    node.setDbMapping (rel.otherType);
 	    return node;
 
 	} else {
+	    System.err.println ("GETNODEBYRELATION "+rel);
 	    TableDataSet tds = null;
 	    try {
-	        DbMapping dbm = rel.other;
+	        DbMapping dbm = rel.otherType;
 	        tds = new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
-	        StringBuffer where = new StringBuffer ();
+	        String where = rel.buildWhere (home, home.getNonVirtualParent (), kstr);
 
-	        where.append (rel.getRemoteField ());
-	        where.append (" = '");
-	        where.append (escape(kstr));
-	        where.append ("'");
-
-	        // Additionally filter properties through subnode relation?
-	        if (rel.subnodesAreProperties) {
-	            String homeid = home.getNonVirtualHomeID ();
-	            // first check for dynamic subrel from node
-	            String nodesubrel = home.getSubnodeRelation();
-	            if (nodesubrel != null && nodesubrel.trim().length() > 5) {
-	                where.append (" and ");
-	                where.append (nodesubrel.trim().substring(5).trim());
-	            } else {
-	                Relation subrel = home.getDbMapping().getSubnodeRelation ();
-	                if (subrel != null) {
-	                    if (subrel.getSubnodeRelation () != null)
-	                        subrel = subrel.getSubnodeRelation ();
-	                    if (subrel != null && subrel.direction == Relation.BACKWARD) {
-	                        where.append (" and ");
-	                        where.append (subrel.getRemoteField());
-	                        where.append (" = '");
-	                        where.append (homeid);
-	                        where.append ("'");
-	                    }
-	                    if (rel.dogroupby != null)  {
-	                        where.append (" and ");
-	                        where.append (rel.dogroupby);
-	                        where.append (" = '");
-	                        where.append (home.getString ("groupname", false));
-	                        where.append ("'");
-	                    }
-	                }
-	            }
-	        }
-	
-	        tds.where (where.toString ());
+	        tds.where (where);
 
 	        if (logSql)
 	            app.logEvent ("### getNodeByRelation: "+tds.getSelectString());
@@ -973,7 +876,7 @@ public final class NodeManager {
 	        if (tds.size () > 1)
 	            throw new RuntimeException ("More than one value returned by query.");
 	        Record rec = tds.getRecord (0);
-	        node = new Node (rel.other, rec, safe);
+	        node = new Node (rel.otherType, rec, safe);
 
 	        // Check if node is already cached with primary Key.
 	        if (!rel.usesPrimaryKey()) {
