@@ -238,8 +238,13 @@ public final class Relation {
         // get additional filter property
         filter = props.getProperty(propName + ".filter");
 
-        if ((filter != null) && (filter.trim().length() == 0)) {
-            filter = null;
+        if (filter != null) {
+            if (filter.trim().length() == 0) {
+                filter = null;
+            } else {
+                // parenthesise filter
+                filter = "("+filter+")";
+            }
         }
 
         // get max size of collection
