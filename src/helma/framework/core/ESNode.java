@@ -236,7 +236,7 @@ public class ESNode extends ObjectPrototype {
     public void putProperty(String propertyName, ESValue propertyValue, int hash) throws EcmaScriptException {
              checkNode ();
 	// eval.app.logEvent ("put property called: "+propertyName+", "+propertyValue.getClass());
-	if ("lastmodified".equalsIgnoreCase (propertyName) || "created".equalsIgnoreCase (propertyName) ||
+	if (/* "lastmodified".equalsIgnoreCase (propertyName) || "created".equalsIgnoreCase (propertyName) || */
 	        "cache".equalsIgnoreCase (propertyName))
 	    throw new EcmaScriptException ("Can't modify read-only property \""+propertyName+"\".");
 
@@ -269,25 +269,25 @@ public class ESNode extends ObjectPrototype {
     }
     
     public boolean deleteProperty(String propertyName, int hash) throws EcmaScriptException {
-             checkNode ();
-    	// eval.app.logEvent ("delete property called: "+propertyName);
-    	if (node.get (propertyName, false) != null) {
-    	    node.unset (propertyName);
-    	    return true;
-    	}
+	checkNode ();
+	// eval.app.logEvent ("delete property called: "+propertyName);
+	if (node.get (propertyName, false) != null) {
+	    node.unset (propertyName);
+	    return true;
+	}
 	return super.deleteProperty (propertyName, hash);
     }
  
      public ESValue getProperty (int i) throws EcmaScriptException {
-             checkNode ();
- 	INode n = node.getSubnodeAt (i);
+	checkNode ();
+	INode n = node.getSubnodeAt (i);
  	if (n == null)
 	    return ESNull.theNull;
- 	return eval.getNodeWrapper (n);
+	return eval.getNodeWrapper (n);
      }
 
     public void putProperty(int index, ESValue propertyValue) throws EcmaScriptException {
-             checkNode ();
+	checkNode ();
 	if (propertyValue instanceof ESNode) {
 	    ESNode n = (ESNode) propertyValue;
 	    node.addNode (n.getNode (), index);
@@ -305,16 +305,21 @@ public class ESNode extends ObjectPrototype {
 
              if ("cache".equalsIgnoreCase (propertyName) && cache != null)
 	    return cacheWrapper;
-	if ("created".equalsIgnoreCase (propertyName))
-	    return new DatePrototype (evaluator, node.created ());	
-	if ("lastmodified".equalsIgnoreCase (propertyName))
-	    return new DatePrototype (evaluator, node.lastModified ());
-
 	if ("subnodeRelation".equalsIgnoreCase (propertyName)) {
 	    String rel = node.getSubnodeRelation ();
 	    return rel == null ?  (ESValue) ESNull.theNull :  new ESString (rel);
 	}
-
+	
+	if ("_id".equals (propertyName))
+	    return new ESString (node.getID ());
+	if ("_parent".equals (propertyName)) {
+	    INode n = node.getParent ();
+	    if (n != null)
+	        return eval.getNodeWrapper (n);
+	    else
+	        return ESNull.theNull;
+	}
+	
 	// this is not very nice, but as a hack we return the id of a node as node.__id__
 	if (propertyName.startsWith ("__") && propertyName.endsWith ("__"))
 	    return getInternalProperty (propertyName);
@@ -347,6 +352,12 @@ public class ESNode extends ObjectPrototype {
 	    if (p.getType () == IProperty.JAVAOBJECT)
 	        return ESLoader.normalizeObject (p.getJavaObjectValue (), evaluator);
 	}
+	
+	// these are predefined
+	// if ("created".equalsIgnoreCase (propertyName))
+	//     return new DatePrototype (evaluator, node.created ());	
+	// if ("lastmodified".equalsIgnoreCase (propertyName))
+	//     return new DatePrototype (evaluator, node.lastModified ());
 
 	// as last resort, try to get property as anonymous subnode
 	INode anon = node.getSubnode (propertyName);
@@ -357,10 +368,8 @@ public class ESNode extends ObjectPrototype {
     }
 
     private ESValue getInternalProperty (String propertyName) throws EcmaScriptException {
-	if ("__id__".equalsIgnoreCase (propertyName)) try {
+	if ("__id__".equalsIgnoreCase (propertyName)) {
 	    return new ESString (node.getID ());
-	} catch (Exception noid) {
-	    return new ESString ("transient");
 	}
 	if ("__prototype__".equalsIgnoreCase (propertyName)) {
 	    String p = node.getPrototype ();
