@@ -346,9 +346,11 @@ public class RequestEvaluator implements Runnable {
 	                                throw new RuntimeException ("Skin "+res.skin+" not found in path.");
 	                            sname = res.skin.substring (dot+1);
 	                        }
-	                        Skin skin = getSkin ((ESNode) sobj, sname);
+	                        Skin skin = getSkin ((ESObject) sobj, sname);
+	                        // get the java object wrapped by the script object, if not global
+	                        Object obj = sobj == null ? null : sobj.toJavaObject ();
 	                        if (skin != null)
-	                            skin.render (this, (ESNode) sobj, null);
+	                            skin.render (this, obj, null);
 	                        else
 	                            throw new RuntimeException ("Skin "+res.skin+" not found in path.");
 	                    }
