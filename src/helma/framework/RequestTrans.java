@@ -28,6 +28,8 @@ public class RequestTrans implements Externalizable {
     // when was execution started on this request?
     public transient long startTime;
 
+    static final long serialVersionUID = 5398880083482000580L;
+
     /**
      *  Create a new Request transmitter with an empty data map.
      */
@@ -59,7 +61,7 @@ public class RequestTrans implements Externalizable {
 	try {
 	    return values.get (name);
 	} catch (Exception x) {
-	    return null; 
+	    return null;
 	}
     }
 
