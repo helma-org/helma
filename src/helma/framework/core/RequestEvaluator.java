@@ -212,9 +212,9 @@ public final class RequestEvaluator implements Runnable {
 	                                if (currentElement != null) {
 	                                    // add to requestPath array
 	                                    requestPath.add (currentElement);
-	                                    String protoName = app.getPrototypeName (currentElement);
-	                                    if (protoName != null)
-	                                        macroHandlers.put (protoName, currentElement);
+	                                    Prototype proto = app.getPrototype (currentElement);
+	                                    if (proto != null)
+	                                        proto.addToHandlerMap (macroHandlers, currentElement);
 	                                }
 	                            }
 	                        }
