@@ -3,6 +3,7 @@
 
 package helma.scripting.fesi;
 
+import helma.framework.*;
 import helma.framework.core.*;
 import helma.objectmodel.*;
 import helma.util.*;
@@ -612,6 +613,9 @@ public class HopExtension {
                     reval.res.write ("[Skin not found: "+arguments[0]+"]");
                 if (asString)
                     return  new ESString (reval.res.popStringBuffer ());
+            } catch (RedirectException redir) {
+                // let redirect pass through
+                throw redir;
             } catch (Exception x) {
                 x.printStackTrace ();
                 throw new EcmaScriptException ("renderSkin: "+x);
