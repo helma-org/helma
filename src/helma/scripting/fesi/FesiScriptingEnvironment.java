@@ -29,25 +29,6 @@ public class FesiScriptingEnvironment implements ScriptingEnvironment {
 	evaluators = new HashMap ();
     }
 
-    /**
-     *  Evaluate a source file on a given type/class/prototype
-     */
-    public void evaluateFile (Prototype prototype, File file) {
-	for (Iterator i = evaluators.values().iterator(); i.hasNext(); ) {
-	    FesiEvaluator fesi = (FesiEvaluator) i.next();
-	    fesi.evaluateFile (prototype, file);
-	}
-    }
-
-    /**
-     *  Evaluate a source string on a given type/class/prototype
-     */
-    public void evaluateString (Prototype prototype, String code) {
-	for (Iterator i = evaluators.values().iterator(); i.hasNext(); ) {
-	    FesiEvaluator fesi = (FesiEvaluator) i.next();
-	    fesi.evaluateString (prototype, code);
-	}
-    }
 
     /**
      * A prototype has been updated and must be re-evaluated.
@@ -77,18 +58,20 @@ public class FesiScriptingEnvironment implements ScriptingEnvironment {
     /**
      *  Get a property on an object
      */
-    public Object get (Object thisObject, String key) {
-	return null;
+    public Object get (Object thisObject, String key, RequestEvaluator reval) {
+	System.err.println ("GETPROPERTY "+thisObject+", "+key);
+	FesiEvaluator fesi = getEvaluator (reval);
+	return fesi.getProperty (thisObject, key);
     }
 
     /**
      *  Return true if a function by that name is defined for that object.
      */
-    public boolean hasFunction (Object thisObject, String functionName) throws ScriptingException {
+    public boolean hasFunction (Object thisObject, String functionName, RequestEvaluator reval)
+			throws ScriptingException {
 	System.err.println ("HASFUNCTION "+thisObject+", "+functionName);
-	// FesiEvaluator fesi = getEvaluator (reval);
-	// return fesi.invoke (thisObject, functionName, args, globals);
-	return true;
+	FesiEvaluator fesi = getEvaluator (reval);
+	return fesi.hasFunction (thisObject, functionName);
     }
 
 

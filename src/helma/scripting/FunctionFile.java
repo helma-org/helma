@@ -78,11 +78,22 @@ public class FunctionFile implements Updatable {
 	}
     }
 
-    public void evaluate (ScriptingEnvironment env) {
+    /* public void evaluate (ScriptingEnvironment env) {
 	if (file != null)
 	    env.evaluateFile (prototype, file);
 	else
 	    env.evaluateString (prototype, content);
+    }*/
+    public boolean hasFile () {
+	return file != null;
+    }
+
+    public File getFile () {
+	return file;
+    }
+
+    public String getContent () {
+	return content;
     }
 
 
@@ -91,10 +102,10 @@ public class FunctionFile implements Updatable {
 	prototype.updatables.remove (file.getName());
 
 	// if we did not add anything to any evaluator, we're done
-	if (declaredProps == null || declaredProps.size() == 0)
+	/* if (declaredProps == null || declaredProps.size() == 0)
 	    return;
 
-	removeProperties (declaredProps);
+	removeProperties (declaredProps); */
     }
 
     /**

@@ -41,11 +41,13 @@ public class SkinManager {
 	} */
 	// check for skinsets set via res.skinpath property
 	do {
-	    for (int i=0; i<skinpath.length; i++) {
-	        skin = getSkinInternal (skinpath[i], proto.getName (), skinname, extension);
-	        if (skin != null) {
-	            // skincache.put (key, skin);
-	            return skin;
+	    if (skinpath != null) {
+	        for (int i=0; i<skinpath.length; i++) {
+	            skin = getSkinInternal (skinpath[i], proto.getName (), skinname, extension);
+	            if (skin != null) {
+	                // skincache.put (key, skin);
+	                return skin;
+	            }
 	        }
 	    }
 	    // skin for this prototype wasn't found in the skinsets.

@@ -284,25 +284,33 @@ public class RequestEvaluator implements Runnable {
 
 
 	                    // check if the script set the name of a skin to render in res.skin
-	                    /* if (res.skin != null) {
+	                    if (res.skin != null) {
 	                        int dot = res.skin.indexOf (".");
-	                        ESValue sobj = null;
+	                        Object sobj = null;
 	                        String sname = res.skin;
 	                        if (dot > -1) {
 	                            String soname = res.skin.substring (0, dot);
-	                            sobj = requestPath.getProperty (soname, soname.hashCode ());
-	                            if (sobj == null || sobj == ESUndefined.theUndefined)
+	                            int l = requestPath.size();
+	                            for (int i=l-1; i>=0; i--) {
+	                                Object pathelem = requestPath.get (i);
+	                                if (soname.equalsIgnoreCase (app.getPrototypeName (pathelem))) {
+	                                    sobj = pathelem;
+	                                    break;
+	                                }
+	                            }
+
+	                            if (sobj == null)
 	                                throw new RuntimeException ("Skin "+res.skin+" not found in path.");
 	                            sname = res.skin.substring (dot+1);
 	                        }
-	                        // Skin skin = getSkin ((ESObject) sobj, sname);
+	                        Skin skin = app.getSkin (sobj, sname, null);
 	                        // get the java object wrapped by the script object, if not global
 	                        // Object obj = sobj == null ? null : sobj.toJavaObject ();
 	                        if (skin != null)
-	                            skin.render (this, obj, null);
+	                            skin.render (this, sobj, null);
 	                        else
 	                            throw new RuntimeException ("Skin "+res.skin+" not found in path.");
-	                    }  */
+	                    }
 
 	                    localrtx.timer.endEvent (txname+" execute");
 	                } catch (RedirectException redirect) {
@@ -745,7 +753,7 @@ public class RequestEvaluator implements Runnable {
 	} else {
 	    String act = action == null ? "main_action" : action+"_action";
 	    try {
-	        if (app.scriptingEngine.hasFunction (obj, act))
+	        if (app.scriptingEngine.hasFunction (obj, act, this))
 	            return act;
 	    } catch (ScriptingException x) {
 	        return null;
@@ -755,64 +763,6 @@ public class RequestEvaluator implements Runnable {
     }
 
 
-    /**
-     * Check if an object has a function property (public method if it
-     * is a java object) with that name.
-     */
-    /* public boolean hasFunction (Object obj, String fname) {
-	ESObject eso = null;
-	if (obj == null)
-	    eso = global;
-	else
-	    eso = getElementWrapper (obj);
-	try {
-	    ESValue func = eso.getProperty (fname, fname.hashCode());
-	    if (func != null && func instanceof FunctionPrototype)
-	        return true;
-	} catch (EcmaScriptException esx) {
-	    // System.err.println ("Error in getProperty: "+esx);
-	    return false;
-	}
-	return false;
-    } */
-
-
-    /**
-     * Check if an object has a defined property (public field if it
-     * is a java object) with that name.
-     */
-    /* public Object getProperty (Object obj, String propname) {
-	if (obj == null || propname == null)
-	    return null;
-
-	String prototypeName = app.getPrototypeName (obj);
-	if ("user".equalsIgnoreCase (prototypeName) &&
-		"password".equalsIgnoreCase (propname))
-	    return "[macro access to password property not allowed]";
-
-	// if this is a HopObject, check if the property is defined
-	// in the type.properties db-mapping.
-	if (obj instanceof INode) {
-	    DbMapping dbm = app.getDbMapping (prototypeName);
-	    if (dbm != null) {
-	        Relation rel = dbm.propertyToRelation (propname);
-	        if (rel == null || !rel.isPrimitive ())
-	            return "[property \""+propname+"\" is not defined for "+prototypeName+"]";
-	    }
-	}
-
-	ESObject eso = getElementWrapper (obj);
-	try {
-	    ESValue prop = eso.getProperty (propname, propname.hashCode());
-	    if (prop != null && !(prop instanceof ESNull) &&
-	                    !(prop instanceof ESUndefined))
-	        return prop.toJavaObject ();
-	} catch (EcmaScriptException esx) {
-	    System.err.println ("Error in getProperty: "+esx);
-	    return null;
-	}
-	return null;
-    } */
 
 }
 

@@ -21,16 +21,6 @@ public interface ScriptingEnvironment {
     public void init (Application app, Properties props) throws ScriptingException;
 
     /**
-     *  Evaluate a source file on a given type/class/prototype
-     */
-    public void evaluateFile (Prototype prototype, File file);
-
-    /**
-     *  Evaluate a source string on a given type/class/prototype
-     */
-    public void evaluateString (Prototype prototype, String code);
-
-    /**
      * A prototype has been updated and must be re-evaluated.
      */
     public void updatePrototype (Prototype prototype);
@@ -45,12 +35,12 @@ public interface ScriptingEnvironment {
     /**
      *  Get a property on an object
      */
-    public Object get (Object thisObject, String key);
+    public Object get (Object thisObject, String key, RequestEvaluator reval);
 
     /**
      *  Return true if a function by that name is defined for that object.
      */
-    public boolean hasFunction (Object thisObject, String functionName)
+    public boolean hasFunction (Object thisObject, String functionName, RequestEvaluator reval)
 		throws ScriptingException;
 
 }

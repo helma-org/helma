@@ -9,6 +9,7 @@ import helma.framework.*;
 import helma.framework.core.*;
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
+import helma.objectmodel.db.Relation;
 import helma.util.Updatable;
 import java.util.*;
 import java.io.*;
@@ -40,9 +41,6 @@ public class FesiEvaluator {
 
     // the request evaluator instance owning this fesi evaluator
     RequestEvaluator reval;
-
-    // has this evaluator been initialized?
-    boolean initialized = false;
 
     // extensions loaded by this evaluator
     static String[] extensions = new String[] {
@@ -77,7 +75,7 @@ public class FesiEvaluator {
 	    global.putHiddenProperty ("undefined", ESUndefined.theUndefined);
 	    ESAppNode appnode = new ESAppNode (app.getAppNode (), this);
 	    global.putHiddenProperty ("app", appnode);
-
+	    initialize();
 	} catch (Exception e) {
 	    System.err.println("Cannot initialize interpreter");
 	    System.err.println("Error: " + e);
@@ -93,7 +91,6 @@ public class FesiEvaluator {
 	    System.err.println ("      "+proto);
 	    evaluatePrototype (proto);
 	}
-	initialized = true;
     }
 
     void evaluatePrototype (Prototype prototype) {
@@ -119,21 +116,7 @@ public class FesiEvaluator {
 	        opp = getPrototype ("hopobject");
 	}
 
-	/* if ("user".equalsIgnoreCase (name)) {
-	    op = reval.esUserPrototype;
-	    op.setPrototype (opp);
-	} else if ("global".equalsIgnoreCase (name))
-	    op = reval.global;
-	else if ("hopobject".equalsIgnoreCase (name))
-	    op = reval.esNodePrototype;
-	else {
-	    op = new ObjectPrototype (opp, reval.evaluator);
-	    try {
-	        op.putProperty ("prototypename", new ESString (name), "prototypename".hashCode ());
-	    } catch (EcmaScriptException ignore) {}
-	}
-	reval.putPrototype (name, op); */
-
+	// if prototype doesn't exist (i.e. is a standard prototype built by HopExtension), create it.
 	op = getPrototype (name);
 	if (op == null) {
 	    op = new ObjectPrototype (opp, evaluator);
@@ -154,7 +137,10 @@ public class FesiEvaluator {
 	}
 	for (Iterator it = prototype.functions.values().iterator(); it.hasNext(); ) {
 	    FunctionFile ff = (FunctionFile) it.next ();
-	    // ff.updateRequestEvaluator (reval);
+	    if (ff.hasFile ())
+	        evaluateFile (prototype, ff.getFile ());
+	    else
+	        evaluateString (prototype, ff.getContent ());
 	}
 	/* for (Iterator it = prototype.templates.values().iterator(); it.hasNext(); ) {
 	    Template tmp = (Template) it.next ();
@@ -190,8 +176,6 @@ public class FesiEvaluator {
      * Invoke a function on some object, using the given arguments and global vars.
      */
     public Object invoke (Object thisObject, String functionName, Object[] args, HashMap globals) throws ScriptingException {
-	if (!initialized)
-	    initialize();
 	ESObject eso = null;
 	if (thisObject == null)
 	    eso = global;
@@ -206,20 +190,33 @@ public class FesiEvaluator {
 	            esv[i] = new ESMapWrapper (this, (Map) args[i]);
 	        else
 	            esv[i] = ESLoader.normalizeValue (args[i], evaluator);
-	    for (Iterator i=globals.keySet().iterator(); i.hasNext(); ) {
-	        String k = (String) i.next();
-	        Object v = globals.get (k);
-	        ESValue sv = null;
-	        // set and mount the request and response data object
-	        if (v instanceof RequestTrans)
-	            ((RequestTrans) v).data = new ESMapWrapper (this, ((RequestTrans) v).getRequestData ());
-	        else if (v instanceof ResponseTrans)
-	            ((ResponseTrans) v).data = new ESMapWrapper (this, ((ResponseTrans) v).getResponseData ());
-	        if (v instanceof Map)
-	            sv = new ESMapWrapper (this, (Map) v);
-	        else
-	            sv = ESLoader.normalizeValue (v, evaluator);
-	        evaluator.getGlobalObject ().putHiddenProperty (k, sv);
+	    if (globals != null) {
+	        for (Iterator i=globals.keySet().iterator(); i.hasNext(); ) {
+	            String k = (String) i.next();
+	            Object v = globals.get (k);
+	            ESValue sv = null;
+	            // set and mount the request and response data object
+	            if (v instanceof RequestTrans)
+	                ((RequestTrans) v).data = new ESMapWrapper (this, ((RequestTrans) v).getRequestData ());
+	            else if (v instanceof ResponseTrans)
+	                ((ResponseTrans) v).data = new ESMapWrapper (this, ((ResponseTrans) v).getResponseData ());
+	            if (v instanceof Map)
+	                sv = new ESMapWrapper (this, (Map) v);
+	            else if ("path".equals (k)) {
+	                ArrayPrototype parr = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
+	                List path = (List) v;
+	                for (int j=0; j<path.size(); j++) {
+	                    Object pathElem = path.get (j);
+	                    ESValue wrappedElement = getElementWrapper (pathElem);
+	                    parr.putProperty (j, wrappedElement);
+	                    parr.putHiddenProperty (app.getPrototypeName(pathElem), wrappedElement);
+	                }
+	                sv = parr;
+	            }
+	            else
+	                sv = ESLoader.normalizeValue (v, evaluator);
+	            evaluator.getGlobalObject ().putHiddenProperty (k, sv);
+	        }
 	    }
 	    evaluator.thread = Thread.currentThread ();
 	    ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
@@ -234,6 +231,67 @@ public class FesiEvaluator {
 	    throw new ScriptingException (msg);
 	}
     }
+
+
+    /**
+     * Check if an object has a function property (public method if it
+     * is a java object) with that name.
+     */
+    public boolean hasFunction (Object obj, String fname) {
+	ESObject eso = null;
+	if (obj == null)
+	    eso = evaluator.getGlobalObject ();
+	else
+	    eso = getElementWrapper (obj);
+	try {
+	    ESValue func = eso.getProperty (fname, fname.hashCode());
+	    if (func != null && func instanceof FunctionPrototype)
+	        return true;
+	} catch (EcmaScriptException esx) {
+	    // System.err.println ("Error in getProperty: "+esx);
+	    return false;
+	}
+	return false;
+    }
+
+
+    /**
+     * Check if an object has a defined property (public field if it
+     * is a java object) with that name.
+     */
+    public Object getProperty (Object obj, String propname) {
+	if (obj == null || propname == null)
+	    return null;
+
+	String prototypeName = app.getPrototypeName (obj);
+	if ("user".equalsIgnoreCase (prototypeName) &&
+		"password".equalsIgnoreCase (propname))
+	    return "[macro access to password property not allowed]";
+
+	// if this is a HopObject, check if the property is defined
+	// in the type.properties db-mapping.
+	if (obj instanceof INode) {
+	    DbMapping dbm = app.getDbMapping (prototypeName);
+	    if (dbm != null) {
+	        Relation rel = dbm.propertyToRelation (propname);
+	        if (rel == null || !rel.isPrimitive ())
+	            return "[property \""+propname+"\" is not defined for "+prototypeName+"]";
+	    }
+	}
+
+	ESObject eso = getElementWrapper (obj);
+	try {
+	    ESValue prop = eso.getProperty (propname, propname.hashCode());
+	    if (prop != null && !(prop instanceof ESNull) &&
+	                    !(prop instanceof ESUndefined))
+	        return prop.toJavaObject ();
+	} catch (EcmaScriptException esx) {
+	    System.err.println ("Error in getProperty: "+esx);
+	    return null;
+	}
+	return null;
+    }
+
 
     /**
      *  Return the FESI Evaluator object wrapped by this object.
