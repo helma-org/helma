@@ -920,6 +920,7 @@ public class Node implements INode, Serializable {
 	            setNode (sid, node);
 	            subnodes.addElement (node.getID ());
 	        }
+	        nmgr.evictKey (node.getKey ());
 	        return node;
 	    }
 	} catch (Exception noluck) {
