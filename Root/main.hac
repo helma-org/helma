@@ -30,7 +30,7 @@ if ( req.data.app!=null && req.data.app!="" && req.data.action!=null && req.data
 		res.redirect ( appObj.href("main") );
 
 	}	else if ( req.data.action=="flush" )	{
-		appObj.clearAppCache();
+		appObj.clearCache();
 		res.redirect ( appObj.href("main") );
 
 	}
