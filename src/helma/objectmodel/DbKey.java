@@ -14,10 +14,14 @@ import java.io.Serializable;
  */
 public final class DbKey implements Key, Serializable {
 
+    // the name of the prototype which defines the storage of this object.
+    // this is the name of the object's prototype, or one of its ancestors.
+    // If null, the object is stored in the embedded db.
     private final String storageName;
+    // the id that defines this key's object within the above storage space
     private final String id;
-    // private transient int hash;
-
+    // the name of the db field this key refers to. A null value means the primary key column is used.
+    private final String idfield;
 
     /**
      * make a key for a persistent Object, describing its datasource and id.
@@ -25,13 +29,27 @@ public final class DbKey implements Key, Serializable {
     public DbKey (DbMapping dbmap, String id) {
 	this.id = id;
 	this.storageName = dbmap == null ? null : dbmap.getStorageTypeName ();
-    }
+	this.idfield = null;
+   }
+
+    /**
+     * make a key for a persistent Object, describing its datasource and id using something
+     * else than the primary key column.
+     */
+    public DbKey (DbMapping dbmap, String id, String idfield) {
+	this.id = id;
+	this.storageName = dbmap == null ? null : dbmap.getStorageTypeName ();
+	this.idfield = idfield;
+   }
 
 
     public boolean equals (Object what) {
+	if (what == this)
+	    return true;
 	try {
 	    DbKey k = (DbKey) what;
 	    return (storageName == k.storageName || storageName.equals (k.storageName)) &&
+	    	(idfield == k.idfield || idfield.equals (k.idfield)) &&
 	    	(id == k.id || id.equals (k.id));
 	} catch (Exception x) {
 	    return false;
@@ -40,7 +58,6 @@ public final class DbKey implements Key, Serializable {
 
     public int hashCode () {
 	return storageName == null ? id.hashCode () : storageName.hashCode() + id.hashCode ();
-	// return hash;
     }
 
     public Key getParentKey () {
@@ -55,6 +72,9 @@ public final class DbKey implements Key, Serializable {
 	return id;
     }
 
+    public String getIDField () {
+	return idfield;
+    }
 
     public String toString () {
 	return storageName == null ? "["+id+"]" : storageName+"["+id+"]";
