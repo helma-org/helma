@@ -628,7 +628,7 @@ public final class DbMapping implements Updatable {
 	if (table == null && parentMapping != null)
 	    return parentMapping.needsQuotes (columnName);
 	try {
-	    Relation rel = (Relation) db2prop.get (columnName);
+	    Relation rel = (Relation) db2prop.get (columnName.toUpperCase());
 	    if (rel == null)
 	        throw new SQLException ("Error retrieving relational schema for "+this);
 	    // make sure columns are initialized and up to date
