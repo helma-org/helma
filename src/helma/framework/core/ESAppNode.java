@@ -46,6 +46,9 @@ public class ESAppNode extends ESNode {
 	if ("upSince".equals (propname)) {
 	    return createtime;
 	}
+	if ("__app__".equals (propname)) {
+	    return new ESWrapper (app, evaluator);
+	}
 	return super.getProperty (propname, hash);
     }
 
