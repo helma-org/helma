@@ -336,6 +336,12 @@ public class ApplicationManager implements XmlRpcHandler {
 
                 // the application is started later in the register method, when it's bound
                 app.init();
+
+                // set application URL prefix if it isn't set in app.properties
+                if (!app.hasExplicitBaseURI()) {
+                    app.setBaseURI(mountpoint);
+                }
+
                 app.start();
             } catch (Exception x) {
                 Server.getLogger().error("Error creating application " + appName + ": " + x);
@@ -372,10 +378,6 @@ public class ApplicationManager implements XmlRpcHandler {
 
                 // bind to Jetty HTTP server
                 if (server.http != null) {
-                    // if using embedded webserver (not AJP) set application URL prefix
-                    if (!app.hasExplicitBaseURI()) {
-                        app.setBaseURI(mountpoint);
-                    }
 
                     HttpContext context = server.http.addContext(pathPattern);
 
