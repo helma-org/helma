@@ -32,6 +32,7 @@ public class Relation {
     public boolean aggressiveCaching;
     public boolean subnodesAreProperties;
     public String order;
+    public String groupbyorder;
     public String groupby;
     public String prototype;
 
@@ -144,7 +145,13 @@ public class Relation {
 	if (order != null && order.trim().length() == 0) order = null;
 	// get group by property
 	groupby = props.getProperty (propname+".groupby");
-	if (groupby != null && groupby.trim().length() == 0) groupby = null;
+	if (groupby != null && groupby.trim().length() == 0)
+	    groupby = null;
+	if (groupby != null) {
+	    groupbyorder = props.getProperty (propname+".groupby.order");
+	    if (groupbyorder != null && groupbyorder.trim().length() == 0)
+	        groupbyorder = null;
+	}
 	// check if subnode condition should be applied for property relations
 	if ("_properties".equalsIgnoreCase (propname) || virtual) {
 	    String subnodes2props = props.getProperty (propname+".aresubnodes");
