@@ -13,6 +13,7 @@ import helma.xmlrpc.fesi.*;
 import helma.util.*;
 import java.util.*;
 import java.io.*;
+import java.lang.reflect.*;
 import Acme.LruHashtable;
 import FESI.Data.*;
 import FESI.Interpreter.*;
@@ -206,7 +207,7 @@ public class RequestEvaluator implements Runnable {
 	                // set and mount the request and response data object
 	                reqData.setData (req.getRequestData());
 	                req.data = reqData;
-	                resData.setData (new HashMap ());
+	                resData.setData (res.getResponseData());
 	                res.data = resData;
 
 	                try {
@@ -443,7 +444,7 @@ public class RequestEvaluator implements Runnable {
 	            global.deleteProperty ("path", "path".hashCode());
 	            global.putHiddenProperty ("app", appnode);
 
-	            resData.setData (new HashMap ());
+	            resData.setData (res.getResponseData());
 	            res.data = resData;
 
 	            // convert arguments
@@ -517,7 +518,7 @@ public class RequestEvaluator implements Runnable {
 	            global.deleteProperty ("path", "path".hashCode());
 	            global.putHiddenProperty ("app", appnode);
 
-	            resData.setData (new HashMap ());
+	            resData.setData (res.getResponseData());
 	            res.data = resData;
 
 	            if (current == null) {
@@ -913,7 +914,7 @@ public class RequestEvaluator implements Runnable {
 
 	// Gotta find out the prototype name to use for this object...
 	String prototypeName = app.getPrototypeName (e);
-	
+
 	ObjectPrototype op = getPrototype (prototypeName);
 
 	if (op == null)
@@ -1005,18 +1006,66 @@ public class RequestEvaluator implements Runnable {
     }
 
     /**
+     * Check if an object has a function property (public method if it
+     * is a java object) with that name.
+     */
+    public boolean hasFunction (Object obj, String fname) {
+	ESObject eso = null;
+	if (obj == null)
+	    eso = global;
+	else
+	    eso = getElementWrapper (obj);
+	try {
+	    ESValue func = eso.getProperty (fname, fname.hashCode());
+	    if (func != null && func instanceof FunctionPrototype)
+	        return true;
+	} catch (EcmaScriptException esx) {
+	    System.err.println ("Error in getProperty: "+esx);
+	    return false;
+	}
+	return false;
+    }
+
+
+    /**
+     * Check if an object has a defined property (public field if it
+     * is a java object) with that name.
+     */
+    public Object getProperty (Object obj, String propname) {
+	if (obj == null)
+	    return null;
+
+	String prototypeName = app.getPrototypeName (obj);
+	if ("user".equalsIgnoreCase (prototypeName) &&
+		"password".equalsIgnoreCase (propname))
+	    return null;
+
+	ESObject eso = getElementWrapper (obj);
+	try {
+	    ESValue prop = eso.getProperty (propname, propname.hashCode());
+	    if (prop != null && !(prop instanceof ESNull) &&
+	                    !(prop instanceof ESUndefined))
+	        return prop.toJavaObject ();
+	} catch (EcmaScriptException esx) {
+	    System.err.println ("Error in getProperty: "+esx);
+	    return null;
+	}
+	return null;
+    }
+
+    /**
      *  Utility class to use for caching skins in a Hashtable.
      *  The key consists out of two strings: prototype name and skin name.
      */
     final class SkinKey {
 
 	final String first, second;
-	
+
 	public SkinKey (String first, String second) {
 	    this.first = first;
 	    this.second = second;
 	}
-	
+
 	public boolean equals (Object other) {
 	    try {
 	        SkinKey key = (SkinKey) other;
