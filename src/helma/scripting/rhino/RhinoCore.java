@@ -17,18 +17,12 @@
 package helma.scripting.rhino;
 
 import helma.scripting.rhino.extensions.*;
-import helma.framework.*;
 import helma.framework.core.*;
-import helma.main.Server;
 import helma.objectmodel.*;
-import helma.objectmodel.db.DbMapping;
-import helma.objectmodel.db.Relation;
 import helma.scripting.*;
 import helma.util.CacheMap;
 import helma.util.SystemMap;
 import helma.util.WrappedMap;
-import helma.util.SystemProperties;
-import helma.util.Updatable;
 import org.mozilla.javascript.*;
 
 import java.io.*;
@@ -193,43 +187,43 @@ public final class RhinoCore {
      *   Set up a prototype, parsing and compiling all its script files.
      *
      *  @param prototype the prototype to update/evaluate/compile
-     *  @param info the info, containing the object proto, last update time and
+     *  @param type the info, containing the object proto, last update time and
      *         the set of compiled functions properties
      */
-    synchronized void evaluatePrototype(Prototype prototype, TypeInfo info) {
+    synchronized void evaluatePrototype(Prototype prototype, TypeInfo type) {
         // System.err.println("EVALUATING PROTO: "+prototype);
-        Scriptable op = info.objectPrototype;
+        Scriptable op = type.objectPrototype;
 
         // set the parent prototype in case it hasn't been done before
         // or it has changed...
         setParentPrototype(prototype, op);
 
-        globalError = info.error = null;
+        globalError = type.error = null;
 
         // loop through the prototype's code elements and evaluate them
         // first the zipped ones ...
         for (Iterator it = prototype.getZippedCode().values().iterator(); it.hasNext();) {
             Object code = it.next();
 
-            evaluate(prototype, info, code);
+            evaluate(type, code);
         }
 
         // then the unzipped ones (this is to make sure unzipped code overwrites zipped code)
         for (Iterator it = prototype.getCode().values().iterator(); it.hasNext();) {
             Object code = it.next();
 
-            evaluate(prototype, info, code);
+            evaluate(type, code);
         }
 
         // loop through function properties defined for this proto and
         // remove those which are left over from the previous generation
         // and haven't been renewed in this pass.
-        Set oldFunctions = info.compiledFunctions;
+        Set oldFunctions = type.compiledFunctions;
         Set newFunctions = new HashSet();
         Object[] keys = ((ScriptableObject) op).getAllIds();
         for (int i = 0; i < keys.length; i++) {
             String key = keys[i].toString();
-            if (info.predefinedProperties.contains(key)) {
+            if (type.predefinedProperties.contains(key)) {
                 // don't mess with properties we didn't set
                 continue;
             }
@@ -249,8 +243,8 @@ public final class RhinoCore {
             }
         }
 
-        info.compiledFunctions = newFunctions;
-        info.lastUpdate = prototype.getLastUpdate();
+        type.compiledFunctions = newFunctions;
+        type.lastUpdate = prototype.getLastUpdate();
     }
 
     /**
@@ -318,26 +312,26 @@ public final class RhinoCore {
 
         for (Iterator i = protos.iterator(); i.hasNext();) {
             Prototype proto = (Prototype) i.next();
-            TypeInfo info = (TypeInfo) prototypes.get(proto.getName());
+            TypeInfo type = (TypeInfo) prototypes.get(proto.getName());
 
-            if (info == null) {
+            if (type == null) {
                 // a prototype we don't know anything about yet. Init local update info.
                 initPrototype(proto);
-                info = (TypeInfo) prototypes.get(proto.getName());
+                type = (TypeInfo) prototypes.get(proto.getName());
             }
 
             // only update prototype if it has already been initialized.
             // otherwise, this will be done on demand
-            // System.err.println ("CHECKING PROTO "+proto+": "+info);
-            if (info.lastUpdate > 0) {
-                Prototype p = app.typemgr.getPrototype(info.protoName);
+            // System.err.println ("CHECKING PROTO "+proto+": "+type);
+            if (type.lastUpdate > 0) {
+                Prototype p = app.typemgr.getPrototype(type.protoName);
 
                 if (p != null) {
                     // System.err.println ("UPDATING PROTO: "+p);
                     app.typemgr.updatePrototype(p);
 
-                    if (p.getLastUpdate() > info.lastUpdate) {
-                        evaluatePrototype(p, info);
+                    if (p.getLastUpdate() > type.lastUpdate) {
+                        evaluatePrototype(p, type);
                     }
                 }
             }
@@ -355,9 +349,9 @@ public final class RhinoCore {
             return null;
         }
 
-        TypeInfo info = (TypeInfo) prototypes.get(protoName);
+        TypeInfo type = (TypeInfo) prototypes.get(protoName);
 
-        return (info == null) ? null : info.objectPrototype;
+        return (type == null) ? null : type.objectPrototype;
     }
 
     /**
@@ -369,11 +363,11 @@ public final class RhinoCore {
         if (globalError != null) {
             throw new RuntimeException(globalError.toString());
         }
-        TypeInfo info = getPrototypeInfo(protoName);
-        if (info != null && info.error != null) {
-            throw new RuntimeException(info.error.toString());
+        TypeInfo type = getPrototypeInfo(protoName);
+        if (type != null && type.error != null) {
+            throw new RuntimeException(type.error.toString());
         }
-        return info == null ? null : info.objectPrototype;
+        return type == null ? null : type.objectPrototype;
     }
 
     /**
@@ -383,8 +377,8 @@ public final class RhinoCore {
      *  by updatePrototypes(), which is called for each request.
      */
     public Scriptable getPrototype(String protoName) {
-        TypeInfo info = getPrototypeInfo(protoName);
-        return info == null ? null : info.objectPrototype;
+        TypeInfo type = getPrototypeInfo(protoName);
+        return type == null ? null : type.objectPrototype;
     }
 
     /**
@@ -397,28 +391,28 @@ public final class RhinoCore {
             return null;
         }
 
-        TypeInfo info = (TypeInfo) prototypes.get(protoName);
+        TypeInfo type = (TypeInfo) prototypes.get(protoName);
 
-        if ((info != null) && (info.lastUpdate == 0)) {
+        if ((type != null) && (type.lastUpdate == 0)) {
             Prototype p = app.typemgr.getPrototype(protoName);
 
             if (p != null) {
                 app.typemgr.updatePrototype(p);
 
-                if (p.getLastUpdate() > info.lastUpdate) {
-                    evaluatePrototype(p, info);
+                if (p.getLastUpdate() > type.lastUpdate) {
+                    evaluatePrototype(p, type);
                 }
 
-                // set info.lastUpdate to 1 if it is 0 so we know we
+                // set type.lastUpdate to 1 if it is 0 so we know we
                 // have initialized this prototype already, even if
                 // it is empty (i.e. doesn't contain any scripts/skins/actions)
-                if (info.lastUpdate == 0) {
-                    info.lastUpdate = 1;
+                if (type.lastUpdate == 0) {
+                    type.lastUpdate = 1;
                 }
             }
         }
 
-        return info;
+        return type;
     }
 
     /**
@@ -749,7 +743,7 @@ public final class RhinoCore {
     // private evaluation/compilation methods
     ////////////////////////////////////////////////
 
-    private synchronized void evaluate(Prototype prototype, TypeInfo info, Object code) {
+    private synchronized void evaluate(TypeInfo type, Object code) {
         if (code instanceof FunctionFile) {
             FunctionFile funcfile = (FunctionFile) code;
             File file = funcfile.getFile();
@@ -758,25 +752,25 @@ public final class RhinoCore {
                 try {
                     FileReader fr = new FileReader(file);
 
-                    updateEvaluator(prototype, info, fr, funcfile.getSourceName(), 1);
+                    updateEvaluator(type, fr, funcfile.getSourceName(), 1);
                 } catch (IOException iox) {
                     app.logEvent("Error updating function file: " + iox);
                 }
             } else {
                 StringReader reader = new StringReader(funcfile.getContent());
 
-                updateEvaluator(prototype, info, reader, funcfile.getSourceName(), 1);
+                updateEvaluator(type, reader, funcfile.getSourceName(), 1);
             }
         } else if (code instanceof ActionFile) {
             ActionFile action = (ActionFile) code;
             RhinoActionAdapter fa = new RhinoActionAdapter(action);
 
             try {
-                updateEvaluator(prototype, info, new StringReader(fa.function),
+                updateEvaluator(type, new StringReader(fa.function),
                                 action.getSourceName(), 0);
                 if (fa.functionAsString != null) {
                     // templates have an _as_string variant that needs to be compiled
-                    updateEvaluator(prototype, info, new StringReader(fa.functionAsString),
+                    updateEvaluator(type, new StringReader(fa.functionAsString),
                                 action.getSourceName(), 0);
                 }
             } catch (Exception esx) {
@@ -785,14 +779,14 @@ public final class RhinoCore {
         }
     }
 
-    private synchronized void updateEvaluator(Prototype prototype, TypeInfo info,
-                                        Reader reader, String sourceName, int firstline) {
+    private synchronized void updateEvaluator(TypeInfo type, Reader reader,
+                                              String sourceName, int firstline) {
         // System.err.println("UPDATE EVALUATOR: "+prototype+" - "+sourceName);
         try {
             // get the current context
             Context cx = Context.getCurrentContext();
 
-            Scriptable op = info.objectPrototype;
+            Scriptable op = type.objectPrototype;
 
             // do the update, evaluating the file
             cx.evaluateReader(op, reader, sourceName, firstline, null);
@@ -804,11 +798,11 @@ public final class RhinoCore {
                 System.err.println("Error parsing file " + sourceName + ": " + e);
             }
             // mark prototype as broken
-            if (info.error == null && e instanceof EcmaError) {
-                if ("global".equals(info.protoName)) {
+            if (type.error == null && e instanceof EcmaError) {
+                if ("global".equals(type.protoName)) {
                     globalError = (EcmaError) e;
                 } else {
-                    info.error = (EcmaError) e;
+                    type.error = (EcmaError) e;
                 }
                 wrappercache.clear();
             }
