@@ -31,7 +31,7 @@ public class FesiActionAdapter {
     Application app;
     String functionName;
     String sourceName;
-    // this is the parsed function which can be easily applied to FesiEvaluator objects
+    // this is the parsed function which can be easily applied to FesiEngine objects
     TypeUpdater pfunc, pfuncAsString;
 
     public FesiActionAdapter (ActionFile action) {
@@ -74,11 +74,11 @@ public class FesiActionAdapter {
     }
 
 
-    public synchronized void updateEvaluator (FesiEvaluator fesi) throws EcmaScriptException {
+    public synchronized void updateEvaluator (FesiEngine engine) throws EcmaScriptException {
 	if (pfunc != null)
-	    pfunc.updateEvaluator (fesi);
+	    pfunc.updateEvaluator (engine);
 	if (pfuncAsString != null)
-	    pfuncAsString.updateEvaluator (fesi);
+	    pfuncAsString.updateEvaluator (engine);
     }
 
     protected TypeUpdater parseFunction (String funcName, String params, Reader body, String sourceName) throws EcmaScriptException {
@@ -148,15 +148,15 @@ public class FesiActionAdapter {
 	this.functionName = functionName;
         }
 
-        public void updateEvaluator (FesiEvaluator fesi) throws EcmaScriptException {
+        public void updateEvaluator (FesiEngine engine) throws EcmaScriptException {
 
-	ObjectPrototype op = fesi.getPrototype (prototype.getName());
+	ObjectPrototype op = engine.getPrototype (prototype.getName());
 
-	EcmaScriptVariableVisitor vdvisitor = fesi.evaluator.getVarDeclarationVisitor();
+	EcmaScriptVariableVisitor vdvisitor = engine.evaluator.getVarDeclarationVisitor();
 	Vector vnames = vdvisitor.processVariableDeclarations(sl, fes);
 
 	FunctionPrototype fp = ConstructedFunctionObject.makeNewConstructedFunction (
-		fesi.evaluator, functionName, fes,
+		engine.evaluator, functionName, fes,
 		fullFunctionText, fpl.getArguments(), vnames, sl);
 	op.putHiddenProperty (functionName, fp);
         }
@@ -172,12 +172,12 @@ public class FesiActionAdapter {
             errorMessage = msg;
         }
 
-        public void updateEvaluator (FesiEvaluator fesi) throws EcmaScriptException {
+        public void updateEvaluator (FesiEngine engine) throws EcmaScriptException {
 
-            ObjectPrototype op = fesi.getPrototype (prototype.getName ());
+            ObjectPrototype op = engine.getPrototype (prototype.getName ());
 
-            FunctionPrototype fp = (FunctionPrototype) fesi.evaluator.getFunctionPrototype ();
-            FunctionPrototype func = new ThrowException (functionName, fesi.evaluator, fp, errorMessage);
+            FunctionPrototype fp = (FunctionPrototype) engine.evaluator.getFunctionPrototype ();
+            FunctionPrototype func = new ThrowException (functionName, engine.evaluator, fp, errorMessage);
             op.putHiddenProperty (functionName, func);
 
         }
@@ -198,7 +198,7 @@ public class FesiActionAdapter {
     }
 
     interface TypeUpdater {
-        public void updateEvaluator (FesiEvaluator fesi) throws EcmaScriptException;
+        public void updateEvaluator (FesiEngine engine) throws EcmaScriptException;
     }
 }
 

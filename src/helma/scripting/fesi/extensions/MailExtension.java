@@ -242,7 +242,7 @@ public class MailExtension extends Extension {
             try {
                 mail.send ();
             } catch (Exception x) {
-	  this.evaluator.reval.app.logEvent ("Error sending mail: "+x);
+                evaluator.engine.getApplication().logEvent ("Error sending mail: "+x);
                 mail.setStatus (ESMail.SEND);
                 return ESBoolean.makeBoolean(false);
             }

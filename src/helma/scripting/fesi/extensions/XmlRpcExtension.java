@@ -5,7 +5,7 @@ package helma.scripting.fesi.extensions;
 
 import org.apache.xmlrpc.*;
 
-import helma.scripting.fesi.FesiEvaluator;
+import helma.scripting.fesi.FesiEngine;
 
 import FESI.Interpreter.*;
 import FESI.Exceptions.*;
@@ -100,14 +100,14 @@ public class XmlRpcExtension extends Extension {
  
         public ESValue doIndirectCall(Evaluator evaluator, ESObject target, String functionName, ESValue arguments[]) 
         throws EcmaScriptException, NoSuchMethodException {
-            // System.out.println ("doIndirectCall called with "+functionName);
+            // System.out.println ("doIndirectCall called with "+remoteObject+"."+functionName);
             XmlRpcClient client = new XmlRpcClient (url);
             // long now = System.currentTimeMillis ();
             Object retval = null;
             int l = arguments.length;
             Vector v = new Vector ();
             for (int i=0; i<l; i++) {
-                Object arg = FesiEvaluator.processXmlRpcResponse (arguments[i]);
+                Object arg = FesiEngine.processXmlRpcResponse (arguments[i]);
                 // System.out.println ("converted to J: "+arg.getClass ());
                 v.addElement (arg);
             }
@@ -117,7 +117,7 @@ public class XmlRpcExtension extends Extension {
                 String method = remoteObject == null ? functionName : remoteObject+"."+functionName;
                 retval = client.execute (method, v);
                 esretval.putProperty ("error", ESNull.theNull, "error".hashCode());
-                esretval.putProperty ("result", FesiEvaluator.processXmlRpcArgument (retval, evaluator), "result".hashCode());
+                esretval.putProperty ("result", FesiEngine.processXmlRpcArgument (retval, evaluator), "result".hashCode());
             } catch (Exception x) {
                 String msg = x.getMessage();
                 if (msg == null || msg.length() == 0)

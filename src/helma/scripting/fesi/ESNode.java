@@ -35,14 +35,14 @@ public class ESNode extends ObjectPrototype {
     NodeHandle handle;
     DbMapping dbmap;
     Throwable lastError = null;
-    FesiEvaluator eval;
+    FesiEngine engine;
 
     /**
      * Constructor used to create transient cache nodes
      */
-    public ESNode (INode node, FesiEvaluator eval) {
-	super (eval.getPrototype("hopobject"), eval.getEvaluator());
-	this.eval = eval;
+    public ESNode (INode node, FesiEngine engine) {
+	super (engine.getPrototype("hopobject"), engine.getEvaluator());
+	this.engine = engine;
 	this.node = node;
 	cache = null;
 	cacheWrapper = null;
@@ -51,10 +51,10 @@ public class ESNode extends ObjectPrototype {
 	handle = null;
     }
 
-    public ESNode (ESObject prototype, Evaluator evaluator, Object obj, FesiEvaluator eval) {
+    public ESNode (ESObject prototype, Evaluator evaluator, Object obj, FesiEngine engine) {
 	super (prototype, evaluator);
 	// eval.app.logEvent ("in ESNode constructor: "+o.getClass ());
-	this.eval = eval;
+	this.engine = engine;
 	if (obj == null)
 	    node = new TransientNode (null);
 	else if (obj instanceof ESWrapper)
@@ -80,7 +80,7 @@ public class ESNode extends ObjectPrototype {
      */
     protected void checkNode () {
 	if (node.getState () == INode.INVALID) try {
-	    node = handle.getNode (eval.app.getWrappedNodeManager ());
+	    node = handle.getNode (engine.app.getWrappedNodeManager ());
 	} catch (Exception nx) {}
     }
 
@@ -137,7 +137,7 @@ public class ESNode extends ObjectPrototype {
            if (e != null) {
                theArray.setSize(l);
                for (int i = 0; i<l; i++) {
-                   theArray.setElementAt (eval.getNodeWrapper ((INode) e.nextElement ()), i);
+                   theArray.setElementAt (engine.getNodeWrapper ((INode) e.nextElement ()), i);
                }
            } else {
                theArray.setSize (0);
@@ -275,7 +275,7 @@ public class ESNode extends ObjectPrototype {
 
     public void putProperty(String propertyName, ESValue propertyValue, int hash) throws EcmaScriptException {
              checkNode ();
-	// eval.app.logEvent ("put property called: "+propertyName+", "+propertyValue.getClass());
+	// engine.app.logEvent ("put property called: "+propertyName+", "+propertyValue.getClass());
 	if ("cache".equalsIgnoreCase (propertyName))
 	    throw new EcmaScriptException ("Can't modify read-only property \""+propertyName+"\".");
 
@@ -306,9 +306,9 @@ public class ESNode extends ObjectPrototype {
 	    // long now = System.currentTimeMillis ();
 	    ESNode esn = (ESNode) propertyValue;
 	    node.setNode (propertyName, esn.getNode ());
-	    // eval.app.logEvent ("*** spent "+(System.currentTimeMillis () - now)+" ms to set property "+propertyName);
+	    // engine.app.logEvent ("*** spent "+(System.currentTimeMillis () - now)+" ms to set property "+propertyName);
 	} else {
-	    // eval.app.logEvent ("got "+propertyValue.getClass ());
+	    // engine.app.logEvent ("got "+propertyValue.getClass ());
 	    // A persistent node can't store anything other than the types above, so throw an exception
                  // throw new EcmaScriptException ("Can't set a JavaScript Object or Array as property of "+node);
 	    node.setJavaObject (propertyName, propertyValue.toJavaObject ());
@@ -317,7 +317,7 @@ public class ESNode extends ObjectPrototype {
     
     public boolean deleteProperty(String propertyName, int hash) throws EcmaScriptException {
 	checkNode ();
-	// eval.app.logEvent ("delete property called: "+propertyName);
+	// engine.app.logEvent ("delete property called: "+propertyName);
 	if (node.get (propertyName, false) != null) {
 	    node.unset (propertyName);
 	    return true;
@@ -330,7 +330,7 @@ public class ESNode extends ObjectPrototype {
 	INode n = node.getSubnodeAt (i);
  	if (n == null)
 	    return ESNull.theNull;
-	return eval.getNodeWrapper (n);
+	return engine.getNodeWrapper (n);
      }
 
     public void putProperty(int index, ESValue propertyValue) throws EcmaScriptException {
@@ -353,7 +353,7 @@ public class ESNode extends ObjectPrototype {
      */
     public ESValue getProperty(String propertyName, int hash) throws EcmaScriptException {
 	checkNode ();
-	// eval.app.logEvent ("get property called: "+propertyName);
+	// engine.app.logEvent ("get property called: "+propertyName);
 	ESValue retval = super.getProperty (propertyName, hash);
 	if (! (retval instanceof ESUndefined))
 	    return retval;
@@ -374,7 +374,7 @@ public class ESNode extends ObjectPrototype {
 	if ("cache".equalsIgnoreCase (propertyName) && node instanceof Node) {
 	   cache = node.getCacheNode ();
 	   if (cacheWrapper == null)
-	       cacheWrapper = new ESNode (cache, eval);
+	       cacheWrapper = new ESNode (cache, engine);
 	   else
 	       cacheWrapper.node = cache;
 	   return cacheWrapper;
@@ -411,7 +411,7 @@ public class ESNode extends ObjectPrototype {
 	        if (nd == null)
 	            return ESNull.theNull;
 	        else
-	            return eval.getNodeWrapper (nd);
+	            return engine.getNodeWrapper (nd);
 	    }
 	    if (p.getType () == IProperty.JAVAOBJECT)
 	        return ESLoader.normalizeObject (p.getJavaObjectValue (), evaluator);
@@ -420,7 +420,7 @@ public class ESNode extends ObjectPrototype {
 	// as last resort, try to get property as anonymous subnode
 	INode anon = node.getSubnode (propertyName);
 	if (anon != null)
-	    return eval.getNodeWrapper (anon);
+	    return engine.getNodeWrapper (anon);
 
 	return ESNull.theNull;
     }
@@ -445,7 +445,7 @@ public class ESNode extends ObjectPrototype {
 	    if (n == null)
 	        return ESNull.theNull;
 	    else
-	        return eval.getNodeWrapper (n);
+	        return engine.getNodeWrapper (n);
 	}
 	// some more internal properties
 	if ("__name__".equals (propertyName))
