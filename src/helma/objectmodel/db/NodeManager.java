@@ -1611,7 +1611,6 @@ public final class NodeManager {
 
                 case Types.LONGVARBINARY:
                 case Types.LONGVARCHAR:
-
                     try {
                         newprop.setStringValue(rs.getString(i+1+offset));
                     } catch (SQLException x) {
@@ -1667,7 +1666,7 @@ public final class NodeManager {
                     isr.read(c);
                     newprop.setStringValue(String.copyValueOf(c));
                     break;
-                // continue;
+
                 default:
                     newprop.setStringValue(rs.getString(i+1+offset));
 
@@ -1900,7 +1899,6 @@ public final class NodeManager {
 
                 case Types.LONGVARBINARY:
                 case Types.LONGVARCHAR:
-                case Types.CLOB:
                     try {
                         stmt.setString(stmtNumber, p.getStringValue());
                     } catch (SQLException x) {
@@ -1911,6 +1909,13 @@ public final class NodeManager {
                                                 str.length());
                     }
 
+                    break;
+
+                case Types.CLOB:
+                    String val = p.getStringValue();
+                    Reader isr = new StringReader (val);
+                    stmt.setCharacterStream (stmtNumber,isr, val.length());
+                    
                     break;
 
                 case Types.CHAR:
