@@ -106,6 +106,7 @@ public class RequestEvaluator implements Runnable {
 	    global.putHiddenProperty ("cache", new ESNode (new Node ("cache"), this));
 	    global.putHiddenProperty ("undefined", ESUndefined.theUndefined);
 	    appnode = new ESAppNode (app.appnode, this);
+	    global.putHiddenProperty ("app", appnode);
 	    reqPath = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
 	    reqData = new ESRequestData (evaluator.getObjectPrototype(), evaluator, this);
 
@@ -359,7 +360,6 @@ public class RequestEvaluator implements Runnable {
 	        global.putHiddenProperty ("root", getNodeWrapper (root));
 	        global.deleteProperty("user", "user".hashCode());
 	        global.deleteProperty ("req", "req".hashCode());
-	        // global.deleteProperty ("res", "res".hashCode());
 	        global.putHiddenProperty ("res", ESLoader.normalizeValue(new ResponseTrans (), evaluator));
 	        global.deleteProperty ("path", "path".hashCode());
 	        global.putHiddenProperty ("app", appnode);
@@ -418,7 +418,6 @@ public class RequestEvaluator implements Runnable {
 	        global.putHiddenProperty ("root", getNodeWrapper (root));
 	        global.deleteProperty("user", "user".hashCode());
 	        global.deleteProperty ("req", "req".hashCode());
-	        // global.deleteProperty ("res", "res".hashCode());
 	        global.putHiddenProperty ("res", ESLoader.normalizeValue(new ResponseTrans (), evaluator));
 	        global.deleteProperty ("path", "path".hashCode());
 	        global.putHiddenProperty ("app", appnode);
