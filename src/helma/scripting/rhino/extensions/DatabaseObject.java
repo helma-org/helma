@@ -264,7 +264,6 @@ public class DatabaseObject {
   */
 class RowSet {
 
-    private transient DatabaseObject database = null;
     private transient String sql = null;
     private transient Statement statement = null;
     private transient ResultSet resultSet = null;
@@ -279,7 +278,6 @@ class RowSet {
                 Statement statement,
                 ResultSet resultSet) throws SQLException {
         this.sql = sql;
-        this.database = database;
         this.statement = statement;
         this.resultSet = resultSet;
 
