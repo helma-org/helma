@@ -56,8 +56,8 @@ public class ImageFilterOp implements BufferedImageOp {
         ImageFilter fltr = filter.getFilterInstance(consumer);
         fltr.setDimensions(width, height);
         
-        ColorModel cm = src.getColorModel();
         /*
+        ColorModel cm = src.getColorModel();
         if (cm.getPixelSize() == 8) {
             // byte. indexed or gray:
             WritableRaster raster = src.getRaster();
@@ -74,7 +74,7 @@ public class ImageFilterOp implements BufferedImageOp {
         */
         // allways work in integer mode. this is more effective, and most
         // filters convert to integer internally anyhow
-        cm = new SimpleColorModel();
+        ColorModel cm = new SimpleColorModel();
 
         // create a BufferedImage of only 1 pixel height for fetching the rows of the image in the correct format (ARGB)
         // This speeds up things by more than factor 2, compared to the standard BufferedImage.getRGB solution,
@@ -89,10 +89,11 @@ public class ImageFilterOp implements BufferedImageOp {
         for (int y = 0; y < height; y++) {
             g2d.drawImage(src, null, 0, -y); 
             // now pixels contains the rgb values of the row y!
+            // filter this row now:
             fltr.setPixels(0, y, width, 1, cm, pixels, 0, width);
         }
         g2d.dispose();
-
+        // the consumer now contains the filtered image, return it.
         return consumer.getImage();
     }
 
