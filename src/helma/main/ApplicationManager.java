@@ -231,6 +231,14 @@ public class ApplicationManager implements XmlRpcHandler {
         return mountpoint;
     }
 
+    private String joinMountpoint(String prefix, String suffix) {
+        if (prefix.endsWith("/") || suffix.startsWith("/")) {
+            return prefix+suffix;
+        } else {
+            return prefix+"/"+suffix;
+        }
+    }
+
     private String getPathPattern(String mountpoint) {
         if (!mountpoint.startsWith("/")) {
             mountpoint = "/"+mountpoint;
@@ -244,11 +252,7 @@ public class ApplicationManager implements XmlRpcHandler {
             return mountpoint + "*";
         }
 
-        if (!mountpoint.endsWith("*")) {
-            return mountpoint + "/*";
-        }
-
-        return mountpoint;
+        return mountpoint + "/*";
     }
 
     /**
@@ -281,7 +285,7 @@ public class ApplicationManager implements XmlRpcHandler {
             pathPattern = getPathPattern(mountpoint);
             staticDir = props.getProperty(name+".static");
             staticMountpoint = getPathPattern(props.getProperty(name+".staticMountpoint",
-                                        "/static"));
+                                        joinMountpoint(mountpoint, "static")));
             xmlrpcHandlerNames = StringUtils.split(props.getProperty(name+".xmlrpcHandler"));
             cookieDomain = props.getProperty(name+".cookieDomain");
             uploadLimit = props.getProperty(name+".uploadLimit");
@@ -308,6 +312,7 @@ public class ApplicationManager implements XmlRpcHandler {
 
                 // the application is started later in the register method, when it's bound
                 app.init();
+                app.start();
             } catch (Exception x) {
                 Server.getLogger().log("Error creating application " + appName + ": " + x);
                 x.printStackTrace();
@@ -402,7 +407,7 @@ public class ApplicationManager implements XmlRpcHandler {
 
                 // register as XML-RPC handler
                 xmlrpcHandlers.put(app.getXmlRpcHandlerName(), app);
-                app.start();
+                // app.start();
             } catch (Exception x) {
                 Server.getLogger().log("Couldn't bind app: " + x);
                 x.printStackTrace();
@@ -439,8 +444,6 @@ public class ApplicationManager implements XmlRpcHandler {
 
                 // unregister as XML-RPC handler
                 xmlrpcHandlers.remove(app.getXmlRpcHandlerName());
-
-                Server.getLogger().log("Unbound application " + appName);
             } catch (Exception x) {
                 Server.getLogger().log("Couldn't unbind app: " + x);
             }
