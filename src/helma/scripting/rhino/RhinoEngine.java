@@ -154,13 +154,18 @@ public class RhinoEngine implements ScriptingEngine {
         context.setApplicationClassLoader(app.getClassLoader());
         context.setWrapFactory(core.wrapper);
 
-        boolean trace = "true".equals(app.getProperty("rhino.trace"));
+        // if visual debugger is on let it know we're entering a context
+        if (core.debugger != null) {
+            core.debugger.contextCreated(context);
+            core.debugger.contextEntered(context);
+        }
 
-        if (trace) {
+        if ("true".equals(app.getProperty("rhino.trace"))) {
             context.setDebugger(new Tracer(getResponse()), null);
         }
 
-        int optLevel = 0;
+        // Set default optimization level according to whether debugger is on
+        int optLevel = core.debugger == null ? 0 : -1;
 
         try {
             optLevel = Integer.parseInt(app.getProperty("rhino.optlevel"));
@@ -223,6 +228,12 @@ public class RhinoEngine implements ScriptingEngine {
         Context.exit();
         core.global.unregisterScope();
         thread = null;
+
+        // if visual debugger is on let it know we're exiting a context
+        if (core.debugger != null) {
+            core.debugger.contextExited(context);
+            core.debugger.contextReleased(context);
+        }
 
         // loop through previous globals and unset them, if necessary.
         if (lastGlobals != null) {
