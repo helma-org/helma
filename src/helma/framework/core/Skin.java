@@ -333,7 +333,9 @@ public class Skin {
 	               String suffix = (String) parameters.get ("suffix");
 	               reval.res.insert (oldLength, prefix);
 	               reval.res.write (suffix);
-	            } else if (v != null) {
+	            }
+	            // if macro returned something append it to response
+	            if (v != null) {
 	                writeToResponse (v.toString (), reval.res);
 	            }
 	        } else {
