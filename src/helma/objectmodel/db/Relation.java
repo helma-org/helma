@@ -472,11 +472,15 @@ public class Relation {
      * appropriate properties
      */
     public void setConstraints (Node parent, Node child) {
-	INode nonVirtual = parent.getNonVirtualParent ();
+	INode home = parent.getNonVirtualParent ();
 	for (int i=0; i<constraints.length; i++) {
+	    // don't set groupby constraints since we don't know if the
+	    // parent node is the base node or a group node
+	    if (constraints[i].isGroupby)
+	        continue;
 	    Relation crel = otherType.columnNameToRelation (constraints[i].foreignName);
 	    if (crel != null) {
-	        INode home = constraints[i].isGroupby ? parent : nonVirtual;
+	        // INode home = constraints[i].isGroupby ? parent : nonVirtual;
 	        String localName = constraints[i].localName;
 	        if (localName == null  || localName.equals (ownType.getIDField ())) {
 	            INode currentValue = child.getNode (crel.propName, false);
@@ -496,7 +500,6 @@ public class Relation {
 	            else
 	                value = home.getString (localName, false);
 	            if (value != null) {
-	                // System.err.println ("SETTING "+child+"."+propname+" TO "+value);
 	                child.setString (crel.propName, value);
 	            }
 	        }
