@@ -73,7 +73,7 @@ public class ESUser extends ESNode {
 	// because we always use the one from the user object.
     }
 
-    public void updateNode () {
+    public void updateNodeFromUser () {
 	node = user.getNode ();
 	nodeID = node.getID ();
 	dbmap = node.getDbMapping ();
