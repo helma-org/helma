@@ -36,4 +36,12 @@ public class Config {
         return (websrvPort != null || ajp13Port != null  || rmiPort != null || xmlrpcPort != null);
     }
 
+    public boolean hasPropFile() {
+        return (propFile != null);
+    }
+
+    public boolean hasHomeDir() {
+        return (homeDir != null);
+    }
+
 }
