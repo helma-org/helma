@@ -303,7 +303,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	case FLOAT:
 	    return Double.toString (dvalue);
 	case NODE:
-	    return nhandle.toString ();
+	    return nhandle.getID ();
 	case JAVAOBJECT:
 	    return jvalue.toString ();
 	}
