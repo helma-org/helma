@@ -425,7 +425,8 @@ public final class RequestEvaluator implements Runnable {
                                     // see if a valid node was returned
                                     if (thisObject == null) {
                                         reqtype = NONE;
-
+                                        abortTransaction();
+                                        done = true;                                        
                                         break;
                                     }
                                 }
@@ -442,6 +443,7 @@ public final class RequestEvaluator implements Runnable {
                                 if (!functionexists) {
                                     // function doesn't exist, nothing to do here.
                                     reqtype = NONE;
+                                    abortTransaction();
                                 } else {
                                     try {
 
