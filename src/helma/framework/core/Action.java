@@ -69,7 +69,7 @@ public class Action implements Updatable {
 	        reader.close ();
 	        String content = new String (cbuf);
 	        update (content);
-	    } catch (Throwable filex) {
+	    } catch (IOException filex) {
 	        app.logEvent ("*** Error reading action file "+file+": "+filex);
 	    }
 	
@@ -85,7 +85,7 @@ public class Action implements Updatable {
 
              try {
 	    pfunc = parseFunction (functionName, "arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10", content);
-             } catch (Exception x) {
+             } catch (Throwable x) {
                  String message = x.getMessage ();
                  pfunc =  new ErrorFeedback (functionName, message);
              }
