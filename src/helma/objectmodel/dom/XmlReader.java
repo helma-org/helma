@@ -226,7 +226,7 @@ public class XmlReader implements XmlConstants	{
 	    			prop.setStringValue (content);
 				}
 			}
-   			propMap.put (childElement.getTagName(), prop);
+   			propMap.put (childElement.getTagName().toLowerCase(), prop);
 		}
 		if ( propMap.size()>0 )
 			helmaNode.setPropMap (propMap);
