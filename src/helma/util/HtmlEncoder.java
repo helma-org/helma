@@ -29,7 +29,7 @@ public final class HtmlEncoder {
     static final String[] transform =  {
         "&euro;",   // 128
         "",           // empty string means character is undefined in unicode
-        "&#8218;", 
+        "&#8218;",
         "&#402;",
         "&#8222;",
         "&#8230;",
@@ -529,7 +529,7 @@ public final class HtmlEncoder {
 	            if (c < 0x20) {
 	                // sort out invalid XML characters below 0x20 - all but 0x9, 0xA and 0xD.
 	                // The trick is an adaption of java.lang.Character.isSpace().
-	                if (((((1L << 0x9) | (1L << 0xA) | (1L << 0xD)) >> ch) & 1L) != 0)
+	                if (((((1L << 0x9) | (1L << 0xA) | (1L << 0xD)) >> c) & 1L) != 0)
 	                    ret.append (c);
 	            } else {
 	                ret.append (c);
