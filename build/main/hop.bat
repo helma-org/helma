@@ -9,7 +9,7 @@ set HTTP_PORT=
 set XMLRPC_PORT=
 set AJP13_PORT=
 set RMI_PORT=
-set SWITCHES=
+set OPTIONS=
 
 :: Set TCP ports for Helma servers
 :: (comment/uncomment to de/activate)
@@ -31,10 +31,10 @@ rem set JAVA_OPTIONS=-server -Xmx128m
 :::::: No user configuration needed below this line :::::::
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-:: Setting the script's path
-set SCRIPT_DIR=%~p0
+:: Setting the script path
+set SCRIPT_DIR=%~d0%~p0
 
-:: If JAVA_HOME variable is set, use it. Otherwise, 
+:: Using JAVA_HOME variable if defined. Otherwise, 
 :: Java executable must be contained in PATH variable
 if "%JAVA_HOME%"=="" goto default
    set JAVACMD=%JAVA_HOME%\bin\java
@@ -43,7 +43,12 @@ if "%JAVA_HOME%"=="" goto default
    set JAVACMD=java
 :end
 
-:: Set classpath
+:: Setting HOP_HOME to script path if undefined
+if "%HOP_HOME%"=="" (
+   set HOP_HOME=%SCRIPT_DIR%
+)
+
+:: Setting the classpath
 set LIB=%SCRIPT_DIR%lib
 set JARS=%LIB%\helma.jar
 set JARS=%JARS%;%LIB%\jetty.jar
@@ -60,27 +65,27 @@ set JARS=%JARS%;%LIB%\mail.jar
 set JARS=%JARS%;%LIB%\activation.jar
 set JARS=%JARS%;%LIB%\mysql.jar
 
-:: Set switches
+:: Setting Helma server options
 if not "%HTTP_PORT%"=="" (
    echo Starting HTTP server on port %HTTP_PORT%
-   set SWITCHES=%SWITCHES% -w %HTTP_PORT%
+   set OPTIONSS=%OPTIONSS% -w %HTTP_PORT%
 )
 if not "%XMLRPC_PORT%"=="" (
    echo Starting XML-RPC server on port %XMLRPC_PORT%
-   set SWITCHES=%SWITCHES% -x %XMLRPC_PORT%
+   set OPTIONSS=%OPTIONSS% -x %XMLRPC_PORT%
 )
 if not "%AJP13_PORT%"=="" (
    echo Starting AJP13 listener on port %AJP13_PORT%
-   set SWITCHES=%SWITCHES% -jk %AJP13_PORT%
+   set OPTIONSS=%OPTIONSS% -jk %AJP13_PORT%
 )
 if not "%RMI_PORT%"=="" (
    echo Starting RMI server on port %RMI_PORT%
-   set SWITCHES=%SWITCHES% -p %RMI_PORT%
+   set OPTIONSS=%OPTIONSS% -p %RMI_PORT%
 )
 if not "%HOP_HOME%"=="" (
    echo Serving applications from %HOP_HOME%
-   set SWITCHES=%SWITCHES% -h %HOP_HOME%
+   set OPTIONSS=%OPTIONSS% -h %HOP_HOME%
 )
 
 :: Invoking the Java virtual machine
-%JAVACMD% %JAVA_OPTIONS% -classpath %JARS% helma.main.Server %SWITCHES%
+%JAVACMD% %JAVA_OPTIONS% -classpath %JARS% helma.main.Server %OPTIONSS%
