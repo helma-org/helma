@@ -231,18 +231,22 @@ public final class Prototype {
 
     public synchronized void removeUpdatable (String fileName) {
 	updatables.remove (fileName);
+	markUpdated ();
     }
 
     public synchronized void removeAction (String actionName) {
 	actions.remove (actionName);
+	markUpdated ();
     }
 
     public synchronized void removeFunctionFile (String functionFileName) {
 	functions.remove (functionFileName);
+	markUpdated ();
     }
-    
+
     public synchronized void removeTemplate (String templateName) {
 	templates.remove (templateName);
+	markUpdated ();
     }
 
 
