@@ -114,7 +114,7 @@ public class Server implements IPathElement, Runnable {
 
         Config config = null;
         try {
-            config = parseArgs(args);
+            config = getConfig(args);
         } catch (Exception cex) {
             printUsageError("error reading configuration: " + cex.getMessage());
             System.exit(1);
@@ -167,7 +167,7 @@ public class Server implements IPathElement, Runnable {
       * @return Config if successfull
       * @throews Exception on any configuration error
       */
-    public static Config parseArgs(String[] args) throws Exception {
+    public static Config getConfig(String[] args) throws Exception {
 
         Config config = new Config();
 
@@ -176,7 +176,56 @@ public class Server implements IPathElement, Runnable {
             config.homeDir = new File(System.getProperty("helma.home"));
         }
 
-        // parse arguments
+        parseArgs(config, args);
+
+        guessConfig(config);
+
+        // create system properties
+        SystemProperties sysProps = new SystemProperties(config.propFile.getAbsolutePath());
+
+        // check if there's a property setting for those ports not specified via command line
+        if ((config.websrvPort == null) && (sysProps.getProperty("webPort") != null)) {
+            try {
+                config.websrvPort = new InetAddrPort(sysProps.getProperty("webPort"));
+            } catch (Exception portx) {
+                throw new Exception("Error parsing web server port property from server.properties: " + portx);
+            }
+        }
+
+        if ((config.ajp13Port == null) && (sysProps.getProperty("ajp13Port") != null)) {
+            try {
+                config.ajp13Port = new InetAddrPort(sysProps.getProperty("ajp13Port"));
+            } catch (Exception portx) {
+                throw new Exception("Error parsing AJP1.3 server port property from server.properties: " + portx);
+            }
+        }
+
+        if ((config.rmiPort == null) && (sysProps.getProperty("rmiPort") != null)) {
+            try {
+                config.rmiPort = new InetAddrPort(sysProps.getProperty("rmiPort"));
+            } catch (Exception portx) {
+                throw new Exception("Error parsing RMI server port property from server.properties: " + portx);
+            }
+        }
+
+        if ((config.xmlrpcPort == null) && (sysProps.getProperty("xmlrpcPort") != null)) {
+            try {
+                config.xmlrpcPort = new InetAddrPort(sysProps.getProperty("xmlrpcPort"));
+            } catch (Exception portx) {
+                throw new Exception("Error parsing XML-RPC server port property from server.properties: " + portx);
+            }
+        }
+        return config;
+    }
+
+
+    /**
+      * parse argument list from command line and store values
+      * in given Config object
+      * @throws Exception when argument can't be parsed into an InetAddrPort
+      * or invalid token is given.
+      */
+    public static void parseArgs(Config config, String[] args) throws Exception {
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("-h") && ((i + 1) < args.length)) {
                 config.homeDir = new File(args[++i]);
@@ -213,10 +262,14 @@ public class Server implements IPathElement, Runnable {
                 throw new Exception("Unknown command line token: " + args[i]);
             }
         }
+    }
 
-        // get main property file from home dir or vice versa,
-        // depending on what we have:
 
+    /**
+      * get main property file from home dir or vice versa,
+      * depending on what we have
+      */
+    public static void guessConfig(Config config) throws Exception {
         // get property file from hopHome:
         if (config.propFile == null) {
             if (config.homeDir != null) {
@@ -226,10 +279,8 @@ public class Server implements IPathElement, Runnable {
             }
         }
 
-
         // create system properties
         SystemProperties sysProps = new SystemProperties(config.propFile.getAbsolutePath());
-
 
         // try to get hopHome from property file
         if (config.homeDir == null && sysProps.getProperty("hophome") != null) {
@@ -255,44 +306,7 @@ public class Server implements IPathElement, Runnable {
         } catch (IOException iox) {
             config.homeDir = config.homeDir.getAbsoluteFile();
         }
-
-
-        // check if there's a property setting for those ports not specified via command line
-        if ((config.websrvPort == null) && (sysProps.getProperty("webPort") != null)) {
-            try {
-                config.websrvPort = new InetAddrPort(sysProps.getProperty("webPort"));
-            } catch (Exception portx) {
-                throw new Exception("Error parsing web server port property from server.properties: " + portx);
-            }
-        }
-
-        if ((config.ajp13Port == null) && (sysProps.getProperty("ajp13Port") != null)) {
-            try {
-                config.ajp13Port = new InetAddrPort(sysProps.getProperty("ajp13Port"));
-            } catch (Exception portx) {
-                throw new Exception("Error parsing AJP1.3 server port property from server.properties: " + portx);
-            }
-        }
-
-        if ((config.rmiPort == null) && (sysProps.getProperty("rmiPort") != null)) {
-            try {
-                config.rmiPort = new InetAddrPort(sysProps.getProperty("rmiPort"));
-            } catch (Exception portx) {
-                throw new Exception("Error parsing RMI server port property from server.properties: " + portx);
-            }
-        }
-
-        if ((config.xmlrpcPort == null) && (sysProps.getProperty("xmlrpcPort") != null)) {
-            try {
-                config.xmlrpcPort = new InetAddrPort(sysProps.getProperty("xmlrpcPort"));
-            } catch (Exception portx) {
-                throw new Exception("Error parsing XML-RPC server port property from server.properties: " + portx);
-            }
-        }
-
-        return config;
     }
-
 
 
     /**
@@ -686,6 +700,16 @@ public class Server implements IPathElement, Runnable {
             } catch (Exception x) {
                 logger.warn("Caught in app manager loop: " + x);
             }
+        }
+    }
+
+    /**
+     * Make sure this server has an ApplicationManager (e.g. used when
+     * accessed from CommandlineRunner)
+     */
+    public void checkAppManager(int port) {
+        if (appManager == null) {
+            appManager = new ApplicationManager(appsProps, this, port);
         }
     }
 
