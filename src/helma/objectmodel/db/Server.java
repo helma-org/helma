@@ -46,6 +46,17 @@ import com.sleepycat.db.*;
 
     public static void main (String args[]) throws IOException {
 
+	// check if we are running on a Java 2 VM - otherwise exit with an error message
+	String jversion = System.getProperty ("java.version");
+	if (jversion == null || jversion.startsWith ("1.1") || jversion.startsWith ("1.0")) {
+	    System.err.println ("This version of Helma requires Java 1.2 or greater.");
+	    if (jversion == null) // don't think this will ever happen, but you never know
+	        System.err.println ("Your Java Runtime did not provide a version number. Please update to a more recent version.");
+	    else
+	        System.err.println ("Your Java Runtime is version "+jversion+". Please update to a more recent version.");
+	    System.exit (1);	
+	}
+	
 	String homeDir = null;
 
 	boolean usageError = false;
