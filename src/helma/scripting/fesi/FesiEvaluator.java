@@ -230,11 +230,14 @@ public class FesiEvaluator {
 	            else if ("path".equals (k)) {
 	                ArrayPrototype parr = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
 	                List path = (List) v;
+	                // register path elements with their prototype
 	                for (int j=0; j<path.size(); j++) {
 	                    Object pathElem = path.get (j);
 	                    ESValue wrappedElement = getElementWrapper (pathElem);
 	                    parr.putProperty (j, wrappedElement);
-	                    parr.putHiddenProperty (app.getPrototypeName(pathElem), wrappedElement);
+	                    String protoname = app.getPrototypeName (pathElem);
+	                    if (protoname != null)
+	                        parr.putHiddenProperty (protoname, wrappedElement);
 	                }
 	                sv = parr;
 	            } else if ("user".equals (k)) {
@@ -259,8 +262,8 @@ public class FesiEvaluator {
 	    String msg = x.getMessage ();
 	    if (msg == null || msg.length() < 10)
 	        msg = x.toString ();
-	    // System.err.println ("INVOKE-ERROR: "+msg);
-	    // x.printStackTrace ();
+	    System.err.println ("INVOKE-ERROR: "+msg);
+	    x.printStackTrace ();
 	    throw new ScriptingException (msg);
 	} finally {
 	    // remove global variables that have been added during invocation.
