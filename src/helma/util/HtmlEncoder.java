@@ -483,6 +483,7 @@ public final class HtmlEncoder {
 	}
      }
 
+
     /**
      *
      */
@@ -495,6 +496,13 @@ public final class HtmlEncoder {
 	StringBuffer ret = new StringBuffer (Math.round (l*1.2f));
 	encodeAll (str, ret, false);
 	return ret.toString();
+    }
+
+    /**
+     *
+     */
+    public final static void encodeFormValue (String str, StringBuffer ret) {
+	encodeAll (str, ret, false);
     }
 
 
@@ -515,9 +523,8 @@ public final class HtmlEncoder {
     /**
      *
      */
-    public final static String encodeAll (String str, StringBuffer ret) {
+    public final static void encodeAll (String str, StringBuffer ret) {
 	encodeAll (str, ret, true);
-	return ret.toString();
     }
 
 
