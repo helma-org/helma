@@ -832,6 +832,14 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
+     *  Return the href to the root of this application.
+     */
+    public String getRootHref () {
+	return getNodeHref (getDataRoot(), null);
+    }
+
+
+    /**
      * Return a path to be used in a URL pointing to the given element  and action
      */
     public String getNodeHref (Object elem, String actionName) {
