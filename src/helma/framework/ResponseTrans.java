@@ -427,7 +427,7 @@ public final class ResponseTrans implements Externalizable {
 	if (what == null) {
 	    digest.update (new byte[0]);
 	} else if (what instanceof Date) {
-	    digest.update (MD5Encoder.toBytes((Date) what).getTime());
+	    digest.update (MD5Encoder.toBytes(((Date) what).getTime()));
 	} else if (what instanceof byte[]) {
 	    digest.update ((byte[]) what);
 	} else {
