@@ -1645,15 +1645,7 @@ public final class NodeManager {
                     break;
 
                 case Types.DATE:
-                    newprop.setDateValue(rs.getDate(i+1+offset));
-
-                    break;
-
                 case Types.TIME:
-                    newprop.setDateValue(rs.getTime(i+1+offset));
-
-                    break;
-
                 case Types.TIMESTAMP:
                     newprop.setDateValue(rs.getTimestamp(i+1+offset));
 
