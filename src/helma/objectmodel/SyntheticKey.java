@@ -6,16 +6,15 @@ package helma.objectmodel;
 import java.io.Serializable;
 
 /**
- * This is the internal key for an object that is not stored in a db, but generated
- * on the fly. Currently there are two kinds of such objects: virtual nodes, which are used
- * as utility containers for objects in the database, and groupby nodes, which are used
- * to group a certain kind of relational objects according to some property.
+ * This is the internal key for an object that is not - or not directly - fetched from a db,
+ * but derived from another object. This is useful for all kinds of object accessed via a
+ * symbolic name from another object, like objects mounted via a property name column,
+  * virtual nodes and groupby nodes.
  */
 public final class SyntheticKey implements Key, Serializable {
 
     private final Key parentKey;
     private final String name;
-    // private final int hash;
 
 
     /**
@@ -24,23 +23,22 @@ public final class SyntheticKey implements Key, Serializable {
     public SyntheticKey (Key key, String name) {
 	this.parentKey = key;
 	this.name = name;
-	// hash = name.hashCode () + key.hashCode ();
     }
 
 
     public boolean equals (Object what) {
+	if (what == this)
+	    return true;
 	try {
 	    SyntheticKey k = (SyntheticKey) what;
 	    return parentKey.equals (k.parentKey) &&
 	    	(name == k.name || name.equals (k.name));
 	} catch (Exception x) {
-	    System.err.println ("SYNTHETIC NOT EQUAL: "+what+" - "+this);
 	    return false;
 	}
     }
 
     public int hashCode () {
-	// return hash;
 	return name.hashCode () + parentKey.hashCode ();
     }
 
