@@ -68,7 +68,7 @@ public class ApplicationManager {
 	}
     }
 
-    private void start (String appName, boolean self) {
+    void start (String appName, boolean self) {
 	Server.getLogger().log ("Building application "+appName);
 	try {
 	    Application app = new Application (appName, hopHome, Server.sysProps, Server.dbProps);
@@ -87,7 +87,7 @@ public class ApplicationManager {
 	}
     }
 
-    private void stop (String appName) {
+    void stop (String appName) {
 	Server.getLogger().log ("Stopping application "+appName);
 	try {
 	    Application app = (Application) applications.get (appName);
@@ -105,7 +105,7 @@ public class ApplicationManager {
 	applications.remove (appName);
     }
 
-    private void register (String appName, boolean self) {
+    void register (String appName, boolean self) {
 	try {
 	    Server.getLogger().log ("Binding application "+appName);
 	    Application app = (Application) applications.get (appName);
@@ -159,5 +159,9 @@ public class ApplicationManager {
     public Object[] getApplications () {
 	return applications.values ().toArray ();
     }
+
+	public Application getApplication(String name)	{
+		return (Application)applications.get(name);
+	}
 
 }
