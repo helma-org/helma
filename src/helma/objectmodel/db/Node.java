@@ -634,9 +634,16 @@ public final class Node implements INode, Serializable {
 	if (parentInfo != null && state != TRANSIENT) {
 	    for (int i=0; i<parentInfo.length; i++) {
 	        ParentInfo pinfo = parentInfo[i];
-	        INode pn = getNode (pinfo.propname, false);
+	        INode pn = null;
+	        // see if there is an explicit relation defined for this parent info
+	        // we only try to fetch a node if an explicit relation is specified for the prop name
+	        Relation rel = dbmap.propertyToRelation (pinfo.propname);
+	        if (rel != null && rel.reftype == Relation.REFERENCE)
+	            pn = getNode (pinfo.propname, false);
+	        // the parent of this node is the app's root node...
 	        if (pinfo.isroot && pn == null)
 	            pn = nmgr.getNode ("0", nmgr.getDbMapping ("root"));
+	        // if we found a parent node, check if we ought to use a virtual or groupby node as parent
 	        if (pn != null) {
 	            // see if dbmapping specifies anonymity for this node
 	            if (pinfo.virtualname != null)
@@ -645,7 +652,7 @@ public final class Node implements INode, Serializable {
 	            try {
 	                if (dbm != null && dbm.getSubnodeGroupby () != null) {
 	                    // check for groupby
-	                    Relation rel = (Relation) dbmap.getDB2Prop ().get (dbm.getSubnodeGroupby());
+	                    rel = (Relation) dbmap.getDB2Prop ().get (dbm.getSubnodeGroupby());
 	                    pn = pn.getSubnode (getString (rel.propName, false));
 	                }
 	                if (pn != null) {
@@ -1114,7 +1121,9 @@ public final class Node implements INode, Serializable {
 	if (smap != null && smap.isRelational ()) {
 	    // check if subnodes need to be rechecked
 	    Relation subRel = dbmap.getSubnodeRelation ();
-	    if (subRel.aggressiveLoading) {
+	    // do not fetch subnodes for nodes that haven't been persisted yet or are in
+	    // the process of being persistified - except if "manual" subnoderelation is set.
+	    if (subRel.aggressiveLoading && ((state != TRANSIENT && state != NEW) || subnodeRelation != null)) {
 	        // we don't want to load *all* nodes if we just want to count them
 	        long lastChange = subRel.aggressiveCaching ? lastSubnodeChange : smap.getLastDataChange ();
 	        // also reload if the type mapping has changed.
