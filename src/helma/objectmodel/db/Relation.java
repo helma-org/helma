@@ -48,13 +48,17 @@ public final class Relation {
     public final static int COMPLEX_REFERENCE = 3;
 
     // constraints linked together by OR or AND if applicable?
-    private int constraintsLogic;
-    public final static int CONSTRAINTS_AND = 0;
-    public final static int CONSTRAINTS_OR = 1;
-    public final static int CONSTRAINTS_XOR = 2;
-    public final String[] logicalOperators = {" AND ", " OR ", " XOR "};
-    
-    // direct mapping is a very powerful feature: objects of some types can be directly accessed
+    public final static String AND = " AND ";
+    public final static String OR = " OR ";
+    public final static String XOR = " XOR ";
+    private String logicalOperator = AND;
+
+    // prefix to use for symbolic names of joined tables. The name is composed
+    // from this prefix and the name of the property we're doing the join for
+    final static String JOIN_PREFIX = "_JOIN_";
+
+    // direct mapping is a very powerful feature:
+    // objects of some types can be directly accessed
     // by one of their properties/db fields.
     // public final static int DIRECT = 3;
     // the DbMapping of the type we come from
@@ -85,22 +89,31 @@ public final class Relation {
     String prototype;
     String groupbyPrototype;
     String filter;
+    String additionalTables;
     int maxSize = 0;
 
     /**
      * This constructor makes a copy of an existing relation. Not all fields are copied, just those
      * which are needed in groupby- and virtual nodes defined by this relation.
      */
-    public Relation(Relation rel) {
-        this.ownType = rel.ownType;
-        this.otherType = rel.otherType;
-        this.propName = rel.propName;
-        this.columnName = rel.columnName;
-        this.reftype = rel.reftype;
-        this.constraints = rel.constraints;
-        this.accessName = rel.accessName;
-        this.maxSize = rel.maxSize;
-        this.constraintsLogic = rel.constraintsLogic;
+    private Relation(Relation rel) {
+        // Note: prototype, groupby, groupbyPrototype and groupbyOrder aren't copied here.
+        // these are set by the individual get*Relation() methods as appropriate.
+        this.ownType =             rel.ownType;
+        this.otherType =           rel.otherType;
+        this.propName =            rel.propName;
+        this.columnName =          rel.columnName;
+        this.reftype =             rel.reftype;
+        this.order =               rel.order;
+        this.filter =              rel.filter;
+        this.additionalTables =    rel.additionalTables;
+        this.maxSize =             rel.maxSize;
+        this.constraints =         rel.constraints;
+        this.accessName =          rel.accessName;
+        this.maxSize =             rel.maxSize;
+        this.logicalOperator =     rel.logicalOperator;
+        this.aggressiveLoading =   rel.aggressiveLoading;
+        this.aggressiveCaching =   rel.aggressiveCaching;
     }
 
     /**
@@ -254,6 +267,14 @@ public final class Relation {
             }
         }
 
+        // get additional tables
+        additionalTables = props.getProperty(propName + ".filter.additionalTables");
+
+        if (additionalTables != null) {
+            if (additionalTables.trim().length() == 0)
+                additionalTables = null;
+        }
+
         // get max size of collection
         String max = props.getProperty(propName + ".maxSize");
 
@@ -315,30 +336,24 @@ public final class Relation {
         
         // parse constraints logic
         if (cnst.size() > 1) {
-            String logic = props.getProperty(propName + ".logic");
-            if ("and".equalsIgnoreCase(logic))
-                constraintsLogic = CONSTRAINTS_AND;
-            else if ("or".equalsIgnoreCase(logic))
-                constraintsLogic = CONSTRAINTS_OR;
-            else if ("xor".equalsIgnoreCase(logic))
-                constraintsLogic = CONSTRAINTS_XOR;
-            else
-                throw new RuntimeException("Unrecognized logical operator: "+logic);
-        } else
-            constraintsLogic = CONSTRAINTS_AND;
+            String logic = props.getProperty(propName + ".logicalOperator");
+            if ("and".equalsIgnoreCase(logic)) {
+                logicalOperator = AND;
+            } else if ("or".equalsIgnoreCase(logic)) {
+                logicalOperator = OR;
+            } else if ("xor".equalsIgnoreCase(logic)) {
+                logicalOperator = XOR;
+            } else {
+                logicalOperator = AND;
+            }
+        } else {
+            logicalOperator = AND;
+        }
         
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * Constraints linked by AND or OR?
-     */
-    
-    public String getConstraintsOperator() {
-        return logicalOperators[constraintsLogic];
-    }
-    
     /**
      * Does this relation describe a virtual (collection) node?
      */
@@ -579,12 +594,6 @@ public final class Relation {
         vr.groupby = groupby;
         vr.groupbyOrder = groupbyOrder;
         vr.groupbyPrototype = groupbyPrototype;
-        vr.order = order;
-        vr.filter = filter;
-        vr.maxSize = maxSize;
-        vr.constraints = constraints;
-        vr.aggressiveLoading = aggressiveLoading;
-        vr.aggressiveCaching = aggressiveCaching;
 
         return vr;
     }
@@ -602,10 +611,6 @@ public final class Relation {
         vr.groupby = groupby;
         vr.groupbyOrder = groupbyOrder;
         vr.groupbyPrototype = groupbyPrototype;
-        vr.order = order;
-        vr.filter = filter;
-        vr.maxSize = maxSize;
-        vr.constraints = constraints;
 
         return vr;
     }
@@ -620,13 +625,8 @@ public final class Relation {
 
         Relation vr = new Relation(this);
 
-        vr.order = order;
         vr.prototype = groupbyPrototype;
-        vr.filter = filter;
-        vr.constraints = constraints;
         vr.addConstraint(new Constraint(null, groupby, true));
-        vr.aggressiveLoading = aggressiveLoading;
-        vr.aggressiveCaching = aggressiveCaching;
 
         return vr;
     }
@@ -641,10 +641,7 @@ public final class Relation {
 
         Relation vr = new Relation(this);
 
-        vr.order = order;
         vr.prototype = groupbyPrototype;
-        vr.filter = filter;
-        vr.constraints = constraints;
         vr.addConstraint(new Constraint(null, groupby, true));
 
         return vr;
@@ -681,7 +678,7 @@ public final class Relation {
             prefix = " AND ";
         }
 
-        if (constraints.length > 1 && constraintsLogic != CONSTRAINTS_AND) {
+        if (constraints.length > 1 && logicalOperator != AND) {
             q.append(prefix);
             q.append("(");
             prefix = "";
@@ -690,10 +687,10 @@ public final class Relation {
         for (int i = 0; i < constraints.length; i++) {
             q.append(prefix);
             constraints[i].addToQuery(q, home, nonvirtual);
-            prefix = getConstraintsOperator();
+            prefix = logicalOperator;
         }
 
-        if (constraints.length > 1 && constraintsLogic != CONSTRAINTS_AND) {
+        if (constraints.length > 1 && logicalOperator != AND) {
             q.append(")");
             prefix = " AND ";
         }
@@ -744,12 +741,17 @@ public final class Relation {
         return q.toString();
     }
 
+    /**
+     *  Render the constraints for this relation for use within
+     *  a left outer join select statement for the base object.
+     */
     public void renderJoinConstraints(StringBuffer select) {
         for (int i = 0; i < constraints.length; i++) {
             select.append(ownType.getTableName());
             select.append(".");
             select.append(constraints[i].localName);
-            select.append(" = _HLM_");
+            select.append(" = ");
+            select.append(JOIN_PREFIX);
             select.append(propName);
             select.append(".");
             select.append(constraints[i].foreignName);

@@ -151,7 +151,7 @@ public final class NodeManager {
 
             db.commitTransaction(txn);
         } catch (Exception x) {
-            System.err.println(">> " + x);
+            System.err.println(x);
             x.printStackTrace();
 
             try {
@@ -214,8 +214,9 @@ public final class NodeManager {
         node = (Node) cache.get(key);
 
         if ((node == null) || (node.getState() == Node.INVALID)) {
-            // The requested node isn't in the shared cache. Synchronize with key to make sure only one
-            // version is fetched from the database.
+            // The requested node isn't in the shared cache.
+            // Synchronize with key to make sure only one version is
+            // fetched from the database.
             if (key instanceof SyntheticKey) {
                 Node parent = getNode(key.getParentKey());
                 Relation rel = parent.dbmap.getPropertyRelation(key.getID());
@@ -249,7 +250,6 @@ public final class NodeManager {
             tx.visitCleanNode(key, node);
         }
 
-        // tx.timer.endEvent ("getNode "+kstr);
         return node;
     }
 
@@ -289,10 +289,11 @@ public final class NodeManager {
         Node node = tx.getVisitedNode(key);
 
         if ((node != null) && (node.getState() != Node.INVALID)) {
-            // we used to refresh the node in the main cache here to avoid the primary key entry being
-            // flushed from cache before the secondary one (risking duplicate nodes in cache) but
-            // we don't need to since we fetched the node from the threadlocal transactor cache and
-            // didn't refresh it in the main cache.
+            // we used to refresh the node in the main cache here to avoid the primary key
+            // entry being flushed from cache before the secondary one
+            // (risking duplicate nodes in cache) but we don't need to since we fetched
+            // the node from the threadlocal transactor cache and didn't refresh it in the
+            // main cache.
             return node;
         }
 
@@ -326,8 +327,9 @@ public final class NodeManager {
         }
 
         if ((node == null) || (node.getState() == Node.INVALID)) {
-            // The requested node isn't in the shared cache. Synchronize with key to make sure only one
-            // version is fetched from the database.
+            // The requested node isn't in the shared cache.
+            // Synchronize with key to make sure only one version is fetched
+            // from the database.
             node = getNodeByRelation(tx.txn, home, kstr, rel);
 
             if (node != null) {
@@ -459,10 +461,7 @@ public final class NodeManager {
             db.saveNode(txn, node.getID(), node);
         } else {
             insertRelationalNode(node, dbm, dbm.getConnection());
-            dbm.notifyDataChange();
         }
-
-        // tx.timer.endEvent ("insertNode "+node);
     }
 
     /**
@@ -645,8 +644,11 @@ public final class NodeManager {
     /**
      *  Updates a modified node in the embedded db or an external relational database, depending
      * on its database mapping.
+     *
+     * @return true if the DbMapping of the updated Node is to be marked as updated via
+     *              DbMapping.setLastDataChange
      */
-    public void updateNode(IDatabase db, ITransaction txn, Node node)
+    public boolean updateNode(IDatabase db, ITransaction txn, Node node)
                     throws IOException, SQLException, ClassNotFoundException {
         // Transactor tx = (Transactor) Thread.currentThread ();
         // tx.timer.beginEvent ("updateNode "+node);
@@ -666,6 +668,8 @@ public final class NodeManager {
 
             StringBuffer b = dbm.getUpdate();
 
+            // comma flag set after the first dirty column, also tells as
+            // if there are dirty columns at all
             boolean comma = false;
 
             for (int i = 0; i < props.length; i++) {
@@ -699,9 +703,9 @@ public final class NodeManager {
                 b.append(" = ?");
             }
 
-            // if no columns were updated, return
+            // if no columns were updated, return false
             if (!comma) {
-                return;
+                return false;
             }
 
             b.append(" WHERE ");
@@ -822,10 +826,6 @@ public final class NodeManager {
                     }
                 }
             }
-
-            if (markMappingAsUpdated) {
-                dbm.notifyDataChange();
-            }
         }
 
         // update may cause changes in the node's parent subnode array
@@ -837,16 +837,15 @@ public final class NodeManager {
             }
         }
 
-        // tx.timer.endEvent ("updateNode "+node);
+        return markMappingAsUpdated;
     }
 
     /**
-     *  Performs the actual deletion of a node from either the embedded or an external SQL database.
+     *  Performs the actual deletion of a node from either the embedded or an external
+     *  SQL database.
      */
     public void deleteNode(IDatabase db, ITransaction txn, Node node)
                     throws Exception {
-        // Transactor tx = (Transactor) Thread.currentThread ();
-        // tx.timer.beginEvent ("deleteNode "+node);
         DbMapping dbm = node.getDbMapping();
 
         if ((dbm == null) || !dbm.isRelational()) {
@@ -877,14 +876,10 @@ public final class NodeManager {
                     }
                 }
             }
-
-            dbm.notifyDataChange();
         }
 
         // node may still be cached via non-primary keys. mark as invalid
         node.setState(Node.INVALID);
-
-        // tx.timer.endEvent ("deleteNode "+node);
     }
 
     /**
@@ -994,23 +989,20 @@ public final class NodeManager {
 
             try {
                 String q = null;
+                StringBuffer b = new StringBuffer("SELECT ").append(table).append('.')
+                                                   .append(idfield).append(" FROM ")
+                                                   .append(table);
 
                 if (home.getSubnodeRelation() != null) {
                     // subnode relation was explicitly set
-                    q = new StringBuffer("SELECT ").append(table).append('.')
-                                                   .append(idfield).append(" FROM ")
-                                                   .append(table).append(" ")
-                                                   .append(home.getSubnodeRelation())
-                                                   .toString();
+                    q = b.append(" ").append(home.getSubnodeRelation()).toString();
                 } else {
                     // let relation object build the query
-                    q = new StringBuffer("SELECT ").append(idfield).append(" FROM ")
-                                                   .append(table)
-                                                   .append(rel.buildQuery(home,
-                                                                          home.getNonVirtualParent(),
-                                                                          null,
-                                                                          " WHERE ", true))
-                                                   .toString();
+                    q = b.append(rel.buildQuery(home,
+                                                home.getNonVirtualParent(),
+                                                null,
+                                                " WHERE ",
+                                                true)).toString();
                 }
 
                 if (logSql) {
@@ -1099,8 +1091,11 @@ public final class NodeManager {
                     q.append(home.getSubnodeRelation());
                 } else {
                     // let relation object build the query
-                    q.append(rel.buildQuery(home, home.getNonVirtualParent(), null,
-                                            " WHERE ", true));
+                    q.append(rel.buildQuery(home,
+                                            home.getNonVirtualParent(),
+                                            null,
+                                            " WHERE ",
+                                            true));
                 }
 
                 if (logSql) {
@@ -1341,21 +1336,18 @@ public final class NodeManager {
 
             try {
                 String q = null;
+                StringBuffer b = new StringBuffer("SELECT count(*) FROM ").append(table);
 
                 if (home.getSubnodeRelation() != null) {
                     // use the manually set subnoderelation of the home node
-                    q = new StringBuffer("SELECT count(*) FROM ").append(table).append(" ")
-                                                                 .append(home.getSubnodeRelation())
-                                                                 .toString();
+                    q = b.append(" ").append(home.getSubnodeRelation()).toString();
                 } else {
                     // let relation object build the query
-                    q = new StringBuffer("SELECT count(*) FROM ").append(table)
-                                                                 .append(rel.buildQuery(home,
-                                                                                        home.getNonVirtualParent(),
-                                                                                        null,
-                                                                                        " WHERE ",
-                                                                                        false))
-                                                                 .toString();
+                    q = b.append(rel.buildQuery(home,
+                                                home.getNonVirtualParent(),
+                                                null,
+                                                " WHERE ",
+                                                false)).toString();
                 }
 
                 if (logSql) {
@@ -1408,15 +1400,19 @@ public final class NodeManager {
             Statement stmt = null;
 
             try {
-                StringBuffer q = new StringBuffer("SELECT ").append(namefield).append(" FROM ")
-                                                      .append(table);
+                StringBuffer q = new StringBuffer("SELECT ").append(namefield)
+                                                            .append(" FROM ")
+                                                            .append(table);
 
                 if (home.getSubnodeRelation() != null) {
                     q.append(" ").append(home.getSubnodeRelation());
                 } else {
                     // let relation object build the query
-                    q.append(rel.buildQuery(home, home.getNonVirtualParent(), null,
-                                            " WHERE ", true));
+                    q.append(rel.buildQuery(home,
+                                            home.getNonVirtualParent(),
+                                            null,
+                                            " WHERE ",
+                                            true));
                 }
 
                 stmt = con.createStatement();
@@ -1477,13 +1473,11 @@ public final class NodeManager {
 
                 DbColumn[] columns = dbm.getColumns();
                 Relation[] joins = dbm.getJoins();
-                StringBuffer q = dbm.getSelect();
-
-                q.append("WHERE ");
-                q.append(dbm.getTableName());
-                q.append(".");
-                q.append(idfield);
-                q.append(" = ");
+                StringBuffer q = dbm.getSelect().append("WHERE ")
+                                                .append(dbm.getTableName())
+                                                .append(".")
+                                                .append(idfield)
+                                                .append(" = ");
 
                 if (dbm.needsQuotes(idfield)) {
                     q.append("'");
@@ -1578,8 +1572,11 @@ public final class NodeManager {
                     q.append(home.getSubnodeRelation().trim().substring(5));
                     q.append(")");
                 } else {
-                    q.append(rel.buildQuery(home, home.getNonVirtualParent(), kstr,
-                                            "WHERE ", false));
+                    q.append(rel.buildQuery(home,
+                                            home.getNonVirtualParent(),
+                                            kstr,
+                                            "WHERE ",
+                                            false));
                 }
 
                 if (logSql) {
@@ -1916,12 +1913,14 @@ public final class NodeManager {
         }
 
         synchronized (cache) {
+            long now = System.currentTimeMillis();
+
             for (Enumeration en = add.elements(); en.hasMoreElements();) {
                 Node n = (Node) en.nextElement();
                 DbMapping dbm = app.getDbMapping(n.getPrototype());
 
                 if (dbm != null) {
-                    dbm.notifyDataChange();
+                    dbm.setLastDataChange(now);
                 }
 
                 n.lastParentSet = -1;
@@ -1937,7 +1936,7 @@ public final class NodeManager {
                 DbMapping dbm = app.getDbMapping(n.getPrototype());
 
                 if (dbm != null) {
-                    dbm.notifyDataChange();
+                    dbm.setLastDataChange(now);
                 }
 
                 n.setDbMapping(dbm);

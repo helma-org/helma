@@ -246,8 +246,11 @@ public final class Node implements INode, Serializable {
         this.subnodes = subnodes;
     }
 
-    protected synchronized void checkWriteLock() {
-        // System.err.println ("registering writelock for "+this.getName ()+" ("+lock+") to "+Thread.currentThread ());
+    /**
+     * Get the write lock on this node, throwing a ConcurrencyException if the
+     * lock is already held by another thread.
+     */
+    synchronized void checkWriteLock() {
         if (state == TRANSIENT) {
             return; // no need to lock transient node
         }
@@ -275,11 +278,17 @@ public final class Node implements INode, Serializable {
         lock = current;
     }
 
-    protected synchronized void clearWriteLock() {
+    /**
+     * Clear the write lock on this node.
+     */
+    synchronized void clearWriteLock() {
         lock = null;
     }
 
-    protected void markAs(int s) {
+    /**
+     *  Set this node's state, registering it with the transactor if necessary.
+     */
+    void markAs(int s) {
         if ((state == INVALID) || (state == VIRTUAL) || (state == TRANSIENT)) {
             return;
         }
@@ -304,18 +313,37 @@ public final class Node implements INode, Serializable {
     }
 
     /**
+     * Register this node as parent node with the transactor so that
+     * setLastSubnodeChange is called when the transaction completes.
+     */
+    void registerSubnodeChange() {
+        if (Thread.currentThread() instanceof Transactor) {
+            Transactor tx = (Transactor) Thread.currentThread();
+            tx.visitParentNode(this);
+        }
+    }
+
+    /**
+     * Called by the transactor on registered parent nodes to mark the
+     * child index as changed
+     */
+    void setLastSubnodeChange(long t) {
+        lastSubnodeChange = t;
+    }
+
+    /**
+     *  Gets this node's stateas defined in the INode interface
      *
-     *
-     * @return ...
+     * @return this node's state
      */
     public int getState() {
         return state;
     }
 
     /**
+     * Sets this node's state as defined in the INode interface
      *
-     *
-     * @param s ...
+     * @param s this node's new state
      */
     public void setState(int s) {
         this.state = s;
@@ -793,8 +821,6 @@ public final class Node implements INode, Serializable {
             node.makePersistable();
         }
 
-        // if (n.indexOf('/') > -1)
-        //     throw new RuntimeException ("\"/\" found in Node name.");
         // only mark this node as modified if subnodes are not in relational db
         // pointing to this node.
         if (!ignoreSubnodeChange() && ((state == CLEAN) || (state == DELETED))) {
@@ -830,7 +856,6 @@ public final class Node implements INode, Serializable {
                 } catch (Exception x) {
                     System.err.println("Error adding groupby: " + x);
 
-                    // x.printStackTrace ();
                     return null;
                 }
             }
@@ -851,7 +876,6 @@ public final class Node implements INode, Serializable {
             if (subnodes == null) {
                 subnodes = new ExternalizableVector();
             }
-
             subnodes.add(where, nhandle);
 
             // check if properties are subnodes (_properties.aresubnodes=true)
@@ -861,7 +885,8 @@ public final class Node implements INode, Serializable {
                 if ((prel != null) && (prel.accessName != null)) {
                     Relation localrel = node.dbmap.columnNameToRelation(prel.accessName);
 
-                    // if no relation from db column to prop name is found, assume that both are equal
+                    // if no relation from db column to prop name is found,
+                    // assume that both are equal
                     String propname = (localrel == null) ? prel.accessName
                                                          : localrel.propName;
                     String prop = node.getString(propname);
@@ -880,29 +905,29 @@ public final class Node implements INode, Serializable {
             }
 
             if (!"root".equalsIgnoreCase(node.getPrototype())) {
-                // avoid calling getParent() because it would return bogus results for the not-anymore transient node
+                // avoid calling getParent() because it would return bogus results
+                // for the not-anymore transient node
                 Node nparent = (node.parentHandle == null) ? null
                                                            : node.parentHandle.getNode(nmgr);
 
-                // if the node doesn't have a parent yet, or it has one but it's transient while we are
-                // persistent, make this the nodes new parent.
+                // if the node doesn't have a parent yet, or it has one but it's
+                // transient while we are persistent, make this the nodes new parent.
                 if ((nparent == null) ||
                         ((state != TRANSIENT) && (nparent.getState() == TRANSIENT))) {
                     node.setParent(this);
                     node.anonymous = true;
                 } else if ((nparent != null) && ((nparent != this) || !node.anonymous)) {
-                    // this makes the additional job of addLink, registering that we have a link to a node in our
-                    // subnodes that actually sits somewhere else. This means that addLink and addNode
-                    // are actually the same now.
+                    // this makes the additional job of addLink, registering that we have
+                    // a link to a node in our subnodes that actually sits somewhere else.
+                    // This means that addLink and addNode are actually the same now.
                     node.registerLinkFrom(this);
                 }
             }
         }
 
         lastmodified = System.currentTimeMillis();
-        lastSubnodeChange = lastmodified;
+        registerSubnodeChange();
 
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.SUBNODE_ADDED, node));
         return node;
     }
 
@@ -1237,15 +1262,7 @@ public final class Node implements INode, Serializable {
             subnodes.remove(node.getHandle());
         }
 
-        lastSubnodeChange = System.currentTimeMillis();
-
-        // check if the subnode is in relational db and has a link back to this
-        // which needs to be unset
-        /*
-        if (dbmap != null) {
-            Relation srel = dbmap.getSubnodeRelation();
-        }
-        */
+        registerSubnodeChange();
 
         // check if subnodes are also accessed as properties. If so, also unset the property
         if ((dbmap != null) && (node.dbmap != null)) {
@@ -1269,8 +1286,6 @@ public final class Node implements INode, Serializable {
             return;
         }
 
-        // Server.throwNodeEvent (new NodeEvent (node, NodeEvent.NODE_REMOVED));
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.SUBNODE_REMOVED, node));
         lastmodified = System.currentTimeMillis();
 
         // nmgr.logEvent ("released node "+node +" from "+this+"     oldobj = "+what);
@@ -1354,7 +1369,8 @@ public final class Node implements INode, Serializable {
             return -1;
         }
 
-        // if the node contains relational groupby subnodes, the subnodes vector contains the names instead of ids.
+        // if the node contains relational groupby subnodes, the subnodes vector
+        // contains the names instead of ids.
         if (!(n instanceof Node)) {
             return -1;
         }
@@ -1399,7 +1415,6 @@ public final class Node implements INode, Serializable {
                     subnodeCount = nmgr.countNodes(this, subRel);
                     lastSubnodeCount = System.currentTimeMillis();
                 }
-
                 return subnodeCount;
             }
         }
@@ -1599,7 +1614,8 @@ public final class Node implements INode, Serializable {
         DbMapping pmap = (dbmap == null) ? null : dbmap.getExactPropertyMapping(propname);
 
         if ((pmap != null) && (prop != null) && (prop.getType() != IProperty.NODE)) {
-            // this is a relational node stored by id but we still think it's just a string. Fix it
+            // this is a relational node stored by id but we still think it's just a string.
+            // Fix it.
             prop.convertToNodeReference(pmap);
         }
 
@@ -1619,11 +1635,13 @@ public final class Node implements INode, Serializable {
                 }
 
                 // so if we have a property relation and it does in fact link to another object...
-                if ((propRel != null) && (propRel.isCollection() || propRel.isComplexReference())) {
-                    // in some cases we just want to create and set a generic node without consulting
-                    // the NodeManager if it exists: When we get a collection (aka virtual node)
-                    // from a transient node for the first time, or when we get a collection whose
-                    // content objects are stored in the embedded XML data storage.
+                if ((propRel != null) && (propRel.isCollection() ||
+                                          propRel.isComplexReference())) {
+                    // in some cases we just want to create and set a generic node without
+                    // consulting the NodeManager if it exists: When we get a collection
+                    // (aka virtual node) from a transient node for the first time, or when
+                    // we get a collection whose content objects are stored in the embedded
+                    // XML data storage.
                     if ((state == TRANSIENT) && propRel.virtual) {
                         Node pn = new Node(propname, propRel.getPrototype(), nmgr);
 
@@ -1827,7 +1845,6 @@ public final class Node implements INode, Serializable {
             propMap.put(p2, prop);
         }
 
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
         lastmodified = System.currentTimeMillis();
 
         if (state == CLEAN) {
@@ -1922,8 +1939,9 @@ public final class Node implements INode, Serializable {
 
                     if (((oldStorage == null) && (newStorage == null)) ||
                             ((oldStorage != null) && oldStorage.equals(newStorage))) {
-                        dbmap.notifyDataChange();
-                        newmap.notifyDataChange();
+                        long now = System.currentTimeMillis();
+                        dbmap.setLastDataChange(now);
+                        newmap.setLastDataChange(now);
                         this.dbmap = newmap;
                         this.prototype = value;
                     }
@@ -1931,7 +1949,6 @@ public final class Node implements INode, Serializable {
             }
         }
 
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
         lastmodified = System.currentTimeMillis();
 
         if (state == CLEAN) {
@@ -1967,7 +1984,6 @@ public final class Node implements INode, Serializable {
             propMap.put(p2, prop);
         }
 
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
         lastmodified = System.currentTimeMillis();
 
         if (state == CLEAN) {
@@ -2003,7 +2019,6 @@ public final class Node implements INode, Serializable {
             propMap.put(p2, prop);
         }
 
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
         lastmodified = System.currentTimeMillis();
 
         if (state == CLEAN) {
@@ -2039,7 +2054,6 @@ public final class Node implements INode, Serializable {
             propMap.put(p2, prop);
         }
 
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
         lastmodified = System.currentTimeMillis();
 
         if (state == CLEAN) {
@@ -2075,7 +2089,6 @@ public final class Node implements INode, Serializable {
             propMap.put(p2, prop);
         }
 
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
         lastmodified = System.currentTimeMillis();
 
         if (state == CLEAN) {
@@ -2111,7 +2124,6 @@ public final class Node implements INode, Serializable {
             propMap.put(p2, prop);
         }
 
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
         lastmodified = System.currentTimeMillis();
 
         if (state == CLEAN) {
@@ -2288,7 +2300,6 @@ public final class Node implements INode, Serializable {
                     p.setStringValue(null);
                 }
 
-                // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
                 lastmodified = System.currentTimeMillis();
 
                 if (state == CLEAN) {
@@ -2488,4 +2499,5 @@ public final class Node implements INode, Serializable {
         System.err.println("properties: " + propMap);
         System.err.println("links: " + links);
     }
+
 }
