@@ -14,6 +14,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import org.xml.sax.InputSource;
 
 import helma.objectmodel.INode;
 import helma.objectmodel.TransientNode;
@@ -43,6 +44,19 @@ public class XmlUtil	{
 	}
 
 	public static Document parse (InputStream in) throws RuntimeException	{
+		DocumentBuilder d = getDocumentBuilder();
+		try	{
+			Document doc = d.parse (in);
+			doc.normalize();
+			return doc;
+		}	catch (SAXException e)	{
+			throw new RuntimeException ("Bad xml-code: "+e.toString());
+		}	catch (IOException f)	{
+			throw new RuntimeException ("Could not read Xml: "+f.toString());
+		}
+	}
+
+	public static Document parse (InputSource in) throws RuntimeException	{
 		DocumentBuilder d = getDocumentBuilder();
 		try	{
 			Document doc = d.parse (in);
