@@ -61,8 +61,13 @@ public class DbSource {
      * @throws SQLException ...
      */
     public Connection getConnection() throws ClassNotFoundException, SQLException {
-        Transactor tx = (Transactor) Thread.currentThread();
-        Connection con = tx.getConnection(this);
+        Connection con = null;
+        Transactor tx = null;
+        if (Thread.currentThread() instanceof Transactor) {
+            tx = (Transactor) Thread.currentThread();
+            con = tx.getConnection(this);
+        }
+
         boolean fileUpdated = props.lastModified() > lastRead;
 
         if (!fileUpdated && (defaultProps != null)) {
@@ -78,7 +83,9 @@ public class DbSource {
             // If we wanted to use SQL transactions, we'd set autoCommit to
             // false here and make commit/rollback invocations in Transactor methods;
             // System.err.println ("Created new Connection to "+url);
-            tx.registerConnection(this, con);
+            if (tx != null) {
+                tx.registerConnection(this, con);
+            }
         }
 
         return con;
