@@ -15,7 +15,6 @@ import helma.framework.*;
 import helma.framework.core.*;
 import helma.xmlrpc.*;
 import helma.util.*;
-// import Acme.Serve.Serve;
 import org.mortbay.http.*;
 import org.mortbay.util.*;
 
@@ -26,7 +25,7 @@ import org.mortbay.util.*;
 
  public class Server implements IPathElement, Runnable {
 
-    public static final String version = "1.2pre3+ 2002/09/06";
+    public static final String version = "1.2pre3+ 2002/09/11";
     public long starttime;
 
     // if true we only accept RMI and XML-RPC connections from 
@@ -139,7 +138,7 @@ import org.mortbay.util.*;
 	    System.out.println ("  -p port    Specify RMI port number");
 	    System.out.println ("  -w port    Specify port number for embedded Web server");
 	    System.out.println ("  -x port    Specify XML-RPC port number");
-	    getLogger().log ("Usage Error - exiting");
+	    System.err.println ("Usage Error - exiting");
 	    System.exit (0);
 	}
 
