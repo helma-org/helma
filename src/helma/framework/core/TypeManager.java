@@ -111,7 +111,7 @@ public final class TypeManager {
 	    // if prototype doesn't exist, create it
 	    if (proto == null) {
 	        // leave out ".." and other directories that contain "."
-	        if (list[i].isDirectory () && isValidTypeName (filename)) {
+	        if (filename.indexOf ('.') < 0 && list[i].isDirectory () && isValidTypeName (filename)) {
 	            // create new prototype
 	            proto = new Prototype (filename, app);
 	            registerPrototype (filename, list[i], proto);
@@ -225,13 +225,13 @@ public final class TypeManager {
         if (proto == null)
             return;
         // if prototype has been checked in the last 1.5 seconds, return
-          if (System.currentTimeMillis() - proto.getLastCheck() < 1500)
-            return;
+        // if (System.currentTimeMillis() - proto.getLastCheck() < 2500)
+        //     return;
 
         synchronized (proto) {
         // check again because another thread may have checked the
         // prototype while we were waiting for access to the synchronized section
-        if (System.currentTimeMillis() - proto.getLastCheck() < 1500)
+        if (System.currentTimeMillis() - proto.getLastCheck() < 1000)
             return;
 
         File dir = new File (appDir, proto.getName());
