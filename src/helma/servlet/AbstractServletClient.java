@@ -22,7 +22,6 @@ package helma.servlet;
 import helma.framework.*;
 import helma.util.*;
 import java.io.*;
-import java.net.URLDecoder;
 import java.util.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
@@ -741,10 +740,6 @@ public abstract class AbstractServletClient extends HttpServlet {
         }
         
         // append trailing "/" if it is contained in original URI
-        
-        // append trailing "/" if it is contained in original URI
-        if (uri.endsWith("/"))
-            pathbuffer.append('/');
         if (uri.endsWith("/"))
             pathbuffer.append('/');
 
