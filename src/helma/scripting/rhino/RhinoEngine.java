@@ -262,12 +262,14 @@ public class RhinoEngine implements ScriptingEngine {
 
             Object retval = ((Function) f).call(context, global, eso, args);
 
-            if (xmlrpc) {
-                return core.processXmlRpcResponse (retval);
-            } else if ((retval == null) || (retval == Undefined.instance)) {
+            if (retval instanceof Wrapper) {
+                retval = ((Wrapper) retval).unwrap();
+            }
+
+            if ((retval == null) || (retval == Undefined.instance)) {
                 return null;
-            } else if (retval instanceof Wrapper) {
-                return ((Wrapper) retval).unwrap();
+            } else if (xmlrpc) {
+                return core.processXmlRpcResponse (retval);
             } else {
                 return retval;
             }
