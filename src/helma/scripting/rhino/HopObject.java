@@ -219,7 +219,12 @@ public class HopObject extends ScriptableObject implements Wrapper {
 
         checkNode();
 
-        return node.getCacheNode();
+        INode cache = node.getCacheNode();
+        if (cache != null) {
+            return Context.toObject(node.getCacheNode(), core.global);
+        }
+
+        return null;
     }
 
     /**
@@ -930,20 +935,8 @@ public class HopObject extends ScriptableObject implements Wrapper {
         return NOT_FOUND;
     }
 
-
     /**
-     *
-     *
-     * @param hint ...
-     *
-     * @return ...
-     */
-    public Object getDefaultValue(Class hint) {
-        return (className != null) ? ("[HopObject " + className + "]") : "[HopObject]";
-    }
-
-    /**
-     *
+     * Return a string representation of this object
      *
      * @return ...
      */
