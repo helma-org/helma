@@ -116,8 +116,8 @@ public final class FesiEvaluator implements ScriptingEngine {
      *  necessary to bootstrap the rest is parsed.
      */
     private void initialize () {
-	Collection prototypes = app.getPrototypes();
-	for (Iterator i=prototypes.iterator(); i.hasNext(); ) {
+	Collection protos = app.getPrototypes();
+	for (Iterator i=protos.iterator(); i.hasNext(); ) {
 	    Prototype proto = (Prototype) i.next ();
 	    initPrototype (proto);
 	}
@@ -213,7 +213,7 @@ public final class FesiEvaluator implements ScriptingEngine {
 	    } catch (EcmaScriptException ignore) {}
 	    putPrototype (name, op);
 	} else {
-                      // reset prototype to original state
+	    // reset prototype to original state
 	    resetPrototype (op);
 	    // set parent prototype just in case it has been changed
 	    op.setPrototype (opp);
@@ -271,14 +271,22 @@ public final class FesiEvaluator implements ScriptingEngine {
      *  engine know it should update its prototype information.
      */
     public void updatePrototypes () {
-	// first loop through existing prototypes and update them if necessary
-	for (Enumeration e=prototypes.elements(); e.hasMoreElements(); ) {
-	    TypeInfo info = (TypeInfo) e.nextElement ();
+	Collection protos = app.getPrototypes();
+	for (Iterator i=protos.iterator(); i.hasNext(); ) {
+	    Prototype proto = (Prototype) i.next ();
+	    TypeInfo info = (TypeInfo) prototypes.get (proto.getName());
+	    if (info == null) {
+	        // a prototype we don't know anything about yet. Init local update info.
+	        initPrototype (proto);
+	        info = (TypeInfo) prototypes.get (proto.getName());
+	    }
 	    // only update prototype if it has already been initialized.
 	    // otherwise, this will be done on demand
+	    // System.err.println ("CHECKING PROTO: "+info);
 	    if (info.lastUpdate > 0) {
 	        Prototype p = app.typemgr.getPrototype (info.protoName);
 	        if (p != null) {
+	            // System.err.println ("UPDATING PROTO: "+p);
 	            app.typemgr.updatePrototype(p);
 	            if (p.getLastUpdate () > info.lastUpdate) {
 	                evaluatePrototype(p);
@@ -399,6 +407,12 @@ public final class FesiEvaluator implements ScriptingEngine {
 	        return null;
 	    else
 	         return retval.toJavaObject ();
+	} catch (RedirectException redirect) {
+	    throw redirect;
+	} catch (TimeoutException timeout) {
+	    throw timeout;
+	} catch (ConcurrencyException concur) {
+	    throw concur;
 	} catch (Exception x) {
 	    // check if this is a redirect exception, which has been converted by fesi
 	    // into an EcmaScript exception, which is why we can't explicitly catch it
@@ -786,6 +800,11 @@ public final class FesiEvaluator implements ScriptingEngine {
             objectPrototype = op;
             protoName = name;
         }
+
+        public String toString () {
+            return ("TypeInfo["+protoName+","+new Date(lastUpdate)+"]");
+        }
+
     }
 
 }
