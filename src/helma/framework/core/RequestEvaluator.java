@@ -351,7 +351,7 @@ public class RequestEvaluator implements Runnable {
 	                    try {
 	                        current.doIndirectCall (evaluator, current, "onRequest", new ESValue[0]);
 	                    } catch (Exception ignore) {
-	                        System.err.println ("error in onRequest(): "+ignore);
+	                        // System.err.println ("error in onRequest(): "+ignore);
 	                        // onRequest not defined
 	                    }
 	                    // do the actual action invocation
