@@ -20,9 +20,7 @@ import helma.objectmodel.*;
 import helma.objectmodel.dom.IDGenParser;
 import helma.objectmodel.dom.XmlDatabaseReader;
 import helma.objectmodel.dom.XmlWriter;
-import org.xml.sax.SAXException;
 
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -162,12 +160,9 @@ public final class XmlDatabase implements IDatabase {
      * @return
      * @throws IOException
      * @throws ObjectNotFoundException
-     * @throws ParserConfigurationException
-     * @throws SAXException
      */
     public INode getNode(ITransaction txn, String kstr)
-                  throws IOException, ObjectNotFoundException,
-                         ParserConfigurationException, SAXException {
+                  throws IOException, ObjectNotFoundException {
         File f = new File(dbHomeDir, kstr + ".xml");
 
         if (!f.exists()) {

@@ -19,8 +19,6 @@ package helma.objectmodel;
 import helma.objectmodel.INode;
 import helma.objectmodel.db.IDGenerator;
 import java.io.IOException;
-import org.xml.sax.SAXException;
-import javax.xml.parsers.ParserConfigurationException;
 
 /**
  * Interface that is implemented by Database wrappers
@@ -57,8 +55,7 @@ public interface IDatabase {
 
     // node-related
     public INode getNode(ITransaction transaction, String key)
-                  throws IOException, ObjectNotFoundException,
-                         SAXException, ParserConfigurationException;
+                  throws IOException, ObjectNotFoundException;
 
     /**
      *
