@@ -1304,7 +1304,6 @@ public final class NodeManager {
 
                             Node groupnode = home.getGroupbySubnode(groupname, true);
 
-                            cache.put(groupnode.getKey(), groupnode);
                             groupnode.setSubnodes((List) groupbySubnodes.get(groupname));
                             groupnode.lastSubnodeFetch = System.currentTimeMillis();
                         }
