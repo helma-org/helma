@@ -14,12 +14,12 @@ import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Relation;
 import helma.main.Server;
 import helma.util.Updatable;
+import helma.util.CacheMap;
 import java.util.*;
 import java.io.*;
 import FESI.Data.*;
 import FESI.Interpreter.*;
 import FESI.Exceptions.*;
-import Acme.LruHashtable;
 
 /**
  * This is the implementation of ScriptingEnvironment for the FESI EcmaScript interpreter.
@@ -36,7 +36,7 @@ public final class FesiEvaluator implements ScriptingEngine {
     final GlobalObject global;
 
     // caching table for JavaScript object wrappers
-    LruHashtable wrappercache;
+    CacheMap wrappercache;
 
     // table containing JavaScript prototypes
     Hashtable prototypes;
@@ -48,7 +48,7 @@ public final class FesiEvaluator implements ScriptingEngine {
     static String[] extensions = new String[] {
 	"FESI.Extensions.BasicIO",
 	"FESI.Extensions.FileIO",
-	"helma.xmlrpc.fesi.FesiRpcExtension",
+	"helma.scripting.fesi.extensions.XmlRpcExtension",
 	"helma.scripting.fesi.extensions.ImageExtension",
 	"helma.scripting.fesi.extensions.FtpExtension",
 	"FESI.Extensions.JavaAccess",
@@ -69,7 +69,7 @@ public final class FesiEvaluator implements ScriptingEngine {
     public FesiEvaluator (Application app, RequestEvaluator reval) {
 	this.app = app;
 	this.reval = reval;
-	wrappercache = new LruHashtable (100, .80f);
+	wrappercache = new CacheMap (200, .75f);
 	prototypes = new Hashtable ();
 	try {
 	    evaluator = new Evaluator();
@@ -392,7 +392,7 @@ public final class FesiEvaluator implements ScriptingEngine {
 	    for (int i=0; i<esv.length; i++) {
 	        // XML-RPC requires special argument conversion
 	        if (xmlrpc)
-	            esv[i] = processXmlRpcArgument (args[i]);
+	            esv[i] = processXmlRpcArgument (args[i], evaluator);
 	        // for java.util.Map objects, we use the special "tight" wrapper
 	        // that makes the Map look like a native object
 	        else if (args[i] instanceof Map)
@@ -511,7 +511,7 @@ public final class FesiEvaluator implements ScriptingEngine {
      *  Convert an input argument from Java to the scripting runtime
      *  representation.
      */
-    private ESValue processXmlRpcArgument (Object what) throws Exception {
+    public static ESValue processXmlRpcArgument (Object what, Evaluator evaluator) throws Exception {
 	if (what == null)
 	   return ESNull.theNull;
 	if (what instanceof Vector) {
@@ -519,7 +519,7 @@ public final class FesiEvaluator implements ScriptingEngine {
 	    ArrayPrototype retval = new ArrayPrototype (evaluator.getArrayPrototype (), evaluator);
 	    int l = v.size ();
 	    for (int i=0; i<l; i++)
-	        retval.putProperty (i, processXmlRpcArgument (v.elementAt (i)));
+	        retval.putProperty (i, processXmlRpcArgument (v.elementAt (i), evaluator));
 	    return retval;
 	}
 	if (what instanceof Hashtable) {
@@ -527,7 +527,7 @@ public final class FesiEvaluator implements ScriptingEngine {
 	    ESObject retval = new ObjectPrototype (evaluator.getObjectPrototype (), evaluator);
 	    for (Enumeration e=t.keys(); e.hasMoreElements(); ) {
 	        String next = (String) e.nextElement ();
-	        retval.putProperty (next, processXmlRpcArgument (t.get (next)), next.hashCode ());
+	        retval.putProperty (next, processXmlRpcArgument (t.get (next), evaluator), next.hashCode ());
 	    }
 	    return retval;
 	}
@@ -546,7 +546,7 @@ public final class FesiEvaluator implements ScriptingEngine {
     /**
      * convert a JavaScript Object object to a generic Java object stucture.
      */
-    public Object processXmlRpcResponse (ESValue what) throws EcmaScriptException {
+    public static Object processXmlRpcResponse (ESValue what) throws EcmaScriptException {
 	if (what == null || what instanceof ESNull)
 	    return null;
 	if (what instanceof ArrayPrototype) {
