@@ -20,22 +20,18 @@ import helma.util.Updatable;
 
 public class FunctionFile implements Updatable {
 
-    String name;
     Prototype prototype;
     Application app;
     File file;
+    String sourceName;
     String content;
     long lastmod;
 
-    // a set of funcion names defined by this file. We keep this to be able to
-    // remove them once the file should get removed
-    HashSet declaredProps;
-    long declaredPropsTimestamp;
 
-    public FunctionFile (File file, String name, Prototype proto) {
+    public FunctionFile (File file, Prototype proto) {
 	this.prototype = proto;
 	this.app = proto.getApplication ();
-	this.name = name;
+	this.sourceName = file.getParentFile().getName()+"/"+file.getName();
 	this.file = file;
 	update ();
     }
@@ -45,13 +41,12 @@ public class FunctionFile implements Updatable {
      *  files contained in zipped applications. The whole update mechanism is bypassed
      *  by immediately parsing the code.
      */
-    public FunctionFile (String body, String name, Prototype proto) {
+    public FunctionFile (String body, String sourceName, Prototype proto) {
 	this.prototype = proto;
 	this.app = proto.getApplication ();
-	this.name = name;
+	this.sourceName = sourceName;
 	this.file = null;
 	this.content = body;
-	update ();
     }
 
     /**
@@ -64,28 +59,13 @@ public class FunctionFile implements Updatable {
 
 
     public void update () {
-
 	if (file != null) {
 	    if (!file.exists ()) {
 	        remove ();
 	    } else {
 	        lastmod = file.lastModified ();
-	        // app.typemgr.readFunctionFile (file, prototype.getName ());
-	        // app.getScriptingEnvironment().evaluateFile (prototype, file);
 	    }
-	} else {
-	    // app.getScriptingEnvironment().evaluateString (prototype, content);
 	}
-    }
-
-    /* public void evaluate (ScriptingEnvironment env) {
-	if (file != null)
-	    env.evaluateFile (prototype, file);
-	else
-	    env.evaluateString (prototype, content);
-    }*/
-    public boolean hasFile () {
-	return file != null;
     }
 
     public File getFile () {
@@ -96,19 +76,17 @@ public class FunctionFile implements Updatable {
 	return content;
     }
 
+    public String getSourceName () {
+	return sourceName;
+    }
 
     public void remove () {
-	prototype.removeFunctionFile (name);
-	if (file != null)
-	    prototype.removeUpdatable (file.getName());
+	prototype.removeFunctionFile (this);
     }
 
 
     public String toString () {
-	if (file == null)
-	    return "[Zipped script file]";
-	else
-	    return prototype.getName()+"/"+file.getName();
+	return sourceName;
     }
 
 

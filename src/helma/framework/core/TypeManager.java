@@ -226,127 +226,109 @@ public final class TypeManager {
     public void updatePrototype (Prototype proto) {
         if (proto == null)
             return;
-        // System.err.println ("UPDATE PROTO: "+app.getName()+"/"+proto.getName());
-        // if prototype has been checked in the last second, return
-        // if (System.currentTimeMillis() - proto.getLastCheck() < 1000)
-        //     return;
 
         synchronized (proto) {
-        // check again because another thread may have checked the
-        // prototype while we were waiting for access to the synchronized section
-        if (System.currentTimeMillis() - proto.getLastCheck() < 1000)
-            return;
+            // check again because another thread may have checked the
+            // prototype while we were waiting for access to the synchronized section
+            if (System.currentTimeMillis() - proto.getLastCheck() < 1000)
+                return;
 
-        File dir = new File (appDir, proto.getName());
-        boolean needsUpdate = false;
-        HashSet updatables = null;
+            File dir = new File (appDir, proto.getName());
+            HashSet updateSet = null;
+            HashSet createSet = null;
 
-        // our plan is to do as little as possible, so first check if
-        // anything the prototype knows about has changed on disk
-        for (Iterator i = proto.updatables.values().iterator(); i.hasNext(); ) {
-            Updatable upd = (Updatable) i.next();
-            if (upd.needsUpdate ()) {
-                if (updatables == null)
-                    updatables = new HashSet ();
-                needsUpdate = true;
-                updatables.add (upd);
+            // our plan is to do as little as possible, so first check if
+            // anything the prototype knows about has changed on disk
+            for (Iterator i = proto.updatables.values().iterator(); i.hasNext(); ) {
+                Updatable upd = (Updatable) i.next();
+                if (upd.needsUpdate ()) {
+                    if (updateSet == null)
+                        updateSet = new HashSet ();
+                    updateSet.add (upd);
+                }
             }
-        }
 
-        // next we check if files have been created or removed since last update
-        if (proto.getLastCheck() < dir.lastModified ()) {
-            String[] list = dir.list();
-            for (int i=0; i<list.length; i++) {
-                String fn = list[i];
-                if (!proto.updatables.containsKey (fn)) {
-                    if (fn.endsWith (templateExtension) || fn.endsWith (scriptExtension) ||
-			fn.endsWith (actionExtension) || fn.endsWith (skinExtension) ||
-			"type.properties".equalsIgnoreCase (fn)) {
-                        needsUpdate = true;
-                        // updatables.add ("[new:"+proto.getName()+"/"+fn+"]");
+            // next we check if files have been created or removed since last update
+            if (proto.getLastCheck() < dir.lastModified ()) {
+                String[] list = dir.list();
+                for (int i=0; i<list.length; i++) {
+                    String fn = list[i];
+                    if (!proto.updatables.containsKey (fn)) {
+                        if (fn.endsWith (templateExtension) ||
+                            fn.endsWith (scriptExtension) ||
+                            fn.endsWith (actionExtension) ||
+                            fn.endsWith (skinExtension) ||
+                            "type.properties".equalsIgnoreCase (fn))
+                        {
+                            if (createSet == null)
+                                createSet = new HashSet ();
+                            createSet.add (list[i]);
+                        }
                     }
                 }
             }
-        }
 
-        // if nothing needs to be updated, mark prototype as checked and return
-        if (!needsUpdate) {
+            // if nothing needs to be updated, mark prototype as checked and return
+            if (updateSet == null && createSet == null) {
+                proto.markChecked ();
+                return;
+            }
+
+            // first go through new files and create new items
+            if (createSet != null) {
+                Object[] newFiles = createSet.toArray ();
+                for (int i=0; i<newFiles.length; i++) {
+                    String filename = (String) newFiles[i];
+                    int dot = filename.lastIndexOf (".");
+                    String tmpname = filename.substring(0, dot);
+                    File tmpfile = new File (dir, filename);
+
+                    if (filename.endsWith (templateExtension)) {
+                        try {
+                            Template t = new Template (tmpfile, tmpname, proto);
+                            proto.addTemplate (t);
+                        } catch (Throwable x) {
+                            app.logEvent ("Error updating prototype: "+x);
+                        }
+                    } else if (filename.endsWith (scriptExtension)) {
+                        try {
+                            FunctionFile ff = new FunctionFile (tmpfile, proto);
+                            proto.addFunctionFile (ff);
+                        } catch (Throwable x) {
+                            app.logEvent ("Error updating prototype: "+x);
+                        }
+                    }  else if (filename.endsWith (actionExtension)) {
+                        try {
+                            ActionFile af = new ActionFile (tmpfile, tmpname, proto);
+                            proto.addActionFile (af);
+                        } catch (Throwable x) {
+                            app.logEvent ("Error updating prototype: "+x);
+                        }
+                    }  else if (filename.endsWith (skinExtension)) {
+                        SkinFile sf = new SkinFile (tmpfile, tmpname, proto);
+                        proto.addSkinFile (sf);
+                    }
+                }
+            }
+
+            // next go through existing updatables
+            if (updateSet != null) {
+                for (Iterator i = updateSet.iterator(); i.hasNext(); ) {
+                    Updatable upd = (Updatable) i.next();
+                    try {
+                        upd.update ();
+                    } catch (Exception x) {
+                         if (upd instanceof DbMapping)
+                            app.logEvent ("Error updating db mapping for type "+proto.getName()+": "+x);
+                         else
+                            app.logEvent ("Error updating "+upd+" of prototye type "+proto.getName()+": "+x);
+                    }
+                }
+            }
+
+            // mark prototype as checked and updated.
             proto.markChecked ();
-            return;
-        }
-
-        // app.logEvent ("TypeManager: Updating prototypes for "+app.getName()+": "+updatables);
-
-        // first go through new files and create new items
-        String[] list = dir.list ();
-        for (int i=0; i<list.length; i++) {
-            String fn = list[i];
-            int dot = fn.lastIndexOf (".");
-
-            if (dot < 0)
-                continue;
-
-            if (proto.updatables.containsKey (fn) || !(fn.endsWith (templateExtension) || fn.endsWith (scriptExtension) ||
-            fn.endsWith (actionExtension) || fn.endsWith (skinExtension) || "type.properties".equalsIgnoreCase (fn))) {
-                continue;
-            }
-
-            String tmpname = list[i].substring(0, dot);
-            File tmpfile = new File (dir, list[i]);
-
-            if (list[i].endsWith (templateExtension)) {
-                try {
-                    Template t = new Template (tmpfile, tmpname, proto);
-                    proto.updatables.put (list[i], t);
-                    proto.templates.put (tmpname, t);
-                } catch (Throwable x) {
-                    app.logEvent ("Error updating prototype: "+x);
-                }
-
-            } else if (list[i].endsWith (scriptExtension)) {
-                try {
-                    FunctionFile ff = new FunctionFile (tmpfile, tmpname, proto);
-                    proto.updatables.put (list[i], ff);
-                    proto.functions.put (tmpname, ff);
-                } catch (Throwable x) {
-                    app.logEvent ("Error updating prototype: "+x);
-                }
-
-            }  else if (list[i].endsWith (actionExtension)) {
-                try {
-                    ActionFile af = new ActionFile (tmpfile, tmpname, proto);
-                    proto.updatables.put (list[i], af);
-                    proto.actions.put (tmpname, af);
-                } catch (Throwable x) {
-                    app.logEvent ("Error updating prototype: "+x);
-                }
-
-            }  else if (list[i].endsWith (skinExtension)) {
-                SkinFile sf = new SkinFile (tmpfile, tmpname, proto);
-                proto.updatables.put (list[i], sf);
-                proto.skins.put (tmpname, sf);
-            }
-        }
-
-        // next go through existing updatables
-        if (updatables != null) {
-            for (Iterator i = updatables.iterator(); i.hasNext(); ) {
-                Updatable upd = (Updatable) i.next();
-
-                try {
-                    upd.update ();
-                } catch (Exception x) {
-                     if (upd instanceof DbMapping)
-                        app.logEvent ("Error updating db mapping for type "+proto.getName()+": "+x);
-                     else
-                        app.logEvent ("Error updating "+upd+" of prototye type "+proto.getName()+": "+x);
-                }
-            }
-        }
-
-        // mark prototype as checked and updated.
-        proto.markChecked ();
-        proto.markUpdated();
+            proto.markUpdated();
 
         } // end of synchronized (proto)
 

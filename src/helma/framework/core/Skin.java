@@ -173,7 +173,6 @@ public final class Skin {
 
 	    this.start = start;
 	    this.end = end;
-
 	    int state = HANDLER;
 	    boolean escape = false;
 	    char quotechar = '\u0000';
@@ -383,6 +382,8 @@ public final class Skin {
 	                // System.err.println ("Getting macro from function");
 	                // pass a clone of the parameter map so if the script changes it,
 	                // Map param = ;
+	                // if (parameters == null)
+	                //     parameters = new HashMap ();
 	                Object[] arguments = { parameters == null ?
 	                    new HashMap () :
 	                    new HashMap (parameters) };

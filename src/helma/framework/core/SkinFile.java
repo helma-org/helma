@@ -24,10 +24,10 @@ public final class SkinFile implements Updatable {
 
     public SkinFile (File file, String name, Prototype proto) {
 	this.prototype = proto;
-	this.app = proto.app;
-	this.name = name;
 	this.file = file;
-	this.skin = null;
+	this.name = name;
+	app = proto.app;
+	skin = null;
     }
 
     /**
@@ -37,22 +37,22 @@ public final class SkinFile implements Updatable {
      */
     public SkinFile (String body, String name, Prototype proto) {
 	this.prototype = proto;
-	this.app = proto.app;
-	this.name = name;
-	this.file = null;
-	this.skin = new Skin (body, app);
+	app = proto.app;
+	name = name;
+	file = null;
+	skin = new Skin (body, app);
     }
 
     /**
-     * Create a skinfile without that doesn't belong to a prototype, or at
+     * Create a skinfile that doesn't belong to a prototype, or at
      * least it doesn't know about its prototype and isn't managed by the prototype.
      */
     public SkinFile (File file, String name, Application app) {
-	this.prototype = null;
 	this.app = app;
-	this.name = name;
 	this.file = file;
-	this.skin = null;
+	this.name = name;
+	prototype = null;
+	skin = null;
     }
 
 
@@ -66,7 +66,6 @@ public final class SkinFile implements Updatable {
 
 
     public void update () {
-
 	if (!file.exists ()) {
 	    // remove skin from  prototype
 	    remove ();
@@ -87,18 +86,19 @@ public final class SkinFile implements Updatable {
 	} catch (IOException x) {
 	    app.logEvent ("Error reading Skin "+file+": "+x);
 	}
-
 	lastmod = file.lastModified ();
     }
 
     public void remove () {
 	if (prototype != null) {
-	    prototype.skins.remove (name);
-	    if (file != null)
-	        prototype.updatables.remove (file.getName());
+	    prototype.removeSkinFile (this);
 	}
     }
 
+
+    public File getFile () {
+	return file;
+    }
 
     public Skin getSkin () {
 	if (skin == null)

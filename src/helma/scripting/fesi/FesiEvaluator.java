@@ -112,7 +112,7 @@ public final class FesiEvaluator implements ScriptingEngine {
     }
 
     /**
-     *  Initialize the evaluator, making sure the minimum type information 
+     *  Initialize the evaluator, making sure the minimum type information
      *  necessary to bootstrap the rest is parsed.
      */
     private void initialize () {
@@ -127,7 +127,7 @@ public final class FesiEvaluator implements ScriptingEngine {
 	getPrototype ("global");
     }
 
-    /** 
+    /**
      *   Initialize a prototype without fully parsing its script files.
      */
     void initPrototype (Prototype prototype) {
@@ -146,7 +146,10 @@ public final class FesiEvaluator implements ScriptingEngine {
 	    }
 	}
 	String name = prototype.getName ();
-	if (!"global".equalsIgnoreCase (name) && !"hopobject".equalsIgnoreCase (name) && opp == null) {
+	if (!"global".equalsIgnoreCase (name) &&
+	    !"hopobject".equalsIgnoreCase (name) &&
+	    opp == null)
+	{
 	    if (app.isJavaPrototype (name))
 	        opp = getRawPrototype ("__javaobject__");
 	    else
@@ -228,26 +231,13 @@ public final class FesiEvaluator implements ScriptingEngine {
 	        global.putHiddenProperty (name, new NodeConstructor (name, fp, this));
 	    } catch (EcmaScriptException ignore) {}
 	}
-	for (Iterator it = prototype.getFunctions().values().iterator(); it.hasNext(); ) {
-	    FunctionFile ff = (FunctionFile) it.next ();
-	    if (ff.hasFile ())
-	        evaluateFile (prototype, ff.getFile ());
-	    else
-	        evaluateString (prototype, ff.getContent ());
+	for (Iterator it = prototype.getZippedCode().values().iterator(); it.hasNext(); ) {
+	    Object code = it.next();
+	    evaluate (prototype, code);
 	}
-	for (Iterator it = prototype.getTemplates().values().iterator(); it.hasNext(); ) {
-	    Template tmp = (Template) it.next ();
-	    try {
-	        FesiActionAdapter adp = new FesiActionAdapter (tmp);
-	        adp.updateEvaluator (this);
-	    } catch (EcmaScriptException ignore) {}
-	}
-	for (Iterator it = prototype.getActions().values().iterator(); it.hasNext(); ) {
-	    ActionFile act = (ActionFile) it.next ();
-	    try {
-	        FesiActionAdapter adp = new FesiActionAdapter (act);
-	        adp.updateEvaluator (this);
-	    } catch (EcmaScriptException ignore) {}
+	for (Iterator it = prototype.getCode().values().iterator(); it.hasNext(); ) {
+	    Object code = it.next();
+	    evaluate (prototype, code);
 	}
     }
 
@@ -665,6 +655,8 @@ public final class FesiEvaluator implements ScriptingEngine {
     public ESValue getObjectWrapper (Object e) {
 	if (app.getPrototypeName (e) != null)
 	    return getElementWrapper (e);
+	/* else if (e instanceof Map)
+	    return new ESMapWrapper (this, (Map) e); */
 	/* else if (e instanceof INode)
 	    return new ESNode ((INode) e, this); */
 	else
@@ -762,21 +754,34 @@ public final class FesiEvaluator implements ScriptingEngine {
 	return reval.req;
     }
 
-    public  synchronized void evaluateFile (Prototype prototype, File file) {
-	try {
-	    FileReader fr = new FileReader (file);
-	    EvaluationSource es = new FileEvaluationSource (file.getPath (), null);
-	    updateEvaluator (prototype, fr, es);
-	} catch (IOException iox) {
-	    app.logEvent ("Error updating function file: "+iox);
+    private synchronized void evaluate (Prototype prototype, Object code) {
+	if (code instanceof FunctionFile) {
+	    FunctionFile funcfile = (FunctionFile) code;
+	    File file = funcfile.getFile ();
+	    if (file != null) {
+	        try {
+	            FileReader fr = new FileReader (file);
+	            EvaluationSource es = new FileEvaluationSource (funcfile.getSourceName(), null);
+	            updateEvaluator (prototype, fr, es);
+	        } catch (IOException iox) {
+	            app.logEvent ("Error updating function file: "+iox);
+	        }
+	    } else {
+	        StringReader reader = new StringReader (funcfile.getContent());
+	        EvaluationSource es = new FileEvaluationSource (funcfile.getSourceName(), null);
+	        updateEvaluator (prototype, reader, es);
+	    }
+	} else if (code instanceof ActionFile) {
+	    ActionFile action = (ActionFile) code;
+	    FesiActionAdapter fa = new FesiActionAdapter (action);
+	    try {
+	        fa.updateEvaluator (this);
+	    } catch (EcmaScriptException esx) {
+	        app.logEvent ("Error parsing "+action+": "+esx);
+	    }
 	}
     }
 
-    public synchronized void evaluateString (Prototype prototype, String code) {
-	StringReader reader = new StringReader (code);
-	StringEvaluationSource es = new StringEvaluationSource (code, null);
-	updateEvaluator (prototype, reader, es);
-    }
 
     private  synchronized void updateEvaluator (Prototype prototype, Reader reader, EvaluationSource source) {
         try {

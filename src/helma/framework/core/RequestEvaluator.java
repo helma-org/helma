@@ -108,9 +108,7 @@ public final class RequestEvaluator implements Runnable {
 
 	                // used for logging
 	                String txname = app.getName()+"/"+req.path;
-	                // set Timer to get some profiling data
-	                localrtx.timer.reset ();
-	                localrtx.timer.beginEvent (requestPath+" init");
+	                // begin transaction
 	                localrtx.begin (txname);
 
 	                String action = null;
@@ -221,15 +219,12 @@ public final class RequestEvaluator implements Runnable {
 	                        throw new FrameworkException (notfound.getMessage ());
 	                }
 
-	                localrtx.timer.endEvent (txname+" init");
 	                /////////////////////////////////////////////////////////////////////////////
 	                // end of path resolution section
 
 	                /////////////////////////////////////////////////////////////////////////////
 	                // beginning of execution section
 	                try {
-	                    localrtx.timer.beginEvent (txname+" execute");
-
 	                    // enter execution context
 	                    scriptingEngine.enterContext (globals);
 
@@ -255,7 +250,6 @@ public final class RequestEvaluator implements Runnable {
 	                    // do the actual action invocation
 	                    scriptingEngine.invoke (currentElement, action, new Object[0], false);
 
-	                    localrtx.timer.endEvent (txname+" execute");
 	                } catch (RedirectException redirect) {
 	                    // res.redirect = redirect.getMessage ();
 	                    // if there is a message set, save it on the user object for the next request
@@ -296,28 +290,30 @@ public final class RequestEvaluator implements Runnable {
 
 	            } catch (Exception x) {
 
-	                abortTransaction (false);
-
-	                app.logEvent ("### Exception in "+Thread.currentThread()+": "+x);
-	                // Dump the profiling data to System.err
-	                if (app.debug) {
-	                    ((Transactor) Thread.currentThread ()).timer.dump (System.err);
-	                    x.printStackTrace ();
-	                }
-
 	                // If the transactor thread has been killed by the invoker thread we don't have to
 	                // bother for the error message, just quit.
-	                if (localrtx != rtx)
+	                if (localrtx != rtx) {
+	                    abortTransaction (false);
 	                    break;
+	                }
 
 	                res.reset ();
+	                // check if we tried to process the error already
 	                if (error == null) {
+	                    abortTransaction (false);
 	                    app.errorCount += 1;
+	                    app.logEvent ("Exception in "+Thread.currentThread()+": "+x);
+	                    // Dump the profiling data to System.err
+	                    if (app.debug) {
+	                        x.printStackTrace ();
+	                    }
 	                    // set done to false so that the error will be processed
 	                    done = false;
 	                    error = x.getMessage ();
 	                    if (error == null || error.length() == 0)
 	                        error = x.toString ();
+	                    if (error == null)
+	                        error = "Unspecified error";
 	                } else {
 	                    // error in error action. use traditional minimal error message
 	                    res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>"+error+"</pre>");

@@ -9,8 +9,6 @@ import java.util.Iterator;
 import java.util.StringTokenizer;
 import helma.framework.*;
 import helma.framework.core.*;
-// import FESI.Data.*;
-// import FESI.Exceptions.*;
 
 
 /**
@@ -26,26 +24,36 @@ import helma.framework.core.*;
 
 public class Template extends ActionFile {
 
+    String processedContent = null;
 
     public Template (File file, String name, Prototype proto) {
 	super (file, name, proto);
-	functionName = name;
     }
 
-    public Template (String content, String name, Prototype proto) {
-	super (content, name, proto);
-	functionName = name;
+    public Template (String content, String name, String sourceName, Prototype proto) {
+	super (content, name, sourceName, proto);
     }
 
+
+    public String getFunctionName () {
+	return name;
+    }
+
+    public Reader getReader () {
+	return new StringReader(getContent());    
+    }
 
     public String getContent () {
 
+	if (processedContent != null)
+	    return processedContent;
+
 	Vector partBuffer = new Vector ();
-	int l = content.length ();
+	String cstring = super.getContent();
+	char[] cnt = cstring.toCharArray ();
+	int l = cnt.length;
 	if (l == 0)
 	    return "";
-	char cnt[] = new char[l];
-	content.getChars (0, l, cnt, 0);
 
 	// if last charackter is whitespace, swallow it. this is necessary for some inner templates to look ok.
 	if (Character.isWhitespace (cnt[l-1]))
@@ -141,14 +149,12 @@ public class Template extends ActionFile {
 	}
 	// templateBody.append ("\r\nreturn null;\r\n");
 
-	return templateBody.toString ();
-
+	processedContent = templateBody.toString ();
+	return processedContent;
     }
 
     public void remove () {
-	prototype.removeTemplate (name);
-	if (file != null)
-	    prototype.removeUpdatable (file.getName());
+	prototype.removeTemplate (this);
     }
 
 

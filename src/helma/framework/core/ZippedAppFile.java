@@ -72,20 +72,22 @@ public class ZippedAppFile implements Updatable {
 	                }
 	                if (fname.endsWith (".hac")) {
 	                    String name = fname.substring (0, fname.lastIndexOf ("."));
+	                    String sourceName = file.getName()+"/"+ename;
 	                    String content = getZipEntryContent (zip, entry);
 	                    // System.err.println ("["+content+"]");
-	                    ActionFile act = new ActionFile (content, name, proto);
-	                    proto.actions.put (name, act);
+	                    ActionFile act = new ActionFile (content, name, sourceName, proto);
+	                    proto.addActionFile (act);
 	                    updatables.add (act);
 	                    // mark prototype as updated
 	                    proto.markUpdated ();
 	                }
 	                else if (fname.endsWith (".hsp")) {
 	                    String name = fname.substring (0, fname.lastIndexOf ("."));
+	                    String sourceName = file.getName()+"/"+ename;
 	                    String content = getZipEntryContent (zip, entry);
 	                    // System.err.println ("["+content+"]");
-	                    Template tmp = new Template (content, name, proto);
-	                    proto.templates.put (name, tmp);
+	                    Template tmp = new Template (content, name, sourceName, proto);
+	                    proto.addTemplate (tmp);
 	                    updatables.add (tmp);
 	                    // mark prototype as updated
 	                    proto.markUpdated ();
@@ -95,21 +97,20 @@ public class ZippedAppFile implements Updatable {
 	                    String content = getZipEntryContent (zip, entry);
 	                    // System.err.println ("["+content+"]");
 	                    SkinFile skin = new SkinFile (content, name, proto);
-	                    proto.skins.put (name, skin);
+	                    proto.addSkinFile (skin);
 	                    updatables.add (skin);
 	                }
 	                else if (fname.endsWith (".js")) {
-	                    String name = fname.substring (0, fname.lastIndexOf ("."));
+	                    String sourceName = file.getName()+"/"+ename;
 	                    String content = getZipEntryContent (zip, entry);
 	                    // System.err.println ("["+content+"]");
-	                    FunctionFile ff = new FunctionFile (content, name, proto);
-	                    proto.functions.put (name, ff);
+	                    FunctionFile ff = new FunctionFile (content, sourceName, proto);
+	                    proto.addFunctionFile (ff);
 	                    updatables.add (ff);
 	                    // mark prototype as updated
 	                    proto.markUpdated ();
 	                }
 	                else if ("type.properties".equalsIgnoreCase (fname)) {
-	                    String name = fname.substring (0, fname.lastIndexOf ("."));
 	                    DbMapping dbmap = proto.getDbMapping ();
 	                    SystemProperties props = dbmap.getProperties ();
 	                    props.addProps (file.getName(), zip.getInputStream (entry));

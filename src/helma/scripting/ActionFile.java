@@ -21,8 +21,7 @@ import helma.util.Updatable;
 
 public class ActionFile implements Updatable {
 
-    String name;
-    String functionName;
+    String name, sourceName;
     Prototype prototype;
     Application app;
     File file;
@@ -34,34 +33,19 @@ public class ActionFile implements Updatable {
 	this.prototype = proto;
 	this.app = proto.getApplication ();
 	this.name = name;
-	functionName = getName()+"_action";
+	this.sourceName = file.getParentFile().getName()+"/"+file.getName();
 	this.file = file;
 	this.content = null;
-	if (file != null)
-	    update ();
     }
 
-    public ActionFile (String content, String name, Prototype proto) {
+    public ActionFile (String content, String name, String sourceName, Prototype proto) {
 	this.prototype = proto;
 	this.app = proto.getApplication ();
 	this.name = name;
-	functionName = getName()+"_action";
+	this.sourceName = sourceName;
 	this.file = null;
 	this.content = content;
     }
-
-
-    /**
-     * Abstract method that must be implemented by subclasses to update evaluators with
-     * new content of action file.
-     */
-    // protected abstract void update (String content) throws Exception;
-
-    /**
-     * Abstract method that must be implemented by subclasses to remove
-     * action from evaluators.
-     */
-    // protected abstract void remove ();
 
 
     /**
@@ -74,41 +58,58 @@ public class ActionFile implements Updatable {
 
 
     public void update () {
-
 	if (!file.exists ()) {
 	    // remove functions declared by this from all object prototypes
 	    remove ();
 	} else {
-	    try {
-	        FileReader reader = new FileReader (file);
-	        char cbuf[] = new char[(int) file.length ()];
-	        reader.read (cbuf);
-	        reader.close ();
-	        content = new String (cbuf);
-	        // update (content);
-	    } catch (Exception filex) {
-	        app.logEvent ("*** Error reading action file "+file+": "+filex);
-	    }
 	    lastmod = file.lastModified ();
 	}
     }
 
     public void remove () {
-	prototype.removeAction (name);
-	if (file != null)
-	    prototype.removeUpdatable (file.getName());
+	prototype.removeActionFile (this);
+    }
+
+    public File getFile () {
+	return file;
     }
 
     public String getName () {
 	return name;
     }
 
+    public String getSourceName () {
+	return sourceName;
+    }
+
+    public Reader getReader () throws FileNotFoundException {
+	if (content != null)
+	    return new StringReader (content);
+	else if (file.length() == 0)
+	    return new StringReader(";");
+	else
+	    return new FileReader (file);
+    }
+
     public String getContent () {
-	return content;
+	if (content != null)
+	    return content;
+	else {
+	    try {
+	        FileReader reader = new FileReader (file);
+	        char cbuf[] = new char[(int) file.length ()];
+	        reader.read (cbuf);
+	        reader.close ();
+	        return new String (cbuf);
+	    } catch (Exception filex) {
+	        app.logEvent ("Error reading "+this+": "+filex);
+	        return null;
+	    }
+	}
     }
 
     public String getFunctionName () {
-	return functionName;
+	return name + "_action";
     }
 
     public Prototype getPrototype () {
@@ -120,7 +121,7 @@ public class ActionFile implements Updatable {
     }
 
     public String toString () {
-	return "ActionFile["+prototype.getName()+"/"+functionName+"]";
+	return "ActionFile["+sourceName+"]";
     }
 
 }

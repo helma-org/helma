@@ -25,16 +25,14 @@ public final class Prototype {
     String name;
     Application app;
 
-    HashMap templates;
-    HashMap functions;
-    HashMap actions;
-    HashMap skins;
+    HashMap code, zippedCode;
+    HashMap skins, zippedSkins;
     HashMap updatables;
-    
-    // a map of this prototype's skins as raw strings 
+
+    // a map of this prototype's skins as raw strings
     // used for exposing skins to application (script) code (via app.skinfiles).
     SkinMap skinMap;
-    
+
     DbMapping dbmap;
 
     // lastCheck is the time the prototype's files were last checked
@@ -54,12 +52,12 @@ public final class Prototype {
 	this.app = app;
 	this.name = name;
 
-	templates = new HashMap ();
-	functions = new HashMap ();
-	actions = new HashMap ();
+	code = new HashMap ();
+	zippedCode = new HashMap ();
 	skins = new HashMap ();
+	zippedSkins = new HashMap ();
 	updatables = new HashMap ();
-	
+
 	skinMap = new SkinMap ();
 
 	isJavaPrototype = app.isJavaPrototype (name);
@@ -96,35 +94,11 @@ public final class Prototype {
     public void setDbMapping (DbMapping dbmap) {
 	this.dbmap = dbmap;
     }
-    
+
     public DbMapping getDbMapping () {
 	return dbmap;
     }
 
-    /**
-     *  Get a template defined for this prototype. Templates
-     *  are files that mix layout and code and were used
-     *  before skins came along. Think of them as legacy.
-     */
-    public Template getTemplate (String tmpname) {
-	return (Template) templates.get (tmpname);
-    }
-
-    /**
-     *  Get a generic function file defined for this prototype.
-     */
-    public FunctionFile getFunctionFile (String ffname) {
-	return (FunctionFile) functions.get (ffname);
-    }
-
-    /**
-     *  Get an action file defined for this prototype. Action
-     *  files are functions with a .hac extension
-     *  that are accessible publicly via web interface.
-     */
-    public ActionFile getActionFile (String afname) {
-	return (ActionFile) actions.get (afname);
-    }
 
     /**
      *  Get a Skinfile for this prototype. This only works for skins
@@ -132,7 +106,10 @@ public final class Prototype {
      *  other locations or database stored skins.
      */
     public SkinFile getSkinFile (String sfname) {
-	return (SkinFile) skins.get (sfname);
+	SkinFile sf = (SkinFile) skins.get (sfname);
+	if (sf == null)
+	    sf = (SkinFile) zippedSkins.get (sfname);
+	return sf;
     }
 
     /**
@@ -141,7 +118,7 @@ public final class Prototype {
      *  other locations or database stored skins.
      */
     public Skin getSkin (String sfname) {
-	SkinFile sf = (SkinFile) skins.get (sfname);
+	SkinFile sf = getSkinFile (sfname);
 	if (sf != null)
 	    return sf.getSkin ();
 	else
@@ -153,7 +130,7 @@ public final class Prototype {
 	return name;
     }
 
-    Updatable[] upd = null;
+    /* Updatable[] upd = null;
     public Updatable[] getUpdatables () {
 	if (upd == null) {
 	    upd = new Updatable[updatables.size()];
@@ -163,7 +140,7 @@ public final class Prototype {
 	    }
 	}
 	return upd;
-    }
+    } */
 
     /**
      *  Get the last time any script has been re-read for this prototype.
@@ -190,20 +167,20 @@ public final class Prototype {
     }
 
     /**
-     *  Signal that the prototype's scripts have been checked for 
+     *  Signal that the prototype's scripts have been checked for
      *  changes.
      */
     public void markChecked () {
 	lastCheck = System.currentTimeMillis ();
     }
-    
+
     /**
      *  Return a clone of this prototype's actions container. Synchronized
      *  to not return a map in a transient state where it is just being
      *  updated by the type manager.
      */
-    public synchronized Map getActions () {
-	return (Map) actions.clone();
+    public synchronized Map getCode () {
+	return (Map) code.clone();
     }
 
     /**
@@ -211,46 +188,90 @@ public final class Prototype {
      *  to not return a map in a transient state where it is just being
      *  updated by the type manager.
      */
-    public synchronized Map getFunctions () {
-	return (Map) functions.clone();
+    public synchronized Map getZippedCode () {
+	return (Map) zippedCode.clone();
     }
 
-    /**
-     *  Return a clone of this prototype's templates container. Synchronized
-     *  to not return a map in a transient state where it is just being
-     *  updated by the type manager.
-     */
-    public synchronized Map getTemplates () {
-	return (Map) templates.clone();
+
+    public synchronized void addActionFile (ActionFile action) {
+	File f = action.getFile ();
+	if (f != null) {
+	    code.put (action.getSourceName(), action);
+	    updatables.put (f.getName(), action);
+	} else {
+	    zippedCode.put (action.getSourceName(), action);
+	}
     }
 
-    /**
-     *  Return a clone of this prototype's skins container. Synchronized
-     *  to not return a map in a transient state where it is just being
-     *  updated by the type manager.
-     */
-    public synchronized Map getSkins () {
-	return (Map) skins.clone();
+    public synchronized void addTemplate (Template template) {
+	File f = template.getFile ();
+	if (f != null) {
+	    code.put (template.getSourceName(), template);
+	    updatables.put (f.getName(), template);
+	} else {
+	    zippedCode.put (template.getSourceName(), template);
+	}
     }
 
-    public synchronized void removeUpdatable (String fileName) {
-	updatables.remove (fileName);
-	markUpdated ();
+    public synchronized void addFunctionFile (FunctionFile funcfile) {
+	File f = funcfile.getFile ();
+	if (f != null) {
+	    code.put (funcfile.getSourceName(), funcfile);
+	    updatables.put (f.getName(), funcfile);
+	} else {
+	    zippedCode.put (funcfile.getSourceName(), funcfile);
+	}
     }
 
-    public synchronized void removeAction (String actionName) {
-	actions.remove (actionName);
-	markUpdated ();
+    public synchronized void addSkinFile (SkinFile skinfile) {
+	File f = skinfile.getFile ();
+	if (f != null) {
+	    skins.put (skinfile.getName(), skinfile);
+	    updatables.put (f.getName(), skinfile);
+	} else {
+	    zippedSkins.put (skinfile.getName(), skinfile);
+	}
     }
 
-    public synchronized void removeFunctionFile (String functionFileName) {
-	functions.remove (functionFileName);
-	markUpdated ();
+
+    public synchronized void removeActionFile (ActionFile action) {
+	File f = action.getFile ();
+	if (f != null) {
+	    code.remove (action.getSourceName());
+	    updatables.remove (f.getName());
+	} else {
+	    zippedCode.remove (action.getSourceName());
+	}
     }
 
-    public synchronized void removeTemplate (String templateName) {
-	templates.remove (templateName);
-	markUpdated ();
+    public synchronized void removeFunctionFile (FunctionFile funcfile) {
+	File f = funcfile.getFile ();
+	if (f != null) {
+	    code.remove (funcfile.getSourceName());
+	    updatables.remove (f.getName());
+	} else {
+	    zippedCode.remove (funcfile.getSourceName());
+	}
+    }
+
+    public synchronized void removeTemplate (Template template) {
+	File f = template.getFile ();
+	if (f != null) {
+	    code.remove (template.getSourceName());
+	    updatables.remove (f.getName());
+	} else {
+	    zippedCode.remove (template.getSourceName());
+	}
+    }
+
+    public synchronized void removeSkinFile (SkinFile skinfile) {
+	File f = skinfile.getFile ();
+	if (f != null) {
+	    skins.remove (skinfile.getName());
+	    updatables.remove (f.getName());
+	} else {
+	    zippedSkins.remove (skinfile.getName());
+	}
     }
 
 
