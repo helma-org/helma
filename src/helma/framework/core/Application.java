@@ -66,9 +66,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 
     boolean stopped = false;
     boolean debug;
-    public long starttime;
+    long starttime;
 
-    public Hashtable sessions;
+    Hashtable sessions;
     Hashtable dbMappings;
     Hashtable dbSources;
 
@@ -443,7 +443,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        res.waitForClose ();
 	    }
 	}
-	
+
 	return res;
     }
 
@@ -576,99 +576,99 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      *  to use for the object, then looking up the skin for the prototype.
      */
     public Skin getSkin (Object object, String skinname, Object[] skinpath) {
-	return skinmgr.getSkin (object, skinname, skinpath); 
+	return skinmgr.getSkin (object, skinname, skinpath);
     }
 
     /**
      * Return the session currently associated with a given Hop session ID.
      * Create a new session if necessary.
      */
-	public Session checkSession (String sessionID)	{
+    public Session checkSession (String sessionID)	{
 	Session session = getSession(sessionID);
 	if ( session==null )	{
 	    session = new Session (sessionID, this);
 	    sessions.put (sessionID, session);
 	}
 	return session;
-	}
+    }
 
     /**
      * Remove the session from the sessions-table and logout the user.
      */
-	public void destroySession (String sessionID) {
+    public void destroySession (String sessionID) {
 	logoutSession (getSession (sessionID));
 	sessions.remove (sessionID);
-	}
+    }
 
     /**
      * Remove the session from the sessions-table and logout the user.
      */
-	public void destroySession (Session session) {
+    public void destroySession (Session session) {
 	logoutSession (session);
 	sessions.remove (session.getSessionID ());
-	}
+    }
 
     public Enumeration getActiveUsers () {
-        return new FilteredSessions (null);
+	return new SessionFilter (null);
     }
 
     /**
      * Return an array of session currently associated with a given Hop user object.
      */
-	public Enumeration getSessionsForUsername (String username)	{
-	    return new FilteredSessions (username);
+    public Enumeration getSessionsForUsername (String username)	{
+	return new SessionFilter (username);
+    }
+
+    class SessionFilter implements Enumeration {
+	String username;
+	Session nextSession;
+	Enumeration sessionEnum;
+	Vector usernames;
+
+	SessionFilter (String username) {
+	    this.username = username;
+	    if (username==null)
+	        usernames = new Vector();
+	    sessionEnum = sessions.elements ();
+	    nextSession = nextValidSession ();
 	}
 
-    class FilteredSessions implements Enumeration {
-        String username;
-        Session nextSession;
-        Enumeration sessionEnum;
-        Vector usernames;
+	public boolean hasMoreElements () {
+	    if (nextSession==null)
+	        return false;
+	    else
+	        return true;
+	}
 
-        FilteredSessions (String username) {
-        this.username = username;
-        if (username==null)
-            usernames = new Vector();
-        sessionEnum = sessions.elements ();
-        nextSession = nextValidSession ();
-        }
+	public Object nextElement () {
+	    Session thisSession = nextSession;
+	    nextSession = nextValidSession ();
+	    return thisSession;
+	}
 
-        public boolean hasMoreElements () {
-        if (nextSession==null)
-            return false;
-        else
-            return true;
-        }
-
-        public Object nextElement () {
-        Session thisSession = nextSession;
-        nextSession = nextValidSession ();
-        return thisSession;
-        }
-
-        private Session nextValidSession () {
-        while( sessionEnum.hasMoreElements () ) {
-            Session s = (Session)sessionEnum.nextElement ();
-            if(s==null) {
-                continue;
-            } else {
-                if (username!=null && username.equals(s.getUID ())) {
-                    // returns a session if it is logged in and fits
-                    // the given username
-                    return s;
-                } else if (username==null && s.isLoggedIn()==true && !usernames.contains (s.getUID ()) ) {
-                    // returns a session if it is logged in and has not been
-                    // returned before (so for each logged-in user we get one
-                    // session object, even if this user is logged in several
-                    // times (used to retrieve the active users list).
-                    usernames.add (s.getUID ());
-                    return s;
-                }
-            }
-        }
-        return null;
-        }
-    }
+	private Session nextValidSession () {
+	    while( sessionEnum.hasMoreElements () ) {
+	        Session s = (Session)sessionEnum.nextElement ();
+	            if(s==null) {
+	                continue;
+	            } else {
+	                if (username!=null && username.equals(s.getUID ())) {
+	                    // returns a session if it is logged in and fits
+	                    // the given username
+	                    return s;
+	                } else if (username==null && s.isLoggedIn()==true && !usernames.contains (s.getUID ()) ) {
+	                    // returns a session if it is logged in and has not been
+	                   // returned before (so for each logged-in user we get one
+	                   // session object, even if this user is logged in several
+	                   // times (used to retrieve the active users list).
+	                   usernames.add (s.getUID ());
+	                   return s;
+	               }
+	           }
+	       }
+	       return null;
+	   }
+	}
 
 
     /**
@@ -693,9 +693,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	try {
 	    INode users = getUserRoot ();
 	    unode = users.getNode (uname, false);
-	    if (unode != null) 
+	    if (unode != null)
 	        return null;
-	    
+
 	    unode = users.createNode (uname);
 	    unode.setPrototype ("user");
 	    unode.setDbMapping (userMapping);
@@ -724,19 +724,19 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	    return false;
 	uname = uname.toLowerCase ().trim ();
 	if ("".equals (uname))
-    	return false;
+	    return false;
 	try {
-    	INode users = getUserRoot ();
-    	Node unode = (Node)users.getNode (uname, false);
-    	String pw = unode.getString ("password", false);
-    	if (pw != null && pw.equals (password)) {
-			// let the old user-object forget about this session
-			logoutSession(session);
-        	session.login (unode);
-        	return true;
-    	}
+	    INode users = getUserRoot ();
+	    Node unode = (Node)users.getNode (uname, false);
+	    String pw = unode.getString ("password", false);
+	    if (pw != null && pw.equals (password)) {
+	        // let the old user-object forget about this session
+	        logoutSession(session);
+	        session.login (unode);
+	        return true;
+	    }
 	} catch (Exception x) {
-    	return false;
+	    return false;
 	}
 	return false;
     }
@@ -1029,7 +1029,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 //	                if (session.uid != null) {
 //	FIXME onlogout()!        try {eval.invokeFunction (u, "onLogout", new Object[0]);} catch (Exception ignore) {}
 //	                }
-					destroySession(session);
+	                destroySession(session);
 	            }
 	        }
 	    } catch (Exception cx) {
@@ -1178,9 +1178,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	return props.getProperty (propname, defvalue);
     }
 
-	public SystemProperties getProperties()	{
-		return props;
-	}
+    public SystemProperties getProperties()	{
+	return props;
+    }
 
     /**
      *
