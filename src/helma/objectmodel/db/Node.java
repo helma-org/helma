@@ -179,7 +179,7 @@ public final class Node implements INode, Serializable {
      */
     public Node (String name, String id, String prototype, WrappedNodeManager nmgr) {
 	this.nmgr = nmgr;
- 	this.id = id;
+	this.id = id;
 	this.name = name == null || "".equals (name) ? id : name;
 	if (prototype != null)
 	    setPrototype (prototype);
@@ -235,7 +235,7 @@ public final class Node implements INode, Serializable {
      * Constructor used for nodes being stored in a relational database table.
      */
     public Node (DbMapping dbm, ResultSet rs, DbColumn[] columns, WrappedNodeManager nmgr)
-                 throws SQLException {
+                 throws SQLException, IOException {
 
 	this.nmgr = nmgr;
 	// see what prototype/DbMapping this object should use
@@ -302,13 +302,32 @@ public final class Node implements INode, Serializable {
 	                newprop.setIntegerValue (num.longValue ());
 	            break;
 
-	        case Types.LONGVARBINARY:
 	        case Types.VARBINARY:
 	        case Types.BINARY:
 	            newprop.setStringValue (rs.getString(columns[i].getName()));
 	            break;
 
+	        case Types.LONGVARBINARY:
 	        case Types.LONGVARCHAR:
+	            try {
+	                newprop.setStringValue (rs.getString(columns[i].getName()));
+	            } catch (SQLException x) {
+	                Reader in = rs.getCharacterStream(columns[i].getName());
+	                char[] buffer = new char[2048];
+	                int read = 0, r = 0;
+	                while ((r = in.read (buffer, read, buffer.length-read)) > -1) {
+	                    read += r;
+	                    if (read == buffer.length) {
+	                        // grow input buffer
+	                        char[] newBuffer = new char[buffer.length*2];
+	                        System.arraycopy (buffer, 0, newBuffer, 0, buffer.length);
+	                        buffer = newBuffer;
+	                    }
+	                }
+	                newprop.setStringValue (new String(buffer, 0, read));
+	            }
+	            break;
+
 	        case Types.CHAR:
 	        case Types.VARCHAR:
 	        case Types.OTHER:
@@ -435,9 +454,9 @@ public final class Node implements INode, Serializable {
 	Relation rel = getDbMapping ().getSubnodeRelation ();
 	if (rel != null) {
 	    if (rel.usesPrimaryKey()) {
-	        nmgr.evictKey (new DbKey (getDbMapping().getSubnodeMapping(), key));
+	        nmgr.evictNodeByKey (new DbKey (getDbMapping().getSubnodeMapping(), key));
 	    } else {
-	        nmgr.evictKey (new SyntheticKey (getKey(), key));
+	        nmgr.evictNodeByKey (new SyntheticKey (getKey(), key));
 	    }
 	}
     }
@@ -493,7 +512,7 @@ public final class Node implements INode, Serializable {
 	            } else {
 	                anonymous = true;
 	            }
-	        } else if (p.contains (this) > -1) {
+	        } else if (!anonymous && p.contains (this) > -1) {
 	           anonymous = true;
 	        }
 	    } catch (Exception ignore) {
@@ -873,13 +892,13 @@ public final class Node implements INode, Serializable {
 
     public INode createNode (String nm, int where) {
 	checkWriteLock ();
-    	boolean anon = false;
-	if (nm == null || "".equals (nm.trim ())) 
+	boolean anon = false;
+	if (nm == null || "".equals (nm.trim ()))
 	    anon = true;
 	Node n = new Node (nm, null, nmgr);
 	if (anon)
 	    addNode (n, where);
-	else 
+	else
 	    setNode (nm, n);
 	return n;
     }
@@ -917,7 +936,7 @@ public final class Node implements INode, Serializable {
 	        if (rel.otherType != null && rel.otherType.isRelational ())
 	            return (IPathElement) nmgr.getNode (this, name, rel);
 	        else
-	           return (IPathElement) getNode (name);
+	            return (IPathElement) getNode (name);
 	    }
 	    return (IPathElement) getSubnode (name);
 	} else {
@@ -1748,11 +1767,20 @@ public final class Node implements INode, Serializable {
 	if (propMap == null)
 	    return;
 	try {
-	    Property p = (Property) propMap.remove (propname.toLowerCase ());
+	    // if node is relational, leave a null property so that it is 
+	    // updated in the DB. Otherwise, remove the property.
+	    Property p;
+	    boolean relational = dbmap != null && dbmap.isRelational();
+	    if (relational)
+	        p = (Property) propMap.get (propname.toLowerCase ());
+	    else
+	        p = (Property) propMap.remove (propname.toLowerCase ());
 	    if (p != null) {
 	        checkWriteLock ();
 	        if (p.getType() == Property.NODE)
 	            p.unregisterNode ();
+	        if (relational)
+	            p.setStringValue (null);
 	        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
 	        lastmodified = System.currentTimeMillis ();
 	        if (state == CLEAN)

@@ -43,6 +43,10 @@ public class DemoExtension extends HelmaExtension {
 	app.logEvent ("DemoExtension stopped on app " + app.getName () );
 	}
 
+	public void applicationUpdated (Application app) {
+	app.logEvent ("DemoExtension updated on app " + app.getName () );
+	}
+
 	public HashMap initScripting (Application app, ScriptingEngine engine) throws ConfigurationException {
 	if (!(engine instanceof FesiEngine))
 	    throw new ConfigurationException ("scripting engine " + engine.toString () + " not supported in DemoExtension");

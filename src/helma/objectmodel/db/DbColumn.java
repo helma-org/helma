@@ -20,6 +20,8 @@ public final class DbColumn {
 	this.name = name;
 	this.type = type;
 	this.relation = rel;
+	if (relation != null)
+	    relation.setColumnType (type);
     }
 
     /**

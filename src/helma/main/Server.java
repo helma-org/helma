@@ -25,7 +25,7 @@ import org.apache.xmlrpc.*;
 
  public class Server implements IPathElement, Runnable {
 
-    public static final String version = "1.2 RC2 2002/12/05";
+    public static final String version = "1.2.2 (2003/02/04)";
     public final long starttime;
 
     // if true we only accept RMI and XML-RPC connections from 
@@ -90,6 +90,9 @@ import org.apache.xmlrpc.*;
 
 	// create new server instance
 	server = new Server (args);
+
+	// start the server main thread
+	server.start ();
     }
 
     /**
@@ -137,8 +140,13 @@ import org.apache.xmlrpc.*;
 	        } catch (Exception portx) {
 	            usageError = true;
 	        }
-	    } else
+	    } else if (args[i].equals ("-i") && i+1<args.length) {
+	        // eat away the -i parameter which is meant for helma.main.launcher.Main
+	        i++;
+	    } else {
+	        System.err.println ("Unknown command line token: "+args[i]);
 	        usageError = true;
+	    }
 	}
 
 	// get main property file from home dir or vice versa, depending on what we have.
@@ -291,12 +299,18 @@ import org.apache.xmlrpc.*;
 	    }
 	}
 
+    }
+
+    protected void start () {
 	// Start running, finishing setup and then entering a loop to check changes
 	// in the apps.properties file.
 	mainThread = new Thread (this);
 	mainThread.start ();
     }
-
+    
+    protected void stop () {
+	mainThread = null;
+    }
 
     /**
      *  The main method of the Server. Basically, we set up Applications and than

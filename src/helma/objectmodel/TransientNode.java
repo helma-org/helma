@@ -469,12 +469,8 @@ public class TransientNode implements INode, Serializable {
     public void setString (String propname, String value) {
 	// IServer.getLogger().log ("setting String prop");
 	Property prop = initProperty (propname);
-	try {
-	    prop.setStringValue (value);
-	    // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
-	} catch (java.text.ParseException x) {
-	    throw new RuntimeException ("Fehler beim Parsen des Datum-Strings");
-	}
+	prop.setStringValue (value);
+	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
 	lastmodified = System.currentTimeMillis ();
     }
 

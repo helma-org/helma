@@ -9,10 +9,10 @@ import java.net.URL;
 import java.net.MalformedURLException;
 
 /**
- * This creates an invisible frame in order to be able to create images
- * from Java. (Java needs a window context in order to user the Image class).
+ * Factory class for generating Image objects from various sources.
+ *
  */
- 
+
 public class ImageGenerator {
 
     public ImageGenerator () {
@@ -20,10 +20,9 @@ public class ImageGenerator {
     }
 
     public ImageWrapper createPaintableImage (int w, int h) {
-	Image img = new BufferedImage (w, h, BufferedImage.TYPE_INT_RGB);
+	BufferedImage img = new BufferedImage (w, h, BufferedImage.TYPE_INT_RGB);
 	Graphics g = img.getGraphics ();
-	ImageWrapper rimg = null;
-	rimg = new SunImageWrapper (img, g, w, h, this);
+	ImageWrapper rimg = new SunImageWrapper (img, g, w, h, this);
 	return rimg;
     }
 
@@ -31,13 +30,17 @@ public class ImageGenerator {
 	ImageWrapper rimg = null;
 	Image img1 = Toolkit.getDefaultToolkit ().createImage (src);
 	ImageLoader loader = new ImageLoader (img1);
-	loader.load ();
-	int w = loader.getWidth ();
-	int h = loader.getHeight ();
-	Image img = new BufferedImage (w, h, BufferedImage.TYPE_INT_RGB);
-	Graphics g = img.getGraphics ();
-	g.drawImage (img1, 0, 0, null);
-	rimg = new SunImageWrapper (img, g, w, h, this);
+	try {
+	    loader.getDimensions ();
+	    int w = loader.getWidth ();
+	    int h = loader.getHeight ();
+	    Image img = new BufferedImage (w, h, BufferedImage.TYPE_INT_RGB);
+	    Graphics g = img.getGraphics ();
+	    g.drawImage (img1, 0, 0, null);
+	    rimg = new SunImageWrapper (img, g, w, h, this);
+	} finally {
+	    loader.done();
+	}
 	return rimg;
     }
 
@@ -45,10 +48,14 @@ public class ImageGenerator {
 	ImageWrapper rimg = null;
 	Image img = Toolkit.getDefaultToolkit ().createImage (src);
 	ImageLoader loader = new ImageLoader (img);
-	loader.load ();
-	int w = loader.getWidth ();
-	int h = loader.getHeight ();
-	rimg = new SunImageWrapper (img, null, w, h, this);
+	try {
+	    loader.getDimensions ();
+	    int w = loader.getWidth ();
+	    int h = loader.getHeight ();
+	    rimg = new SunImageWrapper (img, null, w, h, this);
+	} finally {
+	    loader.done();
+	}
 	return rimg;
     }
 
@@ -58,13 +65,17 @@ public class ImageGenerator {
 	URL url = new URL (urlstring);
 	Image img1 = Toolkit.getDefaultToolkit ().createImage (url);
 	ImageLoader loader = new ImageLoader (img1);
-	loader.load ();
-	int w = loader.getWidth ();
-	int h = loader.getHeight ();
-	Image img = new BufferedImage (w, h, BufferedImage.TYPE_INT_RGB);
-	Graphics g = img.getGraphics ();
-	g.drawImage (img1, 0, 0, null);
-	rimg = new SunImageWrapper (img, g, w, h, this);
+	try {
+	    loader.getDimensions ();
+	    int w = loader.getWidth ();
+	    int h = loader.getHeight ();
+	    Image img = new BufferedImage (w, h, BufferedImage.TYPE_INT_RGB);
+	    Graphics g = img.getGraphics ();
+	    g.drawImage (img1, 0, 0, null);
+	    rimg = new SunImageWrapper (img, g, w, h, this);
+	} finally {
+            loader.done();
+        }
 	return rimg;
     }
 
@@ -73,13 +84,17 @@ public class ImageGenerator {
 	FilteredImageSource fis = new FilteredImageSource (iw.getSource(), filter);
 	Image img1 = Toolkit.getDefaultToolkit().createImage (fis);
 	ImageLoader loader = new ImageLoader (img1);
-	loader.load ();
-	int w = loader.getWidth ();
-	int h = loader.getHeight ();
-	Image img = new BufferedImage (w, h, BufferedImage.TYPE_INT_RGB);
-	Graphics g = img.getGraphics ();
-	g.drawImage (img1, 0, 0, null);
-	rimg = new SunImageWrapper (img, g, w, h, this);
+	try {
+	    loader.getDimensions ();
+	    int w = loader.getWidth ();
+	    int h = loader.getHeight ();
+	    Image img = new BufferedImage (w, h, BufferedImage.TYPE_INT_RGB);
+	    Graphics g = img.getGraphics ();
+	    g.drawImage (img1, 0, 0, null);
+	    rimg = new SunImageWrapper (img, g, w, h, this);
+	} finally {
+            loader.done();
+        }
 	return rimg;
     }
 
@@ -88,7 +103,8 @@ public class ImageGenerator {
 	Image img = null;
 	img = Toolkit.getDefaultToolkit ().createImage (filename);
 	ImageLoader loader = new ImageLoader (img);
-	loader.load ();
+	loader.getDimensions ();
+	loader.done();
 	return img;
     }
 
@@ -96,7 +112,8 @@ public class ImageGenerator {
 	Image img = null;
 	img = Toolkit.getDefaultToolkit ().createImage (producer);
 	ImageLoader loader = new ImageLoader (img);
-	loader.load ();
+	loader.getDimensions ();
+	loader.done();
 	return img;
     }
 
@@ -104,26 +121,27 @@ public class ImageGenerator {
 
 	Image img;
 	int w, h;
+	boolean waiting;
+	boolean firstFrameLoaded;
 
 	ImageLoader (Image img) {
 	    this.img = img;
+	    waiting = true;
+	    firstFrameLoaded = false;
 	}
 
-	int getWidth () {
-	    return w;
-	}
-	
-	int getHeight () {
-	    return h;
-	}
-
-	synchronized void load () {
+	synchronized void getDimensions () {
 	    w = img.getWidth(this);
 	    h = img.getHeight (this);
-	    if (w == -1 || h == -1) try {
-	        wait (30000);
-	    } catch (InterruptedException x) {
-	        return;
+	    if (w == -1 || h == -1) {
+	        try {
+	            wait (45000);
+	        } catch (InterruptedException x) {
+	            waiting = false;
+	            return;
+	        } finally {
+	            waiting = false;
+	        }
 	    }
 	    // if width and height haven't been set, throw tantrum
 	    if (w == -1 || h == -1) {
@@ -131,6 +149,18 @@ public class ImageGenerator {
 	    }
 	}
 
+	synchronized void done () {
+	    waiting = false;
+	    notifyAll ();
+	}
+
+	int getWidth () {
+	    return w;
+	}
+
+	int getHeight () {
+	    return h;
+	}
 
 	public synchronized boolean imageUpdate(Image img,
                            int infoflags,
@@ -138,24 +168,24 @@ public class ImageGenerator {
                            int y,
                            int width,
                            int height) {
-	    if (w == -1 && (infoflags & WIDTH) > 0)
-	        w = width;
-	    if (h == -1 && (infoflags & HEIGHT) > 0)
-	        h = height;
-	    if (h > -1 && w > -1 && (infoflags & ALLBITS) > 0) {
-	        // we know all we want to know. notify waiting thread that
-	        // the image is loaded and ready to be used.
-	        notifyAll ();
-	        return false;
-	    }
 	    // check if there was an error
-	    if ((infoflags & ERROR) > 0) {
+	    if (!waiting || (infoflags & ERROR) > 0 || (infoflags & ABORT) > 0) {
+	        // we either timed out or there was an error.
 	        notifyAll ();
 	        return false;
 	    }
-	    // TODO: If image production was aborted, but no error was reported,
-	    // we might want to start production again. For now, we just give up.
-	    if ((infoflags & ABORT) > 0) {
+	    if ((infoflags & WIDTH) > 0 || (infoflags & HEIGHT) > 0) {
+	        if ((infoflags & WIDTH) > 0)
+	            w = width;
+	        if ((infoflags & HEIGHT) > 0)
+	            h = height;
+	        if (w > -1 && h > -1 && firstFrameLoaded) {
+	            notifyAll ();
+	            return false;
+	        }
+	    }
+	    if ((infoflags & ALLBITS) > 0 || (infoflags & FRAMEBITS) > 0) {
+	        firstFrameLoaded = true;
 	        notifyAll ();
 	        return false;
 	    }

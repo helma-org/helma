@@ -110,6 +110,10 @@ import java.util.Vector;
 	nmgr.evictNode (node);
     }
 
+    public void evictNodeByKey (Key key) {
+	nmgr.evictNodeByKey (key);
+    }
+
     public void evictKey (Key key) {
 	nmgr.evictKey (key);
     }

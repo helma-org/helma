@@ -74,11 +74,11 @@ public class ClassInfo {
      * @return  the ClassInfo of cls, added to the cache if needed
      */
    private static ClassInfo ensureClassInfo(Class cls) {
-        boolean debug = ESLoader.isDebugJavaAccess();
+        // boolean debug = ESLoader.isDebugJavaAccess();
         ClassInfo classInfo = (ClassInfo) allClassInfo.get(cls);
         if (classInfo == null) {
-           if (debug) System.out.println("** Class info for class '" +
-                     cls + "' not found in cache, created");
+            // if (debug) System.out.println("** Class info for class '" +
+            //         cls + "' not found in cache, created");
             classInfo = new ClassInfo();
             allClassInfo.put(cls, classInfo);
         }
@@ -94,7 +94,7 @@ public class ClassInfo {
      * @param   cls  The class for which we look for the property.
      * @return  The PropertyDescriptor or null if not found or in case of error
      */
-   synchronized public static PropertyDescriptor lookupBeanField(String fieldName, Class cls) {
+   public static PropertyDescriptor lookupBeanField(String fieldName, Class cls) {
         ClassInfo classInfo = ClassInfo.ensureClassInfo(cls);
         return classInfo.cachedBeanFieldLookup(fieldName, cls);
    }
@@ -110,29 +110,29 @@ public class ClassInfo {
      * @return  The PropertyDescriptor or null if not found or in case of error
      */
     private PropertyDescriptor cachedBeanFieldLookup(String propertyName, Class cls) {
-        boolean debug = ESLoader.isDebugJavaAccess();
+        // boolean debug = ESLoader.isDebugJavaAccess();
 
         // Check that there is a bean properties cache, chech if the property was cached
         if (beanProperties != null) {
-           if (debug) System.out.println("** Bean properties for class '" +
-                     cls + "' found in cache");
+            // if (debug) System.out.println("** Bean properties for class '" +
+            //          cls + "' found in cache");
             PropertyDescriptor descriptor = 
                       (PropertyDescriptor) beanProperties.get(propertyName);
             if (descriptor!= null) {
-               if (debug) System.out.println("** property descriptor '" + propertyName + "' found in cache");
+                // if (debug) System.out.println("** property descriptor '" + propertyName + "' found in cache");
                 return descriptor;
             }
         } 
         // Not in cache
-        if (debug) System.out.println("** No property named '" +
-                      propertyName + "' found in cache, lookup started");
+        // if (debug) System.out.println("** No property named '" +
+        //              propertyName + "' found in cache, lookup started");
 
         // Do we have a cached BeanInfo ? create it if no
         if (beanInfo == null) {
             try {
                beanInfo = Introspector.getBeanInfo(cls);
            } catch (IntrospectionException e) {
-               if (debug) System.out.println(" ** Error getting beaninfo: " + e);
+               // if (debug) System.out.println(" ** Error getting beaninfo: " + e);
                return null;
            }
         }
@@ -142,7 +142,7 @@ public class ClassInfo {
         PropertyDescriptor descriptor = null; // none found
         for (int i=0; i<allProperties.length; i++) {
             PropertyDescriptor property = allProperties[i];
-            if (debug) System.out.println("** Property examined: " + property.getName());
+            // if (debug) System.out.println("** Property examined: " + property.getName());
             if (!property.getName().equals(propertyName)) continue;
             descriptor = property;
             break;
@@ -238,13 +238,13 @@ public class ClassInfo {
             }
 
            // Add to cache
-           if (debug) System.out.println("** property '" + propertyName + "' + found, add to cache");
+           // if (debug) System.out.println("** property '" + propertyName + "' + found, add to cache");
            if (beanProperties==null) {
                 beanProperties = new Hashtable();
             }
             beanProperties.put(propertyName, descriptor);
         } else {
-            if (debug) System.out.println("** No method named '" + propertyName + "' found");
+            // if (debug) System.out.println("** No method named '" + propertyName + "' found");
         }
         return descriptor;
    }
@@ -258,7 +258,7 @@ public class ClassInfo {
      * @param   cls  The class of the method being looked up
      * @return  The method array or null if none found or in case of error  
      */
-   synchronized public static Method[] lookupPublicMethod(String functionName, Class cls) throws EcmaScriptException {
+   public static Method[] lookupPublicMethod(String functionName, Class cls) throws EcmaScriptException {
         ClassInfo classInfo = ClassInfo.ensureClassInfo(cls);
         return classInfo.cachedPublicMethodLookup(functionName, cls);
    }
@@ -274,52 +274,52 @@ public class ClassInfo {
      * @return The method if found, null otherwise
      */
     private Method getInInterfaces(String functionName, Class [] interfaces, Class[] paramTypes) {
-       boolean debug = ESLoader.isDebugJavaAccess();      
+       // boolean debug = ESLoader.isDebugJavaAccess();      
  
-       if (debug && interfaces.length>0) {
-            System.out.println("** Looking in " + interfaces.length + " interfaces");
-       }
+       // if (debug && interfaces.length>0) {
+       //      System.out.println("** Looking in " + interfaces.length + " interfaces");
+       // }
     SEARCHININTERFACE:
        for (int ix=0; ix<interfaces.length; ix++) {
            Class theInterface=interfaces[ix];
            if (Modifier.isPublic(theInterface.getModifiers())) {
-                if (debug) {
-                    System.out.println("** Looking in public interface: " + theInterface);
-                }
+                // if (debug) {
+                //     System.out.println("** Looking in public interface: " + theInterface);
+                // }
                 try {
                    Method method = theInterface.getDeclaredMethod(functionName,paramTypes);
                    if (Modifier.isPublic(method.getModifiers())) {
-                       if (debug) {
-                           System.out.println("** Public method found: " + functionName);
-                       }
+                       // if (debug) {
+                       //     System.out.println("** Public method found: " + functionName);
+                       // }
                        return method;
                    }
                 } catch (NoSuchMethodException e) {
-                    if (debug) {
-                         System.out.println("** The method has no public declaration in the interface: "+ functionName);
-                    }
+                    // if (debug) {
+                    //      System.out.println("** The method has no public declaration in the interface: "+ functionName);
+                    // }
                     // throw new ProgrammingError("The method has no public declaration in a public class: "+ functionName);
                 } catch (SecurityException e) {
                     throw new ProgrammingError("Access error inspecting method "+ functionName + ": " + e);
                 }
             } else {
-                if (debug) {
-                           System.out.println("** Interface " + theInterface + " is not public - not searching for method");
-                }
+                // if (debug) {
+                //            System.out.println("** Interface " + theInterface + " is not public - not searching for method");
+                // }
             }
             
             // Not found, try super interfaces
             Class [] superInterfaces = theInterface.getInterfaces();
             Method method = getInInterfaces(functionName, superInterfaces, paramTypes);
             if (method!=null) {
-               if (debug) System.out.println("** Method found in super interfaces");
+               // if (debug) System.out.println("** Method found in super interfaces");
                return method;
             }
         }
         
-        if (debug) {
-           System.out.println("** No method found in interface and super interfaces");
-        }
+        // if (debug) {
+        //    System.out.println("** No method found in interface and super interfaces");
+        // }
         return null;
   }
 
@@ -337,26 +337,26 @@ public class ClassInfo {
      * @return   The list of methods or null in case of error or if none found.
      */
    private Method [] cachedPublicMethodLookup(String functionName, Class cls) throws EcmaScriptException {
-        boolean debug = ESLoader.isDebugJavaAccess();
+        // boolean debug = ESLoader.isDebugJavaAccess();
         if (publicMethods != null) {
-           if (debug) System.out.println("** Method descriptor for class '" +
-                     cls + "' found in cache");
+            // if (debug) System.out.println("** Method descriptor for class '" +
+            //          cls + "' found in cache");
             Method [] methods = (Method []) publicMethods.get(functionName);
             if (methods!= null) {
-                if (debug) System.out.println("** " + methods.length +
-                        " method(s) named '" + functionName + "' found in cache");
+                // if (debug) System.out.println("** " + methods.length +
+                //         " method(s) named '" + functionName + "' found in cache");
                 return methods;
             }
         } 
         // Not in cache, find if any matching the same name can be found
-         if (debug) System.out.println("** No method named '" +
-                      functionName + "' found in class cache, lookup started");
+        // if (debug) System.out.println("** No method named '" +
+        //              functionName + "' found in class cache, lookup started");
         Method [] allMethods = cls.getMethods();
         Vector methodVector = new Vector(allMethods.length);
         boolean wasFound = false;
         for (int i=0; i<allMethods.length; i++) {
             Method method = allMethods[i];
-            if (debug) System.out.println("** Method examined: " + method.toString());
+            // if (debug) System.out.println("** Method examined: " + method.toString());
             if (!method.getName().equals(functionName)) continue;
             // Method has same name, some closer examination is needed:
             // If the class itself is not public, there is an access error if
@@ -365,8 +365,8 @@ public class ClassInfo {
             // I am not too sure of what happens if the method is defined in an
             // interface...
             if (!Modifier.isStatic(cls.getModifiers()) && !Modifier.isPublic(cls.getModifiers())) {
-               if (debug) System.out.println("** Class " + cls + 
-                           " is not public, examining superclasses and interfaces to find proper method descriptor");
+               // if (debug) System.out.println("** Class " + cls +
+               //            " is not public, examining superclasses and interfaces to find proper method descriptor");
 
             Class[] paramTypes = method.getParameterTypes();
             SEARCHPUBLIC:
@@ -383,31 +383,31 @@ public class ClassInfo {
                    
                    // Look in the class
                    if (Modifier.isPublic(theClass.getModifiers())) {
-                       if (debug) {
-                           System.out.println("** Looking in public class: " + theClass);
-                        }
+                        // if (debug) {
+                        //   System.out.println("** Looking in public class: " + theClass);
+                        // }
                         try {
                            m = theClass.getDeclaredMethod(functionName,paramTypes);
                            if (Modifier.isPublic(method.getModifiers())) {
-                               if (debug) {
-                                   System.out.println("** Public method found: " + functionName);
-                               }
+                               // if (debug) {
+                               //     System.out.println("** Public method found: " + functionName);
+                               // }
                                method = m;
                                wasFound = true;
                                break SEARCHPUBLIC;
                            }
                         } catch (NoSuchMethodException e) {
-                            if (debug) {
-                                 System.out.println("** The method has no public declaration in the public class: "+ functionName);
-                            }
+                            // if (debug) {
+                            //      System.out.println("** The method has no public declaration in the public class: "+ functionName);
+                            // }
                             // throw new ProgrammingError("The method has no public declaration in a public class: "+ functionName);
                         } catch (SecurityException e) {
                             throw new ProgrammingError("Access error inspecting method "+ functionName + ": " + e);
                         }
                     } else {
-                        if (debug) {
-                           System.out.println("** Class " + theClass + " is not public - not searching for method");
-                        }
+                        // if (debug) {
+                        //    System.out.println("** Class " + theClass + " is not public - not searching for method");
+                        // }
                     }
                     
                } // for SEARCHPUBLIC
@@ -427,7 +427,7 @@ public class ClassInfo {
         Method [] methods = null;
         int nmbMethods = methodVector.size();
         if (nmbMethods>0) {
-           if (debug) System.out.println("** " + nmbMethods + " methods named: '" + functionName + "' + found, add to class cache");
+            // if (debug) System.out.println("** " + nmbMethods + " methods named: '" + functionName + "' + found, add to class cache");
             methods = new Method[nmbMethods];
             methodVector.copyInto(methods);
             if (publicMethods==null) {
@@ -435,7 +435,7 @@ public class ClassInfo {
             }
             publicMethods.put(functionName, methods);
         } else {
-            if (debug) System.out.println("** No method named '" + functionName + "' found");
+            // if (debug) System.out.println("** No method named '" + functionName + "' found");
         }
         return methods;
     }
@@ -449,7 +449,7 @@ public class ClassInfo {
      * @param   cls  The class of the method being looked up
      * @return  The method array or null if none found or in case of error  
      */
-   synchronized public static Method[] lookupBeanMethod(String functionName, Class cls) {
+   public static Method[] lookupBeanMethod(String functionName, Class cls) {
         ClassInfo classInfo = ClassInfo.ensureClassInfo(cls);
         return classInfo.cachedBeanMethodLookup(functionName, cls);
    }
@@ -469,27 +469,27 @@ public class ClassInfo {
      * @return   The list of methods or null in case of error or if none found.
      */
    private Method [] cachedBeanMethodLookup(String functionName, Class cls) {
-        boolean debug = ESLoader.isDebugJavaAccess();
+        // boolean debug = ESLoader.isDebugJavaAccess();
         if (beanMethods != null) {
-           if (debug) System.out.println("** Method descriptor for bean '" +
-                     cls + "' found in cache");
+            // if (debug) System.out.println("** Method descriptor for bean '" +
+            //          cls + "' found in cache");
             Method [] methods = (Method []) beanMethods.get(functionName);
             if (methods!= null) {
-                if (debug) System.out.println("** " + methods.length +
-                        " method(s) named '" + functionName + "' found in cache");
+                // if (debug) System.out.println("** " + methods.length +
+                //         " method(s) named '" + functionName + "' found in cache");
                 return methods;
             }
-        } 
+        }
         // Not in cache, find if any matching the same name can be found
-         if (debug) System.out.println("** No method named '" +
-                      functionName + "' found in bean cache, lookup started");
+        // if (debug) System.out.println("** No method named '" +
+        //               functionName + "' found in bean cache, lookup started");
          
         // Do we have a cached BeanInfo ? create it if no
         if (beanInfo == null) {
             try {
                beanInfo = Introspector.getBeanInfo(cls);
            } catch (IntrospectionException e) {
-               if (debug) System.out.println(" ** Error getting beaninfo: " + e);
+               // if (debug) System.out.println(" ** Error getting beaninfo: " + e);
                return null;
            }
         }
@@ -498,7 +498,7 @@ public class ClassInfo {
         Vector methodVector = new Vector(allDescriptors.length);
         for (int i=0; i<allDescriptors.length; i++) {
             Method method = allDescriptors[i].getMethod();
-            if (debug) System.out.println("** Method examined: " + method.toString());
+            // if (debug) System.out.println("** Method examined: " + method.toString());
             if (!allDescriptors[i].getName().equals(functionName)) continue;
             // Method has same name, some tuning neede:
             // If the class itself is not public, there is an access error if
@@ -507,21 +507,21 @@ public class ClassInfo {
             // I am not too sure of what happens if the method is defined in an
             // interface...
             if (!Modifier.isStatic(cls.getModifiers()) && !Modifier.isPublic(cls.getModifiers())) {
-               if (debug) System.out.println("** Bean class " + cls +
-                           " is not public, examining superclasses to find proper method descriptor");
+               // if (debug) System.out.println("** Bean class " + cls +
+               //             " is not public, examining superclasses to find proper method descriptor");
             SEARCHPUBLIC:
                for (Class theClass=cls;theClass!=null;theClass=theClass.getSuperclass()) {
                     if (Modifier.isPublic(theClass.getModifiers())) {
-                       if (debug) {
-                               System.out.println("** Looking in public superlass: " + theClass);
-                        }
+                        // if (debug) {
+                        //        System.out.println("** Looking in public superlass: " + theClass);
+                        // }
                         try {
                            Class[] paramTypes = method.getParameterTypes();
                            Method m = theClass.getDeclaredMethod(functionName,paramTypes);
                            if (Modifier.isPublic(method.getModifiers())) {
-                               if (debug) {
-                                   System.out.println("** Public method found: " + functionName);
-                               }
+                               // if (debug) {
+                               //     System.out.println("** Public method found: " + functionName);
+                               // }
                                method = m;
                                break SEARCHPUBLIC;
                            }
@@ -531,9 +531,9 @@ public class ClassInfo {
                             throw new ProgrammingError("Acess error inspecting method "+ functionName + ": " + e);
                         }
                     } else {
-                        if (debug) {
-                           System.out.println("** Superlass " + theClass + " is not public");
-                        }
+                        // if (debug) {
+                        //    System.out.println("** Superlass " + theClass + " is not public");
+                        // }
                     }
                } // for
             } // if class not public
@@ -547,8 +547,8 @@ public class ClassInfo {
         Method [] methods = null;
         int nmbMethods = methodVector.size();
         if (nmbMethods>0) {
-           if (debug) System.out.println("** " + nmbMethods + " methods named: '"
-                                       + functionName + "' + found, add to bean cache");
+            // if (debug) System.out.println("** " + nmbMethods + " methods named: '"
+            //                            + functionName + "' + found, add to bean cache");
             methods = new Method[nmbMethods];
             methodVector.copyInto(methods);
             if (beanMethods==null) {
@@ -556,8 +556,8 @@ public class ClassInfo {
             }
             beanMethods.put(functionName, methods);
         } else {
-            if (debug) System.out.println("** No bean method named: '" +
-                                            functionName + "' + found");
+            // if (debug) System.out.println("** No bean method named: '" +
+            //                                 functionName + "' + found");
         }
         return methods;
     }

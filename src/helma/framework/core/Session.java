@@ -17,7 +17,7 @@ import helma.objectmodel.db.*;
  
 public class Session implements Serializable {
 
-    Application app;
+    transient Application app;
     String sessionID;
 
     // the unique id (login name) for the user, if logged in
@@ -96,6 +96,10 @@ public class Session implements Serializable {
 
     public Application getApp () {
 	return app;
+    }
+
+    public void setApp (Application app) {
+	this.app = app;
     }
 
     public String getSessionID () {

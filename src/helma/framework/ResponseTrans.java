@@ -185,18 +185,14 @@ public final class ResponseTrans implements Externalizable {
     }
 
     /**
-     * Returns the number of characters written to the response buffer so far.
+     *  Get the response buffer, creating it if it doesn't exist
      */
-    public int getBufferLength() {
+    public StringBuffer getBuffer () {
 	if (buffer == null)
-	    return 0;
-	return buffer.length ();
+	    buffer = new StringBuffer (INITIAL_BUFFER_SIZE);
+	return buffer;
     }
-    
-    public void setBufferLength(int l) {
-	if (buffer != null)
-	    buffer.setLength (l);
-    }
+
 
     /**
      * Append a string to the response unchanged. This is often called 
@@ -237,10 +233,13 @@ public final class ResponseTrans implements Externalizable {
      *  that buffer exists and its length is larger than offset. str may be null, in which
      *  case nothing happens.
      */
-    public void debug (String str) {
+    public void debug (Object message) {
 	if (debugBuffer == null)
 	    debugBuffer = new StringBuffer ();
-	debugBuffer.append ("<p><span style=\"background: yellow; color: black\">"+str+"</span></p>");
+	String str = message == null ? "null" : message.toString ();
+	debugBuffer.append ("<p><span style=\"background: yellow; color: black\">");
+	debugBuffer.append (str);
+	debugBuffer.append ("</span></p>");
     }
 
     /**
@@ -335,17 +334,25 @@ public final class ResponseTrans implements Externalizable {
 	if (charset == null)
 	    charset = "ISO-8859-1";
 	boolean encodingError = false;
+	// only close if the response hasn't been closed yet
 	if (response == null) {
-	    if (buffer != null) {
-	        if (debugBuffer != null)
+	    // if debug buffer exists, append it to main buffer
+	    if (debugBuffer != null) {
+	        if (buffer == null)
+	            buffer = debugBuffer;
+	        else
 	            buffer.append (debugBuffer);
+	    }
+	    // get the buffer's bytes in the specified encoding
+	    if (buffer != null) {
 	        try {
 	            response = buffer.toString ().getBytes (charset);
 	        } catch (UnsupportedEncodingException uee) {
 	            encodingError = true;
 	            response = buffer.toString ().getBytes ();
 	        }
-	        buffer = null; // make sure this is done only once, even with more requsts attached
+	        // make sure this is done only once, even with more requsts attached
+	        buffer = null;
 	    } else {
 	        response = new byte[0];
 	    }

@@ -432,11 +432,7 @@ public abstract class ESLoader extends ESObject {
                             debugInfo = " rejected (not widening numbers)";
                         }
                     // Handle String of length 1 as a Char, which can be converted to a number    
-                    } else if ((targetClass == Character.class ||
-                                targetClass == Integer.class ||          
-                                targetClass == Long.class ||          
-                                targetClass == Float.class ||          
-                                targetClass == Double.class)          
+                    } else if (targetClass == Character.class
                                               && params[i] instanceof String) {
                         if (((String) params[i]).length()==1) {
                             accepted = true; // will require conversion of parameter

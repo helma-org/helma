@@ -11,7 +11,6 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 import java.sql.*;
-import com.workingdogs.village.*;
 
 /**
   * A DbMapping describes how a certain type of  Nodes is to mapped to a
@@ -58,8 +57,11 @@ public final class DbMapping implements Updatable {
     DbColumn[] columns = null;
     // Map of db columns by name
     HashMap columnMap;
+
     // pre-rendered select statement
-    String select = null;
+    String selectString = null;
+    String insertString = null;
+    String updateString = null;
 
     // db field used as primary key
     private String idField;
@@ -81,13 +83,10 @@ public final class DbMapping implements Updatable {
     // remember last key generated for this table
     long lastID;
 
-    // the (village) schema of the database table
-    Schema schema = null;
-    // the (village) keydef of the db table
-    KeyDef keydef = null;
-
     // timestamp of last modification of the mapping (type.properties)
-    long lastTypeChange;
+    // init value is -1 so we know we have to run update once even if 
+    // the underlying properties file is non-existent
+    long lastTypeChange = -1;
     // timestamp of last modification of an object of this type
     long lastDataChange;
 
@@ -188,13 +187,10 @@ public final class DbMapping implements Updatable {
 	}
 
 	lastTypeChange = props.lastModified ();
-	// null the cached schema & keydef so it's rebuilt the next time around
-	schema = null;
-	keydef = null;
-	// same with columns and select string
+	// null the cached columns and select string
 	columns = null;
 	columnMap.clear();
-	select = null;
+	selectString = insertString = updateString = null;
 
 
 	if (extendsProto != null) {
@@ -390,7 +386,9 @@ public final class DbMapping implements Updatable {
 	    return null;
 	if (table == null && parentMapping != null)
 	    return parentMapping.propertyToColumnName (propName);
-	Relation rel = (Relation) prop2db.get (propName);
+	// FIXME: prop2db stores keys in lower case, because it gets them
+	// from a SystemProperties object which converts keys to lower case.
+	Relation rel = (Relation) prop2db.get (propName.toLowerCase());
 	if (rel != null  && (rel.reftype == Relation.PRIMITIVE || rel.reftype == Relation.REFERENCE))
 	    return rel.columnName;
 	return null;
@@ -415,7 +413,9 @@ public final class DbMapping implements Updatable {
 	    return null;
 	if (table == null && parentMapping != null)
 	    return parentMapping.propertyToRelation (propName);
-	return (Relation) prop2db.get (propName);
+	// FIXME: prop2db stores keys in lower case, because it gets them
+	// from a SystemProperties object which converts keys to lower case.
+	return (Relation) prop2db.get (propName.toLowerCase());
     }
 
 
@@ -558,22 +558,6 @@ public final class DbMapping implements Updatable {
 	return false;
     }
 
-    /**
-     * Return a Village Schema object for this DbMapping.
-     */
-    public synchronized Schema getSchema () throws ClassNotFoundException, SQLException, DataSetException {
-        if (!isRelational ())
-            throw new SQLException ("Can't get Schema for non-relational data mapping");
-        if (source == null && parentMapping != null)
-            return parentMapping.getSchema ();
-        // Use local variable s to avoid synchronization (schema may be nulled elsewhere)
-        Schema s = schema;
-        if (s != null)
-            return s;
-        schema = new Schema ().schema (getConnection (), table, "*");
-        return schema;
-    }
-
 
     /**
      * Return an array of DbColumns for the relational table mapped by this DbMapping.
@@ -630,14 +614,40 @@ public final class DbMapping implements Updatable {
     }
 
     public StringBuffer getSelect () throws SQLException, ClassNotFoundException {
-	String sel = select;
+	String sel = selectString;
 	if (sel != null)
 	    return new StringBuffer (sel);
 	StringBuffer s = new StringBuffer ("SELECT * FROM ");
 	s.append (getTableName ());
 	s.append (" ");
 	// cache rendered string for later calls.
-	select = s.toString();
+	selectString = s.toString();
+	return s;
+    }
+
+
+    public StringBuffer getInsert () {
+	String ins = insertString;
+	if (ins != null)
+	    return new StringBuffer (ins);
+	StringBuffer s = new StringBuffer ("INSERT INTO ");
+	s.append (getTableName ());
+	s.append (" ( ");
+	s.append (getIDField());
+	// cache rendered string for later calls.
+	insertString = s.toString();
+	return s;
+    }
+
+    public StringBuffer getUpdate () {
+	String upd = updateString;
+	if (upd != null)
+	    return new StringBuffer (upd);
+	StringBuffer s = new StringBuffer ("UPDATE ");
+	s.append (getTableName ());
+	s.append (" SET ");
+	// cache rendered string for later calls.
+	updateString = s.toString();
 	return s;
     }
 
@@ -669,21 +679,6 @@ public final class DbMapping implements Updatable {
 	}
     }
 
-    /**
-     * Return a Village Schema object for this DbMapping.
-     */
-    public synchronized KeyDef getKeyDef () {
-	if (!isRelational ())
-	    throw new RuntimeException ("Can't get KeyDef for non-relational data mapping");
-	if (source == null && parentMapping != null)
-	    return parentMapping.getKeyDef ();
-	// Use local variable s to avoid synchronization (keydef may be nulled elsewhere)
-	KeyDef k = keydef;
-	if (k != null)
-	    return k;
-	keydef = new KeyDef ().addAttrib (getIDField ());
-	return keydef;	
-    }
 
     public String toString () {
 	if (typename == null)

@@ -6,6 +6,7 @@ import java.util.*;
 
 import javax.xml.parsers.*;
 import org.w3c.dom.*;
+import org.xml.sax.InputSource;
 
 import helma.objectmodel.*;
 import helma.util.SystemProperties;
@@ -75,6 +76,15 @@ public class XmlConverter implements XmlConstants {
 	}
     }
 
+    public INode convertFromString( String xml, INode helmaNode ) throws RuntimeException {
+	Document document = XmlUtil.parse (new InputSource (new StringReader (xml)));
+	if ( document!=null && document.getDocumentElement()!=null ) {
+	    return convert( document.getDocumentElement(), helmaNode, new HashMap() );
+	} else {
+	    return helmaNode;
+	}
+    }
+
     public INode convert( Element element, INode helmaNode, Map nodeCache ) {
 	offset++;
 	// previousNode is used to cache previous nodes with the same prototype
@@ -82,17 +92,16 @@ public class XmlConverter implements XmlConstants {
 	Object previousNode = null;
 	if (DEBUG)
 	    debug("reading " + element.getNodeName() );
-	helmaNode.setName( element.getNodeName() );
 	String prototype = props.getProperty(element.getNodeName()+"._prototype");
 	if ( prototype == null && !sparse )
 	    prototype = "HopObject";
-	// if we have a prototype (either explicit or implicit "hopobject"), 
+	// if we have a prototype (either explicit or implicit "hopobject"),
 	// set it on the Helma node and store it in the node cache.
 	if ( prototype != null ) {
+	    helmaNode.setName( element.getNodeName() );
 	    helmaNode.setPrototype( prototype );
 	    previousNode = nodeCache.put (prototype, helmaNode);
 	}
-
 	// check attributes of the current element
 	attributes(element, helmaNode, nodeCache);
 	// check child nodes of the current element
@@ -113,7 +122,7 @@ public class XmlConverter implements XmlConstants {
     private INode children( Element element, helma.objectmodel.INode helmaNode, Map nodeCache ) {
 	NodeList list = element.getChildNodes();
 	int len = list.getLength();
-	boolean nodeHasPrototype = helmaNode.getPrototype() != null;
+	boolean nodeIsInitialized = !nodeCache.isEmpty();
 	StringBuffer textcontent = new StringBuffer();
 	String domKey, helmaKey;
 	for ( int i=0; i<len; i++ ) {
@@ -121,9 +130,9 @@ public class XmlConverter implements XmlConstants {
 	    // loop through the list of children
 	    org.w3c.dom.Node childNode = list.item(i);
 
-	    // if the current node hasn't been initialized yet, try if it can 
+	    // if the current node hasn't been initialized yet, try if it can
 	    // be initialized and converted from one of the child elements.
-	    if (!nodeHasPrototype) {
+	    if (!nodeIsInitialized) {
 	        if (childNode.getNodeType() == Node.ELEMENT_NODE) {
 	            convert ((Element) childNode, helmaNode, nodeCache);
 	            if (helmaNode.getPrototype() != null)
@@ -162,8 +171,9 @@ public class XmlConverter implements XmlConstants {
 	                String prototype = helmaKey.substring (0, dot);
 	                INode node = (INode) nodeCache.get (prototype);
 	                helmaKey = helmaKey.substring (dot+1);
-	                if (node != null && node.getString(helmaKey)==null)
+	                if (node != null && node.getString(helmaKey)==null) {
 	                    node.setString (helmaKey, XmlUtil.getTextContent (childNode));
+	                }
 	            } else if ( helmaNode.getString(helmaKey)==null ) {
 	                helmaNode.setString( helmaKey, XmlUtil.getTextContent(childNode) );
 	                if (DEBUG)
@@ -220,7 +230,8 @@ public class XmlConverter implements XmlConstants {
 	        if (helmaKey == null) {
 	            // we don't map this child element itself since we do
 	            // sparse parsing, but there may be something of interest
-	            // in the child's child elements.
+	            // in the child's attributes and child elements.
+	            attributes (childElement, helmaNode, nodeCache);
 	            children (childElement, helmaNode, nodeCache);
 	            continue;
 	        }
@@ -295,8 +306,9 @@ public class XmlConverter implements XmlConstants {
 	        if (dot > -1) {
 	            String prototype = helmaKey.substring (0, dot);
 	            INode node = (INode) nodeCache.get (prototype);
-	            if (node != null)
+	            if (node != null) {
 	                node.setString (helmaKey.substring(dot+1), attr.getNodeValue());
+	            }
 	        } else if (helmaNode.getPrototype() != null) {
 	            helmaNode.setString( helmaKey, attr.getNodeValue() );
 	        }

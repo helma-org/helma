@@ -123,6 +123,8 @@ public class FesiEngine implements ScriptingEngine {
      *  necessary to bootstrap the rest is parsed.
      */
     private void initialize () {
+	// set the thread filed in the FESI evaluator
+	evaluator.thread = Thread.currentThread ();
 	Collection protos = app.getPrototypes();
 	for (Iterator i=protos.iterator(); i.hasNext(); ) {
 	    Prototype proto = (Prototype) i.next ();
@@ -132,13 +134,14 @@ public class FesiEngine implements ScriptingEngine {
 	// we always need it and there's no chance to trigger
 	// creation on demand.
 	getPrototype ("global");
+	evaluator.thread = null;
     }
 
     /**
      *   Initialize a prototype without fully parsing its script files.
      */
     void initPrototype (Prototype prototype) {
-        // System.err.println ("FESI INIT PROTO "+prototype);
+	// System.err.println ("FESI INIT PROTO "+prototype);
 	ObjectPrototype op = null;
 
 	// get the prototype's prototype if possible and necessary
@@ -193,7 +196,7 @@ public class FesiEngine implements ScriptingEngine {
      *   Set up a prototype, parsing and compiling all its script files.
      */
     void evaluatePrototype (Prototype prototype) {
-        // System.err.println ("FESI EVALUATE PROTO "+prototype+" FOR "+this);
+	// System.err.println ("FESI EVALUATE PROTO "+prototype+" FOR "+this);
 	ObjectPrototype op = null;
 
 	// get the prototype's prototype if possible and necessary
@@ -230,8 +233,8 @@ public class FesiEngine implements ScriptingEngine {
 	}
 
 	// Register a constructor for all types except global.
-	// This will first create a new prototyped hopobject and then calls 
-                  // the actual (scripted) constructor on it.
+	// This will first create a new prototyped hopobject and then calls
+	// the actual (scripted) constructor on it.
 	if (!"global".equalsIgnoreCase (name) && !"root".equalsIgnoreCase (name)) {
 	    try {
 	        FunctionPrototype fp = (FunctionPrototype) evaluator.getFunctionPrototype();
@@ -263,11 +266,13 @@ public class FesiEngine implements ScriptingEngine {
 	}
     }
 
-    /** 
-     *  This method is called before an execution context is entered to let the 
+    /**
+     *  This method is called before an execution context is entered to let the
      *  engine know it should update its prototype information.
      */
     public void updatePrototypes () {
+	// set the thread filed in the FESI evaluator
+	evaluator.thread = Thread.currentThread ();
 	Collection protos = app.getPrototypes();
 	for (Iterator i=protos.iterator(); i.hasNext(); ) {
 	    Prototype proto = (Prototype) i.next ();

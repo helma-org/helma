@@ -94,9 +94,13 @@ public abstract class ImageWrapper {
     }
 
     public void resize (int w, int h) {
-	// ImageFilter filter = new ReplicateScaleFilter (w, h);
-	// img = Toolkit.getDefaultToolkit ().createImage(new FilteredImageSource(img.getSource(), filter));
 	img = img.getScaledInstance (w, h, Image.SCALE_SMOOTH);
+	width = w;
+	height = h;
+    }
+    
+    public void resizeFast (int w, int h) {
+	img = img.getScaledInstance (w, h, Image.SCALE_FAST);
 	width = w;
 	height = h;
     }

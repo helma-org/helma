@@ -269,8 +269,6 @@ public final class RequestEvaluator implements Runnable {
 	                            scriptingEngine.invoke (currentElement, "onRequest", new Object[0], false);
 	                    } catch (RedirectException redir) {
 	                        throw redir;
-	                    } catch (Exception ignore) {
-	                        // function is not defined or caused an exception, ignore
 	                    }
 
 	                    // reset skin recursion detection counter
@@ -351,7 +349,7 @@ public final class RequestEvaluator implements Runnable {
 	        break;
 	    case XMLRPC:
 	        try {
-	            localrtx.begin (app.getName()+":xmlrpc/"+method);
+	            localrtx.begin (app.getName()+":xmlrpc:"+method);
 
 	            root = app.getDataRoot ();
 
@@ -386,9 +384,11 @@ public final class RequestEvaluator implements Runnable {
 	            result = scriptingEngine.invoke (currentElement, method, args, true);
 	            commitTransaction ();
 
-	        } catch (Exception wrong) {
+	        } catch (Exception x) {
 
 	            abortTransaction (false);
+
+	            app.logEvent ("Exception in "+Thread.currentThread()+": "+x);
 
 	            // If the transactor thread has been killed by the invoker thread we don't have to
 	            // bother for the error message, just quit.
@@ -396,13 +396,13 @@ public final class RequestEvaluator implements Runnable {
 	                return;
 	            }
 
-	            this.exception = wrong;
+	            this.exception = x;
 	        }
 
 	        break;
 	    case INTERNAL:
 	        // Just a human readable descriptor of this invocation
-	        String funcdesc = app.getName()+":internal/"+method;
+	        String funcdesc = app.getName()+":internal:"+method;
 
 	        // if thisObject is an instance of NodeHandle, get the node object itself.
 	        if (thisObject != null && thisObject instanceof NodeHandle) {
@@ -438,9 +438,11 @@ public final class RequestEvaluator implements Runnable {
 	            result = scriptingEngine.invoke (thisObject, method, args, false);
 	            commitTransaction ();
 
-	        } catch (Exception wrong) {
+	        } catch (Exception x) {
 
 	            abortTransaction (false);
+
+	            app.logEvent ("Exception in "+Thread.currentThread()+": "+x);
 
 	            // If the transactor thread has been killed by the invoker thread we don't have to
 	            // bother for the error message, just quit.
@@ -448,7 +450,7 @@ public final class RequestEvaluator implements Runnable {
 	                return;
 	            }
 
-	            this.exception = wrong;
+	            this.exception = x;
 	        }
 
 	        break;

@@ -39,6 +39,7 @@ public class DomExtension extends Extension  {
         globalXml.putHiddenProperty ("write", new XmlWrite ("write", evaluator, fp));
         globalXml.putHiddenProperty ("writeToString", new XmlWriteToString ("writeToString", evaluator, fp));
         globalXml.putHiddenProperty ("get", new XmlGet ("get", evaluator, fp));
+        globalXml.putHiddenProperty ("getFromString", new XmlGetFromString ("getFromString", evaluator, fp));
         go.putHiddenProperty ("Xml", globalXml);
 	}
 
@@ -166,6 +167,31 @@ public class DomExtension extends Extension  {
 				}
 				INode node = new helma.objectmodel.db.Node ( (String)null, (String)null, this.evaluator.engine.getApplication().getWrappedNodeManager() );
 				INode result = converter.convert (arguments[0].toString(),node);
+				return this.evaluator.engine.getNodeWrapper(result);
+			}	catch ( NoClassDefFoundError e )	{
+				throw new EcmaScriptException("Can't load dom-capable xml parser.");
+			}	catch ( RuntimeException f )	{
+				throw new EcmaScriptException(f.toString());
+			}
+        }
+    }
+
+    class XmlGetFromString extends BuiltinFunctionObject {
+        XmlGetFromString(String name, Evaluator evaluator, FunctionPrototype fp) {
+            super(fp, evaluator, name, 1);
+        }
+        public ESValue callFunction(ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+			if ( arguments==null || arguments.length==0 )
+				throw new EcmaScriptException("Xml.getFromString() needs an XML string as parameter");
+			try	{
+				XmlConverter converter;
+				if ( arguments.length>1 )	{
+					converter = new XmlConverter (arguments[1].toString());
+				}	else	{
+					converter = new XmlConverter ();
+				}
+				INode node = new helma.objectmodel.db.Node ( (String)null, (String)null, this.evaluator.engine.getApplication().getWrappedNodeManager() );
+				INode result = converter.convertFromString (arguments[0].toString(),node);
 				return this.evaluator.engine.getNodeWrapper(result);
 			}	catch ( NoClassDefFoundError e )	{
 				throw new EcmaScriptException("Can't load dom-capable xml parser.");

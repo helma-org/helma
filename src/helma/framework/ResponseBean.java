@@ -62,7 +62,7 @@ public class ResponseBean implements Serializable {
 	res.writeBinary (what);
     }
 
-    public void debug (String message) {
+    public void debug (Object message) {
 	res.debug (message);
     }
 

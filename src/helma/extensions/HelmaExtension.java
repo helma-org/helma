@@ -33,6 +33,12 @@ public abstract class HelmaExtension {
 	public abstract void applicationStopped (Application app);
 
 	/**
+	  * called when an Application's properties are have been updated.
+	  * note that this will be called at startup once *before* applicationStarted().
+	  */
+	public abstract void applicationUpdated (Application app);
+
+	/**
 	  * called by the ScriptingEngine when it is initizalized. Throws a ConfigurationException
 	  * when this type of ScriptingEngine is not supported. New methods and prototypes can be
 	  * added to the scripting environment. New global vars should be returned in a HashMap
