@@ -18,7 +18,7 @@
         <property name="build.src" value="${build.dir}/src"/>
         <property name="build.dest" value="${build.dir}/classes"/>
         <property name="build.checkout" value="${build.dir}/checkout"/>
- 	<property name="cvs.root" value=":pserver:anonymous@coletta.helma.at:/opt/cvs"/>
+        <property name="cvs.root" value=":pserver:anonymous@coletta.helma.at:/opt/cvs"/>
         <property name="javadoc.destdir" value="../docs/apidocs"/>
         <property name="jar.name" value="helma"/>
         <property name="final.name" value="${project}-${version}"/>
@@ -49,15 +49,14 @@
         <mkdir dir="${build.checkout}"/>
  
         <cvs cvsRoot="${cvs.root}" package="hop" dest="${build.checkout}"/>
-	<cvs cvsRoot="${cvs.root}" package="apps/hopblog" dest="${build.dir}"/>
+        <cvs cvsRoot="${cvs.root}" package="apps/hopblog" dest="${build.dir}"/>
         <cvs cvsRoot="${cvs.root}" package="hopbuild/lib" dest="${build.dir}"/>
-	<cvs cvsRoot="${cvs.root}" package="hopbuild/skeleton" dest="${build.dir}"/>
+        <cvs cvsRoot="${cvs.root}" package="hopbuild/skeleton" dest="${build.dir}"/>
 
         <copy todir="${build.src}">
             <fileset dir="${build.checkout}/hop"
                 includes="helma/**/*.java,FESI/**/*.java,Acme/**/*.java"/>
         </copy>
-
     </target>
 
     <!-- =================================================================== -->
@@ -117,7 +116,6 @@
         <rmic classname="helma.framework.core.Application" base="${build.dest}"/>
         <rmic classname="helma.image.Server" base="${build.dest}"/>
         <rmic classname="helma.image.RemoteImage" base="${build.dest}"/>
-
     </target>
 
     <!-- =================================================================== -->
@@ -151,8 +149,8 @@
     <!-- =================================================================== -->
     <target name="package" depends="jar">
         <mkdir dir="${final.dir}"/>
- 	<!-- mkdir dir="${final.dir}/static"/ -->
- 	<mkdir dir="${final.dir}/src"/>
+        <!-- mkdir dir="${final.dir}/static"/ -->
+        <mkdir dir="${final.dir}/src"/>
         <jar jarfile="${final.dir}/src/${Name}-src.jar"
             basedir="${build.src}"/>
         <!-- copy todir="${final.dir}/src">
@@ -170,7 +168,7 @@
         <copy todir="${final.dir}/apps/base">
             <fileset dir="${build.dir}/apps/hopblog" excludes="**/CVS"/>
         </copy>
- 	<copy file="${build.dir}/${jar.name}.jar" todir="${final.dir}/lib"/>
+        <copy file="${build.dir}/${jar.name}.jar" todir="${final.dir}/lib"/>
         <chmod file="${final.dir}/hop.sh" perm="755"/>
    </target>
 
@@ -223,7 +221,9 @@
         </ftp>
     </target>
 
-
+    <!-- =================================================================== -->
+    <!-- This is just a test                                                 -->
+    <!-- =================================================================== -->
     <target name="ftp-test" depends="">
          <ftp server="piefke.helma.at"
             userid="anonymous"
@@ -233,8 +233,7 @@
             </fileset>
         </ftp>
     </target>
-
-
+    
 </project>
 
 
