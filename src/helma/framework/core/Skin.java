@@ -25,9 +25,15 @@ public class Skin {
     Object[] parts;
     Application app;
     String source;
+    ESObject sandbox;
 
     public Skin (String content, Application app) {
+	this (content, app, null);
+    }
+
+    public Skin (String content, Application app, ESObject sandbox) {
 	this.app = app;
+	this.sandbox = sandbox;
 	parse (content);
     }
 
@@ -87,6 +93,7 @@ public class Skin {
 	String handler;
 	String name;
 	Hashtable parameters;
+	boolean notallowed = false;
 
 	public Macro (String str) {
 
@@ -173,12 +180,26 @@ public class Skin {
 	        else if (state <= MACRO)
 	            name = b.toString().trim();
 	    }
+	    if (sandbox != null && name != null) try {
+	        ESValue allow = handler == null ?
+	                sandbox.getProperty ("global", "global".hashCode ()) :
+	                sandbox.getProperty (handler, handler.hashCode ());
+	        allow = ((ESObject) allow).getProperty (name, name.hashCode ());
+	        if (allow == null || allow == ESUndefined.theUndefined)
+	            notallowed = true;
+	    } catch (Exception x) {
+	        notallowed = true;
+	    }
 	}
 
 
 	public void render (RequestEvaluator reval, ESNode thisNode, ESObject paramObject) throws RedirectException {
 
-	    if ("response".equalsIgnoreCase (handler)) {
+	    if (notallowed) {
+	        String h = handler == null ? "global" : handler;
+	        reval.res.write ("[Macro "+h+"."+name+" not allowed in sandbox]");
+	        return;
+	    } else if ("response".equalsIgnoreCase (handler)) {
 	        renderFromResponse (reval);
 	        return;
 	    } else if ("request".equalsIgnoreCase (handler)) {

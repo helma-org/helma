@@ -106,7 +106,7 @@ public class HopExtension {
         go.putHiddenProperty("getXmlDocument", new GlobalGetXmlDocument ("getXmlDocument", evaluator, fp));
         go.putHiddenProperty("getHtmlDocument", new GlobalGetHtmlDocument ("getHtmlDocument", evaluator, fp));
         go.putHiddenProperty("jdomize", new GlobalJDOM ("jdomize", evaluator, fp));
-        go.putHiddenProperty("getSkin", new GlobalGetSkin ("getSkin", evaluator, fp));
+        go.putHiddenProperty("getSkin", new GlobalCreateSkin ("getSkin", evaluator, fp));
         go.putHiddenProperty("createSkin", new GlobalCreateSkin ("createSkin", evaluator, fp));
         go.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, true, false));
         go.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, true, true));
@@ -570,26 +570,6 @@ public class HopExtension {
     }
 
     /**
-     * Get a parsed Skin from the central skin cache if possible, otherwise create it
-     */
-    class GlobalGetSkin extends BuiltinFunctionObject {
-        GlobalGetSkin (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            if (arguments.length != 1 || ESNull.theNull.equals (arguments[0]))
-                throw new EcmaScriptException ("getSkin must be called with one String argument!");
-            String str = arguments[0].toString ();
-            Skin skin = (Skin) app.skincache.get (str);
-            if (skin == null) {
-               skin = new Skin (str, app);
-               app.skincache.put (str, skin);
-            }
-            return new ESWrapper (skin, evaluator);
-        }
-    }
-
-    /**
      * Get a parsed Skin from an app-managed skin text
      */
     class GlobalCreateSkin extends BuiltinFunctionObject {
@@ -597,9 +577,15 @@ public class HopExtension {
             super (fp, evaluator, name, 1);
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            if (arguments.length != 1 || ESNull.theNull.equals (arguments[0]))
-                throw new EcmaScriptException ("createSkin must be called with one String argument!");
-            return new ESWrapper (new Skin (arguments[0].toString(), app), evaluator);
+            if (arguments.length < 1 || arguments.length > 2 || ESNull.theNull.equals (arguments[0]))
+                throw new EcmaScriptException ("createSkin must be called with one String argument and an optional sandbox parameter!");
+            String str = arguments[0].toString ();
+            Skin skin = null;
+            if (arguments.length == 2 && arguments[1] instanceof ESObject)
+                skin = new Skin (str, app, (ESObject) arguments[1]);
+            else
+                skin = new Skin (str, app);
+            return new ESWrapper (skin, evaluator);
         }
     }
 

@@ -75,7 +75,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
     private DbMapping rootMapping, userRootMapping, userMapping;
 
-    protected CacheMap skincache = new CacheMap (100);
+    boolean checkSubnodes;
 
     String charset;
 
@@ -131,6 +131,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	charset = props.getProperty ("charset", "ISO-8859-1");
 
 	debug = "true".equalsIgnoreCase (props.getProperty ("debug"));
+	checkSubnodes = !"false".equalsIgnoreCase (props.getProperty ("subnodeChecking"));
+	
 	try {
 	    requestTimeout = Long.parseLong (props.getProperty ("requestTimeout", "60"))*1000l;
 	} catch (Exception ignore) {	}
@@ -710,7 +712,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
      * It is recommended to leave it on except you suffer severe performance problems and know what you do.
      */
     public boolean doesSubnodeChecking () {
-	return !"false".equalsIgnoreCase (props.getProperty ("subnodeChecking"));
+	return checkSubnodes;
     }
 
 }
