@@ -485,6 +485,8 @@ public final class Node implements INode, Serializable {
 	            } else {
 	                anonymous = true;
 	            }
+	        } else if (p.contains (this) > -1) {
+	           anonymous = true;
 	        }
 	    } catch (Exception ignore) {
 	        // just fall back to default method
