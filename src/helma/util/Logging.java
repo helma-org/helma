@@ -157,6 +157,7 @@ public class Logging extends LogFactory {
     public static void shutdown() {
         if (runner != null && runner.isAlive()) {
             runner.interrupt();
+            runner = null;
             Thread.yield();
         }
 
@@ -261,9 +262,10 @@ public class Logging extends LogFactory {
                 try {
                     wait(250);
                 } catch (InterruptedException ix) {
-                    return;
+                    break;
                 }
             }
+            runner = null;
         }
 
         public synchronized void wakeup() {
