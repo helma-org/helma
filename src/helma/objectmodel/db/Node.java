@@ -444,15 +444,14 @@ public final class Node implements INode, Serializable {
 	// This doesn't make sense for transient nodes
 	if (state == TRANSIENT || state == NEW)
 	    return;
-    checkWriteLock ();  // ?? necessary ??
-    Relation rel = getDbMapping ().getSubnodeRelation ();
-    if (rel != null) {
-        if (rel.usesPrimaryKey()) {
-            nmgr.evictKey (new DbKey (getDbMapping().getSubnodeMapping(), key));
-        } else {
-            nmgr.evictKey (new SyntheticKey (getKey(), key));
-        }
-    }
+	Relation rel = getDbMapping ().getSubnodeRelation ();
+	if (rel != null) {
+	    if (rel.usesPrimaryKey()) {
+	        nmgr.evictKey (new DbKey (getDbMapping().getSubnodeMapping(), key));
+	    } else {
+	        nmgr.evictKey (new SyntheticKey (getKey(), key));
+	    }
+	}
     }
 
 
