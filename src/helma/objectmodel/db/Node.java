@@ -1667,6 +1667,7 @@ public final class Node implements INode, Serializable {
                     Node pn = new Node(propname, propRel.getPrototype(), nmgr);
 
                     pn.setDbMapping(propRel.getVirtualMapping());
+                    pn.setParent(this);
                     if (propRel.needsPersistence()) {
                         setNode(propname, pn);
                         prop = (Property) propMap.get(propname);
