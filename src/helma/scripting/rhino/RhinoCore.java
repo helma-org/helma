@@ -176,7 +176,9 @@ public final class RhinoCore {
         // Register a constructor for all types except global.
         // This will first create a new prototyped hopobject and then calls
         // the actual (scripted) constructor on it.
-        if (!"global".equalsIgnoreCase(name) && !"root".equalsIgnoreCase(name)) {
+        if (!"global".equalsIgnoreCase(name) &&
+                !"root".equalsIgnoreCase(name) &&
+                !"hopobject".equalsIgnoreCase(name)) {
             try {
                 installConstructor(name, op);
             } catch (Exception ignore) {
