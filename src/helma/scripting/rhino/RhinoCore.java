@@ -258,6 +258,17 @@ public final class RhinoCore {
 
         type.compiledFunctions = newFunctions;
         type.lastUpdate = prototype.getLastUpdate();
+
+        // If this prototype defines a postCompile() function, call it
+        Context cx = Context.getCurrentContext();
+        try {
+            Object fObj = op.get("postCompile",op);
+                if (fObj instanceof Function) {
+                ((Function) fObj).call(cx, global, op, new Object[0]);
+            }
+        } catch (Exception x) {
+            app.logError("Exception in "+prototype.getName()+".postCompile(): " + x, x);
+        }
     }
 
     /**
