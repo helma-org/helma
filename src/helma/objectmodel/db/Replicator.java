@@ -18,11 +18,12 @@ package helma.objectmodel.db;
 
 import java.rmi.Naming;
 import java.util.Vector;
+import java.util.List;
 
 /**
  * This class replicates the updates of transactions to other applications via RMI
  */
-public class Replicator implements Runnable {
+public class Replicator implements Runnable, NodeChangeListener {
     Vector urls;
     Vector add;
     Vector delete;
@@ -99,32 +100,17 @@ public class Replicator implements Runnable {
         }
     }
 
-    /**
-     *
-     *
-     * @param n ...
-     */
-    public synchronized void addNewNode(Node n) {
-        add.addElement(n);
-    }
 
     /**
-     *
-     *
-     * @param n ...
+     * Called when a transaction is committed that has created, modified or 
+     * deleted one or more nodes.
      */
-    public synchronized void addModifiedNode(Node n) {
-        add.addElement(n);
+    public synchronized void nodesChanged(List inserted,  List updated, List deleted) {
+        add.addAll(inserted);
+        add.addAll(updated);
+        delete.addAll(deleted);
     }
 
-    /**
-     *
-     *
-     * @param n ...
-     */
-    public synchronized void addDeletedNode(Node n) {
-        delete.addElement(n);
-    }
 
     private synchronized boolean prepareReplication() {
         if ((add.size() == 0) && (delete.size() == 0)) {

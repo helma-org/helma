@@ -20,9 +20,7 @@ import helma.objectmodel.DatabaseException;
 import helma.objectmodel.ITransaction;
 
 import java.sql.Connection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.*;
 
 /**
  * A subclass of thread that keeps track of changed nodes and triggers
@@ -227,102 +225,115 @@ public class Transactor extends Thread {
         int updated = 0;
         int deleted = 0;
 
-        Object[] dirty = dirtyNodes.values().toArray();
+        if (!dirtyNodes.isEmpty()) {
+            Object[] dirty = dirtyNodes.values().toArray();
 
-        // the replicator to send update notifications to, if defined
-        Replicator replicator = nmgr.getReplicator();
-        // the set to collect DbMappings to be marked as changed
-        HashSet dirtyDbMappings = new HashSet();
+            ArrayList insertedNodes = new ArrayList();
+            ArrayList updatedNodes = new ArrayList();
+            ArrayList deletedNodes = new ArrayList();
+            // if nodemanager has listeners collect dirty nodes
+            boolean hasListeners = nmgr.hasNodeChangeListeners();
+        
+            // the set to collect DbMappings to be marked as changed
+            HashSet dirtyDbMappings = new HashSet();
 
-        for (int i = 0; i < dirty.length; i++) {
-            Node node = (Node) dirty[i];
+            for (int i = 0; i < dirty.length; i++) {
+                Node node = (Node) dirty[i];
 
-            // update nodes in db
-            int nstate = node.getState();
+                // update nodes in db
+                int nstate = node.getState();
 
-            if (nstate == Node.NEW) {
-                nmgr.insertNode(nmgr.db, txn, node);
-                dirtyDbMappings.add(node.getDbMapping());
-                node.setState(Node.CLEAN);
-
-                // register node with nodemanager cache
-                nmgr.registerNode(node);
-
-                if (replicator != null) {
-                    replicator.addNewNode(node);
-                }
-
-                inserted++;
-                nmgr.app.logEvent("inserted: Node " + node.getPrototype() + "/" +
-                                  node.getID());
-            } else if (nstate == Node.MODIFIED) {
-                // only mark DbMapping as dirty if updateNode returns true
-                if (nmgr.updateNode(nmgr.db, txn, node)) {
+                if (nstate == Node.NEW) {
+                    nmgr.insertNode(nmgr.db, txn, node);
                     dirtyDbMappings.add(node.getDbMapping());
-                }
-                node.setState(Node.CLEAN);
+                    node.setState(Node.CLEAN);
 
-                // update node with nodemanager cache
-                nmgr.registerNode(node);
+                    // register node with nodemanager cache
+                    nmgr.registerNode(node);
 
-                if (replicator != null) {
-                    replicator.addModifiedNode(node);
-                }
+                    if (hasListeners) {
+                        insertedNodes.add(node);
+                    }
 
-                updated++;
-                nmgr.app.logEvent("updated: Node " + node.getPrototype() + "/" +
+                    inserted++;
+                    nmgr.app.logEvent("inserted: Node " + node.getPrototype() + "/" +
                                   node.getID());
-            } else if (nstate == Node.DELETED) {
-                nmgr.deleteNode(nmgr.db, txn, node);
-                dirtyDbMappings.add(node.getDbMapping());
+                } else if (nstate == Node.MODIFIED) {
+                    // only mark DbMapping as dirty if updateNode returns true
+                    if (nmgr.updateNode(nmgr.db, txn, node)) {
+                        dirtyDbMappings.add(node.getDbMapping());
+                    }
+                    node.setState(Node.CLEAN);
 
-                // remove node from nodemanager cache
-                nmgr.evictNode(node);
+                    // update node with nodemanager cache
+                    nmgr.registerNode(node);
 
-                if (replicator != null) {
-                    replicator.addDeletedNode(node);
+                    if (hasListeners) {
+                        updatedNodes.add(node);
+                    }
+
+                    updated++;
+                    nmgr.app.logEvent("updated: Node " + node.getPrototype() + "/" +
+                                      node.getID());
+                } else if (nstate == Node.DELETED) {
+                    nmgr.deleteNode(nmgr.db, txn, node);
+                    dirtyDbMappings.add(node.getDbMapping());
+
+                    // remove node from nodemanager cache
+                    nmgr.evictNode(node);
+
+                    if (hasListeners) {
+                        deletedNodes.add(node);
+                    }
+
+                    deleted++;
                 }
 
-                deleted++;
+                node.clearWriteLock();
             }
 
-            node.clearWriteLock();
-        }
+            // set last data change times in db-mappings
+            long now = System.currentTimeMillis();
+            for (Iterator i = dirtyDbMappings.iterator(); i.hasNext(); ) {
+                DbMapping dbm = (DbMapping) i.next();
+                if (dbm != null) {
+                    dbm.setLastDataChange(now);
+                }
+            }
 
+            // save the id-generator for the embedded db, if necessary
+            if (nmgr.idgen.dirty) {
+                nmgr.db.saveIDGenerator(txn, nmgr.idgen);
+                nmgr.idgen.dirty = false;
+            }
+        
+            if (hasListeners) {
+                nmgr.fireNodeChangeEvent(insertedNodes, updatedNodes, deletedNodes);
+            }
+        }
+        
         long now = System.currentTimeMillis();
-
-        // set last data change times in db-mappings
-        for (Iterator i = dirtyDbMappings.iterator(); i.hasNext(); ) {
-            DbMapping dbm = (DbMapping) i.next();
-            if (dbm != null) {
-                dbm.setLastDataChange(now);
+        
+        if (!parentNodes.isEmpty()) {
+            // set last subnode change times in parent nodes
+            for (Iterator i = parentNodes.iterator(); i.hasNext(); ) {
+                Node node = (Node) i.next();
+                node.setLastSubnodeChange(now);
             }
-        }
-
-        // set last subnode change times in parent nodes
-        for (Iterator i = parentNodes.iterator(); i.hasNext(); ) {
-            Node node = (Node) i.next();
-            node.setLastSubnodeChange(now);
         }
 
         // clear the node collections
         dirtyNodes.clear();
         cleanNodes.clear();
         parentNodes.clear();
-
-        // save the id-generator for the embedded db, if necessary
-        if (nmgr.idgen.dirty) {
-            nmgr.db.saveIDGenerator(txn, nmgr.idgen);
-            nmgr.idgen.dirty = false;
-        }
-
+        
         if (active) {
             active = false;
             nmgr.db.commitTransaction(txn);
             txn = null;
         }
 
-        nmgr.app.logAccess(tname + " " + dirty.length + " marked, " + inserted +
+        nmgr.app.logAccess(tname + " " + inserted +
                            " inserted, " + updated +
                            " updated, " + deleted + " deleted in " +
                            (now - tstart) + " millis");

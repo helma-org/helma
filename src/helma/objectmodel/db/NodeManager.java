@@ -36,12 +36,12 @@ public final class NodeManager {
 
     protected Application app;
     private ObjectCache cache;
-    private Replicator replicator;
     protected IDatabase db;
     protected IDGenerator idgen;
     private long idBaseValue = 1L;
     private boolean logSql;
     protected boolean logReplication;
+    private ArrayList listeners = new ArrayList();
 
     // a wrapper that catches some Exceptions while accessing this NM
     public final WrappedNodeManager safe;
@@ -72,10 +72,9 @@ public final class NodeManager {
                 app.logEvent("Setting up replication listener at " + replicationUrl);
             }
 
-            replicator = new Replicator(this);
+            Replicator replicator = new Replicator(this);
             replicator.addUrl(replicationUrl);
-        } else {
-            replicator = null;
+            addNodeChangeListener(replicator);
         }
 
         // get the initial id generator value
@@ -1801,13 +1800,40 @@ public final class NodeManager {
         }
     }
 
-    /**
-     * Get a replicator for this node cache. A replicator is used to transfer updates
-     * in this node manager to other node managers in remote servers via RMI.
+    /** 
+     * Add a listener that is notified each time a transaction commits 
+     * that adds, modifies or deletes any Nodes.
      */
-    protected Replicator getReplicator() {
-        return replicator;
+    public void addNodeChangeListener(NodeChangeListener listener) {
+        listeners.add(listener);
     }
+    
+    /** 
+     * Remove a previously added NodeChangeListener. 
+     */
+    public void removeNodeChangeListener(NodeChangeListener listener) {
+        listeners.remove(listener);
+    }
+    
+    /**
+     * Let transactors know if they should collect and fire NodeChangeListener
+     * events
+     */
+    protected boolean hasNodeChangeListeners() {
+        return listeners.size() > 0;
+    }
+    
+    /**
+     * Called by transactors after committing.
+     */
+    protected void fireNodeChangeEvent(List inserted, List updated, List deleted) {
+        int l = listeners.size();
+
+        for (int i=0; i<l; i++) {
+            ((NodeChangeListener) listeners.get(i)).nodesChanged(inserted, updated, deleted);
+        }
+    }
+    
 
     /**
      *  Receive notification from a remote app that objects in its cache have been
