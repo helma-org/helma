@@ -123,7 +123,7 @@ function typeProperties_macro (param) {
 			// look up in mappings table if line matches:
 			for (var e = mappings.keys (); e.hasMoreElements (); ) {
 				var key = e.nextElement ();
-				var reg = new RegExp ('^' + key + '\\W');
+				var reg = new RegExp ('^' + key + '\\s');
 				if (arr[i].match (reg)) {
 					// it matched, wrap line in a link to that prototype:
 					var docProtoObj = this.getApplication ().getPrototype (mappings.getProperty (key));
