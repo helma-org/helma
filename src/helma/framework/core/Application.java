@@ -512,6 +512,14 @@ public final class Application implements IPathElement, Runnable {
 	nmgr.clearCache ();
     }
 
+
+    /**
+     * Returns the number of elements in the NodeManager's cache
+     */
+    public int getCacheUsage () {
+	return nmgr.countCacheEntries ();
+    }
+
     /**
      *  Set the application's root element to an arbitrary object. After this is called
      *  with a non-null object, the helma node manager will be bypassed. This function
@@ -999,7 +1007,8 @@ public final class Application implements IPathElement, Runnable {
 	if (name.equals("api")) {
 	    if ( docApp==null ) {
 	        try {
-	            docApp = new DocApplication( this.name,appDir.toString() );
+	            docApp = new DocApplication (this.name, appDir.toString());
+	            docApp.readApplication ();
 	        } catch ( DocException e ) {
 	            return null;
 	        }
