@@ -31,7 +31,7 @@ public class Session implements Serializable {
 
     // the transient session node that is exposed to javascript
     // this stays the same across logins and logouts.
-    TransientNode sessionNode;
+    public TransientNode cacheNode;
 
     long onSince, lastTouched;
 
@@ -44,7 +44,7 @@ public class Session implements Serializable {
 		this.app = app;
 		this.uid = null;
 		this.userHandle = null;
-		sessionNode = new TransientNode ("session");
+		cacheNode = new TransientNode ("session");
 		onSince = System.currentTimeMillis ();
 		lastTouched = onSince;
     }
@@ -80,8 +80,8 @@ public class Session implements Serializable {
 		}
 	}
 
-    public INode getNode () {
-    	return sessionNode;
+    public INode getCacheNode () {
+    	return cacheNode;
     }
 
 	public Application getApp ()	{
@@ -106,9 +106,9 @@ public class Session implements Serializable {
 
 	public String toString ()	{
 		if ( uid!=null )
-			return "Session " + sessionID + ":" + uid;
+			return "[Session " + sessionID + ":" + uid + "]";
 		else
-			return "Session " + sessionID;
+			return "[Session " + sessionID + "]";
 	}
 
     /**
