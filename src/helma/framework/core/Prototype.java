@@ -62,13 +62,27 @@ public class Prototype {
 	if (retval == null && "true".equalsIgnoreCase (app.props.getProperty ("exposetemplates")))
 	    retval = (Action) templates.get (aname);
 	// if still not found, check if the action is defined for the generic node prototype
-	if (retval == null && this != app.typemgr.nodeProto && app.typemgr.nodeProto != null)
-	    retval = app.typemgr.nodeProto.getActionOrTemplate (aname);
+	if (retval == null && prototype != null)
+	    retval = prototype.getActionOrTemplate (aname);
 	return retval;
     }
 
     public void setPrototype (Prototype prototype) {
+	Prototype old = this.prototype;
 	this.prototype = prototype;
+
+	// if prototype has changed, update ES-prototypes in request evaluators
+	if (prototype != old) {
+	    Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
+	    while (evals.hasNext ()) {
+	        try {
+	            RequestEvaluator reval = (RequestEvaluator) evals.next ();
+	            ObjectPrototype op = reval.getPrototype (getName());
+	            ObjectPrototype opp = prototype == null ? null : reval.getPrototype (prototype.getName ());
+	            op.setPrototype (opp);
+	        } catch (Exception ignore) {}
+                 }
+	}
     }
 
     public Prototype getPrototype () {
@@ -136,14 +150,25 @@ public class Prototype {
 
     public void initRequestEvaluator (RequestEvaluator reval) {
             ObjectPrototype op = null;
-            if ("user".equalsIgnoreCase (name))
+
+            // get the prototype's prototype if possible and necessary
+            ObjectPrototype opp = null;
+            if (prototype != null) {
+                if ("hopobject".equalsIgnoreCase (prototype.getName ()))
+                    opp = reval.esNodePrototype;
+                else
+                    opp = reval.getPrototype (prototype.getName ());
+            }
+
+            if ("user".equalsIgnoreCase (name)) {
                 op = reval.esUserPrototype;
-            else if ("global".equalsIgnoreCase (name))
+                op.setPrototype (opp);
+            } else if ("global".equalsIgnoreCase (name))
                 op = reval.global;
             else if ("hopobject".equalsIgnoreCase (name))
                 op = reval.esNodePrototype;
             else {
-                op = new ObjectPrototype (reval.esNodePrototype, reval.evaluator);
+                op = new ObjectPrototype (opp, reval.evaluator);
                 try {
                     op.putProperty ("prototypename", new ESString (name), "prototypename".hashCode ());
                 } catch (EcmaScriptException ignore) {}
@@ -175,7 +200,14 @@ public class Prototype {
 	        act.updateRequestEvaluator (reval);
 	    } catch (EcmaScriptException ignore) {}
 	}
+
     }
+
+
+    public String toString () {
+	return "[Prototype "+ app.getName()+"/"+name+"]";
+    }
+
 }
 
 
