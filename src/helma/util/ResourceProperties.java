@@ -243,6 +243,10 @@ public final class ResourceProperties extends Properties {
      * @return last modified date
      */
     public long lastModified() {
+        if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
+            update();
+        }
+
         return lastModified;
     }
 
