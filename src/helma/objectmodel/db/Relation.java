@@ -397,9 +397,7 @@ public final class Relation {
 	    q.append (filter);
 	}
 	if (groupby != null) {
-	    q.append (prefix);
-	    q.append (groupby);
-	    q.append (" IS NOT NULL GROUP BY "+groupby);
+	    q.append (" GROUP BY "+groupby);
 	    if (useOrder && groupbyorder != null)
 	        q.append (" ORDER BY "+groupbyorder);
 	} else if (useOrder && order != null)
