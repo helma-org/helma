@@ -117,6 +117,7 @@ public class Node implements INode, Serializable {
     // transient String nameProp; // the name of the property which defines the name of this node.
     transient boolean adoptName = true;  // little helper to know if this node is being converted
 
+    static final long serialVersionUID = -3740339688506633675L;
 
     /**
      * This constructor is only used for instances of the NullNode subclass. Do not use for ordinary Nodes!
