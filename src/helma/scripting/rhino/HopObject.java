@@ -643,6 +643,19 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     }
 
     /**
+     * Makes the HopObject and all its reachable descendants persistent.
+     *
+     * @return the ID of the newly persisted HopObject or null if operation failed
+     */
+    public Object jsFunction_persist() {
+        if (node instanceof helma.objectmodel.db.Node) {
+            ((helma.objectmodel.db.Node) node).persist();
+            return node.getID();
+        }
+        return null;
+    }
+
+    /**
      *  Invalidate the node itself or a subnode
      */
     public boolean jsFunction_invalidate(Object childId) {

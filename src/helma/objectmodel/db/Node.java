@@ -2411,6 +2411,13 @@ public final class Node implements INode, Serializable {
     }
 
     /**
+     * Public method to make a node persistent.
+     */
+    public void persist() {
+        makePersistable();
+    }
+
+    /**
      * Turn node status from TRANSIENT to NEW so that the Transactor will
      * know it has to insert this node. Recursively persistifies all child nodes
      * and references.
