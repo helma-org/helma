@@ -1837,7 +1837,7 @@ public final class Node implements INode, Serializable {
      */
     public INode getNonVirtualParent () {
 	INode node = this;
-	for (int i=0; i<3; i++) {
+	for (int i=0; i<5; i++) {
 	    if (node == null) break;
 	    if (node.getState() != Node.VIRTUAL)
 	        return node;
