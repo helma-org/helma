@@ -134,6 +134,7 @@ public class FileRepository extends AbstractRepository {
         if (!dir.exists()) {
             repositories = new Repository[0];
             resources.clear();
+            lastModified = 0;
             return;
         }
 
