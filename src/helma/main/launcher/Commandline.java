@@ -50,6 +50,7 @@ public class Commandline {
             main.invoke(null, nargs);
         } catch (Exception x) {
             // unable to get Helma installation dir from launcher jar
+            x.printStackTrace();
             System.err.println("Unable to get Helma installation directory: ");
             System.err.println(x.getMessage());
             System.exit(2);
