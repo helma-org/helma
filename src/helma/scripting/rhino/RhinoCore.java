@@ -70,7 +70,7 @@ public final class RhinoCore implements WrapHandler {
         context.setOptimizationLevel(optLevel);
 
         try {
-            GlobalObject g = new GlobalObject(this, app);
+            GlobalObject g = new GlobalObject(this, app, context);
 
             global = context.initStandardObjects(g);
             ScriptableObject.defineClass(global, HopObject.class);
@@ -554,7 +554,7 @@ public final class RhinoCore implements WrapHandler {
             op = getPrototype("hopobject");
         }
 
-        return new JavaObject(global, e, op);
+        return new JavaObject(global, e, op, this);
     }
 
     /**

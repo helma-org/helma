@@ -58,7 +58,7 @@ public class HopObject extends ScriptableObject {
     }
 
     /**
-     * Creates a new HopObject object.
+     * Creates a new HopObject prototype.
      *
      * @param cname ...
      */
@@ -66,14 +66,10 @@ public class HopObject extends ScriptableObject {
         className = cname;
     }
 
-    // public void jsConstructor () {
 
-    /* Context cx = Context.getCurrentContext ();
-       RhinoEngine engine = (RhinoEngine) cx.getThreadLocal ("engine");
-       core = engine.core;
-       node = new helma.objectmodel.db.Node (null, null, core.app.getWrappedNodeManager ()); */
-
-    // }
+    /**
+     *  This method is used as HopObject constructor from JavaScript.
+     */
     public static Object hopObjectConstructor(Context cx, Object[] args,
                                               Function ctorObj, boolean inNewExpr) {
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");

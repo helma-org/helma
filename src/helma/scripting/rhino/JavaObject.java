@@ -39,10 +39,11 @@ public class JavaObject extends NativeJavaObject {
     /**
      *  Creates a new JavaObject wrapper.
      */
-    public JavaObject(Scriptable scope, Object obj, Scriptable prototype) {
+    public JavaObject(Scriptable scope, Object obj, Scriptable prototype, RhinoCore core) {
         this.parent = scope;
         this.javaObject = obj;
         this.prototype = prototype;
+        this.core = core;
         staticType = obj.getClass();
         initMembers();
     }
@@ -56,7 +57,7 @@ public class JavaObject extends NativeJavaObject {
      *
      * @return ...
      */
-    public boolean jsFunction_renderSkin(Object skin, Object param) {
+    public boolean renderSkin(Object skin, Object param) {
         // System.err.println ("RENDERSKIN CALLED WITH PARAM "+param);
         Context cx = Context.getCurrentContext();
         RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
@@ -97,8 +98,8 @@ public class JavaObject extends NativeJavaObject {
      *
      * @return ...
      */
-    public String jsFunction_renderSkinAsString(Object skin, Object param) {
-        // System.err.println ("RENDERSKIN CALLED WITH PARAM "+param);
+    public String renderSkinAsString(Object skin, Object param) {
+        // System.err.println ("RENDERSKINASSTRING CALLED WITH skin "+skin);
         Context cx = Context.getCurrentContext();
         RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
         Skin s;
@@ -140,7 +141,7 @@ public class JavaObject extends NativeJavaObject {
      *
      * @return ...
      */
-    public Object jsFunction_href(Object action) {
+    public Object href(Object action) {
         if (javaObject == null) {
             return null;
         }
@@ -159,18 +160,27 @@ public class JavaObject extends NativeJavaObject {
     }
 
     public boolean has(String name, Scriptable start) {
-        System.err.println ("HAS: "+name);
+        // System.err.println ("HAS: "+name);
         if (prototype.has(name, start))
             return true;
         return super.has(name, start);
     }
 
     public Object get(String name, Scriptable start) {
-        System.err.println ("GET: "+name);
+        // System.err.println ("GET: "+name);
         Object obj = prototype.get(name, start);
-        if (obj != null && obj != Undefined.instance)
+        if (obj != null && obj != UniqueTag.NOT_FOUND)
             return obj;
-        return super.get(name, start);
+
+        Method[] m = JavaObject.class.getMethods();
+        for (int i=0; i<m.length; i++) {
+            if (name.equals(m[i].getName())) {
+                obj =  new FunctionObject(name, m[i], this);
+                // System.err.println ("GOT: "+obj);
+                return obj;
+            }
+        }
+      return super.get(name, start);
     }
 
 }

@@ -40,7 +40,7 @@ public class GlobalObject extends ScriptableObject {
      *
      * @throws PropertyException ...
      */
-    public GlobalObject(RhinoCore core, Application app)
+    public GlobalObject(RhinoCore core, Application app, Context cx)
                  throws PropertyException {
         this.core = core;
         this.app = app;
@@ -52,8 +52,8 @@ public class GlobalObject extends ScriptableObject {
                                };
 
         defineFunctionProperties(globalFuncs, GlobalObject.class, 0);
-        put("app", this, new ApplicationBean(app));
-        put("Xml", this, new XmlObject(core));
+        put("app", this, cx.toObject(new ApplicationBean(app), this));
+        put("Xml", this, cx.toObject(new XmlObject(core), this));
     }
 
     /**
