@@ -409,9 +409,10 @@ public final class RhinoCore {
     */
     public boolean hasFunction(String protoname, String fname) {
         // System.err.println ("HAS_FUNC: "+fname);
-        try {
-            Scriptable op = getPrototype(protoname);
+        // throws EvaluatorException if type has a syntax error
+        Scriptable op = getValidPrototype(protoname);
 
+        try {
             // if this is an untyped object return false
             if (op == null) {
                 return false;
