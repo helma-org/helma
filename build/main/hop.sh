@@ -32,13 +32,20 @@ else
    JAVACMD=java
 fi
 
+# Check if java command is executable
+if [ ! -x "$JAVACMD" ] ; then
+   echo "Error: JAVA_HOME is not defined correctly."
+   echo "  We cannot execute $JAVACMD"
+   exit
+fi
+
 # Get the Helma installation directory
 INSTALL_DIR="${0%/*}"
 cd $INSTALL_DIR
 INSTALL_DIR=$PWD
 
 # get HOP_HOME variable if it isn't set
-if test -z "$HOP_HOME"; then
+if [ -z "$HOP_HOME" ]; then
   # try to get HOP_HOME from script file and pwd
   # strip everyting behind last slash
   HOP_HOME="${0%/*}"
