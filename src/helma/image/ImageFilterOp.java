@@ -19,7 +19,7 @@
  * It wraps an ImageFilter in a BufferedImageOp
  * Optimizations have been added, like the ignoring of color models 
  * and the assumption of INT_RGB type for destination buffers in 
- * order to speed things up by almost a factor of 2.
+ * order to speed things up by almost a factor of 4.
  */
 
 package helma.image;
@@ -75,13 +75,25 @@ public class ImageFilterOp implements BufferedImageOp {
         // allways work in integer mode. this is more effective, and most
         // filters convert to integer internally anyhow
         cm = new SimpleColorModel();
-        int pixels[] = new int[width];
+
+        // create a BufferedImage of only 1 pixel height for fetching the rows of the image in the correct format
+        // This speeds up things by more than factor 2, compared with the standard BufferedImage.getRGB solution,
+        // which is supposed to be fast too. This is probably the case because drawing to BufferedImages is 
+        // very optimized or even hardware accelerated.
+        BufferedImage row = new BufferedImage(width, 1, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = row.createGraphics();
+        int pixels[] = ((DataBufferInt)row.getRaster().getDataBuffer()).getData();
+
         // calculate scanline by scanline in order to safe memory.
         // It also seems to run faster like that
+        long t = System.currentTimeMillis();
         for (int y = 0; y < height; y++) {
-            src.getRGB(0, y, width, 1, pixels, 0, width);
+            g2d.drawImage(src, null, 0, -y); 
+            // now pixels contain the rgb values of the row y!
             fltr.setPixels(0, y, width, 1, cm, pixels, 0, width);
         }
+        g2d.dispose();
+        System.out.println(System.currentTimeMillis() - t);
 
         return consumer.getImage();
     }
@@ -202,7 +214,9 @@ public class ImageFilterOp implements BufferedImageOp {
                     w = width - x;
                 if (y + h > height)
                     h = height - y;
-                image.setRGB(x, y, w, h, pixels, off, scansize);
+                
+                if (w > 0 && h > 0)
+                    image.setRGB(x, y, w, h, pixels, off, scansize);
             }
         }
 
@@ -212,7 +226,9 @@ public class ImageFilterOp implements BufferedImageOp {
                     w = width - x;
                 if (y + h > height)
                     h = height - y;
-                image.getRaster().setDataElements(x, y, w, h, pixels);
+
+                if (w > 0 && h > 0)
+                    image.getRaster().setDataElements(x, y, w, h, pixels);
             }
         }
 
