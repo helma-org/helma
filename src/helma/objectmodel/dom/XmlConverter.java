@@ -243,7 +243,7 @@ public class XmlConverter implements XmlConstants {
 	        if ("_children".equals (helmaKey)) {
 	            worknode = node;
 	        } else {
-	            node.getNode( helmaKey, false );
+	            worknode = node.getNode( helmaKey, false );
 	            if ( worknode==null ) {
 	                // if virtual node doesn't exist, create it
 	                worknode = helmaNode.createNode( helmaKey );
@@ -283,18 +283,6 @@ public class XmlConverter implements XmlConstants {
 	int len = nnm.getLength();
 	for ( int i=0; i<len; i++ ) {
 	    org.w3c.dom.Node attr = nnm.item(i);
-	    // NOTE: I can't find anything about the mapping of _prototype and _name 
-	    // attributes to Helma Node prototype or name. -Hannes
-	    /* if ( attr.getNodeName().equals("_prototype") ) {
-	        helmaNode.setPrototype( attr.getNodeValue() );
-	    } else if ( attr.getNodeName().equals("_name") ) {
-	        helmaNode.setName( attr.getNodeValue() );
-	    } else {
-	        String helmaKey = props.getProperty(element.getNodeName()+"._attribute."+attr.getNodeName());
-	        if ( helmaKey==null )
-	            helmaKey = attr.getNodeName().replace(':',defaultSeparator);
-	        helmaNode.setString( helmaKey, attr.getNodeValue() );
-	    } */
 	    String helmaKey = props.getProperty(element.getNodeName()+"._attribute."+attr.getNodeName());
 	    // unless we only map explicit attributes, use attribute name as property name
 	    // in case no property name was defined.
