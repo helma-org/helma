@@ -48,6 +48,10 @@ public final class Node implements INode, Serializable {
     // the serialization version this object was read from (see readObject())
     protected short version = 0;
 
+    /**
+     * Read this object instance from a stream. This does some smart conversion to
+     * update from previous serialization formats.
+     */
     private void readObject (ObjectInputStream in) throws IOException {
 	try {
 	    // as a general rule of thumb, if a string can be null use read/writeObject,
@@ -105,6 +109,9 @@ public final class Node implements INode, Serializable {
 	}
     }
 
+    /**
+     * Write out this instance to a stream
+     */
     private void writeObject (ObjectOutputStream out) throws IOException {
 	out.writeShort (5);  // serialization version
 	out.writeUTF (id);
@@ -253,7 +260,7 @@ public final class Node implements INode, Serializable {
 	    Relation rel = (Relation) e.nextElement ();
 	    // NOTE: this should never be the case, since we're just looping through
 	    // mappnigs with a local db column
-	    if (rel.direction != Relation.PRIMITIVE && rel.direction != Relation.FORWARD)
+	    if (rel.reftype != Relation.PRIMITIVE && rel.reftype != Relation.REFERENCE)
 	        continue;
 
                  Value val = rec.getValue (rel.getDbField ());
@@ -261,7 +268,7 @@ public final class Node implements INode, Serializable {
 	    if (val.isNull ())
 	        continue;
 
-	    Property newprop = new Property (rel.propname, this);
+	    Property newprop = new Property (rel.propName, this);
 
 	    switch (val.type ()) {
 
@@ -320,17 +327,14 @@ public final class Node implements INode, Serializable {
 	
 	    if(propMap == null)
 	        propMap = new Hashtable ();
-	    propMap.put (rel.propname.toLowerCase(), newprop);
+	    propMap.put (rel.propName.toLowerCase(), newprop);
 	    // mark property as clean, since it's fresh from the db
 	    newprop.dirty = false;
 
 	    // if the property is a pointer to another node, change the property type to NODE
-	    if (rel.direction == Relation.FORWARD) {
+	    if (rel.reftype == Relation.REFERENCE && rel.usesPrimaryKey ()) {
 	        // FIXME: References to anything other than the primary key are not supported
-	        if (rel.usesPrimaryKey ())
-	            newprop.nhandle = new NodeHandle (new DbKey (rel.other, newprop.getStringValue ()));
-	        else
-	            newprop.nhandle = new NodeHandle (new DbKey (rel.other, newprop.getStringValue (), rel.getRemoteField ()));
+	        newprop.nhandle = new NodeHandle (new DbKey (rel.otherType, newprop.getStringValue ()));
 	        newprop.type = IProperty.NODE;
 	    }
 	}
@@ -445,13 +449,13 @@ public final class Node implements INode, Serializable {
 	        Node p = parentHandle.getNode (nmgr);
 	        DbMapping parentmap = p.getDbMapping ();
 	        Relation prel = parentmap.getPropertyRelation();
-	        if (prel != null && prel.subnodesAreProperties && !prel.usesPrimaryKey ()) {
-	            String propname = dbmap.columnNameToProperty (prel.getRemoteField ());
+	        if (prel != null && prel.subnodesAreProperties && prel.accessor != null) {
+	            String propname = dbmap.columnNameToProperty (prel.accessor);
 	            String propvalue = getString (propname, false);
 	            if (propvalue != null && propvalue.length() > 0) {
 	                setName (propvalue);
 	                anonymous = false;
-	                // nameProp = localrel.propname;
+	                // nameProp = localrel.propName;
 	            } else {
 	                anonymous = true;
 	            }
@@ -575,7 +579,8 @@ public final class Node implements INode, Serializable {
     public void setName (String name) {
 	// "/" is used as delimiter, so it's not a legal char
 	if (name.indexOf('/') > -1)
-	    throw new RuntimeException ("The name of the node must not contain \"/\".");
+	    return;
+	//     throw new RuntimeException ("The name of the node must not contain \"/\".");
 	if (name == null || name.trim().length() == 0)
 	    this.name = id;   // use id as name
 	else
@@ -615,14 +620,11 @@ public final class Node implements INode, Serializable {
 	    if (parentmap != null) {
 	        // first try to retrieve name via generic property relation of parent
 	        Relation prel = parentmap.getPropertyRelation ();
-	        if (prel != null && prel.other == dbmap && prel.direction == Relation.DIRECT) {
+	        if (prel != null && prel.otherType == dbmap && prel.accessor != null) {
 	            // reverse look up property used to access this via parent
-	            String dbfield = prel.getRemoteField ();
-	            if (dbfield != null) {
-	                Relation proprel = (Relation) dbmap.getDB2Prop ().get (dbfield);
-	                if (proprel != null && proprel.propname != null)
-	                    newname = getString (proprel.propname, false);
-	            }
+	            Relation proprel = (Relation) dbmap.getDB2Prop ().get (prel.accessor);
+	            if (proprel != null && proprel.propName != null)
+	                newname = getString (proprel.propName, false);
 	        }
 	    }
 
@@ -666,7 +668,7 @@ public final class Node implements INode, Serializable {
 	                if (dbm != null && dbm.getSubnodeGroupby () != null) {
 	                    // check for groupby
 	                    Relation rel = (Relation) dbmap.getDB2Prop ().get (dbm.getSubnodeGroupby());
-	                    pn = pn.getSubnode (getString (rel.propname, false));
+	                    pn = pn.getSubnode (getString (rel.propName, false));
 	                }
 	                if (pn != null) {
 	                    setParent ((Node) pn);
@@ -716,8 +718,8 @@ public final class Node implements INode, Serializable {
 	    node.makePersistentCapable ();
 
 	String n = node.getName();
-	if (n.indexOf('/') > -1)
-	    throw new RuntimeException ("\"/\" found in Node name.");
+	// if (n.indexOf('/') > -1)
+	//     throw new RuntimeException ("\"/\" found in Node name.");
 
 	// only lock node if it has to be modified for a change in subnodes
 	if (!ignoreSubnodeChange ())
@@ -737,16 +739,18 @@ public final class Node implements INode, Serializable {
 	if (dbmap != null) {
 	    Relation srel = dbmap.getSubnodeRelation ();
 	    if (srel != null && srel.groupby != null) try {
-	        Relation groupbyRel = (Relation) srel.other.getDB2Prop ().get (srel.groupby);
+	        Relation groupbyRel = (Relation) srel.otherType.getDB2Prop ().get (srel.groupby);
 	        String groupbyProp = (groupbyRel != null) ?
-	            groupbyRel.propname : srel.groupby;
+	            groupbyRel.propName : srel.groupby;
 	        String groupbyValue = node.getString (groupbyProp, false);
 	        INode groupbyNode = getNode (groupbyValue, false);
 	        // if group-by node doesn't exist, we'll create it
 	        if (groupbyNode == null)
 	            groupbyNode = getGroupbySubnode (groupbyValue, true);
 	        groupbyNode.addNode (node);
-	        checkBackLink (node);
+	
+	        srel.setConstraints (this, node);
+	
 	        return node;
 	    } catch (Exception x) {
 	        System.err.println ("Error adding groupby: "+x);
@@ -773,10 +777,10 @@ public final class Node implements INode, Serializable {
 	    // check if properties are subnodes (_properties.aresubnodes=true)
 	    if (dbmap != null && node.dbmap != null) {
 	        Relation prel = dbmap.getPropertyRelation();
-	        if (prel != null && prel.subnodesAreProperties && !prel.usesPrimaryKey ()) {
-	            Relation localrel = node.dbmap.columnNameToRelation (prel.getRemoteField ());
+	        if (prel != null && prel.accessor != null) {
+	            Relation localrel = node.dbmap.columnNameToRelation (prel.accessor);
 	            // if no relation from db column to prop name is found, assume that both are equal
-	            String propname = localrel == null ? prel.getRemoteField() : localrel.propname;
+	            String propname = localrel == null ? prel.accessor : localrel.propName;
 	            String prop = node.getString (propname, false);
 	            if (prop != null && prop.length() > 0) {
 	                INode old = getNode (prop, false);
@@ -806,7 +810,8 @@ public final class Node implements INode, Serializable {
 	    }
 	}
 
-	checkBackLink (node);
+	if (dbmap != null && dbmap.getSubnodeRelation () != null)
+	    dbmap.getSubnodeRelation ().setConstraints (this, node);
 
 	lastmodified = System.currentTimeMillis ();
 	lastSubnodeChange = lastmodified;
@@ -814,24 +819,6 @@ public final class Node implements INode, Serializable {
 	return node;
     }
 
-    private void checkBackLink (Node node) {
-	// check if the subnode is in relational db and needs to link back to this
-	// in order to make it a subnode
-	if (dbmap != null) {
-	    Relation srel = dbmap.getSubnodeRelation ();
-	    if (srel != null && srel.direction == Relation.BACKWARD) {
-	        Relation backlink = srel.other.columnNameToRelation (srel.getRemoteField());
-	        if (backlink != null && backlink.propname != null) {
-	            if (node.get (backlink.propname, false) == null) {
-	                if (this.state == VIRTUAL)
-	                    node.setString (backlink.propname, getNonVirtualHomeID());
-	                else
-	                    node.setString (backlink.propname, getID());
-	            }
-	        }
-	    }
-	}
-    }
 
     public INode createNode () {
 	return createNode (null, numberOfNodes ()); // create new node at end of subnode array
@@ -899,11 +886,11 @@ public final class Node implements INode, Serializable {
 	if ("".equals (subid)) {
 	    return this;
 	} else if (subid != null) {
+	
 	    loadNodes ();
 	    if (subnodes == null || subnodes.size() == 0)
 	        return null;
 	
-	        // check if there is a group-by relation
 	    NodeHandle nhandle = null;
 	    int l = subnodes.size ();
 	    for (int i=0; i<l; i++) try {
@@ -916,24 +903,20 @@ public final class Node implements INode, Serializable {
 	    } catch (Exception x) {
 	        break;
 	    }
-	        /* if (srel != null && srel.groupby != null)
-	            nhandle = new NodeHandle (new SyntheticKey (runner.getKey (), next));
-	        else
-	            nhandle = new NodeHandle (new DbKey (smap, next));
-	        boolean found = runner.subnodes == null ? false : runner.subnodes.contains (nhandle); */
 	
 	    if (nhandle != null) {
 	        retval = nhandle.getNode (nmgr);
 	    }
+	
+	    // This would be an alternative way to do it, without loading the subnodes:
+	    //    if (dbmap != null && dbmap.getSubnodeRelation () != null)
+	    //         retval = nmgr.getNode (this, subid, dbmap.getSubnodeRelation ());
 
 	    if (retval != null && retval.parentHandle == null && !"root".equalsIgnoreCase (retval.getPrototype ())) {
 	        retval.setParent (this);
 	        retval.anonymous = true;
 	    }
 	
-	    /* if (retval == null) {
-	        retval = (Node) getNode (subid, false);
-	    } */
 	}
 	return retval;
     }
@@ -989,6 +972,7 @@ public final class Node implements INode, Serializable {
 	    }
 	} catch (Exception noluck) {
 	    nmgr.logEvent ("Error creating group-by node for "+sid+": "+noluck);
+	    noluck.printStackTrace();
 	}
 	return null;
     }
@@ -1040,20 +1024,20 @@ public final class Node implements INode, Serializable {
 	// which needs to be unset
 	if (dbmap != null) {
 	    Relation srel = dbmap.getSubnodeRelation ();
-	    if (srel != null && srel.direction == Relation.BACKWARD) {
-	        Relation backlink = srel.other.columnNameToRelation (srel.getRemoteField ());
-	        if (backlink != null && id.equals (node.getString (backlink.propname, false)))
-	            node.unset (backlink.propname);
-	    }
+	    /*if (srel != null && srel.reftype == Relation.BACKWARD) {
+	        Relation backlink = srel.otherType.columnNameToRelation (srel.getRemoteField ());
+	        if (backlink != null && id.equals (node.getString (backlink.propName, false)))
+	            node.unset (backlink.propName);
+	    } */
 	}
 
 	// check if subnodes are also accessed as properties. If so, also unset the property
 	if (dbmap != null && node.dbmap != null) {
 	    Relation prel = dbmap.getPropertyRelation();
-	    if (prel != null && prel.subnodesAreProperties && !prel.usesPrimaryKey ()) {
-	        Relation localrel = node.dbmap.columnNameToRelation (prel.getRemoteField());
+	    if (prel != null && prel.accessor != null) {
+	        Relation localrel = node.dbmap.columnNameToRelation (prel.accessor);
 	        // if no relation from db column to prop name is found, assume that both are equal
-	        String propname = localrel == null ? prel.getRemoteField () : localrel.propname;
+	        String propname = localrel == null ? prel.accessor : localrel.propName;
 	        String prop = node.getString (propname, false);
 	        if (prop != null && getNode (prop, false) == node)
 	            unset (prop);
@@ -1190,9 +1174,6 @@ public final class Node implements INode, Serializable {
 	if (smap != null && smap.isRelational ()) {
 	    // check if subnodes need to be reloaded
 	    Relation subRel = dbmap.getSubnodeRelation ();
-	    // can't do backward relation on transient subnodes
-	    if (state == TRANSIENT && subRel.direction == Relation.BACKWARD)
-	        return;
 	    synchronized (this) {
 	        long lastChange = subRel.aggressiveCaching ? lastSubnodeChange : smap.getLastDataChange ();
 	        // also reload if the type mapping has changed.
@@ -1226,7 +1207,7 @@ public final class Node implements INode, Serializable {
 	// return true if a change in subnodes can be ignored because it is
 	// stored in the subnodes themselves.
 	Relation rel = dbmap == null ? null : dbmap.getSubnodeRelation();
-	return (rel != null && rel.other != null && rel.other.isRelational() && rel.direction == Relation.BACKWARD);
+	return (rel != null && rel.otherType != null && rel.otherType.isRelational());
     }
 
     /**
@@ -1239,8 +1220,8 @@ public final class Node implements INode, Serializable {
 	    return dbmap.getProp2DB ().keys();
 
 	Relation prel = dbmap == null ? null : dbmap.getPropertyRelation ();
-	if (prel != null && prel.direction == Relation.DIRECT && !prel.subnodesAreProperties
-			&& prel.other != null && prel.other.isRelational ())
+	if (prel != null && prel.accessor != null && !prel.subnodesAreProperties
+			&& prel.otherType != null && prel.otherType.isRelational ())
 	    // return names of objects from a relational db table
 	    return nmgr.getPropertyNames (this, prel).elements ();
 	else if (propMap != null)
@@ -1281,10 +1262,10 @@ public final class Node implements INode, Serializable {
 
 	// the property does not exist in our propmap - see if we can create it on the fly,
 	// either because it is mapped from a relational database or defined as virtual node
-	if (prop == null && dbmap != null) {
+	if (prop == null && dbmap != null && state != TRANSIENT && state != NEW) {
 	    Relation prel =  dbmap.getPropertyRelation (propname);
 	    Relation srel = dbmap.getSubnodeRelation ();
-	    /* if (prel != null && prel.virtual && prel.other != null &&  !prel.other.isRelational ()) {
+	    /* if (prel != null && prel.virtual && prel.otherType != null &&  !prel.otherType.isRelational ()) {
 	        Node pn = (Node) createNode (propname);
 	        if (prel.prototype != null) {
 	            pn.setPrototype (prel.prototype);
@@ -1296,7 +1277,7 @@ public final class Node implements INode, Serializable {
 	            prel = srel;
 	        if (prel == null)
 	            prel = dbmap.getPropertyRelation ();
-	        if (prel != null && (prel.direction == Relation.DIRECT || prel.virtual || prel.groupby != null)) {
+	        if (prel != null && (prel.accessor != null || prel.virtual || prel.groupby != null)) {
 	            // this may be a relational node stored by property name
 	            try {
 	                Node pn = nmgr.getNode (this, propname, prel);
@@ -1418,13 +1399,14 @@ public final class Node implements INode, Serializable {
 	// but only do this if we already have a parent set, i.e. if we are already stored in the db
 	Node parent = parentHandle == null ? null : (Node) getParent ();
 
-	if (parent != null && parent.getDbMapping() != null) {
+	if (dbmap != null && parent != null && parent.getDbMapping() != null) {
 	    // check if this node is already registered with the old name; if so, remove it.
 	    // then set parent's property to this node for the new name value
 	    DbMapping parentmap = parent.getDbMapping ();
 	    Relation prel = parentmap.getPropertyRelation ();
+	    String dbcolumn = dbmap.propertyToColumnName (propname);
 
-	    if (prel != null && prel.subnodesAreProperties && propname.equals (prel.getRemoteField())) {
+	    if (prel != null && prel.accessor != null && prel.accessor.equals (dbcolumn)) {
 	        INode n = parent.getNode (value, false);
 	        if (n != null && n != this) {
 	            parent.unset (value);
@@ -1639,8 +1621,8 @@ public final class Node implements INode, Serializable {
 	prop.setNodeValue (n);
 	Relation rel = dbmap == null ? null : dbmap.getPropertyRelation (propname);
 
-	if (rel == null || rel.direction == Relation.FORWARD || rel.virtual ||
-			rel.other == null || !rel.other.isRelational()) {
+	if (rel == null || rel.reftype == Relation.REFERENCE || rel.virtual ||
+			rel.otherType == null || !rel.otherType.isRelational()) {
 	    // the node must be stored as explicit property
 	    if (propMap == null)
 	        propMap = new Hashtable ();
@@ -1648,25 +1630,26 @@ public final class Node implements INode, Serializable {
 	    if (state == CLEAN) markAs (MODIFIED);
 	}
 	
-	if (rel != null && rel.direction == Relation.FORWARD && !rel.usesPrimaryKey ()) {
+	/* if (rel != null && rel.reftype == Relation.REFERENCE && !rel.usesPrimaryKey ()) {
 	    // if the relation for this property doesn't use the primary key of the value object, make a
 	    // secondary key object with the proper db column
-	    String kval = n.getString (rel.other.columnNameToProperty (rel.getRemoteField ()), false);
+	    String kval = n.getString (rel.otherType.columnNameToProperty (rel.getRemoteField ()), false);
 	    prop.nhandle = new NodeHandle (new DbKey (n.getDbMapping (), kval, rel.getRemoteField ()));
-	}
+	} */
 	
-	if (n.state != TRANSIENT) {
+	// don't check node in transactor cache -- this is done anyway when the node becomes persistent.
+	/* if (n.state != TRANSIENT) {
 	    // check node in with transactor cache
 	    String nID = n.getID();
 	    Transactor tx = (Transactor) Thread.currentThread ();
 	    tx.visitCleanNode (new DbKey (nmap, nID), n);
 	    // if the field is not the primary key of the property, also register it
-	    if (rel != null && rel.direction == Relation.DIRECT) {
+	    if (rel != null && rel.reftype == Relation.DIRECT && state != TRANSIENT) {
 	        Key secKey = new SyntheticKey (getKey (), propname);
 	        nmgr.evictKey (secKey);
 	        tx.visitCleanNode (secKey, n);
 	    }
-	}
+	} */
 
 	lastmodified = System.currentTimeMillis ();
 	if (n.state == DELETED) n.markAs (MODIFIED);
@@ -1812,23 +1795,30 @@ public final class Node implements INode, Serializable {
      */
     public synchronized INode getCacheNode () {
 	if (cacheNode == null)
-	    cacheNode = new helma.objectmodel.Node();
+	    cacheNode = new TransientNode();
 	return cacheNode;
     }
 
-    // walk down node path to the first non-virtual node and return its id.
-    // limit max depth to 3, since there shouldn't be more then 2 layers of virtual nodes.
-    public String getNonVirtualHomeID () {
+    /**
+     * This method walks down node path to the first non-virtual node and return it.
+     *  limit max depth to 3, since there shouldn't be more then 2 layers of virtual nodes.
+     */
+    public INode getNonVirtualParent () {
 	INode node = this;
 	for (int i=0; i<3; i++) {
 	    if (node == null) break;
 	    if (node.getState() != Node.VIRTUAL)
-	        return node.getID ();
+	        return node;
 	    node = node.getParent ();
 	}
 	return null;
     }
 
+
+    /**
+     *  Instances of this class may be used to mark an entry in the object cache as null.
+     *  This method tells the caller whether this is the case.
+     */
     public boolean isNullNode () {
 	return nmgr == null;
     }
