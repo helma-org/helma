@@ -435,11 +435,12 @@ public class HopObject extends ScriptableObject implements Wrapper {
     }
 
     /**
+     * Return the full list of child objects in a JavaScript Array.
+     * This is called by jsFunction_list() if called with no arguments.
      *
-     *
-     * @return ...
+     * @return A JavaScript Array containing all child objects
      */
-    public Scriptable jsFunction_list() {
+    private Scriptable list() {
         checkNode();
 
         Enumeration e = node.getSubnodes();
@@ -455,9 +456,16 @@ public class HopObject extends ScriptableObject implements Wrapper {
     /**
      *  Return a JS array of child objects with the given start and length.
      *
-     * @return A JavaScript Array containing the specified child objexts
+     * @return A JavaScript Array containing the specified child objects
      */
-    public Scriptable jsFunction_list(int start, int length) {
+    public Scriptable jsFunction_list(Object startArg, Object lengthArg) {
+        if (startArg == Undefined.instance && lengthArg == Undefined.instance) {
+            return list();
+        }
+
+        int start = (int) ScriptRuntime.toNumber(startArg);
+        int length = (int) ScriptRuntime.toNumber(lengthArg);
+
         if (start < 0 || length < 0) {
             throw new EvaluatorException("Arguments must not be negative in HopObject.list(start, length)");
         }
