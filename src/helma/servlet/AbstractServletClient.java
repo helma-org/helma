@@ -465,9 +465,13 @@ public abstract class AbstractServletClient extends HttpServlet {
      */
     private void addIPAddress(StringBuffer b, String addr) {
         if (addr != null) {
-            int cut = addr.lastIndexOf(".");
+            int cut = addr.indexOf(',');
+            if (cut > -1) {
+                addr = addr.substring(0, cut);
+            }
+            cut = addr.lastIndexOf('.');
             if (cut == -1) {
-                cut = addr.lastIndexOf(":");
+                cut = addr.lastIndexOf(':');
             }
             if (cut > -1) {
                 b.append(addr.substring(0, cut+1));
