@@ -1,7 +1,7 @@
 @echo off
 
 set TARGET=%1%
-set JAVA_HOME=c:\programme\jdk13
+REM set JAVA_HOME=c:\programme\jdk13
 
 REM --------------------------------------------
 REM No need to edit anything past here
