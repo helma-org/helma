@@ -184,7 +184,6 @@ public final class NodeManager {
 	    return null;
 
 	Transactor tx = (Transactor) Thread.currentThread ();
-	// tx.timer.beginEvent ("getNode "+kstr);
 
 	Key key = null;
 	// If what we want is a virtual node create a "synthetic" key
@@ -198,20 +197,10 @@ public final class NodeManager {
 	Node node = tx.getVisitedNode (key);
 
 	if (node != null && node.getState() != Node.INVALID) {
-	    // tx.timer.endEvent ("getNode "+kstr);
-
-	    // if we didn't fetch the node via its primary key, refresh the primary key in the cache.
-	    // otherwise we risk cache corroption (duplicate node creation) if the node is fetched by its primary key
-	    if (!rel.usesPrimaryKey ()) {
-	        synchronized (cache) {
-	            Node oldnode = (Node) cache.put (node.getKey (), node);
-	            if (oldnode != null && oldnode.getState () != Node.INVALID) {
-	                cache.put (node.getKey (), oldnode);
-	                cache.put (key, oldnode);
-	                node = oldnode;
-	            }
-	        }
-	    }
+	    // we used to refresh the node in the main cache here to avoid the primary key entry being
+	    // flushed from cache before the secondary one (risking duplicate nodes in cache) but
+	    // we don't need to since we fetched the node from the threadlocal transactor cache and
+	   // didn't refresh it in the main cache.
 	    return node;
 	}
 
@@ -232,6 +221,7 @@ public final class NodeManager {
 	        synchronized (cache) {
 	            // check if node is already in cache with primary key
 	            Node oldnode = (Node) cache.put (primKey, node);
+	            // no need to check for oldnode != node because we fetched a new node from db
 	            if (oldnode != null && oldnode.getState () != Node.INVALID) {
 	                cache.put (primKey, oldnode);
 	                if (!keyIsPrimary)
@@ -242,11 +232,11 @@ public final class NodeManager {
 	        } // synchronized
 	    }
 	} else {
-	    // update primary key in cache, see above
+	    // update primary key in cache to keep it from being flushed, see above
 	    if (!rel.usesPrimaryKey ()) {
 	        synchronized (cache) {
 	            Node oldnode = (Node) cache.put (node.getKey (), node);
-	            if (oldnode != null && oldnode.getState () != Node.INVALID) {
+	            if (oldnode != node && oldnode != null && oldnode.getState () != Node.INVALID) {
 	                cache.put (node.getKey (), oldnode);
 	                cache.put (key, oldnode);
 	                node = oldnode;
