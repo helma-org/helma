@@ -49,6 +49,11 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     public TypeManager typemgr;
 
     /**
+     * The skin manager for this application
+     */
+    protected SkinManager skinmgr;
+
+    /**
     *  Each application has one internal request evaluator for calling
     * the scheduler and other internal functions.
     */
@@ -249,6 +254,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	typemgr = new TypeManager (this);
 	typemgr.createPrototypes ();
 	// logEvent ("Started type manager for "+name);
+
+	skinmgr = new SkinManager (this);
 
 	rootMapping = getDbMapping ("root");
 	userMapping = getDbMapping ("user");
@@ -568,7 +575,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      *  to use for the object, then looking up the skin for the prototype.
      */
     public Skin getSkin (Object object, String skinname, Object[] skinpath) {
-	return new SkinManager (this).getSkin (object, skinname, skinpath); // not yet implemented
+	return skinmgr.getSkin (object, skinname, skinpath); // not yet implemented
     }
 
     /**
@@ -941,11 +948,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	// as first thing, invoke function onStart in the root object
 
 	try {
-	    System.err.println ("INVOKING ONSTART");
 	    eval.invokeFunction ((INode) null, "onStart", new Object[0]);
 	} catch (Exception ignore) {
-	    System.err.println ("ERROR ONSTART "+name+": "+ignore);
-		ignore.printStackTrace ();
+	    System.err.println ("Error in "+name+"/onStart(): "+ignore);
 	}
 
 	while (Thread.currentThread () == worker) {
