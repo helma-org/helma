@@ -310,12 +310,12 @@
       <chmod file="${antclick.dir}/hop.sh" perm="755"/>
 			<zip zipfile="${home.dir}/antclick.zip" basedir="${build.work}/" includes="antclick/**"/>
       <tar tarfile="${build.work}/antclick.tar" basedir="${antclick.dir}" excludes="**">
-        <tarfileset dir="${antclick.dir}" mode="755">
-          <include name="hop.sh"/>
+        <tarfileset dir="${build.work}" mode="755">
+          <include name="antclick/hop.sh"/>
         </tarfileset>
-        <tarfileset dir="${antclick.dir}">
-          <include name="**"/>
-          <exclude name="hop.sh"/>
+        <tarfileset dir="${build.work}">
+          <include name="antclick/**"/>
+          <exclude name="antclick/hop.sh"/>
         </tarfileset>
       </tar>
       <gzip zipfile="${home.dir}/antclick.tgz" src="${build.work}/antclick.tar"/>
