@@ -187,25 +187,33 @@ public class RhinoEngine implements ScriptingEngine {
                 Scriptable scriptable = null;
 
                 try {
-                    // we do a lot of extra work to make access to global variables
-                    // comfortable to EcmaScript coders, i.e. we use a lot of custom wrappers
-                    // that expose properties and functions in a special way instead of just going
-                    // with the standard java object wrappers.
+                    // we do some extra work with the path object: first, we create a native
+                    // JavaScript array, then we register objects by
+                    // their prototype name, which we take from res.handlers.
                     if ("path".equals(k)) {
                         Scriptable arr = context.newObject(global, "Array");
                         List path = (List) v;
+                        int length = path.size();
+                        Scriptable[] wrapped = new Scriptable[length]
 
-                        // register path elements with their prototype
-                        for (int j = 0; j < path.size(); j++) {
+                        // Move through the path list and set the path array.
+                        for (int j = 0; j < length; j++) {
                             Object pathElem = path.get(j);
                             Scriptable wrappedElement = Context.toObject(pathElem, global);
 
                             arr.put(j, arr, wrappedElement);
+                            wrapped[j] = wrappedElement;
+                        }
 
-                            String protoname = app.getPrototypeName(pathElem);
+                        // register path elements with their prototypes on the path array
+                        ResponseTrans res = getResponse();
+                        Map handlers = res.getMacroHandlers();
 
-                            if (protoname != null) {
-                                arr.put(protoname, arr, wrappedElement);
+                        if (handlers != null) {
+                            for (Iterator h = handlers.entrySet().iterator(); h.hasNext(); ) {
+                                Map.Entry entry = (Map.Entry) h.next();
+                                int idx = path.indexOf(entry.getValue());
+                                arr.put(entry.getKey().toString(), arr, wrapped[idx]);
                             }
                         }
 
