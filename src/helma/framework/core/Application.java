@@ -1298,10 +1298,9 @@ public final class Application implements IPathElement, Runnable {
      * kicking out expired user sessions.
      */
     public void run() {
-        long cleanupSleep = 60000; // thread sleep interval (fixed)
-        long scheduleSleep = 60000; // interval for scheduler invocation
-        long lastScheduler = 0; // run scheduler immediately
-        long lastCleanup = System.currentTimeMillis();
+        // interval between session cleanups
+        long sessionCleanupInterval = 60000;
+        long lastSessionCleanup = System.currentTimeMillis();
 
         // logEvent ("Starting scheduler for "+name);
 
@@ -1322,23 +1321,24 @@ public final class Application implements IPathElement, Runnable {
         }
 
         while (Thread.currentThread() == worker) {
-            // get session timeout
-            int sessionTimeout = 30;
-
-            try {
-                sessionTimeout = Math.max(0,
-                                          Integer.parseInt(props.getProperty("sessionTimeout",
-                                                                             "30")));
-            } catch (Exception ignore) {
-                System.out.println(ignore.toString());
-            }
 
             long now = System.currentTimeMillis();
 
             // check if we should clean up user sessions
-            if ((now - lastCleanup) > cleanupSleep) {
+            if ((now - lastSessionCleanup) > sessionCleanupInterval) {
+
+                lastSessionCleanup = now;
+
+                // get session timeout
+                int sessionTimeout = 30;
+
                 try {
-                    lastCleanup = now;
+                    sessionTimeout = Math.max(0,
+                            Integer.parseInt(props.getProperty("sessionTimeout",
+                                                               "30")));
+                } catch (Exception ignore) {}
+
+                try {
 
                     Hashtable cloned = (Hashtable) sessions.clone();
 
@@ -1423,14 +1423,18 @@ public final class Application implements IPathElement, Runnable {
                             }
                         }
                     }
-
-                    thisEvaluator = null;
                 }
             }
 
+
+            long sleepInterval = CronJob.millisToNextFullMinute();
+            try {
+                sleepInterval = Integer.parseInt(props.getProperty("schedulerInterval"))*1000;
+            } catch (Exception ignore) {}
+
             // sleep until the next full minute
             try {
-                worker.sleep(CronJob.millisToNextFullMinute());
+                worker.sleep(sleepInterval);
             } catch (InterruptedException x) {
                 logEvent("Scheduler for " + name + " interrupted");
                 worker = null;
