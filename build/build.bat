@@ -3,9 +3,9 @@
 
 REM --------------------------------------------
 REM Defualt == jar
-REM "core"           target builds core classes
-REM "clean"          target removes bin directory
-REM "jar"            target builds core + jar
+REM "checkout"       target gets sources from helma.org
+REM "compile"        target compiles java sources
+REM "jar"            target compiles and builds jar
 REM "javadoc"        target builds the javadoc
 REM "package"        target builds core + jar + javadoc + distribution
 REM --------------------------------------------
@@ -28,7 +28,7 @@ goto final
 if "%JAVA_HOME%" == "" goto javahomeerror
 
 if exist %JAVA_HOME%\lib\tools.jar set CLASSPATH=%CLASSPATH%;%JAVA_HOME%\lib\tools.jar
-set CP=%CLASSPATH%;ant.jar;xml.jar
+set CP=%CLASSPATH%;ant.jar;jaxp.jar;crimson.jar
 
 echo Classpath: %CP%
 echo JAVA_HOME: %JAVA_HOME%

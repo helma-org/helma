@@ -14,10 +14,11 @@
         <property name="version" value="1.2"/>
         <property name="project" value="helma"/>
         <property name="build.compiler" value="classic"/>
-        <property name="build.dir" value="../work"/>
+        <property name="build.dir" value=".."/>
         <property name="build.src" value="${build.dir}/src"/>
         <property name="build.dest" value="${build.dir}/classes"/>
-        <property name="build.checkout" value="${build.dir}/checkout"/>
+	<property name="build.work" value="${build.dir}/work"/>
+        <property name="build.checkout" value="${build.work}/checkout"/>
         <property name="cvs.root" value=":pserver:anonymous@coletta.helma.at:/opt/cvs"/>
         <property name="javadoc.destdir" value="../docs/apidocs"/>
         <property name="jar.name" value="helma"/>
@@ -39,25 +40,34 @@
 
     </target>
 
+
     <!-- =================================================================== -->
     <!-- Copies the source code to the build directory and does filtering    -->
     <!-- =================================================================== -->
-    <target name="prepare" depends="init">
-        <mkdir dir="${build.dir}"/>
-        <mkdir dir="${build.dest}"/>
+    <target name="checkout" depends="init">
+
+	<!-- cvspass cvsroot="${cvs.root}" password=""/ -->
+
         <mkdir dir="${build.src}"/>
         <mkdir dir="${build.checkout}"/>
  
         <cvs cvsRoot="${cvs.root}" package="hop" dest="${build.checkout}"/>
-        <cvs cvsRoot="${cvs.root}" package="apps/hopblog" dest="${build.dir}"/>
-        <cvs cvsRoot="${cvs.root}" package="hopbuild/lib" dest="${build.dir}"/>
-        <cvs cvsRoot="${cvs.root}" package="hopbuild/skeleton" dest="${build.dir}"/>
-
         <copy todir="${build.src}">
             <fileset dir="${build.checkout}/hop"
                 includes="helma/**/*.java,FESI/**/*.java,Acme/**/*.java"/>
         </copy>
+ 
+        <cvs cvsRoot="${cvs.root}" package="hopbuild/lib" dest="${build.checkout}"/>
+	<copy todir="${build.dir}/lib">
+	    <fileset dir="${build.checkout}/hopbuild/lib"/>
+	</copy>
+
+
+        <cvs cvsRoot="${cvs.root}" package="hopbuild/skeleton" dest="${build.checkout}"/>
+        <cvs cvsRoot="${cvs.root}" package="apps/hopblog" dest="${build.checkout}"/>
+
     </target>
+
 
     <!-- =================================================================== -->
     <!-- Does replacement on files for dealing with collections.             -->
@@ -65,7 +75,7 @@
     <!-- XXX happen during one read/write phase and only for files that have -->
     <!-- XXX changed.                                                        -->
     <!-- =================================================================== -->
-    <target name="collections" if="coll.present" depends="prepare">
+    <target name="collections" if="coll.present" depends="init">
       <replace dir="${build.src}/helma" includes="**"
              token="java.util.Collection" value="${coll.import}.Collection"/>
       <replace dir="${build.src}/helma" includes="**"
@@ -99,14 +109,18 @@
     <!-- =================================================================== -->
     <!-- Compiles the source directory                                       -->
     <!-- =================================================================== -->
-    <target name="compile" depends="prepare">
+    <target name="compile" depends="init">
+
+        <mkdir dir="${build.dest}"/>
+
         <javac srcdir="${build.src}"
             destdir="${build.dest}"
             debug="${debug}"
             deprecation="${deprecation}"
             optimize="${optimize}">
             <classpath>
-                <fileset dir="${build.dir}/hopbuild/lib">
+                <fileset dir="${build.dir}/lib">
+	             <exclude name="**/helma*.jar" />
                      <include name="**/*.jar" />
                 </fileset>
                 <pathelement path="${classpath}" />
@@ -122,15 +136,16 @@
     <!-- Creates a .jar file               -->
     <!-- =================================================================== -->
     <target name="jar" depends="compile">
-        <jar jarfile="${build.dir}/${jar.name}.jar"
+        <jar jarfile="${build.dir}/${jar.name}-${DSTAMP}.jar"
             basedir="${build.dest}"
             excludes="**/package.html"/>
     </target>
 
+
     <!-- =================================================================== -->
     <!-- Creates the API documentation                                       -->
     <!-- =================================================================== -->
-    <target name="javadocs" depends="prepare">
+    <target name="javadocs" depends="init">
         <mkdir dir="${javadoc.destdir}"/>
         <javadoc packagenames="helma.*"
             sourcepath="${build.src}"
@@ -147,29 +162,39 @@
     <!-- =================================================================== -->
     <!-- Package                                                             -->
     <!-- =================================================================== -->
-    <target name="package" depends="jar">
+    <target name="package" depends="checkout, jar, javadocs">
+
         <mkdir dir="${final.dir}"/>
+
         <!-- mkdir dir="${final.dir}/static"/ -->
+
         <mkdir dir="${final.dir}/src"/>
         <jar jarfile="${final.dir}/src/${Name}-src.jar"
             basedir="${build.src}"/>
+
         <!-- copy todir="${final.dir}/src">
             <fileset dir="${build.dir}/src"/>
         </copy -->
+
         <copy todir="${final.dir}/docs">
             <fileset dir="../docs"/>
         </copy>
+
         <copy todir="${final.dir}/lib">
-            <fileset dir="../lib"/>
+            <fileset dir="${build.checkout}/hopbuild/lib"/>
         </copy>
+
         <copy todir="${final.dir}">
-            <fileset dir="${build.dir}/hopbuild/skeleton"/>
+            <fileset dir="${build.checkout}/hopbuild/skeleton" excludes="**/CVS"/>
         </copy>
-        <copy todir="${final.dir}/apps/base">
-            <fileset dir="${build.dir}/apps/hopblog" excludes="**/CVS"/>
+
+        <copy todir="${final.dir}/apps">
+            <fileset dir="${build.checkout}/apps" excludes="**/CVS"/>
         </copy>
-        <copy file="${build.dir}/${jar.name}.jar" todir="${final.dir}/lib"/>
+
+        <copy file="${build.dir}/${jar.name}-${DSTAMP}.jar" tofile="${final.dir}/lib/helma.jar"/>
         <chmod file="${final.dir}/hop.sh" perm="755"/>
+
    </target>
 
     <!-- =================================================================== -->
@@ -201,12 +226,6 @@
     <target name="package-all" depends="package-zip, package-tgz">
     </target>
 
-    <!-- =================================================================== -->
-    <!-- Packages just the jar with ZIP                                      -->
-    <!-- =================================================================== -->
-    <target name="snapshot" depends="jar">
-        <copy file="${build.dir}/${jar.name}.jar" tofile="../helma-${DSTAMP}.jar"/>
-    </target>
 
     <!-- =================================================================== -->
     <!-- Packages and FTPs the distribution with ZIP and TAG-GZIP            -->
@@ -235,6 +254,9 @@
     </target>
     
 </project>
+
+
+
 
 
 

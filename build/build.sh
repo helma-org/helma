@@ -2,18 +2,20 @@
 
 # --------------------------------------------
 # Default == jar
-# "core"           target builds core classes
-# "clean"          target removes bin directory
-# "jar"            target builds core + jar
+# "checkout"       target gets sources from helma.org
+# "compile"        target compiles java sources
+# "jar"            target compiles and builds jar
 # "javadoc"        target builds the javadoc
 # "package"        target builds core + jar + javadoc + distribution
 # --------------------------------------------
 TARGET=${1}
 
+# export JAVA_HOME=/usr/lib/java
+
 export CVSHOME=:pserver:anonymous@coletta.helma.at:/opt/cvs
 
-cvs -d :pserver:anonymous@coletta.helma.at:/opt/cvs login
-JAVA_HOME=/usr/lib/jdk1.3
+# comment this out to log in to CVS server
+# cvs -d :pserver:anonymous@coletta.helma.at:/opt/cvs login
 
 #--------------------------------------------
 # No need to edit anything past here
@@ -35,7 +37,7 @@ fi
 
 echo "Now building ${TARGET}..."
 
-CP=${CLASSPATH}:ant.jar:jaxp.jar:parser.jar:../lib/netcomponents.jar:jakarta-ant-1.3-optional.jar
+CP=${CLASSPATH}:ant.jar:jaxp.jar:crimson.jar:../lib/netcomponents.jar
 
 echo "Classpath: ${CP}"
 echo "JAVA_HOME: ${JAVA_HOME}"
@@ -43,4 +45,5 @@ echo "JAVA_HOME: ${JAVA_HOME}"
 BUILDFILE=build.xml
 
 ${JAVA_HOME}/bin/java -classpath ${CP} org.apache.tools.ant.Main -buildfile ${BUILDFILE} ${TARGET}
+
 
