@@ -13,7 +13,6 @@ import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.util.*;
 import helma.framework.*;
-import helma.objectmodel.Node;
 import helma.util.*;
 
 /**
