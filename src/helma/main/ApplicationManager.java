@@ -342,7 +342,8 @@ public class ApplicationManager implements XmlRpcHandler {
                     Repository newRepository = null;
                     try {
                         newRepository = (Repository) Class.forName(repositoryImpl)
-                                .getConstructor(parameters).newInstance(repositoryArgs);
+                                .getConstructor(parameters)
+                                .newInstance((Object[]) repositoryArgs);
                         repositoryList.add(newRepository);
                     } catch (Exception ex) {
                         System.out.println("Adding repository " + repositoryArgs + " failed. " +
