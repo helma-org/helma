@@ -510,7 +510,7 @@ public final class Relation {
 	for (int i=0; i<l; i++) {
 	    char c = str.charAt (i);
 	    if (c == '\'')
-	        sbuf.append ("\\");
+	        sbuf.append ('\'');
 	    sbuf.append (c);
 	}
 	return sbuf.toString ();
