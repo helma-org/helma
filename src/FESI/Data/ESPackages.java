@@ -34,13 +34,21 @@ import java.util.zip.*;
  * Implements the object loader
  */
 public class ESPackages extends ESLoader {
-    
+
     /**
      * Create the top level package loader (object Package)
      * @param evaluator the evaluator
      */
     public ESPackages(Evaluator evaluator) {
         super(evaluator);
+    }
+
+    /**
+     * Create the top level package loader (object Package)
+     * @param evaluator the evaluator
+     */
+    public ESPackages(Evaluator evaluator, ClassLoader loader) {
+        super(evaluator, loader);
     }
     
     /**
@@ -52,7 +60,7 @@ public class ESPackages extends ESLoader {
      */
     public ESPackages(String packageName, 
                      ESPackages previousPackage,
-                     LocalClassLoader classLoader, 
+                     ClassLoader classLoader, 
                      Evaluator evaluator) {
         super(packageName,previousPackage,classLoader,evaluator);
     }
@@ -117,7 +125,7 @@ public class ESPackages extends ESLoader {
                  throw new EcmaScriptException("Missing class directory or file name");
              }
              String directoryOrJar = arguments[0].toString();
-             LocalClassLoader classLoader =     
+             ClassLoader classLoader =     
                      LocalClassLoader.makeLocalClassLoader(directoryOrJar);
               return new ESPackages(null, null, classLoader, evaluator);
          } else {

@@ -56,7 +56,7 @@ public abstract class ESLoader extends ESObject {
     // Incremental package name
     protected String packageName = null;
     protected ESLoader previousPackage = null;
-    protected LocalClassLoader classLoader = null;
+    protected ClassLoader classLoader = null;
 
     // the non compatible flag
     static private CompatibilityDescriptor nonCompatible =
@@ -69,7 +69,15 @@ public abstract class ESLoader extends ESObject {
     public ESLoader(Evaluator evaluator) {
         super(null, evaluator);
     }
-    
+
+    /**
+     * To contruct the Bean or Package object with a specific class loader
+     */
+    public ESLoader(Evaluator evaluator, ClassLoader loader) {
+        super(null, evaluator);
+        this.classLoader = loader;
+    }
+
     /**
      * To construct a bean or package sub-object (with a specific 
      * partial or complete package name
@@ -80,7 +88,7 @@ public abstract class ESLoader extends ESObject {
      */
     public ESLoader(String packageName, 
                      ESLoader previousPackage,
-                     LocalClassLoader classLoader, 
+                     ClassLoader classLoader,
                      Evaluator evaluator) {
         super(null, evaluator);
         this.packageName = packageName;
