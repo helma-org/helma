@@ -314,6 +314,8 @@ public class Skin {
 	            // if so, the macro evaluates to the function. Otherwise,
 	            // a property/field with the name is used, if defined.
 	            Object v = null;
+	            // remember length of response buffer before calling macro
+	            int oldLength = reval.res.getBufferLength ();
 	            if (app.scriptingEngine.hasFunction (handlerObject, name+"_macro", reval)) {
 	                // System.err.println ("Getting macro from function");
 	                v = app.scriptingEngine.invoke (handlerObject, name+"_macro", arguments, null, reval);
@@ -321,8 +323,17 @@ public class Skin {
 	                // System.err.println ("Getting macro from property");
 	                v = app.scriptingEngine.get (handlerObject, name, reval);
 	            }
-	            if (v != null)
+	            // check if macro wrote out to response buffer
+	            int newLength = reval.res.getBufferLength ();
+	            if (newLength > oldLength) {
+	               // insert prefix and append suffix
+	               String prefix = (String) parameters.get ("prefix");
+	               String suffix = (String) parameters.get ("suffix");
+	               reval.res.insert (oldLength, prefix);
+	               reval.res.write (suffix);
+	            } else if (v != null) {
 	                writeToResponse (v.toString (), reval.res);
+	            }
 	        } else {
 	            String msg = "[HopMacro unhandled: "+getFullName()+"]";
 	            reval.res.write (" "+msg+" ");
