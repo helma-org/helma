@@ -15,7 +15,7 @@ import java.text.*;
  * A property implementation for Nodes stored inside a database. 
  */
  
-public final class Property implements IProperty, Serializable, Cloneable {
+public final class Property implements IProperty, Serializable {
 
  
     protected String propname;
@@ -187,86 +187,9 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	return null;
     }
 
-    public String getEditor () {
-	switch (type) {
-	case STRING:
-	    return "password".equalsIgnoreCase (propname) ? 
-	        "<input type=password name=\""+propname+"\" value='"+ svalue.replace ('\'', '"') +"'>" : 
-	        "<input type=text name=\""+propname+"\" value='"+ svalue.replace ('\'', '"') +"'>" ;
-	case BOOLEAN:
-	    return "<select name=\""+propname+"\"><option selected value="+bvalue+">"+bvalue+"</option><option value="+!bvalue+">"+!bvalue+"</option></select>";
-	case INTEGER:
-	    return "<input type=text name=\""+propname+"\" value=\""+lvalue+"\">" ;
-	case FLOAT:
-	    return "<input type=text name=\""+propname+"\" value=\""+dvalue+"\">" ;
-	case DATE:
-	    SimpleDateFormat format = new SimpleDateFormat ("dd.MM.yy hh:mm");
-	    String date =  format.format (new Date (lvalue));
-	    return "<input type=text name=\""+propname+"\" value=\""+date+"\">";
-	case NODE:
-	    return "<input type=text size=25 name="+propname+" value='"+ nvalue.getFullName () +"'>";
-	}
-	return "";
-    }
-
-    private String escape (String s) {
-	char c[] = new char[s.length()];
-	s.getChars (0, c.length, c, 0);
-	StringBuffer b = new StringBuffer ();
-	int copyfrom = 0;
-	for (int i = 0; i < c.length; i++) {
-	    switch (c[i]) {
-	        case '\\': 
-	        case '"':
-	            if (i-copyfrom > 0)
-	                b.append (c, copyfrom, i-copyfrom);
-	            b.append ('\\');
-	            b.append (c[i]);
-	            copyfrom = i+1;
-	    }   
-	}
-	if (c.length-copyfrom > 0)
-	    b.append (c, copyfrom, c.length-copyfrom);
-	return b.toString ();
-    }
 
     public int getType () {
 	return type;
-    }
-
-    public String getTypeString () {
-	switch (type) {
-	case STRING:
-	    return "string";
-	case BOOLEAN:
-	    return "boolean";
-	case DATE:
-	    return "date";
-	case INTEGER:
-	    return "integer";
-	case FLOAT:
-	    return "float";
-	case NODE:
-	    return "node";
-	}
-	return "";
-    }
-
-
-    public Object clone () {
-	try {
-	    Property c = (Property) super.clone();
-	    c.propname = this.propname;
-	    c.svalue = this.svalue;
-	    c.bvalue = this.bvalue;
-	    c.lvalue = this.lvalue;
-	    c.dvalue = this.dvalue;
-	    c.type = this.type;
-	    return c;
-	} catch (CloneNotSupportedException e) { 
-	    // this shouldn't happen, since we are Cloneable
-	    throw new InternalError ();
-	}
     }
 
 }
