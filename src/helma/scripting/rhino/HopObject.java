@@ -904,7 +904,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
      */
     public Object[] getIds() {
         if (node == null) {
-            return new Object[0];
+            return super.getIds();
         }
 
         checkNode();
