@@ -1,6 +1,6 @@
 // Relation.java
 // Copyright (c) Hannes Wallnöfer 1997-2000
- 
+
 package helma.objectmodel.db;
 
 import helma.objectmodel.*;
@@ -301,7 +301,6 @@ public class Relation {
 
     private void update_v1 (String desc, Properties props) {
 	Application app = ownType.getApplication ();
-
 	if (desc == null || "".equals (desc.trim ())) {
 	    if (propName != null) {
 	        reftype = PRIMITIVE;
@@ -476,11 +475,14 @@ public class Relation {
 	    if (reftype == REFERENCE)
 	        return constraints.length == 1 && constraints[0].foreignKeyIsPrimary ();
 	    if (reftype == COLLECTION)
-	        return accessor == null || accessor.equals (otherType.getIDField ());
+	        return accessor == null || accessor.equalsIgnoreCase (otherType.getIDField ());
 	}
 	return false;
     }
 
+    public String getAccessor () {
+	return accessor;
+    }
 
     public Relation getSubnodeRelation () {
 	// return subnoderelation;
@@ -648,7 +650,7 @@ public class Relation {
 	        INode home = constraints[i].isGroupby ? parent : parent.getNonVirtualParent ();
 	        String localName = constraints[i].localName;
 	        String value = null;
-	        if (localName == null  || localName.equals (ownType.getIDField ()))
+	        if (localName == null  || localName.equalsIgnoreCase (ownType.getIDField ()))
 	            value = home.getID ();
 	        else if (ownType.isRelational ())
 	            value = home.getString (ownType.columnNameToProperty (localName), false);
@@ -678,7 +680,7 @@ public class Relation {
 	    if (crel != null) {
 	        // INode home = constraints[i].isGroupby ? parent : nonVirtual;
 	        String localName = constraints[i].localName;
-	        if (localName == null  || localName.equals (ownType.getIDField ())) {
+	        if (localName == null  || localName.equalsIgnoreCase (ownType.getIDField ())) {
 	            INode currentValue = child.getNode (crel.propName, false);
 	            // we set the backwards reference iff the reference is currently unset, if
 	            // is set to a transient object, or if the new target is not transient. This
@@ -751,7 +753,7 @@ public class Relation {
     	public void addToQuery (StringBuffer q, INode home, INode nonvirtual) throws SQLException {
     	    String local = null;
     	    INode ref = isGroupby ? home : nonvirtual;
-    	    if (localName == null || localName.equals (ref.getDbMapping ().getIDField ()))
+    	    if (localName == null || localName.equalsIgnoreCase (ref.getDbMapping ().getIDField ()))
     	        local = ref.getID ();
     	    else {
     	        String homeprop = ownType.columnNameToProperty (localName);
@@ -768,7 +770,7 @@ public class Relation {
     	}
 
     	public boolean foreignKeyIsPrimary () {
-    	    return foreignName == null || foreignName.equals (otherType.getIDField ());
+    	    return foreignName == null || foreignName.equalsIgnoreCase (otherType.getIDField ());
     	}
 
     	public String foreignProperty () {
