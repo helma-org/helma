@@ -235,12 +235,17 @@ public final class NodeManager {
 
 	// check if we can use the cached node without further checks.
 	// we need further checks for subnodes fetched by name if the subnodes were changed.
-	if (!rel.virtual && !rel.usesPrimaryKey () && node != null && node.getState() != Node.INVALID) {
+	if (node != null && node.getState() != Node.INVALID && !rel.virtual && !rel.usesPrimaryKey ()) {
 	    // check if node is null node (cached null)
 	    if (node.isNullNode ()) {
 	        if (node.created() < rel.otherType.getLastDataChange ())
 	            node = null; //  cached null not valid anymore
-	    // } else if (false && app.doesSubnodeChecking () && home.contains (node) < 0) {
+	    // apply different consistency checks for groupby nodes and database nodes:
+	    // for group nodes, check if they're contained
+	    } else if (rel.groupby != null) {
+	        if (home.contains (node) < 0)
+	            node = null;
+	    // for database nodes, check if constraints are fulfilled
 	    } else if (!rel.checkConstraints (home, node)) {
 	        node = null;
 	    }
