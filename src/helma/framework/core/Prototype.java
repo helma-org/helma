@@ -502,9 +502,9 @@ public final class Prototype {
 
             // load Skins
             for (Iterator i = skins.iterator(); i.hasNext();) {
-                Map.Entry e = (Map.Entry) i.next();
+                Resource res = (Resource) i.next();
 
-                super.put(e.getKey(), e.getValue());
+                super.put(res.getShortName(), res);
             }
 
             // if skinpath is not null, overload/add skins from there
