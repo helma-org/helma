@@ -87,7 +87,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     }
 
     public Application (String name, SystemProperties sysProps, SystemProperties sysDbProps, File home)
-	    throws RemoteException, DbException, IllegalArgumentException {
+	    throws RemoteException, IllegalArgumentException {
 	
 	if (name == null || name.trim().length() == 0)
 	    throw new IllegalArgumentException ("Invalid application name: "+name);
@@ -126,8 +126,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	pwf = new File (appDir, "passwd");
 	pwfile = new CryptFile (pwf, parentpwfile);
 
-	nmgr = new NodeManager (this, dbDir.getAbsolutePath (), props);
-
 	charset = props.getProperty ("charset", "ISO-8859-1");
 
 	debug = "true".equalsIgnoreCase (props.getProperty ("debug"));
@@ -152,7 +150,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	xmlrpcAccess = new XmlRpcAccess (this);
     }
 
-    public void start () {
+    public void start () throws DbException {
 
 	eval = new RequestEvaluator (this);
 	logEvent ("Starting evaluators for "+name);
@@ -184,6 +182,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	userRootMapping = new DbMapping (this, "__userroot__", p);
 	rewireDbMappings ();
 
+	nmgr = new NodeManager (this, dbDir.getAbsolutePath (), props);
+	
 	worker = new Thread (this, "Worker-"+name);
 	worker.setPriority (Thread.NORM_PRIORITY+2);
 	worker.start ();
