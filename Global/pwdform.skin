@@ -1,0 +1,30 @@
+<body bgcolor="white">
+
+<table width="500" border="0" cellspacing="1" cellpadding="5" bgcolor="#000000">
+<tr>
+<td width="500" align="left" valign="top" bgcolor="#ffffff">
+
+<big>Choose username and password for helma's manager:</big><br>
+
+Please choose an username and password combination to access the
+manage application of this server. They will be saved md5-encoded
+to the server.properties file. Later you can change these settings
+either manually by editing the server.properties file or through
+this webinterface in manage/makekey
+
+<font color="red"><% param.msg %></font>
+<form method="post">
+<input class="formEl" name="username" size="25" value="<% param.username %>"> (username)<br>
+<input class="formEl" type="password" name="password"  size="25"> (password)<br>
+<input class="formEl" type="password" name="password2" size="25"> (password retyped)<br><br>
+<input class="formEl" type="submit" value="save to server.properties"><br>
+</form>
+
+Username and password are transmitted in an unsafe cleartext way.
+Therefore you're strongly discouraged to use any given combination
+that is normally protected through ssh.
+
+</td></tr>
+</table>
+
+</body>
