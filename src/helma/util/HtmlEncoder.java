@@ -452,7 +452,7 @@ public final class HtmlEncoder {
 	       if (!insidePreTag && linebreaks > swallowLinebreaks) {
 	           linebreaks -= swallowLinebreaks;
 	           for (int k=0; k<linebreaks; k++)
-	               ret.append ("\n<br />");
+	               ret.append ("<br />\n");
 	       }
 	       if (!insideTag)
 	           swallowLinebreaks = 0;
@@ -572,6 +572,12 @@ public final class HtmlEncoder {
 	        ret.append (openTags.pop());
 	        ret.append (">");
 	    }
+	}
+	// add remaining newlines we may have collected
+	if (linebreaks > 0 && linebreaks > swallowLinebreaks) {
+	    linebreaks -= swallowLinebreaks;
+	    for (int i=0; i<linebreaks; i++)
+	        ret.append ("<br />\n");
 	}
      }
 
