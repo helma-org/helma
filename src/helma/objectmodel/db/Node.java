@@ -59,13 +59,15 @@ public class Node implements INode, Serializable {
 	    proplinks = (Vector) in.readObject ();
 	    propMap = (Hashtable) in.readObject ();
 	    anonymous = in.readBoolean ();
+	    if (version > 1)
+	        prototype = in.readUTF ();
 	} catch (ClassNotFoundException x) {
 	    throw new IOException (x.toString ());
 	}
     }
 
     private void writeObject (ObjectOutputStream out) throws IOException {
-	out.writeShort (1);  // serialization version
+	out.writeShort (2);  // serialization version
 	out.writeUTF (id);
 	out.writeUTF (name);
 	out.writeObject (parentID);
@@ -82,6 +84,7 @@ public class Node implements INode, Serializable {
 	out.writeObject (proplinks);
 	out.writeObject (propMap);
 	out.writeBoolean (anonymous);
+	out.writeUTF (prototype);
     }
 
     transient String prototype;
@@ -261,6 +264,7 @@ public class Node implements INode, Serializable {
 	this.id = nmgr.generateID (dbmap);
 	checkWriteLock ();
 	this.name = node.getName ();
+	this.prototype = node.getPrototype ();
 	created = lastmodified = System.currentTimeMillis ();
 	setContent (node.getContent (), node.getContentType ());
 	created = lastmodified = System.currentTimeMillis ();
