@@ -1245,7 +1245,7 @@ public final class Node implements INode, Serializable {
      */
     public Enumeration properties () {
 
-	if (dbmap != null && dbmap.getProp2DB ().size() > 0)
+	if (dbmap != null && dbmap.isRelational() && dbmap.getProp2DB ().size() > 0)
 	    // return the properties defined in type.properties, if there are any
 	    return new Enumeration () {
 	        Iterator i = dbmap.getProp2DB().keySet().iterator();
