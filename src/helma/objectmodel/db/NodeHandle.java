@@ -25,9 +25,6 @@ public final class NodeHandle implements INodeState, Serializable {
     // the node's key
     private Key key;
 
-    // cached DbMapping
-    private transient DbMapping dbmap;
-
     static final long serialVersionUID = 3067763116576910931L;
 
     /**
@@ -64,7 +61,8 @@ public final class NodeHandle implements INodeState, Serializable {
     }
 
     /**
-     *  Get the key for the node described by this handle. This may only be called on persistent Nodes.
+     *  Get the key for the node described by this handle. 
+     *  This may only be called on persistent Nodes.
      */
     public Key getKey () {
 	if (key == null)
@@ -73,7 +71,8 @@ public final class NodeHandle implements INodeState, Serializable {
     }
 
     /**
-     *  Get the ID for the node described by this handle. This may only be called on persistent Nodes.
+     *  Get the ID for the node described by this handle. 
+     *  This may only be called on persistent Nodes.
      */
     public String getID () {
 	if (key == null)

@@ -254,7 +254,7 @@ public final class NodeManager {
 	    // if a key for a node from within the DB
 	    // FIXME: This should never apply, since for every relation-based loading Synthetic Keys are used. Right?
 	    key = new DbKey (rel.otherType, kstr);
-	
+
 	// See if Transactor has already come across this node
 	Node node = tx.getVisitedNode (key);
 
@@ -1067,10 +1067,11 @@ public final class NodeManager {
     private Node getNodeByRelation (ITransaction txn, Node home, String kstr, Relation rel) throws Exception {
 	Node node = null;
 
-	if (rel.virtual) {
-
-	    node = new Node (home, kstr, safe, rel.prototype);
-	
+	if (rel != null && rel.virtual) {
+	    if (rel.needsPersistence ())
+	        node = (Node) home.createNode (kstr);
+	    else
+	        node = new Node (home, kstr, safe, rel.prototype);
 	    if (rel.prototype != null) {
 	        node.setPrototype (rel.prototype);
 	        node.setDbMapping (app.getDbMapping (rel.prototype));

@@ -17,7 +17,6 @@ import helma.objectmodel.*;
 import helma.util.*;
 import helma.framework.IPathElement;
 import java.math.BigDecimal;
-// import com.workingdogs.village.*;
 
 
 /**
@@ -154,7 +153,7 @@ public final class Node implements INode, Serializable {
     transient String subnodeRelation = null;
     transient long lastSubnodeFetch = 0;
     transient long lastSubnodeChange = 0;
-
+    transient long lastNameCheck = 0;
     transient long lastParentSet = 0;
 
     transient long lastSubnodeCount = 0;  // these two are only used
@@ -261,11 +260,6 @@ public final class Node implements INode, Serializable {
 	name = nameField == null ? id : rs.getString (nameField);
 	if (name == null || name.length() == 0)
 	    name = dbmap.getTypeName() + " " + id;
-	// set parent for user objects to internal userroot node
-	if ("user".equals (prototype)) {
-	    parentHandle = new NodeHandle (new DbKey (null, "1"));
-	    anonymous = false;
-	}
 
 	created = lastmodified = System.currentTimeMillis ();
 
@@ -281,25 +275,25 @@ public final class Node implements INode, Serializable {
 	    switch (rel.getColumnType()) {
 
 	        case Types.BIT:
-	            newprop.setBooleanValue (rs.getBoolean(rel.getDbField()));
+	            newprop.setBooleanValue (rs.getBoolean(columns[i]));
 	            break;
 
 	        case Types.TINYINT:
 	        case Types.BIGINT:
 	        case Types.SMALLINT:
 	        case Types.INTEGER:
-	            newprop.setIntegerValue (rs.getLong(rel.getDbField()));
+	            newprop.setIntegerValue (rs.getLong(columns[i]));
 	            break;
 
 	        case Types.REAL:
 	        case Types.FLOAT:
 	        case Types.DOUBLE:
-	            newprop.setFloatValue (rs.getDouble(rel.getDbField()));
+	            newprop.setFloatValue (rs.getDouble(columns[i]));
 	            break;
 
 	        case Types.DECIMAL:
 	        case Types.NUMERIC:
-	            BigDecimal num = rs.getBigDecimal (rel.getDbField());
+	            BigDecimal num = rs.getBigDecimal (columns[i]);
 	            if (num == null) 
 	                break;
 	            if (num.scale() > 0)
@@ -311,20 +305,20 @@ public final class Node implements INode, Serializable {
 	        case Types.LONGVARBINARY:
 	        case Types.VARBINARY:
 	        case Types.BINARY:
-	            newprop.setStringValue (rs.getString(rel.getDbField()));
+	            newprop.setStringValue (rs.getString(columns[i]));
 	            break;
 
 	        case Types.LONGVARCHAR:
 	        case Types.CHAR:
 	        case Types.VARCHAR:
 	        case Types.OTHER:
-	            newprop.setStringValue (rs.getString(rel.getDbField()));
+	            newprop.setStringValue (rs.getString(columns[i]));
 	            break;
 
 	        case Types.DATE:
 	        case Types.TIME:
 	        case Types.TIMESTAMP:
-	            newprop.setDateValue (rs.getTimestamp(rel.getDbField()));
+	            newprop.setDateValue (rs.getTimestamp(columns[i]));
 	            break;
 
 	        case Types.NULL:
@@ -333,7 +327,7 @@ public final class Node implements INode, Serializable {
 	            // continue;
 
 	        default:
-	            newprop.setStringValue (rs.getString(rel.getDbField()));
+	            newprop.setStringValue (rs.getString(columns[i]));
 	            break;
 	    }
 
@@ -478,16 +472,13 @@ public final class Node implements INode, Serializable {
     }
     
     /**
-     * Get something to identify this node within  a URL. This is the ID for anonymous nodes
+     * Get something to identify this node within a URL. This is the ID for anonymous nodes
      * and a property value for named properties.
      */
     public String getElementName () {
 	// if subnodes are also mounted as properties, try to get the "nice" prop value
 	// instead of the id by turning the anonymous flag off.
-	// Work around this for user objects to alsways return a URL like /users/username
-	if ("user".equalsIgnoreCase (prototype)) {
-	    anonymous = false;
-	} else if (parentHandle != null) {
+	if (parentHandle != null && lastNameCheck < Math.max (dbmap.getLastTypeChange(), lastmodified)) {
 	    try {
 	        Node p = parentHandle.getNode (nmgr);
 	        DbMapping parentmap = p.getDbMapping ();
@@ -508,8 +499,9 @@ public final class Node implements INode, Serializable {
 	    } catch (Exception ignore) {
 	        // just fall back to default method
 	    }
+	    lastNameCheck = System.currentTimeMillis ();
 	}
-    	return anonymous || name == null || name.length() == 0 ? id : name;
+	return anonymous || name == null || name.length() == 0 ? id : name;
     }
 
 
@@ -615,10 +607,13 @@ public final class Node implements INode, Serializable {
      * Register a node as parent of the present node. We can't refer to the node directly, so we use
      * the ID + DB map combo.
      */
-    public void setParent (Node parent) {
+    protected void setParent (Node parent) {
 	parentHandle = parent == null ? null : parent.getHandle ();
     }
 
+    /**
+     *  Set the parent handle which can be used to get the actual parent node.
+     */
     public void setParentHandle (NodeHandle parent)	{
 	parentHandle = parent;
     }
@@ -679,10 +674,11 @@ public final class Node implements INode, Serializable {
 
 	// check what's specified in the type.properties for this node.
 	ParentInfo[] parentInfo = null;
-	if (isRelational () && (lastParentSet < dbmap.getLastTypeChange() || lastParentSet < lastmodified))
+	if (isRelational () && lastParentSet < Math.max (dbmap.getLastTypeChange(), lastmodified))
 	    parentInfo = dbmap.getParentInfo ();
 
-	// check if current parent candidate matches presciption, if not, try to get it
+	// check if current parent candidate matches presciption,
+	// if not, try to get one that does.
 	if (parentInfo != null && state != TRANSIENT) {
 	    for (int i=0; i<parentInfo.length; i++) {
 	        ParentInfo pinfo = parentInfo[i];
@@ -693,7 +689,7 @@ public final class Node implements INode, Serializable {
 	        if (rel != null && rel.reftype == Relation.REFERENCE)
 	            pn = getNode (pinfo.propname, false);
 	        // the parent of this node is the app's root node...
-	        if (pinfo.isroot && pn == null)
+	        if (pn == null && pinfo.isroot)
 	            pn = nmgr.getNode ("0", nmgr.getDbMapping ("root"));
 	        // if we found a parent node, check if we ought to use a virtual or groupby node as parent
 	        if (pn != null) {
@@ -1092,11 +1088,6 @@ public final class Node implements INode, Serializable {
 	// which needs to be unset
 	if (dbmap != null) {
 	    Relation srel = dbmap.getSubnodeRelation ();
-	    /*if (srel != null && srel.reftype == Relation.BACKWARD) {
-	        Relation backlink = srel.otherType.columnNameToRelation (srel.getRemoteField ());
-	        if (backlink != null && id.equals (node.getString (backlink.propName, false)))
-	            node.unset (backlink.propName);
-	    } */
 	}
 
 	// check if subnodes are also accessed as properties. If so, also unset the property
@@ -1349,27 +1340,33 @@ public final class Node implements INode, Serializable {
 	    prop.convertToNodeReference (pmap);
 	}
 
-	// the property does not exist in our propmap - see if we can create it on the fly,
-	// either because it is mapped from a relational database or defined as virtual node
+	// the property does not exist in our propmap - see if we should create it on the fly,
+	// either because it is mapped to an object from relational database or defined as 
+	// collection aka virtual node
 	if (prop == null && dbmap != null) {
-	    Relation prel =  dbmap.getPropertyRelation (propname);
-	    Relation srel = dbmap.getSubnodeRelation ();
-	    if (prel == null && srel != null && srel.groupby != null)
-	        prel = srel;
-	    if (prel == null)
-	        prel = dbmap.getPropertyRelation ();
-	    if (prel != null) {
-	        // if what we want is a virtual node, fetch anyway.
-	        if (state == TRANSIENT && prel.virtual) {
-	            INode node = new Node (propname, prel.getPrototype (), nmgr);
-	            node.setDbMapping (prel.getVirtualMapping ());
+	    Relation propRel =  dbmap.getPropertyRelation (propname);
+	    // if no property relation is defined for this specific property name, 
+	    // use the generic property relation, if one is defined.
+	    if (propRel == null)
+	        propRel = dbmap.getPropertyRelation ();
+	    // so if we have a property relation and it does in fact link to another object...
+	    if (propRel != null && propRel.isCollection ()) {
+	        // in some cases we just want to create and set a generic node without consulting
+	        // the NodeManager if it exists: When we get a collection (aka virtual node)
+	        // from a transient node for the first time, or when we get a collection whose
+	        // content objects are stored in the embedded XML data storage.
+	        if (state == TRANSIENT && propRel.virtual) {
+	            INode node = new Node (propname, propRel.getPrototype (), nmgr);
+	            node.setDbMapping (propRel.getVirtualMapping ());
 	            setNode (propname, node);
 	            prop = (Property) propMap.get (propname);
-	        // if this is from relational database only fetch if this node is itself persistent.
-	        } else if (state != TRANSIENT && (prel.virtual || prel.accessor != null || prel.groupby != null)) {
+	        }
+	        // if this is from relational database only fetch if this node
+	        // is itself persistent.
+	        else if (state != TRANSIENT && propRel.createPropertyOnDemand ()) {
 	            // this may be a relational node stored by property name
 	            try {
-	                Node pn = nmgr.getNode (this, propname, prel);
+	                Node pn = nmgr.getNode (this, propname, propRel);
 	                if (pn != null) {
 	                    if (pn.parentHandle == null && !"root".equalsIgnoreCase (pn.getPrototype ())) {
 	                        pn.setParent (this);
@@ -1384,17 +1381,12 @@ public final class Node implements INode, Serializable {
 	        }
 	    }
 	}
-	
+
 	if (prop == null && inherit && getParent () != null && state != TRANSIENT) {
 	    prop = ((Node) getParent ()).getProperty (propname, inherit);
 	}
 	return prop;
     }
-
-    /* public String getString (String propname, String defaultValue, boolean inherit) {
-	String propValue = getString (propname, inherit);
-	return propValue == null ? defaultValue : propValue;
-    } */
 
     public String getString (String propname, boolean inherit) {  
 	// propname = propname.toLowerCase ();
@@ -1493,10 +1485,10 @@ public final class Node implements INode, Serializable {
 	    // check if this node is already registered with the old name; if so, remove it.
 	    // then set parent's property to this node for the new name value
 	    DbMapping parentmap = parent.getDbMapping ();
-	    Relation prel = parentmap.getPropertyRelation ();
+	    Relation propRel = parentmap.getPropertyRelation ();
 	    String dbcolumn = dbmap.propertyToColumnName (propname);
 
-	    if (prel != null && prel.accessor != null && prel.accessor.equals (dbcolumn)) {
+	    if (propRel != null && propRel.accessor != null && propRel.accessor.equals (dbcolumn)) {
 	        INode n = parent.getNode (value, false);
 	        if (n != null && n != this) {
 	            parent.unset (value);

@@ -57,14 +57,13 @@ public final class Relation {
 
     String accessor; // db column used to access objects through this relation
     String order;
-    String groupbyorder;
+    String groupbyOrder;
     String groupby;
     String prototype;
-    String groupbyprototype;
+    String groupbyPrototype;
     String filter;
     int maxSize = 0;
 
-    // Relation subnoderelation = null; // additional relation used to filter subnodes for virtual nodes
 
     /**
      * This constructor makes a copy of an existing relation. Not all fields are copied, just those
@@ -156,8 +155,8 @@ public final class Relation {
 	    // FIXME: needs to be synchronized?
 	     if (virtualMapping != null) {
 	        virtualMapping.lastTypeChange = ownType.lastTypeChange;
-	        virtualMapping.subnodesRel = getVirtualSubnodeRelation ();
-	        virtualMapping.propertiesRel = getVirtualPropertyRelation ();
+	        virtualMapping.subRelation = getVirtualSubnodeRelation ();
+	        virtualMapping.propRelation = getVirtualPropertyRelation ();
 	    }
 	}
     }
@@ -190,12 +189,12 @@ public final class Relation {
 	if (groupby != null && groupby.trim().length() == 0)
 	    groupby = null;
 	if (groupby != null) {
-	    groupbyorder = props.getProperty (propName+".group.order");
-	    if (groupbyorder != null && groupbyorder.trim().length() == 0)
-	        groupbyorder = null;
-	    groupbyprototype = props.getProperty (propName+".group.prototype");
-	    if (groupbyprototype != null && groupbyprototype.trim().length() == 0)
-	        groupbyprototype = null;
+	    groupbyOrder = props.getProperty (propName+".group.order");
+	    if (groupbyOrder != null && groupbyOrder.trim().length() == 0)
+	        groupbyOrder = null;
+	    groupbyPrototype = props.getProperty (propName+".group.prototype");
+	    if (groupbyPrototype != null && groupbyPrototype.trim().length() == 0)
+	        groupbyPrototype = null;
 	    // aggressive loading and caching is not supported for groupby-nodes
 	    aggressiveLoading = aggressiveCaching = false;
 	}
@@ -228,7 +227,56 @@ public final class Relation {
     public boolean isPrimitive () {
 	return reftype == PRIMITIVE;
     }
-    
+
+    /**
+     *  Returns true if this Relation describes an object reference property
+     */
+    public boolean isReference () {
+	return reftype == REFERENCE;
+    }
+
+    /**
+     *  Returns true if this Relation describes a collection object property
+     */
+    public boolean isCollection () {
+	return reftype == COLLECTION;
+    }
+
+    /**
+     *  Tell wether the property described by this relation is to be handled as private, i.e.
+     *  a change on it should not result in any changed object/collection relations.
+     */
+    public boolean isPrivate () {
+	return isPrivate;
+    }
+
+    /**
+     *  Returns true if the object represented by this Relation has to be
+     *  created dynamically by the Helma objectmodel runtime as a virtual
+     *  node. Virtual nodes are objects which are only generated on demand
+     *  and never stored to a persistent storage.
+     */
+    public boolean createPropertyOnDemand () {
+	return virtual || accessor != null || groupby != null;
+    }
+
+    /**
+     *  Returns true if the object represented by this Relation has to be
+     *  persisted in the internal db in order to be functional. This is true if
+     *  the subnodes contained in this collection are stored in the embedded
+     *  database. In this case, the collection itself must also be an ordinary
+     *  object stored in the db, since a virtual collection would lose its
+     *  its content after restarts.
+     */
+    public boolean needsPersistence () {
+	if (!virtual)
+	    return false;
+	if (prototype == null)
+	    return !otherType.isRelational ();
+	DbMapping sub = otherType.getSubnodeMapping ();
+	return sub != null && !sub.isRelational ();
+    }
+
     /**
      * Return the prototype to be used for object reached by this relation
      */
@@ -301,8 +349,8 @@ public final class Relation {
 	    return null;
 	if (virtualMapping == null) {
 	    virtualMapping = new DbMapping (ownType.app);
-	    virtualMapping.subnodesRel = getVirtualSubnodeRelation ();
-	    virtualMapping.propertiesRel = getVirtualPropertyRelation ();
+	    virtualMapping.subRelation = getVirtualSubnodeRelation ();
+	    virtualMapping.propRelation = getVirtualPropertyRelation ();
 	}
 	return virtualMapping;
     }
@@ -316,8 +364,8 @@ public final class Relation {
 	    throw new RuntimeException ("getVirtualSubnodeRelation called on non-virtual relation");
 	Relation vr = new Relation (this);
 	vr.groupby = groupby;
-	vr.groupbyorder = groupbyorder;
-	vr.groupbyprototype = groupbyprototype;
+	vr.groupbyOrder = groupbyOrder;
+	vr.groupbyPrototype = groupbyPrototype;
 	vr.order = order;
 	vr.filter = filter;
 	vr.maxSize = maxSize;
@@ -335,8 +383,8 @@ public final class Relation {
 	    throw new RuntimeException ("getVirtualPropertyRelation called on non-virtual relation");
 	Relation vr = new Relation (this);
 	vr.groupby = groupby;
-	vr.groupbyorder = groupbyorder;
-	vr.groupbyprototype = groupbyprototype;
+	vr.groupbyOrder = groupbyOrder;
+	vr.groupbyPrototype = groupbyPrototype;
 	vr.order = order;
 	vr.filter = filter;
 	vr.maxSize = maxSize;
@@ -352,7 +400,7 @@ public final class Relation {
 	    throw new RuntimeException ("getGroupbySubnodeRelation called on non-group-by relation");
 	Relation vr = new Relation (this);
 	vr.order = order;
-	vr.prototype = groupbyprototype;
+	vr.prototype = groupbyPrototype;
 	vr.filter = filter;
 	vr.constraints = constraints;
 	vr.addConstraint (new Constraint (null, null, groupby, true));
@@ -369,7 +417,7 @@ public final class Relation {
 	    throw new RuntimeException ("getGroupbyPropertyRelation called on non-group-by relation");
 	Relation vr = new Relation (this);
 	vr.order = order;
-	vr.prototype = groupbyprototype;
+	vr.prototype = groupbyPrototype;
 	vr.filter = filter;
 	vr.constraints = constraints;
 	vr.addConstraint (new Constraint (null, null, groupby, true));
@@ -410,8 +458,8 @@ public final class Relation {
 	}
 	if (groupby != null) {
 	    q.append (" GROUP BY "+groupby);
-	    if (useOrder && groupbyorder != null)
-	        q.append (" ORDER BY "+groupbyorder);
+	    if (useOrder && groupbyOrder != null)
+	        q.append (" ORDER BY "+groupbyOrder);
 	} else if (useOrder && order != null)
 	    q.append (" ORDER BY "+order);
 	return q.toString ();
@@ -437,24 +485,17 @@ public final class Relation {
      */
     public String getOrder () {
 	if (groupby != null)
-	    return groupbyorder;
+	    return groupbyOrder;
 	else
 	    return order;
     }
 
     /**
-     *  Tell wether the property described by this relation is to be handled as readonly/write protected.
+     *  Tell wether the property described by this relation is to be handled
+     *  as readonly/write protected.
      */
     public boolean isReadonly () {
 	return readonly;
-    }
-
-    /**
-     *  Tell wether the property described by this relation is to be handled as private, i.e.
-     *  a change on it should not result in any changed object/collection relations.
-     */
-    public boolean isPrivate () {
-	return isPrivate;
     }
 
 

@@ -26,8 +26,6 @@ public final class DbMapping implements Updatable {
     // prototype name of this mapping
     String typename;
 
-    // int version;
-
     // properties from where the mapping is read
     SystemProperties props;
 
@@ -42,8 +40,8 @@ public final class DbMapping implements Updatable {
     ParentInfo[] parent;
 
     // Relations describing subnodes and properties.
-    Relation subnodesRel;
-    Relation propertiesRel;
+    Relation subRelation;
+    Relation propRelation;
 
     // if this defines a subnode mapping with groupby layer, we need a DbMapping for those groupby nodes
     DbMapping groupbyMapping;
@@ -230,17 +228,19 @@ public final class DbMapping implements Updatable {
 	if (subnodeMapping != null) {
 	    try {
 	        // check if subnode relation already exists. If so, reuse it
-	        if (subnodesRel == null)
-	            subnodesRel = new Relation (subnodeMapping, "_children", this, props);
-	        subnodesRel.update (subnodeMapping, props);
-	        if (subnodesRel.accessor != null)
-	            propertiesRel = subnodesRel;
+	        if (subRelation == null)
+	            subRelation = new Relation (subnodeMapping, "_children", this, props);
+	        subRelation.update (subnodeMapping, props);
+	        // if subnodes are accessed via access name or group name, 
+	        // the subnode relation is also the property relation.
+	        if (subRelation.accessor != null || subRelation.groupby != null)
+	            propRelation = subRelation;
 	    } catch (Exception x) {
 	        app.logEvent ("Error reading _subnodes relation for "+typename+": "+x.getMessage ());
-	        // subnodesRel = null;
+	        // subRelation = null;
 	    }
 	} else {
-	    subnodesRel = propertiesRel = null;
+	    subRelation = propRelation = null;
 	}
 
 	if (groupbyMapping != null) {
@@ -422,8 +422,8 @@ public final class DbMapping implements Updatable {
 
 
     public DbMapping getSubnodeMapping () {
-	if (subnodesRel != null)
-	    return subnodesRel.otherType;
+	if (subRelation != null)
+	    return subRelation.otherType;
     	if (parentMapping != null)
     	    return parentMapping.getSubnodeMapping ();
 	return null;
@@ -452,7 +452,7 @@ public final class DbMapping implements Updatable {
      * db-mapping with the right relations to create the group-by nodes
      */
     public synchronized DbMapping getGroupbyMapping () {
-	if (subnodesRel == null || subnodesRel.groupby == null)
+	if (subRelation == null || subRelation.groupby == null)
 	    return null;
 	if (groupbyMapping == null) {
 	    initGroupbyMapping ();
@@ -469,38 +469,31 @@ public final class DbMapping implements Updatable {
 	groupbyMapping = new DbMapping (app);
 	// If a mapping is defined, make the internal mapping inherit from
 	// the defined named prototype.
-	if (subnodesRel.groupbyprototype != null)
-	    groupbyMapping.parentMapping = app.getDbMapping (subnodesRel.groupbyprototype);
-	groupbyMapping.subnodesRel = subnodesRel.getGroupbySubnodeRelation ();
-	if (propertiesRel != null)
-	    groupbyMapping.propertiesRel = propertiesRel.getGroupbyPropertyRelation ();
+	if (subRelation.groupbyPrototype != null)
+	    groupbyMapping.parentMapping = app.getDbMapping (subRelation.groupbyPrototype);
+	groupbyMapping.subRelation = subRelation.getGroupbySubnodeRelation ();
+	if (propRelation != null)
+	    groupbyMapping.propRelation = propRelation.getGroupbyPropertyRelation ();
 	else
-	    groupbyMapping.propertiesRel = subnodesRel.getGroupbyPropertyRelation ();
-	groupbyMapping.typename = subnodesRel.groupbyprototype;
+	    groupbyMapping.propRelation = subRelation.getGroupbyPropertyRelation ();
+	groupbyMapping.typename = subRelation.groupbyPrototype;
     }
 
-    /* public void setPropertyMapping (DbMapping pm) {
-	properties = pm;
-    } */
-
-    /* public void setSubnodeRelation (Relation rel) {
-	subnodesRel = rel;
-    } */
-
+    
     public void setPropertyRelation (Relation rel) {
-	propertiesRel = rel;
+	propRelation = rel;
     }
 
     public Relation getSubnodeRelation () {
-	if (subnodesRel == null && parentMapping != null)
+	if (subRelation == null && parentMapping != null)
 	    return parentMapping.getSubnodeRelation ();
-	return subnodesRel;
+	return subRelation;
     }
 
     public Relation getPropertyRelation () {
-	if (propertiesRel == null && parentMapping != null)
+	if (propRelation == null && parentMapping != null)
 	    return parentMapping.getPropertyRelation ();
-	return propertiesRel;
+	return propRelation;
     }
 
     public Relation getPropertyRelation (String propname) {
@@ -524,9 +517,9 @@ public final class DbMapping implements Updatable {
     }
 
     public String getSubnodeGroupby () {
-	if (subnodesRel == null && parentMapping != null)
+	if (subRelation == null && parentMapping != null)
 	    return parentMapping.getSubnodeGroupby ();
-	return subnodesRel == null ? null : subnodesRel.groupby;
+	return subRelation == null ? null : subRelation.groupby;
     }
 
     public String getIDgen () {
