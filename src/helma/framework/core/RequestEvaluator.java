@@ -269,8 +269,6 @@ public final class RequestEvaluator implements Runnable {
 	                            scriptingEngine.invoke (currentElement, "onRequest", new Object[0], false);
 	                    } catch (RedirectException redir) {
 	                        throw redir;
-	                    } catch (Exception ignore) {
-	                        // function is not defined or caused an exception, ignore
 	                    }
 
 	                    // reset skin recursion detection counter
