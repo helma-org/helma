@@ -113,7 +113,7 @@ function appList_macro(par) {
 	}	else	{
 		var apps = root.getAllApplications();
 	}
-//	apps = apps.sort(sortByName);
+	apps = apps.sort(sortByName);
 	var html = "";
 	var param = new Object();
 	for (var n in apps) {
