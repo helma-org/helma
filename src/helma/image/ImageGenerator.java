@@ -94,18 +94,29 @@ public abstract class ImageGenerator {
         Image img = read(src);
         return img != null ? new ImageWrapper(img, this) : null;
     }
+    
+    /**
+     * @param filenamne ...
+     * 
+     * @return ...
+     * @throws IOException
+     */
+    public ImageWrapper createImage(String filenamne)
+        throws IOException {
+        Image img = read(filenamne);
+        return img != null ? new ImageWrapper(img, this) : null;
+    }
 
     /**
-     * @param urlString ...
+     * @param url ...
      * 
      * @return ...
      * @throws MalformedURLException
      * @throws IOException
-     * @throws MalformedURLException ...
      */
-    public ImageWrapper createImage(String urlString)
+    public ImageWrapper createImage(URL url)
         throws MalformedURLException, IOException {
-        Image img = read(new URL(urlString));
+        Image img = read(url);
         return img != null ? new ImageWrapper(img, this) : null;
     }
 
