@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Map;
 
 import helma.objectmodel.INode;
 
@@ -142,6 +143,10 @@ public class ApplicationBean implements Serializable {
 
 	public Application get__app__ () {
 		return app;
+	}
+
+	public Map getproperties () {
+		return app.getProperties ();
 	}
 
 	public int getfreeThreads () {
