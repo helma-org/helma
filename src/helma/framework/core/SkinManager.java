@@ -4,7 +4,6 @@
 package helma.framework.core;
 
 import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.Iterator;
 import helma.objectmodel.INode;
 import java.io.*;
@@ -15,30 +14,17 @@ import java.io.*;
  */
 
 
-public class SkinManager {
+public final class SkinManager {
 
     Application app;
-    Map skincache;
 
     public SkinManager (Application app) {
 	this.app = app;
-	skincache = new WeakHashMap ();
     }
 
     public Skin getSkin (Object object, String skinname, Object[] skinpath) {
 	Prototype proto = app.getPrototype (object);
-	String key = new StringBuffer(proto.getName()).append ("/").append (skinname)
-			.append ("#").append (skinpath.hashCode()).toString ();
-	// System.err.print ("SKINKEY: "+key);
-	Skin skin = (Skin) skincache.get (key);
-	if (skin != null) {
-	    // System.err.println (" ... cached");
-	    return skin;
-	}
-	// System.err.println (" ... uncached");
-	skin = getSkin (proto, skinname, "skin", skinpath);
-	if (skin != null)
-	    skincache.put (key, skin);
+	Skin skin = getSkin (proto, skinname, "skin", skinpath);
 	return skin;
     }
 
@@ -84,12 +70,7 @@ public class SkinManager {
 	        if (n != null) {
 	            String skin = n.getString (extension, false);
 	            if (skin != null) {
-	                Skin s = (Skin) app.skincache.get (skin);
-	                if (s == null) {
-	                    s = new Skin (skin, app);
-	                    app.skincache.put (skin, s);
-	                }
-	                return s;
+	                return new Skin (skin, app);
 	            }
 	        }
 	    }
@@ -100,42 +81,12 @@ public class SkinManager {
 	    f = new File (f, skinname+"."+extension);
 	    if (f.exists() && f.canRead()) {
 	        SkinFile sf = new SkinFile (f, skinname, app);
-	        Skin s = sf.getSkin ();
-	        return s;
+	        return sf.getSkin ();
 	    }
 	}
 	// Inheritance is taken care of in the above getSkin method.
 	// the sequence is prototype.skin-from-db, prototype.skin-from-file, parent.from-db, parent.from-file etc.
 	return null;
-    }
-
-
-    /**
-     *  Utility class to use for caching skins in a Hashtable.
-     *  The key consists out of two strings: prototype name and skin name.
-     */
-    final class SkinKey {
-
-	final String first, second, third;
-
-	public SkinKey (String first, String second, String third) {
-	    this.first = first;
-	    this.second = second;
-	    this.third = third;
-	}
-
-	public boolean equals (Object other) {
-	    try {
-	        SkinKey key = (SkinKey) other;
-	        return first.equals (key.first) && second.equals (key.second) && third.equals (key.third);
-	    } catch (Exception x) {
-	        return false;
-	    }
-	}
-
-	public int hashCode () {
-	    return first.hashCode () + second.hashCode () + third.hashCode ();
-	}
     }
 
 }
