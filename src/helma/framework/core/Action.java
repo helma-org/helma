@@ -123,6 +123,9 @@ public class Action implements Updatable {
 	return functionName;
     }
 
+    public String toString () {
+	return prototype.getName()+"/"+file.getName();
+    }
 
     public synchronized void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException {
         if (pfunc != null)

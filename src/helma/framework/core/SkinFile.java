@@ -72,6 +72,9 @@ public class SkinFile implements Updatable {
 	return skin;
     }
 	
+    public String toString () {
+	return prototype.getName()+"/"+file.getName();
+    }
 
 }
 

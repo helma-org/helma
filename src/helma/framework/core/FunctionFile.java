@@ -179,6 +179,11 @@ public class FunctionFile implements Updatable {
 	}
     }
 
+    public String toString () {
+	return prototype.getName()+"/"+file.getName();
+    }
+
+
 }
 
 

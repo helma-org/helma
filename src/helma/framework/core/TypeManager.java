@@ -243,12 +243,14 @@ public class TypeManager implements Runnable {
         // app.logEvent ("updating prototype "+name);
 
         boolean needsUpdate = false;
+        HashSet updatables = new HashSet ();
 
         // our plan is to do as little as possible, so first check if anything has changed at all...
         for (Iterator i = proto.updatables.values().iterator(); i.hasNext(); ) {
 	Updatable upd = (Updatable) i.next();
 	if (upd.needsUpdate ()) {
 	    needsUpdate = true;
+	    updatables.add (upd);
              }
         }
 
@@ -259,6 +261,7 @@ public class TypeManager implements Runnable {
 	    if (fn.endsWith (app.templateExtension) || fn.endsWith (app.scriptExtension) ||
 	    fn.endsWith (app.actionExtension) || fn.endsWith (app.scriptExtension) || "type.properties".equalsIgnoreCase (fn)) {
 	        needsUpdate = true;
+	        updatables.add ("[new:"+proto.getName()+"/"+fn+"]");
                  }
 	}
         }
@@ -268,7 +271,7 @@ public class TypeManager implements Runnable {
 
         // let the thread know we had to do something.
         idleSeconds = 0;
-        app.logEvent ("TypeManager: Updating prototypes for "+app.getName());
+        app.logEvent ("TypeManager: Updating prototypes for "+app.getName()+": "+updatables);
 
         // first go through new files and create new items
         for (int i=0; i<list.length; i++) {
