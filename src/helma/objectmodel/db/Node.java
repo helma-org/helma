@@ -864,10 +864,13 @@ public final class Node implements INode, Serializable {
 
     public INode getSubnode (String subid) {
 	// System.err.println ("GETSUBNODE : "+this+" > "+subid);
-	Node retval = null;
 	if ("".equals (subid)) {
 	    return this;
-	} else if (subid != null) {
+	}
+	
+	Node retval = null;
+
+	if (subid != null) {
 	
 	    loadNodes ();
 	    if (subnodes == null || subnodes.size() == 0)
@@ -1274,13 +1277,13 @@ public final class Node implements INode, Serializable {
 	return prop;
     }
 
-    public String getString (String propname, String defaultValue, boolean inherit) {
+    /* public String getString (String propname, String defaultValue, boolean inherit) {
 	String propValue = getString (propname, inherit);
 	return propValue == null ? defaultValue : propValue;
-    }
+    } */
 
     public String getString (String propname, boolean inherit) {  
-	propname = propname.toLowerCase ();
+	// propname = propname.toLowerCase ();
 	Property prop = getProperty (propname, inherit);
 	try {
 	    return prop.getStringValue ();
@@ -1289,7 +1292,7 @@ public final class Node implements INode, Serializable {
     }
 
     public long getInteger (String propname, boolean inherit) {  
-	propname = propname.toLowerCase ();
+	// propname = propname.toLowerCase ();
 	Property prop = getProperty (propname, inherit);
 	try {
 	    return prop.getIntegerValue ();
@@ -1298,7 +1301,7 @@ public final class Node implements INode, Serializable {
     }
 
     public double getFloat (String propname, boolean inherit) {  
-	propname = propname.toLowerCase ();
+	// propname = propname.toLowerCase ();
 	Property prop = getProperty (propname, inherit);
 	try {
 	    return prop.getFloatValue ();
@@ -1307,7 +1310,7 @@ public final class Node implements INode, Serializable {
     }
 
     public Date getDate (String propname, boolean inherit) {  
-	propname = propname.toLowerCase ();
+	// propname = propname.toLowerCase ();
 	Property prop = getProperty (propname, inherit);
 	try {
 	    return prop.getDateValue ();
@@ -1317,7 +1320,7 @@ public final class Node implements INode, Serializable {
 
 
     public boolean getBoolean (String propname, boolean inherit) {  
-	propname = propname.toLowerCase ();
+	// propname = propname.toLowerCase ();
 	Property prop = getProperty (propname, inherit);
 	try {
 	    return prop.getBooleanValue ();
@@ -1326,7 +1329,7 @@ public final class Node implements INode, Serializable {
     }
 
     public INode getNode (String propname, boolean inherit) {  
-	propname = propname.toLowerCase ();
+	// propname = propname.toLowerCase ();
 	Property prop = getProperty (propname, inherit);
 	try {
 	    return prop.getNodeValue ();
@@ -1335,7 +1338,7 @@ public final class Node implements INode, Serializable {
     }
 
     public Object getJavaObject (String propname, boolean inherit) {
-	propname = propname.toLowerCase ();
+	// propname = propname.toLowerCase ();
 	Property prop = getProperty (propname, inherit);
 	try {
 	    return prop.getJavaObjectValue ();
