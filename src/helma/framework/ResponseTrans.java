@@ -123,6 +123,7 @@ public final class ResponseTrans implements Externalizable {
     public void reset () {
 	if (buffer != null)
 	    buffer.setLength (0);
+	buffers = null;
 	response = null;
 	redir = null;
 	skin = null;
