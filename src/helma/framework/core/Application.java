@@ -27,13 +27,18 @@ import java.rmi.server.*;
  * requests from the Web server or XML-RPC port and dispatches them to
  * the evaluators.
  */
-public final class Application 
+public final class Application
 		extends UnicastRemoteObject
 		implements IRemoteApp, IPathElement, IReplicatedApp, Runnable {
 
+    // the name of this application
     private String name;
+    
+    // properties and db-properties
     SystemProperties props, dbProps;
+    // home, app and data directories
     File home, appDir, dbDir;
+    // this application's node manager
     protected NodeManager nmgr;
 
     // the root of the website, if a custom root object is defined.
@@ -72,6 +77,7 @@ public final class Application
     Hashtable dbMappings;
     Hashtable dbSources;
 
+    // internal worker thread for scheduler, session cleanup etc.
     Thread worker;
     long requestTimeout = 60000; // 60 seconds for request timeout.
     ThreadGroup threadgroup;
@@ -82,10 +88,10 @@ public final class Application
     // Two logs for each application: events and accesses
     Logger eventLog, accessLog;
 
-    protected String templateExtension, scriptExtension, actionExtension, skinExtension;
-
     // A transient node that is shared among all evaluators
     protected INode cachenode;
+    
+    // some fields for statistics
     protected volatile long requestCount = 0;
     protected volatile long xmlrpcCount = 0;
     protected volatile long errorCount = 0;
@@ -99,9 +105,7 @@ public final class Application
 
     private DbMapping rootMapping, userRootMapping, userMapping;
 
-    // boolean checkSubnodes;
-
-    // name of respone encoding
+    // name of response encoding
     String charset;
 
     // password file to use for authenticate() function
@@ -118,61 +122,71 @@ public final class Application
     /**
      *  Zero argument constructor needed for RMI
      */
-    public Application () throws RemoteException {
+    /* public Application () throws RemoteException {
 	super ();
-    }
+    } */
 
     /**
-     * Build an application with the given name in the home directory. Server-wide properties will
-     * be created if the files are present, but they don't have to.
+     * Build an application with the given name in the app directory. No Server-wide
+     * properties are created or used.
      */
-    public Application (String name, File home) throws RemoteException, IllegalArgumentException {
-	this (name, home,
-		new SystemProperties (new File (home, "server.properties").getAbsolutePath ()),
-		new SystemProperties (new File (home, "db.properties").getAbsolutePath ()));
+    public Application (String name, File appDir, File dbDir)
+		throws RemoteException, IllegalArgumentException {
+	this (name, null, appDir, dbDir);
     }
 
     /**
-     * Build an application with the given name, app and db properties and app base directory. The
+     * Build an application with the given name and server instance. The
      * app directories will be created if they don't exist already.
      */
-    public Application (String name, File home, SystemProperties sysProps, SystemProperties sysDbProps)
-		    throws RemoteException, IllegalArgumentException {
+    public Application (String name, Server server)
+		throws RemoteException, IllegalArgumentException {
+
+	this (name, server, null, null);
+    }
+
+    /**
+     * Build an application with the given name, server instance, app and
+     * db directories.
+     */
+    public Application (String name, Server server, File customAppDir, File customDbDir)
+		throws RemoteException, IllegalArgumentException {
 
 	if (name == null || name.trim().length() == 0)
 	    throw new IllegalArgumentException ("Invalid application name: "+name);
 
 	this.name = name;
-	this.home = home;
+	appDir = customAppDir;
+	dbDir = customDbDir;
+
+	// system-wide properties, default to null
+	Properties sysProps, sysDbProps;
+	sysProps = sysDbProps = null;
+
+	if (server != null) {
+	     home = server.getHopHome ();
+	    // if appDir and dbDir weren't explicitely passed, use the
+	    // standard subdirectories of the Hop home directory
+	    if (appDir == null) {
+	        appDir = new File (home, "apps");
+	        appDir = new File (appDir, name);
+	    }
+	    if (dbDir == null) {
+	        dbDir = new File (home, "db");
+	        dbDir = new File (dbDir, name);
+	    }
+	    // get system-wide properties
+	    sysProps = server.getProperties ();
+	    sysDbProps = server.getDbProperties ();
+	}
+	// create the directories if they do not exist already
+	if (!appDir.exists())
+	    appDir.mkdirs ();
+	if (!dbDir.exists())
+	    dbDir.mkdirs ();
 
 	// give the Helma Thread group a name so the threads can be recognized
 	threadgroup = new ThreadGroup ("TX-"+name);
-
-	// check the system props to see if custom app directory is set.
-	// otherwise use <home>/apps/<appname>
-	String appHome = null;
-	if (sysProps != null)
-	    appHome = sysProps.getProperty ("appHome");
-	if (appHome != null && !"".equals (appHome.trim()))
-	    appDir = new File (appHome);
-	else
-	    appDir = new File (home, "apps");
-	appDir = new File (appDir, name);
-	if (!appDir.exists())	
-	    appDir.mkdirs ();
-
-	// check the system props to see if custom embedded db directory is set.
-	// otherwise use <home>/db/<appname>
-	String dbHome = null;
-	if (sysProps != null)
-	    dbHome = sysProps.getProperty ("dbHome");
-	if (dbHome != null && !"".equals (dbHome.trim()))
-	    dbDir = new File (dbHome);
-	else
-	    dbDir = new File (home, "db");
-	dbDir = new File (dbDir, name);
-	if (!dbDir.exists())	
-	    dbDir.mkdirs ();
 
 	// create app-level properties
 	File propfile = new File (appDir, "app.properties");
@@ -183,36 +197,31 @@ public final class Application
 	dbProps = new SystemProperties (dbpropfile.getAbsolutePath (), sysDbProps);
 
 	// the passwd file, to be used with the authenticate() function
-	File pwf = new File (home, "passwd");
-	CryptFile parentpwfile = new CryptFile (pwf, null);
-	pwf = new File (appDir, "passwd");
-	pwfile = new CryptFile (pwf, parentpwfile);
+	// File pwf = new File (home, "passwd");
+	// CryptFile parentpwfile = new CryptFile (pwf, null);
+	File pwf = new File (appDir, "passwd");
+	CryptFile pwfile = new CryptFile (pwf, null);
 
 	// the properties that map java class names to prototype names
-	classMapping = new SystemProperties (new File (appDir, "class.properties").getAbsolutePath ());
+	File classMappingFile = new File (appDir, "class.properties");
+	classMapping = new SystemProperties (classMappingFile.getAbsolutePath ());
 
 	// get class name of root object if defined. Otherwise native Helma objectmodel will be used.
 	rootObjectClass = classMapping.getProperty ("root");
-
-	// the properties that map allowed public skin extensions to content types
-	skinExtensions = new SystemProperties (new File (appDir, "mime.properties").getAbsolutePath ());
 
 	// character encoding to be used for responses
 	charset = props.getProperty ("charset", "ISO-8859-1");
 
 	debug = "true".equalsIgnoreCase (props.getProperty ("debug"));
 	// checkSubnodes = !"false".equalsIgnoreCase (props.getProperty ("subnodeChecking"));
-	
+
 
 	try {
 	    requestTimeout = Long.parseLong (props.getProperty ("requestTimeout", "60"))*1000l;
-	} catch (Exception ignore) {	}
-	
-	templateExtension = props.getProperty ("templateExtension", ".hsp");
-	scriptExtension = props.getProperty ("scriptExtension", ".js");
-	actionExtension = props.getProperty ("actionExtension", ".hac");
-	skinExtension = ".skin";
-	
+	} catch (Exception ignore) {
+	    // go with default value
+	}
+
 	sessions = new Hashtable ();
 	dbMappings = new Hashtable ();
 	dbSources = new Hashtable ();
@@ -430,7 +439,7 @@ public final class Application
     public ResponseTrans execute (RequestTrans req) {
 
 	requestCount += 1;
-	
+
 	// get user for this request's session
 	Session session = checkSession (req.session);
 	session.touch();
@@ -617,7 +626,7 @@ public final class Application
      * Return the session currently associated with a given Hop session ID.
      * Create a new session if necessary.
      */
-    public Session checkSession (String sessionID)	{
+    public Session checkSession (String sessionID) {
 	Session session = getSession(sessionID);
 	if ( session==null )	{
 	    session = new Session (sessionID, this);
@@ -1032,9 +1041,7 @@ public final class Application
      */
     public Logger getLogger (String logname) {
 	Logger log = null;
-	String logDir = props.getProperty ("logdir");
-	if (logDir == null)
-	    logDir = "log";
+	String logDir = props.getProperty ("logdir", "log");
 	// allow log to be redirected to System.out by setting logdir to "console"
 	if ("console".equalsIgnoreCase (logDir))
 	    return new Logger (System.out);

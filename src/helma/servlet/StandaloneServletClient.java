@@ -12,21 +12,40 @@ import helma.util.*;
 
 /**
  *  Standalone servlet client that runs a Helma application all by itself
- *  in embedded mode without relying on helma.main.Server.
+ *  in embedded mode without relying on a central instance of helma.main.Server
+ *  to start and manage the application.
+ *
+ *  StandaloneServletClient takes the following init parameters:
+ *     <ul>
+ *       <li> application - the application name </li>
+ *       <li> appdir - the path of the application home directory </li>
+ *       <li> dbdir - the path of the embedded XML data store </li>
+ *     </ul>
  */
 
 public final class StandaloneServletClient extends AbstractServletClient {
 
     private Application app = null;
     private String appName;
-    private String serverProps;
+    private String appDir;
+    private String dbDir;
 
 
     public void init (ServletConfig init) throws ServletException {
 	super.init (init);
+	
 	appName = init.getInitParameter ("application");
-	serverProps = init.getInitParameter ("serverprops");
-    }
+	if (appName == null || appName.trim().length() == 0)
+	    throw new ServletException ("application parameter not specified");
+
+	appDir = init.getInitParameter ("appdir");
+	if (appDir == null || appDir.trim().length() == 0)
+	    throw new ServletException ("appdir parameter not specified");
+
+	dbDir = init.getInitParameter ("dbdir");
+	if (dbDir == null || dbDir.trim().length() == 0)
+	    throw new ServletException ("dbdir parameter not specified");
+}
 
     IRemoteApp getApp (String appID) {
 	if (app == null)
@@ -42,14 +61,13 @@ public final class StandaloneServletClient extends AbstractServletClient {
 	if (app != null)
 	    return;
 	try {
-	    File propfile = new File (serverProps);
-	    File hopHome = new File (propfile.getParent());
-	    SystemProperties sysProps = new SystemProperties (propfile.getAbsolutePath());
-	    app = new Application (appName, hopHome, sysProps, null);
+	    File appHome = new File (appDir);
+	    File dbHome = new File (dbDir);
+	    app = new Application (appName, appHome, dbHome);
 	    app.init ();
 	    app.start ();
 	} catch (Exception x) {
-	    System.err.println ("Error starting Application "+appName+": "+x);
+	    log ("Error starting Application "+appName+": "+x);
 	    x.printStackTrace ();
 	}
     }
@@ -64,7 +82,7 @@ public final class StandaloneServletClient extends AbstractServletClient {
 	    try {
 	        app.stop ();
 	    } catch (Exception x) {
-	        System.err.println ("Error shutting down app "+app.getName()+": ");
+	        log ("Error shutting down app "+app.getName()+": ");
 	        x.printStackTrace ();
 	    }
 	}

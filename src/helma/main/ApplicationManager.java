@@ -16,7 +16,6 @@ import helma.framework.core.*;
 import helma.objectmodel.*;
 import helma.servlet.*;
 import helma.util.SystemProperties;
-// import Acme.Serve.*;
 import org.mortbay.http.*;
 import org.mortbay.http.handler.*;
 import org.mortbay.jetty.servlet.*;
@@ -37,7 +36,6 @@ public class ApplicationManager {
     private SystemProperties props;
     private Server server;
     private long lastModified;
-    // EmbeddedTomcat tomcat;
 
     public ApplicationManager (int port, File hopHome, SystemProperties props, Server server) {
 	this.port = port;
@@ -104,7 +102,14 @@ public class ApplicationManager {
     void start (String appName) {
 	Server.getLogger().log ("Building application "+appName);
 	try {
-	    Application app = new Application (appName, hopHome, Server.sysProps, Server.dbProps);
+	    // check if application and db dirs are set, otherwise go with 
+	    // the defaults, passing null dirs to the constructor.
+	    String appDirName = props.getProperty (appName+".appdir");
+	    File appDir = appDirName == null ? null : new File (appDirName);
+	    String dbDirName = props.getProperty (appName+".dbdir");
+	    File dbDir = dbDirName == null ? null : new File (dbDirName);
+	    // create the application instance
+	    Application app = new Application (appName, server, appDir, dbDir);
 	    applications.put (appName, app);
 	    // the application is started later in the register method, when it's bound
 	    app.init ();

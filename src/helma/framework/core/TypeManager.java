@@ -25,7 +25,11 @@ public final class TypeManager {
     long lastCheck = 0;
     boolean rewire;
 
-    static String[] standardTypes = {"user", "global", "root", "hopobject"};
+    final static String[] standardTypes = {"user", "global", "root", "hopobject"};
+    final static String templateExtension = ".hsp";
+    final static String scriptExtension = ".js";
+    final static String actionExtension = ".hac";
+    final static String skinExtension = ".skin";
  
     public TypeManager (Application app) {
         this.app = app;
@@ -224,8 +228,8 @@ public final class TypeManager {
             for (int i=0; i<list.length; i++) {
                 String fn = list[i];
                 if (!proto.updatables.containsKey (fn)) {
-                    if (fn.endsWith (app.templateExtension) || fn.endsWith (app.scriptExtension) ||
-	    	fn.endsWith (app.actionExtension) || fn.endsWith (app.skinExtension) ||
+                    if (fn.endsWith (templateExtension) || fn.endsWith (scriptExtension) ||
+	    	fn.endsWith (actionExtension) || fn.endsWith (skinExtension) ||
 	    	"type.properties".equalsIgnoreCase (fn)) {
                         needsUpdate = true;
                         // updatables.add ("[new:"+proto.getName()+"/"+fn+"]");
@@ -249,15 +253,15 @@ public final class TypeManager {
             if (dot < 0)
                 continue;
 
-            if (proto.updatables.containsKey (fn) || !(fn.endsWith (app.templateExtension) || fn.endsWith (app.scriptExtension) ||
-            fn.endsWith (app.actionExtension) || fn.endsWith (app.skinExtension) || "type.properties".equalsIgnoreCase (fn))) {
+            if (proto.updatables.containsKey (fn) || !(fn.endsWith (templateExtension) || fn.endsWith (scriptExtension) ||
+            fn.endsWith (actionExtension) || fn.endsWith (skinExtension) || "type.properties".equalsIgnoreCase (fn))) {
                 continue;
             }
 
             String tmpname = list[i].substring(0, dot);
             File tmpfile = new File (dir, list[i]);
 
-            if (list[i].endsWith (app.templateExtension)) {
+            if (list[i].endsWith (templateExtension)) {
                 try {
                     Template t = new Template (tmpfile, tmpname, proto);
                     proto.updatables.put (list[i], t);
@@ -266,7 +270,7 @@ public final class TypeManager {
                     app.logEvent ("Error updating prototype: "+x);
                 }
 
-            } else if (list[i].endsWith (app.scriptExtension)) {
+            } else if (list[i].endsWith (scriptExtension)) {
                 try {
                     FunctionFile ff = new FunctionFile (tmpfile, tmpname, proto);
                     proto.updatables.put (list[i], ff);
@@ -275,7 +279,7 @@ public final class TypeManager {
                     app.logEvent ("Error updating prototype: "+x);
                 }
 
-            }  else if (list[i].endsWith (app.actionExtension)) {
+            }  else if (list[i].endsWith (actionExtension)) {
                 try {
                     ActionFile af = new ActionFile (tmpfile, tmpname, proto);
                     proto.updatables.put (list[i], af);
@@ -284,7 +288,7 @@ public final class TypeManager {
                     app.logEvent ("Error updating prototype: "+x);
                 }
 
-            }  else if (list[i].endsWith (app.skinExtension)) {
+            }  else if (list[i].endsWith (skinExtension)) {
                 SkinFile sf = new SkinFile (tmpfile, tmpname, proto);
                 proto.updatables.put (list[i], sf);
                 proto.skins.put (tmpname, sf);
