@@ -93,6 +93,7 @@ public class HopExtension {
         go.putHiddenProperty("encode", new GlobalEncode ("encode", evaluator, fp));
         go.putHiddenProperty("encodeXml", new GlobalEncodeXml ("encodeXml", evaluator, fp));
         go.putHiddenProperty("format", new GlobalFormat ("format", evaluator, fp));
+        go.putHiddenProperty("stripTags", new GlobalStripTags ("stripTags", evaluator, fp));
         go.putHiddenProperty("getXmlDocument", new GlobalGetXmlDocument ("getXmlDocument", evaluator, fp));
         go.putHiddenProperty("getHtmlDocument", new GlobalGetHtmlDocument ("getHtmlDocument", evaluator, fp));
         go.putHiddenProperty("jdomize", new GlobalJDOM ("jdomize", evaluator, fp));
@@ -730,6 +731,25 @@ public class HopExtension {
         }
     }
 
+    // strip tags from XML/HTML text
+    class GlobalStripTags extends BuiltinFunctionObject {
+        GlobalStripTags (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 1);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+            if (arguments.length < 1)
+                return  ESNull.theNull;
+            StringBuffer b = new StringBuffer ();
+            char[] c = arguments[0].toString ().toCharArray ();
+            boolean inTag = false;
+            for (int i=0; i<c.length; i++) {
+               if (c[i] == '<') inTag = true;
+               if (!inTag) b.append (c[i]);
+               if (c[i] == '>') inTag = false;
+            }
+            return new ESString (b.toString ());
+        }
+    }
 
     class GlobalFormat extends BuiltinFunctionObject {
         GlobalFormat (String name, Evaluator evaluator, FunctionPrototype fp) {
