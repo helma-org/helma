@@ -1,175 +1,386 @@
+/*
+ * Helma License Notice
+ *
+ * The contents of this file are subject to the Helma License
+ * Version 2.0 (the "License"). You may not use this file except in
+ * compliance with the License. A copy of the License is available at
+ * http://adele.helma.org/download/helma/license.txt
+ *
+ * Copyright 1998-2003 Helma Software. All Rights Reserved.
+ *
+ * $RCSfile$
+ * $Author$
+ * $Revision$
+ * $Date$
+ */
+
 package helma.framework;
 
+import helma.framework.core.Application;
 import java.io.Serializable;
+import java.util.Date;
 import java.util.Map;
 
-import helma.framework.core.Application;
-import java.util.Date;
-
+/**
+ * 
+ */
 public class ResponseBean implements Serializable {
-
     ResponseTrans res;
 
-    public ResponseBean(ResponseTrans res)	{
-	this.res = res;
+    /**
+     * Creates a new ResponseBean object.
+     *
+     * @param res ...
+     */
+    public ResponseBean(ResponseTrans res) {
+        this.res = res;
     }
 
-    public void encode (Object what) {
-	res.encode (what);
+    /**
+     *
+     *
+     * @param what ...
+     */
+    public void encode(Object what) {
+        res.encode(what);
     }
 
-    public void encodeXml (Object what) {
-	res.encodeXml (what);
+    /**
+     *
+     *
+     * @param what ...
+     */
+    public void encodeXml(Object what) {
+        res.encodeXml(what);
     }
 
-    public void format (Object what) {
-	res.format (what);
+    /**
+     *
+     *
+     * @param what ...
+     */
+    public void format(Object what) {
+        res.format(what);
     }
 
-    public void redirect (String url) throws RedirectException {
-	res.redirect (url);
+    /**
+     *
+     *
+     * @param url ...
+     *
+     * @throws RedirectException ...
+     */
+    public void redirect(String url) throws RedirectException {
+        res.redirect(url);
     }
 
-    public void reset () {
-	res.reset ();
+    /**
+     *
+     */
+    public void reset() {
+        res.reset();
     }
 
-    public void setCookie (String key, String value) {
-	res.setCookie (key, value, -1, null, null);
+    /**
+     *
+     *
+     * @param key ...
+     * @param value ...
+     */
+    public void setCookie(String key, String value) {
+        res.setCookie(key, value, -1, null, null);
     }
 
-    public void setCookie (String key, String value, int days) {
-	res.setCookie (key, value, days, null, null);
-    }
-    
-    public void setCookie (String key, String value, int days, String path) {
-	res.setCookie (key, value, days, path, null);
-    }
-
-    public void setCookie (String key, String value, int days, String path, String domain) {
-	res.setCookie (key, value, days, path, domain);
-    }
-
-    public void write (Object what) {
-	res.write (what);
+    /**
+     *
+     *
+     * @param key ...
+     * @param value ...
+     * @param days ...
+     */
+    public void setCookie(String key, String value, int days) {
+        res.setCookie(key, value, days, null, null);
     }
 
-    public void writeln (Object what) {
-	res.writeln (what);
+    /**
+     *
+     *
+     * @param key ...
+     * @param value ...
+     * @param days ...
+     * @param path ...
+     */
+    public void setCookie(String key, String value, int days, String path) {
+        res.setCookie(key, value, days, path, null);
     }
 
-    public void writeBinary (byte[] what) {
-	res.writeBinary (what);
+    /**
+     *
+     *
+     * @param key ...
+     * @param value ...
+     * @param days ...
+     * @param path ...
+     * @param domain ...
+     */
+    public void setCookie(String key, String value, int days, String path, String domain) {
+        res.setCookie(key, value, days, path, domain);
     }
 
-    public void debug (Object message) {
-	res.debug (message);
+    /**
+     *
+     *
+     * @param what ...
+     */
+    public void write(Object what) {
+        res.write(what);
     }
 
+    /**
+     *
+     *
+     * @param what ...
+     */
+    public void writeln(Object what) {
+        res.writeln(what);
+    }
+
+    /**
+     *
+     *
+     * @param what ...
+     */
+    public void writeBinary(byte[] what) {
+        res.writeBinary(what);
+    }
+
+    /**
+     *
+     *
+     * @param message ...
+     */
+    public void debug(Object message) {
+        res.debug(message);
+    }
+
+    /**
+     *
+     *
+     * @return ...
+     */
     public String toString() {
-	return "[Response]";
+        return "[Response]";
     }
 
-
-	// property-related methods:
-
-    public boolean getcache () {
-	return res.cache;
+    // property-related methods:
+    public boolean getcache() {
+        return res.cache;
     }
 
-    public void setcache (boolean cache) {
-	res.cache = cache;
+    /**
+     *
+     *
+     * @param cache ...
+     */
+    public void setcache(boolean cache) {
+        res.cache = cache;
     }
 
-    public String getcharset () {
-	return res.charset;
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getcharset() {
+        return res.charset;
     }
 
-    public void setcharset (String charset) {
-	res.charset = charset;
+    /**
+     *
+     *
+     * @param charset ...
+     */
+    public void setcharset(String charset) {
+        res.charset = charset;
     }
 
-    public String getcontentType () {
-	return res.contentType;
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getcontentType() {
+        return res.contentType;
     }
 
-    public void setcontentType (String contentType) {
-	res.contentType = contentType;
+    /**
+     *
+     *
+     * @param contentType ...
+     */
+    public void setcontentType(String contentType) {
+        res.contentType = contentType;
     }
 
-    public Map getdata () {
-	return res.getResponseData ();
-    }
-    
-    public Map gethandlers () {
-	return res.getMacroHandlers ();
-    }
-
-    public String geterror () {
-	return res.error;
+    /**
+     *
+     *
+     * @return ...
+     */
+    public Map getdata() {
+        return res.getResponseData();
     }
 
-    public String getmessage () {
-	return res.message;
+    /**
+     *
+     *
+     * @return ...
+     */
+    public Map gethandlers() {
+        return res.getMacroHandlers();
     }
 
-    public void setmessage (String message) {
-	res.message = message;
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String geterror() {
+        return res.error;
     }
 
-    public String getrealm () {
-	return res.realm;
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getmessage() {
+        return res.message;
     }
 
-    public void setrealm (String realm) {
-	res.realm = realm;
+    /**
+     *
+     *
+     * @param message ...
+     */
+    public void setmessage(String message) {
+        res.message = message;
     }
 
-    public void setskinpath (Object[] arr) {
-	res.setSkinpath (arr);
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getrealm() {
+        return res.realm;
     }
 
-    public Object[] getskinpath () {
-	return res.getSkinpath ();
+    /**
+     *
+     *
+     * @param realm ...
+     */
+    public void setrealm(String realm) {
+        res.realm = realm;
     }
 
-    public int getstatus () {
-	return res.status;
+    /**
+     *
+     *
+     * @param arr ...
+     */
+    public void setskinpath(Object[] arr) {
+        res.setSkinpath(arr);
     }
 
-    public void setstatus (int status) {
-	res.status = status;
+    /**
+     *
+     *
+     * @return ...
+     */
+    public Object[] getskinpath() {
+        return res.getSkinpath();
     }
 
-    public Date getLastModified () {
-	long modified = res.getLastModified ();
-	if (modified > -1)
-	    return new Date (modified);
-	else
-	    return null;
+    /**
+     *
+     *
+     * @return ...
+     */
+    public int getstatus() {
+        return res.status;
     }
 
-    public void setLastModified (Date date) {
-	if (date == null)
-	    res.setLastModified (-1);
-	else
-	    res.setLastModified (date.getTime());
+    /**
+     *
+     *
+     * @param status ...
+     */
+    public void setstatus(int status) {
+        res.status = status;
     }
 
-    public String getETag () {
-	return res.getETag ();
-    }
-    
-    public void setETag (String etag) {
-	res.setETag (etag);
+    /**
+     *
+     *
+     * @return ...
+     */
+    public Date getLastModified() {
+        long modified = res.getLastModified();
+
+        if (modified > -1) {
+            return new Date(modified);
+        } else {
+            return null;
+        }
     }
 
-    public void dependsOn (Object what) {
-	res.dependsOn (what);
+    /**
+     *
+     *
+     * @param date ...
+     */
+    public void setLastModified(Date date) {
+        if (date == null) {
+            res.setLastModified(-1);
+        } else {
+            res.setLastModified(date.getTime());
+        }
     }
 
-    public void digest () {
-	res.digestDependencies ();
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getETag() {
+        return res.getETag();
+    }
+
+    /**
+     *
+     *
+     * @param etag ...
+     */
+    public void setETag(String etag) {
+        res.setETag(etag);
+    }
+
+    /**
+     *
+     *
+     * @param what ...
+     */
+    public void dependsOn(Object what) {
+        res.dependsOn(what);
+    }
+
+    /**
+     *
+     */
+    public void digest() {
+        res.digestDependencies();
     }
 
     /////////////////////////////////////
@@ -177,14 +388,16 @@ public class ResponseBean implements Serializable {
     // Helma templates (*.hsp files) and shouldn't 
     // be used otherwise.
     ////////////////////////////////////
-
-    public void pushStringBuffer  () {
-	res.pushStringBuffer ();
+    public void pushStringBuffer() {
+        res.pushStringBuffer();
     }
 
-    public String popStringBuffer () {
-	return res.popStringBuffer ();
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String popStringBuffer() {
+        return res.popStringBuffer();
     }
-
 }
-

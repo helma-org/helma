@@ -1,6 +1,19 @@
-// Key.java
-// Copyright (c) Hannes Wallnöfer 1998-2000
- 
+/*
+ * Helma License Notice
+ *
+ * The contents of this file are subject to the Helma License
+ * Version 2.0 (the "License"). You may not use this file except in
+ * compliance with the License. A copy of the License is available at
+ * http://adele.helma.org/download/helma/license.txt
+ *
+ * Copyright 1998-2003 Helma Software. All Rights Reserved.
+ *
+ * $RCSfile$
+ * $Author$
+ * $Revision$
+ * $Date$
+ */
+
 package helma.objectmodel.db;
 
 
@@ -9,66 +22,24 @@ package helma.objectmodel.db;
  *
  */
 public interface Key {
+    /**
+     *
+     *
+     * @return ...
+     */
+    public Key getParentKey();
 
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getID();
 
-    public Key getParentKey ();
-
-    public String getID ();
-
-    public String getStorageName ();
-
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getStorageName();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
