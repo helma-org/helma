@@ -17,15 +17,15 @@
 /*
  * A few explanations:
  * 
- * - ImageWrapper.image is either an AWT Image or a BufferedImage.
+ * - this.image is either an AWT Image or a BufferedImage.
  *   It depends on the ImageGenerator in what form the Image initially is.
- *   (the ImageIO implementation only uses BufferedImages for example.
+ *   (the ImageIO implementation only uses BufferedImages for example.)
  * 
  *   As soon as some action that needs the graphics object is performed and the  
  *   image is still in AWT format, it is converted to a BufferedImage
  * 
  *   Any internal function that performs graphical actions needs to call
- *   createGraphics (but only if this.graphics == null)
+ *   getGraphics, never rely on this.graphics being set correctly!
  * 
  * - ImageWrapper objects are created and safed by the ImageGenerator class
  *   all different implementations of Imaging functionallity are implemented
@@ -47,8 +47,8 @@ public class ImageWrapper {
     protected Image image;
     protected int width;
     protected int height;
-    protected Graphics2D graphics;
     protected ImageGenerator generator;
+    private Graphics2D graphics;
 
     /**
      * Creates a new ImageWrapper object.
@@ -65,9 +65,7 @@ public class ImageWrapper {
         this.width = width;
         this.height = height;
         this.generator = generator;
-        // graphics are turned off by default. every graphical function
-        // has to assure that graphcis != null, and if not, call createGraphics
-        // the function that turns this image into a paintable one! 
+        // graphics are turned off by default. getGraphics activates it if necessary.
         this.graphics = null;
     }
     
@@ -94,55 +92,20 @@ public class ImageWrapper {
         }
         return (BufferedImage)image;
     }
-    
-    /**
-     * convert's the internal image to a BufferedImage and creates a graphics object:
-     */
-    protected void createGraphics() {
-        BufferedImage img = getBufferedImage();
-        graphics = img.createGraphics();
-    }
 
     /**
-     * Sets the palette index of the transparent color for Images with an
-     * IndexColorModel. This can be used together with
-     * {@link helma.image.ImageWrapper#getPixel}.
-     */
-    public void setTransparentPixel(int trans) throws IOException {
-        BufferedImage bi = this.getBufferedImage();
-        ColorModel cm = bi.getColorModel();
-        if (!(cm instanceof IndexColorModel))
-            throw new IOException("Image is not indexed!");
-        IndexColorModel icm = (IndexColorModel) cm;
-        int mapSize = icm.getMapSize();
-        byte reds[] = new byte[mapSize];
-        byte greens[] = new byte[mapSize];
-        byte blues[] = new byte[mapSize];
-        icm.getReds(reds);
-        icm.getGreens(greens);
-        icm.getBlues(blues);
-        // create the new IndexColorModel with the changed transparentPixel:
-        icm = new IndexColorModel(icm.getPixelSize(), mapSize, reds, greens,
-            blues, trans);
-        // create a new BufferedImage with the new IndexColorModel and the old
-        // raster:
-        image = new BufferedImage(icm, bi.getRaster(), false, null);
-    }
-
-    /**
-     * Returns the pixel at x, y. If the image is indexed, it returns the
-     * palette index, otherwise the rgb code of the color is returned.
+     * Returns the Graphics object to directly paint to this Image. Converts the 
+     * internal image to a BufferedImage if necessary.
      * 
-     * @param x the x coordinate of the pixel
-     * @param y the y coordinate of the pixel
-     * @return the pixel at x, y
+     * @return the Graphics object for drawing into this image
      */
-    public int getPixel(int x, int y) {
-        BufferedImage bi = this.getBufferedImage();
-        if (bi.getColorModel() instanceof IndexColorModel)
-            return bi.getRaster().getSample(x, y, 0);
-        else
-            return bi.getRGB(x, y);
+    public Graphics getGraphics() {
+        if (graphics == null) {
+            // make sure the image is a BufferedImage and then create a graphics object
+            BufferedImage img = getBufferedImage();
+            graphics = img.createGraphics();
+        }
+        return graphics;
     }
 
     /**
@@ -155,16 +118,6 @@ public class ImageWrapper {
             this.height);
         wrapper.getGraphics().drawImage(image, 0, 0, null);
         return wrapper;
-    }
-
-    /**
-     * Returns the Graphics object to directly paint to this Image.
-     * 
-     * @return the Graphics object used by this image
-     */
-    public Graphics getGraphics() {
-        if (graphics == null) createGraphics();
-        return graphics;
     }
 
     /**
@@ -200,8 +153,7 @@ public class ImageWrapper {
      * Set the font used to write on this image.
      */
     public void setFont(String name, int style, int size) {
-        if (graphics == null) createGraphics();
-        graphics.setFont(new Font(name, style, size));
+        getGraphics().setFont(new Font(name, style, size));
     }
 
     /**
@@ -212,8 +164,7 @@ public class ImageWrapper {
      * @param blue ...
      */
     public void setColor(int red, int green, int blue) {
-        if (graphics == null) createGraphics();
-        graphics.setColor(new Color(red, green, blue));
+        getGraphics().setColor(new Color(red, green, blue));
     }
 
     /**
@@ -222,8 +173,7 @@ public class ImageWrapper {
      * @param color ...
      */
     public void setColor(int color) {
-        if (graphics == null) createGraphics();
-        graphics.setColor(new Color(color));
+        getGraphics().setColor(new Color(color));
     }
 
     /**
@@ -232,8 +182,7 @@ public class ImageWrapper {
      * @param color ...
      */
     public void setColor(Color color) {
-        if (graphics == null) createGraphics();
-        graphics.setColor(color);
+        getGraphics().setColor(color);
     }
 
     /**
@@ -244,8 +193,7 @@ public class ImageWrapper {
      * @param y ...
      */
     public void drawString(String str, int x, int y) {
-        if (graphics == null) createGraphics();
-        graphics.drawString(str, x, y);
+        getGraphics().drawString(str, x, y);
     }
 
     /**
@@ -257,8 +205,7 @@ public class ImageWrapper {
      * @param y2 ...
      */
     public void drawLine(int x1, int y1, int x2, int y2) {
-        if (graphics == null) createGraphics();
-        graphics.drawLine(x1, y1, x2, y2);
+        getGraphics().drawLine(x1, y1, x2, y2);
     }
 
     /**
@@ -270,8 +217,7 @@ public class ImageWrapper {
      * @param h ...
      */
     public void drawRect(int x, int y, int w, int h) {
-        if (graphics == null) createGraphics();
-        graphics.drawRect(x, y, w, h);
+        getGraphics().drawRect(x, y, w, h);
     }
 
     /**
@@ -281,13 +227,11 @@ public class ImageWrapper {
      * @param x ...
      * @param y ...
      */
-    public void drawImage(String filename, int x, int y) {
-        if (graphics == null) createGraphics();
-        try {
-            Image img = generator.read(filename);
-            graphics.drawImage(img, x, y, null);
-        } catch (Exception ignore) {
-        }
+    public void drawImage(String filename, int x, int y) 
+        throws IOException {
+        Image img = generator.read(filename);
+        if (img != null)
+            getGraphics().drawImage(img, x, y, null);
     }
 
     /**
@@ -299,8 +243,7 @@ public class ImageWrapper {
      * @param h ...
      */
     public void fillRect(int x, int y, int w, int h) {
-        if (graphics == null) createGraphics();
-        graphics.fillRect(x, y, w, h);
+        getGraphics().fillRect(x, y, w, h);
     }
 
     /**
@@ -330,9 +273,13 @@ public class ImageWrapper {
      * @param h ...
      */
     public void crop(int x, int y, int w, int h) {
+        // do not use the CropFilter any longer:
         if (image instanceof BufferedImage) {
+            // BufferedImages define their own function for cropping:
             image = ((BufferedImage)image).getSubimage(x, y, w, h);
         } else {
+            // The internal image will be a BufferedImage after this.
+            // Simply create it with the cropped dimensions and draw the image into it:
             BufferedImage buffered = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
             Graphics2D g2d = buffered.createGraphics();
             g2d.drawImage(image, -x, -y, null);
@@ -380,9 +327,10 @@ public class ImageWrapper {
             (double) h / height
         );
         // if the image is scaled, used the Graphcis2D method, otherwise use AWT:
-        if (factor > 1f)
+        if (factor > 1f) {
+            // scalie it with the Graphics2D approach for supperiour quality.
             image = resize(w, h, true);
-        else {
+        } else {
             // Area averaging has the best results for shrinking of images:
             /*
             // as getScaledInstance is asynchronous, the ImageWaiter is needed here too:
@@ -448,7 +396,7 @@ public class ImageWrapper {
      * @throws IOException
      */
     public void saveAs(String filename)
-    throws IOException {
+        throws IOException {
         saveAs(filename, -1f, false); // -1 means default quality
     }
 
@@ -460,7 +408,7 @@ public class ImageWrapper {
      * @throws IOException
      */
     public void saveAs(String filename, float quality)
-    throws IOException {
+        throws IOException {
         saveAs(filename, quality, false);
     }
 
@@ -475,5 +423,47 @@ public class ImageWrapper {
     public void saveAs(String filename, float quality, boolean alpha)
         throws IOException {
         generator.write(this, filename, quality, alpha);
+    }
+    
+    /**
+     * Sets the palette index of the transparent color for Images with an
+     * IndexColorModel. This can be used together with
+     * {@link helma.image.ImageWrapper#getPixel}.
+     */
+    public void setTransparentPixel(int trans)  {
+        BufferedImage bi = this.getBufferedImage();
+        ColorModel cm = bi.getColorModel();
+        if (!(cm instanceof IndexColorModel))
+            throw new RuntimeException("Image is not indexed!");
+        IndexColorModel icm = (IndexColorModel) cm;
+        int mapSize = icm.getMapSize();
+        byte reds[] = new byte[mapSize];
+        byte greens[] = new byte[mapSize];
+        byte blues[] = new byte[mapSize];
+        icm.getReds(reds);
+        icm.getGreens(greens);
+        icm.getBlues(blues);
+        // create the new IndexColorModel with the changed transparentPixel:
+        icm = new IndexColorModel(icm.getPixelSize(), mapSize, reds, greens,
+            blues, trans);
+        // create a new BufferedImage with the new IndexColorModel and the old
+        // raster:
+        image = new BufferedImage(icm, bi.getRaster(), false, null);
+    }
+
+    /**
+     * Returns the pixel at x, y. If the image is indexed, it returns the
+     * palette index, otherwise the rgb code of the color is returned.
+     * 
+     * @param x the x coordinate of the pixel
+     * @param y the y coordinate of the pixel
+     * @return the pixel at x, y
+     */
+    public int getPixel(int x, int y) {
+        BufferedImage bi = this.getBufferedImage();
+        if (bi.getColorModel() instanceof IndexColorModel)
+            return bi.getRaster().getSample(x, y, 0);
+        else
+            return bi.getRGB(x, y);
     }
 }
