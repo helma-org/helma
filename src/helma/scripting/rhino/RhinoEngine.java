@@ -44,7 +44,7 @@ public class RhinoEngine implements ScriptingEngine {
     // The Rhino context
     Context context;
 
-    // the global object
+    // the per-thread global object
     Scriptable global;
 
     // the request evaluator instance owning this fesi evaluator
@@ -82,7 +82,7 @@ public class RhinoEngine implements ScriptingEngine {
         context.setApplicationClassLoader(app.getClassLoader());
 
         try {
-            global = new GlobalObject(core, app); // context.newObject(core.global);
+            global = new GlobalObject(core, app);
             global.setPrototype(core.global);
             global.setParentScope(null);
 
@@ -162,6 +162,9 @@ public class RhinoEngine implements ScriptingEngine {
         }
 
         context.setOptimizationLevel(optLevel);
+        // register the per-thread scope with the dynamic scope
+        core.global.registerScope(global);
+        // update prototypes
         core.updatePrototypes();
         context.putThreadLocal("reval", reval);
         context.putThreadLocal("engine", this);
@@ -216,6 +219,7 @@ public class RhinoEngine implements ScriptingEngine {
         context.removeThreadLocal("reval");
         context.removeThreadLocal("engine");
         Context.exit();
+        core.global.unregisterScope();
         thread = null;
 
         // loop through previous globals and unset them, if necessary.

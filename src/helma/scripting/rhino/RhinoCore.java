@@ -37,7 +37,7 @@ public final class RhinoCore {
     public final Application app;
 
     // the global object
-    GlobalObject global;
+    DynamicGlobalObject global;
 
     // caching table for JavaScript object wrappers
     CacheMap wrappercache;
@@ -88,10 +88,10 @@ public final class RhinoCore {
         context.setOptimizationLevel(optLevel);
 
         try {
-            GlobalObject g = new GlobalObject(this, app);
+            DynamicGlobalObject g = new DynamicGlobalObject(this, app);
             g.init();
 
-            global = (GlobalObject) context.initStandardObjects(g);
+            global = (DynamicGlobalObject) context.initStandardObjects(g);
 
             pathProto = new PathWrapper(this);
 
@@ -568,15 +568,6 @@ public final class RhinoCore {
 
             String protoname = n.getPrototype();
 
-            // set the DbMapping of the node according to its prototype.
-            // this *should* be done on the objectmodel level, but isn't currently
-            // for embedded nodes since there's not enough type info at the objectmodel level
-            // for those nodes.
-            /* if ((protoname != null) && (protoname.length() > 0) &&
-                    (n.getDbMapping() == null)) {
-                n.setDbMapping(app.getDbMapping(protoname));
-            } */
-
             Scriptable op = null;
 
             op = getValidPrototype(protoname);
@@ -761,6 +752,8 @@ public final class RhinoCore {
     private synchronized void updateEvaluator(TypeInfo type, Reader reader,
                                               String sourceName, int firstline) {
         // System.err.println("UPDATE EVALUATOR: "+prototype+" - "+sourceName);
+        Scriptable threadScope = global.unregisterScope();
+
         try {
             // get the current context
             Context cx = Context.getCurrentContext();
@@ -793,6 +786,9 @@ public final class RhinoCore {
                 } catch (IOException ignore) {
                     // shouldn't happen
                 }
+            }
+            if (threadScope != null) {
+                global.registerScope(threadScope);
             }
         }
     }
