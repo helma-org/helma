@@ -37,7 +37,7 @@ import java.io.*;
 /**
  * 
  */
-public class GlobalObject extends ScriptableObject {
+public class GlobalObject extends ImporterTopLevel {
     Application app;
     RhinoCore core;
 

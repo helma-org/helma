@@ -88,10 +88,12 @@ public final class RhinoCore {
         context.setOptimizationLevel(optLevel);
 
         try {
-            DynamicGlobalObject g = new DynamicGlobalObject(this, app);
-            g.init();
-
-            global = (DynamicGlobalObject) context.initStandardObjects(g);
+            // create global object
+            global = new DynamicGlobalObject(this, app);
+            global.init();
+            // call the initStandardsObject in ImporterTopLevel so that 
+            // importClass() and importPackage() are set up.
+            global.initStandardObjects(context, false);
 
             pathProto = new PathWrapper(this);
 
