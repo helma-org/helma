@@ -787,7 +787,7 @@ public final class Node implements INode, Serializable {
 
 	    if (!"root".equalsIgnoreCase (node.getPrototype ())) {
 	        // avoid calling getParent() because it would return bogus results for the not-anymore transient node
-	        Node nparent = node.parentHandle == null ? null : node.parentHanldle.getNode ();
+	        Node nparent = node.parentHandle == null ? null : node.parentHandle.getNode (nmgr);
 	        // if the node doesn't have a parent yet, or it has one but it's transient while we are
 	        // persistent, make this the nodes new parent.
 	        if (nparent == null || (state != TRANSIENT && nparent.getState () == TRANSIENT)) {
