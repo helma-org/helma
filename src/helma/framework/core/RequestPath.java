@@ -142,4 +142,19 @@ public class RequestPath {
         return objects.indexOf(obj);
     }
 
+   /**
+    * Return a string representation of the Request Path
+    */
+    public String toString() {
+        // If there's just one element we're on the root object.
+        if (ids.size() <= 1) 
+            return "/";
+        
+        StringBuffer buffer = new StringBuffer();
+        for (int i=1; i<ids.size(); i++) {
+            buffer.append('/');
+            buffer.append(ids.get(i));
+        }
+        return buffer.toString();
+    } 
 }

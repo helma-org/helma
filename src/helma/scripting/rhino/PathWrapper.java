@@ -143,4 +143,18 @@ public class PathWrapper extends ScriptableObject {
         return "[PathWrapper]";
     }
 
+    public String toString() {
+        return "PathWrapper["+path.toString()+"]";
+    }
+    
+    /**
+     * Return a primitive representation for this object.
+     * FIXME: We always return a string representation.
+     *
+     * @param hint the type hint
+     * @return the default value for the object
+     */
+    public Object getDefaultValue(Class hint) {
+        return toString();
+    }
 }
