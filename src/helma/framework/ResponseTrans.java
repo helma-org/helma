@@ -349,23 +349,25 @@ public final class ResponseTrans implements Externalizable {
 	            encodingError = true;
 	            response = buffer.toString ().getBytes ();
 	        }
-	        // if etag is not set, calc MD5 digest and check it
-	        if (etag == null && lastModified == -1 &&
-	            redir == null && error == null) try {
-	            digest = MessageDigest.getInstance("MD5");
-	            byte[] b = digest.digest(response);
-	            etag = "\""+new String (Base64.encode(b))+"\"";
-	            if (reqtrans != null && reqtrans.hasETag (etag)) {
-	                response = new byte[0];
-	                notModified = true;
-	            }
-	        } catch (Exception ignore) {
-	            // Etag creation failed for some reason. Ignore.
-	        }
 	        buffer = null; // make sure this is done only once, even with more requsts attached
 	    } else {
 	        response = new byte[0];
 	    }
+	}
+	// if etag is not set, calc MD5 digest and check it
+	if (etag == null && lastModified == -1 &&
+	        redir == null && cache && error == null) try {
+	    digest = MessageDigest.getInstance("MD5");
+	    // if (contentType != null)
+	    //     digest.update (contentType.getBytes());
+	    byte[] b = digest.digest(response);
+	    etag = "\""+new String (Base64.encode(b))+"\"";
+	    if (reqtrans != null && reqtrans.hasETag (etag)) {
+	        response = new byte[0];
+	        notModified = true;
+	    }
+	} catch (Exception ignore) {
+	    // Etag creation failed for some reason. Ignore.
 	}
 	notifyAll ();
 	// if there was a problem with the encoding, let the app know
