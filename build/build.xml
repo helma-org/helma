@@ -220,6 +220,7 @@
         <tar tarfile="../${Name}-${version}.tar" basedir=".." excludes="**">
              <tarfileset dir=".." mode="755">
                   <include name="${final.name}/hop.sh"/>
+                  <include name="${final.name}/build/build.sh"/>
              </tarfileset>
              <tarfileset dir="..">
                   <include name="${final.name}/**"/>
