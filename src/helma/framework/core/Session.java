@@ -113,6 +113,13 @@ public class Session implements Serializable {
     }
 
     /**
+     * Set the user handle for this session.
+     */ 
+    public void setUserHandle(NodeHandle handle) {
+        this.userHandle = handle;
+    }
+
+    /**
      * Get the Node handle for the current user, if logged in.
      */
     public NodeHandle getUserHandle() {
@@ -128,6 +135,13 @@ public class Session implements Serializable {
         } else {
             return null;
         }
+    }
+
+    /**
+     * Set the cache node for this session.
+     */
+    public void setCacheNode(TransientNode node) {
+        this.cacheNode = node;
     }
 
     /**
@@ -234,10 +248,33 @@ public class Session implements Serializable {
     }
 
     /**
-     * Get the persistent user id of a registered user. This is usually the user name, or
-     * null if the user is not logged in.
+     * Get the persistent user id of a registered user.
+     * This is usually the user name, or null if the user is not logged in.
      */
     public String getUID() {
         return uid;
+    }
+
+
+    /**
+     * Return the message that is to be displayed upon the next
+     * request within this session.
+     *
+     * @return the message, or null if none was set.
+     */
+    public String getMessage() {
+        return message;
+    }
+
+    /**
+     * Set a message to be displayed to this session's user. This
+     * can be used to save a message over to the next request when
+     * the current request can't be used to display a user visible
+     * message.
+     *
+     * @param msg
+     */
+    public void setMessage(String msg) {
+        message = msg;
     }
 }
