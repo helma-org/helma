@@ -378,43 +378,77 @@ public final class RhinoCore {
      *  representation.
      */
 
-    /* public static ESValue processXmlRpcArgument (Object what, Evaluator evaluator) throws Exception {
-       if (what == null)
-          return ESNull.theNull;
-       if (what instanceof Vector) {
-           Vector v = (Vector) what;
-           ArrayPrototype retval = new ArrayPrototype (evaluator.getArrayPrototype (), evaluator);
-           int l = v.size ();
-           for (int i=0; i<l; i++)
-               retval.putProperty (i, processXmlRpcArgument (v.elementAt (i), evaluator));
-           return retval;
-       }
-       if (what instanceof Hashtable) {
-           Hashtable t = (Hashtable) what;
-           ESObject retval = new ObjectPrototype (evaluator.getObjectPrototype (), evaluator);
-           for (Enumeration e=t.keys(); e.hasMoreElements(); ) {
-               String next = (String) e.nextElement ();
-               retval.putProperty (next, processXmlRpcArgument (t.get (next), evaluator), next.hashCode ());
-           }
-           return retval;
-       }
-       if (what instanceof String)
-          return new ESString (what.toString ());
-       if (what instanceof Number)
-          return new ESNumber (new Double (what.toString ()).doubleValue ());
-       if (what instanceof Boolean)
-          return ESBoolean.makeBoolean (((Boolean) what).booleanValue ());
-       if (what instanceof Date)
-          return new DatePrototype (evaluator, (Date) what);
-       return ESLoader.normalizeValue (what, evaluator);
-       } */
+    public Object processXmlRpcArgument (Object what, Context cx) throws Exception {
+        if (what == null)
+            return null;
+        if (what instanceof Vector) {
+            Vector v = (Vector) what;
+            return Context.toObject(v.toArray(), global);
+        }
+        if (what instanceof Hashtable) {
+            Hashtable t = (Hashtable) what;
+            return Context.toObject(new SystemMap(t), global);
+        }
+        if (what instanceof String)
+            return what;
+        if (what instanceof Number)
+            return what;
+        if (what instanceof Boolean)
+            return what;
+        if (what instanceof Date) {
+            Date d = (Date) what;
+            Object[] args = { new Long(d.getTime()) };
+            return cx.newObject(global, "Date", args);
+        }
+        return Context.toObject(what, global);
+    }
 
     /**
      * convert a JavaScript Object object to a generic Java object stucture.
      */
 
-    /* public static Object processXmlRpcResponse (ESValue what) throws EcmaScriptException {
-       if (what == null || what instanceof ESNull)
+    public Object processXmlRpcResponse (Object what) throws Exception {
+        if (what instanceof NativeJavaObject) {
+            what = ((NativeJavaObject) what).unwrap();
+        }
+        if (what instanceof NativeObject) {
+            NativeObject no = (NativeObject) what;
+            Object[] ids = no.getIds();
+            Hashtable ht = new Hashtable(ids.length);
+            for (int i=0; i<ids.length; i++) {
+                if (ids[i] instanceof String) {
+                    String key = (String) ids[i];
+                    ht.put(key, processXmlRpcResponse(no.get(key, no)));
+                }
+            }
+            what = ht;
+        }
+        if (what instanceof NativeArray) {
+            NativeArray na = (NativeArray) what;
+            Number n = (Number) na.get("length", na);
+            int l = n.intValue();
+            Vector retval = new Vector(l);
+            for (int i=0; i<l; i++) {
+                retval.add(i, processXmlRpcResponse(na.get(i, na)));
+            }
+            what = retval;
+        }
+        if (what instanceof Number) {
+            Number n = (Number) what;
+            if (what instanceof Float || what instanceof Long) {
+                what = new Double(n.doubleValue());
+            } else if (!(what instanceof Double)) {
+                what = new Integer(n.intValue());
+            }
+        }
+        if (what instanceof Scriptable) {
+            Scriptable s = (Scriptable) what;
+            if ("Date".equals(s.getClassName())) {
+                what = new Date((long) ScriptRuntime.toNumber(s));
+            }
+        }
+        return what;
+       /* if (what == null || what instanceof ESNull)
            return null;
        if (what instanceof ArrayPrototype) {
            ArrayPrototype a = (ArrayPrototype) what;
@@ -458,8 +492,9 @@ public final class RhinoCore {
        Object jval = what.toJavaObject ();
        if (jval instanceof Byte || jval instanceof Short)
            jval = new Integer (jval.toString ());
-       return jval;
-       } */
+       return jval; */
+    }
+
 
     /**
      * Return the application we're running in

@@ -286,7 +286,12 @@ public final class RhinoEngine implements ScriptingEngine {
                    esv[i] = new ESMapWrapper (this, (Map) args[i]);
                    else
                        esv[i] = ESLoader.normalizeValue (args[i], evaluator); */
-                args[i] = context.toObject(args[i], global);
+                // XML-RPC requires special argument conversion
+                if (xmlrpc) {
+                    args[i] = core.processXmlRpcArgument (args[i], Context.getCurrentContext());
+                } else {
+                    args[i] = context.toObject(args[i], global);
+                }
             }
 
             Object f = ScriptableObject.getProperty(eso, functionName);
@@ -297,9 +302,9 @@ public final class RhinoEngine implements ScriptingEngine {
 
             Object retval = ((Function) f).call(context, global, eso, args);
 
-            // if (xmlrpc)
-            //     return processXmlRpcResponse (retval);
-            if ((retval == null) || (retval == Undefined.instance)) {
+            if (xmlrpc) {
+                return core.processXmlRpcResponse (retval);
+            } else if ((retval == null) || (retval == Undefined.instance)) {
                 return null;
             } else if (retval instanceof NativeJavaObject) {
                 return ((NativeJavaObject) retval).unwrap();
