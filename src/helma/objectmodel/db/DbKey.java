@@ -37,13 +37,12 @@ public final class DbKey implements Key, Serializable {
     public boolean equals (Object what) {
 	if (what == this)
 	    return true;
-	try {
-	    DbKey k = (DbKey) what;
-	    return (storageName == k.storageName || storageName.equals (k.storageName)) &&
-	    	(id == k.id || id.equals (k.id));
-	} catch (Exception x) {
+	if (!(what instanceof DbKey))
 	    return false;
-	}
+	DbKey k = (DbKey) what;
+	// storageName is an interned string (by DbMapping, from where we got it)
+	// so we can compare by using == instead of the equals method.
+	return storageName == k.storageName && (id == k.id || id.equals (k.id));
     }
 
     public int hashCode () {
