@@ -19,9 +19,11 @@ package helma.framework;
 
 /**
  * RedirectException is thrown internally when a response is redirected to a
- * new URL.
+ * new URL. Although this is not an Error, it subclasses java.lang.Error
+ * because it's not meant to be caught by application code (similar to
+ * java.lang.ThreadDeath).
  */
-public class RedirectException extends RuntimeException {
+public class RedirectException extends Error {
     String url;
 
     /**
