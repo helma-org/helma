@@ -655,14 +655,17 @@ public class RequestEvaluator implements Runnable {
 
     public Skin getSkin (ESObject thisObject, String skinname) {
 	INode n = null;
-	if (thisObject != null && thisObject instanceof ESNode)
+	Prototype proto = null;
+	if (thisObject != null && thisObject instanceof ESNode) {
 	    n = ((ESNode) thisObject).getNode ();
-	Prototype proto = app.getPrototype (n);
+	    proto = app.getPrototype (n);
+	} else // the requested skin is global
+	    proto = app.typemgr.getPrototype ("global");
 	Skin skin = null;
 	if (proto != null)
 	    skin = proto.getSkin (skinname);
 	// if we have a thisObject and didn't find the skin, try in hopobject
-	if (skin == null) {
+	if (skin == null && n != null) {
 	    proto = app.typemgr.getPrototype ("hopobject");
 	    if (proto != null)
 	        skin = proto.getSkin (skinname);

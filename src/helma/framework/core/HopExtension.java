@@ -607,24 +607,30 @@ public class HopExtension {
             try {
 	   Skin skin = null;
                 ESNode handlerNode = global ? null : (ESNode) thisObject;
+                ESObject paramObject = null;
+                if (arguments.length > 1 && arguments[1] instanceof ESObject)
+                    paramObject = (ESObject) arguments[1];
+
                 // first, see if the first argument already is a skin object. If not, it's the name of the skin to be called
                 if (arguments[0] instanceof ESWrapper) {
                     Object obj = ((ESWrapper) arguments[0]).toJavaObject ();
                     if (obj instanceof Skin)
                         skin = (Skin) obj;
                 }
+
                 if (skin == null)
                     skin = reval.getSkin (handlerNode, arguments[0].toString ());
                 if (asString)
                     reval.res.pushStringBuffer ();
                 try {
-                    skin.render (reval, handlerNode);
+                    skin.render (reval, handlerNode, paramObject);
                 } catch (NullPointerException npx) {
                     reval.res.write ("[Skin not found: "+arguments[0]+"]");
                 }
                 if (asString)
                     return  new ESString (reval.res.popStringBuffer ());
             } catch (Exception x) {
+                x.printStackTrace ();
                 throw new EcmaScriptException ("renderSkin: "+x);
             }
             return ESNull.theNull;

@@ -55,12 +55,12 @@ public class Skin {
              parts = partBuffer.toArray ();
    }
 
-    public void render (RequestEvaluator reval, ESNode thisNode) {
+    public void render (RequestEvaluator reval, ESNode thisNode, ESObject paramObject) {
 	if (parts == null)
 	    return;
 	for (int i=0; i<parts.length; i++) {
 	    if (parts[i] instanceof Macro)
-	        ((Macro) parts[i]).render (reval, thisNode);
+	        ((Macro) parts[i]).render (reval, thisNode, paramObject);
 	    else
 	        reval.res.write (parts[i]);
 	}
@@ -165,10 +165,16 @@ public class Skin {
 	}
 
 
-	public void render (RequestEvaluator reval, ESNode thisNode) {
+	public void render (RequestEvaluator reval, ESNode thisNode, ESObject paramObject) {
 
 	    if ("response".equalsIgnoreCase (handler)) {
 	        renderFromResponse (reval);
+	        return;
+	    } else if ("request".equalsIgnoreCase (handler)) {
+	        renderFromRequest (reval);
+	        return;
+	    } else if ("param".equalsIgnoreCase (handler)) {
+	        renderFromParam (reval, paramObject);
 	        return;
 	    }
 
@@ -244,6 +250,24 @@ public class Skin {
 	        reval.res.write (reval.res.body);
 	    else if ("message".equals (name))
 	        reval.res.write (reval.res.message);
+	}
+
+	private void renderFromRequest (RequestEvaluator reval) {
+	    Object value = reval.req.get (name);
+	    if (value != null)
+	        reval.res.write (value);
+	}
+
+	private void renderFromParam (RequestEvaluator reval, ESObject paramObject) {
+	    if (paramObject == null)
+	        reval.res.write ("[HopMacro error: Skin requires a parameter object]");
+	    else {
+	        try {
+	            ESValue value = paramObject.getProperty (name, name.hashCode());
+	            if (value != null && value != ESUndefined.theUndefined)
+	                reval.res.write (value);
+	        } catch (EcmaScriptException ignore) {}
+	    }
 	}
 
 	public String toString () {
