@@ -247,7 +247,7 @@ public final class Node implements INode, Serializable {
 
 	created = lastmodified = System.currentTimeMillis ();
 
-	for (Iterator i=dbmap.getDB2Prop().values().iterator(); i.hasNext(); ) {
+	for (Iterator i=dbmap.getDBPropertyIterator(); i.hasNext(); ) {
 
 	    Relation rel = (Relation) i.next ();
 	    // NOTE: this should never be the case, since we're just looping through
@@ -605,7 +605,7 @@ public final class Node implements INode, Serializable {
 	        Relation prel = parentmap.getPropertyRelation ();
 	        if (prel != null && prel.otherType == dbmap && prel.accessor != null) {
 	            // reverse look up property used to access this via parent
-	            Relation proprel = (Relation) dbmap.getDB2Prop ().get (prel.accessor);
+	            Relation proprel = dbmap.columnNameToRelation (prel.accessor);
 	            if (proprel != null && proprel.propName != null)
 	                newname = getString (proprel.propName, false);
 	        }
@@ -657,7 +657,7 @@ public final class Node implements INode, Serializable {
 	            try {
 	                if (dbm != null && dbm.getSubnodeGroupby () != null) {
 	                    // check for groupby
-	                    rel = (Relation) dbmap.getDB2Prop ().get (dbm.getSubnodeGroupby());
+	                    rel = dbmap.columnNameToRelation (dbm.getSubnodeGroupby());
 	                    pn = pn.getSubnode (getString (rel.propName, false));
 	                }
 	                if (pn != null) {
@@ -735,7 +735,7 @@ public final class Node implements INode, Serializable {
 	if (dbmap != null) {
 	    Relation srel = dbmap.getSubnodeRelation ();
 	    if (srel != null && srel.groupby != null) try {
-	        Relation groupbyRel = (Relation) srel.otherType.getDB2Prop ().get (srel.groupby);
+	        Relation groupbyRel = srel.otherType.columnNameToRelation (srel.groupby);
 	        String groupbyProp = (groupbyRel != null) ?
 	            groupbyRel.propName : srel.groupby;
 	        String groupbyValue = node.getString (groupbyProp, false);
