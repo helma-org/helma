@@ -26,7 +26,7 @@ import org.apache.xmlrpc.*;
  public class Server implements IPathElement, Runnable {
 
     public static final String version = "1.2pre3+ 2002/10/24";
-    public long starttime;
+    public final long starttime;
 
     // if true we only accept RMI and XML-RPC connections from 
     // explicitly listed hosts.
@@ -343,7 +343,7 @@ import org.apache.xmlrpc.*;
 
 	    if (rmiPort > 0) {
 	        if (paranoid) {
-	            HopSocketFactory factory = new HopSocketFactory ();
+	            HelmaSocketFactory factory = new HelmaSocketFactory ();
 	            String rallow = sysProps.getProperty ("allowWeb");
 	            if (rallow != null) {
 	                StringTokenizer st = new StringTokenizer (rallow, " ,;");
@@ -368,6 +368,19 @@ import org.apache.xmlrpc.*;
 	    getLogger().log ("Error initializing embedded database: "+gx);
 	    gx.printStackTrace ();
 	    return;
+	}
+
+	// set the security manager. 
+	// the default implementation is helma.main.HelmaSecurityManager.
+	try {
+	    String secManClass = sysProps.getProperty ("securityManager");
+	    if (secManClass != null) {
+	        SecurityManager secMan = (SecurityManager) Class.forName(secManClass).newInstance ();
+	        System.setSecurityManager (secMan);
+	        getLogger().log ("Setting security manager to "+secManClass);
+	    }
+	} catch (Exception x) {
+	    getLogger().log ("Error setting security manager: "+x);
 	}
 
 	// start applications

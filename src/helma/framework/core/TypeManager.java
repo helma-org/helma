@@ -35,7 +35,7 @@ public final class TypeManager {
     Prototype globalProto;
 
     // app specific class loader, includes jar files in the app directory
-    HelmaClassLoader loader;
+    AppClassLoader loader;
     
     final static String[] standardTypes = {"user", "global", "root", "hopobject"};
 
@@ -61,7 +61,7 @@ public final class TypeManager {
         zipfiles = new HashMap ();
         jarfiles = new HashSet ();
         URL helmajar = new URL ("file:"+app.home.getAbsolutePath()+"/lib/helma.jar");
-        loader = new HelmaClassLoader(new URL[] { helmajar });
+        loader = new AppClassLoader(app.getName(), new URL[] { helmajar });
     }
 
 
@@ -123,9 +123,9 @@ public final class TypeManager {
 	            if (!jarfiles.contains (list[i])) {
 	                jarfiles.add (list[i]);
 	                File f = new File (appDir, list[i]);
-					try {
-					    loader.addURL (new URL ("file:"+f.getAbsolutePath()));
-				    } catch (MalformedURLException ignore) {}
+	                try {
+	                    loader.addURL (new URL ("file:"+f.getAbsolutePath()));
+	                } catch (MalformedURLException ignore) {}
 	            }
 	            continue;
 	        }

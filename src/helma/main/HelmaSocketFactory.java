@@ -15,11 +15,11 @@ import java.io.IOException;
  * server-to-server.
  */
 
-public class HopSocketFactory extends RMISocketFactory {
+public class HelmaSocketFactory extends RMISocketFactory {
 
     private InetAddressFilter filter;
 
-    public HopSocketFactory () {
+    public HelmaSocketFactory () {
 	filter = new InetAddressFilter ();
     }
 
