@@ -545,8 +545,22 @@ public class Quantize {
                     int green = (pixel >> 8) & 0xff;
                     int blue = (pixel >> 0) & 0xff;
                     int alpha = (pixel >> 24) & 0xff;
+
                     if (alphaToBitmask)
-                        alpha = alpha < 0x80 ? 0 : 0xff;
+                        alpha = alpha < 128 ? 0 : 0xff;
+                    
+                    // this is super weird: on some systems, transparent pixels are
+                    // not calculated correctly if the following block is taken out.
+                    // the bug is very strange, isn't related to the code (compiler error?)
+                    // but doesn't allways happen. as soon as it does, though, it doesn't
+                    // seem to want to go away.
+                    // This happened at various times on my two different debian systems
+                    // and i never found out how to really fix it. the following line seems to
+                    // prevent it from happening, but i wonder wether there's a better way
+                    // to fix it. 
+                    // it looks as if the block forces alpha to take on correct values.
+                    // Until now I only knew of effects like that in quantum mechanics...
+                    if (i == 0) Integer.toString(alpha);
 
                     if (alpha == 0 && addTransparency) {
                         dst[i] = 0; // transparency color is at 0
