@@ -276,7 +276,6 @@ public final class NodeManager {
             key = new SyntheticKey(home.getKey(), kstr);
         } else {
             // Not a relation we use can use getNodeByRelation() for
-            System.err.println(" WOMBAT: "+home+" ° "+kstr);
             return null;
         }
 
