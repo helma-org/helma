@@ -1084,7 +1084,13 @@ public final class NodeManager {
 	        q.append ("WHERE ");
 	        q.append (idfield);
 	        q.append (" = ");
-	        q.append (kstr);
+	        if (dbm.needsQuotes (idfield)) {
+	            q.append ("'");
+	            q.append (escape(kstr));
+	            q.append ("'");
+	        } else {
+	            q.append (kstr);
+	        }
 
 	        if (logSql)
 	            app.logEvent ("### getNodeByKey: "+q.toString());
