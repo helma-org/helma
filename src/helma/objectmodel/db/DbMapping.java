@@ -594,14 +594,32 @@ public class DbMapping implements Updatable {
     public synchronized Schema getSchema () throws ClassNotFoundException, SQLException, DataSetException {
 	if (!isRelational ())
 	    throw new SQLException ("Can't get Schema for non-relational data mapping");
-    	if (source == null && parentMapping != null)
+	if (source == null && parentMapping != null)
 	    return parentMapping.getSchema ();
 	// Use local variable s to avoid synchronization (schema may be nulled elsewhere)
 	Schema s = schema;
 	if (s != null)
 	    return s;
 	schema = new Schema ().schema (getConnection (), table, "*");
-	return schema;	
+	return schema;
+    }
+
+    /**
+     *  Return true if the column identified by the parameter is a string type. This is
+     *  used in query building to determine if a value needs to be quoted.
+     */
+    public boolean isStringColumn (String columnName) throws SQLException {
+	try {
+	    Schema s = getSchema ();
+	    if (s == null)
+	        throw new SQLException ("Error retrieving relational schema for "+this);
+	    Column c = s.getColumn (columnName);
+	    if (c == null)
+	        throw new SQLException ("Column "+columnName+" not found in "+this);
+	    return c.isString ();
+	} catch (Exception x) {
+	    throw new SQLException (x.getMessage ());
+	}
     }
 
     /**
