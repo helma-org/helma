@@ -1829,12 +1829,12 @@ public final class NodeManager {
     /**
      * Called by transactors after committing.
      */
-    protected void fireNodeChangeEvent(List inserted, List updated, List deleted) {
+    protected void fireNodeChangeEvent(List inserted, List updated, List deleted, List parents) {
         int l = listeners.size();
 
         for (int i=0; i<l; i++) {
             try {
-                ((NodeChangeListener) listeners.get(i)).nodesChanged(inserted, updated, deleted);
+                ((NodeChangeListener) listeners.get(i)).nodesChanged(inserted, updated, deleted, parents);
             } catch (Error e) {
                 e.printStackTrace();
             } catch (Exception e) {

@@ -102,10 +102,11 @@ public class Replicator implements Runnable, NodeChangeListener {
 
 
     /**
-     * Called when a transaction is committed that has created, modified or 
-     * deleted one or more nodes.
+     * Called when a transaction is committed that has created, modified, 
+     * deleted or changed the child collection one or more nodes.
      */
-    public synchronized void nodesChanged(List inserted,  List updated, List deleted) {
+    public synchronized void nodesChanged(List inserted,  List updated, 
+                                             List deleted, List parents) {
         add.addAll(inserted);
         add.addAll(updated);
         delete.addAll(deleted);

@@ -225,15 +225,23 @@ public class Transactor extends Thread {
         int updated = 0;
         int deleted = 0;
 
+        ArrayList insertedNodes = null;
+        ArrayList updatedNodes = null;
+        ArrayList deletedNodes = null;
+        ArrayList modifiedParentNodes = null;
+        // if nodemanager has listeners collect dirty nodes
+        boolean hasListeners = nmgr.hasNodeChangeListeners();
+
+        if (hasListeners) {
+            insertedNodes = new ArrayList();
+            updatedNodes = new ArrayList();
+            deletedNodes = new ArrayList();
+            modifiedParentNodes = new ArrayList();
+        }
+        
         if (!dirtyNodes.isEmpty()) {
             Object[] dirty = dirtyNodes.values().toArray();
 
-            ArrayList insertedNodes = new ArrayList();
-            ArrayList updatedNodes = new ArrayList();
-            ArrayList deletedNodes = new ArrayList();
-            // if nodemanager has listeners collect dirty nodes
-            boolean hasListeners = nmgr.hasNodeChangeListeners();
-        
             // the set to collect DbMappings to be marked as changed
             HashSet dirtyDbMappings = new HashSet();
 
@@ -307,9 +315,6 @@ public class Transactor extends Thread {
                 nmgr.idgen.dirty = false;
             }
         
-            if (hasListeners) {
-                nmgr.fireNodeChangeEvent(insertedNodes, updatedNodes, deletedNodes);
-            }
         }
         
         long now = System.currentTimeMillis();
@@ -319,9 +324,17 @@ public class Transactor extends Thread {
             for (Iterator i = parentNodes.iterator(); i.hasNext(); ) {
                 Node node = (Node) i.next();
                 node.setLastSubnodeChange(now);
+                if (hasListeners) {
+                    modifiedParentNodes.add(node);
+                }
             }
         }
-
+            
+        if (hasListeners) {
+            nmgr.fireNodeChangeEvent(insertedNodes, updatedNodes, 
+                                     deletedNodes, modifiedParentNodes);
+        }
+        
         // clear the node collections
         dirtyNodes.clear();
         cleanNodes.clear();

@@ -324,7 +324,7 @@ public final class Node implements INode, Serializable {
      * Called by the transactor on registered parent nodes to mark the
      * child index as changed
      */
-    void setLastSubnodeChange(long t) {
+    public void setLastSubnodeChange(long t) {
         lastSubnodeChange = t;
     }
 

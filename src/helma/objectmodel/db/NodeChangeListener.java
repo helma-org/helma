@@ -21,9 +21,9 @@ import java.util.List;
 public interface NodeChangeListener {
 
     /**
-     * Called when a transaction is committed that has created, modified or 
-     * deleted one or more nodes.
+     * Called when a transaction is committed that has created, modified, 
+     * deleted or changed the child collection one or more nodes.
      */
-    public void nodesChanged(List inserted, List updated, List deleted);
+    public void nodesChanged(List inserted, List updated, List deleted, List parents);
 
 }
