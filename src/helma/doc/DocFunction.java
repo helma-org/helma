@@ -52,6 +52,7 @@ public class DocFunction extends DocFileElement {
             Point p = getPoint (ts);
             ts.getToken();
             rawComment = Util.getStringFromFile(location, p, getPoint(ts));
+            rawComment = Util.chopComment (rawComment);
         } catch (IOException io) {
             io.printStackTrace();
             throw new DocException (io.toString());
@@ -98,9 +99,7 @@ public class DocFunction extends DocFileElement {
                     curFunctionStart = getPoint (ts); 
                     // get and chop the comment
                     String rawComment = Util.getStringFromFile(location, endOfLastToken, getPoint (ts)).trim ();
-                    if (rawComment.endsWith("function")) {
-                        rawComment = rawComment.substring (0, rawComment.length()-8).trim();
-                    }
+                    rawComment = Util.chopComment (rawComment);
                     // position stream at function name token
                     tok = ts.getToken();
                     // get the name and create the function object
@@ -158,24 +157,7 @@ public class DocFunction extends DocFileElement {
         }
         String name = f.getName();
         int line = 0;
-
-        // FIXME for some reason this doesn't compile with winxp/j2sdk141_03
         return new TokenStream (reader, null, null, name, line);
-
-        // so we have to use reflection:
-        /* try {
-            Class c = Class.forName ("org.mozilla.javascript.TokenStream");
-            Constructor[] constr = c.getDeclaredConstructors();
-            Object[] params = new Object[4];
-            params[0] = reader;
-            params[1] = null;
-            params[2] = name;
-            params[3] = new Integer(line);
-            return (TokenStream) constr[0].newInstance(params);
-        } catch (Exception anything) {
-            anything.printStackTrace();
-            throw new DocException (anything.toString());
-        } */
     }
 
 
