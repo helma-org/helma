@@ -122,22 +122,18 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	    allThreads.addElement (ev);
 	}
 
-	File urootp = new File (appDir, "userroot.properties");
-	SystemProperties p = new SystemProperties (urootp.getAbsolutePath ());
-	// if no userroot.properties, set values manually
-	if (!urootp.exists ()) {
-	    p.put ("_subnodes", "user.id");
-	    p.put ("_properties", "user.name");
-	}
-	new DbMapping (this, "userroot", p);
-
 	typemgr = new TypeManager (this);
 	typemgr.check ();
 	IServer.getLogger().log ("Started type manager for "+name);
 
 	rootMapping = getDbMapping ("root");
-	userRootMapping = getDbMapping ("userroot");
 	userMapping = getDbMapping ("user");
+	SystemProperties p = new SystemProperties ();
+	String usernameField = userMapping.getNameField ();
+	if (usernameField == null)
+	    usernameField = "name";
+	p.put ("_properties", "user."+usernameField);
+	userRootMapping = new DbMapping (this, "__userroot__", p);
 	rewireDbMappings ();
 
 	worker = new Thread (this, "Worker-"+name);
@@ -360,7 +356,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	    INode users = getUserRoot ();
 	    INode unode = users.getNode (uname, false);
 	    String pw = unode.getString ("password", false);
-	    if (pw.equals (password)) {
+	    if (pw != null && pw.equals (password)) {
 	        // give the user her piece of persistence
 	        u.setNode (unode);
 	        u.user.setNode (unode);
