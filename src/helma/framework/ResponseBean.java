@@ -132,7 +132,7 @@ public class ResponseBean implements Serializable {
      *
      * @param what ...
      */
-    public void write(Object what) {
+    public void write(String what) {
         res.write(what);
     }
 
@@ -141,7 +141,7 @@ public class ResponseBean implements Serializable {
      *
      * @param what ...
      */
-    public void writeln(Object what) {
+    public void writeln(String what) {
         res.writeln(what);
     }
 
@@ -159,7 +159,7 @@ public class ResponseBean implements Serializable {
      *
      * @param message ...
      */
-    public void debug(Object message) {
+    public void debug(String message) {
         res.debug(message);
     }
 
