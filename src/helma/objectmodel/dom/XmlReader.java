@@ -1,91 +1,96 @@
 package helma.objectmodel.dom;
 
-import java.io.*;
-import java.net.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.List;
 
-import javax.xml.parsers.*;
 import org.w3c.dom.*;
 
-import helma.objectmodel.*;
+import helma.objectmodel.INode;
+import helma.objectmodel.db.DbKey;
+import helma.objectmodel.db.ExternalizableVector;
+import helma.objectmodel.db.Node;
+import helma.objectmodel.db.NodeHandle;
+import helma.objectmodel.db.NodeManager;
+import helma.objectmodel.db.Property;
+
 
 public class XmlReader implements XmlConstants	{
 
-	private int offset = 0;
 	private HashMap convertedNodes;
+	private NodeManager nmgr = null;
 
-	public XmlReader()	{
+	public XmlReader ()	{
+	}
+	
+	public XmlReader (NodeManager nmgr)	{
+		this.nmgr = nmgr;
 	}
 
-	public INode read( String desc )	{
-		return read(desc, new TransientNode() );
-	}
-
-	public INode read( String desc, INode helmaNode ) throws RuntimeException	{
+	/**
+	  * main entry to read an xml-file.
+	  */
+	public INode read (File file, INode helmaNode) throws RuntimeException	{
 		try	{
-			return read( new File(desc), helmaNode );
-		}	catch ( FileNotFoundException notfound )	{
-			throw new RuntimeException( "couldn't find xml-file: " + desc );
-		}	catch ( IOException ioerror )	{
-			throw new RuntimeException( "couldn't read xml: " + desc );
-		}
-	}
-
-	public INode read( File file, INode helmaNode ) throws RuntimeException, FileNotFoundException	{
-		return read( new FileInputStream(file), helmaNode );
-	}
-
-	public INode read( InputStream in, INode helmaNode ) throws RuntimeException	{
-		Document document = XmlUtil.parse(in);
-		if ( document!=null && document.getDocumentElement()!=null )	{
-			Node tmp = document.getDocumentElement().getFirstChild();
-			Element workelement = null;
-			while( tmp!=null )	{
-				tmp = tmp.getNextSibling();
-				if ( tmp.getNodeType()==Node.ELEMENT_NODE )	{
-					workelement = (Element) tmp;
-					break;
-				}
-			}
-			return startConversion( helmaNode, workelement );
-		}	else	{
+			return read (new FileInputStream(file), helmaNode);
+		}	catch (FileNotFoundException notfound)	{
+			System.err.println ("couldn't find xml-file: " + file.getAbsolutePath ());
 			return helmaNode;
 		}
 	}
 
-	public INode startConversion( INode helmaNode, Element element )	{
-		convertedNodes = new HashMap();
-		INode convertedNode = convert(helmaNode, element );
-		convertedNodes = null;
-		return convertedNode;
+	/**
+	  * read an InputStream with xml-content.
+	  */
+	public INode read (InputStream in, INode helmaNode) throws RuntimeException	{
+		if (helmaNode==null && nmgr==null)
+			throw new RuntimeException ("can't create a new Node without a NodeManager");
+		Document document = XmlUtil.parse (in);
+		Element element = XmlUtil.getFirstElement(document);
+		if (element==null)
+			throw new RuntimeException ("corrupted xml-file");
+
+		if (helmaNode==null)	{
+			return convert (element);
+		}	else	{
+			convertedNodes = new HashMap ();
+			INode convertedNode = convert (element, helmaNode);
+			convertedNodes = null;
+			return convertedNode;
+		}
 	}
 
-	public INode convert( INode helmaNode, Element element )	{
-		offset++;
+	/**
+	  * convert children of an Element to a given helmaNode
+	  */
+	public INode convert (Element element, INode helmaNode)	{
 		String idref = element.getAttributeNS(NAMESPACE, "idref");
 		String key = idref + "-" + element.getAttributeNS(NAMESPACE, "prototyperef");
 		if( idref!=null && !idref.equals("") )	{
 			if( convertedNodes.containsKey(key) )	{
-				offset--;
 				return (INode)convertedNodes.get(key);
 			}
 		}
 		key = element.getAttributeNS(NAMESPACE, "id") + "-" + element.getAttributeNS(NAMESPACE, "prototype");
 		convertedNodes.put( key, helmaNode );
-
-		// FIXME: import id on persistent nodes
 		String prototype = element.getAttributeNS(NAMESPACE, "prototype");
 		if( !prototype.equals("") && !prototype.equals("hopobject") )	{
 			helmaNode.setPrototype( prototype );
 		}
 		children(helmaNode, element);
-		offset--;
 		return helmaNode;
 	}
 
 
+	// used by convert(Element,INode)
 	private INode children( INode helmaNode, Element element )	{
 		NodeList list = element.getChildNodes();
 		int len = list.getLength();
@@ -94,15 +99,22 @@ public class XmlReader implements XmlConstants	{
 			try	{
 				childElement = (Element)list.item(i);
 			}	catch( ClassCastException e )	{
-				continue;
+				continue;		// ignore CDATA (FIXME), comments etc
 			}
 			INode workNode = null;
+
 			if ( childElement.getTagName().equals("hop:child") )	{
-				convert( helmaNode.createNode(null), childElement );
+
+				convert (childElement, helmaNode.createNode(null));
+
 			}	else if ( !"".equals(childElement.getAttributeNS(NAMESPACE,"id")) || !"".equals(childElement.getAttributeNS(NAMESPACE,"idref")) )	{
-				// we've got an object!
-				helmaNode.setNode( childElement.getTagName(), convert( helmaNode.createNode(childElement.getTagName()), childElement ) );
+
+				String childTagName = childElement.getTagName();
+				INode newNode = convert (childElement, helmaNode.createNode (childTagName));
+				helmaNode.setNode (childTagName, newNode);
+
 			}	else	{
+
 				String type = childElement.getAttribute("hop:type");
 				String key  = childElement.getTagName();
 				String content = XmlUtil.getTextContent(childElement);
@@ -132,26 +144,89 @@ public class XmlReader implements XmlConstants	{
 		return helmaNode;
 	}
 
-	/** for testing */
-	public static void main ( String args[] ) throws Exception	{
-		try	{
-			XmlReader x = new XmlReader ();
-			INode node = x.read("test.xml");
-		}	catch ( Exception e )	{
-				System.out.println("exception " + e.toString() );
-			throw new RuntimeException(e.toString());
+
+	/**
+	  * This is a basic de-serialization method for XML-2-Node conversion.
+	  * It reads a Node from a database-like file and should return a Node
+	  * that matches exactly the one dumped to that file before.
+	  * It only supports persistent-capable Nodes (from objectmodel.db-package).
+	  */
+	public helma.objectmodel.db.Node convert (Element element)	{
+		// FIXME: this method should use Element.getAttributeNS():
+
+		String name = element.getAttribute("hop:name");
+		String id = element.getAttribute("hop:id");
+		String prototype = element.getAttribute("hop:prototype");
+		if ( "".equals(prototype) )
+			prototype = "hopobject";
+		helma.objectmodel.db.Node helmaNode = null;
+		try		{
+			long created = Long.parseLong (element.getAttribute	("hop:created"));
+			long lastmodified = Long.parseLong (element.getAttribute	("hop:lastModified"));
+			helmaNode = new helma.objectmodel.db.Node (name,id,prototype,nmgr.safe,created,lastmodified);
+		}	catch ( NumberFormatException e )	{
+			helmaNode = new helma.objectmodel.db.Node (name,id,prototype,nmgr.safe);
 		}
-	}
 
+		// FIXME: handle parents
 
-	/** for testing */
-	void debug(Object msg)	{
-		for ( int i=0; i<offset; i++ )	{
-			System.out.print("   ");
+		// now loop through all child elements and retrieve properties/subnodes for this node.
+		NodeList list = element.getChildNodes();
+		int len = list.getLength();
+		Hashtable propMap  = new Hashtable();
+		List      subnodes = new ExternalizableVector();
+		for ( int i=0; i<len; i++ )	{
+
+			Element childElement;
+			try	{
+				childElement = (Element)list.item(i);
+			}	catch( ClassCastException e )	{
+				continue;		// ignore CDATA (FIXME), comments etc
+			}
+
+			if ( childElement.getTagName().equals("hop:child") )	{
+				// add a new NodeHandle, presume all IDs in this objectcache are unique,
+				// a prerequisite for a simple internal database.
+				subnodes.add (new NodeHandle (new DbKey(null,childElement.getAttribute("hop:idref") ) ) );
+				continue;
+			}
+
+			// if we come until here, childelement is a primitive property value
+			Property prop = new Property (childElement.getTagName(), helmaNode);
+			if ( !"".equals(childElement.getAttribute("hop:id")) || !"".equals(childElement.getAttribute("hop:idref")) )	{
+				// we've got an object!
+				prop.setNodeValue (convert (childElement));
+			}	else	{
+				String type = childElement.getAttribute("hop:type");
+				String content = XmlUtil.getTextContent(childElement);
+				if ( type.equals("boolean") )	{
+					if ( content.equals("true") )	{
+						prop.setBooleanValue(true);
+					}	else	{
+						prop.setBooleanValue(false);
+					}
+				}	else if ( type.equals("date") )	{
+					SimpleDateFormat format = new SimpleDateFormat ( DATEFORMAT );
+					try	{
+						Date date = format.parse(content);
+						prop.setDateValue (date);
+					}	catch ( ParseException e )	{
+						prop.setStringValue (content);
+					}
+				}	else if ( type.equals("float") )	{
+					prop.setFloatValue ((new Double(content)).doubleValue());
+				}	else if ( type.equals("integer") )	{
+	    			prop.setIntegerValue ((new Long(content)).longValue());
+				}	else {
+	    			prop.setStringValue (content);
+				}
+    			propMap.put (childElement.getTagName(), prop);
+			}
 		}
-		System.out.println(msg.toString());
+		helmaNode.setPropMap  (propMap);
+		helmaNode.setSubnodes (subnodes);
+		return helmaNode;
 	}
-
 
 }
 
