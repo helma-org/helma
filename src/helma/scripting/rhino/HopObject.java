@@ -749,20 +749,6 @@ public class HopObject extends ScriptableObject implements Wrapper {
         if (node == null) {
             return super.get(name, start);
         } else {
-            // Note: we do not normally consult the prototype in get(),
-            // but we do so here because calling get on the Node may trigger
-            // db select statements (resulting in errors) and getting a
-            // property on the parent prototype is much cheaper and safer.
-            // NOTE: because of this, prototype inheritance is reversed for HopObjects!
-            Scriptable prototype = getPrototype();
-
-            while (prototype != null) {
-                retval = prototype.get(name, this);
-                if (retval != NOT_FOUND) {
-                    return retval;
-                }
-                prototype = prototype.getPrototype();
-            }
             return getFromNode(name);
         }
     }
@@ -808,10 +794,6 @@ public class HopObject extends ScriptableObject implements Wrapper {
                         Object[] args = { new Long(d.getTime()) };
                         try {
                             return cx.newObject(core.global, "Date", args);
-                        /* } catch (PropertyException px) {
-                            return NOT_FOUND; */
-                        /* } catch (NotAFunctionException nafx) {
-                            return NOT_FOUND; */
                         } catch (JavaScriptException nafx) {
                             return NOT_FOUND;
                         }
