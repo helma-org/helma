@@ -37,5 +37,28 @@ public class MD5Encoder {
         return buf.toString();
     }
 
+    /**
+     *  Convert a long to a byte array.
+     */
+    public static byte[] toBytes (long n) {
+        byte[] b = new byte[8];
+        b[0] = (byte) (n);
+        n >>>= 8;
+        b[1] = (byte) (n);
+        n >>>= 8;
+        b[2] = (byte) (n);
+        n >>>= 8;
+        b[3] = (byte) (n);
+        n >>>= 8;
+        b[4] = (byte) (n);
+        n >>>= 8;
+        b[5] = (byte) (n);
+        n >>>= 8;
+        b[6] = (byte) (n);
+        n >>>= 8;
+        b[7] = (byte) (n);
+        return b;
+    }
+
 }
 
