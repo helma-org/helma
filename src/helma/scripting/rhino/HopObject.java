@@ -40,7 +40,7 @@ public class HopObject extends ScriptableObject {
         Method[] methods = HopObject.class.getMethods();
 
         for (int i = 0; i < methods.length; i++) {
-            if ("hopObjectConstructor".equals(methods[i].getName())) {
+            if ("jsConstructor".equals(methods[i].getName())) {
                 hopObjCtor = methods[i];
 
                 break;
@@ -64,7 +64,7 @@ public class HopObject extends ScriptableObject {
      *
      * @param cname ...
      */
-    public HopObject(String cname) {
+    protected HopObject(String cname) {
         className = cname;
     }
 
@@ -72,7 +72,7 @@ public class HopObject extends ScriptableObject {
     /**
      *  This method is used as HopObject constructor from JavaScript.
      */
-    public static Object hopObjectConstructor(Context cx, Object[] args,
+    public static Object jsConstructor(Context cx, Object[] args,
                                               Function ctorObj, boolean inNewExpr)
                          throws JavaScriptException, ScriptingException {
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
