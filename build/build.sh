@@ -1,6 +1,6 @@
 #!/bin/sh
 
-export JAVA_HOME=/usr/lib/j2sdk1.4.0
+# export JAVA_HOME=/usr/lib/j2sdk1.4.0
 
 #--------------------------------------------
 # No need to edit anything past here
