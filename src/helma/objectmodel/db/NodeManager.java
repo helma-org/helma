@@ -475,6 +475,33 @@ public final class NodeManager {
 	// tx.timer.endEvent ("deleteNode "+node);
     }
 
+    /**
+     * Generates an ID for the table by finding out the maximum current value
+     */
+    public String generateSQLID (DbMapping map) throws Exception {
+
+	Transactor tx = (Transactor) Thread.currentThread ();
+	// tx.timer.beginEvent ("generateID "+map);
+
+	QueryDataSet qds = null;
+	String retval = null;
+	try {
+	    Connection con = map.getConnection ();
+	    String q = "SELECT "+map.getIDField()+" FROM "+map.getTableName()+" ORDER BY "+map.getIDField()+" DESC LIMIT 1";
+	    qds = new QueryDataSet (con, q);
+	    qds.fetchRecords ();
+	    long currMax = qds.getRecord (0).getValue (1).asLong ();
+	    retval = Long.toString (currMax+1);
+	} finally {
+	    // tx.timer.endEvent ("generateID "+map);
+	    if (qds != null) {
+	        qds.close ();
+	    }
+	}
+	return retval;
+    }
+
+
     public String generateID (DbMapping map) throws Exception {
 
 	Transactor tx = (Transactor) Thread.currentThread ();

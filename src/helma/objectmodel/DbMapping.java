@@ -39,7 +39,12 @@ public class DbMapping {
 
     String idField;
     String nameField;
+    
+    // id generator via sequence
     private String idgen;
+    // id generator for dbs that don't support sequences
+    private String sqlidgen;
+
 
     Schema schema = null;
     KeyDef keydef = null;
@@ -90,6 +95,7 @@ public class DbMapping {
 
 	this.table = props.getProperty ("_tablename");
 	this.idgen = props.getProperty ("_idgen");
+	this.sqlidgen = props.getProperty ("_sqlidgen");
 	String sourceName = props.getProperty ("_datasource");
 	if (sourceName != null)
 	    source = (DbSource) IServer.dbSources.get (sourceName.toLowerCase ());
@@ -323,6 +329,11 @@ public class DbMapping {
     public String getIDgen () {
 	return idgen;
     }
+
+    public String getSQLIDGen () {
+        return sqlidgen;
+    }
+    
 
     public WrappedNodeManager getWrappedNodeManager () {
 	if (app == null)

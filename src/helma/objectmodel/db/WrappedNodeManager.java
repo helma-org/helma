@@ -116,10 +116,14 @@ import java.util.Vector;
 
     public String generateID (DbMapping map) {
 	try {
-	    if (map == null || map.getIDgen() == null)
+            if (map == null || (map.getIDgen() == null && map.getSQLIDgen() == null))
 	        return nmgr.idgen.newID ();
-	    else
-	        return nmgr.generateID (map);
+	    else {
+	        if ("true".equalsIgnoreCase (map.getSQLIDgen()))
+                    return nmgr.generateSQLID (map);
+                else
+                    return nmgr.generateID (map);
+	    }
 	} catch (Exception x) {
 	    throw new RuntimeException (x.toString ());
 	}
