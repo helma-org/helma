@@ -26,7 +26,8 @@ public class ServletClient extends AbstractServletClient {
     private IRemoteApp app = null;
     private String appName;
 
-    public void init (ServletConfig init) {
+    public void init (ServletConfig init) throws ServletException {
+	super.init (init);
 
 	appName = init.getInitParameter ("application");
 	if (appName == null)

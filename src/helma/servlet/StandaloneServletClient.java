@@ -22,8 +22,8 @@ public class StandaloneServletClient extends AbstractServletClient {
     private String appName;
     private String serverProps;
 
-    public void init (ServletConfig init) {
-
+    public void init (ServletConfig init) throws ServletException {
+	super.init (init);
 	appName = init.getInitParameter ("application");
 	serverProps = init.getInitParameter ("serverprops");
 

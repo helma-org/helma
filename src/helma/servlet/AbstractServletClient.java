@@ -31,8 +31,9 @@ public abstract class AbstractServletClient extends HttpServlet {
     boolean debug;
 
 
-    public void init (ServletConfig init) {
-
+    public void init (ServletConfig init) throws ServletException {
+	super.init (init);
+    	
 	host =  init.getInitParameter ("host");
 	if (host == null) host = "localhost";
 

@@ -60,7 +60,8 @@ public class AcmeFileServlet extends FileServlet
 	this.root = root;
 	}
 
-    public void init (ServletConfig config) {
+    public void init (ServletConfig config) throws ServletException {
+	super.init (config);
 	// do nothing
     }
 

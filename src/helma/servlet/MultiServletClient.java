@@ -22,7 +22,8 @@ public class MultiServletClient extends AbstractServletClient {
 	
     private HashMap apps = null;
 
-    public void init (ServletConfig init) {
+    public void init (ServletConfig init) throws ServletException {
+	super.init (init);
 	apps = new HashMap ();
 	super.init (init);
     }
