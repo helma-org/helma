@@ -229,19 +229,33 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
 	xmlrpc.removeHandler (this.name);
 
+	// stop evaluators
 	if (allThreads != null) {
 	    for (Enumeration e=allThreads.elements (); e.hasMoreElements (); ) {
 	        RequestEvaluator ev = (RequestEvaluator) e.nextElement ();
 	        ev.stopThread ();
 	    }
 	}
+	
+	// remove evaluators
 	allThreads.removeAllElements ();
 	freeThreads = null;
+	
+	// shut down node manager and embedded db
 	try {
 	    nmgr.shutdown ();
 	} catch (DbException dbx) {
 	    System.err.println ("Error shutting down embedded db: "+dbx);
 	}
+	
+	// stop logs if they exist
+	if (eventLog != null) {
+	    eventLog.close ();
+	}
+	if (accessLog != null) {
+	    accessLog.close ();
+	}
+
     }
 
     /**
@@ -524,7 +538,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	    INode unode = users.getNode (uname, false);
 	    String pw = unode.getString ("password", false);
 	    if (pw != null && pw.equals (password)) {
-	        // give the user her piece of persistence
+	        // give the user his/her persistant node
 	        u.setNode (unode);
 	        activeUsers.put (unode.getName (), u.user);
 	        return true;
@@ -643,7 +657,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
      */
     public void logEvent (String msg) {
 	if (eventLog == null)
-	    eventLog = getLogger (name+"_event");
+	    eventLog = getLogger ("event");
 	eventLog.log (msg);
     }
 
@@ -652,7 +666,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
      */
     public void logAccess (String msg) {
 	if (accessLog == null)
-	    accessLog = getLogger (name+"_access");
+	    accessLog = getLogger ("access");
 	accessLog.log (msg);
     }
 
@@ -668,11 +682,13 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	if ("console".equalsIgnoreCase (logDir))
 	    return new Logger (System.out);
 	try {
-	   File helper = new File (logDir);
+	    File helper = new File (logDir);
+	    // construct the fully qualified log name
+	    String fullLogname = name +"_"+logname;
 	    if (home != null && !helper.isAbsolute ())
                       helper = new File (home, logDir);
 	    logDir = helper.getAbsolutePath ();
-	    log = new Logger (logDir, logname);
+	    log = new Logger (logDir, fullLogname);
 	} catch (IOException iox) {
 	    System.err.println ("Could not create log "+logname+" for application "+name+": "+iox);
 	    // fallback to System.out
