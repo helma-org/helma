@@ -162,9 +162,6 @@ public final class Node implements INode, Serializable {
     transient private volatile Transactor lock;
     transient private int state;
 
-    // transient String nameProp; // the name of the property which defines the name of this node.
-    transient boolean adoptName = true;  // little helper to know if this node is being converted
-
     static final long serialVersionUID = -3740339688506633675L;
 
     /**
@@ -230,7 +227,6 @@ public final class Node implements INode, Serializable {
 	id = null;
 	this.name = n == null ? "" : n;
 	created = lastmodified = System.currentTimeMillis ();
-	adoptName = true;
 	state = TRANSIENT;
     }
 
@@ -1698,7 +1694,7 @@ public final class Node implements INode, Serializable {
 
 	// check if the main identity of this node is as a named property
 	// or as an anonymous node in a collection
-	if (n.parentHandle == null && n.adoptName && !"root".equalsIgnoreCase (n.getPrototype ())) {
+	if (n.parentHandle == null && !"root".equalsIgnoreCase (n.getPrototype ())) {
 	    n.setParent (this);
 	    n.name = propname;
 	    n.anonymous = false;
