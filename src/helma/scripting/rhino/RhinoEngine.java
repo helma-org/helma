@@ -190,20 +190,16 @@ public class RhinoEngine implements ScriptingEngine {
                 Object v = globals.get(k);
                 Scriptable scriptable = null;
 
-                try {
-                    // create a special wrapper for the path object.
-                    // other objects are wrapped in the default way.
-                    if (v instanceof RequestPath) {
-                        scriptable = new PathWrapper((RequestPath) v, core);
-                        scriptable.setPrototype(core.pathProto);
-                    } else {
-                        scriptable = Context.toObject(v, global);
-                    }
-
-                    global.put(k, global, scriptable);
-                } catch (Exception x) {
-                    app.logEvent("Error setting global variable " + k + ": " + x);
+                // create a special wrapper for the path object.
+                // other objects are wrapped in the default way.
+                if (v instanceof RequestPath) {
+                    scriptable = new PathWrapper((RequestPath) v, core);
+                    scriptable.setPrototype(core.pathProto);
+                } else {
+                    scriptable = Context.toObject(v, global);
                 }
+
+                global.put(k, global, scriptable);
             }
         }
 
