@@ -120,7 +120,7 @@ public class ApplicationBean implements Serializable {
 
 	// property related methods:
 
-	public INode getcache() {
+	public INode getdata() {
 		return app.getCacheNode ();
 	}
 
