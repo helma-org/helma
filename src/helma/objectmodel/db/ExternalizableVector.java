@@ -4,7 +4,7 @@
 package helma.objectmodel.db;
 
 import java.io.*;
-import java.util.*;
+import java.util.Vector;
 
 /**
  * A subclass of Vector that implements the Externalizable interface in order 

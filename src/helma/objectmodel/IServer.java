@@ -5,7 +5,7 @@ package helma.objectmodel;
 
 import helma.util.*;
 import helma.xmlrpc.WebServer;
-import java.util.*;
+import java.util.Hashtable;
 import java.io.*;
 
 /**

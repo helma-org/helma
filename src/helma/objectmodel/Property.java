@@ -4,7 +4,10 @@
 package helma.objectmodel;
 
 import helma.util.*;
-import java.util.*;
+import java.util.Vector;
+import java.util.Hashtable;
+import java.util.Date;
+import java.util.Enumeration;
 import java.io.*;
 import java.text.*;
 
