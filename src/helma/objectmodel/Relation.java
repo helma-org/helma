@@ -241,6 +241,7 @@ public class Relation {
 	    return filter;
 	Relation vr = new Relation (other, localField, remoteField, direction, subnodesAreProperties);
 	vr.groupby = groupby;
+	vr.groupbyorder = groupbyorder;
 	vr.order = order;
 	vr.filter = filter;
 	return vr;
@@ -254,6 +255,7 @@ public class Relation {
 	    throw new RuntimeException ("getVirtualPropertyRelation called on non-virtual relation");
 	Relation vr = new Relation (other, localField, remoteField, direction, subnodesAreProperties);
 	vr.groupby = groupby;
+	vr.groupbyorder = groupbyorder;
 	vr.order = order;
 	vr.filter = filter;
 	return vr;
