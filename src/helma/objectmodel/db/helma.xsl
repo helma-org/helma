@@ -78,11 +78,7 @@
    </xsl:if>
 
    <xsl:for-each select="/xmlroot/hopobject/*">
-      <!-- FIXME: sorting doesn't work completely. What we ought to do  
-           is sort by (@propertyname OR name()). Don't know how to 
-           express that in XPath. --> 
-      <xsl:sort select="@propertyname"/>
-      <xsl:sort select="name()"/>
+      <xsl:sort select="normalize-space(concat(@propertyname, ' ' , name()))"/>
       <xsl:choose>
          <xsl:when test="name() = 'hop:parent'"/>
          <xsl:when test="name() = 'hop:child'"/>
