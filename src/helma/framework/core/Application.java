@@ -717,6 +717,21 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	return debug;
     }
 
+    private Object invokeFunction (Object obj, String func, Object[] args) {
+	Thread thread = Thread.currentThread ();
+	RequestEvaluator reval = null;
+	int l = allThreads.size();
+	for (int i=0; i<l; i++) {
+	    RequestEvaluator r = (RequestEvaluator) allThreads.get (i);
+	    if (r != null && r.rtx == thread)
+	        reval = r;
+	}
+	if (reval != null) try {
+	    return reval.invokeDirectFunction (obj, func, args);
+	} catch (Exception x) {}
+	return null;
+    }
+
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     ///   The following methods minic the IPathElement interface. This allows as
     ///   to script any Java object: If the object implements IPathElement (as does
@@ -731,6 +746,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     public String getElementName (Object obj) {
 	if (obj instanceof IPathElement)
 	    return ((IPathElement) obj).getElementName ();
+	Object retval = invokeFunction (obj, "getElementName", null);
+	if (retval != null)
+	    return retval.toString ();
 	return null;
     }
 
@@ -740,7 +758,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     public Object getChildElement (Object obj, String name) {
 	if (obj instanceof IPathElement)
 	    return ((IPathElement) obj).getChildElement (name);
-	return null;
+	Object[] arg = new Object[1];
+	arg[0] = name;
+	return invokeFunction (obj, "getChildElement", arg);
     }
 
     /**
@@ -749,7 +769,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     public Object getParentElement (Object obj) {
 	if (obj instanceof IPathElement)
 	    return ((IPathElement) obj).getParentElement ();
-	return null;
+	return invokeFunction (obj, "getParentElement", null);
     }
 
 
