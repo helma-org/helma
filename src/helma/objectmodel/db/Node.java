@@ -172,7 +172,14 @@ public class Node implements INode, Serializable {
 	String nameField =  dbmap.getNameField ();
 	name = nameField == null ? id : rec.getValue (nameField).asString ();
 	if (name == null || name.length() == 0)
-	    name = id;
+	    name = m.getTypeName() + " " + id;
+	// set parent for user objects to internal userroot node
+	if ("user".equals (prototype)) {
+	    this.parentID = "1";
+	    this.parentmap =  nmgr.getDbMapping("__userroot__");
+	    anonymous = false;
+	}
+
 	created = lastmodified = System.currentTimeMillis ();
 	
 	for (Enumeration e=dbmap.getDB2Prop ().elements (); e.hasMoreElements();  ) {
