@@ -21,7 +21,7 @@ package helma.objectmodel;
  * Thrown when more than one thrad tries to modify a Node. The evaluator
  * will normally catch this and try again after a period of time.
  */
-public class ConcurrencyException extends RuntimeException {
+public class ConcurrencyException extends Error {
     /**
      * Creates a new ConcurrencyException object.
      *
