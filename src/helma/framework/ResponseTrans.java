@@ -26,7 +26,8 @@ import java.util.*;
  * A Transmitter for a response to the servlet client. Objects of this
  * class are directly exposed to JavaScript as global property res.
  */
-public final class ResponseTrans implements Externalizable {
+public final class ResponseTrans implements Serializable {
+
     static final long serialVersionUID = -8627370766119740844L;
     static final int INITIAL_BUFFER_SIZE = 2048;
 
@@ -799,46 +800,4 @@ public final class ResponseTrans implements Externalizable {
         return c;
     }
 
-    /**
-     *
-     *
-     * @param s ...
-     *
-     * @throws ClassNotFoundException ...
-     * @throws IOException ...
-     */
-    public void readExternal(ObjectInput s) throws ClassNotFoundException, IOException {
-        contentType = (String) s.readObject();
-        response = (byte[]) s.readObject();
-        redir = (String) s.readObject();
-        cookies = (Map) s.readObject();
-        cache = s.readBoolean();
-        status = s.readInt();
-        realm = (String) s.readObject();
-        lastModified = s.readLong();
-        notModified = s.readBoolean();
-        charset = (String) s.readObject();
-        etag = (String) s.readObject();
-    }
-
-    /**
-     *
-     *
-     * @param s ...
-     *
-     * @throws IOException ...
-     */
-    public void writeExternal(ObjectOutput s) throws IOException {
-        s.writeObject(contentType);
-        s.writeObject(response);
-        s.writeObject(redir);
-        s.writeObject(cookies);
-        s.writeBoolean(cache);
-        s.writeInt(status);
-        s.writeObject(realm);
-        s.writeLong(lastModified);
-        s.writeBoolean(notModified);
-        s.writeObject(charset);
-        s.writeObject(etag);
-    }
 }
