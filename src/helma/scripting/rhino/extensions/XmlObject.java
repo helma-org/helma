@@ -29,7 +29,9 @@ import java.io.IOException;
 import java.io.StringReader;
 
 /**
- * 
+ *  This class provides methods for converting HopObjects to XML and back.
+ *
+ *  @see http://helma.org/development/rfc/xmlconversion/
  */
 public class XmlObject {
     RhinoCore core;
@@ -44,15 +46,12 @@ public class XmlObject {
     }
 
     /**
+     *  Writes a HopObject to an XML file
      *
+     * @param node the HopObject to encode
+     * @param file the file to write to
      *
-     * @param hopObject ...
-     * @param file ...
-     *
-     * @return ...
-     *
-     * @throws IOException ...
-     * @throws RuntimeException ...
+     * @throws IOException if something went wrong along the way
      */
     public boolean write(INode node, String file)
                   throws IOException {
@@ -83,8 +82,13 @@ public class XmlObject {
     }
 
     /**
-     * Xml.create() is used to get a string containing the xml-content.
-     * Useful if Xml-content should be made public through the web.
+     *  Transforms a HopObject to XML and returns the result as string
+     *
+     * @param node the HopObject to encode
+     *
+     * @return the XML representing the HopObject
+     *
+     * @throws IOException if something went wrong
      */
     public String writeToString(INode node) throws IOException {
         // we definitly need a node
@@ -108,11 +112,11 @@ public class XmlObject {
     }
 
     /**
+     *  Reads an XML document from a file and creates a HopObject out of it
      *
+     * @param file the file name
      *
-     * @param file ...
-     *
-     * @return ...
+     * @return the HopObject
      *
      * @throws RuntimeException ...
      */
@@ -121,14 +125,12 @@ public class XmlObject {
     }
 
     /**
+     * Reads an XML document from a file and reads it into the HopObject argument
      *
+     * @param file the file name
+     * @param node the HopObject to use for conversion
      *
-     * @param file ...
-     * @param hopObject ...
-     *
-     * @return ...
-     *
-     * @throws RuntimeException ...
+     * @return the HopObject
      */
     public Object read(String file, INode node) throws RuntimeException {
         if (file == null) {
@@ -154,11 +156,11 @@ public class XmlObject {
     }
 
     /**
+     * Reads an XML document from an XML literal and creates a HopObject out of it
      *
+     * @param str the XML string
      *
-     * @param str ...
-     *
-     * @return ...
+     * @return the HopObject
      *
      * @throws RuntimeException ...
      */
@@ -167,10 +169,10 @@ public class XmlObject {
     }
 
     /**
+     * Reads an XML document from an XML literal and creates a HopObject out of it
      *
-     *
-     * @param str ...
-     * @param hopObject ...
+     * @param str the XML string
+     * @param node the HopObject to use for conversion
      *
      * @return ...
      *
@@ -196,8 +198,106 @@ public class XmlObject {
         } catch (NoClassDefFoundError e) {
             throw new RuntimeException("Can't load XML parser:" + e);
         } catch (Exception f) {
+            f.printStackTrace();
             throw new RuntimeException(f.toString());
         }
     }
+
+
+    /**
+     * Retrieves an XML document from a given URL and transforms it into a HopObject
+     *
+     * @param url the URL containing the XML to be parsed
+     *
+     * @return a HopObject obtained from parsing the XML
+     */
+    public Object get(String url) {
+        return get(url, null);
+    }
+
+
+    /**
+     * Retrieves an XML document from a given URL and transforms it into a HopObject
+     *
+     * @param url the URL containing the XML to be parsed
+     * @param conversionRules a file name pointing to the conversion rules
+     *
+     * @return a HopObject obtained from parsing the XML
+     *
+     * @see http://helma.org/development/rfc/xmlconversion/
+     */
+    public Object get(String url, String conversionRules) {
+        if (url == null) {
+            throw new RuntimeException("Xml.get() needs a location as an argument");
+        }
+
+        try {
+            XmlConverter converter;
+
+            if (conversionRules != null) {
+                converter = new XmlConverter(conversionRules);
+            } else {
+                converter = new XmlConverter();
+            }
+
+            INode node = new helma.objectmodel.db.Node((String) null,
+                                                       (String) null,
+                                                       core.getApplication()
+                                                           .getWrappedNodeManager());
+            INode result = converter.convert(url, node);
+
+            return core.getNodeWrapper(result);
+        } catch (NoClassDefFoundError e) {
+            throw new RuntimeException("Can't load dom-capable xml parser.");
+        }
+    }
+
+    /**
+     * Transforms a XML literal into a HopObject
+     *
+     * @param str an XML literal
+     *
+     * @return a HopObject obtained from parsing the XML
+     */
+    public Object getFromString(String str) {
+        return get(str, null);
+    }
+
+
+    /**
+     * Transforms a XML literal into a HopObject according to the rules specified in
+     * the file defined by conversionRules
+     *
+     * @param str an XML literal
+     * @param conversionRules a file name pointing to the conversion rules
+     *
+     * @return a HopObject obtained from parsing the XML
+     *
+     * @see http://helma.org/development/rfc/xmlconversion/
+     */
+    public Object getFromString(String str, String conversionRules) {
+        if (str == null) {
+            throw new RuntimeException("Xml.getFromString() needs an XML string as parameter");
+        }
+
+        try {
+            XmlConverter converter;
+
+            if (conversionRules != null) {
+                converter = new XmlConverter(conversionRules);
+            } else {
+                converter = new XmlConverter();
+            }
+
+            INode node = new Node((String) null, (String) null,
+                              core.getApplication().getWrappedNodeManager());
+            INode result = converter.convertFromString(str, node);
+
+            return core.getNodeWrapper(result);
+        } catch (NoClassDefFoundError e) {
+            throw new RuntimeException("Can't load dom-capable xml parser.");
+        }
+    }
+
 
 }
