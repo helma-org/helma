@@ -1,9 +1,11 @@
 package helma.doc;
 
+import helma.framework.IPathElement;
+import helma.main.Server;
 import java.io.*;
 import java.util.*;
 
-public class DocApplication extends DocElement	{
+public class DocApplication extends DocElement implements IPathElement {
 	
 	private DocPrototype[] prototypes;
 
@@ -26,7 +28,7 @@ public class DocApplication extends DocElement	{
 	}
 
 	/**	return a single prototype	*/
-	public DocPrototype getPrototype(String name)	{
+	public DocPrototype getDocPrototype(String name)	{
 		for ( int i=0; i<prototypes.length; i++ )	{
 			if ( prototypes[i].getName().equalsIgnoreCase(name) )
 				return prototypes[i];
@@ -53,7 +55,7 @@ public class DocApplication extends DocElement	{
 			}
 		}
 		DocFunction[] funcArr = (DocFunction[])funcVec.toArray(new DocFunction[funcVec.size()]);
-		Arrays.sort(funcArr,new DocComparator(this));
+		Arrays.sort(funcArr,new DocComparator(DocComparator.BY_NAME,this));
 		return funcArr;
 	}
 
@@ -83,7 +85,36 @@ public class DocApplication extends DocElement	{
 	}
 
 
+	////////////////////////////////////
+	// from helma.framework.IPathElement
+	////////////////////////////////////
+	
+	public String getElementName()	{
+		return "api";
+	}
+
+	public IPathElement getChildElement(String name)	{
+		for( int i=0; i<prototypes.length; i++ )	{
+			if ( prototypes[i].getElementName().equals(name) )	{
+				return prototypes[i];
+			}
+		}
+		return null;
+	}
+
+	public IPathElement getParentElement()	{
+		// FIXME: Server.getServer() throws a NullPointerException from here ?
+		Server s = helma.main.Server.getServer();
+		return s.getChildElement(this.name);
+	}
+
+	public java.lang.String getPrototype()	{
+		return "docapplication";
+	}
+
+
 }
+
 
 
 

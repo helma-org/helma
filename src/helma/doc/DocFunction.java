@@ -1,8 +1,9 @@
 package helma.doc;
 
+import helma.framework.IPathElement;
 import java.io.*;
 
-public class DocFunction extends DocElement	{
+public class DocFunction extends DocElement implements IPathElement	{
 	
 	public static final String[] typeSuffix = {"_action","_as_string","","_macro",""};
 
@@ -26,7 +27,7 @@ public class DocFunction extends DocElement	{
 		return ( "Method " + name );
 	}
 
-	public DocPrototype getPrototype()	{		return prototype;	}
+	public DocPrototype getDocPrototype()	{		return prototype;	}
 
 	public void readSource(String sourceFile, int beginLine, int beginColumn, int endLine, int endColumn )	{
 		StringBuffer buf = new StringBuffer ();
@@ -75,6 +76,26 @@ public class DocFunction extends DocElement	{
 
 	public String toString()	{
 		return ( "[DocFunction " + getTypeName() + " " + name + "]" );
+	}
+
+	////////////////////////////////////
+	// from helma.framework.IPathElement
+	////////////////////////////////////
+	
+	public String getElementName()	{
+		return getTypeName().toLowerCase()+"_"+name;
+	}
+
+	public IPathElement getChildElement(String name)	{
+		return null;
+	}
+
+	public IPathElement getParentElement()	{
+		return prototype;
+	}
+
+	public java.lang.String getPrototype()	{
+		return "docfunction";
 	}
 
 
