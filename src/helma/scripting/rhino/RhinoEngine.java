@@ -248,11 +248,9 @@ public class RhinoEngine implements ScriptingEngine {
             for (int i = 0; i < args.length; i++) {
                 switch (argsWrapMode) {
                     case ARGS_WRAP_DEFAULT:
-                        // wrap vanilla java objects unless they represent primitives
-                        if (args[i] != null && !(args[i] instanceof String)
-                                && !(args[i] instanceof Double
-                                && !(args[i] instanceof Boolean))) {
-                            args[i] = Context.toObject(args[i], global);
+                        // convert java objects to JavaScript
+                        if (args[i] != null) {
+                            args[i] = Context.javaToJS(args[i], global);
                         }
                         break;
                     case ARGS_WRAP_XMLRPC:
