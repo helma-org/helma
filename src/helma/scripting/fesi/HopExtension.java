@@ -82,6 +82,7 @@ public final class HopExtension {
         esNodePrototype.putHiddenProperty ("href", new NodeHref ("href", evaluator, fp));
         esNodePrototype.putHiddenProperty ("setParent", new NodeSetParent ("setParent", evaluator, fp));
         esNodePrototype.putHiddenProperty ("invalidate", new NodeInvalidate ("invalidate", evaluator, fp));
+        esNodePrototype.putHiddenProperty ("prefetchChildren", new NodePrefetch ("prefetchChildren", evaluator, fp));
         esNodePrototype.putHiddenProperty ("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, false, false));
         esNodePrototype.putHiddenProperty ("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, true));
         esNodePrototype.putHiddenProperty ("clearCache", new NodeClearCache ("clearCache", evaluator, fp));
@@ -241,6 +242,24 @@ public final class HopExtension {
                 esn.checkNode ();
             }
             return ESBoolean.makeBoolean (true);
+        }
+    }
+
+    
+    class NodePrefetch extends BuiltinFunctionObject {
+        NodePrefetch (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 0);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+            try {
+                ESNode esn = (ESNode) thisObject;
+                esn.prefetchChildren (arguments);
+            } catch (IllegalArgumentException illarg) {
+                throw illarg;
+            } catch (Exception x) {
+                // swallow exceptions in prefetchChildren
+            }
+            return ESNull.theNull;
         }
     }
 
@@ -718,6 +737,7 @@ public final class HopExtension {
             String tmpname = arguments.length == 0 ? "" : arguments[0].toString ();
             String basicHref =app.getNodeHref (elem, tmpname);
             String hrefSkin = app.getProperty ("hrefSkin", null);
+                
             // FIXME: we should actually walk down the path from the object we called href() on
             // instead we move down the URL path.
             if (hrefSkin != null) {
@@ -725,10 +745,19 @@ public final class HopExtension {
                 // first, look in the object href was called on.
                 Object skinElem = elem;
                 Skin skin = null;
+                // ResponseTrans res = fesi.getResponse();
+                // Object[] skinpath = res.getSkinpath ();
                 while (skin == null && skinElem != null) {
                     Prototype proto = app.getPrototype (skinElem);
-                    if (proto != null)
+                    if (proto != null) {
                         skin = proto.getSkin (hrefSkin);
+                        /* String skinid = proto.getName()+"/"+hrefSkin;
+                        skin = res.getCachedSkin (skinid);
+                         if (skin == null) {
+                            skin = app.getSkin (skinElem, hrefSkin, skinpath);
+                            res.cacheSkin (skinid, skin);
+                        } */
+                    }
                     if (skin == null)
                         skinElem = app.getParentElement (skinElem);
                 }

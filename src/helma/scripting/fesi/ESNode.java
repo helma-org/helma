@@ -190,6 +190,36 @@ public class ESNode extends ObjectPrototype {
     }
 
    /**
+    *  Prefetch child objects from (relational) database.
+    */
+    public void prefetchChildren (ESValue args[]) throws Exception {
+        checkNode ();
+        if (!(node instanceof Node))
+            return;
+        int start = 0, length = 0;
+        try {
+            if (args.length == 0) {
+                start = 0;
+                length = 1000;
+            } else if (args.length == 2) {
+                if (args[0].isNumberValue ())
+                   start = args[0].toInt32 ();
+                else
+                   throw new RuntimeException ("Illegal argument in prefetchChildren: "+args[0]);
+                if (args[1].isNumberValue ())
+                   length = args[1].toInt32 ();
+                else
+                   throw new RuntimeException ("Illegal argument in prefetchChildren: "+args[1]);
+            } else {
+                throw new RuntimeException ("Wrong number of arguments in prefetchChildren");
+            }
+        } catch (Exception x) {
+            throw new IllegalArgumentException (x.getMessage());
+        }
+        ((Node) node).prefetchChildren (start, length);
+    }
+
+   /**
     *  This used to be different from add(), it isn't anymore. It's left here for
     *  compatibility.
     */
