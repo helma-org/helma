@@ -15,7 +15,6 @@ import helma.framework.*;
 import helma.framework.core.*;
 import helma.xmlrpc.*;
 import helma.util.*;
-import com.sleepycat.db.*;
 
 
 /**
