@@ -240,7 +240,7 @@ public final class NodeManager {
 	    if (node.isNullNode ()) {
 	        if (node.created() < rel.otherType.getLastDataChange ())
 	            node = null; //  cached null not valid anymore
-	    // } else if (app.doesSubnodeChecking () && home.contains (node) < 0) {
+	    // } else if (false && app.doesSubnodeChecking () && home.contains (node) < 0) {
 	    } else if (!rel.checkConstraints (home, node)) {
 	        node = null;
 	    }
@@ -606,7 +606,7 @@ public final class NodeManager {
 	            q = "SELECT "+idfield+" FROM "+table+" "+home.getSubnodeRelation();
 	        } else {
 	            // let relation object build the query
-	            q = "SELECT "+idfield+" FROM "+table + rel.buildQuery (home, home.getNonVirtualParent (), null);
+	            q = "SELECT "+idfield+" FROM "+table + rel.buildQuery (home, home.getNonVirtualParent (), null, " WHERE ", true);
 	        }
 
 	        if (logSql)
@@ -668,9 +668,19 @@ public final class NodeManager {
 	    TableDataSet tds =  new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
 	    try {
 
-	        tds.where (rel.buildWhere (home, home.getNonVirtualParent (), null));
-	        if (rel.order != null)
-	            tds.order (rel.order);
+	        String q = null;
+	        if (home.getSubnodeRelation() != null) {
+	            // HACK: cut away the "where" part of manually set subnoderelation
+	            q = home.getSubnodeRelation().trim().substring(5);
+	        } else {
+	            // let relation object build the query
+	            q = rel.buildQuery (home, home.getNonVirtualParent (), null, "", false);
+	        }
+	
+	        tds.where (q);
+	
+	        if (rel.getOrder () != null)
+	            tds.order (rel.getOrder ());
 	
 	        if (logSql)
 	           app.logEvent ("### getNodes: "+tds.getSelectString());
@@ -717,12 +727,20 @@ public final class NodeManager {
 
 	    QueryDataSet qds = null;
 	    try {
-	        String qstr = "SELECT count(*) FROM "+table+rel.buildQuery (home, home.getNonVirtualParent (), null);
+	
+	        String q = null;
+	        if (home.getSubnodeRelation() != null) {
+	            // use the manually set subnoderelation of the home node
+	            q = "SELECT count(*) FROM "+table+" "+home.getSubnodeRelation();
+	        } else {
+	            // let relation object build the query
+	            q = "SELECT count(*) FROM "+table + rel.buildQuery (home, home.getNonVirtualParent (), null, " WHERE ", false);
+	        }
 	
 	        if (logSql)
-	            app.logEvent ("### countNodes: "+qstr);
+	            app.logEvent ("### countNodes: "+q);
 	
-	        qds = new QueryDataSet (con, qstr);
+	        qds = new QueryDataSet (con, q);
 
 	        qds.fetchRecords ();
 	        if (qds.size () == 0)
@@ -860,12 +878,11 @@ public final class NodeManager {
 	    return node;
 
 	} else {
-	    System.err.println ("GETNODEBYRELATION "+rel);
 	    TableDataSet tds = null;
 	    try {
 	        DbMapping dbm = rel.otherType;
 	        tds = new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
-	        String where = rel.buildWhere (home, home.getNonVirtualParent (), kstr);
+	        String where = rel.buildQuery (home, home.getNonVirtualParent (), kstr, "", false);
 
 	        tds.where (where);
 
@@ -900,7 +917,7 @@ public final class NodeManager {
     }
 
     // a utility method to escape single quotes
-    private String escape (String str) {
+/*    private String escape (String str) {
 	if (str == null)
 	    return null;
 	if (str.indexOf ("'") < 0)
@@ -914,7 +931,7 @@ public final class NodeManager {
 	    sbuf.append (c);
 	}
 	return sbuf.toString ();
-    }
+    } */
 
 
     public Object[] getCacheEntries () {

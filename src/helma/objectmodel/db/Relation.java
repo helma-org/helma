@@ -56,7 +56,6 @@ public class Relation {
     public String order;
     public String groupbyorder;
     public String groupby;
-    public String dogroupby;
     public String prototype;
     public String groupbyprototype;
     public String filter;
@@ -303,14 +302,8 @@ public class Relation {
 	        return accessor == null || accessor.equals (otherType.getIDField ());
 	}
 	return false;
-	/*
-	if (otherType == null)
-	    return false;
-	if (remoteField == null)
-	    // if remote field is null, it is assumed that it points to the primary key
-	    return true;
-	return remoteField.equalsIgnoreCase (otherType.getIDField()); */
     }
+
 
     public Relation getSubnodeRelation () {
 	// return subnoderelation;
@@ -325,31 +318,6 @@ public class Relation {
 	return columnName;
     }
 
-
-    /**
-     * Get the local column name for this relation to use in where clauses of select statements.
-     * This uses the home node's id as fallback if local field is not specified.
-     */
-    /* public String[] getLocalFields () {
-	if (constraints == null)
-	    return new String[0];
-	String[] retval = new String[constraints.length];
-	for (int i=0; i<constraints.length; i++)
-	    retval[i] = constraints[i].localName;
-	return retval;
-    } */
-
-    /**
-     * Get the "remote" column name for this relation. Uses the remote node's id as fallback if the remote field is not specified.
-     */
-    /* public String[] getRemoteFields () {
-	if (constraints == null)
-	    return new String[0];
-	String[] retval = new String[constraints.length];
-	for (int i=0; i<constraints.length; i++)
-	    retval[i] = constraints[i].foreignName;
-	return retval;
-    } */
 
     public DbMapping getVirtualMapping () {
 	if (!virtual)
@@ -427,34 +395,14 @@ public class Relation {
 	return vr;
     }
 
-    public String buildWhere (INode home, INode nonvirtual, String kstr) {
-	StringBuffer q = new StringBuffer ();
-	String prefix = "";
-	if (kstr != null) {
-	    String accessColumn = accessor == null ? otherType.getIDField () : accessor;
-	    q.append (accessColumn);
-	    q.append (" = '");
-	    q.append (escape (kstr));
-	    q.append ("'");
-	    prefix = " AND ";
-	}
-	
-	for (int i=0; i<constraints.length; i++) {
-	    q.append (prefix);
-	    constraints[i].addToQuery (q, home, nonvirtual);
-	    prefix = " AND ";
-	}
-	
-	if (filter != null) {
-	    q.append (prefix);
-	    q.append (filter);
-	}
-	return q.toString ();
-    }
 
-    public String buildQuery (INode home, INode nonvirtual, String kstr) {
+    /**
+     *  Build the second half of an SQL select statement according to this relation
+     *  and a local object.
+     */
+    public String buildQuery (INode home, INode nonvirtual, String kstr, String pre, boolean useOrder) {
 	StringBuffer q = new StringBuffer ();
-	String prefix = " WHERE ";
+	String prefix = pre;
 	if (kstr != null) {
 	    q.append (prefix);
 	    String accessColumn = accessor == null ? otherType.getIDField () : accessor;
@@ -474,19 +422,32 @@ public class Relation {
 	    q.append (prefix);
 	    q.append (filter);
 	}
-	if (groupby != null)
+	if (groupby != null) {
 	    q.append (" GROUP BY "+groupby);
-	if (order != null)
+	    if (useOrder && groupbyorder != null)
+	        q.append (" ORDER BY "+groupbyorder);
+	} else if (useOrder && order != null)
 	    q.append (" ORDER BY "+order);
 	return q.toString ();
     }
+
+    /**
+     * Get the order section to use for this relation
+     */
+    public String getOrder () {
+	if (groupby != null)
+	    return groupbyorder;
+	else
+	    return order;
+    }
+
 
     /**
      * Check if the child node fullfills the constraints defined by this relation.
      */
     public boolean checkConstraints (Node parent, Node child) {
 	for (int i=0; i<constraints.length; i++) {
-	    String propname = otherType.columnNameToProperty (constraints[i].foreignName);
+	    String propname = constraints[i].foreignProperty ();
 	    if (propname != null) {
 	        INode home = constraints[i].isGroupby ? parent : parent.getNonVirtualParent ();
 	        String localName = constraints[i].localName;
@@ -593,6 +554,14 @@ public class Relation {
     	
     	public boolean foreignKeyIsPrimary () {
     	    return foreignName == null || foreignName.equals (otherType.getIDField ());
+    	}
+    	
+    	public String foreignProperty () {
+    	    return  otherType.columnNameToProperty (foreignName);
+    	}
+    	
+    	public String localProperty () {
+    	    return  ownType.columnNameToProperty (localName);
     	}
     	
     	public String toString () {
