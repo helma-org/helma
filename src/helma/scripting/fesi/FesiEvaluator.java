@@ -64,7 +64,7 @@ public final class FesiEvaluator implements ScriptingEngine {
     
     // flag tells us if the current request has timed out
     // and exceptions should thus be rethrown as TimeoutExceptions.
-    private boolean timeout;
+    private volatile boolean timeout;
 
     /**
      *  Create a FESI evaluator for the given application and request evaluator.
