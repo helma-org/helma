@@ -26,7 +26,7 @@ import org.mortbay.util.*;
 
  public class Server implements IPathElement, Runnable {
 
-    public static final String version = "1.2pre3+ 2002/07/25";
+    public static final String version = "1.2pre3+ 2002/08/01";
     public long starttime;
 
     // if true we only accept RMI and XML-RPC connections from 
@@ -165,7 +165,11 @@ import org.mortbay.util.*;
 
 	// from now on it's safe to call getLogger()
 
-	getLogger().log ("Starting Helma "+version);
+	String startMessage = "Starting Helma "+version+
+		" on Java "+System.getProperty ("java.version");
+	getLogger().log (startMessage);
+	// also print a msg to System.out
+	System.out.println (startMessage);
 
 	getLogger().log ("propfile = "+propfile);
 	getLogger().log ("hopHome = "+hopHome);
@@ -256,6 +260,7 @@ import org.mortbay.util.*;
 	       // create new Jetty server and bind it to the web server port
 	       http = new HttpServer ();
 	       http.addListener (new InetAddrPort (websrvPort));
+	       // http.setRequestLogSink (new OutputStreamLogSink ());
 	    }
 
 	    String xmlparser = sysProps.getProperty ("xmlparser");
@@ -350,11 +355,11 @@ import org.mortbay.util.*;
      */
     public static Logger getLogger () {
 	if (logger == null) {
-	    String logDir = sysProps.getProperty ("logdir");
-	    if (logDir == null || "console".equalsIgnoreCase (logDir)) {
+	    String logDir = sysProps.getProperty ("logdir", "log");
+	    if ("console".equalsIgnoreCase (logDir)) {
 	        logger = new Logger (System.out);
 	    } else {
-	       File helper = new File (logDir);
+	        File helper = new File (logDir);
 	        if (hopHome != null && !helper.isAbsolute ())
 	            helper = new File (hopHome, logDir);
 	        logDir = helper.getAbsolutePath ();
@@ -404,6 +409,10 @@ import org.mortbay.util.*;
 
 	public SystemProperties getProperties()	{
 		return sysProps;
+	}
+	
+	public SystemProperties getDbProperties() {
+		return dbProps;
 	}
 
 	public File getAppsHome()	{
