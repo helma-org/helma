@@ -99,7 +99,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     private CryptFile pwfile;
 
     // Map of java class names to object prototypes
-    Properties scriptables;
+    Properties classMapping;
 
     // a cache for parsed skin objects
     CacheMap skincache = new CacheMap (100, 0.75f);
@@ -178,7 +178,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	pwfile = new CryptFile (pwf, parentpwfile);
 
 	// the properties that map java class names to prototype names
-	scriptables = new SystemProperties (new File (appDir, "scriptable.properties").getAbsolutePath ());
+	classMapping = new SystemProperties (new File (appDir, "class.properties").getAbsolutePath ());
 	
 	// character encoding to be used for responses
 	charset = props.getProperty ("charset", "ISO-8859-1");
@@ -648,6 +648,12 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	return pwfile.authenticate (uname, password);
     }
 
+    /**
+     *  Return the href to the root of this application.
+     */
+    public String getRootHref () {
+	return getNodeHref (getDataRoot(), null);
+    }
 
     /**
      * Return a path to be used in a URL pointing to the given element  and action
@@ -667,7 +673,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	// String href = n.getUrl (root, users, tmpname, siteroot);
 
 	String divider = "/";
-	StringBuffer b = new StringBuffer ();
+	StringBuffer b = new StringBuffer (baseURI);
 	Object p = elem;
 	int loopWatch = 0;
 	
@@ -697,9 +703,11 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	    b.insert (0, divider);
 	    b.insert (0, "users");
 	}
-	String href =  b.toString()+UrlEncoder.encode (actionName);
 	
-	return baseURI + href;
+	if (actionName != null)
+	    b.append (UrlEncoder.encode (actionName));
+	
+	return b.toString ();
     }
 
 
@@ -791,7 +799,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	    return ((IPathElement) obj).getPrototype ();
 	else
 	    // use java class name as prototype name
-	    return scriptables.getProperty (obj.getClass ().getName ());
+	    return classMapping.getProperty (obj.getClass ().getName ());
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
