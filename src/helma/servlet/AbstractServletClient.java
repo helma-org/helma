@@ -20,6 +20,7 @@
 package helma.servlet;
 
 import helma.framework.*;
+import helma.framework.core.Application;
 import helma.util.*;
 import java.io.*;
 import java.util.*;
@@ -47,9 +48,6 @@ public abstract class AbstractServletClient extends HttpServlet {
     // cookie domain to use
     String cookieDomain;
 
-    // default encoding for requests
-    String defaultEncoding = "ISO8859_1";
-
     // allow caching of responses
     boolean caching;
 
@@ -57,9 +55,9 @@ public abstract class AbstractServletClient extends HttpServlet {
     boolean debug;
 
     /**
+     * Init this servlet.
      *
-     *
-     * @param init ...
+     * @param init the servlet configuration
      *
      * @throws ServletException ...
      */
@@ -78,21 +76,20 @@ public abstract class AbstractServletClient extends HttpServlet {
             cookieDomain = cookieDomain.toLowerCase();
         }
 
-        // get default encoding
-        String encoding = init.getInitParameter("charset");
-
-        if (encoding != null) {
-            defaultEncoding = encoding;
-        }
-
         debug = ("true".equalsIgnoreCase(init.getInitParameter("debug")));
         caching = !("false".equalsIgnoreCase(init.getInitParameter("caching")));
     }
 
-    abstract ResponseTrans execute(RequestTrans req) throws Exception;
+    /**
+     * Abstract method to get the {@link helma.framework.core.Application Applicaton}
+     * instance the servlet is talking to.
+     *
+     * @return this servlet's application instance
+     */
+    abstract Application getApplication();
 
     /**
-     *
+     * Handle a GET request.
      *
      * @param request ...
      * @param response ...
@@ -106,7 +103,7 @@ public abstract class AbstractServletClient extends HttpServlet {
     }
 
     /**
-     *
+     * Handle a POST request.
      *
      * @param request ...
      * @param response ...
@@ -128,8 +125,8 @@ public abstract class AbstractServletClient extends HttpServlet {
             String encoding = request.getCharacterEncoding();
 
             if (encoding == null) {
-                // no encoding from request, use standard one
-                encoding = defaultEncoding;
+                // no encoding from request, use the application's charset
+                encoding = getApplication().getCharset();
             }
 
             // read and set http parameters
@@ -272,7 +269,7 @@ public abstract class AbstractServletClient extends HttpServlet {
             // response.setHeader ("Server", "Helma/"+helma.main.Server.version);
             reqtrans.path = getPathInfo(request);
 
-            ResponseTrans restrans = execute(reqtrans);
+            ResponseTrans restrans = getApplication().execute(reqtrans);
 
             // set cookies
             if (restrans.countCookies() > 0) {
@@ -723,6 +720,8 @@ public abstract class AbstractServletClient extends HttpServlet {
         int uriTokens = t.countTokens();
         StringBuffer pathbuffer = new StringBuffer();
 
+        String encoding = getApplication().getCharset();
+
         for (int i = 0; i < uriTokens; i++) {
             String token = t.nextToken();
 
@@ -734,7 +733,7 @@ public abstract class AbstractServletClient extends HttpServlet {
                 pathbuffer.append('/');
             }
 
-            pathbuffer.append(UrlEncoded.decode(token, defaultEncoding));
+            pathbuffer.append(UrlEncoded.decode(token, encoding));
         }
         
         // append trailing "/" if it is contained in original URI

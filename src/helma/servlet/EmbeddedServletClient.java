@@ -52,13 +52,17 @@ public final class EmbeddedServletClient extends AbstractServletClient {
         }
     }
 
-    ResponseTrans execute(RequestTrans req) throws Exception {
+    /**
+     * Returns the {@link helma.framework.core.Application Applicaton}
+     * instance the servlet is talking to.
+     *
+     * @return this servlet's application instance
+     */
+    Application getApplication() {
         if (app == null) {
             app = Server.getServer().getApplication(appName);
-            // get the app's charset
-            defaultEncoding = app.getCharset();
         }
 
-        return app.execute(req);
+        return app;
     }
 }

@@ -68,12 +68,18 @@ public final class StandaloneServletClient extends AbstractServletClient {
         }
     }
 
-    ResponseTrans execute(RequestTrans req) throws Exception {
+    /**
+     * Returns the {@link helma.framework.core.Application Applicaton}
+     * instance the servlet is talking to.
+     *
+     * @return this servlet's application instance
+     */
+    Application getApplication() {
         if (app == null) {
             createApp();
         }
 
-        return app.execute(req);
+        return app;
     }
 
     /**
@@ -92,8 +98,6 @@ public final class StandaloneServletClient extends AbstractServletClient {
             app = new Application(appName, appHome, dbHome);
             app.init();
             app.start();
-            // get the app's charset
-            defaultEncoding = app.getCharset();
         } catch (Exception x) {
             log("Error starting Application " + appName + ": " + x);
             x.printStackTrace();
