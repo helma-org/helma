@@ -519,11 +519,6 @@ public final class RequestEvaluator implements Runnable {
                             app.errorCount += 1;
                             app.logError("Error in " + Thread.currentThread(), x);
 
-                            // Dump stack trace to System.err in debug mode
-                            if (app.debug) {
-                                x.printStackTrace();
-                            }
-
                             // set done to false so that the error will be processed
                             done = false;
                             error = x.getMessage();
