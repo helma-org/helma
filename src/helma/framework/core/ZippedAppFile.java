@@ -80,7 +80,17 @@ public class ZippedAppFile implements Updatable {
                     String ename = entry.getName();
                     StringTokenizer st = new StringTokenizer(ename, "/");
 
-                    if (st.countTokens() == 2) {
+                    int tokens = st.countTokens();
+                    if (tokens == 1) {
+                        String fname = st.nextToken();
+
+                        if ("app.properties".equalsIgnoreCase(fname)) {
+                            app.props.addProps(file.getName(), zip.getInputStream(entry));
+                        } else if ("db.properties".equalsIgnoreCase(fname)) {
+                            app.dbProps.addProps(file.getName(), zip.getInputStream(entry));
+                        }
+
+                    } else if (tokens == 2) {
                         String dir = st.nextToken();
                         String fname = st.nextToken();
 
