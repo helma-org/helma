@@ -91,14 +91,14 @@ public class DbSource {
         conProps=new Properties();
         for (Enumeration e = props.keys(); e.hasMoreElements(); ) {
             String key = (String) e.nextElement();
-            if (!key.startsWith(name))
+            if (!key.toLowerCase().startsWith(name.toLowerCase()))
                 continue;
-            if (key.equals(name + ".url")) {
-                url = props.getProperty(name + ".url");
+            if (key.equalsIgnoreCase(name + ".url")) {
+                url = props.getProperty(key);
                 continue;
             }
-            if (key.equals(name + ".driver")) {
-                driver = props.getProperty(name + ".driver");
+            if (key.equalsIgnoreCase(name + ".driver")) {
+                driver = props.getProperty(key);
                 isOracle = driver != null && driver.startsWith("oracle.jdbc");
                 Class.forName(driver);
                 continue;
