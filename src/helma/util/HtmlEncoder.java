@@ -326,6 +326,8 @@ public final class HtmlEncoder {
 	// swallowOneNewline is just effective once (for the next newline)
 	boolean ignoreNewline = false;
 	boolean swallowOneNewline = false;
+	// did we meet a backslash escape?
+	boolean escape = false;
 
 	for (int i=0; i<l; i++) {
 	    char c = str.charAt(i);
@@ -373,10 +375,6 @@ public final class HtmlEncoder {
 	                    int j = tagStart;
 	                    while (j<l && Character.isLetterOrDigit (str.charAt(j)))
 	                        j++;
-	                    // if we haven't gotten past the <,
-	                    // check if it's an HTML comment or Helma macro tag
-	                    // if (j == tagStart && !insideCodeTag) {
-	                    // }
 	                    if (j > tagStart && j < l) {
 	                        String tagName = str.substring (tagStart, j).toLowerCase();
 	                        if ("code".equals (tagName) && insideCloseTag && insideCodeTag)
@@ -408,17 +406,27 @@ public final class HtmlEncoder {
 	            else
 	                ret.append ("&lt;");
 	            break;
+	        case '\\':
+	            ret.append (c);
+	            if (insideTag && !insideComment)
+	                escape = !escape;
+	            break;
 	        case '"':
 	        case '\'':
 	            ret.append (c);
 	            if (!insideComment) {
+	                // check if the quote is escaped
 	                if (insideMacroTag) {
-	                    if (macroQuoteChar == c)
+	                    if (escape)
+	                        escape = false;
+	                    else if (macroQuoteChar == c)
 	                        macroQuoteChar = '\u0000';
 	                    else if (macroQuoteChar == '\u0000')
 	                        macroQuoteChar = c;
 	                } else if (insideHtmlTag) {
-	                    if (htmlQuoteChar == c)
+	                    if (escape)
+	                        escape = false;
+	                    else if (htmlQuoteChar == c)
 	                        htmlQuoteChar = '\u0000';
 	                    else if (htmlQuoteChar == '\u0000')
 	                        htmlQuoteChar = c;
@@ -467,6 +475,7 @@ public final class HtmlEncoder {
 	            }
 	            if (swallowOneNewline && !insideTag && !Character.isWhitespace (c))
 	                swallowOneNewline = false;
+	            escape = false;
 	    }
 	}
      }
