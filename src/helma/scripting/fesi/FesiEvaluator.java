@@ -240,8 +240,8 @@ public class FesiEvaluator {
 	                        parr.putHiddenProperty (protoname, wrappedElement);
 	                }
 	                sv = parr;
-	            } else if ("user".equals (k)) {
-	                sv = getNodeWrapper ((User) v);
+	            } else if ("session".equals (k)) {
+					sv = new ESSession ( (Session)v, this );
 	            } else if ("app".equals (k)) {
 	                sv = new ESAppNode ((INode) v, this);
 	            }
@@ -420,7 +420,7 @@ public class FesiEvaluator {
      *  Get a script wrapper for an implemntation of helma.objectmodel.INode
      */
     public ESNode getNodeWrapper (INode n) {
-
+		// FIXME: should this return ESNull.theNull?
         if (n == null)
             return null;
 
@@ -443,12 +443,7 @@ public class FesiEvaluator {
             if (op == null)
                 op = getPrototype("hopobject");
 
-
-            DbMapping dbm = n.getDbMapping ();
-            if (dbm != null && dbm.isInstanceOf ("user"))
-                esn = new ESUser (n, this, null);
-            else
-                esn = new ESNode (op, evaluator, n, this);
+            esn = new ESNode (op, evaluator, n, this);
 
             wrappercache.put (n, esn);
             // app.logEvent ("Wrapper for "+n+" created");
@@ -464,28 +459,6 @@ public class FesiEvaluator {
      */
     public void putNodeWrapper (INode n, ESNode esn) {
 	wrappercache.put (n, esn);
-    }
-
-    /**
-     *  Get a scripting wrapper object for a user object. Active user objects are represented by
-     *  the special ESUser wrapper class.
-     */
-    public ESNode getNodeWrapper (User u) {
-        if (u == null)
-            return null;
-
-        ESUser esn = (ESUser) wrappercache.get (u);
-
-        if (esn == null) {
-            esn = new ESUser (u.getNode(), this, u);
-            wrappercache.put (u, esn);
-        } else {
-            // the user node may have changed (login/logout) while the ESUser was
-            // lingering in the cache.
-            esn.updateNodeFromUser ();
-        }
-
-        return esn;
     }
 
     /**
