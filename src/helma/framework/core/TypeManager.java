@@ -5,6 +5,7 @@ package helma.framework.core;
 
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
+import helma.scripting.*;
 import helma.util.*;
 import java.util.*;
 import java.io.*;
@@ -21,6 +22,7 @@ public class TypeManager implements Runnable {
     File appDir;
     HashMap prototypes;
     HashMap zipfiles;
+    long lastCheck = 0;
     long idleSeconds = 120; // if idle for longer than 5 minutes, slow down
     boolean rewire;
 
@@ -30,13 +32,6 @@ public class TypeManager implements Runnable {
 
     Thread typechecker;
 
-   // The http broadcaster for pushing out parser output
-   // static WebBroadcaster broadcaster;
-   // static {
-   //   try {
-   //      broadcaster = new WebBroadcaster (9999);
-   //   } catch (IOException ignore) {}
-   // }
 
     static HashSet standardTypes;
     static {
@@ -64,34 +59,45 @@ public class TypeManager implements Runnable {
     }
 
 
-    public void check () {
+    public void createPrototypes () {
+	check (false);
+    }
+
+
+    public synchronized void checkPrototypes () {
+	if (System.currentTimeMillis () - lastCheck  < 500l)
+	    return;
+	lastCheck = System.currentTimeMillis ();
+	check (true);
+    }
+
+    public void check (boolean update) {
 	// long now = System.currentTimeMillis ();
 	// System.out.print ("checking "+Thread.currentThread ());
-	String[] list = appDir.list ();
+// long total = System.currentTimeMillis();
+	File[] list = appDir.listFiles ();
 	if (list == null)
 	    throw new RuntimeException ("Can't read app directory "+appDir+" - check permissions");
 	for (int i=0; i<list.length; i++) {
-	    File fileOrDir = new File (appDir, list[i]);
-	    // cut out ".." and other directories that contain "."
-	    if (isValidTypeName (list[i]) && fileOrDir.isDirectory ()) {
-	        Prototype proto = getPrototype (list[i]);
-	        if (proto != null) {
-	            // check if existing prototype needs update
-	            // app.logEvent (protoDir.lastModified ());
-	            updatePrototype (list[i], fileOrDir, proto);
-	        } else {
-	            // create new prototype
-	            proto = new Prototype (list[i], app);
-	            registerPrototype (list[i], fileOrDir, proto);
-	            prototypes.put (list[i], proto);
-	            // give logger thread a chance to tell what's going on
-	            Thread.yield();
-	        }
-	    } else if (list[i].toLowerCase().endsWith (".zip") && !fileOrDir.isDirectory ()) {
-	        ZippedAppFile zipped = (ZippedAppFile) zipfiles.get (list[i]);
+	    String filename = list[i].getName ();
+	    Prototype proto = getPrototype (filename);
+	    if (proto != null) {
+	        // check if existing prototype needs update
+	        // app.logEvent (protoDir.lastModified ());
+	        updatePrototype (filename, list[i], proto);
+	    } else if (list[i].isDirectory () && isValidTypeName (filename)) {
+	        // leave out ".." and other directories that contain "."
+	        // create new prototype
+	        proto = new Prototype (filename, app);
+	        registerPrototype (filename, list[i], proto, update);
+	        prototypes.put (filename, proto);
+	        // give logger thread a chance to tell what's going on
+	        // Thread.yield();
+	    } else if (filename.toLowerCase().endsWith (".zip") && !list[i].isDirectory ()) {
+	        ZippedAppFile zipped = (ZippedAppFile) zipfiles.get (filename);
 	        if (zipped == null) {
-	            zipped = new ZippedAppFile (fileOrDir, app);
-	            zipfiles.put (list[i], zipped);
+	            zipped = new ZippedAppFile (list[i], app);
+	            zipfiles.put (filename, zipped);
 	        }
 	    }
 	}
@@ -103,7 +109,7 @@ public class TypeManager implements Runnable {
 	        zipped.update ();
 	    }
 	}
-
+// System.err.println ("TOTAL: "+(System.currentTimeMillis () - total));
 	if (rewire) {
 	    // there have been changes @ DbMappings
 	    app.rewireDbMappings ();
@@ -153,7 +159,7 @@ public class TypeManager implements Runnable {
 	        break;
 	    }
 	    try {
-	        check ();
+	        checkPrototypes ();
 	    } catch (Exception ignore) {}
 	}
     }
@@ -187,7 +193,7 @@ public class TypeManager implements Runnable {
     /**
      *  Create a prototype from a directory containing scripts and other stuff
      */
-    public void registerPrototype (String name, File dir, Prototype proto) {
+    public void registerPrototype (String name, File dir, Prototype proto, boolean update) {
         // app.logEvent ("registering prototype "+name);
 
         // show the type checker thread that there has been type activity
@@ -200,6 +206,7 @@ public class TypeManager implements Runnable {
         HashMap nskins = new HashMap ();
         HashMap updatables = new HashMap (list.length);
 
+        if (update) {
         for (int i=0; i<list.length; i++) {
             File tmpfile = new File (dir, list[i]);
             int dot = list[i].indexOf (".");
@@ -245,6 +252,7 @@ public class TypeManager implements Runnable {
                 }
             }
         }
+        }
 
         // Create and register type properties file
         File propfile = new File (dir, "type.properties");
@@ -273,35 +281,41 @@ public class TypeManager implements Runnable {
     * Update a prototype based on the directory which defines it.
     */
     public void updatePrototype (String name, File dir, Prototype proto) {
-        // app.logEvent ("updating prototype "+name);
 
         boolean needsUpdate = false;
         HashSet updatables = new HashSet ();
 
         // our plan is to do as little as possible, so first check if anything has changed at all...
         for (Iterator i = proto.updatables.values().iterator(); i.hasNext(); ) {
-	Updatable upd = (Updatable) i.next();
-	if (upd.needsUpdate ()) {
-	    needsUpdate = true;
-	    updatables.add (upd);
-             }
+            Updatable upd = (Updatable) i.next();
+            if (upd.needsUpdate ()) {
+                needsUpdate = true;
+                updatables.add (upd);
+            }
         }
 
-        String list[] = dir.list();
-        for (int i=0; i<list.length; i++) {
-	String fn = list[i];
-	if (!proto.updatables.containsKey (fn)) {
-	    if (fn.endsWith (app.templateExtension) || fn.endsWith (app.scriptExtension) ||
-	    fn.endsWith (app.actionExtension) || fn.endsWith (app.skinExtension) || "type.properties".equalsIgnoreCase (fn)) {
-	        needsUpdate = true;
-	        updatables.add ("[new:"+proto.getName()+"/"+fn+"]");
-                 }
-	}
+        String[] list = new String[0];
+        // check if file have been created since last update
+        if (proto.lastUpdate < dir.lastModified ()) {
+            list = dir.list();
+            for (int i=0; i<list.length; i++) {
+	    String fn = list[i];
+	    if (!proto.updatables.containsKey (fn)) {
+	        if (fn.endsWith (app.templateExtension) || fn.endsWith (app.scriptExtension) ||
+	    	fn.endsWith (app.actionExtension) || fn.endsWith (app.skinExtension) ||
+	    	"type.properties".equalsIgnoreCase (fn)) {
+	            needsUpdate = true;
+	            // updatables.add ("[new:"+proto.getName()+"/"+fn+"]");
+                      }
+	    }
+             }
         }
 
         if (!needsUpdate)
 	return;
-
+	
+        proto.lastUpdate = System.currentTimeMillis ();
+	
         // let the thread know we had to do something.
         idleSeconds = 0;
         app.logEvent ("TypeManager: Updating prototypes for "+app.getName()+": "+updatables);
@@ -357,7 +371,7 @@ public class TypeManager implements Runnable {
         }
 
         // next go through existing updatables
-        for (Iterator i = proto.updatables.values().iterator(); i.hasNext(); ) {
+        for (Iterator i = updatables.iterator(); i.hasNext(); ) {
             Updatable upd = (Updatable) i.next();
 
             if (upd.needsUpdate ()) {
