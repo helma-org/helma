@@ -69,28 +69,28 @@
     <!-- XXX changed.                                                        -->
     <!-- =================================================================== -->
     <target name="collections" if="coll.present" depends="prepare">
-      <replace dir="${build.src}" includes="**"
+      <replace dir="${build.src}/helma" includes="**"
              token="java.util.Collection" value="${coll.import}.Collection"/>
-      <replace dir="${build.src}" includes="**"
+      <replace dir="${build.src}/helma" includes="**"
              token="java.util.Map" value="${coll.import}.Map"/>
-      <replace dir="${build.src}" includes="**"
+      <replace dir="${build.src}/helma" includes="**"
              token="java.util.HashMap" value="${coll.import}.HashMap"/>
-      <replace dir="${build.src}" includes="**"
+      <replace dir="${build.src}/helma" includes="**"
              token="java.util.List" value="${coll.import}.List"/>
-      <replace dir="${build.src}" includes="**"
+      <replace dir="${build.src}/helma" includes="**"
              token="java.util.LinkedList" value="${coll.import}.LinkedList"/>
-      <replace dir="${build.src}" includes="**"
+      <replace dir="${build.src}/helma" includes="**"
              token="java.util.Set" value="${coll.import}.Set"/>
-      <replace dir="${build.src}" includes="**"
+      <replace dir="${build.src}/helma" includes="**"
              token="java.util.HashSet" value="${coll.import}.HashSet"/>
-      <replace dir="${build.src}" includes="**"
+      <replace dir="${build.src}/helma" includes="**"
              token="java.util.Iterator" value="${coll.import}.Iterator"/>
       <!-- The following replace handles the "import java.util.*" case by    -->
       <!-- adding an "import com.sun.java.util.collections.*" after it.      -->
       <!-- BTW, \u000a is the Unicode escape for a new line. (jhunter)       -->
-      <replace dir="${build.src}" includes="**"
+      <!-- replace dir="${build.src}/helma" includes="**"
              token="java.util.*"
-             value="${coll.import}.*"/>
+             value="java.util.*;\u000aimport ${coll.import}.*"/ -->
     </target>
 
 
