@@ -1133,14 +1133,6 @@ public final class Node implements INode, Serializable {
             return null;
         }
 
-        /*
-        DbMapping smap = null;
-
-        if (dbmap != null) {
-            smap = dbmap.getSubnodeMapping();
-        }
-        */
-
         Node retval = null;
 
         if (subnodes.size() > index) {
@@ -1675,10 +1667,12 @@ public final class Node implements INode, Serializable {
 
 
         // 3) try to get the property from the database via accessname, if defined
+        //    (only do this if accessname or groupby is specified)
         if (rel == null && dbmap != null && state != TRANSIENT) {
             rel = dbmap.getSubnodeRelation();
 
-            if (rel != null && rel.otherType != null) {
+            if (rel != null && rel.otherType != null &&
+                (rel.groupby != null || rel.accessName != null)) {
                 Node n = nmgr.getNode(this, propname, rel);
 
                 if (n != null) {
