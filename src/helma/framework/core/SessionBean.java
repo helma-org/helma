@@ -11,63 +11,63 @@ import helma.scripting.fesi.*;
 
 public class SessionBean implements Serializable {
 
-	// the wrapped session object
-	Session session;
+    // the wrapped session object
+    Session session;
 
-	public SessionBean(Session session)	{
+    public SessionBean(Session session)	{
 	this.session = session;
-	}
+    }
 
-	public String toString()	{
+    public String toString()	{
 	return session.toString ();
-	}
+    }
 
-	public boolean login (String username, String password) {
+    public boolean login (String username, String password) {
 	boolean success = session.getApp().loginSession (username, password, session);
 	return success;
-	}
+    }
 
-	public void logout ()	{
+    public void logout ()	{
 	session.getApp().logoutSession (session);
-	}
+    }
 
-	public void touch () {
+    public void touch () {
 	session.touch ();
-	}
+    }
 
-	public Date lastActive() {
+    public Date lastActive() {
 	return new Date (session.lastTouched ());
-	}
+    }
 
-	public Date onSince() {
+    public Date onSince() {
 	return new Date (session.onSince ());
-	}
+    }
 
-	// property-related methods:
+    // property-related methods:
 
-	public INode getdata() {
+    public INode getdata() {
 	return session.getCacheNode ();
-	}
+    }
 
-	public INode getuser() {
+    public INode getuser() {
 	return session.getUserNode();
-	}
+    }
 
-	public String get_id () {
+    public String get_id () {
 	return session.getSessionID ();
-	}
+    }
 
-	public String getcookie() {
+    public String getcookie() {
 	return session.getSessionID ();
-	}
+    }
 
-	public Date getlastActive() {
+    public Date getlastActive() {
 	return new Date (session.lastTouched ());
-	}
+    }
 
-	public Date getonSince() {
+    public Date getonSince() {
 	return new Date (session.onSince ());
-	}
+    }
 
 }
 
