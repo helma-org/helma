@@ -28,7 +28,7 @@
 
         <property name="jar.name" value="${project}"/>
         <property name="package.name" value="${project}-${version}"/>
-        <property name="antclick.name" value="antclick-1.0pre3"/>
+        <property name="antclick.name" value="antclick-1.0pre6"/>
 
         <property name="debug" value="on"/>
         <property name="optimize" value="on"/>
@@ -207,8 +207,8 @@
         <!-- copy all libraries except helma-YYYYMMDD.jar -->
         <copy todir="${build.work}/lib">
             <fileset dir="${home.dir}/lib">
-                <exclude name="**/helma*.jar" />
-                <include name="**/*.jar" />
+                <exclude name="helma*.jar" />
+                <include name="*.jar" />
             </fileset>
         </copy>
 
