@@ -12,82 +12,82 @@ import helma.objectmodel.INode;
 
 public class ApplicationBean implements Serializable {
 
-	Application app;
+    Application app;
 
-	public ApplicationBean(Application app)	{
+    public ApplicationBean(Application app) {
 	this.app = app;
-	}
+    }
 
-	public void clearCache () {
+    public void clearCache () {
 	app.clearCache ();
-	}
+    }
 
-	public void log (String msg) {
+    public void log (String msg) {
 	app.logEvent (msg);
-	}
-	
-	public void log (String logname, String msg) {
-	app.getLogger (logname).log (msg);
-	}
+    }
 
-	public void debug (String msg) {
+    public void log (String logname, String msg) {
+	app.getLogger (logname).log (msg);
+    }
+
+    public void debug (String msg) {
 	if (app.debug()) {
 	    app.logEvent (msg);
 	}
-	}
-	
-	public void debug (String logname, String msg) {
+    }
+
+    public void debug (String logname, String msg) {
 	if (app.debug()) {
 	    app.getLogger (logname).log (msg);
 	}
-	}
+    }
 
-	public int countSessions () {
+    public int countSessions () {
 	return app.sessions.size();
-	}
+    }
 
-	public SessionBean getSession (String sessionID) {
+    public SessionBean getSession (String sessionID) {
 	if (sessionID==null)
 	    return null;
 	Session session = app.getSession (sessionID.trim ());
 	if (session == null)
 	    return null;
 	return new SessionBean (session);
-	}
+    }
 
-	public SessionBean createSession (String sessionID) {
+    public SessionBean createSession (String sessionID) {
 	if (sessionID==null)
 	    return null;
 	Session session = session = app.checkSession (sessionID.trim ());
 	if (session == null)
 	    return null;
 	return new SessionBean (session);
-	}
+    }
 
-	public SessionBean[] getSessions () {
+    public SessionBean[] getSessions () {
 	SessionBean[] theArray = new SessionBean[app.sessions.size()];
-    int i=0;
-    for (Enumeration e=app.sessions.elements(); e.hasMoreElements(); ) {
+	int i=0;
+	for (Enumeration e=app.sessions.elements(); e.hasMoreElements(); ) {
 	    SessionBean sb = new SessionBean ((Session) e.nextElement ());
 	    theArray[i++] = sb;
 	}
 	return theArray;
-	}
+    }
 
-	public INode registerUser (String username, String password) {
+    public INode registerUser (String username, String password) {
 	if (username==null || password==null || "".equals (username.trim ()) || "".equals (password.trim ()) )
 	    return null;
 	else
 	    return app.registerUser (username, password);
-	}
+    }
 
-	public INode getUser (String username) {
+    public INode getUser (String username) {
 	if (username==null || "".equals (username.trim()) )
 	    return null;
 	return app.getUserNode (username);
-	}
+    }
 
-	public INode[] getActiveUsers () {
+    public INode[] getActiveUsers () {
 	Enumeration loggedInSessions = app.getActiveUsers ();
 	if (loggedInSessions.hasMoreElements ()==false)
 	    return new INode[0];
@@ -96,79 +96,79 @@ public class ApplicationBean implements Serializable {
 	    INode usernode = ((Session) loggedInSessions.nextElement ()).getUserNode ();
 	    if (usernode!=null)
 	        theArray.add (usernode);
+	}
+	return (INode[]) theArray.toArray (new INode[0]);
     }
-    return (INode[]) theArray.toArray (new INode[0]);
-	}
 
-	public SessionBean[] getSessionsForUser (INode usernode)	{
-    if (usernode==null)
-        return new SessionBean[0];
-    else
-    	return getSessionsForUser(usernode.getName());
-	}
+    public SessionBean[] getSessionsForUser (INode usernode)	{
+	if (usernode==null)
+	    return new SessionBean[0];
+	else
+	    return getSessionsForUser(usernode.getName());
+    }
 
-	public SessionBean[] getSessionsForUser (String username) {
+    public SessionBean[] getSessionsForUser (String username) {
 	if (username==null || "".equals (username.trim ()) )
 	    return new SessionBean[0];
-    Enumeration userSessions = app.getSessionsForUsername (username);
-    if (userSessions.hasMoreElements()==false )
+	Enumeration userSessions = app.getSessionsForUsername (username);
+	if (userSessions.hasMoreElements()==false )
 	    return new SessionBean[0];
 	ArrayList theArray = new ArrayList();
-    while (userSessions.hasMoreElements() ) {
+	while (userSessions.hasMoreElements() ) {
 	    SessionBean sb = new SessionBean ((Session) userSessions.nextElement ());
 	    theArray.add(sb);
+	}
+	return (SessionBean[]) theArray.toArray (new SessionBean[0]);
     }
-    return (SessionBean[]) theArray.toArray (new SessionBean[0]);
-	}
 
-	// property related methods:
+    // getter methods for readonly properties of this application
 
-	public INode getdata() {
+    public INode getdata() {
 	return app.getCacheNode ();
-	}
+    }
 
-	public Date getupSince () {
+    public Date getupSince () {
 	return new Date (app.starttime);
-	}
+    }
 
-	public long getrequestCount ()	{
+    public long getrequestCount ()	{
 	return app.getRequestCount ();
-	}
+    }
 
-	public long getxmlrpcCount ()	{
+    public long getxmlrpcCount ()	{
 	return app.getXmlrpcCount ();
-	}
+    }
 
-	public long geterrorCount () {
+    public long geterrorCount () {
 	return app.getErrorCount ();
-	}
+    }
 
-	public Application get__app__ () {
+    public Application get__app__ () {
 	return app;
-	}
+    }
 
-	public Map getproperties () {
+    public Map getproperties () {
 	return app.getProperties ();
-	}
+    }
 
-	public int getfreeThreads () {
+    public int getfreeThreads () {
 	return app.countFreeEvaluators ();
-	}
-	
-	public int getactiveThreads () {
-	return app.countActiveEvaluators ();
-	}
-	
-	public int getmaxThreads () {
-	return app.countEvaluators ();
-	}
+    }
 
-	public void setmaxThreads (int n) {
+    public int getactiveThreads () {
+	return app.countActiveEvaluators ();
+    }
+
+    public int getmaxThreads () {
+	return app.countEvaluators ();
+    }
+
+    public void setmaxThreads (int n) {
 	// add one to the number to compensate for the internal scheduler.
 	app.setNumberOfEvaluators (n+1);
-	}
+    }
 
-	public Map getskinfiles () {
+    public Map getskinfiles () {
 	Map skinz = new Hashtable ();
 	for (Iterator it = app.getPrototypes().iterator(); it.hasNext(); ) {
 	    Prototype p = (Prototype) it.next ();
@@ -182,12 +182,12 @@ public class ApplicationBean implements Serializable {
 	    skinz.put (p.getName (), proto);
 	}
 	return skinz;
-	}
+    }
 
 
-	public String toString() {
+    public String toString() {
 	return "[Application " + app.getName() + "]";
-	}
+    }
 
 }
 
