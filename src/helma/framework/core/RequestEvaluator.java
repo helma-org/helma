@@ -70,6 +70,7 @@ public final class RequestEvaluator implements Runnable {
     protected void initScriptingEngine () {
 	if (scriptingEngine == null)
 	    scriptingEngine = helma.scripting.fesi.FesiEngineFactory.getEngine (app, this);
+	    // scriptingEngine = helma.scripting.rhino.RhinoEngineFactory.getEngine (app, this);
     }
 
     public void run () {
@@ -118,11 +119,11 @@ public final class RequestEvaluator implements Runnable {
 
 	                HashMap globals = new HashMap ();
 	                globals.put ("root", root);
-	                globals.put ("session", session);
-	                globals.put ("req", req);
-	                globals.put ("res", res);
+	                globals.put ("session", new SessionBean (session));
+	                globals.put ("req", new RequestBean (req));
+	                globals.put ("res", new ResponseBean (res));
+	                globals.put ("app", new ApplicationBean (app));
 	                globals.put ("path", requestPath);
-	                globals.put ("app", app);
 	                req.startTime = System.currentTimeMillis ();
 	                if (error != null)
 	                    res.error = error;
@@ -334,8 +335,8 @@ public final class RequestEvaluator implements Runnable {
 
 	            HashMap globals = new HashMap ();
 	            globals.put ("root", root);
-	            globals.put ("res", res);
-	            globals.put ("app", app);
+	            globals.put ("res", new ResponseBean (res));
+	            globals.put ("app", new ApplicationBean (app));
 
 	            scriptingEngine.enterContext (globals);
 
@@ -405,8 +406,8 @@ public final class RequestEvaluator implements Runnable {
 
 	            HashMap globals = new HashMap ();
 	            globals.put ("root", root);
-	            globals.put ("res", res);
-	            globals.put ("app", app);
+	            globals.put ("res", new ResponseBean (res));
+	            globals.put ("app", new ApplicationBean (app));
 
 	            scriptingEngine.enterContext (globals);
 	            // reset skin recursion detection counter

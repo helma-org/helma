@@ -334,13 +334,13 @@ public final class FesiEvaluator implements ScriptingEngine {
 	                }
 	                sv = parr;
 	            } else if ("req".equals (k)) {
-	                sv = new ESBeanWrapper (new RequestBean ((RequestTrans) v), this);
+	                sv = new ESBeanWrapper (v, this);
 	            } else if ("res".equals (k)) {
-	                sv = new ESBeanWrapper (new ResponseBean ((ResponseTrans) v), this);
+	                sv = new ESBeanWrapper (v, this);
 	            } else if ("session".equals (k)) {
-	                sv = new ESBeanWrapper (new SessionBean ((Session)v), this);
+	                sv = new ESBeanWrapper (v, this);
 	            } else if ("app".equals (k)) {
-	                sv = new ESBeanWrapper (new ApplicationBean ((Application)v), this);
+	                sv = new ESBeanWrapper (v, this);
 	            } else if (v instanceof ESValue) {
 	                sv = (ESValue)v;
 	            } else {
