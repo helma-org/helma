@@ -129,6 +129,7 @@ public class TypeManager {
 	        String pname = (String) it.next();
 	        if (prototypes.get (pname) == null) {
 	            Prototype proto = new Prototype (pname, app);
+	            registerPrototype (pname, new File (appDir, pname), proto, false);
 	            prototypes.put (pname, proto);
 	        }
 	    }
@@ -221,59 +222,59 @@ public class TypeManager {
         // show the type checker thread that there has been type activity
         idleSeconds = 0;
 
-        String list[] = dir.list();
         HashMap ntemp = new HashMap ();
         HashMap nfunc = new HashMap ();
         HashMap nact = new HashMap ();
         HashMap nskins = new HashMap ();
-        HashMap updatables = new HashMap (list.length);
+        HashMap updatables = new HashMap ();
 
         if (update) {
-        for (int i=0; i<list.length; i++) {
-            File tmpfile = new File (dir, list[i]);
-            int dot = list[i].indexOf (".");
+            String list[] = dir.list();
+            for (int i=0; i<list.length; i++) {
+                File tmpfile = new File (dir, list[i]);
+                int dot = list[i].indexOf (".");
 
-            if (dot < 0)
-                continue;
+                if (dot < 0)
+                    continue;
 
-            String tmpname = list[i].substring(0, dot);
+                String tmpname = list[i].substring(0, dot);
 
-            if (list[i].endsWith (app.templateExtension)) {
-                try {
-                    Template t = new Template (tmpfile, tmpname, proto);
-                    updatables.put (list[i], t);
-                    ntemp.put (tmpname, t);
-                } catch (Throwable x) {
-                    app.logEvent ("Error creating prototype: "+x);
-                }
+                if (list[i].endsWith (app.templateExtension)) {
+                    try {
+                        Template t = new Template (tmpfile, tmpname, proto);
+                        updatables.put (list[i], t);
+                        ntemp.put (tmpname, t);
+                    } catch (Throwable x) {
+                        app.logEvent ("Error creating prototype: "+x);
+                    }
 
-            } else if (list[i].endsWith (app.scriptExtension) && tmpfile.length () > 0) {
-                try {
-                    FunctionFile ff = new FunctionFile (tmpfile, tmpname, proto);
-                    updatables.put (list[i], ff);
-                    nfunc.put (tmpname, ff);
-                } catch (Throwable x) {
-                    app.logEvent ("Error creating prototype: "+x);
-                }
+                } else if (list[i].endsWith (app.scriptExtension) && tmpfile.length () > 0) {
+                    try {
+                        FunctionFile ff = new FunctionFile (tmpfile, tmpname, proto);
+                        updatables.put (list[i], ff);
+                        nfunc.put (tmpname, ff);
+                    } catch (Throwable x) {
+                        app.logEvent ("Error creating prototype: "+x);
+                    }
 
-            } else if (list[i].endsWith (app.actionExtension) && tmpfile.length () > 0) {
-                try {
-                    Action af = new Action (tmpfile, tmpname, proto);
-                    updatables.put (list[i], af);
-                    nact.put (tmpname, af);
-                } catch (Throwable x) {
-                    app.logEvent ("Error creating prototype: "+x);
-                }
-            }  else if (list[i].endsWith (app.skinExtension)) {
-                try {
-                    SkinFile sf = new SkinFile (tmpfile, tmpname, proto);
-                    updatables.put (list[i], sf);
-                    nskins.put (tmpname, sf);
-                } catch (Throwable x) {
-                    app.logEvent ("Error creating prototype: "+x);
+                } else if (list[i].endsWith (app.actionExtension) && tmpfile.length () > 0) {
+                    try {
+                        Action af = new Action (tmpfile, tmpname, proto);
+                        updatables.put (list[i], af);
+                        nact.put (tmpname, af);
+                    } catch (Throwable x) {
+                        app.logEvent ("Error creating prototype: "+x);
+                    }
+                }  else if (list[i].endsWith (app.skinExtension)) {
+                    try {
+                        SkinFile sf = new SkinFile (tmpfile, tmpname, proto);
+                        updatables.put (list[i], sf);
+                        nskins.put (tmpname, sf);
+                    } catch (Throwable x) {
+                        app.logEvent ("Error creating prototype: "+x);
+                    }
                 }
             }
-        }
         }
 
         // Create and register type properties file
