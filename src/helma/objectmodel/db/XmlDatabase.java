@@ -22,6 +22,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import java.io.*;
 import java.util.Date;
+import javax.xml.parsers.ParserConfigurationException;
+import org.xml.sax.SAXException;
 
 /**
  * A simple XML-database
@@ -138,7 +140,7 @@ public final class XmlDatabase implements IDatabase {
      * @throws Exception ...
      */
     public void saveIDGenerator(ITransaction txn, IDGenerator idgen)
-                         throws Exception {
+                         throws IOException {
         File file = new File(dbBaseDir, "idgen.xml");
 
         IDGenParser.saveIDGenerator(idgen, file);
@@ -157,7 +159,8 @@ public final class XmlDatabase implements IDatabase {
      * @throws ObjectNotFoundException ...
      */
     public INode getNode(ITransaction txn, String kstr)
-                  throws Exception {
+                  throws IOException, ObjectNotFoundException,
+                         ParserConfigurationException, SAXException {
         File f = new File(dbBaseDir, kstr + ".xml");
 
         if (!f.exists()) {
@@ -185,7 +188,7 @@ public final class XmlDatabase implements IDatabase {
      * @throws Exception ...
      */
     public void saveNode(ITransaction txn, String kstr, INode node)
-                  throws Exception {
+                  throws IOException {
         XmlWriter writer = null;
         File file = new File(dbBaseDir, kstr + ".xml");
 
@@ -211,7 +214,7 @@ public final class XmlDatabase implements IDatabase {
      * @throws Exception ...
      */
     public void deleteNode(ITransaction txn, String kstr)
-                    throws Exception {
+                    throws IOException {
         File f = new File(dbBaseDir, kstr + ".xml");
 
         f.delete();

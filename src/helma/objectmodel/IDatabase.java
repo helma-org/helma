@@ -18,6 +18,9 @@ package helma.objectmodel;
 
 import helma.objectmodel.INode;
 import helma.objectmodel.db.IDGenerator;
+import java.io.IOException;
+import org.xml.sax.SAXException;
+import javax.xml.parsers.ParserConfigurationException;
 
 /**
  * Interface that is implemented by Database wrappers
@@ -36,10 +39,10 @@ public interface IDatabase {
      *
      * @return ...
      *
-     * @throws Exception ...
+     * @throws IOException ...
      */
     public IDGenerator getIDGenerator(ITransaction transaction)
-                               throws Exception;
+                throws IOException, ObjectNotFoundException;
 
     /**
      *
@@ -47,14 +50,15 @@ public interface IDatabase {
      * @param transaction ...
      * @param idgen ...
      *
-     * @throws Exception ...
+     * @throws IOException ...
      */
     public void saveIDGenerator(ITransaction transaction, IDGenerator idgen)
-                         throws Exception;
+                 throws IOException;
 
     // node-related
     public INode getNode(ITransaction transaction, String key)
-                  throws Exception;
+                  throws IOException, ObjectNotFoundException,
+                         SAXException, ParserConfigurationException;
 
     /**
      *
@@ -63,10 +67,10 @@ public interface IDatabase {
      * @param key ...
      * @param node ...
      *
-     * @throws Exception ...
+     * @throws IOException ...
      */
     public void saveNode(ITransaction transaction, String key, INode node)
-                  throws Exception;
+                  throws IOException;
 
     /**
      *
@@ -74,10 +78,10 @@ public interface IDatabase {
      * @param transaction ...
      * @param key ...
      *
-     * @throws Exception ...
+     * @throws IOException ...
      */
     public void deleteNode(ITransaction transaction, String key)
-                    throws Exception;
+                    throws IOException;
 
     // transaction-related
     public ITransaction beginTransaction();

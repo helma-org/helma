@@ -64,7 +64,7 @@ public class IDGenParser {
      * @throws Exception ...
      */
     public static IDGenerator saveIDGenerator(IDGenerator idgen, File file)
-                                       throws Exception {
+                                       throws IOException {
         OutputStreamWriter out = new OutputStreamWriter(new FileOutputStream(file));
 
         out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
