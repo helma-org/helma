@@ -185,11 +185,15 @@ public final class ESArguments extends ESObject {
                                 ESValue[] argumentValues) {
         ObjectPrototype op = 
                 (ObjectPrototype) evaluator.getObjectPrototype();
+        // Get maximum number of arguments (formal or actual), as
+        // more than the number of formal arguments can be reached
+        // using the (old fashioned) arguments variable).
+        int maxArgs = Math.max(argumentValues.length,  argumentNames.length);
         ESArguments args = new ESArguments(op, evaluator, argumentNames, 
-                                            Math.max(argumentValues.length, argumentNames.length),
+                                            maxArgs,
                                             callee);
       try {
-        for (int i=0; i<argumentValues.length; i++) {
+        for (int i=0; i<maxArgs; i++) {
             ESValue val = (i<argumentValues.length) ? argumentValues[i] :
                                     ESUndefined.theUndefined;
             if (i<argumentNames.length) {

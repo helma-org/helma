@@ -349,7 +349,7 @@ class FesiHashtable implements Cloneable {
     public ESValue put(String key, int hash, boolean hidden, boolean readonly, ESValue value) {
     // Make sure the value is not null
         if (value == null) {
-            throw new NullPointerException();
+            throw new NullPointerException("value");
         }
     
         // Makes sure the key is not already in the hashtable.
