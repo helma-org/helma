@@ -29,19 +29,14 @@ import java.util.HashMap;
  */
 public abstract class AbstractRepository implements Repository {
 
-    /**
-     * Defines wether this repository is the top-level repository
-     * Defaults to reflect a non top-level repository
-     */
-    boolean notRoot = true;
 
     /**
-     * Upper repository the repository was belongs to
+     * Parent repository this repository is contained in.
      */
-    Repository rootRepository;
+    Repository parent;
 
     /**
-     * Holds direct sub-repositories
+     * Holds direct child repositories
      */
     Repository[] repositories;
 
@@ -60,6 +55,16 @@ public abstract class AbstractRepository implements Repository {
      */
     String shortName;
 
+    /**
+     *
+     */
+    public abstract void update();
+
+
+    /**
+     *
+     * @return
+     */
     public String getName() {
         return name;
     }
@@ -69,10 +74,10 @@ public abstract class AbstractRepository implements Repository {
     }
 
     public Repository getRootRepository() {
-        if (notRoot == false) {
+        if (parent == null) {
             return this;
         } else {
-            return rootRepository.getRootRepository();
+            return parent.getRootRepository();
         }
     }
 
@@ -95,11 +100,11 @@ public abstract class AbstractRepository implements Repository {
     }
 
     public boolean isRootRepository() {
-        return !notRoot;
+        return parent == null;
     }
 
-    public Repository getRepository() {
-        return rootRepository;
+    public Repository getParentRepository() {
+        return parent;
     }
 
     public Resource[] getAllResources() {

@@ -57,20 +57,20 @@ public final class ZipRepository extends AbstractRepository {
      * zip file and top-level repository
      * @param zipfile zip file
      * @param zipentry zip entry
-     * @param rootRepository top-level repository
+     * @param parent repository
      */
-    private ZipRepository(File zipfile, ZipEntry zipentry, Repository rootRepository) {
+    private ZipRepository(File zipfile, ZipEntry zipentry, Repository parent) {
         this.zipfile = zipfile;
-
-        if (rootRepository == null) {
+        this.parent = parent;
+        this.zipentry = zipentry;
+        if (parent == null) {
             name = shortName = zipfile.getName();
-            notRoot = false;
         } else {
-            this.rootRepository = rootRepository;
-            this.zipentry = zipentry;
             String entryname = zipentry.getName();
-            shortName = entryname.lastIndexOf("/") == entryname.indexOf("/") ? entryname.substring(0, entryname.length() - 1) : entryname.substring(0, entryname.length() - 1).substring(entryname.substring(0, entryname.length() - 1).lastIndexOf("/") + 1, entryname.substring(0, entryname.length() - 1).length());
-            name = rootRepository.getRootRepository().getName() + "/" + entryname.substring(0, entryname.length() - 1);
+            shortName = entryname.lastIndexOf("/") == entryname.indexOf("/") ?
+                    entryname.substring(0, entryname.length() - 1) :
+                    entryname.substring(0, entryname.length() - 1).substring(entryname.substring(0, entryname.length() - 1).lastIndexOf("/") + 1, entryname.substring(0, entryname.length() - 1).length());
+            name = parent.getRootRepository().getName() + "/" + entryname.substring(0, entryname.length() - 1);
         }
     }
 
@@ -94,7 +94,7 @@ public final class ZipRepository extends AbstractRepository {
                     /* ZipFile provide its entries in a matter that some checks
                      are needed to find out if the given entry is a direct or
                      indirect sub-repository */
-                    if (notRoot == false) {
+                    if (parent == null) {
                         if (entry.isDirectory() && entryname.indexOf("/") == entryname.lastIndexOf("/")) {
                             newRepositories.add(new ZipRepository(zipfile, entry, this));
                         } else if (entryname.indexOf("/") == -1) {

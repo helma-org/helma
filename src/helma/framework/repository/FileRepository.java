@@ -63,21 +63,20 @@ public class FileRepository extends AbstractRepository {
      * Constructs a FileRepository using the given directory and top-level
      * repository
      * @param dir directory
-     * @param rootRepository top-level repository
+     * @param parent top-level repository
      */
-    private FileRepository(File dir, FileRepository rootRepository) {
+    private FileRepository(File dir, FileRepository parent) {
         this.dir = dir;
         if (!dir.exists()) {
             create();
         }
 
-        if (rootRepository == null) {
+        if (parent == null) {
             name = shortName = dir.getAbsolutePath();
-            notRoot = false;
         } else {
-            this.rootRepository = rootRepository;
+            this.parent = parent;
             shortName = dir.getName();
-            name = rootRepository.getName() + "/" + shortName;
+            name = parent.getName() + "/" + shortName;
         }
     }
 
