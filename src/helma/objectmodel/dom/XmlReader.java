@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.io.Reader;
 
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
@@ -13,6 +14,7 @@ import java.util.Hashtable;
 import java.util.List;
 
 import org.w3c.dom.*;
+import org.xml.sax.InputSource;
 
 import helma.objectmodel.INode;
 import helma.objectmodel.db.DbKey;
@@ -50,6 +52,20 @@ public class XmlReader implements XmlConstants	{
 	  * read an InputStream with xml-content.
 	  */
 	public INode read (InputStream in, INode helmaNode) throws RuntimeException	{
+		return read (new InputSource (in), helmaNode);
+	}
+
+	/**
+	  * read an character reader with xml-content.
+	  */
+	public INode read (Reader in, INode helmaNode) throws RuntimeException	{
+		return read (new InputSource (in), helmaNode);
+	}
+
+	/**
+	  * read an InputSource with xml-content.
+	  */
+	public INode read (InputSource in, INode helmaNode) throws RuntimeException	{
 		if (helmaNode==null && nmgr==null)
 			throw new RuntimeException ("can't create a new Node without a NodeManager");
 		Document document = XmlUtil.parse (in);
