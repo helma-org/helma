@@ -440,10 +440,10 @@ public class HopObject extends ScriptableObject implements Wrapper {
      * @return ...
      */
     public Scriptable jsFunction_list() {
+        checkNode();
+
         Enumeration e = node.getSubnodes();
         ArrayList a = new ArrayList();
-
-        checkNode();
 
         while ((e != null) && e.hasMoreElements()) {
             a.add(Context.toObject(e.nextElement(), core.global));
