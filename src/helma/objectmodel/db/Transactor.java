@@ -43,8 +43,8 @@ public class Transactor extends Thread {
     private String tname;
 
 
-    public Transactor (Runnable runnable, NodeManager nmgr) {
-	super (Server.txgroup, runnable, "Transactor");
+    public Transactor (Runnable runnable, ThreadGroup group, NodeManager nmgr) {
+	super (group, runnable, group.getName ());
 	this.nmgr = nmgr;
 	nodes = new HashMap ();
 	cleannodes = new HashMap ();
