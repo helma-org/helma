@@ -39,11 +39,8 @@ public class DbMapping implements Updatable {
 
     // list of properties to try for parent
     ParentInfo[] parent;
-    // list of properties to try as skinmanager
-    String[] skinmgr;
 
-    // DbMapping subnodes;
-    // DbMapping properties;
+    // Relations describing subnodes and properties.
     Relation subnodesRel;
     Relation propertiesRel;
 
@@ -179,15 +176,6 @@ public class DbMapping implements Updatable {
 	} else
 	    parent = null;
 	
-	String skm = props.getProperty ("_skinmanager");
-	if (skm != null) {
-	    StringTokenizer st = new StringTokenizer (skm, ",;");
-	    skinmgr = new String[st.countTokens()];
-	    for (int i=0; i<skinmgr.length; i++)
-	        skinmgr[i] = st.nextToken().trim();
-	} else
-	    skinmgr = null;
-
 	lastTypeChange = props.lastModified ();
 	// set the cached schema & keydef to null so it's rebuilt the next time around
 	schema = null;
@@ -459,15 +447,6 @@ public class DbMapping implements Updatable {
     	if (parent == null && parentMapping != null)
     	    return parentMapping.getParentInfo ();
 	return parent;
-    }
-
-    /**
-     *  Return a list of properties of this object which represent skin managers. Skin managers
-     *  are objects structures which allow applications to override the application level skins (templates)
-     *  with user-controlled skins stored in a database.
-     */
-    public String[] getSkinManagers () {
-	return skinmgr;
     }
 
 
