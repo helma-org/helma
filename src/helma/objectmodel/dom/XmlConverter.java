@@ -77,7 +77,7 @@ public class XmlConverter implements XmlConstants	{
 		offset++;
 		if (DEBUG)	debug("reading " + element.getNodeName() );
 		helmaNode.setName( element.getNodeName() );
-		String prototype = (String)props.get(element.getNodeName().toLowerCase()+".prototype");
+		String prototype = (String)props.get(element.getNodeName().toLowerCase()+"._prototype");
 		if ( prototype == null )
 			prototype = "HopObject";
 		helmaNode.setPrototype( prototype );
