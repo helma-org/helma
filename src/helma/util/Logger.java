@@ -82,11 +82,11 @@ public final class Logger {
 
 	try {
 	    if (logfile.exists () && logfile.lastModified () < lastMidnight ()) {
-    	    // rotate if a log file exists and is NOT from today
+	         // rotate if a log file exists and is NOT from today
 	        rotateLogFile ();
 	    } else {
 	        // create a new log file, append to an existing file
-	        writer = new PrintWriter (new FileWriter (logfile, true), false);
+	        writer = new PrintWriter (new FileWriter (logfile.getAbsolutePath(), true), false);
 	    }
 	} catch (IOException iox) {
 	    System.err.println ("Error creating log "+canonicalName+": "+iox);
@@ -371,7 +371,7 @@ public final class Logger {
         cal.set (Calendar.SECOND, 1);
         // for testing, rotate the logs every minute:
         // cal.set (Calendar.MINUTE, 1 + cal.get(Calendar.MINUTE));
-        return cal.getTimeInMillis ();
+        return cal.getTime().getTime ();
     }
 
     public static long lastMidnight () {
