@@ -300,7 +300,12 @@ public class HopObject extends ScriptableObject implements Wrapper {
         if (id instanceof Number) {
             n = get(((Number) id).intValue(), this);
         } else if (id != null) {
+            // try to get as property first
             n = getFromNode(id.toString());
+            // then try to get child object by id
+            if (n == null) {
+                n = jsFunction_getById(id);
+            }
         }
 
         // since we're calling Scriptable.get() methods, we'll get NOT_FOUND rather
