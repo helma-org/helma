@@ -69,25 +69,40 @@ public class XmlConverter implements XmlConstants {
     public INode convert( InputStream in, INode helmaNode ) throws RuntimeException {
 	Document document = XmlUtil.parse (in);
 	if ( document!=null && document.getDocumentElement()!=null ) {
-	    return convert( document.getDocumentElement(), helmaNode );
+	    return convert( document.getDocumentElement(), helmaNode, new HashMap() );
 	} else {
 	    return helmaNode;
 	}
     }
 
-    public INode convert( Element element, INode helmaNode ) {
+    public INode convert( Element element, INode helmaNode, Map nodeCache ) {
 	offset++;
+	// previousNode is used to cache previous nodes with the same prototype
+	// so we can reset it in the nodeCache after we've run
+	Object previousNode = null;
 	if (DEBUG)
 	    debug("reading " + element.getNodeName() );
 	helmaNode.setName( element.getNodeName() );
 	String prototype = props.getProperty(element.getNodeName()+"._prototype");
-	if ( prototype == null )
+	if ( prototype == null && !sparse )
 	    prototype = "HopObject";
-	helmaNode.setPrototype( prototype );
-	attributes(element, helmaNode);
-	if ( element.hasChildNodes() ) {
-	    children(element, helmaNode);
+	// if we have a prototype (either explicit or implicit "hopobject"), 
+	// set it on the Helma node and store it in the node cache.
+	if ( prototype != null ) {
+	    helmaNode.setPrototype( prototype );
+	    previousNode = nodeCache.put (prototype, helmaNode);
 	}
+
+	// check attributes of the current element
+	attributes(element, helmaNode, nodeCache);
+	// check child nodes of the current element
+	if ( element.hasChildNodes() )
+	    children(element, helmaNode, nodeCache);
+
+	// if it exists, restore the previous node we've replaced in the node cache.
+	if (previousNode != null)
+	    nodeCache.put (prototype, previousNode);
+
 	offset--;
 	return helmaNode;
     }
@@ -95,9 +110,10 @@ public class XmlConverter implements XmlConstants {
     /**
      * parse xml children and create hopobject-children
      */
-    private INode children( Element element, helma.objectmodel.INode helmaNode ) {
+    private INode children( Element element, helma.objectmodel.INode helmaNode, Map nodeCache ) {
 	NodeList list = element.getChildNodes();
 	int len = list.getLength();
+	boolean nodeHasPrototype = helmaNode.getPrototype() != null;
 	StringBuffer textcontent = new StringBuffer();
 	String domKey, helmaKey;
 	for ( int i=0; i<len; i++ ) {
@@ -105,16 +121,26 @@ public class XmlConverter implements XmlConstants {
 	    // loop through the list of children
 	    org.w3c.dom.Node childNode = list.item(i);
 
+	    // if the current node hasn't been initialized yet, try if it can 
+	    // be initialized and converted from one of the child elements.
+	    if (!nodeHasPrototype) {
+	        if (childNode.getNodeType() == Node.ELEMENT_NODE) {
+	            convert ((Element) childNode, helmaNode, nodeCache);
+	            if (helmaNode.getPrototype() != null)
+	                return helmaNode;
+	        }
+	        continue;
+	    }
+
 	    // if it's text content of this element -> append to StringBuffer
-	    if ( childNode.getNodeType()==org.w3c.dom.Node.TEXT_NODE ) {
+	    if ( childNode.getNodeType() == Node.TEXT_NODE ||
+	         childNode.getNodeType() == Node.CDATA_SECTION_NODE ) {
 	        textcontent.append( childNode.getNodeValue().trim() );
 	        continue;
 	    }
 
-	    // FIXME: handle CDATA!
-
 	    // it's some kind of element (property or child)
-	    if ( childNode.getNodeType()==org.w3c.dom.Node.ELEMENT_NODE ) {
+	    if ( childNode.getNodeType() == Node.ELEMENT_NODE ) {
 
 	        Element childElement = (Element)childNode;
 
@@ -129,7 +155,16 @@ public class XmlConverter implements XmlConstants {
 	                helmaKey = childElement.getNodeName().replace(':',defaultSeparator);
 	            if (DEBUG)
 	                debug("childtext-2-property mapping, helmaKey " + helmaKey + " for domKey " + domKey );
-	            if ( helmaNode.getString(helmaKey,false)==null ) {
+	            // check if helmaKey contains an explicit prototype name in which to
+	            // set the property.
+	            int dot = helmaKey.indexOf(".");
+	            if (dot > -1) {
+	                String prototype = helmaKey.substring (0, dot);
+	                INode node = (INode) nodeCache.get (prototype);
+	                if (node != null)
+	                    node.setString (helmaKey.substring (dot+1), XmlUtil.getTextContent (childNode));
+	            }
+	            if ( helmaNode.getPrototype() != null && helmaNode.getString(helmaKey,false)==null ) {
 	                helmaNode.setString( helmaKey, XmlUtil.getTextContent(childNode) );
 	                if (DEBUG)
 	                    debug("childtext-2-property mapping, setting " + helmaKey + " as string" );
@@ -147,10 +182,23 @@ public class XmlConverter implements XmlConstants {
 	                helmaKey = childElement.getNodeName().replace(':',defaultSeparator);
 	            if (DEBUG)
 	                debug("child-2-property mapping, helmaKey " + helmaKey + " for domKey " + domKey);
-	            if ( helmaNode.getNode(helmaKey,false)==null ) {
-	                convert( childElement, helmaNode.createNode(helmaKey) );
+	            // get the node on which to opererate, depending on the helmaKey
+	            // value from the properties file.
+	            INode node = helmaNode;
+	            int dot = helmaKey.indexOf(".");
+	            if (dot > -1) {
+	                String prototype = helmaKey.substring (0, dot);
+	                if (!prototype.equalsIgnoreCase (node.getPrototype()))
+	                    node = (INode) nodeCache.get (prototype);
+	                helmaKey = helmaKey.substring (dot+1);
+	            }
+	            if (node == null)
+	                continue;
+
+	            if ( node.getNode(helmaKey,false)==null ) {
+	                convert( childElement, node.createNode(helmaKey), nodeCache );
 	                if (DEBUG)
-	                    debug( "read " + childElement.toString() + helmaNode.getNode(helmaKey,false).toString() );
+	                    debug( "read " + childElement.toString() + node.getNode(helmaKey,false).toString() );
 	            }
 	            continue;
 	        }
@@ -162,15 +210,29 @@ public class XmlConverter implements XmlConstants {
 	        // do we need a mapping directly among _children of helmaNode?
 	        // can either be through property elname._children=_all or elname._children=childname
 	        if( childrenMapping!=null && ( childrenMapping.equals("_all") || childrenMapping.equals(childElement.getNodeName()) ) ) {
-	            newHelmaNode = convert(childElement, helmaNode.createNode(null) );
+	            newHelmaNode = convert(childElement, helmaNode.createNode(null), nodeCache );
 	        }
-	        // which name to choose for a virtual subnode:
+	        // in which virtual subnode collection should objects of this type be stored?
 	        helmaKey = props.getProperty(domKey);
-	        if ( helmaKey==null ) {
+	        if ( helmaKey==null && !sparse ) {
 	            helmaKey = childElement.getNodeName().replace(':',defaultSeparator);
 	        }
+
+	        // get the node on which to opererate, depending on the helmaKey
+	        // value from the properties file.
+	        INode node = helmaNode;
+	        int dot = helmaKey.indexOf(".");
+	        if (dot > -1) {
+	            String prototype = helmaKey.substring (0, dot);
+	            if (!prototype.equalsIgnoreCase (node.getPrototype()))
+	                node = (INode) nodeCache.get (prototype);
+	            helmaKey = helmaKey.substring (dot+1);
+	        }
+	        if (node == null)
+	            continue;
+
 	        // try to get the virtual node
-	        helma.objectmodel.INode worknode = helmaNode.getNode( helmaKey, false );
+	        helma.objectmodel.INode worknode = node.getNode( helmaKey, false );
 	        if ( worknode==null ) {
 	            // if virtual node doesn't exist, create it
 	            worknode = helmaNode.createNode( helmaKey );
@@ -181,7 +243,7 @@ public class XmlConverter implements XmlConstants {
 	        if ( newHelmaNode!=null ) {
 	            worknode.addNode(newHelmaNode);
 	        } else {
-	            convert( childElement, worknode.createNode( null ) );
+	            convert( childElement, worknode.createNode( null ), nodeCache );
 	        }
 	    }
 	    // forget about other types (comments etc)
@@ -193,6 +255,8 @@ public class XmlConverter implements XmlConstants {
 	    helmaKey = props.getProperty(element.getNodeName()+"._text");
 	    if ( helmaKey==null )
 	        helmaKey = "text";
+	    if (DEBUG)
+	        debug ("setting text "+textcontent+" to property "+helmaKey+" of object "+helmaNode);
 	    helmaNode.setString(helmaKey, textcontent.toString().trim() );
 	}
 
@@ -202,12 +266,14 @@ public class XmlConverter implements XmlConstants {
     /**
      * set element's attributes as properties of helmaNode
      */
-    private INode attributes( Element element, INode helmaNode ) {
+    private INode attributes( Element element, INode helmaNode, Map nodeCache ) {
 	NamedNodeMap nnm = element.getAttributes();
 	int len = nnm.getLength();
 	for ( int i=0; i<len; i++ ) {
 	    org.w3c.dom.Node attr = nnm.item(i);
-	    if ( attr.getNodeName().equals("_prototype") ) {
+	    // NOTE: I can't find anything about the mapping of _prototype and _name 
+	    // attributes to Helma Node prototype or name. -Hannes
+	    /* if ( attr.getNodeName().equals("_prototype") ) {
 	        helmaNode.setPrototype( attr.getNodeValue() );
 	    } else if ( attr.getNodeName().equals("_name") ) {
 	        helmaNode.setName( attr.getNodeValue() );
@@ -216,6 +282,24 @@ public class XmlConverter implements XmlConstants {
 	        if ( helmaKey==null )
 	            helmaKey = attr.getNodeName().replace(':',defaultSeparator);
 	        helmaNode.setString( helmaKey, attr.getNodeValue() );
+	    } */
+	    String helmaKey = props.getProperty(element.getNodeName()+"._attribute."+attr.getNodeName());
+	    // unless we only map explicit attributes, use attribute name as property name
+	    // in case no property name was defined.
+	    if ( helmaKey==null && !sparse)
+	        helmaKey = attr.getNodeName().replace(':',defaultSeparator);
+	    if (helmaKey != null) {
+	        // check if the mapping contains the prototype to which 
+	        // the property should be applied
+	        int dot = helmaKey.indexOf (".");
+	        if (dot > -1) {
+	            String prototype = helmaKey.substring (0, dot);
+	            INode node = (INode) nodeCache.get (prototype);
+	            if (node != null)
+	                node.setString (helmaKey.substring(dot+1), attr.getNodeValue());
+	        } else if (helmaNode.getPrototype() != null) {
+	            helmaNode.setString( helmaKey, attr.getNodeValue() );
+	        }
 	    }
 	}
 	return helmaNode;
@@ -230,6 +314,7 @@ public class XmlConverter implements XmlConstants {
 	}
 	sparse = "sparse".equalsIgnoreCase (props.getProperty("_mode"));
     }
+
 
     /** for testing */
     void debug(Object msg) {
