@@ -20,6 +20,8 @@ public final class SystemProperties extends Properties {
     private File file;
     private long lastread, lastcheck;
 
+    final static long cacheTime = 1500l;
+
 
     public SystemProperties () {
 	this (null, null);
@@ -109,25 +111,25 @@ public final class SystemProperties extends Properties {
     }
 
     public String getProperty (String name) {
-	if (System.currentTimeMillis () - lastcheck > 1500l)
+	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
 	return props.getProperty (name.toLowerCase());
     }
 
     public String getProperty (String name, String defaultValue) {
-	if (System.currentTimeMillis () - lastcheck > 1500l)
+	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
 	return props.getProperty (name.toLowerCase(), defaultValue);
     }
 
     public Enumeration keys () {
-	if (System.currentTimeMillis () - lastcheck > 1500l)
+	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
 	return props.keys();
     }
 
     public Enumeration elements () {
-	if (System.currentTimeMillis () - lastcheck > 1500l)
+	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();
 	return props.elements();
     }
