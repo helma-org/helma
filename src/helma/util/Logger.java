@@ -76,7 +76,9 @@ public final class Logger {
      */
     public static synchronized Logger getLogger (String dirname, String filename) throws IOException {
 	File f = new File (dirname, filename);
-	Logger log = (Logger) loggerMap.get (f);
+	Logger log = null;
+	if (loggerMap != null)
+	    log = (Logger) loggerMap.get (f);
 	if (log == null)
 	    log = new Logger (dirname, filename);
 	return log;
