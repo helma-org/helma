@@ -26,7 +26,7 @@ public class DbMapping implements Updatable {
     // prototype name of this mapping
     String typename;
 
-    int version;
+    // int version;
 
     // properties from where the mapping is read
     SystemProperties props;
@@ -135,21 +135,21 @@ public class DbMapping implements Updatable {
     public synchronized void update () {
 
 	// determin file format version of type.properties file
-	String versionInfo = props.getProperty ("_version");
+	/* String versionInfo = props.getProperty ("_version");
 	if ("1.2".equals (versionInfo))
 	    version = 1;
 	else
-	    version = 0;
+	    version = 0; */
 
-	table = props.getProperty (version == 0 ? "_tablename" : "_table");
+	table = props.getProperty ("_table");
 	idgen = props.getProperty ("_idgen");
 	// see if there is a field which specifies the prototype of objects, if different prototypes
 	// can be stored in this table
 	prototypeField = props.getProperty ("_prototypefield");
 	// see if this prototype extends (inherits from) any other prototype
 	extendsProto = props.getProperty ("_extends");
-	
-	sourceName = props.getProperty (version == 0 ? "_datasource" : "_db");
+
+	sourceName = props.getProperty ("_db");
 	if (sourceName != null) {
 	    source = app.getDbSource (sourceName);
 	    if (source == null) {
@@ -207,7 +207,7 @@ public class DbMapping implements Updatable {
 	            Relation rel = propertyToRelation (propName);
 	            if (rel == null)
 	                rel = new Relation (dbField, propName, this, props);
-	            rel.update (dbField, props, version);
+	            rel.update (dbField, props);
 	            p2d.put (propName, rel);
 	            if (rel.columnName != null &&
 	            		(rel.reftype == Relation.PRIMITIVE ||
@@ -223,60 +223,21 @@ public class DbMapping implements Updatable {
 	prop2db = p2d;
 	db2prop = d2p;
 
-	if (version == 1) {
-	    String subnodeMapping = props.getProperty ("_children");
-	    if (subnodeMapping != null) {
-	        try {
-	            // check if subnode relation already exists. If so, reuse it
-	            if (subnodesRel == null)
-	                subnodesRel = new Relation (subnodeMapping, "_children", this, props);
-	            subnodesRel.update (subnodeMapping, props, version);
-	            if (subnodesRel.accessor != null)
-	                propertiesRel = subnodesRel;
-
-	        } catch (Exception x) {
-	            app.logEvent ("Error reading _subnodes relation for "+typename+": "+x.getMessage ());
-	            // subnodesRel = null;
-	        }
-	    } else
-	        subnodesRel = null;
+	String subnodeMapping = props.getProperty ("_children");
+	if (subnodeMapping != null) {
+	    try {
+	        // check if subnode relation already exists. If so, reuse it
+	        if (subnodesRel == null)
+	            subnodesRel = new Relation (subnodeMapping, "_children", this, props);
+	        subnodesRel.update (subnodeMapping, props);
+	        if (subnodesRel.accessor != null)
+	            propertiesRel = subnodesRel;
+	    } catch (Exception x) {
+	        app.logEvent ("Error reading _subnodes relation for "+typename+": "+x.getMessage ());
+	        // subnodesRel = null;
+	    }
 	} else {
-	    String subnodeMapping = props.getProperty ("_subnodes");
-	    if (subnodeMapping != null) {
-	        try {
-	            // check if subnode relation already exists. If so, reuse it
-	            if (subnodesRel == null)
-	                subnodesRel = new Relation (subnodeMapping, "_subnodes", this, props);
-	            subnodesRel.update (subnodeMapping, props, version);
-
-	        } catch (Exception x) {
-	            app.logEvent ("Error reading _subnodes relation for "+typename+": "+x.getMessage ());
-	            // subnodesRel = null;
-	        }
-	    } else
-	        subnodesRel = null;
-
-	    String propertiesMapping = props.getProperty ("_properties");
-	    if (propertiesMapping != null) {
-	        try {
-	            // check if property relation already exists. If so, reuse it
-	            if (propertiesRel == null)
-	                propertiesRel = new Relation (propertiesMapping, "_properties", this, props);
-	            propertiesRel.update (propertiesMapping, props, version);
-
-	            // take over groupby flag from subnodes, if properties are subnodes
-	            if (propertiesRel.subnodesAreProperties && subnodesRel != null) {
-	                propertiesRel.groupby = subnodesRel.groupby;
-	                propertiesRel.constraints = subnodesRel.constraints;
-	                propertiesRel.filter = subnodesRel.filter;
-	            }
-
-	        } catch (Exception x) {
-	            app.logEvent ("Error reading _properties relation for "+typename+": "+x.getMessage ());
-	            // propertiesRel = null;
-	        }
-	    } else
-	        propertiesRel = null;
+	    subnodesRel = propertiesRel = null;
 	}
 
 	if (groupbyMapping != null) {
