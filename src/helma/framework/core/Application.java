@@ -869,6 +869,14 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
+     *  Return true if the baseURI property is defined in the application 
+     *  properties, false otherwise.
+     */
+    public boolean hasExplicitBaseURI () {
+	return props.containsKey ("baseuri");
+    }
+
+    /**
      * Tell other classes whether they should output logging information for this application.
      */
      public boolean debug () {
@@ -1205,9 +1213,9 @@ public final class Application implements IPathElement, Runnable {
 	    // set base URI
 	    String base = props.getProperty ("baseURI");
 	    if (base != null)
-	       setBaseURI (base);
-	   else if (baseURI == null)
-	       baseURI = "/";
+	        setBaseURI (base);
+	    else if (baseURI == null)
+	        baseURI = "/";
 	    // if node manager exists, update it
 	    if (nmgr != null)
 	        nmgr.updateProperties (props);

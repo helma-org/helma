@@ -80,10 +80,8 @@ public class ApplicationManager {
 	                        oldContext.destroy ();
 	                    }
 	                    Application app = (Application) applications.get (appName);
-	                    // if using embedded webserver (not AJP) set application URL prefix
-	                       if (server.ajp13Port == 0)
+	                    if (!app.hasExplicitBaseURI())
 	                        app.setBaseURI (mountpoint);
-	                    app.setBaseURI (mountpoint);
 	                    ServletHttpContext context = new ServletHttpContext ();
 	                    context.setContextPath(pattern);
 	                    server.http.addContext (context);
@@ -167,7 +165,7 @@ public class ApplicationManager {
 	    if (server.http != null) {
 	        String mountpoint = getMountpoint (appName);
 	        // if using embedded webserver (not AJP) set application URL prefix
-	        if (server.ajp13Port == 0)
+	        if (!app.hasExplicitBaseURI ())
 	            app.setBaseURI (mountpoint);
 	        String pattern = getPathPattern (mountpoint);
 	        ServletHttpContext context = new ServletHttpContext ();
@@ -182,6 +180,9 @@ public class ApplicationManager {
 	        String uploadLimit = props.getProperty (appName+".uploadLimit");
 	        if (uploadLimit != null)
 	            holder.setInitParameter ("uploadLimit", uploadLimit);
+	        String debug = props.getProperty (appName+".debug");
+	        if (debug != null)
+	            holder.setInitParameter ("debug", debug);
 	        // holder.start ();
 	        context.start ();
 	        mountpoints.setProperty (appName, pattern);
