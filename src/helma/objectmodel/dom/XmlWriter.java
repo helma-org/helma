@@ -9,12 +9,15 @@ import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.Hashtable;
 import java.util.Vector;
 
 import helma.objectmodel.*;
 import helma.objectmodel.INode;
 import helma.objectmodel.IProperty;
 import helma.objectmodel.TransientNode;
+import helma.objectmodel.db.Node;
+import helma.objectmodel.db.DbMapping;
 import helma.util.HtmlEncoder;
 
 public class XmlWriter	extends OutputStreamWriter implements XmlConstants		{
@@ -29,6 +32,8 @@ public class XmlWriter	extends OutputStreamWriter implements XmlConstants		{
 
 	private static int fileid;
  	private SimpleDateFormat format = new SimpleDateFormat ( DATEFORMAT );
+
+	private boolean dbmode = true;
 	
 	/**
 	  * create ids that can be used for temporary files.
@@ -62,6 +67,10 @@ public class XmlWriter	extends OutputStreamWriter implements XmlConstants		{
 	  */
 	public void setMaxLevels (int levels)	{
 		maxLevels = levels;
+	}
+
+	public void setDatabaseMode (boolean dbmode)	{
+		this.dbmode = dbmode;
 	}
 
 	/**
@@ -130,7 +139,17 @@ public class XmlWriter	extends OutputStreamWriter implements XmlConstants		{
 	  * as elementname
 	  */
 	private void writeProperties (INode node, int level) throws IOException	{
-		Enumeration e = node.properties();
+		Enumeration e = null;
+		if ( dbmode==true && node instanceof helma.objectmodel.db.Node )	{
+			// a newly constructed db.Node doesn't have a propMap,
+			// but returns an enumeration of all it's db-mapped properties
+			Hashtable props = ((Node)node).getPropMap();
+			if (props==null)
+				return;
+			e = props.keys();
+		}	else	{
+			e = node.properties();
+		}
 		while ( e.hasMoreElements() )	{
 			String key = (String)e.nextElement();
 			IProperty prop = node.get(key,false);
@@ -192,6 +211,12 @@ public class XmlWriter	extends OutputStreamWriter implements XmlConstants		{
 	  * loop through the children-array and print them as <hop:child>
 	  */
 	private void writeChildren (INode node, int level) throws IOException	{
+		if ( dbmode==true && node instanceof helma.objectmodel.db.Node )	{
+			Node dbNode = (Node)node;
+			DbMapping smap = dbNode.getDbMapping() == null ? null : dbNode.getDbMapping().getSubnodeMapping ();
+			if (smap != null && smap.isRelational ())
+				return;
+		}
 		Enumeration e = node.getSubnodes();
 		while (e.hasMoreElements())	{
 			INode nextNode = (INode)e.nextElement();
