@@ -46,6 +46,9 @@ public class Node implements INode, Serializable {
 
     private void readObject (ObjectInputStream in) throws IOException {
 	try {
+	    // as a general rule of thumb, if a string can bu null use read/writeObject,
+	    // if not it's save to use read/writeUTF.
+	    // version indicates the serialization version
 	    int version = in.readShort ();
 	    id = in.readUTF ();
 	    name = in.readUTF ();
@@ -59,15 +62,17 @@ public class Node implements INode, Serializable {
 	    proplinks = (Vector) in.readObject ();
 	    propMap = (Hashtable) in.readObject ();
 	    anonymous = in.readBoolean ();
-	    if (version > 1)
+	    if (version == 2)
 	        prototype = in.readUTF ();
+	    else if (version == 3)
+	        prototype = (String) in.readObject ();
 	} catch (ClassNotFoundException x) {
 	    throw new IOException (x.toString ());
 	}
     }
 
     private void writeObject (ObjectOutputStream out) throws IOException {
-	out.writeShort (2);  // serialization version
+	out.writeShort (3);  // serialization version
 	out.writeUTF (id);
 	out.writeUTF (name);
 	out.writeObject (parentID);
@@ -84,7 +89,7 @@ public class Node implements INode, Serializable {
 	out.writeObject (proplinks);
 	out.writeObject (propMap);
 	out.writeBoolean (anonymous);
-	out.writeUTF (prototype);
+	out.writeObject (prototype);
     }
 
     transient String prototype;
@@ -795,14 +800,17 @@ public class Node implements INode, Serializable {
 	    Relation srel = dbmap.getSubnodeRelation ();
 	    Relation prel = dbmap.getPropertyRelation ();
 	    DbMapping dbm = new DbMapping ();
+	    Relation gsrel = srel.getGroupbySubnodeRelation();
 	    dbm.setSubnodeMapping (srel.other);
-	    dbm.setSubnodeRelation (srel.getGroupbySubnodeRelation());
+	    dbm.setSubnodeRelation (gsrel);
 	    dbm.setPropertyMapping (prel.other);
 	    dbm.setPropertyRelation (prel.getGroupbyPropertyRelation());
 	    node.setDbMapping (dbm);
 	    String snrel = "WHERE "+srel.groupby +"='"+sid+"'";
-	    if (dbm.getSubnodeRelation().direction == Relation.BACKWARD)
-	        snrel += " AND "+dbm.getSubnodeRelation().remoteField+"='"+getNonVirtualHomeID()+"'";
+	    if (gsrel.direction == Relation.BACKWARD)
+	        snrel += " AND "+gsrel.remoteField+"='"+getNonVirtualHomeID()+"'";
+	    if (gsrel.order != null)
+	        snrel += " ORDER BY "+gsrel.order;
 	    node.setSubnodeRelation (snrel);
 	    return node;
 	} catch (Exception noluck) {}
