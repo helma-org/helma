@@ -593,6 +593,8 @@ public final class Relation {
         vr.addConstraint(new Constraint(null, groupby, true));
         vr.aggressiveLoading = aggressiveLoading;
         vr.aggressiveCaching = aggressiveCaching;
+        // reset maxSize - only meant to be used when loading the group nodes
+        vr.maxSize = 0;
 
         return vr;
     }
@@ -612,6 +614,8 @@ public final class Relation {
         vr.filter = filter;
         vr.constraints = constraints;
         vr.addConstraint(new Constraint(null, groupby, true));
+        // reset maxSize - only meant to be used when loading the group nodes
+        vr.maxSize = 0;
 
         return vr;
     }
