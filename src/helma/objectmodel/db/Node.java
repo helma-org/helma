@@ -1004,7 +1004,7 @@ public final class Node implements INode, Serializable {
             rel = dbmap.getSubnodeRelation();
 
             if ((rel != null) && (rel.groupby != null || rel.accessName != null)) {
-                if ((rel.otherType != null) && rel.otherType.isRelational()) {
+                if (state != TRANSIENT && rel.otherType != null && rel.otherType.isRelational()) {
                     return nmgr.getNode(this, name, rel);
                 } else {
                     return getNode(name);
@@ -1125,15 +1125,22 @@ public final class Node implements INode, Serializable {
      * @return ...
      */
     protected Node getGroupbySubnode(String sid, boolean create) {
+        if (sid == null) {
+            throw new IllegalArgumentException("Can't create group by null");
+        }
+
+        if (state == TRANSIENT) {
+            throw new RuntimeException("Can't add grouped child on transient node. "+
+                                       "Make parent persistent before adding grouped nodes.");
+        }
+
         loadNodes();
 
         if (subnodes == null) {
             subnodes = new ExternalizableVector();
         }
 
-        NodeHandle ghandle = new NodeHandle(new SyntheticKey(getKey(), sid));
-
-        if (subnodes.contains(ghandle) || create) {
+        if (create || subnodes.contains(new NodeHandle(new SyntheticKey(getKey(), sid)))) {
             try {
                 DbMapping groupbyMapping = dbmap.getGroupbyMapping();
                 boolean relational = groupbyMapping.getSubnodeMapping().isRelational();
@@ -1144,7 +1151,6 @@ public final class Node implements INode, Serializable {
 
                     // set "groupname" property to value of groupby field
                     node.setString("groupname", sid);
-                    node.setString("name", sid);
                         
                     node.setDbMapping(groupbyMapping);
 
@@ -2183,8 +2189,11 @@ public final class Node implements INode, Serializable {
 
         prop.setNodeValue(n);
 
-        if ((rel == null) || (rel.reftype == Relation.REFERENCE) || rel.virtual ||
-                (rel.otherType == null) || !rel.otherType.isRelational()) {
+        if ((rel == null) ||
+                rel.reftype == Relation.REFERENCE ||
+                state == TRANSIENT ||
+                rel.otherType == null ||
+                !rel.otherType.isRelational()) {
             // the node must be stored as explicit property
             if (propMap == null) {
                 propMap = new Hashtable();
@@ -2401,7 +2410,7 @@ public final class Node implements INode, Serializable {
 
     /**
      * This method walks down node path to the first non-virtual node and return it.
-     *  limit max depth to 3, since there shouldn't be more then 2 layers of virtual nodes.
+     *  limit max depth to 5, since there shouldn't be more then 2 layers of virtual nodes.
      */
     public Node getNonVirtualParent() {
         Node node = this;
