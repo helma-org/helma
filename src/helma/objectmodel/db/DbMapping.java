@@ -610,9 +610,9 @@ public final class DbMapping implements Updatable {
 	String sel = select;
 	if (sel != null)
 	    return new StringBuffer (sel);
-	StringBuffer s = new StringBuffer ("select ");
+	StringBuffer s = new StringBuffer ("SELECT ");
 	s.append (getColumns ());
-	s.append (" from ");
+	s.append (" FROM ");
 	s.append (getTableName ());
 	s.append (" ");
 	// cache rendered string for later calls.
