@@ -940,9 +940,13 @@ public class Node implements INode, Serializable {
 	Node n = (Node) node;
 	checkWriteLock ();
 	n.checkWriteLock ();
-
+	
+	// need to query parent before releaseNode is called, since this may change the parent
+	// to the next option described in the type.properties _parent info
+	INode parent = n.getParent ();
 	releaseNode (n);
-	if (n.getParent () == this) {
+
+	if (parent == this) {
                  n.deepRemoveNode ();
 	} else {
 	    // removed just a link, not the main node.
@@ -1325,7 +1329,8 @@ public class Node implements INode, Serializable {
 	}
 
 	// check if this may have an effect on the node's URL when using subnodesAreProperties
-	INode parent = getParent ();
+	// but only do this if we already have a parent set, i.e. if we are already stored in the db
+	INode parent = parentID == null ? null : getParent ();
 
 	if (parent != null && parent.getDbMapping() != null) {
 	    // check if this node is already registered with the old name; if so, remove it.
@@ -1540,8 +1545,11 @@ public class Node implements INode, Serializable {
 	Transactor tx = (Transactor) Thread.currentThread ();
 	tx.visitCleanNode (new Key (nmap, nID), n);
 	// if the field is not the primary key of the property, also register it
-	if (rel != null && !rel.getKeyID(this, p2).equals (nID))
-	     tx.visitCleanNode (new Key (rel.other, rel.getKeyID(this, p2)), n);
+	if (rel != null && rel.direction == Relation.DIRECT && !rel.getKeyID(this, p2).equals (nID)) {
+	    Key secKey = new Key (rel.other, rel.getKeyID(this, p2));
+	    nmgr.evictKey (secKey);
+	    tx.visitCleanNode (secKey, n);
+	}
 
 	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.SUBNODE_ADDED, n));
 	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
