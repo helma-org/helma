@@ -28,12 +28,12 @@ goto final
 if "%JAVA_HOME%" == "" goto javahomeerror
 
 set CP=%CLASSPATH%;ant.jar;jaxp.jar;crimson.jar
-if exist %JAVA_HOME%\lib\tools.jar set CP=%CP%;%JAVA_HOME%\lib\tools.jar
+if exist "%JAVA_HOME%\lib\tools.jar" set CP=%CP%;%JAVA_HOME%\lib\tools.jar
 
-echo Classpath: %CP%
-echo JAVA_HOME: %JAVA_HOME%
+echo Classpath: "%CP%"
+echo JAVA_HOME: "%JAVA_HOME%"
 
-%JAVA_HOME%\bin\java.exe -classpath "%CP%" %APPNAME% org.apache.tools.ant.Main -buildfile %BUILDFILE% %TARGET%
+"%JAVA_HOME%\bin\java.exe" -classpath "%CP%" %APPNAME% org.apache.tools.ant.Main -buildfile %BUILDFILE% %TARGET%
 
 goto end
 
