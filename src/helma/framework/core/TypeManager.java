@@ -49,18 +49,14 @@ public class TypeManager implements Runnable {
     public TypeManager (Application app) {
 	this.app = app;
 	appDir = app.appDir;
-	File f = new File (appDir, "user");
-	if (!f.exists())	
-	    f.mkdir ();
-	f = new File (appDir, "root");
-	if (!f.exists())	
-	    f.mkdir ();
-	f = new File (appDir, "global");
-	if (!f.exists())	
-	    f.mkdir ();
-	f = new File (appDir, "hopobject");
-	if (!f.exists())	
-	    f.mkdir ();
+	// make sure the directories for the standard prototypes exist, and lament otherwise
+	for (Iterator it=standardTypes.iterator (); it.hasNext (); ) {
+	    File f = new File (appDir, (String) it.next ());
+	    if (!f.exists() && !f.mkdir ())	
+	        app.logEvent ("Warning: directory "+f.getAbsolutePath ()+" could not be created.");
+	    else if (!f.isDirectory ())     
+	        app.logEvent ("Warning: "+f.getAbsolutePath ()+" is not a directory.");
+	}
 	prototypes = new HashMap ();
 	zipfiles = new HashMap ();
 	registeredEvaluators = Collections.synchronizedList (new ArrayList (30));
