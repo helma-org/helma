@@ -86,7 +86,7 @@ public abstract class DocElement	{
 		return ct;
 	}
 
-	public DocTag[] listTags()		{		return listTags(-1);	}
+	public DocTag[] listTags()		{		return tags;	}
 	/**	@return an array of tags that should get a special format
 	  * expects a -1 if it should retrieve all tags!	*/
 	public DocTag[] listTags(int kind)	{
