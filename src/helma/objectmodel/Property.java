@@ -64,7 +64,7 @@ public final class Property implements IProperty, Serializable {
 	return null;
     }
 
-    public void setStringValue (String value) throws ParseException {
+    public void setStringValue (String value) {
 	if (type == NODE)
 	    this.nvalue = null;
 	if (type == JAVAOBJECT)
@@ -116,13 +116,13 @@ public final class Property implements IProperty, Serializable {
 	this.nvalue = value;
     }
 
+
     public void setJavaObjectValue (Object value) {
 	if (type == NODE)
 	    this.nvalue = null;
 	type = JAVAOBJECT;
 	this.jvalue = value;
     }
-
 
 
     public String getStringValue () {
@@ -151,32 +151,32 @@ public final class Property implements IProperty, Serializable {
     }
 
     public long getIntegerValue () {
-	if (type == INTEGER) 	
+	if (type == INTEGER)
 	    return lvalue;
 	return 0;
     }
 
     public double getFloatValue () {
-	if (type == FLOAT) 	
+	if (type == FLOAT)
 	    return dvalue;
 	return 0.0;
     }
 
 
     public Date getDateValue () {
-	if (type == DATE) 	
+	if (type == DATE)
 	    return new Date (lvalue);
 	return null;
     }
 
     public boolean getBooleanValue () {
-	if (type == BOOLEAN) 
+	if (type == BOOLEAN)
 	    return bvalue;
 	return false;
     }
 
     public INode getNodeValue () {
-	if (type == NODE) 
+	if (type == NODE)
 	    return nvalue;
 	return null;
     }
