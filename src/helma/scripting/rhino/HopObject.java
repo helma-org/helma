@@ -25,16 +25,13 @@ import org.mozilla.javascript.*;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Constructor;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.Map;
+import java.util.*;
 import java.io.UnsupportedEncodingException;
 
 /**
  * 
  */
-public class HopObject extends ScriptableObject implements Wrapper {
+public class HopObject extends ScriptableObject implements Wrapper, PropertyRecorder {
     static Method hopObjCtor;
 
     static {
@@ -52,6 +49,10 @@ public class HopObject extends ScriptableObject implements Wrapper {
     String className;
     INode node;
     RhinoCore core;
+
+    // fields to implement PropertyRecorder
+    private boolean isRecording = false;
+    private HashSet changedProperties;
 
     /**
      * Creates a new HopObject object.
@@ -685,6 +686,11 @@ public class HopObject extends ScriptableObject implements Wrapper {
      * @param value ...
      */
     public void put(String name, Scriptable start, Object value) {
+        // register property for PropertyRecorder interface
+        if (isRecording) {
+            changedProperties.add(name);
+        }
+
         if (node == null) {
             super.put(name, start, value);
         } else {
@@ -965,5 +971,37 @@ public class HopObject extends ScriptableObject implements Wrapper {
      */
     public String toString() {
         return (className != null) ? ("[HopObject " + className + "]") : "[HopObject]";
+    }
+
+    /**
+     * Tell this PropertyRecorder to start recording changes to properties
+     */
+    public void startRecording() {
+        changedProperties = new HashSet();
+        isRecording = true;
+    }
+
+    /**
+     * Tell this PropertyRecorder to stop recording changes to properties
+     */
+    public void stopRecording() {
+        isRecording = false;
+    }
+
+    /**
+     * Returns a set containing the names of properties changed since
+     * the last time startRecording() was called.
+     *
+     * @return a Set containing the names of changed properties
+     */
+    public Set getChangeSet() {
+        return changedProperties;
+    }
+
+    /**
+     * Clear the set of changed properties.
+     */
+    public void clearChangeSet() {
+        changedProperties = null;
     }
 }

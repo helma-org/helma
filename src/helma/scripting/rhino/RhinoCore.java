@@ -792,7 +792,7 @@ public final class RhinoCore {
             // get the current context
             Context cx = Context.getCurrentContext();
 
-            Scriptable op = type.tmpObjProto;
+            Scriptable op = type.objProto;
 
             // do the update, evaluating the file
             // Script script = cx.compileReader(reader, sourceName, firstline, null);
@@ -848,9 +848,6 @@ public final class RhinoCore {
         // the JavaScript prototype for this type
         ScriptableObject objProto;
 
-        // temporary JS prototype used for compilation
-        ScriptableObject tmpObjProto;
-
         // timestamp of last update. This is -1 so even an empty prototype directory
         // (with lastUpdate == 0) gets evaluated at least once, which is necessary
         // to get the prototype chain set.
@@ -858,9 +855,6 @@ public final class RhinoCore {
 
         // the parent prototype info
         TypeInfo parentType;
-
-        // a set of property values that were defined in last script compliation
-        Set compiledProperties;
 
         // a set of property keys that were present before first script compilation
         final Set predefinedProperties;
@@ -870,7 +864,6 @@ public final class RhinoCore {
         public TypeInfo(Prototype proto, ScriptableObject op) {
             frameworkProto = proto;
             objProto = op;
-            compiledProperties = new HashSet(0);
             // remember properties already defined on this object prototype
             predefinedProperties = new HashSet();
             Object[] keys = op.getAllIds();
@@ -878,92 +871,72 @@ public final class RhinoCore {
                 predefinedProperties.add(keys[i].toString());
             }
         }
-        
+
         /**
-         * Set up an empty temporary object prototype to compile this type's 
-         * code against.
+         * If prototype implements PropertyRecorder tell it to start
+         * registering property puts.
          */
         public void prepareCompilation() {
-            if ("global".equals(frameworkProto.getLowerCaseName())) {
-                tmpObjProto = new GlobalObject(RhinoCore.this, app);
-                // setting the prototype to global does not seem to be the right 
-                // thing to do. that and not using a GlobalObject instance 
-                // as temporary object proto resulted in bug 390.
-                tmpObjProto.setPrototype(null);
-                tmpObjProto.setParentScope(global);
-            } else { 
-                tmpObjProto = new HopObject(frameworkProto.getName());
-                tmpObjProto.setPrototype(objProto);
-                tmpObjProto.setParentScope(global);
+            if (objProto instanceof PropertyRecorder) {
+                ((PropertyRecorder) objProto).startRecording();
             }
         }
 
         /**
          * Compilation has been completed successfully - switch over to code
-         * from temporary prototype, removing properties that haven't been 
+         * from temporary prototype, removing properties that haven't been
          * renewed.
          */
         public void commitCompilation() {
-            // loop through properties defined on the temporary proto and
-            // copy them over to the actual prototype object. Then, remove 
-            // those properties that haven't been renewed in this compilation
-            Set newProperties = new HashSet();
-            Object[] keys = tmpObjProto.getAllIds();
+            // loop through properties defined on the prototype object
+            // and remove thos properties which haven't been renewed during
+            // this compilation/evaluation pass.
+            if (objProto instanceof PropertyRecorder) {
 
-            for (int i = 0; i < keys.length; i++) {
-                if (! (keys[i] instanceof String)) {
-                    System.err.println("JUMP: "+keys[i]);
-                    continue;
-                }
-                
-                String key = (String) keys[i];
-                if (predefinedProperties.contains(key)) {
-                    // don't mess with properties we didn't set
-                    continue;
-                }
+                PropertyRecorder recorder = (PropertyRecorder) objProto;
 
-                // add properties to newProperties set
-                newProperties.add(key);
-                // copy them over to the actual prototype object
-                int attributes = tmpObjProto.getAttributes(key);
-                Object value = tmpObjProto.get(key, tmpObjProto);
-                if (value instanceof ScriptableObject) {
-                    // switch parent scope to actual prototype
-                    ScriptableObject obj = (ScriptableObject) value;
-                    if (obj.getParentScope() == tmpObjProto) {
-                        obj.setParentScope(objProto);
-                    } 
+                recorder.stopRecording();
+                Set changedProperties = recorder.getChangeSet();
+                recorder.clearChangeSet();
+
+                Object[] keys = objProto.getAllIds();
+
+                for (int i = 0; i < keys.length; i++) {
+                    if (! (keys[i] instanceof String)) {
+                        continue;
+                    }
+
+                    String key = (String) keys[i];
+                    if (predefinedProperties.contains(key)) {
+                        // don't mess with properties we didn't set
+                        continue;
+                    }
+
+                    Object value = objProto.get(key, objProto);
+                    if (value instanceof FunctionObject) {
+                        // this is probably a HopObject Constructor - don't remove!
+                        continue;
+                    }
+
+                    if (!changedProperties.contains(key)) {
+                        try {
+                            objProto.setAttributes(key, 0);
+                            objProto.delete(key);
+                        } catch (Exception px) {
+                            System.err.println("Error unsetting property "+key+" on "+
+                                               frameworkProto.getName());
+                        }
+                    }
                 }
-                objProto.defineProperty(key, value, attributes); 
             }
 
-            // switch property set over to new version and 
-            // get a set of those old properties that weren't renewed
-            Set oldProperties = compiledProperties;
-            compiledProperties = newProperties;
-            oldProperties.removeAll(newProperties);
-
-            for (Iterator it = oldProperties.iterator(); it.hasNext(); ) {
-                // remove those properties that weren't renewed, meaning 
-                // their definition has gone from the source files
-                String key = (String) it.next();
-                try {
-                    objProto.setAttributes(key, 0);
-                    objProto.delete(key);
-                } catch (Exception px) {
-                    System.err.println("Error unsetting property "+key+" on "+
-                                       frameworkProto.getName());
-                }
-
-            }
-            
             // mark this type as updated
             lastUpdate = frameworkProto.getLastUpdate();
 
             // If this prototype defines a postCompile() function, call it
             Context cx = Context.getCurrentContext();
             try {
-                Object fObj = ScriptableObject.getProperty(objProto, 
+                Object fObj = ScriptableObject.getProperty(objProto,
                                                            "onCodeUpdate");
                 if (fObj instanceof Function) {
                     Object[] args = {frameworkProto.getName()};

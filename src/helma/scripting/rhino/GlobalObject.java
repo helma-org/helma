@@ -24,10 +24,7 @@ import helma.util.MimePart;
 import helma.util.XmlUtils;
 import org.mozilla.javascript.*;
 
-import java.util.Map;
-import java.util.Date;
-import java.util.Locale;
-import java.util.TimeZone;
+import java.util.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
@@ -37,9 +34,13 @@ import java.io.*;
 /**
  *
  */
-public class GlobalObject extends ImporterTopLevel {
+public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     Application app;
     RhinoCore core;
+
+    // fields to implement PropertyRecorder
+    private boolean isRecording = false;
+    private HashSet changedProperties;
 
     /**
      * Creates a new GlobalObject object.
@@ -79,6 +80,20 @@ public class GlobalObject extends ImporterTopLevel {
      */
     public String getClassName() {
         return "GlobalObject";
+    }
+
+    /**
+     * Override ScriptableObject.put() to implement PropertyRecorder interface.
+     * @param name
+     * @param start
+     * @param value
+     */
+    public void put(String name, Scriptable start, Object value) {
+        // register property for PropertyRecorder interface
+        if (isRecording) {
+            changedProperties.add(name);
+        }
+        super.put(name, start, value);
     }
 
     /**
@@ -499,5 +514,37 @@ public class GlobalObject extends ImporterTopLevel {
             return null;
         }
         return Context.toString(obj);
+    }
+
+    /**
+     * Tell this PropertyRecorder to start recording changes to properties
+     */
+    public void startRecording() {
+        changedProperties = new HashSet();
+        isRecording = true;
+    }
+
+    /**
+     * Tell this PropertyRecorder to stop recording changes to properties
+     */
+    public void stopRecording() {
+        isRecording = false;
+    }
+
+    /**
+     * Returns a set containing the names of properties changed since
+     * the last time startRecording() was called.
+     *
+     * @return a Set containing the names of changed properties
+     */
+    public Set getChangeSet() {
+        return changedProperties;
+    }
+
+    /**
+     * Clear the set of changed properties.
+     */
+    public void clearChangeSet() {
+        changedProperties = null;
     }
 }
