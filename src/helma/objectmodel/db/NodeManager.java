@@ -579,11 +579,14 @@ public final class NodeManager {
 	    qds = new QueryDataSet (con, q);
 	    qds.fetchRecords ();
 	    // check for empty table
-	    if (qds.size () == 0)
-	        return "0";
-	    long currMax = qds.getRecord (0).getValue (1).asLong ();
-	    currMax = map.getNewID (currMax);
-	    retval = Long.toString (currMax);
+	    if (qds.size () == 0) {
+	        long currMax = map.getNewID (0);
+	        retval = Long.toString (currMax);
+	    } else {
+	        long currMax = qds.getRecord (0).getValue (1).asLong ();
+	        currMax = map.getNewID (currMax);
+	        retval = Long.toString (currMax);
+	    }
 	} finally {
 	    // tx.timer.endEvent ("generateID "+map);
 	    if (qds != null) {
@@ -594,6 +597,9 @@ public final class NodeManager {
     }
 
 
+    /**
+     * Generate a new ID from an Oracle sequence.
+     */
     public String generateID (DbMapping map) throws Exception {
 
 	Transactor tx = (Transactor) Thread.currentThread ();
@@ -606,7 +612,7 @@ public final class NodeManager {
 	    String q = "SELECT "+map.getIDgen()+".nextval FROM dual";
 	    qds = new QueryDataSet (con, q);
 	    qds.fetchRecords ();
-                 retval = qds.getRecord (0).getValue (1).asString ();
+	    retval = qds.getRecord (0).getValue (1).asString ();
 	} finally {
 	    // tx.timer.endEvent ("generateID "+map);
 	    if (qds != null) {
