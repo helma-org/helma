@@ -27,6 +27,20 @@ public final class SystemProperties extends Properties {
 	this (null, null);
     }
 
+    public SystemProperties (InputStream in) {
+	this (null, null);
+	try {
+	    load (in);
+	} catch (Exception x) {
+	    IServer.getLogger().log ("Error reading properties from file "+file+": "+x);
+	} finally {
+	    try {
+	        in.close ();
+	    } catch (Exception ignore) {}
+	}
+	lastread = System.currentTimeMillis ();
+    }	
+
     public SystemProperties (String filename) {
 	this (filename, null);
     }
