@@ -318,7 +318,7 @@ public final class HtmlEncoder {
 	    switch (c) {
 	        case '&':
 	            // check if this is an HTML entity already, in which case we pass it though unchanged
-	            if (i < l-4 && !insideCodeTag) {
+	            if (i < l-3 && !insideCodeTag) {
 	                // is this a numeric entity?
 	                if (chars[i+1] == '#' ) {
 	                   int j = i+2;
