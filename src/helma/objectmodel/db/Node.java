@@ -416,7 +416,7 @@ public final class Node implements INode, Serializable {
         // for relational nodes we need to consult parent mapping to find element name
         if (isRelational()) {
             long lastmod = Math.max(lastmodified, dbmap.getLastTypeChange());
-        
+
             if ((parentHandle != null) && (lastNameCheck < lastmod)) {
                 try {
                     Node p = parentHandle.getNode(nmgr);
@@ -628,6 +628,17 @@ public final class Node implements INode, Serializable {
      * the ID + DB map combo.
      */
     protected void setParent(Node parent) {
+        // walk down parent node to see if we are in its parent chain.
+        // this is to prevent cyclic parent chains.
+        Node p = parent;
+        while (p != null) {
+            p = p.parentHandle == null ? null : p.parentHandle.getNode(nmgr);
+            if (p == this) {
+                // we found ourself in the argument node's parent chain -
+                // ignore request to make it our parent.
+                return;
+            }
+        }
         parentHandle = (parent == null) ? null : parent.getHandle();
     }
 
@@ -904,7 +915,7 @@ public final class Node implements INode, Serializable {
                 }
             }
 
-            if (node != this && !"root".equalsIgnoreCase(node.getPrototype())) {
+            if (!node.isRelational() && node != this && !"root".equalsIgnoreCase(node.getPrototype())) {
                 // avoid calling getParent() because it would return bogus results
                 // for the not-anymore transient node
                 Node nparent = (node.parentHandle == null) ? null
@@ -1081,6 +1092,7 @@ public final class Node implements INode, Serializable {
             // This would be an alternative way to do it, without loading the subnodes:
             //    if (dbmap != null && dbmap.getSubnodeRelation () != null)
             //         retval = nmgr.getNode (this, subid, dbmap.getSubnodeRelation ());
+
             if ((retval != null) && (retval.parentHandle == null) &&
                     !"root".equalsIgnoreCase(retval.getPrototype())) {
                 retval.setParent(this);
@@ -1166,7 +1178,7 @@ public final class Node implements INode, Serializable {
 
                     // Set the dbmapping on the group node
                     node.setPrototype(groupbyMapping.getTypeName());
-                    // If we created the group node, we register it with the 
+                    // If we created the group node, we register it with the
                     // nodemanager. Otherwise, we just evict whatever was there before
                     if (create) {
                         nmgr.registerNode(node);
@@ -2175,7 +2187,7 @@ public final class Node implements INode, Serializable {
 
         // check if the main identity of this node is as a named property
         // or as an anonymous node in a collection
-        if (n != this && !"root".equalsIgnoreCase(n.getPrototype())) {
+        if (!n.isRelational() && n != this && !"root".equalsIgnoreCase(n.getPrototype())) {
             // avoid calling getParent() because it would return bogus results
             // for the not-anymore transient node
             Node nparent = (n.parentHandle == null) ? null
@@ -2186,7 +2198,7 @@ public final class Node implements INode, Serializable {
             if ((nparent == null) ||
                ((state != TRANSIENT) && (nparent.getState() == TRANSIENT))) {
                 n.setParent(this);
-                n.name = propname;
+                n.setName(propname);
                 n.anonymous = false;
             }
         }
