@@ -267,7 +267,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
      * @return ...
      */
     public Object jsFunction_get(Object id) {
-        if ((node == null) || (id == null)) {
+        if ((node == null) || (id == null) || id == Undefined.instance) {
             return null;
         }
 
@@ -409,7 +409,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
     public boolean jsFunction_remove(Object child) {
         // semantics: if called without arguments, remove self.
         // otherwise, remove given subnodes.
-        if (child == null) {
+        if (child == Undefined.instance) {
             return node.remove();
         } else if (node != null) {
             try {
@@ -434,12 +434,12 @@ public class HopObject extends ScriptableObject implements Wrapper {
     /**
      *  Invalidate the node itself or a subnode
      */
-    public boolean jsFunction_invalidate(String childId) {
-        if (node instanceof helma.objectmodel.db.Node) {
-            if (childId == null) {
+    public boolean jsFunction_invalidate(Object childId) {
+        if (childId != null && node instanceof helma.objectmodel.db.Node) {
+            if (childId == Undefined.instance) {
                 ((helma.objectmodel.db.Node) node).invalidate();
             } else {
-                ((helma.objectmodel.db.Node) node).invalidateNode(childId);
+                ((helma.objectmodel.db.Node) node).invalidateNode(childId.toString());
             }
         }
 
@@ -450,7 +450,7 @@ public class HopObject extends ScriptableObject implements Wrapper {
      *  Check if node is contained in subnodes
      */
     public int jsFunction_contains(Object obj) {
-        if ((node != null) && (obj != null) && obj instanceof HopObject) {
+        if ((node != null) && obj instanceof HopObject) {
             return node.contains(((HopObject) obj).node);
         }
 
