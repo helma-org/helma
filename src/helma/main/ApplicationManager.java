@@ -16,23 +16,15 @@
 
 package helma.main;
 
-import helma.framework.*;
 import helma.framework.core.*;
-import helma.objectmodel.*;
-import helma.servlet.*;
 import helma.util.SystemProperties;
-import helma.util.StringUtils;
 import org.apache.xmlrpc.XmlRpcHandler;
 import org.mortbay.http.*;
 import org.mortbay.http.handler.*;
 import org.mortbay.jetty.servlet.*;
-import org.mortbay.util.*;
 import java.io.*;
-import java.lang.reflect.*;
 import java.rmi.*;
-import java.rmi.server.*;
 import java.util.*;
-import javax.servlet.Servlet;
 
 /**
  * This class is responsible for starting and stopping Helma applications.
@@ -375,7 +367,9 @@ public class ApplicationManager implements XmlRpcHandler {
                     server.http.addContext(context);
 
                     if (encode) {
-                        context.addHandler(new ContentEncodingHandler());
+                        // FIXME: ContentEncodingHandler is broken/removed in Jetty 4.2
+                        // context.addHandler(new ContentEncodingHandler());
+                        Server.getLogger().log("Warning: disabling response encoding for Jetty 4.2 compatibility");
                     }
 
                     ServletHolder holder = context.addServlet(appName, "/*",
