@@ -81,7 +81,7 @@ public class HopExtension {
         reval.esNodePrototype.putHiddenProperty ("setParent", new NodeSetParent ("setParent", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("invalidate", new NodeInvalidate ("invalidate", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, reval, false, false));
-        reval.esNodePrototype.putHiddenProperty("renderSkin_as_string", new RenderSkin ("renderSkin_as_string", evaluator, fp, reval, false, true));
+        reval.esNodePrototype.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, reval, false, true));
 
         // methods that give access to properties and global user lists
         go.putHiddenProperty("Node", node); // register the constructor for a plain Node object.
@@ -107,7 +107,7 @@ public class HopExtension {
         go.putHiddenProperty("getSkin", new GlobalGetSkin ("getSkin", evaluator, fp));
         go.putHiddenProperty("createSkin", new GlobalCreateSkin ("createSkin", evaluator, fp));
         go.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, reval, true, false));
-        go.putHiddenProperty("renderSkin_as_string", new RenderSkin ("renderSkin_as_string", evaluator, fp, reval, true, true));
+        go.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, reval, true, true));
         go.putHiddenProperty("authenticate", new GlobalAuthenticate ("authenticate", evaluator, fp));
         go.deleteProperty("exit", "exit".hashCode());
 
