@@ -39,6 +39,9 @@ public class ResponseTrans implements Serializable {
     // transient, response must be constructed before this is serialized
     public transient String title, head, body, message, error;
 
+    // name of the skin to be rendered  after completion, if any
+    public transient String mainSkin = null;
+
 
     public ResponseTrans () {
 	super ();
@@ -49,6 +52,8 @@ public class ResponseTrans implements Serializable {
 	if (buffer != null)
 	    buffer.setLength (0);
 	redirect = null;
+	mainSkin = null;
+	title = head = body = message = error = "";
     }
 
 
