@@ -6,7 +6,6 @@ package helma.objectmodel.db;
 import helma.objectmodel.*;
 import java.io.Serializable;
 
-
 /**
  * This class is a handle or reference to a Node. This is to abstract from different
  * methods of reference: Transient Nodes are referred to directly, while persistent
@@ -18,7 +17,7 @@ import java.io.Serializable;
  * instance of its node.
  */
  
-public class NodeHandle implements INodeState, Serializable {
+public final class NodeHandle implements INodeState, Serializable {
 
     // direct reference to the node
     private Node node;
@@ -130,3 +129,4 @@ public class NodeHandle implements INodeState, Serializable {
     }
 
 }
+
