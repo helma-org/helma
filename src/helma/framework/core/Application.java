@@ -767,7 +767,7 @@ public final class Application implements IPathElement, Runnable {
         try {
             INode users = getUserRoot();
 
-            return users.getNode(uid);
+            return (INode) users.getChildElement(uid);
         } catch (Exception x) {
             return null;
         }
