@@ -1796,33 +1796,42 @@ public class Node implements INode, Serializable {
     }
 
 
-    public String getHref (INode root, INode userroot, String tmpname, String prefix) {
-	return prefix + getUrl (root, userroot, tmpname);
-    }
-
-
     /**
      *  Get the path to eiter the general data-root or the user root, depending on 
      *  where this node is located.
      */
-    public String getUrl (INode root, INode userroot, String tmpname) {
-	// String fullname = "";
+    public String getUrl (INode root, INode users, String tmpname, String rootproto) {
+	
 	String divider = "/";
 	StringBuffer b = new StringBuffer ();
 	INode p = this;
 	int loopWatch = 0;
-	while  (p != null && p.getParent () != null && p != root && p != userroot) {
+	
+	while  (p != null && p.getParent () != null && p != root) {
+	
+	    if (rootproto != null && rootproto.equals (p.getPrototype ()))
+	        break;
+	
 	    b.insert (0, divider);
-	    b.insert (0, UrlEncoder.encode (p.getNameOrID ()));
-
+	
+	    // users always have a canonical URL like /users/username
 	    if ("user".equals (p.getPrototype ())) {
-	        b.insert (0, "users"+divider);
+	        b.insert (0, UrlEncoder.encode (p.getName ()));
+	        p = users;
 	        break;
 	    }
+	
+	    b.insert (0, UrlEncoder.encode (p.getNameOrID ()));
+	    	
 	    p = p.getParent ();
 
-	    if (loopWatch++ > 10)
+	    if (loopWatch++ > 20)
 	        break;
+	}
+	
+	if (p == users) {
+	    b.insert (0, divider);
+	    b.insert (0, "users");
 	}
 	return b.toString()+UrlEncoder.encode (tmpname);
     }

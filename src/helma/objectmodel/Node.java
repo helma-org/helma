@@ -736,11 +736,7 @@ public class Node implements INode, Serializable {
     }
 
 
-    public String getHref (INode root, INode userroot, String tmpname, String prefix) {
-	return prefix + getUrl (root, userroot, tmpname);
-    }
-
-    public String getUrl (INode root, INode userroot, String tmpname) {
+    public String getUrl (INode root, INode users, String tmpname, String rootproto) {
         throw new RuntimeException ("HREFs on transient (non-db based) Nodes not supported");
     }
 

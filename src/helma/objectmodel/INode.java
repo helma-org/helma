@@ -100,9 +100,7 @@ public interface INode {
     public void setContent (String content);
     public byte[] getContent ();
     public String getText ();
-    public String getUrl (INode root, INode userroot, String tmpname);
-    public String getHref (INode root, INode userroot, String tmpname, String prefix);
-
+    public String getUrl (INode root, INode users, String tmpname, String rootproto);
 
 }
 
