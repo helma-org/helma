@@ -18,7 +18,7 @@ import com.sleepycat.db.DbException;
 import java.util.*;
 
 /**
- * The central class of a HOP application. This class keeps a pool of so-called
+ * The central class of a Helma application. This class keeps a pool of so-called
  * request evaluators (threads with JavaScript interpreters), waits for 
  * requests from the Web server or XML-RPC port and dispatches them to 
  * the evaluators.
@@ -34,8 +34,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
     private String baseURI;
 
-    public boolean debug;
-
     TypeManager typemgr;
 
     RequestEvaluator eval;
@@ -43,6 +41,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     protected Vector allThreads;
 
     boolean stopped = false;
+    boolean debug;
 
     Hashtable sessions;
     Hashtable activeUsers;
@@ -82,12 +81,19 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
     CacheMap skincache = new CacheMap (100, 0.75f);
 
+    /**
+     *  Zero argument constructor needed for RMI
+     */
     public Application () throws RemoteException {
 	super ();
     }
 
+    /**
+     * Build an application with the given name, app and db properties and app base directory. The
+     * app directories will be created if they don't exist already.
+     */
     public Application (String name, SystemProperties sysProps, SystemProperties sysDbProps, File home)
-	    throws RemoteException, IllegalArgumentException {
+		    throws RemoteException, IllegalArgumentException {
 	
 	if (name == null || name.trim().length() == 0)
 	    throw new IllegalArgumentException ("Invalid application name: "+name);
@@ -149,10 +155,13 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	dbSources = new Hashtable ();
 
 	appnode = new TransientNode ("app");
-	xmlrpc = IServer.getXmlRpcServer ();
+	xmlrpc = helma.main.Server.getXmlRpcServer ();
 	xmlrpcAccess = new XmlRpcAccess (this);
     }
 
+    /**
+     * Finish initializing the application and start requestors and type manager.
+     */
     public void start () throws DbException {
 
 	eval = new RequestEvaluator (this);
@@ -192,13 +201,17 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	worker.start ();
 	// logEvent ("session cleanup and scheduler thread started");
 	
+	String xmlrpcHandlerName = props.getProperty ("xmlrpcHandlerName", this.name);
 	if (xmlrpc != null)
-	    xmlrpc.addHandler (this.name, new XmlRpcInvoker (this));
+	    xmlrpc.addHandler (xmlrpcHandlerName, new XmlRpcInvoker (this));
 
 	typemgr.start ();
     }
 
 
+    /**
+     * This is called to shut down a running application.
+     */
     public void stop () {
 
 	stopped = true;
@@ -226,6 +239,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	}
     }
 
+    /**
+     * Returns a free evaluator to handle a request.
+     */
     protected RequestEvaluator getEvaluator () {
 	if (stopped)
 	    throw new ApplicationStoppedException ();
@@ -236,11 +252,18 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	}
     }
 
+    /**
+     * Returns an evaluator back to the pool when the work is done.
+     */
     protected void releaseEvaluator (RequestEvaluator ev) {
 	if (ev != null)
 	    freeThreads.push (ev);
     }
 
+    /**
+     * This can be used to set the maximum number of evaluators which will be allocated.
+     * If evaluators are required beyound this number, an error will be thrown.
+     */
     protected boolean setNumberOfEvaluators (int n) {
 	if (n < 2 || n > 511)
 	    return false;
@@ -270,6 +293,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	return true;
     }
 
+    /**
+    *  Execute a request coming in from a web client.
+    */
     public ResponseTrans execute (RequestTrans req) {
 
 	requestCount += 1;
@@ -336,6 +362,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	// do nothing
     }
 
+    /**
+     * This method returns the root object of this application's object tree.
+     */
     public IPathElement getDataRoot () {
 	if (rootObjectClass != null) {
 	    // create custom root element.
@@ -355,16 +384,28 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	return root;
     }
 
+    /**
+     * Returns the Object which contains registered users of this application.
+     */
     public INode getUserRoot () {
 	INode users = nmgr.safe.getNode ("1", userRootMapping);
 	users.setDbMapping (userRootMapping);
 	return users;
     }
 
+    /**
+     * Returns a wrapper containing the node manager for this application. The node manager is
+     * the gateway to the helma.objectmodel packages, which perform the mapping of objects to
+     * relational database tables or the embedded database.
+     */
     public WrappedNodeManager getWrappedNodeManager () {
 	return nmgr.safe;
     }
 
+
+    /**
+     * Returns a Node representing a registered user of this application by his or her user name.
+     */
     public INode getUserNode (String uid) {
 	if ("prototype".equalsIgnoreCase (uid))
 	    return null;
@@ -390,7 +431,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
 
     /**
-     * Return the user currently associated with a given Hop session ID.
+     * Return the user currently associated with a given Hop session ID. This may be
+     * a registered or an anonymous user.
      */
     public User getUser (String sessionID) {
     	if (sessionID == null)
@@ -407,6 +449,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     }
 
 
+    /**
+     * Register a user with the given user name and password.
+     */
     public INode registerUser (String uname, String password) {
     	// Register a user who already has a user object
     	// (i.e. who has been surfing around)
@@ -444,6 +489,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	}
     }
 
+    /**
+     * Log in a user given his or her user name and password.
+     */
     public boolean loginUser (String uname, String password, ESUser u) {
     	// Check the name/password of a user who already has a user object 
     	// (i.e. who has been surfing around)
@@ -470,6 +518,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	return false;
     }
 
+    /**
+     * Log out a user from this application.
+     */
     public boolean logoutUser (ESUser u) {
 	if (u.user != null) {
 	    String uid = u.user.uid;
@@ -493,14 +544,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	return pwfile.authenticate (uname, password);
     }
 
-    /* public String getNodePath (INode n, String tmpname) {
-	// FIXME: will fail for non-node roots
-	INode root = (INode) getDataRoot ();
-	INode users = getUserRoot ();
-	String siteroot = props.getProperty ("rootPrototype");
-	String href = n.getUrl (root, users, tmpname, siteroot);
-	return href;
-    } */
 
     /**
      * Return a path to be used in a URL pointing to the given element  and action
@@ -556,6 +599,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     }
 
 
+    /**
+     *  This method sets the base URL of this application which will be prepended to
+     *  the actual object path.
+     */
     public void setBaseURI (String uri) {
 	if (uri == null)
 	    this.baseURI = "/";
@@ -565,18 +612,35 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	    this.baseURI = uri;
     }
 
+    /**
+     * Tell other classes whether they should output logging information for this application.
+     */
+     public boolean debug () {
+	return debug;
+    }
+
+
+    /**
+     * Get the logger object for logging generic events
+     */
     public void logEvent (String msg) {
 	if (eventLog == null)
 	    eventLog = getLogger (name+"_event");
 	eventLog.log (msg);
     }
 
+    /**
+     * Get the logger object for logging access events
+     */
     public void logAccess (String msg) {
 	if (accessLog == null)
 	    accessLog = getLogger (name+"_access");
 	accessLog.log (msg);
     }
 
+    /**
+     *  Get a logger object to log events for this application.
+     */
     public Logger getLogger (String logname) {
 	Logger log = null;
 	String logDir = props.getProperty ("logdir");
@@ -599,6 +663,11 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	return log;
     }
 
+
+    /**
+     * The run method performs periodic tasks like executing the scheduler method and
+     * kicking out expired user sessions.
+     */
     public void run () {
 	long cleanupSleep = 60000;    // thread sleep interval (fixed)
 	long scheduleSleep = 60000;  // interval for scheduler invocation
@@ -679,6 +748,11 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	logEvent ("Scheduler for "+name+" exiting");
     }
 
+    /**
+     *  This method is called after the type.properties files are read on all prototypes, or after one
+     * or more of the type properties have been re-read after an update, to let the DbMappings reestablish
+     * the relations among them according to their mappings.
+     */
     public void rewireDbMappings () {
 	for (Enumeration e=dbMappings.elements(); e.hasMoreElements(); ) {
 	    try {
@@ -734,10 +808,16 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	return name;
     }
 
+    /**
+     * Get the DbMapping associated with a prototype name in this application
+     */
     public DbMapping getDbMapping (String typename) {
 	return typename == null ? null : (DbMapping) dbMappings.get (typename);
     }
 
+    /**
+     * Associate a DbMapping object with a prototype name for this application.
+     */
     public void putDbMapping (String typename, DbMapping dbmap) {
 	dbMappings.put (typename, dbmap);
     }
@@ -772,10 +852,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
 }
 
-//////////////////////////////////////////////////////////////
-////  XML-RPC handler class
 
-
+/**
+ * XML-RPC handler class for this application.
+ */
 class XmlRpcInvoker implements XmlRpcHandler {
     	
     Application app;
@@ -801,10 +881,9 @@ class XmlRpcInvoker implements XmlRpcHandler {
 }
 
 
-//////////////////////////////////////////////////////////////
-////  XML-RPC access permission checker
-
-
+/**
+ * XML-RPC access permission checker
+ */
 class XmlRpcAccess {
     	
     Application app;
