@@ -61,27 +61,15 @@ public class DocApplication extends DocDirElement	{
 		}
 	}
 
-
-// FIXME: function to retrieve all functions across all prototypes still to be done
-
-//	public DocFunction[] listFunctions()	{
-//		return listFunctions(-1);
-//	}
-//
-//	public DocFunction[] listFunctions(int type)	{
-//		Vector funcVec = new Vector();
-//		for ( int i=0; i<prototypes.length; i++ )	{
-//			DocFunction[] tmp = prototypes[i].listFunctions();
-//			for ( int j=0; j<tmp.length; j++ )	{
-//				if ( type==-1 || tmp[j].getType()==type )
-//					funcVec.addElement(tmp[j]);
-//			}
-//		}
-//		DocFunction[] funcArr = (DocFunction[])funcVec.toArray(new DocFunction[funcVec.size()]);
-//		Arrays.sort(funcArr,new DocComparator(DocComparator.BY_NAME,this));
-//		return funcArr;
-//	}
-//
+	public DocElement[] listFunctions ()	{
+		Vector allFunctions = new Vector ();
+		for (Iterator i = children.values ().iterator (); i.hasNext ();) {
+			DocElement proto = (DocElement) i.next ();
+			allFunctions.addAll (proto.children.values ());
+		}
+		Collections.sort (allFunctions, new DocComparator (DocComparator.BY_NAME, this));
+		return (DocElement[]) allFunctions.toArray (new DocElement[allFunctions.size ()]);
+	}
 
 
 	/**
