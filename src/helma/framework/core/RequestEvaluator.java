@@ -286,7 +286,7 @@ public final class RequestEvaluator implements Runnable {
 
 	                abortTransaction (false);
 
-	                app.logEvent ("### Exception in "+app.getName()+"/"+req.path+": "+x);
+	                app.logEvent ("### Exception in "+Thread.currentThread()+": "+x);
 	                // Dump the profiling data to System.err
 	                if (app.debug) {
 	                    ((Transactor) Thread.currentThread ()).timer.dump (System.err);
@@ -599,7 +599,7 @@ public final class RequestEvaluator implements Runnable {
     public synchronized void stopThread () {
 	app.logEvent ("Stopping Thread "+rtx);
 	Transactor t = rtx;
-	// let the scripting engine know that the 
+	// let the scripting engine know that the
 	// current transaction is being aborted.
 	scriptingEngine.abort ();
 	rtx = null;
