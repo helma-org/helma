@@ -1,25 +1,34 @@
-// FunctionFile.java
-// Copyright (c) Hannes Wallnöfer 1998-2000
- 
+/*
+ * Helma License Notice
+ *
+ * The contents of this file are subject to the Helma License
+ * Version 2.0 (the "License"). You may not use this file except in
+ * compliance with the License. A copy of the License is available at
+ * http://adele.helma.org/download/helma/license.txt
+ *
+ * Copyright 1998-2003 Helma Software. All Rights Reserved.
+ *
+ * $RCSfile$
+ * $Author$
+ * $Revision$
+ * $Date$
+ */
+
 package helma.scripting;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.HashSet;
-import java.util.Enumeration;
-import java.io.*;
 import helma.framework.*;
 import helma.framework.core.*;
 import helma.util.Updatable;
-
+import java.io.*;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 
 /**
  * This represents a File containing script functions for a given class/prototype.
  */
-
-
 public class FunctionFile implements Updatable {
-
     Prototype prototype;
     Application app;
     File file;
@@ -27,13 +36,18 @@ public class FunctionFile implements Updatable {
     String content;
     long lastmod;
 
-
-    public FunctionFile (File file, Prototype proto) {
-	this.prototype = proto;
-	this.app = proto.getApplication ();
-	this.sourceName = file.getParentFile().getName()+"/"+file.getName();
-	this.file = file;
-	update ();
+    /**
+     * Creates a new FunctionFile object.
+     *
+     * @param file ...
+     * @param proto ...
+     */
+    public FunctionFile(File file, Prototype proto) {
+        this.prototype = proto;
+        this.app = proto.getApplication();
+        this.sourceName = file.getParentFile().getName() + "/" + file.getName();
+        this.file = file;
+        update();
     }
 
     /**
@@ -41,55 +55,75 @@ public class FunctionFile implements Updatable {
      *  files contained in zipped applications. The whole update mechanism is bypassed
      *  by immediately parsing the code.
      */
-    public FunctionFile (String body, String sourceName, Prototype proto) {
-	this.prototype = proto;
-	this.app = proto.getApplication ();
-	this.sourceName = sourceName;
-	this.file = null;
-	this.content = body;
+    public FunctionFile(String body, String sourceName, Prototype proto) {
+        this.prototype = proto;
+        this.app = proto.getApplication();
+        this.sourceName = sourceName;
+        this.file = null;
+        this.content = body;
     }
 
     /**
      * Tell the type manager whether we need an update. this is the case when
      * the file has been modified or deleted.
      */
-    public boolean needsUpdate () {
-	return file != null && lastmod != file.lastModified ();
+    public boolean needsUpdate() {
+        return (file != null) && (lastmod != file.lastModified());
     }
 
-
-    public void update () {
-	if (file != null) {
-	    if (!file.exists ()) {
-	        remove ();
-	    } else {
-	        lastmod = file.lastModified ();
-	    }
-	}
+    /**
+     *
+     */
+    public void update() {
+        if (file != null) {
+            if (!file.exists()) {
+                remove();
+            } else {
+                lastmod = file.lastModified();
+            }
+        }
     }
 
-    public File getFile () {
-	return file;
+    /**
+     *
+     *
+     * @return ...
+     */
+    public File getFile() {
+        return file;
     }
 
-    public String getContent () {
-	return content;
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getContent() {
+        return content;
     }
 
-    public String getSourceName () {
-	return sourceName;
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getSourceName() {
+        return sourceName;
     }
 
-    public void remove () {
-	prototype.removeFunctionFile (this);
+    /**
+     *
+     */
+    public void remove() {
+        prototype.removeFunctionFile(this);
     }
 
-
-    public String toString () {
-	return sourceName;
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String toString() {
+        return sourceName;
     }
-
-
 }
-
-

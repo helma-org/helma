@@ -86,7 +86,7 @@ public class CronJob {
 
    private String name     = null;
    private String function = null;
-   private long   timeout = 30000;
+   private long   timeout = 20000;
 
    /** A method for parsing properties. It looks through the properties
      * file for entries that look like this:
@@ -161,7 +161,26 @@ public class CronJob {
      */
 
 
-  public static Collection parse(Properties props) {
+  public static CronJob newJob (String functionName, String year, String month, String day, String weekday, String hour, String minute) {
+    CronJob job = new CronJob (functionName);
+    job.setFunction (functionName);
+    if (year != null)
+        parseYear (job, year);
+    if (month != null)
+        parseMonth (job, month);
+    if (day != null)
+        parseDay (job, day);
+    if (weekday != null)
+        parseWeekDay (job, weekday);
+    if (hour != null)
+        parseHour (job, hour);
+    if (minute != null)
+        parseMinute (job, minute);
+    return job;
+  }
+
+
+  public static Vector parse(Properties props) {
       Hashtable jobs = new Hashtable ();
       Enumeration e = props.keys ();
       while (e.hasMoreElements ()) {
@@ -195,12 +214,39 @@ public class CronJob {
                parseHour (job, value);
             } else if (jobSpec.equalsIgnoreCase("minute")) {
                parseMinute (job, value);
+            } else if (jobSpec.equalsIgnoreCase("timeout")) {
+            	parseTimeout (job, value);
             }
          } catch (NoSuchElementException nsee) {
          }
       }
-      return jobs.values ();
+      Vector jobVec = new Vector (jobs.values ());
+      return (Vector) sort (jobVec);
    }
+
+    public static List sort (List list) {
+      Collections.sort (list, new Comparator() {
+        public int compare (Object o1, Object o2) {
+            CronJob cron1 = (CronJob) o1;
+            CronJob cron2 = (CronJob) o2;
+            if (cron1.getTimeout () > cron2.getTimeout ())
+                return 1;
+            else if (cron1.getTimeout () < cron2.getTimeout ())
+                return -1;
+            else
+                return 0;
+        }
+        public boolean equals (Object o1, Object o2) {
+            if (o1!=null) {
+                return o1.equals (o2);
+            } else {
+                return false;
+            }
+        }
+
+        });
+        return list;
+    }
 
 
    public static void parseYear (CronJob job, String value) {
@@ -351,6 +397,22 @@ public class CronJob {
    }
 
 
+   public static void parseTimeout (CronJob job, String timeout) {
+      long timeoutValue = 1000 * Long.valueOf(timeout).longValue ();
+      job.setTimeout (timeoutValue);
+   }
+
+	public static long nextFullMinute () {
+		long now = System.currentTimeMillis();
+      long millisAfterMinute = (now % 60000);
+		return (now + 60000 - millisAfterMinute);
+	}
+
+	public static long millisToNextFullMinute () {
+		long now = System.currentTimeMillis();
+      long millisAfterMinute = (now % 60000);
+		return (60000 - millisAfterMinute);
+	}
 
   /**
    *  Create an empty CronJob.
@@ -657,13 +719,6 @@ public class CronJob {
     this.timeout = timeout;
   }
 
-  /**
-   *  Set this entry's timeout
-   */
-  public void setTimeout(String timeout)
-  {
-    this.timeout = Long.valueOf(timeout).longValue ();
-  }
 
   /**
    *  Get this entry's timeout
@@ -672,4 +727,9 @@ public class CronJob {
   {
     return this.timeout;
   }
+  
+  public String toString () {
+  		return "[CronJob " + name + "]";
+	}
+  
 }

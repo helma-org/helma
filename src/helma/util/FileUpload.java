@@ -1,5 +1,18 @@
-// FileUpload.java
-// Copyright (c) Hannes Wallnöfer 1996-2000
+/*
+ * Helma License Notice
+ *
+ * The contents of this file are subject to the Helma License
+ * Version 2.0 (the "License"). You may not use this file except in
+ * compliance with the License. A copy of the License is available at
+ * http://adele.helma.org/download/helma/license.txt
+ *
+ * Copyright 1998-2003 Helma Software. All Rights Reserved.
+ *
+ * $RCSfile$
+ * $Author$
+ * $Revision$
+ * $Date$
+ */
 
 package helma.util;
 
@@ -10,99 +23,138 @@ import java.util.*;
 /**
  * Utility class for MIME file uploads via HTTP POST.
  */
- 
 public class FileUpload {
-
     public Hashtable parts;
     int maxKbytes;
 
-    public FileUpload () {
-	maxKbytes = 1024;
+    /**
+     * Creates a new FileUpload object.
+     */
+    public FileUpload() {
+        maxKbytes = 1024;
     }
 
-    public FileUpload (int max) {
-	maxKbytes = max;
+    /**
+     * Creates a new FileUpload object.
+     *
+     * @param max ...
+     */
+    public FileUpload(int max) {
+        maxKbytes = max;
     }
 
-    public Hashtable getParts () {
-	return parts;
+    /**
+     *
+     *
+     * @return ...
+     */
+    public Hashtable getParts() {
+        return parts;
     }
 
+    /**
+     *
+     *
+     * @param is ...
+     * @param contentType ...
+     * @param contentLength ...
+     *
+     * @throws Exception ...
+     * @throws MimeParserException ...
+     * @throws IOException ...
+     */
+    public void load(InputStream is, String contentType, int contentLength)
+              throws Exception {
+        parts = new Hashtable();
 
-    public void load (InputStream is, String contentType, int contentLength) throws Exception {
+        String boundary = getSubHeader(contentType, "boundary");
 
-	parts = new Hashtable ();
+        if (boundary == null) {
+            throw new MimeParserException("Error parsing MIME input stream.");
+        }
 
-	String boundary = getSubHeader (contentType, "boundary");
-	if (boundary == null) 
-	    throw new MimeParserException ("Error parsing MIME input stream.");
-	if (maxKbytes > -1 && contentLength > maxKbytes*1024)
-	    throw new IOException ("Size of upload exceeds limit of " + maxKbytes + " kB.");
+        if ((maxKbytes > -1) && (contentLength > (maxKbytes * 1024))) {
+            throw new IOException("Size of upload exceeds limit of " + maxKbytes +
+                                  " kB.");
+        }
 
-	byte b[] = new byte[contentLength];
-	MultipartInputStream in = new MultipartInputStream (new BufferedInputStream (is), boundary.getBytes ());
+        byte[] b = new byte[contentLength];
+        MultipartInputStream in = new MultipartInputStream(new BufferedInputStream(is),
+                                                           boundary.getBytes());
 
-	while (in.nextInputStream ()) {
+        while (in.nextInputStream()) {
+            MimeParser parser = new MimeParser(in, new MimeHeadersFactory());
+            MimeHeaders headers = (MimeHeaders) parser.parse();
 
-	    MimeParser parser = new MimeParser (in, new MimeHeadersFactory ());
-	    MimeHeaders headers = (MimeHeaders) parser.parse ();
+            InputStream bodystream = parser.getInputStream();
+            int read;
+            int count = 0;
 
-	    InputStream bodystream = parser.getInputStream ();
-	    int read, count = 0;
-	
-	    while ((read = bodystream.read (b, count, 4096)) > -1) {
-	        count += read;
-	        if (count == b.length) {
-	            byte newb[] = new byte[count+4096];
-	            System.arraycopy (b, 0, newb, 0, count);
-	            b = newb;
-	        }
-	    }
+            while ((read = bodystream.read(b, count, 4096)) > -1) {
+                count += read;
 
-	    byte newb[] = new byte[count];
-	    System.arraycopy (b, 0, newb, 0, count);
+                if (count == b.length) {
+                    byte[] newb = new byte[count + 4096];
 
-	    String type = headers.getValue("Content-Type");
-	    String disposition = headers.getValue ("Content-Disposition");
-	    String name = getSubHeader (disposition, "name");
-	    String filename = getSubHeader (disposition, "filename");
-	    if (filename != null) {
-	        int sep = filename.lastIndexOf ("\\");
-	        if (sep > -1)
-	            filename = filename.substring (sep+1);
-	        sep = filename.lastIndexOf ("/");
-	        if (sep > -1)
-	            filename = filename.substring (sep+1);
-	    }
-	    if (filename != null) {
-	        MimePart part = new MimePart (filename, newb, type);
-	        parts.put (name, part);
-	    } else {
-	        parts.put (name, new String (newb));
-	    }
+                    System.arraycopy(b, 0, newb, 0, count);
+                    b = newb;
+                }
+            }
 
-	} 
+            byte[] newb = new byte[count];
 
+            System.arraycopy(b, 0, newb, 0, count);
+
+            String type = headers.getValue("Content-Type");
+            String disposition = headers.getValue("Content-Disposition");
+            String name = getSubHeader(disposition, "name");
+            String filename = getSubHeader(disposition, "filename");
+
+            if (filename != null) {
+                int sep = filename.lastIndexOf("\\");
+
+                if (sep > -1) {
+                    filename = filename.substring(sep + 1);
+                }
+
+                sep = filename.lastIndexOf("/");
+
+                if (sep > -1) {
+                    filename = filename.substring(sep + 1);
+                }
+            }
+
+            if (filename != null) {
+                MimePart part = new MimePart(filename, newb, type);
+
+                parts.put(name, part);
+            } else {
+                parts.put(name, new String(newb));
+            }
+        }
     }
 
+    private String getSubHeader(String header, String subHeaderName) {
+        if (header == null) {
+            return null;
+        }
 
+        String retval = null;
+        StringTokenizer headerTokenizer = new StringTokenizer(header, ";");
 
-    private String getSubHeader (String header, String subHeaderName) {
-	if (header == null) 
-	    return null;
-	String retval = null;
-	StringTokenizer headerTokenizer = new StringTokenizer(header, ";");
-	while (headerTokenizer.hasMoreTokens()) {
-	    String token = headerTokenizer.nextToken().trim ();
-	    int i = token.indexOf ("=");
-	    if (i > 0) {
-	        String hname = token.substring (0, i).trim ();
-	        if (hname.equalsIgnoreCase (subHeaderName))
-	            retval = token.substring (i+1).replace ('"', ' ').trim ();
-	    }
-	}
-	return retval;
+        while (headerTokenizer.hasMoreTokens()) {
+            String token = headerTokenizer.nextToken().trim();
+            int i = token.indexOf("=");
+
+            if (i > 0) {
+                String hname = token.substring(0, i).trim();
+
+                if (hname.equalsIgnoreCase(subHeaderName)) {
+                    retval = token.substring(i + 1).replace('"', ' ').trim();
+                }
+            }
+        }
+
+        return retval;
     }
-
-
 }
