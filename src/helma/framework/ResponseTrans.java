@@ -438,7 +438,7 @@ public final class ResponseTrans implements Externalizable {
     }
 
     public void writeExternal (ObjectOutput s) throws IOException {
-	s.writeObject (contentType);
+	s.writeObject (getContentType()); // append charset to contentType
 	s.writeObject (response);
 	s.writeObject (redir);
 	s.writeObject (cookieKeys);
