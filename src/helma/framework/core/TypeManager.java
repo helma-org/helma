@@ -264,7 +264,7 @@ public class TypeManager implements Runnable {
 	String fn = list[i];
 	if (!proto.updatables.containsKey (fn)) {
 	    if (fn.endsWith (app.templateExtension) || fn.endsWith (app.scriptExtension) ||
-	    fn.endsWith (app.actionExtension) || fn.endsWith (app.scriptExtension) || "type.properties".equalsIgnoreCase (fn)) {
+	    fn.endsWith (app.actionExtension) || fn.endsWith (app.skinExtension) || "type.properties".equalsIgnoreCase (fn)) {
 	        needsUpdate = true;
 	        updatables.add ("[new:"+proto.getName()+"/"+fn+"]");
                  }
