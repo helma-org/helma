@@ -67,7 +67,7 @@ public class Main {
         } catch (Exception x) {
             // unable to get Helma installation dir from launcher jar
             System.err.println("Unable to get Helma installation directory: ");
-            System.err.println(x.getMessage());
+            x.printStackTrace();
             System.exit(2);
         }
     }
@@ -173,29 +173,27 @@ public class Main {
         if (installDir == null) {
             URL launcherUrl = apploader.findResource("helma/main/launcher/Main.class");
 
-                // this is a  JAR URL of the form
-                //    jar:<url>!/{entry}
-                // we strip away the jar: prefix and the !/{entry} suffix
-                // to get the original jar file URL
+            // this is a  JAR URL of the form
+            //    jar:<url>!/{entry}
+            // we strip away the jar: prefix and the !/{entry} suffix
+            // to get the original jar file URL
 
-                String jarUrl = launcherUrl.toString();
+            String jarUrl = launcherUrl.toString();
 
-                if (!jarUrl.startsWith("jar:") || jarUrl.indexOf("!") < 0) {
-                    throw new RuntimeException("  Unable to get JAR URL from "+jarUrl);
-                }
+            if (!jarUrl.startsWith("jar:") || jarUrl.indexOf("!") < 0) {
+                throw new RuntimeException("  Unable to get JAR URL from " + jarUrl);
+            }
 
-                jarUrl = jarUrl.substring(4);
+            jarUrl = jarUrl.substring(4);
 
-                int excl = jarUrl.indexOf("!");
+            int excl = jarUrl.indexOf("!");
 
-                jarUrl = jarUrl.substring(0, excl);
-                launcherUrl = new URL(jarUrl);
+            jarUrl = jarUrl.substring(0, excl);
+            launcherUrl = new URL(jarUrl);
 
-                File f = new File(launcherUrl.getPath());
+            File f = new File(launcherUrl.getPath()).getAbsoluteFile();
 
-                installDir = f.getParentFile().getCanonicalPath();
-
-
+            installDir = f.getParentFile().getCanonicalPath();
         }
         // set System property
         System.setProperty("helma.home", installDir);
