@@ -3,14 +3,15 @@
 
 package helma.objectmodel.db;
 
-import java.io.*;
-import java.util.Vector;
-import java.util.Properties;
 import helma.util.CacheMap;
 import helma.objectmodel.*;
 import helma.framework.core.Application;
 import com.sleepycat.db.*;
 import java.sql.*;
+import java.io.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Properties;
 import java.util.Vector;
 import java.util.Enumeration;
 import com.workingdogs.village.*;
@@ -225,7 +226,7 @@ public final class NodeManager {
 	    if (node instanceof NullNode) {
 	        if (node.created() < rel.other.lastDataChange)
 	            node = null; //  cached null not valid anymore
-	    } else if (home.contains (node) < 0) {
+	    } else if (app.doesSubnodeChecking () && home.contains (node) < 0) {
 	        node = null;
 	    }
 	}
@@ -571,7 +572,7 @@ public final class NodeManager {
      *  Loades subnodes via subnode relation. Only the ID index is loaded, the nodes are
      *  loaded later on demand.
      */
-    public Vector getNodeIDs (Node home, Relation rel) throws Exception {
+    public List getNodeIDs (Node home, Relation rel) throws Exception {
 
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNodeIDs "+home);
@@ -580,7 +581,7 @@ public final class NodeManager {
 	    // this should never be called for embedded nodes
 	    throw new RuntimeException ("NodeMgr.countNodes called for non-relational node "+home);
 	} else {
-	    Vector retval = new Vector ();
+	    List retval = new ArrayList ();
 	    // if we do a groupby query (creating an intermediate layer of groupby nodes),
 	    // retrieve the value of that field instead of the primary key
 	    String idfield = rel.groupby == null ? rel.other.getIDField () : rel.groupby;
@@ -617,7 +618,7 @@ public final class NodeManager {
 	        for (int i=0; i<qds.size (); i++) {
 	            Record rec = qds.getRecord (i);
 	            String kstr = rec.getValue (1).asString ();
-	            retval.addElement (kstr);
+	            retval.add (kstr);
 	            // if these are groupby nodes, evict nullNode keys
 	            if (rel.groupby != null) {
 	                Key key = new Key ((String) null,  home.getKey ().getVirtualID (kstr));
@@ -641,7 +642,7 @@ public final class NodeManager {
      *  actually loades all nodes in one go, which is better for small node collections.
      *  This method is used when xxx.loadmode=aggressive is specified.
      */
-    public Vector getNodes (Node home, Relation rel) throws Exception {
+    public List getNodes (Node home, Relation rel) throws Exception {
 
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNodes "+home);
@@ -650,7 +651,7 @@ public final class NodeManager {
 	    // this should never be called for embedded nodes
 	    throw new RuntimeException ("NodeMgr.countNodes called for non-relational node "+home);
 	} else {
-	    Vector retval = new Vector ();
+	    List retval = new ArrayList ();
 	    DbMapping dbm = rel.other;
 
 	    TableDataSet tds =  new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
@@ -682,7 +683,7 @@ public final class NodeManager {
 	            // create new Nodes.
 	            Record rec = tds.getRecord (i);
 	            Node node = new Node (rel.other, rec, safe);
-	            retval.addElement (node.getID());
+	            retval.add (node.getID());
 	            Key primKey = node.getKey ();
 	            // do we need to synchronize on primKey here?
 	            synchronized (cache) {

@@ -7,7 +7,9 @@ package helma.objectmodel.db;
 import java.util.Vector;
 import java.util.Hashtable;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.Date;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.io.*;
 import java.sql.Types;
@@ -26,13 +28,13 @@ public class Node implements INode, Serializable {
     // The ID of this node's parent node
     protected String parentID;
     // Ordered list of subnodes of this node
-    private Vector subnodes;
+    private List subnodes;
     // Named subnodes (properties) of this node
     private Hashtable propMap;
     // Other nodes that link to this node. Used for reference counting/checking
-    private Vector links;
+    private List links;
     // Other nodes that refer to this node as property. Used for reference counting/checking
-    private Vector proplinks;
+    private List proplinks;
 
     // the name of the (Hop) prototype - this is stored as standard property instead.
     // private String prototype;
@@ -61,9 +63,9 @@ public class Node implements INode, Serializable {
 	    lastmodified = in.readLong ();
 	    content = (byte[]) in.readObject ();
 	    contentType = (String) in.readObject ();
-	    subnodes = (Vector) in.readObject ();
-	    links = (Vector) in.readObject ();
-	    proplinks = (Vector) in.readObject ();
+	    subnodes = (ExternalizableVector) in.readObject ();
+	    links = (ExternalizableVector) in.readObject ();
+	    proplinks = (ExternalizableVector) in.readObject ();
 	    propMap = (Hashtable) in.readObject ();
 	    anonymous = in.readBoolean ();
 	    if (version == 2)
@@ -744,12 +746,12 @@ public class Node implements INode, Serializable {
 
 	if (subnodes != null && subnodes.contains (node.getID ())) {
 	    // Node is already subnode of this - just move to new position
-	    subnodes.removeElement (node.getID ());
+	    subnodes.remove (node.getID ());
 	    where = Math.min (where, numberOfNodes ());
-	    subnodes.insertElementAt (node.getID (), where);
+	    subnodes.add (where, node.getID ());
 	} else {
 	    if (subnodes == null) subnodes = new ExternalizableVector ();
-	    subnodes.insertElementAt (node.getID (), where);
+	    subnodes.add (where, node.getID ());
 
 	    // check if properties are subnodes (_properties.aresubnodes=true)
 	    if (dbmap != null && node.dbmap != null) {
@@ -839,7 +841,7 @@ public class Node implements INode, Serializable {
 	    links = new ExternalizableVector ();
 	Object fromID = from.getID ();
 	if (!links.contains (fromID))
-	    links.addElement (fromID);
+	    links.add (fromID);
     }
 
     public INode getSubnode (String path) {
@@ -900,9 +902,9 @@ public class Node implements INode, Serializable {
 	if (subnodes.size () > index) {
 	    // check if there is a group-by relation
 	    if (srel != null && srel.groupby != null)
-	        retval = nmgr.getNode (this, (String) subnodes.elementAt (index), srel);
+	        retval = nmgr.getNode (this, (String) subnodes.get (index), srel);
 	    else
-	        retval =  nmgr.getNode ((String) subnodes.elementAt (index), smap);
+	        retval =  nmgr.getNode ((String) subnodes.get (index), smap);
 	    if (retval != null && retval.parentID == null && !"root".equalsIgnoreCase (retval.getPrototype ())) {
 	        retval.setParent (this);
 	        retval.anonymous = true;
@@ -944,7 +946,7 @@ public class Node implements INode, Serializable {
 	            node.setSubnodeRelation (snrel);
 	        } else {
 	            setNode (sid, node);
-	            subnodes.addElement (node.getID ());
+	            subnodes.add (node.getID ());
 	        }
 	        nmgr.evictKey (node.getKey ());
 	        return node;
@@ -982,7 +984,7 @@ public class Node implements INode, Serializable {
 	} else {
 	    // removed just a link, not the main node.
 	    if (n.links != null) {
-	        n.links.removeElement (this.id);
+	        n.links.remove (this.id);
 	        if (n.state == CLEAN) n.markAs (MODIFIED);
 	    }
 	}
@@ -994,7 +996,7 @@ public class Node implements INode, Serializable {
      */
     protected void releaseNode (Node node) {
 	if (subnodes != null)
-	    subnodes.removeElement (node.getID ());
+	    subnodes.remove (node.getID ());
 
 	lastSubnodeChange = System.currentTimeMillis ();
 
@@ -1044,14 +1046,14 @@ public class Node implements INode, Serializable {
 	int l = links == null ? 0 : links.size ();
 	for (int i = 0; i < l; i++) {
 	    // TODO: solve dbmap problem
-	    Node link = nmgr.getNode ((String) links.elementAt (i),  null);
+	    Node link = nmgr.getNode ((String) links.get (i),  null);
 	    if (link != null) link.releaseNode (this);
 	}
 
 	// clean up all nodes that use n as a property
 	if (proplinks != null) {
-	    for (Enumeration e1 = proplinks.elements (); e1.hasMoreElements ();  ) try {
-	        String pid = (String) e1.nextElement ();
+	    for (Iterator e1 = proplinks.iterator (); e1.hasNext ();  ) try {
+	        String pid = (String) e1.next ();
 	        Node pnode = nmgr.getNode (pid, null);
 	        if (pnode != null) {
 	            nmgr.logEvent("Warning: Can't unset node property of "+pnode.getFullName ());
@@ -1072,15 +1074,15 @@ public class Node implements INode, Serializable {
 	// the parent info is not 100% accurate for them.
 	if (subnodes != null) {
 	    Vector v = new Vector ();
-	    // removeElement modifies the Vector we are enumerating, so we are extra careful.
+	    // remove modifies the Vector we are enumerating, so we are extra careful.
 	    for (Enumeration e3 = getSubnodes (); e3.hasMoreElements(); ) {
-	        v.addElement (e3.nextElement());
+	        v.add (e3.nextElement());
 	    }
 	    int m = v.size ();
 	    for (int i=0; i<m; i++) {
 	        // getParent() is heuristical/implicit for relational nodes, so we don't base
 	        // a cascading delete on that criterium for relational nodes.
-	        Node n = (Node) v.elementAt (i);
+	        Node n = (Node) v.get (i);
 	        if (n.dbmap == null || !n.dbmap.isRelational())
 	            removeNode (n);
 	    }
@@ -1616,14 +1618,14 @@ public class Node implements INode, Serializable {
 	    proplinks = new ExternalizableVector ();
 	String plid = n.getID ();
 	if (!proplinks.contains (plid))
-	    proplinks.addElement (n.getID ());
+	    proplinks.add (n.getID ());
 	if (state == CLEAN || state == DELETED)
 	    markAs (MODIFIED);
     }
 
     protected void unregisterPropLink (INode n) {
 	if (proplinks != null)
-	    proplinks.removeElement (n.getID ());
+	    proplinks.remove (n.getID ());
 	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.NODE_REMOVED));
 	// Server.throwNodeEvent (new NodeEvent (n, NodeEvent.SUBNODE_REMOVED, this));
 	if (state == CLEAN)
@@ -1631,7 +1633,7 @@ public class Node implements INode, Serializable {
     }
 
 
-    public void sanityCheck () {
+   /* public void sanityCheck () {
 	checkSubnodes ();
 	checkProperties ();
 	checkLinks ();
@@ -1646,10 +1648,10 @@ public class Node implements INode, Serializable {
 	Vector v = links == null ? null : (Vector) links.clone ();
 	int l = v == null ? 0 : v.size ();
 	for (int i = 0; i < l; i++) {
-	    String k = (String) v.elementAt (i);
+	    String k = (String) v.get (i);
 	    Node link = nmgr.getNode (k,  null);
 	    if (link == null) {
-	        links.removeElement (k);
+	        links.remove (k);
 	        System.out.println ("**** link "+k+": "+this.getFullName ());
 	        markAs (MODIFIED);
 	    }
@@ -1660,10 +1662,10 @@ public class Node implements INode, Serializable {
 	Vector v = proplinks == null ? null : (Vector) proplinks.clone ();
 	int l = v == null ? 0 : v.size ();
 	for (int i = 0; i < l; i++) {
-	    String k = (String) v.elementAt (i);
+	    String k = (String) v.get (i);
 	    Node link = nmgr.getNode (k,  null);
 	    if (link == null) {
-	        proplinks.removeElement (k);
+	        proplinks.remove (k);
 	        System.out.println ("**** proplink "+k+": "+this.getFullName ());
 	        markAs (MODIFIED);
 	    }
@@ -1674,10 +1676,10 @@ public class Node implements INode, Serializable {
 	Vector v = subnodes == null ? null : (Vector) subnodes.clone ();
 	int l = v == null ? 0 : v.size ();
 	for (int i = 0; i < l; i++) {
-	    String k = (String) v.elementAt (i);
+	    String k = (String) v.get (i);
 	    Node link = nmgr.getNode (k,  null);
 	    if (link == null) {
-	        subnodes.removeElement (k);
+	        subnodes.remove (k);
 	        System.out.println ("**** subnode "+k+": "+this.getFullName ());
 	        markAs (MODIFIED);
 	    }
@@ -1697,7 +1699,7 @@ public class Node implements INode, Serializable {
 	    }
 	}
 
-    }
+    }  */
 
     /**
      *  content-related

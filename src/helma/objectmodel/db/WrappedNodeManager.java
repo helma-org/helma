@@ -4,6 +4,7 @@
 package helma.objectmodel.db;
 
 import helma.objectmodel.*;
+import java.util.List;
 import java.util.Vector;
 
 
@@ -47,7 +48,7 @@ import java.util.Vector;
 	}
     }
 
-    public Vector getNodes (Node home, Relation rel) {
+    public List getNodes (Node home, Relation rel) {
 	try {
 	    return nmgr.getNodes (home, rel);
 	} catch (Exception x) {
@@ -57,7 +58,7 @@ import java.util.Vector;
 	}
     }
 
-    public Vector getNodeIDs (Node home, Relation rel) {
+    public List getNodeIDs (Node home, Relation rel) {
 	try {
 	    return nmgr.getNodeIDs (home, rel);
 	} catch (Exception x) {
