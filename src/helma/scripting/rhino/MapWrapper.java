@@ -25,9 +25,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 
+ *  A class that wraps a Java Map as a native JavaScript object. This is
+ *  used by the RhinoCore Wrapper for instances of helma.util.SystemMap
+ *  and helma.util.WrappedMap.
  */
-public class MapWrapper extends ScriptableObject {
+public class MapWrapper extends ScriptableObject implements Wrapper {
     Map map;
     RhinoCore core;
 
@@ -199,9 +201,7 @@ public class MapWrapper extends ScriptableObject {
 
 
     /**
-     *
-     *
-     * @return ...
+     * Return an array containing the property key values of this map.
      */
     public Object[] getIds() {
         if (map == null) {
@@ -218,7 +218,10 @@ public class MapWrapper extends ScriptableObject {
         return super.getDefaultValue(hint);
     }
 
-    public Map unwrap() {
+    /**
+     * Return the wrapped Map object.
+     */
+    public Object unwrap() {
         if (map == null) {
             map = new HashMap();
         }
@@ -226,14 +229,16 @@ public class MapWrapper extends ScriptableObject {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Return the class name for wrapped maps.
      */
     public String getClassName() {
         return "[MapWrapper]";
     }
 
+    /**
+     * Return a string representation for this wrapped map. This calls
+     * Map.toString(), so usually the contents of the map will be listed.
+     */
     public String toString() {
         if (map == null) {
             return "[MapWrapper{}]";
