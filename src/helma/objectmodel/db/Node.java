@@ -44,17 +44,20 @@ public final class Node implements INode, Serializable {
     // anonymous node in a subnode collection?
     protected boolean anonymous = false;
 
+    // the serialization version this object was read from (see readObject())
+    protected short version = 0;
+
     private void readObject (ObjectInputStream in) throws IOException {
 	try {
 	    // as a general rule of thumb, if a string can bu null use read/writeObject,
 	    // if not it's save to use read/writeUTF.
 	    // version indicates the serialization version
-	    int version = in.readShort ();
+	    version = in.readShort ();
+	    String rawParentID = null;
 	    id = in.readUTF ();
 	    name = in.readUTF ();
 	    if (version < 5)
-	        throw new IOException ("Unsupported Data Format (pre 1.2)");
-	        // parentHandle = new NodeHandle (new Key (null, (String) in.readObject ()));
+	        rawParentID = (String) in.readObject ();
 	    else
 	        parentHandle = (NodeHandle) in.readObject ();
 	    created = in.readLong ();
@@ -73,6 +76,29 @@ public final class Node implements INode, Serializable {
 	        prototype = in.readUTF ();
 	    else if (version >= 3)
 	        prototype = (String) in.readObject ();
+	    // if the input version is < 5, we have to do some conversion to make this object work
+	    if (version < 5) {
+	        if (rawParentID != null)
+	            parentHandle = new NodeHandle (new DbKey (null, rawParentID));
+	        if (subnodes != null) {
+	            for (int i=0; i<subnodes.size(); i++) {
+	                String s = (String) subnodes.get (i);
+	                subnodes.set (i, new NodeHandle (new DbKey (null, s)));
+	            }
+	        }
+	        if (links != null) {
+	            for (int i=0; i<links.size(); i++) {
+	                String s = (String) links.get (i);
+	                links.set (i, new NodeHandle (new DbKey (null, s)));
+	            }
+	        }
+	        if (proplinks != null) {
+	            for (int i=0; i<proplinks.size(); i++) {
+	                String s = (String) proplinks.get (i);
+	                proplinks.set (i, new NodeHandle (new DbKey (null, s)));
+	            }
+	        }
+	    }
 	} catch (ClassNotFoundException x) {
 	    throw new IOException (x.toString ());
 	}
@@ -299,7 +325,11 @@ public final class Node implements INode, Serializable {
 
 	    // if the property is a pointer to another node, change the property type to NODE
 	    if (rel.direction == Relation.FORWARD) {
-	        newprop.nhandle = new NodeHandle (new DbKey (rel.other, newprop.getStringValue ()));
+	        // FIXME: References to anything other than the primary key are not supported
+	        if (rel.usesPrimaryKey ())
+	            newprop.nhandle = new NodeHandle (new DbKey (rel.other, newprop.getStringValue ()));
+	        else
+	            newprop.nhandle = new NodeHandle (new DbKey (rel.other, newprop.getStringValue (), rel.getRemoteField ()));
 	        newprop.type = IProperty.NODE;
 	    }
 	}
@@ -409,7 +439,8 @@ public final class Node implements INode, Serializable {
 	    anonymous = false;
 	} else if (parentHandle != null) {
 	    try {
-	        DbMapping parentmap = parentHandle.getDbMapping (nmgr);
+	        Node p = parentHandle.getNode (nmgr);
+	        DbMapping parentmap = p.getDbMapping ();
 	        Relation prel = parentmap.getPropertyRelation();
 	        if (prel != null && prel.subnodesAreProperties && !prel.usesPrimaryKey ()) {
 	            Relation localrel = dbmap.columnNameToProperty (prel.getRemoteField ());
@@ -1388,7 +1419,7 @@ public final class Node implements INode, Serializable {
 
 	// check if this may have an effect on the node's URL when using subnodesAreProperties
 	// but only do this if we already have a parent set, i.e. if we are already stored in the db
-	INode parent = parentHandle == null ? null : getParent ();
+	Node parent = parentHandle == null ? null : (Node) getParent ();
 
 	if (parent != null && parent.getDbMapping() != null) {
 	    // check if this node is already registered with the old name; if so, remove it.
@@ -1409,7 +1440,7 @@ public final class Node implements INode, Serializable {
 	                parent.unset (oldvalue);
 	                parent.addNode (this);
 	                // let the node cache know this key's not for this node anymore.
-	                nmgr.evictKey (new DbKey (prel.other, prel.getKeyID (parent, oldvalue)));
+	                nmgr.evictKey (new SyntheticKey (parent.getKey (), oldvalue));
 	            }
 	        }
 	        parent.setNode (value, this);
@@ -1595,18 +1626,25 @@ public final class Node implements INode, Serializable {
 	prop.setNodeValue (n);
 	Relation rel = dbmap == null ? null : dbmap.getPropertyRelation (propname);
 
-	if (rel == null || rel.direction == Relation.FORWARD || rel.virtual || rel.other == null || !rel.other.isRelational()) {
+	if (rel == null || rel.direction == Relation.FORWARD || rel.virtual ||
+			rel.other == null || !rel.other.isRelational()) {
 	    // the node must be stored as explicit property
 	    propMap.put (p2, prop);
-	} 
+	}
+	
+	if (rel != null && rel.direction == Relation.FORWARD && !rel.usesPrimaryKey ()) {
+	    String kval = n.getString (rel.other.columnNameToProperty (rel.getRemoteField ()).propname, false);
+	    prop.nhandle = new NodeHandle (new DbKey (n.getDbMapping (), kval, rel.getRemoteField ()));
+	}
+	
 	String nID = n.getID();
 
 	// check node in with transactor cache
 	Transactor tx = (Transactor) Thread.currentThread ();
 	tx.visitCleanNode (new DbKey (nmap, nID), n);
 	// if the field is not the primary key of the property, also register it
-	if (rel != null && rel.direction == Relation.DIRECT && !rel.getKeyID(this, p2).equals (nID)) {
-	    Key secKey = new DbKey (rel.other, rel.getKeyID(this, p2));
+	if (rel != null && rel.direction == Relation.DIRECT) {
+	    Key secKey = new SyntheticKey (getKey (), propname);
 	    nmgr.evictKey (secKey);
 	    tx.visitCleanNode (secKey, n);
 	}
@@ -1729,6 +1767,7 @@ public final class Node implements INode, Serializable {
 	if (state == TRANSIENT) {
 	    state = NEW;
 	    id = nmgr.generateID (dbmap);
+	    getHandle ().becomePersistent ();
 	    Transactor current = (Transactor) Thread.currentThread ();
 	    current.visitNode (this);
 	    current.visitCleanNode (this);
