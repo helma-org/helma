@@ -92,6 +92,8 @@ public final class StandaloneServletClient extends AbstractServletClient {
             app = new Application(appName, appHome, dbHome);
             app.init();
             app.start();
+            // get the app's charset
+            defaultEncoding = app.getCharset();
         } catch (Exception x) {
             log("Error starting Application " + appName + ": " + x);
             x.printStackTrace();
