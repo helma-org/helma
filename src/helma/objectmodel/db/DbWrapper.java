@@ -67,10 +67,12 @@ public class DbWrapper {
 	    loaded = true;
 
 	} catch (NoClassDefFoundError noclass) {
-	    Server.getLogger().log ("Warning: Using file based db as fallback. Reason: "+noclass);
+	    Server.getLogger().log ("Warning: Using internal file based db as fallback.");
+	    Server.getLogger().log ("Reason: "+noclass);
 	    loaded = false;
 	} catch (UnsatisfiedLinkError nolib) {
-	    Server.getLogger().log ("Warning: Using file based db as fallback. Reason: "+nolib);
+	    Server.getLogger().log ("Warning: Using internal file based db as fallback.");
+	    Server.getLogger().log ("Reason: "+nolib);
 	    loaded = false;
 	}
 	
