@@ -76,24 +76,22 @@ public class ImageFilterOp implements BufferedImageOp {
         // filters convert to integer internally anyhow
         cm = new SimpleColorModel();
 
-        // create a BufferedImage of only 1 pixel height for fetching the rows of the image in the correct format
-        // This speeds up things by more than factor 2, compared with the standard BufferedImage.getRGB solution,
-        // which is supposed to be fast too. This is probably the case because drawing to BufferedImages is 
-        // very optimized or even hardware accelerated.
+        // create a BufferedImage of only 1 pixel height for fetching the rows of the image in the correct format (ARGB)
+        // This speeds up things by more than factor 2, compared to the standard BufferedImage.getRGB solution,
+        // which is supposed to be fast too. This is probably the case because drawing to BufferedImages uses 
+        // very optimized code which may even be hardware accelerated.
         BufferedImage row = new BufferedImage(width, 1, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = row.createGraphics();
         int pixels[] = ((DataBufferInt)row.getRaster().getDataBuffer()).getData();
 
         // calculate scanline by scanline in order to safe memory.
         // It also seems to run faster like that
-        long t = System.currentTimeMillis();
         for (int y = 0; y < height; y++) {
             g2d.drawImage(src, null, 0, -y); 
-            // now pixels contain the rgb values of the row y!
+            // now pixels contains the rgb values of the row y!
             fltr.setPixels(0, y, width, 1, cm, pixels, 0, width);
         }
         g2d.dispose();
-        System.out.println(System.currentTimeMillis() - t);
 
         return consumer.getImage();
     }
