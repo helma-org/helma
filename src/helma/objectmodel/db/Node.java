@@ -391,8 +391,7 @@ public final class Node implements INode, Serializable {
         // if subnodes are also mounted as properties, try to get the "nice" prop value
         // instead of the id by turning the anonymous flag off.
         long lastmod = Math.max(dbmap.getLastTypeChange(), lastmodified);
-        if ((parentHandle != null) && (lastNameCheck < lastmod) &&
-            (dbmap != null) && (dbmap.isRelational())) {
+        if ((parentHandle != null) && (lastNameCheck < lastmod)) {
             try {
                 Node p = parentHandle.getNode(nmgr);
                 DbMapping parentmap = p.getDbMapping();
@@ -407,16 +406,17 @@ public final class Node implements INode, Serializable {
                         anonymous = false;
 
                         // nameProp = localrel.propName;
-                    } else {
+                    } else if (!anonymous && (p.contains(this) > -1)) {
                         anonymous = true;
                     }
                 } else if (!anonymous && (p.contains(this) > -1)) {
                     anonymous = true;
                 }
             } catch (Exception ignore) {
+                // FIXME: add proper NullPointer checks in try statement
                 // just fall back to default method
             }
-            
+
             lastNameCheck = System.currentTimeMillis();
         }
 
