@@ -114,7 +114,7 @@ public class RequestTrans implements Externalizable {
     public void readExternal (ObjectInput s) throws ClassNotFoundException, IOException {
 	path = s.readUTF ();
 	session = s.readUTF ();
-	values = (Hashtable) s.readObject ();
+	values = (Map) s.readObject ();
 	httpMethod = s.readByte ();
     }
 
