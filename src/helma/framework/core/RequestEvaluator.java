@@ -83,7 +83,7 @@ public class RequestEvaluator implements Runnable {
     static final int XMLRPC = 2;      // via XML-RPC
     static final int INTERNAL = 3;     // generic function call, e.g. by scheduler
 
-    INode[] skinmanagers;
+    Object[] skinsets;
 
     /**
      *  Build a RenderContext from a RequestTrans. Checks if the path is the user home node ("user")
@@ -154,8 +154,8 @@ public class RequestEvaluator implements Runnable {
 	    // object refs to ressolve request path
 	    Object root, currentElement;
 	
-	    // reset skinManager
-	    skinmanagers = null;
+	    // reset skinsets array and skin cache
+	    skinsets = null;
 	    skincache.clear ();
 
 	    switch (reqtype) {
@@ -209,7 +209,6 @@ public class RequestEvaluator implements Runnable {
 	                req.data = reqData;
 	                resData.setData (res.getResponseData());
 	                res.data = resData;
-	                res.skinpath = app.getProperty ("skinpath");
 
 	                try {
 
@@ -345,8 +344,14 @@ public class RequestEvaluator implements Runnable {
 	                try {
 	                    localrtx.timer.beginEvent (requestPath+" execute");
 
+	                    int actionDot = action.lastIndexOf (".");
+	                    boolean isAction =  actionDot == -1;
 	                    // set the req.action property, cutting off the _action suffix
-	                    req.action = action.substring (0, action.length()-7);
+	                    if (isAction)
+	                        req.action = action.substring (0, action.length()-7);
+	                    else
+	                        req.action = action;
+
 	                    // try calling onRequest() function on object before
 	                    // calling the actual action
 	                    try {
@@ -357,7 +362,16 @@ public class RequestEvaluator implements Runnable {
 	                        // function is not defined or caused an exception, ignore
 	                    }
 	                    // do the actual action invocation
-	                    current.doIndirectCall (evaluator, current, action, new ESValue[0]);
+	                    if (isAction)
+	                        current.doIndirectCall (evaluator, current, action, new ESValue[0]);
+	                    else {
+	                        Skin skin = getSkinInternal (app.appDir, app.getPrototype(currentElement).getName(), action.substring (0, actionDot), action.substring (actionDot+1));
+	                        if (skin != null)
+	                            skin.render (this, current.toJavaObject (), null);
+	                        else
+	                            throw new RuntimeException ("Skin "+action+" not found in "+req.path);
+	                    }
+
 
 	                    // check if the script set the name of a skin to render in res.skin
 	                    if (res.skin != null) {
@@ -820,103 +834,107 @@ public class RequestEvaluator implements Runnable {
 	    Object elem = thisObject.toJavaObject ();
 	    proto = app.getPrototype (elem);
 	}
-	return getSkin (proto, skinname);
+	return getSkin (proto, skinname, "skin");
     }
 	
-	
-    public Skin getSkin (Prototype proto, String skinname) {
+
+    public Skin getSkin (Prototype proto, String skinname, String extension) {
 	if (proto == null)
 	    return null;
 	// First check if the skin has been already used within the execution of this request
-	SkinKey key = new SkinKey (proto.getName(), skinname);
+	SkinKey key = new SkinKey (proto.getName(), skinname, extension);
 	Skin skin = (Skin) skincache.get (key);
 	if (skin != null) {
 	    return skin;
 	}
-	// check for skin path
-	if (res.skinpath != null) {
-	    File f = new File (res.skinpath, proto.getName());
-	    f = new File (f, skinname+".skin");
-	    if (f.exists ()) {
-	        SkinFile sf = new SkinFile (f, skinname, proto);
-	        skin = sf.getSkin ();
-	        if (skin != null)
-	            return skin;
-	    }
-	}
-	// check for Helma-internal skinmanager nodes
-	if (skinmanagers == null)
-	    getSkinManagers ();
+	// check for skinsets set via res.skinpath property
+	if (skinsets == null)
+	    getSkinSets ();
 	do {
-	    for (int i=0; i<skinmanagers.length; i++) {
-	        skin = getSkinFromNode (skinmanagers[i], proto.getName (), skinname);
+	    for (int i=0; i<skinsets.length; i++) {
+	        skin = getSkinInternal (skinsets[i], proto.getName (), skinname, extension);
 	        if (skin != null) {
 	            skincache.put (key, skin);
 	            return skin;
 	        }
 	    }
-	    // not found in node managers for this prototype.
-	    // the next step is to look if it is defined as skin file for this prototype
+	    // skin for this prototype wasn't found in the skinsets.
+	    // the next step is to look if it is defined as skin file in the application directory
 	    skin = proto.getSkin (skinname);
 	    if (skin != null) {
 	        skincache.put (key, skin);
 	        return skin;
 	    }
-	    // still not found. See if there is a parent prototype which might define the skin
+	    // still not found. See if there is a parent prototype which might define the skin.
 	    proto = proto.getParentPrototype ();
 	} while (proto != null);
 	// looked every where, nothing to be found
 	return null;
     }
 
-    	
-    private Skin getSkinFromNode (INode node, String prototype, String skinname) {
-	if (prototype == null)
+
+    private Skin getSkinInternal (Object skinset, String prototype, String skinname, String extension) {
+	if (prototype == null || skinset == null)
 	    return null;
-	INode n = node.getNode (prototype, false);
-	if (n != null) {
-	    n = n.getNode (skinname, false);
+	// check if the skinset object is a HopObject (db based skin)
+	// or a String (file based skin)
+	if (skinset instanceof INode) {
+	    INode n = ((INode) skinset).getNode (prototype, false);
 	    if (n != null) {
-	        String skin = n.getString ("skin", false);
-	        if (skin != null) {
-	            Skin s = (Skin) app.skincache.get (skin);
-	            if (s == null) {
-	                s = new Skin (skin, app);
-	                app.skincache.put (skin, s);
+	        n = n.getNode (skinname, false);
+	        if (n != null) {
+	            String skin = n.getString (extension, false);
+	            if (skin != null) {
+	                Skin s = (Skin) app.skincache.get (skin);
+	                if (s == null) {
+	                    s = new Skin (skin, app);
+	                    app.skincache.put (skin, s);
+	                }
+	                return s;
 	            }
-	            return s;
 	        }
 	    }
+	} else {
+	    // Skinset is interpreted as directory name from which to
+	    // retrieve the skin
+	    File f = new File (skinset.toString (), prototype);
+	    f = new File (f, skinname+"."+extension);
+	    if (f.exists() && f.canRead()) {
+	        SkinFile sf = new SkinFile (f, skinname, app);
+	        Skin s = sf.getSkin ();
+	        return s;
+	    }
 	}
-	
 	// Inheritance is taken care of in the above getSkin method.
 	// the sequence is prototype.skin-from-db, prototype.skin-from-file, parent.from-db, parent.from-file etc.
-	
 	return null;
     }
 
     /**
      * Get an array of skin managers for a request path so it is retrieved ony once per request
      */
-     private void getSkinManagers () {
- 	Vector v = new Vector ();
-	for (int i=reqPath.size()-1; i>=0; i--) try {
-	    ESNode esn = (ESNode) reqPath.getProperty (i);
-	    INode n = esn.getNode ();
-	    DbMapping dbm = n.getDbMapping ();
-	    if (dbm == null)
-	        continue;
-	    String[] skinmgr = dbm.getSkinManagers();
-	    if (skinmgr == null)
-	        continue;
-	    for (int j=0; j<skinmgr.length; j++) {
-	        INode sm = n.getNode (skinmgr[j], false);
-	        if (sm != null)
-	            v.addElement (sm);
+     private void getSkinSets () {
+	Vector v = new Vector ();
+	if (res.skinpath != null && res.skinpath instanceof JSWrapper) {
+	    try {
+	        ArrayPrototype sp = (ArrayPrototype) ((JSWrapper) res.skinpath).getESObject ();
+	        for (int i=0; i<sp.size(); i++) {
+	            ESValue esv = sp.getProperty (i);
+	            if (esv instanceof ESNode) {
+	                // add internal, db-based skinset
+	                INode n = ((ESNode) esv).getNode ();
+	                v.addElement (n);
+	            } else {
+	                // add external, file based skinset
+	                v.addElement (esv.toString ());
+	            }
+	        }
+	    } catch (Exception x) {
+	        app.logEvent ("Error resolving res.skinpath "+res.skinpath+": "+x);
 	    }
-	} catch (Exception ignore) { }
-	skinmanagers = new INode[v.size()];
-	v.copyInto (skinmanagers);
+	}
+	skinsets = new Object[v.size()];
+	v.copyInto (skinsets);
     }
 
     /**
@@ -926,12 +944,28 @@ public class RequestEvaluator implements Runnable {
     public String getAction (ESObject obj, String action) {
 	if (obj == null)
 	    return null;
-	String act = action == null ? "main_action" : action+"_action";
-	try {
-	    ESValue esv = obj.getProperty (act, act.hashCode());
-	    if (esv != null && esv instanceof FunctionPrototype)
-	        return act;
-	} catch (EcmaScriptException notfound) {}
+	// check if this is a public skin, i.e. something with an extension
+	// like "home.html"
+	if (action != null && action.indexOf (".") > -1) {
+	    int dot = action.lastIndexOf (".");
+	    String extension = action.substring (dot+1);
+	    String contentType = app.skinExtensions.getProperty (extension);
+	    if (contentType != null) {
+	        res.contentType = contentType;
+	        return action;
+	    } else
+	        return null;
+	} else {
+	    String act = action == null ? "main_action" : action+"_action";
+	    try {
+	        ESObject proto = obj.getPrototype ();
+	        if (proto != null) {
+	            ESValue esv = proto.getProperty (act, act.hashCode());
+	            if (esv != null && esv instanceof FunctionPrototype)
+	                return act;
+	        }
+	    } catch (EcmaScriptException notfound) {}
+	}
 	return null;
     }
 
@@ -1127,24 +1161,25 @@ public class RequestEvaluator implements Runnable {
      */
     final class SkinKey {
 
-	final String first, second;
+	final String first, second, third;
 
-	public SkinKey (String first, String second) {
+	public SkinKey (String first, String second, String third) {
 	    this.first = first;
 	    this.second = second;
+	    this.third = third;
 	}
 
 	public boolean equals (Object other) {
 	    try {
 	        SkinKey key = (SkinKey) other;
-	        return first.equals (key.first) && second.equals (key.second);
+	        return first.equals (key.first) && second.equals (key.second) && third.equals (key.third);
 	    } catch (Exception x) {
 	        return false;
 	    }
 	}
-	
+
 	public int hashCode () {
-	    return first.hashCode () + second.hashCode ();
+	    return first.hashCode () + second.hashCode () + third.hashCode ();
 	}
     }
 }
