@@ -13,7 +13,7 @@ import java.io.*;
  */
 
 
-public final class SkinManager {
+public final class SkinManager implements FilenameFilter {
 
     Application app;
 
@@ -85,12 +85,7 @@ public final class SkinManager {
 
     protected Map getSkinFiles (String skinDir, Prototype proto) {
 	File dir = new File (skinDir.toString (), proto.getName ());
-	String[] skinNames = dir.list (new FilenameFilter () {
-	        public boolean accept (File d, String n) {
-	            return n.endsWith (".skin");
-	        }
-	    }
-	);
+	String[] skinNames = dir.list (this);
 	if (skinNames == null || skinNames.length == 0)
 	    return null;
 	HashMap map = new HashMap ();
@@ -101,4 +96,12 @@ public final class SkinManager {
 	}
 	return map;
     }
+
+    /** 
+     * Implements java.io.FilenameFilter.accept()
+     */
+    public boolean accept (File d, String n) {
+	return n.endsWith (".skin");
+    }
+
 }
