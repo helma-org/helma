@@ -1189,11 +1189,7 @@ public final class Node implements INode, Serializable {
         checkWriteLock();
 
         try {
-            if (!anonymous) {
-                getParent().unset(name);
-            } else {
-                getParent().removeNode(this);
-            }
+            getParent().removeNode(this);
         } catch (Exception x) {
             return false;
         }
