@@ -48,7 +48,7 @@ public class ESWrapper extends ESObject {
     private boolean asBean = false; // true if created as a bean
     
     // A marker object never returned as a valid property !
-    private static ESObject noPropertyMarker = null;
+    private ESObject noPropertyMarker = null;
     
     private Hashtable eventHandlers = null;
     private Hashtable eventAdaptors = null;
