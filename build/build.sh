@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # --------------------------------------------
-# Defualt == jar
+# Default == jar
 # "core"           target builds core classes
 # "clean"          target removes bin directory
 # "jar"            target builds core + jar
@@ -9,6 +9,8 @@
 # "package"        target builds core + jar + javadoc + distribution
 # --------------------------------------------
 TARGET=${1}
+
+export CVSHOME=:pserver:anonymous@coletta.helma.at:/opt/cvs
 
 cvs -d :pserver:anonymous@coletta.helma.at:/opt/cvs login
 JAVA_HOME=/usr/lib/jdk1.3
@@ -23,7 +25,7 @@ if test -z "${JAVA_HOME}" ; then
     exit
 fi
 
-if test -z "${TARGET}" ; then 
+if test -z "${TARGET}" ; then
 TARGET=jar
 fi
 
@@ -33,7 +35,7 @@ fi
 
 echo "Now building ${TARGET}..."
 
-CP=${CLASSPATH}:ant.jar:jaxp.jar:parser.jar
+CP=${CLASSPATH}:ant.jar:jaxp.jar:parser.jar:../lib/netcomponents.jar:jakarta-ant-1.3-optional.jar
 
 echo "Classpath: ${CP}"
 echo "JAVA_HOME: ${JAVA_HOME}"
@@ -41,3 +43,4 @@ echo "JAVA_HOME: ${JAVA_HOME}"
 BUILDFILE=build.xml
 
 ${JAVA_HOME}/bin/java -classpath ${CP} org.apache.tools.ant.Main -buildfile ${BUILDFILE} ${TARGET}
+

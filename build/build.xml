@@ -9,15 +9,16 @@
     <!-- Initializes some variables                                          -->
     <!-- =================================================================== -->
     <target name="init">
-        <property name="Name" value="Hop"/>
+        <property name="Name" value="helma"/>
         <property name="year" value="1998-2001"/>
-        <property name="version" value="1.0.beta1"/>
-        <property name="project" value="hop"/>
+        <property name="version" value="1.2"/>
+        <property name="project" value="helma"/>
         <property name="build.compiler" value="classic"/>
         <property name="build.dir" value="../work"/>
         <property name="build.src" value="${build.dir}/src"/>
         <property name="build.dest" value="${build.dir}/classes"/>
         <property name="build.checkout" value="${build.dir}/checkout"/>
+ 	<property name="cvs.root" value=":pserver:anonymous@coletta.helma.at:/opt/cvs"/>
         <property name="javadoc.destdir" value="../docs/apidocs"/>
         <property name="jar.name" value="helma"/>
         <property name="final.name" value="${project}-${version}"/>
@@ -46,14 +47,11 @@
         <mkdir dir="${build.dest}"/>
         <mkdir dir="${build.src}"/>
         <mkdir dir="${build.checkout}"/>
-
-        <cvs cvsRoot=":pserver:anonymous@coletta.helma.at:/opt/cvs"
-            package="hop"
-            dest="${build.checkout}"/>
-
-        <cvs cvsRoot=":pserver:anonymous@coletta.helma.at:/opt/cvs"
-            package="hopbuild/lib"
-            dest="${build.dir}"/>
+ 
+        <cvs cvsRoot="${cvs.root}" package="hop" dest="${build.checkout}"/>
+	<cvs cvsRoot="${cvs.root}" package="apps/hopblog" dest="${build.dir}"/>
+        <cvs cvsRoot="${cvs.root}" package="hopbuild/lib" dest="${build.dir}"/>
+	<cvs cvsRoot="${cvs.root}" package="hopbuild/skeleton" dest="${build.dir}"/>
 
         <copy todir="${build.src}">
             <fileset dir="${build.checkout}/hop"
@@ -151,14 +149,30 @@
     <!-- =================================================================== -->
     <!-- Package                                                             -->
     <!-- =================================================================== -->
-    <target name="package" depends="jar,javadocs">
+    <target name="package" depends="jar">
         <mkdir dir="${final.dir}"/>
-        <copydir src="${build.dir}/src/" dest="${final.dir}/src/"/>
-        <copydir src="../docs" dest="${final.dir}/docs"/>
-        <copydir src="../lib" dest="${final.dir}/lib"/>
-        <copydir src="../build" dest="${final.dir}/build"/>
-        <copyfile src="${build.dir}/${final.name}.jar" dest="${final.dir}/${final.name}.jar"/>
-    </target>
+ 	<!-- mkdir dir="${final.dir}/static"/ -->
+ 	<mkdir dir="${final.dir}/src"/>
+        <jar jarfile="${final.dir}/src/${Name}-src.jar"
+            basedir="${build.src}"/>
+        <!-- copy todir="${final.dir}/src">
+            <fileset dir="${build.dir}/src"/>
+        </copy -->
+        <copy todir="${final.dir}/docs">
+            <fileset dir="../docs"/>
+        </copy>
+        <copy todir="${final.dir}/lib">
+            <fileset dir="../lib"/>
+        </copy>
+        <copy todir="${final.dir}">
+            <fileset dir="${build.dir}/hopbuild/skeleton"/>
+        </copy>
+        <copy todir="${final.dir}/apps/base">
+            <fileset dir="${build.dir}/apps/hopblog" excludes="**/CVS"/>
+        </copy>
+ 	<copy file="${build.dir}/${jar.name}.jar" todir="${final.dir}/lib"/>
+        <chmod file="${final.dir}/hop.sh" perm="755"/>
+   </target>
 
     <!-- =================================================================== -->
     <!-- Packages the distribution with ZIP                                  -->
@@ -171,7 +185,15 @@
     <!-- Packages the distribution with TAR-GZIP                             -->
     <!-- =================================================================== -->
     <target name="package-tgz" depends="package">
-        <tar tarfile="../${Name}-${version}.tar" basedir="../" includes="**/${final.name}/**"/>
+        <tar tarfile="../${Name}-${version}.tar">
+             <tarfileset dir="../" mode="755">
+                  <include name="hop.sh"/>
+             </tarfileset>
+             <tarfileset dir="../">
+                  <include name="**/${final.name}/**"/>
+                  <exclude name="hop.sh"/>
+	     </tarfileset>
+        </tar>
         <gzip zipfile="../${Name}-${version}.tar.gz" src="../${Name}-${version}.tar"/>
     </target>
 
@@ -182,12 +204,37 @@
     </target>
 
     <!-- =================================================================== -->
-    <!-- Packages just the jar with ZIP                                  -->
+    <!-- Packages just the jar with ZIP                                      -->
     <!-- =================================================================== -->
     <target name="snapshot" depends="jar">
         <copy file="${build.dir}/${jar.name}.jar" tofile="../helma-${DSTAMP}.jar"/>
     </target>
 
+    <!-- =================================================================== -->
+    <!-- Packages and FTPs the distribution with ZIP and TAG-GZIP            -->
+    <!-- =================================================================== -->
+    <target name="ftp-all" depends="package-all">
+        <ftp server="piefke.helma.at"
+            userid="anonymous"
+            password="tobi@helma.at">
+            <fileset dir="${build.dir}">
+                 <include name="${Name}-${version}.zip,${Name}-${version}.tar.gz"/>
+            </fileset>
+        </ftp>
+    </target>
+
+
+    <target name="ftp-test" depends="">
+         <ftp server="piefke.helma.at"
+            userid="anonymous"
+            password="tobi@helma.at">
+            <fileset dir="${build.dir}">
+                 <include name="${Name}-${version}.zip,${Name}-${version}.tar.gz"/>
+            </fileset>
+        </ftp>
+    </target>
+
 
 </project>
+
 
