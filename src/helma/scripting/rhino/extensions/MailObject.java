@@ -215,10 +215,9 @@ public class MailObject extends ScriptableObject implements Serializable {
     /**
      *  Add a MIME message part to a multipart message
      *
-     * @param val The part to add
-     *
-     * @throws Exception ...
-     * @throws IOException ...
+     * @param obj the MIME part object. Supported classes are java.lang.String,
+     *            java.io.File and helma.util.MimePart.
+     * @param filename optional file name for the mime part
      */
     public void addPart(Object obj, Object filename) {
         try {
@@ -271,9 +270,7 @@ public class MailObject extends ScriptableObject implements Serializable {
     /**
      *  Set the subject of this message
      *
-     * @param val the subject line
-     *
-     * @throws Exception ...
+     * @param subject the message subject
      */
     public void setSubject(Object subject) {
             if (subject == null || subject == Undefined.instance) {
@@ -292,9 +289,6 @@ public class MailObject extends ScriptableObject implements Serializable {
      * Set the Reply-to address for this message
      *
      * @param addstr the email address to set in the Reply-to header
-     *
-     * @throws Exception ...
-     * @throws AddressException ...
      */
     public void setReplyTo(String addstr) {
         try {
@@ -317,9 +311,6 @@ public class MailObject extends ScriptableObject implements Serializable {
      *
      * @param addstr the email address to set in the From header
      * @param name the name this address belongs to
-     *
-     * @throws Exception ...
-     * @throws AddressException ...
      */
     public void setFrom(String addstr, Object name) {
         try {
@@ -349,9 +340,6 @@ public class MailObject extends ScriptableObject implements Serializable {
      *
      * @param addstr the email address to set in the To header
      * @param name the name this address belongs to
-     *
-     * @throws Exception ...
-     * @throws AddressException ...
      */
     public void setTo(String addstr, Object name) {
         try {
@@ -369,9 +357,6 @@ public class MailObject extends ScriptableObject implements Serializable {
      *
      * @param addstr the email address to set in the To header
      * @param name the name this address belongs to
-     *
-     * @throws Exception ...
-     * @throws AddressException ...
      */
     public void addTo(String addstr, Object name) {
         try {
@@ -388,9 +373,6 @@ public class MailObject extends ScriptableObject implements Serializable {
      *
      * @param addstr the email address to set in the CC header
      * @param name the name this address belongs to
-     *
-     * @throws Exception ...
-     * @throws AddressException ...
      */
     public void addCC(String addstr, Object name) {
         try {
@@ -406,9 +388,6 @@ public class MailObject extends ScriptableObject implements Serializable {
      *
      * @param addstr the email address to set in the BCC header
      * @param name the name this address belongs to
-     *
-     * @throws Exception ...
-     * @throws AddressException ...
      */
     public void addBCC(String addstr, Object name) {
         try {
