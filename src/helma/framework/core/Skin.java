@@ -438,7 +438,13 @@ public final class Skin {
 	}
 
 	private void renderFromResponse (RequestEvaluator reval) {
-	    Object value = reval.res.get (name);
+	    Object value = null;
+	    if ("message".equals (name))  
+	        value = reval.res.message;  
+	    else if ("error".equals (name))  
+	        value = reval.res.error;  
+	    if (value == null)  
+	        value = reval.res.get (name);
 	    writeToResponse (value, reval.res, true);
 	}
 
