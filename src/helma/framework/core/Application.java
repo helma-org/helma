@@ -157,7 +157,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	worker.start ();
 	logEvent ("session cleanup and scheduler thread started");
 	
-	xmlrpc.addHandler (this.name, new XmlRpcInvoker (this));
+	if (xmlrpc != null)
+	    xmlrpc.addHandler (this.name, new XmlRpcInvoker (this));
 
 	typemgr.start ();
     }
