@@ -28,9 +28,6 @@ public class Transactor extends Thread {
     private volatile boolean active;
     private volatile boolean killed;
 
-    // the transactor reuses a key object to avoid unnecessary object creation
-    protected Key key;
-
     // Transaction for the embedded database
     protected DbTxn txn;
     // Transactions for SQL data sources
@@ -52,7 +49,6 @@ public class Transactor extends Thread {
 	active = false;
 	killed = false;
 	timer = new Timer();
-	key = new Key ("", "");
     }
 
     public void visitNode (Node node) {

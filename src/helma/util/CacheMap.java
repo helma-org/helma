@@ -175,19 +175,6 @@ public class CacheMap  {
     // @return the old value of the key, or null if it did not have one.
     public synchronized Object put (Object key, Object value) {
 
-	if (key instanceof helma.objectmodel.Key && value instanceof helma.objectmodel.db.Node) {
-	    helma.objectmodel.Key k = (helma.objectmodel.Key) key;
-	    helma.objectmodel.db.Node n = (helma.objectmodel.db.Node) value;
-	    helma.objectmodel.DbMapping dbm = n.getDbMapping ();
-	    String t1 = k.getType ();
-	    String t2 = dbm == null ? null: dbm.getTypeName();
-	    if (t1 != t2 && (t1 == null || !t1.equals (t2))) {
-	        helma.objectmodel.IServer.getLogger().log ("WARNING: "+t1+" != "+t2);
-	        System.err.println ("WARNING: "+t1+" != "+t2);
-	        Thread.dumpStack ();
-	    }
-	}
-
 	Object oldValue = newTable.put (key, value);
 	if (oldValue != null)
 	    return oldValue;
@@ -195,8 +182,9 @@ public class CacheMap  {
 	if (oldValue != null)
 	    oldTable.remove( key );
 	else {
-	    if (size() >= threshold) {
+	    if (newTable.size() >= eachCapacity) {
 		// Rotate the tables.
+	             helma.objectmodel.IServer.getLogger().log ("Rotating Cache tables at "+newTable.size()+"/"+oldTable.size()+" (new/old)");
 		oldTable = newTable;
 		newTable = new HashMap (eachCapacity, loadFactor);
 	    }
@@ -219,6 +207,16 @@ public class CacheMap  {
     public synchronized void clear() {
 	newTable.clear ();
 	oldTable.clear ();
+    }
+
+
+    public synchronized Object[] getEntryArray () {
+	Object[] k1 = newTable.keySet().toArray();
+	Object[] k2 = oldTable.keySet().toArray();
+	Object[] k = new Object[k1.length+k2.length];
+	System.arraycopy (k1, 0, k, 0, k1.length);
+	System.arraycopy (k2, 0, k, k1.length, k2.length);
+	return k;
     }
 
 

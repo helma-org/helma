@@ -130,6 +130,11 @@ import java.util.Vector;
 	}
     }
 
+    public Object[] getCacheEntries () {
+	return nmgr.getCacheEntries ();
+    }
+
+
 }
 
 

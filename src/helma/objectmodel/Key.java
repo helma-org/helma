@@ -15,8 +15,8 @@ import java.io.Serializable;
  */
 public class Key {
 
-    protected String type;
-    protected String id;
+    private String type;
+    private String id;
     private int hash;
 
 
@@ -45,15 +45,6 @@ public class Key {
 	return hash;
     }
 
-    public void recycle (DbMapping dbmap, String id) {
-	this.type = dbmap == null ? null : dbmap.typename;
-	this.id = id;
-	hash = id.hashCode ();
-    }
-
-    public Key duplicate () {
-	return new Key (type, id);
-    }
 
     /**
      *  Get the Key for a virtual node contained by this node, that is, a node that does
@@ -78,6 +69,10 @@ public class Key {
 
     public String getType () {
 	return type;
+    }
+
+    public String getID () {
+	return id;
     }
 
     public String toString () {
