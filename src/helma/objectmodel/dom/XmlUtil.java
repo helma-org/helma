@@ -97,7 +97,8 @@ public class XmlUtil	{
 		int ct = childlist.getLength();
 		for ( int j=0; j<ct; j++ )	{
 			org.w3c.dom.Node childNode = childlist.item(j);
-			if ( childNode.getNodeType()==org.w3c.dom.Node.TEXT_NODE )	{
+			if ( childNode.getNodeType() == Node.TEXT_NODE ||
+			     childNode.getNodeType() == Node.CDATA_SECTION_NODE) {
 				childtext.append(childNode.getNodeValue().trim() );
 			}
 		}
