@@ -36,18 +36,18 @@ public final class Util {
         if (line == null) {
             return null;
         } else if (line.startsWith("/**")) {
-            return line.substring(3).trim();
+            line = line.substring(3).trim();
         } else if (line.startsWith("/*")) {
-            return line.substring(2).trim();
-        } else if (line.endsWith("*/")) {
-            return line.substring(0, line.length() - 2);
+            line = line.substring(2).trim();
         } else if (line.startsWith("*")) {
-            return line.substring(1).trim();
+            line = line.substring(1).trim();
         } else if (line.startsWith("//")) {
-            return line.substring(2).trim();
-        } else {
-            return line;
+            line = line.substring(2).trim();
         }
+        if (line.endsWith("*/")) {
+            line = line.substring(0, line.length() - 2);
+        }
+        return line;
     }
 
     /**
