@@ -208,9 +208,6 @@ public final class Property implements IProperty, Serializable, Cloneable {
      * Directly set the value of this property.
      */
     protected void setValue(Object value, int type) {
-        if (type == NODE) {
-            unregisterNode();
-        }
         this.value = value;
         this.type = type;
         dirty = true;
@@ -222,10 +219,6 @@ public final class Property implements IProperty, Serializable, Cloneable {
      * @param str ...
      */
     public void setStringValue(String str) {
-        if (type == NODE) {
-            unregisterNode();
-        }
-
         type = STRING;
         value = str;
         dirty = true;
@@ -237,10 +230,6 @@ public final class Property implements IProperty, Serializable, Cloneable {
      * @param l ...
      */
     public void setIntegerValue(long l) {
-        if (type == NODE) {
-            unregisterNode();
-        }
-
         type = INTEGER;
         value = new Long(l);
         dirty = true;
@@ -252,10 +241,6 @@ public final class Property implements IProperty, Serializable, Cloneable {
      * @param d ...
      */
     public void setFloatValue(double d) {
-        if (type == NODE) {
-            unregisterNode();
-        }
-
         type = FLOAT;
         value = new Double(d);
         dirty = true;
@@ -267,10 +252,6 @@ public final class Property implements IProperty, Serializable, Cloneable {
      * @param date ...
      */
     public void setDateValue(Date date) {
-        if (type == NODE) {
-            unregisterNode();
-        }
-
         type = DATE;
         value = date;
         dirty = true;
@@ -282,10 +263,6 @@ public final class Property implements IProperty, Serializable, Cloneable {
      * @param bool ...
      */
     public void setBooleanValue(boolean bool) {
-        if (type == NODE) {
-            unregisterNode();
-        }
-
         type = BOOLEAN;
         value = bool ? Boolean.TRUE : Boolean.FALSE;
         dirty = true;
@@ -297,14 +274,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
      * @param node ...
      */
     public void setNodeValue(Node node) {
-        // value.checkWriteLock ();
-        if (type == NODE) {
-            unregisterNode();
-        }
-
-        // registerNode (value);
         type = NODE;
-
         value = (node == null) ? null : node.getHandle();
         dirty = true;
     }
@@ -315,11 +285,6 @@ public final class Property implements IProperty, Serializable, Cloneable {
      * @param handle ...
      */
     public void setNodeHandle(NodeHandle handle) {
-        if (type == NODE) {
-            unregisterNode();
-        }
-
-        // registerNode (value);
         type = NODE;
         value = handle;
         dirty = true;
@@ -357,58 +322,10 @@ public final class Property implements IProperty, Serializable, Cloneable {
      * @param obj ...
      */
     public void setJavaObjectValue(Object obj) {
-        if (type == NODE) {
-            unregisterNode();
-        }
-
         type = JAVAOBJECT;
         value = obj;
     }
 
-    /**
-     * tell a the value node that it is no longer used as a property.
-     * If this was the "main" property for the node, also remove all other references.
-     */
-    protected void unregisterNode() {
-        if ((value == null) || !(value instanceof NodeHandle)) {
-            return;
-        }
-
-        NodeHandle nhandle = (NodeHandle) value;
-        Node nvalue = nhandle.getNode(node.nmgr);
-
-        DbMapping nvmap = null;
-        Relation nvrel = null;
-
-        if (node.dbmap != null) {
-            nvmap = node.dbmap.getPropertyMapping(propname);
-            nvrel = node.dbmap.getPropertyRelation(propname);
-        }
-
-        if (nvalue == null) {
-            return;
-        }
-
-        nvalue.checkWriteLock();
-
-        // check if the property node is also a subnode
-        // BUG: this doesn't work because properties for subnode/properties are never stored 
-        // and therefore never reused.
-        if ((nvrel != null) && nvrel.hasAccessName()) {
-            node.removeNode(nvalue);
-        }
-
-        // only need to call unregisterPropLink if the value node is not stored in a relational db
-        // also, getParent is heuristical/implicit for relational nodes, so we don't do deepRemoveNode
-        // based on that for relational nodes.
-        if ((nvmap == null) || !nvmap.isRelational()) {
-            if (!nvalue.isAnonymous() && propname.equals(nvalue.getName()) &&
-                    (this.node == nvalue.getParent())) {
-                // this is the "main" property of a named node, so handle this as a cascading delete.
-                nvalue.deepRemoveNode();
-            }
-        }
-    }
 
     /**
      *
