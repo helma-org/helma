@@ -309,6 +309,40 @@ public class HopObject extends ScriptableObject implements Wrapper {
         }
     }
 
+    /**
+     * Set a property on this HopObject
+     *
+     * @param id The name/id or index, depending if the argument is a String or Number.
+     *
+     * @return ...
+     */
+    public boolean jsFunction_set(Object id, Object value) {
+        if (id == Undefined.instance || value == Undefined.instance) {
+            throw new RuntimeException("HopObject.set() called with wrong number of arguments");
+        }
+        if ((node == null)) {
+            return false;
+        }
+
+        if (id instanceof Number) {
+
+            if (!(value instanceof HopObject)) {
+                throw new RuntimeException("Can only set HopObjects as child objects in HopObject.set()");
+            }
+
+            int idx = (((Number) id).intValue());
+            INode n = ((HopObject) value).getNode();
+
+            node.addNode(n, idx);
+
+        } else if (id instanceof String) {
+            put(id.toString(), this, value);
+        } else {
+            throw new RuntimeException("Invalid type for id argument in HopObject.set(): "+id);
+        }
+
+        return true;
+    }
 
     /**
      *
