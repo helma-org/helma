@@ -30,6 +30,19 @@ public class SkinFile implements Updatable {
 	this.skin = null;
     }
 
+    /**
+     * Create a skinfile without a file, passing the skin body directly. This is used for
+     * Skins contained in zipped applications. The whole update mechanism is bypassed
+     *  by immediately setting the skin member.
+     */
+    public SkinFile (String body, String name, Prototype proto) {
+	this.prototype = proto;
+	this.app = proto.app;
+	this.name = name;
+	this.file = null;
+	this.skin = new Skin (body, app);
+    }
+
      /**
      * Tell the type manager whether we need an update. this is the case when
      * the file has been modified or deleted.

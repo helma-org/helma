@@ -26,6 +26,7 @@ public class FunctionFile implements Updatable {
     Prototype prototype;
     Application app;
     File file;
+    String content;
     long lastmod;
 
     // a set of funcion names defined by this file. We keep this to be able to
@@ -41,6 +42,32 @@ public class FunctionFile implements Updatable {
 	update ();
     }
 
+    /**
+     * Create a function file without a file, passing the code directly. This is used for
+     * files contained in zipped applications. The whole update mechanism is bypassed
+     *  by immediately parsing the code.
+     */
+    public FunctionFile (String body, String name, Prototype proto) {
+	this.prototype = proto;
+	this.app = proto.app;
+	this.name = name;
+	this.file = null;
+	this.content = body;
+
+	Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
+	while (evals.hasNext ()) {
+	    try {
+
+	        StringEvaluationSource es = new StringEvaluationSource (body, null);
+	        StringReader reader = new StringReader (body);
+
+	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
+	        updateRequestEvaluator (reval, reader, es);
+
+	    } catch (Exception ignore) {}
+	}
+
+    }
 
     /**
      * Tell the type manager whether we need an update. this is the case when
@@ -66,7 +93,9 @@ public class FunctionFile implements Updatable {
 	        try {
 
 	            RequestEvaluator reval = (RequestEvaluator) evals.next ();
-	            updateRequestEvaluator (reval);
+	            FileReader fr = new FileReader(file);
+	            EvaluationSource es = new FileEvaluationSource(file.getPath(), null);
+	            updateRequestEvaluator (reval, fr, es);
 
 	        } catch (Exception ignore) {}
 	    }
@@ -74,10 +103,22 @@ public class FunctionFile implements Updatable {
 
     }
 
-    public  synchronized void updateRequestEvaluator (RequestEvaluator reval) {
 
-        EvaluationSource es = new FileEvaluationSource(file.getPath(), null);
-        FileReader fr = null;
+    public  synchronized void updateRequestEvaluator (RequestEvaluator reval) {
+	if (file != null) {
+	    try {
+	        FileReader fr = new FileReader (file);
+	        EvaluationSource es = new FileEvaluationSource (file.getPath (), null);
+	        updateRequestEvaluator (reval, fr, es);
+	    } catch (Exception ignore) {}
+	} else {
+	    StringReader reader = new StringReader (content);
+	    StringEvaluationSource es = new StringEvaluationSource (content, null);
+	    updateRequestEvaluator (reval, reader, es);
+	}
+    }
+
+    public  synchronized void updateRequestEvaluator (RequestEvaluator reval, Reader reader, EvaluationSource source) {
 
         HashMap priorProps = null;
         HashSet newProps = null;
@@ -100,8 +141,7 @@ public class FunctionFile implements Updatable {
             }
 
             // do the update, evaluating the file
-            fr = new FileReader(file);
-            reval.evaluator.evaluate(fr, op, es, false);
+            reval.evaluator.evaluate(reader, op, source, false);
 
             // check what's new
             if (declaredPropsTimestamp != lastmod) try {
@@ -113,14 +153,13 @@ public class FunctionFile implements Updatable {
                 }
             } catch (Exception ignore) {}
 
-        } catch (IOException e) {
-            app.logEvent ("Error parsing function file "+app.getName()+":"+prototype.getName()+"/"+file.getName()+": "+e);
-        } catch (EcmaScriptException e) {
-            app.logEvent ("Error parsing function file "+app.getName()+":"+prototype.getName()+"/"+file.getName()+": "+e);
+        } catch (Exception e) {
+            // app.logEvent ("Error parsing function file "+app.getName()+":"+prototype.getName()+"/"+file.getName()+": "+e);
+            app.logEvent ("Error parsing function file "+source+": "+e);
         } finally {
-            if (fr!=null) {
+            if (reader != null) {
                 try {
-                    fr.close();
+                    reader.close();
                 } catch (IOException ignore) {}
             }
 
@@ -183,7 +222,10 @@ public class FunctionFile implements Updatable {
     }
 
     public String toString () {
-	return prototype.getName()+"/"+file.getName();
+	if (file == null)
+	    return "[Zipped script file]";
+	else
+	    return prototype.getName()+"/"+file.getName();
     }
 
 

@@ -80,7 +80,7 @@ public class TypeManager implements Runnable {
 	            updatePrototype (list[i], fileOrDir, proto);
 	        } else {
 	            // create new prototype
-	            proto = new Prototype (fileOrDir, app);
+	            proto = new Prototype (list[i], app);
 	            registerPrototype (list[i], fileOrDir, proto);
 	            prototypes.put (list[i], proto);
 	            // give logger thread a chance to tell what's going on
@@ -137,11 +137,6 @@ public class TypeManager implements Runnable {
 	typechecker = null;
     }
 
-    public Prototype getPrototype (String typename) {
-	return (Prototype) prototypes.get (typename);
-    }
-
-
     public void run () {
 
 	while (Thread.currentThread () == typechecker) {
@@ -163,6 +158,34 @@ public class TypeManager implements Runnable {
     }
 
 
+    /**
+    *   Get a prototype defined for this application
+    */
+    public Prototype getPrototype (String typename) {
+	return (Prototype) prototypes.get (typename);
+    }
+
+    /**
+     * Get a prototype, creating it if id doesn't already exist
+     */
+    public Prototype createPrototype (String typename) {
+	Prototype p = getPrototype (typename);
+	if (p == null) {
+	    p = new Prototype (typename, app);
+	    p.templates = new HashMap ();
+	    p.functions = new HashMap ();
+	    p.actions = new HashMap ();
+	    p.skins = new HashMap ();
+	    p.updatables = new HashMap ();
+	    prototypes.put (typename, p);
+	}
+	return p;
+    }
+
+
+    /**
+     *  Create a prototype from a directory containing scripts and other stuff
+     */
     public void registerPrototype (String name, File dir, Prototype proto) {
         // app.logEvent ("registering prototype "+name);
 
@@ -222,7 +245,12 @@ public class TypeManager implements Runnable {
             }
         }
 
-        updatables.put ("type.properties", proto.dbmap);
+        // Create and register type properties file
+        File propfile = new File (dir, "type.properties");
+        SystemProperties props = new SystemProperties (propfile.getAbsolutePath ());
+        DbMapping dbmap = new DbMapping (app, name, props);
+        updatables.put ("type.properties", dbmap);
+
 
         proto.templates = ntemp;
         proto.functions = nfunc;
@@ -240,6 +268,9 @@ public class TypeManager implements Runnable {
     }
 
 
+    /**
+    * Update a prototype based on the directory which defines it.
+    */
     public void updatePrototype (String name, File dir, Prototype proto) {
         // app.logEvent ("updating prototype "+name);
 
@@ -340,9 +371,7 @@ public class TypeManager implements Runnable {
 	            app.logEvent ("Error updating "+upd+" of prototye type "+name+": "+x);
                 }
             }
-
         }
-
     }
 
 

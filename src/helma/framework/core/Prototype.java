@@ -26,26 +26,20 @@ public class Prototype {
     String name;
     Application app;
     HashMap templates, functions, actions, skins, updatables;
-    File codeDir;
     long lastUpdate;
 
-    DbMapping dbmap;
+    // DbMapping dbmap;
 
     Prototype prototype;
 
 
-     public Prototype (File codeDir, Application app) {
+     public Prototype (String name, Application app) {
 
-	app.logEvent ("Constructing Prototype "+app.getName()+"/"+codeDir.getName ());
+	app.logEvent ("Constructing Prototype "+app.getName()+"/"+name);
 
-	this.codeDir = codeDir;
 	this.app = app;
-	this.name = codeDir.getName ();
+	this.name = name;
 	
-	File propfile = new File (codeDir, "type.properties");
-	SystemProperties props = new SystemProperties (propfile.getAbsolutePath ());
-	dbmap = new DbMapping (app, name, props);
-
 	lastUpdate = System.currentTimeMillis ();
 
     }
@@ -123,35 +117,6 @@ public class Prototype {
 	    return null;
     }
 
-    public File getCodeDir () {
-	return codeDir;
-    }
- 
-    public synchronized boolean checkCodeDir () {
-
-    	boolean retval = false;
-	String[] list = codeDir.list ();
-
-	for (int i=0; i<list.length; i++) {
-	    if (list[i].endsWith (app.templateExtension) || list[i].endsWith (app.scriptExtension)) {
-	        File f = new File (codeDir, list[i]);
-
-	        if (f.lastModified () > lastUpdate) {
-	            lastUpdate = System.currentTimeMillis ();
-	            try {
-	                app.typemgr.updatePrototype (this.name, codeDir,  this);
-	                // TypeManager.broadcaster.broadcast ("Finished update for prototype "+name+" @ "+new Date ()+"<br><hr>");
-	            } catch (Exception x) {
-	                app.logEvent ("Error building function protos in prototype: "+x);
-	                // TypeManager.broadcaster.broadcast ("Error updating prototype "+name+" in application "+app.getName()+":<br>"+x.getMessage ()+"<br><hr>");
-	            }
-	            retval = true;
-	        }
-	    }
-	}
-	return retval;
-    }
- 
 
     public String getName () {
 	return name;
@@ -159,40 +124,39 @@ public class Prototype {
 
 
     public void initRequestEvaluator (RequestEvaluator reval) {
-            ObjectPrototype op = null;
+	ObjectPrototype op = null;
 
-            // get the prototype's prototype if possible and necessary
-            ObjectPrototype opp = null;
-            if (prototype != null) 
-                opp = reval.getPrototype (prototype.getName ());
-            if (!"global".equalsIgnoreCase (name) && 
-            		!"hopobject".equalsIgnoreCase (name) && opp == null)
-                opp = reval.esNodePrototype;
+	// get the prototype's prototype if possible and necessary
+	ObjectPrototype opp = null;
+	if (prototype != null)
+	    opp = reval.getPrototype (prototype.getName ());
+	if (!"global".equalsIgnoreCase (name) &&
+		!"hopobject".equalsIgnoreCase (name) && opp == null)
+	    opp = reval.esNodePrototype;
 
-            if ("user".equalsIgnoreCase (name)) {
-                op = reval.esUserPrototype;
-                op.setPrototype (opp);
-            } else if ("global".equalsIgnoreCase (name))
-                op = reval.global;
-            else if ("hopobject".equalsIgnoreCase (name))
-                op = reval.esNodePrototype;
-            else {
-                op = new ObjectPrototype (opp, reval.evaluator);
-                try {
-                    op.putProperty ("prototypename", new ESString (name), "prototypename".hashCode ());
-                } catch (EcmaScriptException ignore) {}
-            }
-            reval.putPrototype (name, op);
+	if ("user".equalsIgnoreCase (name)) {
+	    op = reval.esUserPrototype;
+	    op.setPrototype (opp);
+	} else if ("global".equalsIgnoreCase (name))
+	    op = reval.global;
+	else if ("hopobject".equalsIgnoreCase (name))
+	    op = reval.esNodePrototype;
+	else {
+	    op = new ObjectPrototype (opp, reval.evaluator);
+	    try {
+	        op.putProperty ("prototypename", new ESString (name), "prototypename".hashCode ());
+	    } catch (EcmaScriptException ignore) {}
+	}
+	reval.putPrototype (name, op);
 
-            // Register a constructor for all types except global.
-            // This will first create a node and then call the actual (scripted) constructor on it.
-            if (!"global".equalsIgnoreCase (name)) {
-                try {
-                    FunctionPrototype fp = (FunctionPrototype) reval.evaluator.getFunctionPrototype();
-                    reval.global.putHiddenProperty (name, new NodeConstructor (name, fp, reval));
-                } catch (EcmaScriptException ignore) {}
-            }
-
+	// Register a constructor for all types except global.
+	// This will first create a node and then call the actual (scripted) constructor on it.
+	if (!"global".equalsIgnoreCase (name)) {
+	    try {
+	        FunctionPrototype fp = (FunctionPrototype) reval.evaluator.getFunctionPrototype();
+	        reval.global.putHiddenProperty (name, new NodeConstructor (name, fp, reval));
+	    } catch (EcmaScriptException ignore) {}
+	}
 	for (Iterator it = functions.values().iterator(); it.hasNext(); ) {
 	    FunctionFile ff = (FunctionFile) it.next ();
 	    ff.updateRequestEvaluator (reval);
