@@ -47,7 +47,7 @@ public class ResponseTrans implements Externalizable {
     private byte[] response = null;
 
     // contains the redirect URL
-    String redir = null;
+    private String redir = null;
 
     // cookies
     String cookieKeys[];
@@ -288,7 +288,9 @@ public class ResponseTrans implements Externalizable {
     }
 
     public String getContentType () {
-    	return contentType;
+	if (charset != null)
+	    return contentType+"; charset="+charset;
+	return contentType;
     }
 
     public synchronized void setCookie (String key, String value) {
