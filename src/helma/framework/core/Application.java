@@ -420,8 +420,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
      * Returns a Node representing a registered user of this application by his or her user name.
      */
     public INode getUserNode (String uid) {
-	if ("prototype".equalsIgnoreCase (uid))
-	    return null;
 	try {
 	    INode users = getUserRoot ();
 	    return users.getNode (uid, false);
