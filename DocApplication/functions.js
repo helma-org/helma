@@ -1,5 +1,7 @@
 
-
+/**
+  * get the prototype of any doc-object (either a prototype, a function or a tag)
+  */
 function getDocPrototype (obj) {
 	var tmp = obj;
 	while (tmp!=null && tmp.getType () != this.PROTOTYPE) {
@@ -7,6 +9,15 @@ function getDocPrototype (obj) {
 	}
 	return tmp;
 }
+
+
+/**
+  * get a prototype of this docapplication, ie get on of the children of this object
+  */
+function getPrototype (name) {
+	return this.getChildElement ("prototype_" + name);
+}
+
 
 function getDir (dir, obj) {
 	dir.mkdir ();
