@@ -84,6 +84,7 @@ public class FileObject extends ScriptableObject {
         FunctionObject ctor = new FunctionObject("File", ctorMember, scope);
         ctor.addAsConstructor(scope, proto);
         String[] fileFuncs = {
+                                "getName",
                                 "getParent",
                                 "isAbsolute",
                                 "write",
