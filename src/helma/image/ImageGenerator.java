@@ -38,14 +38,10 @@ public class ImageGenerator extends Window {
 	Graphics g = img.getGraphics ();
 	ImageWrapper rimg = null;
 	try {
-	    try {
-	        rimg = new ActivatedImageWrapper (img, g, w, h, this);
-	    } catch (NoClassDefFoundError notfound) {
-	        rimg = new SunImageWrapper (img, g, w, h, this);
-	    } catch (ClassNotFoundException notfound) {
-	        rimg = new SunImageWrapper (img, g, w, h, this);
-	    }
-	} catch (Exception x) {}
+	    rimg = new SunImageWrapper (img, g, w, h, this);
+	} catch (Exception x) {
+	    System.err.println ("Can't create image: "+x);
+	}
 	return rimg;
     }
 
@@ -61,14 +57,10 @@ public class ImageGenerator extends Window {
 	    Image img = createImage (w, h);
 	    Graphics g = img.getGraphics ();
 	    g.drawImage (img1, 0, 0, null);
-	    try {
-	        rimg = new ActivatedImageWrapper (img, g, w, h, this);
-	    } catch (ClassNotFoundException notfound) {
-	        rimg = new SunImageWrapper (img, g, w, h, this);
-	    } catch (NoClassDefFoundError notfound) {
-	        rimg = new SunImageWrapper (img, g, w, h, this);
-	    }
-	} catch (Exception x) {}
+	    rimg = new SunImageWrapper (img, g, w, h, this);
+	} catch (Exception x) {
+	    System.err.println ("Can't create image: "+x);
+	}
 	return rimg;
     }
 
@@ -81,14 +73,10 @@ public class ImageGenerator extends Window {
 	    tracker.waitForAll ();
 	    int w = img.getWidth (null);
 	    int h = img.getHeight (null);
-	    try {
-	        rimg = new ActivatedImageWrapper (img, null, w, h, this);
-	    } catch (ClassNotFoundException notfound) {
-	        rimg = new SunImageWrapper (img, null, w, h, this);
-	    }  catch (NoClassDefFoundError notfound) {
-	        rimg = new SunImageWrapper (img, null, w, h, this);
-	    }
-	} catch (Exception x) {}
+	    rimg = new SunImageWrapper (img, null, w, h, this);
+	} catch (Exception x) {
+	    System.err.println ("Can't create image: "+x);
+	}
 	return rimg;
     }
 
@@ -106,14 +94,9 @@ public class ImageGenerator extends Window {
 	    Image img = createImage (w, h);
 	    Graphics g = img.getGraphics ();
 	    g.drawImage (img1, 0, 0, null);
-	    try {
-	        rimg = new ActivatedImageWrapper (img, g, w, h, this);
-	    } catch (ClassNotFoundException notfound) {
-	        rimg = new SunImageWrapper (img, g, w, h, this);
-	    } catch (NoClassDefFoundError notfound) {
-	        rimg = new SunImageWrapper (img, g, w, h, this);
-	    }
+	    rimg = new SunImageWrapper (img, g, w, h, this);
 	} catch (Exception x) {
+	    System.err.println ("Can't create image: "+x);
 	    x.printStackTrace ();
 	}
 	return rimg;
@@ -132,14 +115,10 @@ public class ImageGenerator extends Window {
 	    Image img = createImage (w, h);
 	    Graphics g = img.getGraphics ();
 	    g.drawImage (img1, 0, 0, null);
-	    try {
-	        rimg = new ActivatedImageWrapper (img, g, w, h, this);
-	    } catch (NoClassDefFoundError notfound) {
-	        rimg = new SunImageWrapper (img, g, w, h, this);
-	    } catch (ClassNotFoundException notfound) {
-	        rimg = new SunImageWrapper (img, g, w, h, this);
-	    }
-	} catch (Exception x) {}
+	    rimg = new SunImageWrapper (img, g, w, h, this);
+	} catch (Exception x) {
+	    System.err.println ("Can't create image: "+x);
+	}
 	return rimg;
     }
 
@@ -152,6 +131,7 @@ public class ImageGenerator extends Window {
 	    tracker.addImage (img, 0);
 	    tracker.waitForAll ();
 	} catch (Exception x) {
+	    System.err.println ("Can't create image: "+x);
 	    x.printStackTrace ();
 	}
 	return img;
