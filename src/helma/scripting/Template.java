@@ -46,6 +46,8 @@ public class Template extends ActionFile {
 
 	Vector partBuffer = new Vector ();
 	int l = content.length ();
+	if (l == 0)
+	    return "";
 	char cnt[] = new char[l];
 	content.getChars (0, l, cnt, 0);
 
