@@ -275,7 +275,12 @@ class Invoker implements XmlRpcHandler {
 	catch (InvocationTargetException it_e) {
 	    if (XmlRpc.debug)
 	        it_e.getTargetException ().printStackTrace ();
-	    throw new Exception (it_e.getTargetException ().toString ());
+	    // check whether the thrown exception is XmlRpcException
+                 Throwable t=it_e.getTargetException();
+                 if ( t instanceof XmlRpcException)
+                         throw (XmlRpcException) t;
+                 // It is some other exception
+	    throw new Exception (t.toString ());
 	}
 	
 	return returnValue;
