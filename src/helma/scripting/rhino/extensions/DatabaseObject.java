@@ -20,9 +20,7 @@
 
 package helma.scripting.rhino.extensions;
 
-import helma.framework.core.Application;
 import helma.objectmodel.db.DbSource;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.Vector;
 import java.sql.*;
@@ -36,7 +34,6 @@ public class DatabaseObject {
     private transient Connection connection = null; // Null if not connected
     private transient DatabaseMetaData databaseMetaData = null;
     private transient String driverName = null;
-    private transient ClassLoader driverLoader = null;
     private transient Exception lastError = null;
     private transient boolean driverOK = false;
 
@@ -46,7 +43,7 @@ public class DatabaseObject {
      * @param dbsource The name of the DB source
      */
 
-    public DatabaseObject(DbSource dbsource, int flag) {
+    public DatabaseObject(DbSource dbsource) {
         try {
             connection = dbsource.getConnection ();
             driverName = dbsource.getDriverName ();
@@ -130,7 +127,9 @@ public class DatabaseObject {
     /**
      * Connect to the database, using the specific url, optional user name and password
      *
-     * @param   arguments  The argument list
+     * @param  url the database URL
+     * @param  userName the database user name
+     * @param  password the database password
      * @return  true if successful, false otherwise
      */
     public boolean connect(String url, String userName, String password) {
