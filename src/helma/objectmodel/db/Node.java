@@ -924,8 +924,6 @@ public final class Node implements INode, Serializable {
                             old.remove();
                             this.removeNode(old);
                         }
-
-                        setNode(prop, node);
                     }
                 }
             }
@@ -1035,7 +1033,7 @@ public final class Node implements INode, Serializable {
             // getting this specific child element
             Relation rel = dbmap.getExactPropertyRelation(name);
 
-            if (rel != null) {
+            if (rel != null && !rel.isPrimitive()) {
                 return getNode(name);
             }
 
@@ -1045,7 +1043,18 @@ public final class Node implements INode, Serializable {
                 if (state != TRANSIENT && rel.otherType != null && rel.otherType.isRelational()) {
                     return nmgr.getNode(this, name, rel);
                 } else {
-                    INode node = getNode(name);
+                    // Do what we have to do: loop through subnodes and 
+                    // check if any one matches
+                    String propname = rel.groupby != null ? "groupname" : rel.accessName;
+                    INode node = null;
+                    Enumeration e = getSubnodes();
+                    while (e.hasMoreElements()) {
+                        Node n = (Node) e.nextElement();
+                        if (name.equalsIgnoreCase(n.getString(propname))) {
+                            node = n;
+                            break;
+                        }
+                    }
                     // set DbMapping for embedded db group nodes
                     if (node != null && rel.groupby != null) {
                          node.setDbMapping(dbmap.getGroupbyMapping());
@@ -1198,7 +1207,11 @@ public final class Node implements INode, Serializable {
                     node.setDbMapping(groupbyMapping);
 
                     if (!relational) {
-                        setNode(sid, node);
+                        // if we're not transient, make new node persistable
+                        if (state != TRANSIENT) {
+                            node.makePersistable();
+                            node.checkWriteLock();
+                        }
                         subnodes.add(node.getHandle());
                     }
 
@@ -1950,7 +1963,6 @@ public final class Node implements INode, Serializable {
                     }
                 }
 
-                parent.setNode(value, this);
                 setName(value);
             }
         }
