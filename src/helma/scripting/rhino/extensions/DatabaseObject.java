@@ -23,6 +23,9 @@ package helma.scripting.rhino.extensions;
 import helma.objectmodel.db.DbSource;
 import java.util.Enumeration;
 import java.util.Vector;
+import java.io.IOException;
+import java.io.Reader;
+import java.math.BigDecimal;
 import java.sql.*;
 
 
@@ -415,22 +418,13 @@ class RowSet {
             return null;
        }
        try {
-            int index = -1; // indicates not a valid index value
             try {
-                char c = propertyName.charAt(0);
-                if ('0' <= c && c <= '9') {
-                   index = Integer.parseInt(propertyName);
-                }
+                int index = Integer.parseInt(propertyName);
+                return getProperty(index);
             } catch (NumberFormatException e) {
-            } catch (StringIndexOutOfBoundsException e) { // for charAt
-            }
-            if (index>=0) {
+                int index = resultSet.findColumn(propertyName); 
                 return getProperty(index);
             }
-           Object value = resultSet.getObject(propertyName);
-           // IServer.getLogger().log("&& @VALUE : " + value);
-           lastError = null;
-           return value;
        } catch (SQLException e) {
           //System.err.println("##Cannot get property '" + propertyName + "' " + e);
           //e.printStackTrace();
@@ -439,6 +433,7 @@ class RowSet {
        return null;
     }
 
+    /* FIXME: dunno if this method is still used somewhere
     public Object getProperty(String propertyName, int hash) {
         //System.err.println(" &&& Getting property '" + propertyName + "'");
 
@@ -477,10 +472,11 @@ class RowSet {
               // System.err.println("##Cannot get property '" + propertyName + "' " + e);
               // e.printStackTrace();
               lastError = e;
-           } 
+           }
         }
         return null;
-     }
+    }
+    */
 
     public Object getProperty(int index) {
         if (!firstRowSeen) {
@@ -492,15 +488,95 @@ class RowSet {
             return null;
         }
 
+        lastError = null;
         try {
-           Object value = resultSet.getObject(index);
-           lastError = null;
-           return value;
+            int type = resultSetMetaData.getColumnType(index);
+            switch (type) {
+                case Types.BIT:
+                    return new Boolean(resultSet.getBoolean(index));
+
+                case Types.TINYINT:
+                case Types.BIGINT:
+                case Types.SMALLINT:
+                case Types.INTEGER:
+                    return new Long(resultSet.getLong(index));
+
+                case Types.REAL:
+                case Types.FLOAT:
+                case Types.DOUBLE:
+                    return new Double(resultSet.getDouble(index));
+
+                case Types.DECIMAL:
+                case Types.NUMERIC:
+                    BigDecimal num = resultSet.getBigDecimal(index);
+                    if (num == null) {
+                        break;
+                    }
+
+                    if (num.scale() > 0) {
+                        return new Double(num.doubleValue());
+                    } else {
+                        return new Long(num.longValue());
+                    }
+
+                case Types.VARBINARY:
+                case Types.BINARY:
+                    return resultSet.getString(index);
+
+                case Types.LONGVARBINARY:
+                case Types.LONGVARCHAR:
+                    try {
+                        return resultSet.getString(index);
+                    } catch (SQLException x) {
+                        Reader in = resultSet.getCharacterStream(index);
+                        char[] buffer = new char[2048];
+                        int read = 0;
+                        int r = 0;
+
+                        while ((r = in.read(buffer, read, buffer.length - read)) > -1) {
+                            read += r;
+
+                            if (read == buffer.length) {
+                                // grow input buffer
+                                char[] newBuffer = new char[buffer.length * 2];
+
+                                System.arraycopy(buffer, 0, newBuffer, 0,
+                                        buffer.length);
+                                buffer = newBuffer;
+                            }
+                        }
+                        return new String(buffer, 0, read);
+                    }
+
+                case Types.DATE:
+                case Types.TIME:
+                case Types.TIMESTAMP:
+                    return resultSet.getTimestamp(index);
+
+                case Types.NULL:
+                    return null;
+
+                case Types.CLOB:
+                    Clob cl = resultSet.getClob(index);
+                    if (cl == null) {
+                        return null;
+                    }
+                    char[] c = new char[(int) cl.length()];
+                    Reader isr = cl.getCharacterStream();
+                    isr.read(c);
+                    return String.copyValueOf(c);
+
+                default:
+                    return resultSet.getString(index);
+            }
         } catch (SQLException e) {
-           // System.err.println("##Cannot get property: " + e);
-           // e.printStackTrace();
-           lastError = e;
+            // System.err.println("##Cannot get property: " + e);
+            // e.printStackTrace();
+            lastError = e;
+        } catch (IOException ioe) {
+            lastError = ioe;
         }
+
         return null;
     }
 
