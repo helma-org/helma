@@ -1,5 +1,5 @@
 // ServletClient.java
-// Copyright (c) Hannes Wallnoefer, Raphael Spannocchi 1998-2000
+// Copyright (c) Hannes Wallnöfer, Raphael Spannocchi 1998-2000
 
 /* Portierung von helma.asp.AspClient auf Servlets */
 /* Author: Raphael Spannocchi Datum: 27.11.1998 */
@@ -9,37 +9,58 @@ package helma.servlet;
 import javax.servlet.*;
 import javax.servlet.http.*;
 import java.io.*;
+import java.rmi.Naming;
+import java.rmi.RemoteException;
 import java.util.*;
 import helma.framework.*;
-import helma.framework.core.Application;
 import helma.objectmodel.Node;
-import helma.util.Uploader;
+import helma.util.*;
 
 /**
- * This is the HOP servlet adapter that uses the Acme servlet API clone and communicates 
- * directly with hop applications instead of using RMI. 
+ * This is an abstract Hop servlet adapter. This class communicates with hop applications
+ * via RMI. Subclasses are either one servlet per app, or one servlet that handles multiple apps
  */
  
-public class AcmeServletClient extends HttpServlet{
+public abstract class AbstractServletClient extends HttpServlet {
 	
-    private int uploadLimit;       // limit to HTTP uploads in kB
-    private Hashtable apps;
-    private Application app;
-    private String cookieDomain;
-    private boolean caching;
-    private boolean debug;
+    String host = null;
+    int port = 0;
+    int uploadLimit;       // limit to HTTP uploads in kB
+    String hopUrl;
+    String cookieDomain;
+    boolean caching;
+    boolean debug;
 
 
-    public AcmeServletClient (Application app) {
-	this.app = app;
-	this.uploadLimit = 1024; // generous 1mb upload limit
+    public void init (ServletConfig init) {
+
+	host =  init.getInitParameter ("host");
+	if (host == null) host = "localhost";
+
+	String portstr = init.getInitParameter ("port");
+	port =  portstr == null ? 5055 : Integer.parseInt (portstr);
+
+	String upstr = init.getInitParameter ("uploadLimit");
+	uploadLimit =  upstr == null ? 500 : Integer.parseInt (upstr);
+
+	cookieDomain = init.getInitParameter ("cookieDomain");
+
+	hopUrl = "//" + host + ":" + port + "/";
+
+	debug = ("true".equalsIgnoreCase (init.getInitParameter ("debug")));
+
+	caching = ! ("false".equalsIgnoreCase (init.getInitParameter ("caching")));
     }
 
 
-    public void service (HttpServletRequest request, HttpServletResponse response)
-		throws ServletException, IOException {
-	execute (request, response);
-    }
+    abstract IRemoteApp getApp (String appID) throws Exception;
+
+    abstract void invalidateApp (String appID);
+
+    abstract String getAppID (String reqpath);
+
+    abstract String getRequestPath (String reqpath);
+
 
     public void doGet (HttpServletRequest request, HttpServletResponse response)
 		throws ServletException, IOException {
@@ -52,29 +73,39 @@ public class AcmeServletClient extends HttpServlet{
     }
 	
 	
-    private void execute (HttpServletRequest request, HttpServletResponse response) {
+    protected void execute (HttpServletRequest request, HttpServletResponse response) {
 	String protocol = request.getProtocol ();
 	Cookie[] cookies = request.getCookies();
+
+	// get app and path from original request path
+	String pathInfo = request.getPathInfo ();
+	String appID = getAppID (pathInfo);
+	RequestTrans reqtrans = new RequestTrans ();
+	reqtrans.path = getRequestPath (pathInfo);
+
 	try {						
-	    RequestTrans reqtrans = new RequestTrans ();
-	    // HACK - sessions not fully supported in Acme.Serve
-	    // Thats ok, we dont need the session object, just the id.
-	    reqtrans.session = request.getRequestedSessionId();  
+
 	    if (cookies != null) {
 	        for (int i=0; i < cookies.length;i++) try {	// get Cookies
 	            String nextKey = cookies[i].getName ();
 	            String nextPart = cookies[i].getValue ();
-	            reqtrans.set (nextKey, nextPart);
+	            if ("HopSession".equals (nextKey))
+	                reqtrans.session = nextPart;
+	            else
+	                reqtrans.set (nextKey, nextPart);
 	        } catch (Exception badCookie) {}
 	    }
-	    // get optional path info
-	    String pathInfo = request.getServletPath ();
-	    if (pathInfo != null) {
-	        if (pathInfo.indexOf (app.getName()) == 1)
-	            pathInfo = pathInfo.substring (app.getName().length()+1);
-	        reqtrans.path = trim (pathInfo);	
-	    } else
-	        reqtrans.path = "";
+
+	    // check if we need to create a session id
+	    if (reqtrans.session == null) {
+	        reqtrans.session = Long.toString (Math.round (Math.random ()*Long.MAX_VALUE), 16);
+	        reqtrans.session += "@"+Long.toString (System.currentTimeMillis (), 16);
+	        Cookie c = new Cookie("HopSession", reqtrans.session);	
+	        c.setPath ("/");
+	        if (cookieDomain != null)
+	            c.setDomain (cookieDomain);			
+	        response.addCookie(c);
+	    }
 
 	    String host = request.getHeader ("Host");
 	    if (host != null) {
@@ -123,12 +154,21 @@ public class AcmeServletClient extends HttpServlet{
 	        }
 	    }
 
+	    // get RMI ref to application and execute request
+	    IRemoteApp app = getApp (appID);
 	    ResponseTrans restrans = null;
-	    restrans = app.execute (reqtrans);
+	    try {
+	        restrans = app.execute (reqtrans);
+	    } catch (RemoteException cnx) {
+	        invalidateApp (appID);
+	        app = getApp (appID);
+	        app.ping ();
+                     restrans = app.execute (reqtrans);
+	    }
 	    writeResponse (response, restrans, cookies, protocol);
 
 	} catch (Exception x) {
-	    x.printStackTrace ();
+	    invalidateApp (appID);
 	    try {
 	        response.setContentType ("text/html");
 	        Writer out = response.getWriter ();
@@ -143,6 +183,7 @@ public class AcmeServletClient extends HttpServlet{
 
 
     private void writeResponse (HttpServletResponse res, ResponseTrans trans, Cookie[] cookies, String protocol) {			
+
 	for (int i = 0; i < trans.countCookies(); i++) try {
 	    Cookie c = new Cookie(trans.getKeyAt(i), trans.getValueAt(i));	
 	    c.setPath ("/");
@@ -167,14 +208,13 @@ public class AcmeServletClient extends HttpServlet{
 	        else
 	            res.setHeader ("Cache-Control", "no-cache"); // for HTTP 1.1
 	    }
-	    res.setStatus( HttpServletResponse.SC_OK );
 	    res.setContentLength (trans.getContentLength ());			
 	    res.setContentType (trans.contentType);
 	    try {
 	        OutputStream out = res.getOutputStream ();
 	        out.write (trans.getContent ());
 	        out.close ();
-	    } catch(Exception io_e) { System.out.println ("Error in writeResponse: "+io_e); }
+	    } catch(Exception io_e) {}
 	}
     }
 	
@@ -182,7 +222,7 @@ public class AcmeServletClient extends HttpServlet{
 	try { 
 	    res.sendRedirect(url); 
 	} catch (Exception e) { 
-	    System.err.println ("Exception bei redirect: " + e + e.getMessage());
+	    System.err.println ("Exception at redirect: " + e + e.getMessage());
 	}
     }
 	
@@ -195,12 +235,21 @@ public class AcmeServletClient extends HttpServlet{
 	int contentLength = request.getContentLength ();
 	BufferedInputStream in = new BufferedInputStream (request.getInputStream ());
 	Uploader up = null;
-	if (contentLength > maxKbytes*1024) {
-	    throw new RuntimeException ("Upload exceeds limit of "+maxKbytes+" kb.");
+	try {
+	    if (contentLength > maxKbytes*1024) {
+	        // consume all input to make Apache happy
+	        byte b[] = new byte[1024];
+	        int read = 0;
+	        while (read > -1)
+	             read = in.read (b, 0, 1024);
+	        throw new RuntimeException ("Upload exceeds limit of "+maxKbytes+" kb.");
+	    }
+	    String contentType = request.getContentType ();
+	    up = new Uploader(maxKbytes);
+	    up.load (in, contentType, contentLength);
+	} finally {
+	    try { in.close (); } catch (Exception ignore) {}
 	}
-	String contentType = request.getContentType ();
-	up = new Uploader(maxKbytes);
-	up.load (in, contentType, contentLength);
 	return up;
     }
 
@@ -209,28 +258,11 @@ public class AcmeServletClient extends HttpServlet{
 	return up.getParts().get(name);
     }
 
-	
-    public String getServletInfo (){
-	return new String("Hop ServletClient");
+
+    public String getServletInfo(){
+	return new String("Hop Servlet Client");
     }
 
-
-    private String trim (String str) {
-
-	if (str == null) 
-	    return null;
-	char[] val = str.toCharArray ();
-	int len = val.length;
-	int st = 0;
-
-	while ((st < len) && (val[st] <= ' ' || val[st] == '/')) {
-	    st++;
-	}
-	while ((st < len) && (val[len - 1] <= ' ' || val[len - 1] == '/')) {
-	    len--;
-	}
-	return ((st > 0) || (len < val.length)) ? new String (val, st, len-st) : str;
-    }
 
 }
 
