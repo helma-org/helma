@@ -7,7 +7,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.io.*;
 import helma.framework.*;
+import helma.scripting.*;
+import helma.scripting.fesi.*;
 import helma.objectmodel.*;
+import helma.util.Updatable;
 import FESI.Data.*;
 import FESI.Exceptions.EcmaScriptException;
 
@@ -25,12 +28,10 @@ public class Prototype {
     String id;
     String name;
     Application app;
-    HashMap templates, functions, actions, skins, updatables;
+    public HashMap templates, functions, actions, skins, updatables;
     long lastUpdate;
 
-    // DbMapping dbmap;
-
-    Prototype prototype;
+    Prototype parent;
 
 
      public Prototype (String name, Application app) {
@@ -40,11 +41,20 @@ public class Prototype {
 	this.app = app;
 	this.name = name;
 	
-	lastUpdate = System.currentTimeMillis ();
+	lastUpdate = 0; // System.currentTimeMillis ();
 
     }
 
+    /**
+     *  Return the application this prototype is a part of
+     */
+    public Application getApplication () {
+	return app;
+    }
 
+    /**
+     * Get an action defined for this prototype
+     */
     public Action getActionOrTemplate (String aname) {
 
 	Action retval = null;
@@ -56,21 +66,24 @@ public class Prototype {
 	if (retval == null && "true".equalsIgnoreCase (app.props.getProperty ("exposetemplates")))
 	    retval = (Action) templates.get (aname);
 	// if still not found, check if the action is defined for the generic node prototype
-	if (retval == null && prototype != null)
-	    retval = prototype.getActionOrTemplate (aname);
+	if (retval == null && parent != null)
+	    retval = parent.getActionOrTemplate (aname);
 	return retval;
     }
 
-    public void setPrototype (Prototype prototype) {
+    /**
+     *  Set the parent prototype of this prototype, i.e. the prototype this one inherits from.
+     */
+    public void setParentPrototype (Prototype parent) {
 	// this is not allowed for the hopobject and global prototypes
 	if ("hopobject".equalsIgnoreCase (name) || "global".equalsIgnoreCase (name))
 	    return;
 	    
-	Prototype old = this.prototype;
-	this.prototype = prototype;
+	Prototype old = this.parent;
+	this.parent = parent;
 
-	// if prototype has changed, update ES-prototypes in request evaluators
-	if (prototype != old) {
+	// if parent has changed, update ES-prototypes in request evaluators
+	if (parent != old) {
 	    Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
 	    while (evals.hasNext ()) {
 	        try {
@@ -78,8 +91,8 @@ public class Prototype {
 	            ObjectPrototype op = reval.getPrototype (getName());
 	            // use hopobject (node) as prototype even if prototype is null - 
 	            // this is the case if no hopobject directory exists
-	            ObjectPrototype opp = prototype == null ? 
-	            	reval.esNodePrototype : reval.getPrototype (prototype.getName ());
+	            ObjectPrototype opp = parent == null ?
+	            	reval.esNodePrototype : reval.getPrototype (parent.getName ());
 	            // don't think this is possible, but check anyway
 	            if (opp == null)
 	                opp = reval.esNodePrototype;
@@ -90,8 +103,8 @@ public class Prototype {
 	}
     }
 
-    public Prototype getPrototype () {
-	return prototype;
+    public Prototype getParentPrototype () {
+	return parent;
     }
 
     public Template getTemplate (String tmpname) {
@@ -123,6 +136,18 @@ public class Prototype {
 	return name;
     }
 
+    Updatable[] upd = null;
+    public Updatable[] getUpdatables () {
+	if (upd == null) {
+	    upd = new Updatable[updatables.size()];
+	    int i = 0;
+	    for (Iterator it = updatables.values().iterator(); it.hasNext(); ) {
+	        upd[i++] = (Updatable) it.next();
+	    }
+	}
+	return upd;
+	
+    }
 
     public void initRequestEvaluator (RequestEvaluator reval) {
 	// see if we already registered with this evaluator
@@ -133,12 +158,12 @@ public class Prototype {
 
 	// get the prototype's prototype if possible and necessary
 	ObjectPrototype opp = null;
-	if (prototype != null) {
+	if (parent != null) {
 	    // see if parent prototype is already registered. if not, register it
-	    opp = reval.getPrototype (prototype.getName ());
+	    opp = reval.getPrototype (parent.getName ());
 	    if (opp == null) {
-	        prototype.initRequestEvaluator (reval);
-	        opp = reval.getPrototype (prototype.getName ());
+	        parent.initRequestEvaluator (reval);
+	        opp = reval.getPrototype (parent.getName ());
 	    }
 	}
 	if (!"global".equalsIgnoreCase (name) && !"hopobject".equalsIgnoreCase (name) && opp == null) {

@@ -74,10 +74,29 @@ public class User implements Serializable {
 	lastTouched = System.currentTimeMillis ();
     }
 
-    public long touched () {
+    public long lastTouched () {
 	return lastTouched;
     }
- 
+
+    public long onSince () {
+	return onSince;
+    }
+
+    /**
+     * Get the persistent user id of a registered user. This is usually the user name, or
+     * null if the user is not logged in.
+     */
+    public String getUID () {
+	return uid;
+    }
+
+    /**
+     * Return the transient cache node for this user.
+     */
+    public INode getCache () {
+	return cache;
+    }
+
 }
 
 

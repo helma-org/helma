@@ -8,6 +8,7 @@ import java.lang.reflect.*;
 import java.rmi.*;
 import java.rmi.server.*;
 import helma.framework.*;
+import helma.scripting.fesi.*;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.xmlrpc.*;
@@ -34,7 +35,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
     private String baseURI;
 
-    TypeManager typemgr;
+    public TypeManager typemgr;
 
     RequestEvaluator eval;
     protected Stack freeThreads;
@@ -43,8 +44,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     boolean stopped = false;
     boolean debug;
 
-    Hashtable sessions;
-    Hashtable activeUsers;
+    public Hashtable sessions;
+    public Hashtable activeUsers;
     Hashtable dbMappings;
     Hashtable dbSources;
 
@@ -181,8 +182,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	activeRequests = new Hashtable ();
 
 	typemgr = new TypeManager (this);
-	typemgr.check ();
-	logEvent ("Started type manager for "+name);
+	typemgr.createPrototypes ();
+	// logEvent ("Started type manager for "+name);
 
 	rootMapping = getDbMapping ("root");
 	userMapping = getDbMapping ("user");
@@ -196,16 +197,16 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
 	nmgr = new NodeManager (this, dbDir.getAbsolutePath (), props);
 	
-	worker = new Thread (this, "Worker-"+name);
-	worker.setPriority (Thread.NORM_PRIORITY+2);
-	worker.start ();
+	// worker = new Thread (this, "Worker-"+name);
+	// worker.setPriority (Thread.NORM_PRIORITY+2);
+	// worker.start ();
 	// logEvent ("session cleanup and scheduler thread started");
 	
 	String xmlrpcHandlerName = props.getProperty ("xmlrpcHandlerName", this.name);
 	if (xmlrpc != null)
 	    xmlrpc.addHandler (xmlrpcHandlerName, new XmlRpcInvoker (this));
 
-	typemgr.start ();
+	// typemgr.start ();
     }
 
 
@@ -264,7 +265,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
      * This can be used to set the maximum number of evaluators which will be allocated.
      * If evaluators are required beyound this number, an error will be thrown.
      */
-    protected boolean setNumberOfEvaluators (int n) {
+    public boolean setNumberOfEvaluators (int n) {
 	if (n < 2 || n > 511)
 	    return false;
 	int current = allThreads.size();
@@ -294,12 +295,19 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     }
 
     /**
+     *  Return the number of currently active threads
+     */
+    public int getActiveThreads () {
+	return 0;
+    }
+
+    /**
     *  Execute a request coming in from a web client.
     */
     public ResponseTrans execute (RequestTrans req) {
 
 	requestCount += 1;
-
+	// long reqstart = System.currentTimeMillis ();
 	User u = getUser (req.session);
 
 	ResponseTrans res = null;
@@ -342,7 +350,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	        res.waitForClose ();
 	    }
 	}
-
+	// System.err.println ("********************** ABSOLUTE TIME: "+(System.currentTimeMillis() - reqstart));
 	return res;
     }
 
@@ -697,7 +705,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	        Hashtable cloned = (Hashtable) sessions.clone ();
 	        for (Enumeration e = cloned.elements (); e.hasMoreElements (); ) {
 	            User u = (User) e.nextElement ();
-	            if (now - u.touched () > sessionTimeout * 60000) {
+	            if (now - u.lastTouched () > sessionTimeout * 60000) {
 	                if (u.uid != null) {
 	                    try {
 	                        eval.invokeFunction (u, "onLogout", new ESValue[0]);
@@ -766,11 +774,11 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	                String protoname = m.getExtends ();
 	                if (protoname == null)
 	                    protoname = "hopobject";
-	                Prototype protoProto = (Prototype) typemgr.prototypes.get (protoname);
-	                if (protoProto == null)
-	                    protoProto = (Prototype) typemgr.prototypes.get ("hopobject");
-	                if (protoProto != null)
-	                    proto.setPrototype (protoProto);
+	                Prototype parentProto = (Prototype) typemgr.prototypes.get (protoname);
+	                if (parentProto == null)
+	                    parentProto = (Prototype) typemgr.prototypes.get ("hopobject");
+	                if (parentProto != null)
+	                    proto.setParentPrototype (parentProto);
 	            }
 	        }
 	    } catch (Exception x) {
@@ -820,6 +828,13 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
      */
     public void putDbMapping (String typename, DbMapping dbmap) {
 	dbMappings.put (typename, dbmap);
+    }
+
+    /**
+     * Proxy method to get a property from the applications properties.
+     */
+    public String getProperty (String propname, String defvalue) {
+	return props.getProperty (propname, defvalue);
     }
 
     /**

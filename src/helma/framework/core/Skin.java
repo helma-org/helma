@@ -4,11 +4,12 @@
 package helma.framework.core;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.*;
 import helma.framework.*;
 import FESI.Data.*;
 import FESI.Exceptions.*;
+import helma.scripting.*;
+import helma.scripting.fesi.*;
 import helma.objectmodel.INode;
 import helma.objectmodel.ConcurrencyException;
 import helma.util.HtmlEncoder;
@@ -24,13 +25,19 @@ public class Skin {
     Object[] parts;
     Application app;
     String source;
-    ESObject sandbox;
+    HashSet sandbox;
 
+    /**
+     * Create a skin without any restrictions on which macros are allowed to be called from it
+     */
     public Skin (String content, Application app) {
 	this (content, app, null);
     }
 
-    public Skin (String content, Application app, ESObject sandbox) {
+    /**
+     * Create a skin with a sandbox which contains the names of macros allowed to be called
+     */
+    public Skin (String content, Application app, HashSet sandbox) {
 	this.app = app;
 	this.sandbox = sandbox;
 	parse (content);
@@ -110,16 +117,21 @@ public class Skin {
 	for (int i=0; i<parts.length; i++) {
 	    if (parts[i] instanceof Macro) {
 	        Macro m = (Macro) parts[i];
-	        String mname = null;
-	        if (m.handler == null)
-	            mname = m.name;
-	        else
-	            mname = m.handler+"."+m.name;
-	        if (macroname.equals (mname))
+	        if (macroname.equals (m.getFullName ()))
 	            return true;
 	    }
 	}
 	return false;
+    }
+
+    /**
+     *  Adds a macro to the list of allowed macros. The macro is in handler.name notation.
+     */
+    public void allowMacro (String macroname) {
+	if (sandbox == null) {
+	    sandbox = new HashSet ();
+	}
+	sandbox.add (macroname);
     }
 
     static final int HANDLER = 0;
@@ -131,8 +143,8 @@ public class Skin {
 
 	String handler;
 	String name;
+	String fullname;
 	Hashtable parameters;
-	boolean notallowed = false;
 
 	public Macro (String str) {
 
@@ -219,24 +231,17 @@ public class Skin {
 	        else if (state <= MACRO)
 	            name = b.toString().trim();
 	    }
-	    if (sandbox != null && name != null) try {
-	        ESValue allow = handler == null ?
-	                sandbox.getProperty ("global", "global".hashCode ()) :
-	                sandbox.getProperty (handler, handler.hashCode ());
-	        allow = ((ESObject) allow).getProperty (name, name.hashCode ());
-	        if (allow == null || allow == ESUndefined.theUndefined)
-	            notallowed = true;
-	    } catch (Exception x) {
-	        notallowed = true;
-	    }
 	}
 
 
+	/**
+	 *  Render the macro given a handler object
+	 */
 	public void render (RequestEvaluator reval, ESObject thisObject, IPathElement elem, ESObject paramObject) throws RedirectException {
 
-	    if (notallowed) {
+	    if (sandbox != null && sandbox.contains (getFullName ())) {
 	        String h = handler == null ? "global" : handler;
-	        reval.res.write ("[Macro "+h+"."+name+" not allowed in sandbox]");
+	        reval.res.write ("[Macro "+getFullName()+" not allowed in sandbox]");
 	        return;
 	    } else if ("response".equalsIgnoreCase (handler)) {
 	        renderFromResponse (reval);
@@ -305,7 +310,7 @@ public class Skin {
 	            if (v != ESUndefined.theUndefined && v != ESNull.theNull)
 	                reval.res.write (v);
 	        } else {
-	            String msg = "[HopMacro unhandled: "+handler+"."+name+"]";
+	            String msg = "[HopMacro unhandled: "+getFullName()+"]";
 	            reval.res.write (" "+msg+" ");
 	            app.logEvent (msg);
 	        }
@@ -352,6 +357,10 @@ public class Skin {
 	    }
 	}
 	
+	/**
+	 * Utility method for performing different kind of character encodings on the
+	 * macro output.
+	 */
 	public String encode (String text, String encoding) {
 	    if (encoding == null || text == null)
 	        return text;
@@ -367,8 +376,22 @@ public class Skin {
 	}
 
 	public String toString () {
-	    return "[HopMacro: "+handler+","+name+"]";
+	    return "[HopMacro: "+getFullName()+"]";
 	}
+	
+	/**
+	 * Return the full name of the macro in handler.name notation
+	 */
+	public String getFullName () {
+	    if (fullname == null) {
+	        if (handler == null)
+	            fullname = name;
+	        else
+	            fullname = handler+"."+name;
+	    }
+	    return fullname;
+	}
+
     }
 
 

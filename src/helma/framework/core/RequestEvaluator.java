@@ -6,7 +6,9 @@ package helma.framework.core;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.framework.*;
-import helma.framework.extensions.*;
+import helma.scripting.*;
+import helma.scripting.fesi.*;
+import helma.scripting.fesi.extensions.*;
 import helma.xmlrpc.fesi.*;
 import helma.util.*;
 import java.util.*;
@@ -27,11 +29,11 @@ import FESI.Exceptions.*;
 public class RequestEvaluator implements Runnable {
 
 
-    Application app;
+    public Application app;
     protected boolean initialized;
 
-    RequestTrans req;
-    ResponseTrans res;
+    public RequestTrans req;
+    public ResponseTrans res;
 
     volatile Transactor rtx;
 
@@ -46,15 +48,15 @@ public class RequestEvaluator implements Runnable {
     protected ArrayPrototype reqPath;
     private ESRequestData reqData;
 
+    // vars for FESI EcmaScript support
+    public Evaluator evaluator;
+    public ObjectPrototype esNodePrototype;
+    public ObjectPrototype esUserPrototype;
+
+    public LruHashtable objectcache;
+    Hashtable prototypes;
     // Used to cache skins within one request evaluation
     HashMap skincache;
-
-    // vars for FESI EcmaScript support
-    protected Evaluator evaluator;
-    protected ObjectPrototype esNodePrototype;
-    protected ObjectPrototype esUserPrototype;
-    protected LruHashtable objectcache;
-    protected Hashtable prototypes;
 
     GlobalObject global;
     HopExtension hopx;
@@ -65,8 +67,8 @@ public class RequestEvaluator implements Runnable {
 	"FESI.Extensions.BasicIO",
 	"FESI.Extensions.FileIO",
 	"helma.xmlrpc.fesi.FesiRpcExtension",
-	"helma.framework.extensions.ImageExtension",
-	"helma.framework.extensions.FtpExtension",
+	"helma.scripting.fesi.extensions.ImageExtension",
+	"helma.scripting.fesi.extensions.FtpExtension",
 	"FESI.Extensions.JavaAccess",
 	"FESI.Extensions.OptionalRegExp"};
 
@@ -106,9 +108,9 @@ public class RequestEvaluator implements Runnable {
 	        evaluator.addExtension (extensions[i]);
 	    hopx = new HopExtension ();
 	    hopx.initializeExtension (this);
-	    mailx = (MailExtension) evaluator.addExtension ("helma.framework.extensions.MailExtension");
+	    mailx = (MailExtension) evaluator.addExtension ("helma.scripting.fesi.extensions.MailExtension");
 	    mailx.setProperties (this.app.props);
-	    Database dbx = (Database) evaluator.addExtension ("helma.framework.extensions.Database");
+	    Database dbx = (Database) evaluator.addExtension ("helma.scripting.fesi.extensions.Database");
 	    dbx.setApplication (this.app);
 
 	    // fake a cache member like the one found in ESNodes
@@ -142,6 +144,7 @@ public class RequestEvaluator implements Runnable {
         try {
 	do {
 
+	    app.typemgr.checkPrototypes ();
 	    IPathElement root, currentElement;
 	    // reset skinManager
 	    skinmanagers = null;
@@ -751,7 +754,7 @@ public class RequestEvaluator implements Runnable {
 	if (proto == null)
 	    return null;
 	// First check if the skin has been already used within the execution of this request
-	CompositeKey key = new CompositeKey (proto.getName(), skinname);
+	SkinKey key = new SkinKey (proto.getName(), skinname);
 	Skin skin = (Skin) skincache.get (key);
 	if (skin != null) {
 	    return skin;
@@ -775,7 +778,7 @@ public class RequestEvaluator implements Runnable {
 	        return skin;
 	    }
 	    // still not found. See if there is a parent prototype which might define the skin
-	    proto = proto.getPrototype ();
+	    proto = proto.getParentPrototype ();
 	} while (proto != null);
 	// looked every where, nothing to be found
 	return null;
@@ -932,18 +935,18 @@ public class RequestEvaluator implements Runnable {
             prototypes.put (protoName, op);
     }
 
-    final class CompositeKey {
+    final class SkinKey {
 
 	final String first, second;
 	
-	public CompositeKey (String first, String second) {
+	public SkinKey (String first, String second) {
 	    this.first = first;
 	    this.second = second;
 	}
 	
 	public boolean equals (Object other) {
 	    try {
-	        CompositeKey key = (CompositeKey) other;
+	        SkinKey key = (SkinKey) other;
 	        return first.equals (key.first) && second.equals (key.second);
 	    } catch (Exception x) {
 	        return false;

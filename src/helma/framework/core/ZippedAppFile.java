@@ -7,6 +7,7 @@ import java.util.*;
 import java.util.zip.*;
 import java.io.*;
 import helma.framework.*;
+import helma.scripting.*;
 import helma.util.Updatable;
 import helma.util.SystemProperties;
 import helma.objectmodel.db.DbMapping;
@@ -35,7 +36,7 @@ public class ZippedAppFile implements Updatable {
      * the file has been modified or deleted.
      */
     public boolean needsUpdate () {
-	return lastmod != file.lastModified () || !file.exists ();
+	return lastmod != file.lastModified ();
     }
 
 
