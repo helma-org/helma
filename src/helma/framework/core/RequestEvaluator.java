@@ -512,9 +512,7 @@ public class RequestEvaluator implements Runnable {
 	    //  if no request arrived, release ressources and thread
 	    if (reqtype == NONE && rtx == localrtx)
 	        rtx = null;
-	} catch (InterruptedException ir) {
-	    localrtx.closeConnections ();
-	}
+	} catch (InterruptedException ir) {}
     }
 
     public synchronized ResponseTrans invoke (RequestTrans req, User user)  throws Exception {
@@ -615,17 +613,17 @@ public class RequestEvaluator implements Runnable {
      *  notify.
      */
     public synchronized void stopThread () {
-	// IServer.getLogger().log ("Stopping Thread");
+	IServer.getLogger().log ("Stopping Thread "+rtx);
 	Transactor t = rtx;
 	evaluator.thread = null;
 	rtx = null;
 	if (t != null) {
 	    if (reqtype != NONE) {
+	        reqtype = NONE;
+	        t.kill ();
 	        try {
 	            t.abort ();
 	        } catch (Exception ignore) {}
-	        t.kill ();
-	        reqtype = NONE;
 	    } else {
                      notifyAll ();
 	    }
@@ -634,6 +632,10 @@ public class RequestEvaluator implements Runnable {
     }
 
     private synchronized void checkThread () throws InterruptedException {
+
+	if (app.stopped)
+	    throw new ApplicationStoppedException ();
+
 	if (rtx == null || !rtx.isAlive()) {
 	    // IServer.getLogger().log ("Starting Thread");
 	    rtx = new Transactor (this, app.threadgroup, app.nmgr);
