@@ -16,10 +16,20 @@ import java.security.Policy;
  */
 public class Main {
 
-    public static final String[] jars = { "helma.jar",  "jetty.jar", "crimson.jar", "xmlrpc.jar",
-                                                         "village.jar", "servlet.jar", "regexp.jar", "mail.jar",
-                                                          "activation.jar",  "netcomponents.jar", "jimi.jar",
-                                                          "apache-dom.jar", "jdom.jar"};
+    public static final String[] jars = {
+        "helma.jar",
+        "jetty.jar",
+        "crimson.jar",
+        "xmlrpc.jar",
+        "servlet.jar",
+        "regexp.jar",
+        "mail.jar",
+        "activation.jar",
+        "netcomponents.jar",
+        "jimi.jar",
+        "apache-dom.jar",
+        "jdom.jar"
+    };
 
 
     public static void main (String[] args) throws Exception {
