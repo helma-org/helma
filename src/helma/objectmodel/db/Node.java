@@ -505,7 +505,9 @@ public class Node implements INode, Serializable {
 	if (this.dbmap != dbmap) {
 	    this.dbmap = dbmap;
 	    primaryKey = null;
-	    ((Transactor) Thread.currentThread()).visitCleanNode (this);
+	    try {
+	        ((Transactor) Thread.currentThread()).visitCleanNode (this);
+	    } catch (ClassCastException ignore) {}
 	}
     }
 

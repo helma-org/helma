@@ -70,7 +70,7 @@ public class ApplicationManager {
     private void start (String appName) {
 	IServer.getLogger().log ("Building application "+appName);
 	try {
-	    Application app = new Application (appName, Server.sysProps, hopHome);
+	    Application app = new Application (appName, Server.sysProps, Server.dbProps, hopHome);
 	    applications.put (appName, app);
 	    // if we're running with the embedded web server, set app base uri to /appname
 	    if (server.websrv != null)
@@ -104,8 +104,8 @@ public class ApplicationManager {
 	try {
 	    IServer.getLogger().log ("Binding application "+appName);
 	    Application app = (Application) applications.get (appName);
-	    if (server.websrv == null) {
 	        Naming.rebind ("//:"+port+"/"+appName, app);
+	    if (server.websrv == null) {
 	    } else {
 	        AcmeServletClient servlet = new AcmeServletClient (app);
 	        server.websrv.addServlet ("/"+appName+"/", servlet);

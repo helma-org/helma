@@ -504,7 +504,7 @@ public abstract class XmlRpc extends HandlerBase {
 	            }
 	            break;
 	        case BASE64: 
-	            value = Base64.decode (cdata.getBytes());
+	            value = Base64.decode (cdata.toCharArray ());
 	            break;
 	        case STRING: 
 	            value = cdata;

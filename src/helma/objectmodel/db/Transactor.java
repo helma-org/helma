@@ -127,6 +127,8 @@ public class Transactor extends Thread {
 	int ins = 0, upd = 0, dlt = 0;
 	int l = nodes.size ();
 
+	Replicator replicator = nmgr.getReplicator ();
+
 	for (Iterator i=nodes.values().iterator(); i.hasNext (); ) {
 	    Node node = (Node) i.next ();
 	    // update nodes in db
@@ -135,17 +137,23 @@ public class Transactor extends Thread {
 	        nmgr.registerNode (node); // register node with nodemanager cache
 	        nmgr.insertNode (nmgr.db, txn, node);
 	        node.setState (Node.CLEAN);
+	        if (replicator != null)
+	            replicator.addNewNode (node);
 	        ins++;
 	        nmgr.app.logEvent ("inserted: Node "+node.getPrototype ()+"/"+node.getID ());
 	    } else if (nstate == Node.MODIFIED) {
 	        nmgr.updateNode (nmgr.db, txn, node);
 	        node.setState (Node.CLEAN);
+	        if (replicator != null)
+	            replicator.addModifiedNode (node);
 	        upd++;
 	        nmgr.app.logEvent ("updated: Node "+node.getPrototype ()+"/"+node.getID ());
 	    } else if (nstate == Node.DELETED) {
 	        // nmgr.app.logEvent ("deleted: "+node.getFullName ()+" ("+node.getName ()+")");
 	        nmgr.deleteNode (nmgr.db, txn, node);
 	        nmgr.evictNode (node);
+	        if (replicator != null)
+	            replicator.addDeletedNode (node);
 	        dlt++;
 	    } else {
 	        // nmgr.app.logEvent ("noop: "+node.getFullName ());

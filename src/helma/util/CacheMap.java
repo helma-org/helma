@@ -219,6 +219,9 @@ public class CacheMap  {
 	return k;
     }
 
+    public String toString () {
+	return newTable.toString () + oldTable.toString () + hashCode ();
+    }
 
 }
 

@@ -38,6 +38,7 @@ import com.sleepycat.db.*;
     static String dbPropfile = "db.properties";
     static String appsPropfile;
     static SystemProperties appsProps;
+    static SystemProperties dbProps;
     static int port = 5055;
     static int webport = 0;
 
@@ -118,6 +119,8 @@ import com.sleepycat.db.*;
 
 	File helper = new File (hopHome, "db.properties");
 	dbPropfile = helper.getAbsolutePath ();
+	dbProps = new SystemProperties (dbPropfile);
+	DbSource.setDefaultProps (dbProps);
 	getLogger().log ("dbPropfile = "+dbPropfile);
 
 	appsPropfile = sysProps.getProperty ("appsPropFile");
@@ -161,23 +164,6 @@ import com.sleepycat.db.*;
 
 	try {
 
-	    // set up dbSources
-	    try {
-	        dbProps = new SystemProperties (dbPropfile);
-	        String sources = dbProps.getProperty ("sources", "");
-	        StringTokenizer st = new StringTokenizer (sources, ",; ");
-	        String next = null;
-	        while (st.hasMoreTokens ()) try {
-	            next = st.nextToken ();
-	            new DbSource (next);
-	        } catch (Exception wrong) {
-	            getLogger().log ("Error creating DbSource "+next);
-	            getLogger().log ("Reason: "+wrong);
-	        }
-	    } catch (Exception x) {
-	        getLogger().log ("Error loading data source properties: "+x);
-	    }
-
 	    // start embedded web server if port is specified
 	    if (webport > 0) {
 	        websrv = new Acme.Serve.Serve (webport, sysProps);
@@ -212,10 +198,10 @@ import com.sleepycat.db.*;
 	        RMISocketFactory.setSocketFactory (factory);
 	    }
 
-	    if (websrv == null) {
+	    // if (websrv == null) {
 	        getLogger().log ("Starting server on port "+port);
 	        LocateRegistry.createRegistry (port);
-	    }
+	    // }
 
 
 	    // start application framework

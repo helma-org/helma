@@ -399,7 +399,7 @@ class Connection implements Runnable {
 
   private void parseAuth (String line) {
     try {
-      byte[] c = Base64.decode (line.substring (21).getBytes());
+      byte[] c = Base64.decode (line.substring (21).toCharArray ());
       String str = new String (c);
       int col = str.indexOf (":");
       user = str.substring (0, col);

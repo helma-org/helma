@@ -26,6 +26,7 @@ public final class NodeManager {
     protected Application app;
 
     private CacheMap cache;
+    private Replicator replicator;
 
     protected DbWrapper db;
 
@@ -51,6 +52,12 @@ public final class NodeManager {
 
 	safe = new WrappedNodeManager (this);
 	nullNode = new Node ("nullNode", "nullNode", null, safe);
+
+	String replicationUrl = props.getProperty ("replicationUrl");
+	if (replicationUrl != null)
+	    replicator = new Replicator (replicationUrl);
+	else
+	    replicator = null;
 
 	// get the initial id generator value
 	String idb = props.getProperty ("idBaseValue");
@@ -948,6 +955,34 @@ public final class NodeManager {
 
     public Object[] getCacheEntries () {
 	return cache.getEntryArray ();
+    }
+
+    protected Replicator getReplicator () {
+	return replicator;
+    }
+
+    public void replicateCache (Vector add, Vector delete) {
+	synchronized (cache) {
+	    for (Enumeration en=add.elements(); en.hasMoreElements(); ) {
+	        Node n = (Node) en.nextElement ();
+	        DbMapping dbm = app.getDbMapping (n.getPrototype ());
+	        if (dbm != null)
+	            dbm.lastDataChange = System.currentTimeMillis ();
+	        n.setDbMapping (dbm);
+	        n.nmgr = safe;
+	        cache.put (n.getKey(), n);
+	    }
+	    for (Enumeration en=delete.elements(); en.hasMoreElements(); ) {
+	        Node n = (Node) en.nextElement ();
+	        DbMapping dbm = app.getDbMapping (n.getPrototype ());
+	        if (dbm != null)
+	            dbm.lastDataChange = System.currentTimeMillis ();
+	        n.setDbMapping (dbm);
+	        n.nmgr = safe;
+	        cache.put (n.getKey(), n);
+	        evictNode (n);
+	    }
+	}
     }
 
 }
