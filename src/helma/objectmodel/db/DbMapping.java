@@ -218,8 +218,21 @@ public final class DbMapping implements Updatable {
 
         if (extendsProto != null) {
             parentMapping = app.getDbMapping(extendsProto);
-            if (parentMapping != null && parentMapping.needsUpdate()) {
-                parentMapping.update();
+            if (parentMapping != null) {
+                if (parentMapping.needsUpdate()) {
+                    parentMapping.update();
+                }
+                // if tableName or DbSource are inherited from the parent mapping
+                // set them to null so we are aware of the fact.
+                if (tableName != null &&
+                        tableName.equals(parentMapping.getTableName())) {
+                    tableName = null;
+                }
+                if (dbSourceName != null &&
+                        dbSourceName.equals(parentMapping.getDbSourceName())) {
+                    dbSourceName = null;
+                    dbSource = null;
+                }
             }
         } else {
             parentMapping = null;
@@ -390,6 +403,17 @@ public final class DbMapping implements Updatable {
         }
 
         return dbSource;
+    }
+
+    /**
+     * Get the dbsource name used for this type mapping.
+     */
+    public String getDbSourceName() {
+        if ((dbSourceName == null) && (parentMapping != null)) {
+            return parentMapping.getDbSourceName();
+        }
+
+        return dbSourceName;
     }
 
     /**
@@ -1150,18 +1174,23 @@ public final class DbMapping implements Updatable {
      * @return ...
      */
     public long getLastDataChange() {
-        return lastDataChange;
+        // refer to parent mapping if it uses the same db/table
+        if (inheritsStorage()) {
+            return parentMapping.getLastDataChange();
+        } else {
+            return lastDataChange;
+        }
     }
 
     /**
      *
      */
     public void setLastDataChange(long t) {
-        lastDataChange = t;
-
-        // propagate data change timestamp to parent mapping
-        if ((parentMapping != null) && (dbSource == null)) {
+        // propagate data change timestamp to storage-compatible parent mapping
+        if (inheritsStorage()) {
             parentMapping.setLastDataChange(t);
+        } else {
+            lastDataChange = t;
         }
     }
 
@@ -1173,13 +1202,13 @@ public final class DbMapping implements Updatable {
      * @return ...
      */
     public synchronized long getNewID(long dbmax) {
-        if ((parentMapping != null) && (dbSource == null)) {
+        // refer to parent mapping if it uses the same db/table
+        if (inheritsStorage()) {
             return parentMapping.getNewID(dbmax);
+        } else {
+            lastID = Math.max(dbmax + 1, lastID + 1);
+            return lastID;
         }
-
-        lastID = Math.max(dbmax + 1, lastID + 1);
-
-        return lastID;
     }
 
     /**
@@ -1227,6 +1256,24 @@ public final class DbMapping implements Updatable {
         }
 
         return (dbSourceName == null) ? null : typename;
+    }
+
+    /**
+     * Check whether this DbMapping inherits its storage location from its
+     * parent mapping. The raison d'etre for this is that we need to detect
+     * inherited storage even if the dbsource and table are explicitly set
+     * in the extended mapping.
+     *
+     * @return true if this mapping shares its parent mapping storage
+     */
+    private boolean inheritsStorage() {
+        // note: tableName and dbSourceName are nulled out in update() if they
+        // are inherited from the parent mapping. This way we know that
+        // storage is not inherited if either of them is not null.
+        if (parentMapping == null || tableName != null || dbSourceName != null) {
+            return false;
+        }
+        return true;
     }
 
     /**
