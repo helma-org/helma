@@ -296,6 +296,15 @@ public class HopObject extends ScriptableObject implements Wrapper {
         if (id instanceof Number) {
             n = get(((Number) id).intValue(), this);
         } else if (id instanceof String) {
+            // HopObject.get() is more often called for child elements than for
+            // ordinary properties, so try a getChildElement() first. This seems
+            // to have quite an impact on get() performance.
+            n = node.getChildElement(id.toString());
+
+            if (n != null) {
+               return Context.toObject(n, core.global);
+            }
+
             n = getFromNode(id.toString());
         } else {
             throw new RuntimeException("Invalid type for id argument in HopObject.get(): "+id);
@@ -765,13 +774,6 @@ public class HopObject extends ScriptableObject implements Wrapper {
                     }
                 }
             }
-
-            // as last resort, try to get property as anonymous subnode
-            // Object anon = node.getChildElement(name);
-
-            // if (anon != null) {
-            //     return anon;
-            // }
         }
 
         return NOT_FOUND;
