@@ -224,11 +224,11 @@ public final class TypeManager {
     * Update a prototype to the files in the prototype directory.
     */
     public void updatePrototype (Prototype proto) {
-
         if (proto == null)
             return;
-        // if prototype has been checked in the last 1.5 seconds, return
-        // if (System.currentTimeMillis() - proto.getLastCheck() < 2500)
+        // System.err.println ("UPDATE PROTO: "+app.getName()+"/"+proto.getName());
+        // if prototype has been checked in the last second, return
+        // if (System.currentTimeMillis() - proto.getLastCheck() < 1000)
         //     return;
 
         synchronized (proto) {
@@ -281,7 +281,7 @@ public final class TypeManager {
         String[] list = dir.list ();
         for (int i=0; i<list.length; i++) {
             String fn = list[i];
-            int dot = fn.indexOf (".");
+            int dot = fn.lastIndexOf (".");
 
             if (dot < 0)
                 continue;
