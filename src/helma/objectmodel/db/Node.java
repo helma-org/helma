@@ -427,16 +427,21 @@ public final class Node implements INode, Serializable {
                 DbMapping parentmap = p.getDbMapping();
                 Relation prel = parentmap.getSubnodeRelation();
 
-                if ((prel != null) && prel.hasAccessName()) {
-                    String propname = dbmap.columnNameToProperty(prel.accessName);
-                    String propvalue = getString(propname);
-
-                    if ((propvalue != null) && (propvalue.length() > 0)) {
-                        setName(propvalue);
+                if (prel != null) {
+                    if (prel.groupby != null) {
+                        setName(getString("groupname"));
                         anonymous = false;
+                    } else if (prel.accessName != null) {
+                        String propname = dbmap.columnNameToProperty(prel.accessName);
+                        String propvalue = getString(propname);
 
-                        // nameProp = localrel.propName;
-                    } else if (!anonymous && (p.contains(this) > -1)) {
+                        if ((propvalue != null) && (propvalue.length() > 0)) {
+                            setName(propvalue);
+                            anonymous = false;
+                        } else if (!anonymous && (p.contains(this) > -1)) {
+                            anonymous = true;
+                        }
+                    } else {
                         anonymous = true;
                     }
                 } else if (!anonymous && (p.contains(this) > -1)) {
@@ -614,14 +619,12 @@ public final class Node implements INode, Serializable {
      * @param name ...
      */
     public void setName(String name) {
-        // "/" is used as delimiter, so it's not a legal char
-        if (name.indexOf('/') > -1) {
-            return;
-        }
-
-        //     throw new RuntimeException ("The name of the node must not contain \"/\".");
         if ((name == null) || (name.trim().length() == 0)) {
-            this.name = id; // use id as name
+            // use id as name
+            this.name = id; 
+        } else if (name.indexOf('/') > -1) {
+            // "/" is used as delimiter, so it's not a legal char
+            return;
         } else {
             this.name = name;
         }
@@ -1006,7 +1009,7 @@ public final class Node implements INode, Serializable {
 
             rel = dbmap.getSubnodeRelation();
 
-            if ((rel != null) && (rel.groupby == null) && (rel.accessName != null)) {
+            if ((rel != null) && (rel.groupby != null || rel.accessName != null)) {
                 if ((rel.otherType != null) && rel.otherType.isRelational()) {
                     return nmgr.getNode(this, name, rel);
                 } else {
@@ -1143,10 +1146,11 @@ public final class Node implements INode, Serializable {
 
                 if (relational || create) {
                     Node node = relational ? new Node(this, sid, nmgr, null)
-                                           : new Node("groupby-" + sid, null, nmgr);
+                                           : new Node(sid, null, nmgr);
 
                     // set "groupname" property to value of groupby field
                     node.setString("groupname", sid);
+                    node.setString("name", sid);
 
                     if (relational) {
                         node.setDbMapping(groupbyMapping);
