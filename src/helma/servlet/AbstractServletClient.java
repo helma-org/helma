@@ -177,7 +177,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    String pathInfo = request.getPathInfo ();
 	    ResponseTrans restrans = execute (reqtrans, pathInfo);
 
-	    writeResponse (request, response, restrans, cookies);
+	    writeResponse (request, response, restrans);
 
 	} catch (Exception x) {
 	    try {
@@ -202,27 +202,26 @@ public abstract class AbstractServletClient extends HttpServlet {
 
     void writeResponse (HttpServletRequest req,
                         HttpServletResponse res,
-                        ResponseTrans trans,
-	                Cookie[] cookies) {
+                        ResponseTrans hopres) {
 
-	for (int i = 0; i < trans.countCookies(); i++) try {
-	    Cookie c = new Cookie(trans.getKeyAt(i), trans.getValueAt(i));
+	for (int i = 0; i < hopres.countCookies(); i++) try {
+	    Cookie c = new Cookie(hopres.getKeyAt(i), hopres.getValueAt(i));
 	    c.setPath ("/");
 	    if (cookieDomain != null)
 	        c.setDomain (cookieDomain);
-	    int expires = trans.getDaysAt(i);
+	    int expires = hopres.getDaysAt(i);
 	    if (expires > 0)
 	        c.setMaxAge(expires * 60*60*24);   // Cookie time to live, days -> seconds
 	    res.addCookie(c);
 	} catch (Exception ign) {}
 
-	if (trans.getRedirect () != null) {
-	    sendRedirect(req, res, trans.getRedirect ());
-	} else if (trans.getNotModified ()) {
+	if (hopres.getRedirect () != null) {
+	    sendRedirect(req, res, hopres.getRedirect ());
+	} else if (hopres.getNotModified ()) {
 	    res.setStatus (HttpServletResponse.SC_NOT_MODIFIED);
 	} else {
 
-	    if (!trans.cache || ! caching) {
+	    if (!hopres.cache || ! caching) {
 	        // Disable caching of response.
 	        if (isOneDotOne (req.getProtocol ())) {
 	            // for HTTP 1.0
@@ -232,12 +231,12 @@ public abstract class AbstractServletClient extends HttpServlet {
 	            res.setHeader ("Cache-Control", "no-cache");
 	        }
 	    }
-	    if ( trans.realm!=null )
-	        res.setHeader( "WWW-Authenticate", "Basic realm=\"" + trans.realm + "\"" );
-	    if (trans.status > 0)
-	        res.setStatus (trans.status);
+	    if ( hopres.realm!=null )
+	        res.setHeader( "WWW-Authenticate", "Basic realm=\"" + hopres.realm + "\"" );
+	    if (hopres.status > 0)
+	        res.setStatus (hopres.status);
 	    // set last-modified header to now
-	    long modified = trans.getLastModified ();
+	    long modified = hopres.getLastModified ();
 	    if (modified > -1)
 	        res.setDateHeader ("Last-Modified", System.currentTimeMillis ());
 	    // if we don't know which charset to use for parsing HTTP params,
@@ -246,12 +245,12 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    // containing the form has. Problem is we can do this only per servlet,
 	    // not per session or even per page, which would produce too much overhead
 	    if (defaultEncoding == null)
-	        defaultEncoding = trans.charset;
-	    res.setContentLength (trans.getContentLength ());
-	    res.setContentType (trans.getContentType ());
+	        defaultEncoding = hopres.charset;
+	    res.setContentLength (hopres.getContentLength ());
+	    res.setContentType (hopres.getContentType ());
 	    try {
 	        OutputStream out = res.getOutputStream ();
-	        out.write (trans.getContent ());
+	        out.write (hopres.getContent ());
 	        out.flush ();
 	    } catch(Exception io_e) {
 	        log ("Exception in writeResponse: "+io_e);
