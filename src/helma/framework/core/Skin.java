@@ -136,7 +136,7 @@ public final class Skin {
 	for (int i=0; i<parts.length; i++) {
 	    if (parts[i] instanceof Macro) {
 	        Macro m = (Macro) parts[i];
-	        if (macroname.equals (m.getFullName ()))
+	        if (macroname.equals (m.fullName))
 	            return true;
 	    }
 	}
@@ -163,6 +163,7 @@ public final class Skin {
 	final int start, end;
 	String handler;
 	String name;
+	String fullName;
 	String prefix;
 	String suffix;
 	String encoding;
@@ -256,6 +257,11 @@ public final class Skin {
 	        } else if (state <= MACRO)
 	            name = b.toString().trim();
 	    }
+	    if (handler == null)
+	        fullName = name;
+	    else
+	        fullName = handler+"."+name;
+
 	}
 
 	
@@ -287,9 +293,9 @@ public final class Skin {
 	 */
 	public void render (RequestEvaluator reval, Object thisObject, Map paramObject, Map handlerCache) throws RedirectException {
 
-	    if (sandbox != null && !sandbox.contains (getFullName ())) {
+	    if (sandbox != null && !sandbox.contains (fullName)) {
 	        String h = handler == null ? "global" : handler;
-	        reval.res.write ("[Macro "+getFullName()+" not allowed in sandbox]");
+	        reval.res.write ("[Macro "+fullName+" not allowed in sandbox]");
 	        return;
 	    } else if ("response".equalsIgnoreCase (handler)) {
 	        renderFromResponse (reval);
@@ -299,6 +305,9 @@ public final class Skin {
 	        return;
 	    } else if ("param".equalsIgnoreCase (handler)) {
 	        renderFromParam (reval, paramObject);
+	        return;
+	    } else if ("session".equalsIgnoreCase (handler)) {
+	        renderFromSession (reval);
 	        return;
 	    }
 
@@ -407,7 +416,7 @@ public final class Skin {
 	                writeToResponse (v, reval.res, true);
 	            }
 	        } else {
-	            String msg = "[HopMacro unhandled: "+getFullName()+"]";
+	            String msg = "[HopMacro unhandled: "+fullName+"]";
 	            reval.res.write (" "+msg+" ");
 	            app.logEvent (msg);
 	        }
@@ -422,32 +431,28 @@ public final class Skin {
 	        String msg = x.getMessage();
 	        if (msg == null || msg.length() < 10)
 	            msg = x.toString();
-	        msg = "[HopMacro error in "+getFullName()+": "+msg+"]";
+	        msg = "[HopMacro error in "+fullName+": "+msg+"]";
 	        reval.res.write (" "+msg+" ");
 	        app.logEvent (msg);
 	    }
 	}
 
 	private void renderFromResponse (RequestEvaluator reval) {
-	    Object value = null;
-	    // as a transitional solution, try to get the value from the
-	    // hardcoded fields in the response object. If not present, try
-	    // the response object's data object.
-	    if ("title".equals (name))
-	        value = reval.res.title;
-	    else if ("head".equals (name))
-	        value = reval.res.head;
-	    else if ("body".equals (name))
-	        value = reval.res.body;
-	    else if ("message".equals (name))
-	        value = reval.res.message;
-	    if (value == null)
-	        value = reval.res.get (name);
+	    Object value = reval.res.get (name);
 	    writeToResponse (value, reval.res, true);
 	}
 
 	private void renderFromRequest (RequestEvaluator reval) {
+	    if (reval.req == null)
+	        return;
 	    Object value = reval.req.get (name);
+	    writeToResponse (value, reval.res, true);
+	}
+
+	private void renderFromSession (RequestEvaluator reval) {
+	    if (reval.session == null)
+	        return;
+	    Object value = reval.session.getCacheNode().getString (name, false);
 	    writeToResponse (value, reval.res, true);
 	}
 
@@ -500,17 +505,15 @@ public final class Skin {
 
 
 	public String toString () {
-	    return "[HopMacro: "+getFullName()+"]";
+	    return "[HopMacro: "+fullName+"]";
 	}
+	
 
 	/**
 	 * Return the full name of the macro in handler.name notation
 	 */
 	public String getFullName () {
-	    if (handler == null)
-	        return name;
-	    else
-	        return handler+"."+name;
+	    return fullName;
 	}
 
     }
