@@ -140,7 +140,8 @@ public class RequestEvaluator implements Runnable {
         do {
 
 	// make sure there is only one thread running per instance of this class
-	if (Thread.currentThread () != rtx)
+	Transactor tx = rtx;
+	if (Thread.currentThread () != tx)
 	    return;
 
 	// IServer.getLogger().log ("got request "+reqtype);
@@ -159,9 +160,9 @@ public class RequestEvaluator implements Runnable {
 
 	        String requestPath = app.getName()+"/"+req.path;
 	        // set Timer to get some profiling data
-	        rtx.timer.reset ();
-	        rtx.timer.beginEvent (requestPath+" init");
-	        rtx.begin (requestPath);
+	        tx.timer.reset ();
+	        tx.timer.beginEvent (requestPath+" init");
+	        tx.begin (requestPath);
 
 	        Action action = null;
 
@@ -276,25 +277,27 @@ public class RequestEvaluator implements Runnable {
 	            current = getNodeWrapper (root);
 	        }
 
-	        rtx.timer.endEvent (requestPath+" init");
+	        tx.timer.endEvent (requestPath+" init");
 
 	        try {
-	            rtx.timer.beginEvent (requestPath+" execute");
+	            tx.timer.beginEvent (requestPath+" execute");
 	            current.doIndirectCall (evaluator, current, action.getFunctionName (), new ESValue[0]);
-	            rtx.timer.endEvent (requestPath+" execute");
+	            tx.timer.endEvent (requestPath+" execute");
 	            done = true;
 	        } catch (RedirectException redirect) {
 	            res.redirect = redirect.getMessage ();
 	            done = true;
 	        }
 
-	        rtx.commit ();
+	        // check if we're still on track
+	        if (tx == rtx)
+	            tx.commit ();
+	        else
+	             throw new TimeoutException ();
 	        done = true;
-	        // if (app.debug)
-	        //     ((Transactor) Thread.currentThread ()).timer.dump (System.err);
 
 	    } catch (ConcurrencyException x) {
-	        try { rtx.abort (); } catch (Exception ignore) {}
+	        try { tx.abort (); } catch (Exception ignore) {}
 	        res.reset ();
 	        if (++tries < 8) {
 	            try {
@@ -309,7 +312,7 @@ public class RequestEvaluator implements Runnable {
 	        done = true;
 
 	    } catch (FrameworkException x) {
-	        try { rtx.abort (); } catch (Exception ignore) {}
+	        try { tx.abort (); } catch (Exception ignore) {}
 	        app.errorCount += 1;
 	        res.reset ();
 	        res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>" + x.getMessage () + "</pre>");
@@ -318,7 +321,7 @@ public class RequestEvaluator implements Runnable {
 
 	        done = true;
 	    } catch (Exception x) {
-	        try { rtx.abort (); } catch (Exception ignore) {}
+	        try { tx.abort (); } catch (Exception ignore) {}
 	        app.errorCount += 1;
 	        System.err.println ("### Exception in "+app.getName()+"/"+req.path+": current = "+currentNode);
 	        System.err.println (x);
@@ -329,7 +332,7 @@ public class RequestEvaluator implements Runnable {
 
 	        // If the transactor thread has been killed by the invoker thread we don't have to
 	        // bother for the error message, just quit.
-	        if (rtx != Thread.currentThread())
+	        if (rtx != tx)
 	            return;
 
 	        res.reset ();
@@ -340,7 +343,7 @@ public class RequestEvaluator implements Runnable {
 	break;
 	case XMLRPC:
 	    try {
-	        rtx.begin (app.getName()+":xmlrpc/"+method);
+	        tx.begin (app.getName()+":xmlrpc/"+method);
 
 	        root = app.getDataRoot ();
 
@@ -380,9 +383,9 @@ public class RequestEvaluator implements Runnable {
 	        }
 	
 	        result = FesiRpcUtil.convertE2J (current.doIndirectCall (evaluator, current, method, esa));
-	        rtx.commit ();
+	        tx.commit ();
 	    } catch (Exception wrong) {
-	        try { rtx.abort (); } catch (Exception ignore) {}
+	        try { tx.abort (); } catch (Exception ignore) {}
 
 	        // If the transactor thread has been killed by the invoker thread we don't have to
 	        // bother for the error message, just quit.
@@ -398,7 +401,7 @@ public class RequestEvaluator implements Runnable {
 	    // Just a human readable descriptor of this invocation
 	    String funcdesc = app.getName()+":internal/"+method;
 	    try {
-	        rtx.begin (funcdesc);
+	        tx.begin (funcdesc);
 
 	        root = app.getDataRoot ();
 
@@ -419,9 +422,9 @@ public class RequestEvaluator implements Runnable {
 	            }
 	        }
 	        esresult = current.doIndirectCall (evaluator, current, method, new ESValue[0]);
-	        rtx.commit ();
+	        tx.commit ();
 	    } catch (Throwable wrong) {
-	        try { rtx.abort (); } catch (Exception ignore) {}
+	        try { tx.abort (); } catch (Exception ignore) {}
 
 	        // If the transactor thread has been killed by the invoker thread we don't have to
 	        // bother for the error message, just quit.
@@ -561,6 +564,7 @@ public class RequestEvaluator implements Runnable {
 	rtx = null;
 	if (t != null) {
 	    if (reqtype != NONE) {
+	        try { t.abort (); } catch (Exception ignore) {}
 	        t.kill ();
 	    } else {
                      notifyAll ();
