@@ -32,8 +32,6 @@ import java.io.*;
 import java.util.*;
 import java.net.*;
 import java.text.*;
-// import Acme.Serve.servlet.*;
-// import Acme.Serve.servlet.http.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
@@ -1092,7 +1090,7 @@ class ServeConnection implements Runnable, HttpServletRequest, HttpServletRespon
 	// In this server, the entire path is regexp-matched against the
 	// servlet pattern, so there's no good way to distinguish which
 	// part refers to the servlet.
-	return null;
+	return reqUriPath;
 	}
 
     /// Returns extra path information translated to a real path.  Returns
@@ -1292,8 +1290,21 @@ class ServeConnection implements Runnable, HttpServletRequest, HttpServletRespon
     // type has yet been assigned, it is implicitly set to text/plain.
     public String getCharacterEncoding()
 	{
-	// !!!
-	return null;
+	String contentType = getContentType ();
+	if (contentType == null)
+	    return (null);
+	int start = contentType.indexOf("charset=");
+	if (start < 0)
+	    return (null);
+	String encoding = contentType.substring(start + 8);
+	int end = encoding.indexOf(';');
+	if (end >= 0)
+	    encoding = encoding.substring(0, end);
+	encoding = encoding.trim();
+	if ((encoding.length() > 2) && (encoding.startsWith("\""))
+	    && (encoding.endsWith("\"")))
+	    encoding = encoding.substring(1, encoding.length() - 1);
+	return (encoding.trim());
 	}
 
 
