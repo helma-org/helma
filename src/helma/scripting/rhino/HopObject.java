@@ -84,23 +84,15 @@ public class HopObject extends ScriptableObject implements Wrapper {
             String classname = c.app.getJavaClassForPrototype(prototype);
             try {
                 Class clazz = Class.forName(classname);
-                Constructor[] cnst = clazz.getConstructors();
-                // brute force loop through constructors -
-                // alas, this isn't very pretty.
-                for (int i=0; i<cnst.length; i++) try {
-                    FunctionObject fo = new FunctionObject("ctor", cnst[i], engine.global);
-                    Object obj = fo.call(cx, engine.global, null, args);
-                    return Context.toObject(obj, engine.global);
-                } catch (JavaScriptException x) {
-                    Object value = x.getValue();
-                    if (value instanceof Throwable) {
-                        ((Throwable) value).printStackTrace();
-                    }
-                    throw new EvaluatorException("Error in Java constructor: "+value);
-                } catch (Exception ignore) {
-                    // constructor arguments didn't match
+                // try to get the constructor matching our arguments
+                Class[] argsTypes = new Class[args.length];
+                for (int i=0; i<argsTypes.length; i++) {
+                    argsTypes[i] = args[i] == null ? null : args[i].getClass();
                 }
-                throw new ScriptingException("No matching Java Constructor found in "+clazz);
+                Constructor cnst = clazz.getConstructor(argsTypes);
+                // crate a new instance using the constructor
+                Object obj = cnst.newInstance(args);
+                return Context.toObject(obj, engine.global);
             } catch (Exception x) {
                 System.err.println("Error in Java constructor: "+x);
                 throw new EvaluatorException(x.toString());
