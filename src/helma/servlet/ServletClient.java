@@ -220,7 +220,7 @@ public class ServletClient extends HttpServlet{
 	    res.setContentLength (trans.getContentLength ());			
 	    res.setContentType (trans.contentType);
 	    try {
-	        Writer writer = res.getWriter ();
+	        Writer writer = new BufferedWriter (res.getWriter ());
 	        writer.write (trans.getContentString ());
 	        writer.flush ();
 	    } catch(Exception io_e) {}
