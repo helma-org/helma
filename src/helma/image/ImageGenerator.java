@@ -105,16 +105,18 @@ public class ImageGenerator {
 	Image img;
 	int w, h;
 	boolean waiting;
+	boolean firstFrameLoaded;
 
 	ImageLoader (Image img) {
 	    this.img = img;
 	    waiting = true;
+	    firstFrameLoaded = false;
 	}
 
 	int getWidth () {
 	    return w;
 	}
-	
+
 	int getHeight () {
 	    return h;
 	}
@@ -147,14 +149,21 @@ public class ImageGenerator {
 	        w = width;
 	    if (h == -1 && (infoflags & HEIGHT) > 0)
 	        h = height;
-	    if (h > -1 && w > -1) {
-	        // we know all we want to know. notify waiting thread that
-	        // the image is loaded and ready to be used.
+	    if ((infoflags & ALLBITS) > 0 ||
+	        (infoflags & FRAMEBITS) > 0)
+	        firstFrameLoaded = true;
+	    // check if we have everything we need
+	    if (w > -1 && h > -1 && firstFrameLoaded) {
+	        // we know both the width and the height of the image and
+	        // the bits of the first frame have been loaded. notify waiting thread that
+	        // the image is loaded and ready to be used and tell the loader thread
+	        // that we need no further updates.
 	        notifyAll ();
 	        return false;
 	    }
 	    // check if there was an error
 	    if (!waiting || (infoflags & ERROR) > 0 || (infoflags & ABORT) > 0) {
+	        // we either timed out or there was an error.
 	        notifyAll ();
 	        return false;
 	    }
