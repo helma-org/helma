@@ -372,12 +372,12 @@ public class RequestEvaluator implements Runnable {
 	            } catch (ConcurrencyException x) {
 
 	                res.reset ();
-	                if (++tries < 5) {
+	                if (++tries < 8) {
 	                    // try again after waiting some period
 	                    abortTransaction (true);
 	                    try {
 	                        // wait a bit longer with each try
-	                        int base = 500 * tries;
+	                        int base = 800 * tries;
 	                        Thread.currentThread ().sleep ((long) (base + Math.random ()*base*2));
 	                    } catch (Exception ignore) {}
 	                    continue;
@@ -954,7 +954,8 @@ public class RequestEvaluator implements Runnable {
     }
 
     /**
-     *  Get a scripting wrapper object for a user object. Active user objects use different wrapper classes.
+     *  Get a scripting wrapper object for a user object. Active user objects are represented by
+     *  the special ESUser wrapper class.
      */
     public ESNode getNodeWrapper (User u) {
         if (u == null)
