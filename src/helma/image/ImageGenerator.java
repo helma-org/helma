@@ -42,7 +42,7 @@ public class ImageGenerator {
      * @return ...
      */
     public ImageWrapper createPaintableImage(int w, int h) {
-        BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+        BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
         Graphics g = img.getGraphics();
         ImageWrapper rimg = new SunImageWrapper(img, g, w, h, this);
 
@@ -66,7 +66,7 @@ public class ImageGenerator {
 
             int w = loader.getWidth();
             int h = loader.getHeight();
-            Image img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+            Image img = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
             Graphics g = img.getGraphics();
 
             g.drawImage(img1, 0, 0, null);
@@ -125,7 +125,7 @@ public class ImageGenerator {
 
             int w = loader.getWidth();
             int h = loader.getHeight();
-            Image img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+            Image img = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
             Graphics g = img.getGraphics();
 
             g.drawImage(img1, 0, 0, null);
@@ -156,7 +156,7 @@ public class ImageGenerator {
 
             int w = loader.getWidth();
             int h = loader.getHeight();
-            Image img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+            Image img = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
             Graphics g = img.getGraphics();
 
             g.drawImage(img1, 0, 0, null);
