@@ -23,7 +23,7 @@ public final class TypeManager {
     File appDir;
     HashMap prototypes;   // map of prototypes
     HashMap zipfiles;        // map of zipped script files
-	HashSet jarfiles;        // set of Java archives
+    HashSet jarfiles;        // set of Java archives
     long lastCheck = 0;
     long appDirMod = 0;
     // a checksum that changes whenever something in the application files changes.
@@ -33,9 +33,9 @@ public final class TypeManager {
     Prototype hopobjectProto;
     // the global prototype
     Prototype globalProto;
-	
-	// app specific class loader, includes jar files in the app directory
-	HelmaClassLoader loader;
+
+    // app specific class loader, includes jar files in the app directory
+    HelmaClassLoader loader;
     
     final static String[] standardTypes = {"user", "global", "root", "hopobject"};
 
@@ -59,9 +59,9 @@ public final class TypeManager {
         }
         prototypes = new HashMap ();
         zipfiles = new HashMap ();
-		jarfiles = new HashSet ();
-		URL helmajar = new URL ("file:"+app.home.getAbsolutePath()+"/lib/helma.jar");
-		loader = new HelmaClassLoader(new URL[] { helmajar });
+        jarfiles = new HashSet ();
+        URL helmajar = new URL ("file:"+app.home.getAbsolutePath()+"/lib/helma.jar");
+        loader = new HelmaClassLoader(new URL[] { helmajar });
     }
 
 
