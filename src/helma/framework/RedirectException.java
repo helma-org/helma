@@ -3,14 +3,13 @@
 
 package helma.framework;
 
-import FESI.Exceptions.EcmaScriptException;
 
-/** 
+/**
  * RedirectException is thrown internally when a response is redirected to a
  * new URL.
  */
- 
-public class RedirectException extends EcmaScriptException {
+
+public class RedirectException extends RuntimeException {
 
     String url;
 
@@ -18,11 +17,11 @@ public class RedirectException extends EcmaScriptException {
 	super ("Redirection Request to "+url);
 	this.url = url;
     }
-    
+
     public String getMessage () {
 	return url;
     }
-    
+
     public void printStackTrace(java.io.PrintStream s) {
 	// do nothing
     }

@@ -35,8 +35,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     protected NodeManager nmgr;
 
     // the class name of the scripting environment implementation
-    static final String scriptEnvironmentName = "helma.scripting.fesi.Environment";
-    ScriptingEnvironment scriptEnv;
+    ScriptingEnvironment scriptingEngine;
 
     // the root of the website, if a custom root object is defined.
     // otherwise this is managed by the NodeManager and not cached here.
@@ -227,7 +226,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     /**
      * Get the application ready to run, initializing the evaluators and type manager.
      */
-    public void init () throws DbException {
+    public void init () throws DbException, ScriptingException {
+	scriptingEngine = new helma.scripting.fesi.FesiScriptingEnvironment ();
+	scriptingEngine.init (this, props);
 
 	eval = new RequestEvaluator (this);
 	logEvent ("Starting evaluators for "+name);
@@ -520,6 +521,13 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	return nmgr.safe;
     }
 
+    /**
+     *  Return a transient node that is shared by all evaluators of this application ("app node")
+     */
+    public INode getAppNode () {
+	return appnode;
+    }
+
 
     /**
      * Returns a Node representing a registered user of this application by his or her user name.
@@ -552,9 +560,16 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Return a collection containing all prototypes defined for this application
      */
     public Collection getPrototypes () {
-    return typemgr.prototypes.values ();
+	return typemgr.prototypes.values ();
     }
 
+    /**
+     *  Retrurn a skin for a given object. The skin is found by determining the prototype
+     *  to use for the object, then looking up the skin for the prototype.
+     */
+    public Skin getSkin (Object object, String skinname, Object[] skinpath) {
+	return null; // not yet implemented
+    }
 
     /**
      * Return the user currently associated with a given Hop session ID. This may be
@@ -815,6 +830,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * within the Helma scripting and rendering framework.
      */
     public String getPrototypeName (Object obj) {
+	if (obj == null)
+	    return "global";
 	// check if e implements the IPathElement interface
 	if (obj instanceof IPathElement)
 	    // e implements the getPrototype() method
