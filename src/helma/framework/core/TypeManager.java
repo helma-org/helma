@@ -298,7 +298,7 @@ public class TypeManager implements Runnable {
                     app.logEvent ("Error updating prototype: "+x);
                 }
 
-            } else if (list[i].endsWith (app.scriptExtension) && tmpfile.length () > 0) {
+            } else if (list[i].endsWith (app.scriptExtension)) {
                 try {
                     FunctionFile ff = new FunctionFile (tmpfile, tmpname, proto);
                     proto.updatables.put (list[i], ff);
@@ -307,7 +307,7 @@ public class TypeManager implements Runnable {
                     app.logEvent ("Error updating prototype: "+x);
                 }
 
-            }  else if (list[i].endsWith (app.actionExtension) && tmpfile.length () > 0) {
+            }  else if (list[i].endsWith (app.actionExtension)) {
                 try {
                     Action af = new Action (tmpfile, tmpname, proto);
                     proto.updatables.put (list[i], af);
