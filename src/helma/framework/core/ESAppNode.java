@@ -7,6 +7,7 @@ import helma.objectmodel.*;
 import FESI.Exceptions.*;
 import FESI.Data.*;
 import FESI.Interpreter.Evaluator;
+import java.util.Iterator;
 
 /**
  * ESApp represents the app node of an application, providing an app-wide transient shared
@@ -46,6 +47,21 @@ public class ESAppNode extends ESNode {
 	}
 	if ("upSince".equals (propname)) {
 	    return createtime;
+	}
+	if ("skinfiles".equals (propname)) {
+	    ESObject skinz = new ObjectPrototype (null, evaluator);
+	    for (Iterator it = app.typemgr.prototypes.values().iterator(); it.hasNext(); ) {
+	        Prototype p = (Prototype) it.next ();
+	        ESObject  proto = new ObjectPrototype (null, evaluator);
+	        for (Iterator it2 = p.skins.values().iterator(); it2.hasNext(); ) {
+	            SkinFile sf = (SkinFile) it2.next ();
+	            String name = sf.getName ();
+	            Skin skin = sf.getSkin ();
+	            proto.putProperty (name, new ESString (skin.getSource ()), name.hashCode ());
+	        }
+	        skinz.putProperty (p.getName (), proto, p.getName ().hashCode ());
+	    }
+	    return skinz;
 	}
 	if ("__app__".equals (propname)) {
 	    return new ESWrapper (app, evaluator);

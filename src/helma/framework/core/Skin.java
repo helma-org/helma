@@ -22,6 +22,7 @@ public class Skin {
 
     Object[] parts;
     Application app;
+    String source;
 
     public Skin (String content, Application app) {
 	this.app = app;
@@ -30,6 +31,7 @@ public class Skin {
 
     public void parse (String content) {
 
+	this.source = content;
 	ArrayList partBuffer = new ArrayList ();
 	int l = content.length ();
 	char cnt[] = new char[l];
@@ -56,7 +58,11 @@ public class Skin {
 	    partBuffer.add (new String (cnt, lastIdx, l - lastIdx));
 
              parts = partBuffer.toArray ();
-   }
+    }
+
+    public String getSource () {
+	return source;
+    }
 
     public void render (RequestEvaluator reval, ESNode thisNode, ESObject paramObject) {
 	if (parts == null)
