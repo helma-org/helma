@@ -658,11 +658,11 @@ public class HopObject extends ScriptableObject implements Wrapper {
             }
 
             // as last resort, try to get property as anonymous subnode
-            Object anon = node.getChildElement(name);
+            // Object anon = node.getChildElement(name);
 
-            if (anon != null) {
-                return anon;
-            }
+            // if (anon != null) {
+            //     return anon;
+            // }
         }
 
         return NOT_FOUND;
