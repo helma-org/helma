@@ -24,15 +24,19 @@ import java.util.*;
  *  file is modified. It is also case insensitive.
  */
 public final class SystemProperties extends Properties {
+
     final static long cacheTime = 1500L;
     private SystemProperties defaultProps; // the default/fallback properties.
     private File file; // the underlying properties file from which we read.
-    private long lastread; // time we last read/checked the underlying properties file
-    private long lastcheck; // time we last read/checked the underlying properties file
-    private long lastadd; // time we last read/checked the underlying properties file
+    private long lastread; // time we last read the underlying properties file
+    private long lastcheck; // time we last checked the underlying properties file
+    private long lastadd; // time we last added or removed additional props
 
     // map of additional properties
     private HashMap additionalProps = null;
+
+    // are keys case sensitive? 
+    private boolean ignoreCase = true;
 
     /**
      *  Construct an empty properties object.
@@ -112,7 +116,7 @@ public final class SystemProperties extends Properties {
      *  Private method to read file if it has been changed since the last time we did
      */
     private void checkFile() {
-        if ((file != null) && file.exists() && (file.lastModified() > lastread)) {
+        if ((file != null) && (file.lastModified() > lastread)) {
             readFile();
         }
 
@@ -203,7 +207,7 @@ public final class SystemProperties extends Properties {
             value = value.toString().trim();
         }
 
-        return super.put(key.toString().toLowerCase(), value);
+        return super.put(ignoreCase ? key.toString().toLowerCase() : key, value);
     }
 
     /**
@@ -214,14 +218,14 @@ public final class SystemProperties extends Properties {
             checkFile();
         }
 
-        return super.get(key.toString().toLowerCase());
+        return super.get(ignoreCase ? key.toString().toLowerCase() : key);
     }
 
     /**
      *  Overrides method to act on the wrapped properties object.
      */
     public Object remove(Object key) {
-        return super.remove(key.toString().toLowerCase());
+        return super.remove(ignoreCase ? key.toString().toLowerCase() : key);
     }
 
     /**
@@ -243,7 +247,7 @@ public final class SystemProperties extends Properties {
             checkFile();
         }
 
-        return super.containsKey(key.toString().toLowerCase());
+        return super.containsKey(ignoreCase ? key.toString().toLowerCase() : key);
     }
 
     /**
@@ -265,7 +269,7 @@ public final class SystemProperties extends Properties {
             checkFile();
         }
 
-        return super.getProperty(name.toLowerCase());
+        return super.getProperty(ignoreCase ? name.toLowerCase() : name);
     }
 
     /**
@@ -276,7 +280,8 @@ public final class SystemProperties extends Properties {
             checkFile();
         }
 
-        return super.getProperty(name.toLowerCase(), defaultValue);
+        return super.getProperty(ignoreCase ?
+                name.toLowerCase() : name.toLowerCase(), defaultValue);
     }
 
     /**
@@ -329,4 +334,22 @@ public final class SystemProperties extends Properties {
     public String toString() {
         return super.toString();
     }
+
+    /**
+     *  Turns case sensitivity for keys in this Map on or off.
+     */
+    public void setIgnoreCase(boolean ignore) {
+        if (!super.isEmpty()) {
+            throw new RuntimeException("setIgnoreCase() can only be called on empty Properties");
+        }
+        ignoreCase = ignore;
+    }
+
+    /**
+     *  Returns true if this property map ignores key case
+     */
+    public boolean isIgnoreCase() {
+        return ignoreCase;
+    }
+
 }
