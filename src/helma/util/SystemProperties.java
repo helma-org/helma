@@ -15,7 +15,7 @@ public final class SystemProperties extends Properties {
 
     private Properties props;        // wrapped properties
     private Properties newProps;    // used while building up props
-    private Properties defaultProps;  // the default/fallback properties.
+    private SystemProperties defaultProps;  // the default/fallback properties.
     private File file;   // the underlying properties file from which we read.
     private long lastread, lastcheck, lastadd;  // time we last read/checked the underlying properties file
 
@@ -59,7 +59,7 @@ public final class SystemProperties extends Properties {
     /**
      *  Contstruct a properties object with the given default properties.
      */
-    public SystemProperties (Properties defaultProps) {
+    public SystemProperties (SystemProperties defaultProps) {
 	this (null, defaultProps);
     }
 
@@ -67,7 +67,7 @@ public final class SystemProperties extends Properties {
     /**
      *  Construct a properties object from a file name with the given default properties
      */
-    public SystemProperties (String filename, Properties defaultProps) {
+    public SystemProperties (String filename, SystemProperties defaultProps) {
 	// System.err.println ("building sysprops with file "+filename+" and node "+node);
 	this.defaultProps = defaultProps;
 	props = defaultProps == null ? new Properties () : new Properties (defaultProps);
@@ -82,6 +82,15 @@ public final class SystemProperties extends Properties {
 	if (file == null || !file.exists ())
 	    return lastadd;
 	return Math.max (file.lastModified (), lastadd);
+    }
+    
+    /**
+     *  Return a checksum that changes when something in the properties changes.
+     */
+    public long getChecksum () {
+	if (defaultProps == null)
+	    return lastModified ();
+	return lastModified () + defaultProps.lastModified ();
     }
 
     /**

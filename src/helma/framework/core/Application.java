@@ -163,7 +163,7 @@ public final class Application implements IPathElement, Runnable {
 	dbDir = customDbDir;
 
 	// system-wide properties, default to null
-	Properties sysProps, sysDbProps;
+	SystemProperties sysProps, sysDbProps;
 	sysProps = sysDbProps = null;
 	home = null;
 
@@ -1250,6 +1250,15 @@ public final class Application implements IPathElement, Runnable {
 	}
     }
 
+
+    /**
+     *  Get a checksum that mirrors the state of this application in the sense 
+     *  that if anything in the applciation changes, the checksum hopefully will 
+     *  change, too.
+     */
+    public long getChecksum () {
+	return starttime + typemgr.getChecksum() + props.getChecksum();
+    }
 
     /**
      * Proxy method to get a property from the applications properties.
