@@ -77,7 +77,7 @@ public class RequestEvaluator implements Runnable {
     static final int XMLRPC = 2;      // via XML-RPC
     static final int INTERNAL = 3;     // generic function call, e.g. by scheduler
 
-    INode root, userroot, currentNode;
+    INode root, userroot, currentNode, skinManager;
 
     /**
      *  Build a RenderContext from a RequestTrans. Checks if the path is the user home node ("user")
@@ -138,6 +138,8 @@ public class RequestEvaluator implements Runnable {
 	do {
 
 	    // app.logEvent ("got request "+reqtype);
+	    // reset skinManager
+	    skinManager = null;
 
 	    switch (reqtype) {
 	    case HTTP:
@@ -679,12 +681,33 @@ public class RequestEvaluator implements Runnable {
     public Skin getSkin (ESObject thisObject, String skinname) {
 	INode n = null;
 	Prototype proto = null;
+	Skin skin = null;
+	// FIXME: we can't do that, because if no db skinmanager exists we'll query over and over again
+	if (skinManager == null) {
+	    skinManager = currentNode.getNode ("skinmanager", true);
+	    // System.err.println ("SKINMGR: "+skinManager);
+	    // mark as null
+	    if (skinManager == null)
+	        skinManager = new Node ("dummy");
+	}
 	if (thisObject != null && thisObject instanceof ESNode) {
 	    n = ((ESNode) thisObject).getNode ();
+	    // System.err.println ("GOT SKINMGR "+skinNode+" FROM "+n);
+	    if (skinManager != null && !"dummy".equals (skinManager.getName())) {
+	        skin = getSkinFromNode (skinManager, n.getPrototype (), skinname);
+	        if (skin != null)
+	            return skin;
+	    }
 	    proto = app.getPrototype (n);
-	} else // the requested skin is global
+	} else {
+	    // the requested skin is global - start from currentNode (=end of request path) for app skin retrieval
+	    if (skinManager != null) {
+	        skin = getSkinFromNode (skinManager, "global", skinname);
+	        if (skin != null)
+	            return skin;
+	    }
 	    proto = app.typemgr.getPrototype ("global");
-	Skin skin = null;
+	}
 	if (proto != null)
 	    skin = proto.getSkin (skinname);
 	// if we have a thisObject and didn't find the skin, try in hopobject
@@ -696,6 +719,21 @@ public class RequestEvaluator implements Runnable {
 	return skin;
     }
 	
+    private Skin getSkinFromNode (INode node, String prototype, String skinname) {
+	INode n = node.getNode (prototype, false);
+	if (n != null) {
+	    n = n.getNode (skinname, false);
+	    if (n != null) {
+	        String skin = n.getString ("skin", false);
+	        if (skin != null)
+	            return new Skin (skin, app);
+	    }
+	}
+	// if this is not for the global prototype, also check hopobject
+	if (!"global".equalsIgnoreCase (prototype) && !"hopobject".equalsIgnoreCase (prototype))
+	    return getSkinFromNode (node, "hopobject", skinname);
+	return null;
+    }
 
     /**
      *  Returns a node wrapper only if it already exists in the cache table. This is used
