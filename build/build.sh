@@ -10,6 +10,9 @@
 # --------------------------------------------
 TARGET=${1}
 
+cvs -d :pserver:anonymous@coletta.helma.at:/opt/cvs login
+JAVA_HOME=/usr/lib/jdk1.3
+
 #--------------------------------------------
 # No need to edit anything past here
 #--------------------------------------------
