@@ -237,10 +237,13 @@ public final class ResponseTrans implements Externalizable {
      *  that buffer exists and its length is larger than offset. str may be null, in which
      *  case nothing happens.
      */
-    public void debug (String str) {
+    public void debug (Object message) {
 	if (debugBuffer == null)
 	    debugBuffer = new StringBuffer ();
-	debugBuffer.append ("<p><span style=\"background: yellow; color: black\">"+str+"</span></p>");
+	String str = message == null ? "null" : message.toString ();
+	debugBuffer.append ("<p><span style=\"background: yellow; color: black\">");
+	debugBuffer.append (str);
+	debugBuffer.append ("</span></p>");
     }
 
     /**

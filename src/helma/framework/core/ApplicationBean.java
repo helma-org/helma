@@ -24,23 +24,27 @@ public class ApplicationBean implements Serializable {
 	app.clearCache ();
     }
 
-    public void log (String msg) {
-	app.logEvent (msg);
+    public void log (Object msg) {
+	String str = msg == null ? "null" : msg.toString();
+	app.logEvent (str);
     }
 
-    public void log (String logname, String msg) {
-	app.getLogger (logname).log (msg);
+    public void log (String logname, Object msg) {
+	String str = msg == null ? "null" : msg.toString();
+	app.getLogger (logname).log (str);
     }
 
-    public void debug (String msg) {
+    public void debug (Object msg) {
 	if (app.debug()) {
-	    app.logEvent (msg);
+	    String str = msg == null ? "null" : msg.toString();
+	    app.logEvent (str);
 	}
     }
 
-    public void debug (String logname, String msg) {
+    public void debug (String logname, Object msg) {
 	if (app.debug()) {
-	    app.getLogger (logname).log (msg);
+	    String str = msg == null ? "null" : msg.toString();
+	    app.getLogger (logname).log (str);
 	}
     }
 
