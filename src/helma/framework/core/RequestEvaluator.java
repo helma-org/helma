@@ -448,7 +448,7 @@ public final class RequestEvaluator implements Runnable {
 
                             currentElement = root;
 
-                            if (method.indexOf(".") > -1) {
+                            if (method.indexOf('.') > -1) {
                                 StringTokenizer st = new StringTokenizer(method, ".");
                                 int cnt = st.countTokens();
 
@@ -513,10 +513,14 @@ public final class RequestEvaluator implements Runnable {
                             }
                         }
 
-                        // avoid going into transaction if called function doesn't exist
+                        // avoid going into transaction if called function doesn't exist.
                         boolean functionexists = true;
 
-                        functionexists = scriptingEngine.hasFunction(thisObject, method);
+                        // this only works for the (common) case that method is a plain
+                        // method name, not an obj.method path
+                        if (method.indexOf('.') < 0) {
+                            functionexists = scriptingEngine.hasFunction(thisObject, method);
+                        }
 
                         if (!functionexists) {
                             // function doesn't exist, nothing to do here.
@@ -643,7 +647,7 @@ public final class RequestEvaluator implements Runnable {
      *
      * @throws Exception ...
      */
-    public synchronized ResponseTrans invoke(RequestTrans req, Session session)
+    public synchronized ResponseTrans invokeHttp(RequestTrans req, Session session)
                                       throws Exception {
         this.reqtype = HTTP;
         this.req = req;
@@ -750,11 +754,11 @@ public final class RequestEvaluator implements Runnable {
      *
      * @throws Exception ...
      */
-    public synchronized Object invokeFunction(Object object, String functionName,
+    public synchronized Object invokeInternal(Object object, String functionName,
                                               Object[] args)
                                        throws Exception {
         // give internal call more time (15 minutes) to complete
-        return invokeFunction(object, functionName, args, 60000L * 15);
+        return invokeInternal(object, functionName, args, 60000L * 15);
     }
 
     /**
@@ -769,7 +773,7 @@ public final class RequestEvaluator implements Runnable {
      *
      * @throws Exception ...
      */
-    public synchronized Object invokeFunction(Object object, String functionName,
+    public synchronized Object invokeInternal(Object object, String functionName,
                                               Object[] args, long timeout)
                                        throws Exception {
         reqtype = INTERNAL;
@@ -798,44 +802,6 @@ public final class RequestEvaluator implements Runnable {
         return result;
     }
 
-    /**
-     *
-     *
-     * @param session ...
-     * @param functionName ...
-     * @param args ...
-     *
-     * @return ...
-     *
-     * @throws Exception ...
-     */
-    public synchronized Object invokeFunction(Session session, String functionName,
-                                              Object[] args)
-                                       throws Exception {
-        reqtype = INTERNAL;
-        this.session = session;
-        thisObject = null;
-        method = functionName;
-        this.args = args;
-        res = new ResponseTrans();
-        result = null;
-        exception = null;
-
-        checkThread();
-        wait(app.requestTimeout);
-
-        if (reqtype != NONE) {
-            stopThread();
-        }
-
-        // reset res for garbage collection (res.data may hold reference to evaluator)
-        res = null;
-
-        if (exception != null) {
-            throw (exception);
-        }
-        return result;
-    }
 
     private Object getChildElement(Object obj, String name) throws ScriptingException {
         if (scriptingEngine.hasFunction(obj, "getChildElement")) {

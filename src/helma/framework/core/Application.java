@@ -560,7 +560,7 @@ public final class Application implements IPathElement, Runnable {
 
                 // get evaluator and invoke
                 ev = getEvaluator();
-                res = ev.invoke(req, session);
+                res = ev.invokeHttp(req, session);
             }
         } catch (ApplicationStoppedException stopped) {
             // let the servlet know that this application has gone to heaven
@@ -1332,7 +1332,7 @@ public final class Application implements IPathElement, Runnable {
         // as first thing, invoke function onStart in the root object
         RequestEvaluator eval = getEvaluator();
         try {
-            eval.invokeFunction((INode) null, "onStart", new Object[0]);
+            eval.invokeInternal(null, "onStart", new Object[0]);
         } catch (Exception ignore) {
             logEvent("Error in " + name + "/onStart(): " + ignore);
         } finally {
@@ -1377,7 +1377,7 @@ public final class Application implements IPathElement, Runnable {
                                 try {
                                     Object[] param = { session.getSessionID() };
 
-                                    eval.invokeFunction(userhandle, "onLogout", param);
+                                    eval.invokeInternal(userhandle, "onLogout", param);
                                 } catch (Exception ignore) {
                                 }
                             }
@@ -1439,7 +1439,7 @@ public final class Application implements IPathElement, Runnable {
                         r.start();
                     } else {
                         try {
-                            thisEvaluator.invokeFunction(null, j.getFunction(),
+                            thisEvaluator.invokeInternal(null, j.getFunction(),
                                                          new Object[0], j.getTimeout());
                         } catch (Exception ex) {
                             logEvent("error running " + j + ": " + ex.toString());
@@ -1889,7 +1889,7 @@ public final class Application implements IPathElement, Runnable {
 
         public void run() {
             try {
-                thisEvaluator.invokeFunction(null, job.getFunction(),
+                thisEvaluator.invokeInternal(null, job.getFunction(),
                                              new Object[0], job.getTimeout());
             } catch (Exception ex) {
                 // gets logged in RequestEvaluator
