@@ -458,7 +458,7 @@ public final class Skin {
 	private void renderFromSession (RequestEvaluator reval) {
 	    if (reval.session == null)
 	        return;
-	    Object value = reval.session.getCacheNode().getString (name, false);
+	    Object value = reval.session.getCacheNode().getString (name);
 	    writeToResponse (value, reval.res, true);
 	}
 

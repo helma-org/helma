@@ -520,10 +520,10 @@ public final class Relation {
 	        if (localName == null  || localName.equalsIgnoreCase (ownType.getIDField ()))
 	            value = home.getID ();
 	        else if (ownType.isRelational ())
-	            value = home.getString (ownType.columnNameToProperty (localName), false);
+	            value = home.getString (ownType.columnNameToProperty (localName));
 	        else
-	            value = home.getString (localName, false);
-	        if (value != null && !value.equals (child.getString (propname, false))) {
+	            value = home.getString (localName);
+	        if (value != null && !value.equals (child.getString (propname))) {
 	            return false;
 	        }
 	    }
@@ -550,7 +550,7 @@ public final class Relation {
 	        if (localName == null  || localName.equalsIgnoreCase (ownType.getIDField ())) {
 	            // only set node if property in child object is defined as reference.
 	            if (crel.reftype == REFERENCE) {
-	                INode currentValue = child.getNode (crel.propName, false);
+	                INode currentValue = child.getNode (crel.propName);
 	                // we set the backwards reference iff the reference is currently unset, if
 	                // is set to a transient object, or if the new target is not transient. This
 	                // prevents us from overwriting a persistent refererence with a transient one,
@@ -566,9 +566,9 @@ public final class Relation {
 	        } else if (crel.reftype == PRIMITIVE) {
 	            String value = null;
 	            if (ownType.isRelational ())
-	                value = home.getString (ownType.columnNameToProperty (localName), false);
+	                value = home.getString (ownType.columnNameToProperty (localName));
 	            else
-	                value = home.getString (localName, false);
+	                value = home.getString (localName);
 	            if (value != null) {
 	                child.setString (crel.propName, value);
 	            }
@@ -629,7 +629,7 @@ public final class Relation {
     	        local = ref.getID ();
     	    else {
     	        String homeprop = ownType.columnNameToProperty (localName);
-    	        local = ref.getString (homeprop, false);
+    	        local = ref.getString (homeprop);
     	    }
     	    q.append (foreignName);
     	    q.append (" = ");

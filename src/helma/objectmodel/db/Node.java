@@ -485,7 +485,7 @@ public final class Node implements INode, Serializable {
 	        Relation prel = parentmap.getPropertyRelation();
 	        if (prel != null && prel.subnodesAreProperties && prel.accessor != null) {
 	            String propname = dbmap.columnNameToProperty (prel.accessor);
-	            String propvalue = getString (propname, false);
+	            String propvalue = getString (propname);
 	            if (propvalue != null && propvalue.length() > 0) {
 	                setName (propvalue);
 	                anonymous = false;
@@ -649,7 +649,7 @@ public final class Node implements INode, Serializable {
 	            // reverse look up property used to access this via parent
 	            Relation proprel = dbmap.columnNameToRelation (prel.accessor);
 	            if (proprel != null && proprel.propName != null)
-	                newname = getString (proprel.propName, false);
+	                newname = getString (proprel.propName);
 	        }
 	    }
 
@@ -687,7 +687,7 @@ public final class Node implements INode, Serializable {
 	        // we only try to fetch a node if an explicit relation is specified for the prop name
 	        Relation rel = dbmap.propertyToRelation (pinfo.propname);
 	        if (rel != null && rel.reftype == Relation.REFERENCE)
-	            pn = getNode (pinfo.propname, false);
+	            pn = getNode (pinfo.propname);
 	        // the parent of this node is the app's root node...
 	        if (pn == null && pinfo.isroot)
 	            pn = nmgr.getNode ("0", nmgr.getDbMapping ("root"));
@@ -695,13 +695,13 @@ public final class Node implements INode, Serializable {
 	        if (pn != null) {
 	            // see if dbmapping specifies anonymity for this node
 	            if (pinfo.virtualname != null)
-	                pn = pn.getNode (pinfo.virtualname, false);
+	                pn = pn.getNode (pinfo.virtualname);
 	            DbMapping dbm = pn == null ? null : pn.getDbMapping ();
 	            try {
 	                if (dbm != null && dbm.getSubnodeGroupby () != null) {
 	                    // check for groupby
 	                    rel = dbmap.columnNameToRelation (dbm.getSubnodeGroupby());
-	                    pn = pn.getSubnode (getString (rel.propName, false));
+	                    pn = pn.getSubnode (getString (rel.propName));
 	                }
 	                if (pn != null) {
 	                    setParent ((Node) pn);
@@ -784,8 +784,8 @@ public final class Node implements INode, Serializable {
 	        Relation groupbyRel = srel.otherType.columnNameToRelation (srel.groupby);
 	        String groupbyProp = (groupbyRel != null) ?
 	            groupbyRel.propName : srel.groupby;
-	        String groupbyValue = node.getString (groupbyProp, false);
-	        INode groupbyNode = getNode (groupbyValue, false);
+	        String groupbyValue = node.getString (groupbyProp);
+	        INode groupbyNode = getNode (groupbyValue);
 	        // if group-by node doesn't exist, we'll create it
 	        if (groupbyNode == null)
 	            groupbyNode = getGroupbySubnode (groupbyValue, true);
@@ -821,9 +821,9 @@ public final class Node implements INode, Serializable {
 	            Relation localrel = node.dbmap.columnNameToRelation (prel.accessor);
 	            // if no relation from db column to prop name is found, assume that both are equal
 	            String propname = localrel == null ? prel.accessor : localrel.propName;
-	            String prop = node.getString (propname, false);
+	            String prop = node.getString (propname);
 	            if (prop != null && prop.length() > 0) {
-	                INode old = getNode (prop, false);
+	                INode old = getNode (prop);
 	                if (old != null && old != node) {
 	                    unset (prop);
 	                    removeNode (old);
@@ -911,20 +911,20 @@ public final class Node implements INode, Serializable {
 	    // getting this specific child element
 	    Relation rel = dbmap.getExactPropertyRelation (name);
 	    if (rel != null)
-	        return (IPathElement) getNode (name, false);
+	        return (IPathElement) getNode (name);
 	    rel = dbmap.getSubnodeRelation ();
 	    if (rel != null && rel.groupby == null && rel.accessor != null) {
 	        if (rel.otherType != null && rel.otherType.isRelational ())
 	            return (IPathElement) nmgr.getNode (this, name, rel);
 	        else
-	           return (IPathElement) getNode (name, false);
+	           return (IPathElement) getNode (name);
 	    }
 	    return (IPathElement) getSubnode (name);
 	} else {
 	    // no dbmapping - just try child collection first, then named property.
 	    IPathElement child = (IPathElement) getSubnode (name);
 	    if (child == null)
-	        child = (IPathElement) getNode (name, false);
+	        child = (IPathElement) getNode (name);
 	    return child;
 	}
     }
@@ -1097,8 +1097,8 @@ public final class Node implements INode, Serializable {
 	        Relation localrel = node.dbmap.columnNameToRelation (prel.accessor);
 	        // if no relation from db column to prop name is found, assume that both are equal
 	        String propname = localrel == null ? prel.accessor : localrel.propName;
-	        String prop = node.getString (propname, false);
-	        if (prop != null && getNode (prop, false) == node)
+	        String prop = node.getString (propname);
+	        if (prop != null && getNode (prop) == node)
 	            unset (prop);
 	    }
 	}
@@ -1318,15 +1318,15 @@ public final class Node implements INode, Serializable {
 	return propMap;
     }
 
-    public IProperty get (String propname, boolean inherit) {
-	return getProperty (propname, inherit);
+    public IProperty get (String propname) {
+	return getProperty (propname);
     }
 
     public String getParentInfo () {
 	return "anonymous:"+anonymous+",parentHandle"+parentHandle+",parent:"+getParent();
     }
 
-    protected Property getProperty (String propname, boolean inherit) {
+    protected Property getProperty (String propname) {
 	// nmgr.logEvent ("GETTING PROPERTY: "+propname);
 	if (propname == null)
 	    return null;
@@ -1382,42 +1382,39 @@ public final class Node implements INode, Serializable {
 	    }
 	}
 
-	if (prop == null && inherit && getParent () != null && state != TRANSIENT) {
-	    prop = ((Node) getParent ()).getProperty (propname, inherit);
-	}
 	return prop;
     }
 
-    public String getString (String propname, boolean inherit) {  
+    public String getString (String propname) {  
 	// propname = propname.toLowerCase ();
-	Property prop = getProperty (propname, inherit);
+	Property prop = getProperty (propname);
 	try {
 	    return prop.getStringValue ();
 	} catch (Exception ignore) {}
 	return null;
     }
 
-    public long getInteger (String propname, boolean inherit) {  
+    public long getInteger (String propname) {  
 	// propname = propname.toLowerCase ();
-	Property prop = getProperty (propname, inherit);
+	Property prop = getProperty (propname);
 	try {
 	    return prop.getIntegerValue ();
 	} catch (Exception ignore) {}
 	return 0;
     }
 
-    public double getFloat (String propname, boolean inherit) {  
+    public double getFloat (String propname) {  
 	// propname = propname.toLowerCase ();
-	Property prop = getProperty (propname, inherit);
+	Property prop = getProperty (propname);
 	try {
 	    return prop.getFloatValue ();
 	} catch (Exception ignore) {}
 	return 0.0;
     }
 
-    public Date getDate (String propname, boolean inherit) {  
+    public Date getDate (String propname) {  
 	// propname = propname.toLowerCase ();
-	Property prop = getProperty (propname, inherit);
+	Property prop = getProperty (propname);
 	try {
 	    return prop.getDateValue ();
 	} catch (Exception ignore) {}
@@ -1425,27 +1422,27 @@ public final class Node implements INode, Serializable {
     }
 
 
-    public boolean getBoolean (String propname, boolean inherit) {  
+    public boolean getBoolean (String propname) {  
 	// propname = propname.toLowerCase ();
-	Property prop = getProperty (propname, inherit);
+	Property prop = getProperty (propname);
 	try {
 	    return prop.getBooleanValue ();
 	} catch (Exception ignore) {}
 	return false;
     }
 
-    public INode getNode (String propname, boolean inherit) {  
+    public INode getNode (String propname) {  
 	// propname = propname.toLowerCase ();
-	Property prop = getProperty (propname, inherit);
+	Property prop = getProperty (propname);
 	try {
 	    return prop.getNodeValue ();
 	} catch (Exception ignore) {}
 	return null;
     }
 
-    public Object getJavaObject (String propname, boolean inherit) {
+    public Object getJavaObject (String propname) {
 	// propname = propname.toLowerCase ();
-	Property prop = getProperty (propname, inherit);
+	Property prop = getProperty (propname);
 	try {
 	    return prop.getJavaObjectValue ();
 	} catch (Exception ignore) {}
@@ -1489,14 +1486,14 @@ public final class Node implements INode, Serializable {
 	    String dbcolumn = dbmap.propertyToColumnName (propname);
 
 	    if (propRel != null && propRel.accessor != null && propRel.accessor.equals (dbcolumn)) {
-	        INode n = parent.getNode (value, false);
+	        INode n = parent.getNode (value);
 	        if (n != null && n != this) {
 	            parent.unset (value);
 	            parent.removeNode (n);
 	        }
 
 	        if (oldvalue != null) {
-	            n = parent.getNode (oldvalue, false);
+	            n = parent.getNode (oldvalue);
 	            if (n == this) {
 	                parent.unset (oldvalue);
 	                parent.addNode (this);
@@ -1805,7 +1802,7 @@ public final class Node implements INode, Serializable {
 	            n.makePersistentCapable ();
 	    }
 	    for (Enumeration e = properties (); e.hasMoreElements (); ) {
-	        IProperty next = get ((String) e.nextElement (), false);
+	        IProperty next = get ((String) e.nextElement ());
 	        if (next != null && next.getType () == IProperty.NODE) {
 	            Node n = (Node) next.getNodeValue ();
 	            if (n != null && n.state == TRANSIENT)

@@ -318,7 +318,7 @@ public class ESNode extends ObjectPrototype {
     public boolean deleteProperty(String propertyName, int hash) throws EcmaScriptException {
 	checkNode ();
 	// engine.app.logEvent ("delete property called: "+propertyName);
-	if (node.get (propertyName, false) != null) {
+	if (node.get (propertyName) != null) {
 	    node.unset (propertyName);
 	    return true;
 	}
@@ -389,7 +389,7 @@ public class ESNode extends ObjectPrototype {
 	    return getInternalProperty (propertyName);
 
              // this _may_ do a relational query if properties are mapped to a relational type.
-	IProperty p = node.get (propertyName, false);
+	IProperty p = node.get (propertyName);
 	if (p != null) {
 	    if (p.getType () == IProperty.STRING) {
 	        String str = p.getStringValue ();

@@ -593,7 +593,7 @@ public final class Application implements IPathElement, Runnable {
     public INode getUserNode (String uid) {
 	try {
 	    INode users = getUserRoot ();
-	    return users.getNode (uid, false);
+	    return users.getNode (uid);
 	} catch (Exception x) {
 	    return null;
 	}
@@ -715,7 +715,7 @@ public final class Application implements IPathElement, Runnable {
 	// if none, try to get them from properties (internal db)
 	if (list.size()==0) {
 	    for (Enumeration e=users.properties(); e.hasMoreElements(); ) {
-	        list.add (users.getNode ((String)e.nextElement (),false));
+	        list.add (users.getNode ((String)e.nextElement ()));
 	    }
 	}
 	return list;
@@ -764,7 +764,7 @@ public final class Application implements IPathElement, Runnable {
 	INode unode = null;
 	try {
 	    INode users = getUserRoot ();
-	    unode = users.getNode (uname, false);
+	    unode = users.getNode (uname);
 	    if (unode != null)
 	        return null;
 
@@ -799,8 +799,8 @@ public final class Application implements IPathElement, Runnable {
 	    return false;
 	try {
 	    INode users = getUserRoot ();
-	    Node unode = (Node)users.getNode (uname, false);
-	    String pw = unode.getString ("password", false);
+	    Node unode = (Node) users.getNode (uname);
+	    String pw = unode.getString ("password");
 	    if (pw != null && pw.equals (password)) {
 	        // let the old user-object forget about this session
 	        logoutSession(session);

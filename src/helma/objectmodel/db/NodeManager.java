@@ -410,7 +410,7 @@ public final class NodeManager {
 	            Map.Entry e = (Map.Entry) i.next ();
 	            String propname = (String) e.getKey ();
 	            Relation rel = (Relation) e.getValue ();
-	            Property p = node.getProperty (propname, false);
+	            Property p = node.getProperty (propname);
 
 	            if (p != null && rel != null) {
 	                switch (p.getType ()) {
@@ -493,7 +493,7 @@ public final class NodeManager {
 	            		(rel.reftype != Relation.REFERENCE && rel.reftype != Relation.PRIMITIVE)))
 	                continue;
 
-	            Property p = node.getProperty (propname, false);
+	            Property p = node.getProperty (propname);
 
 	            if (p != null && rel != null) {
 
@@ -864,7 +864,7 @@ public final class NodeManager {
 	                // group nodes.
 	                String groupName = null;
 	                if (groupbyProp != null) {
-	                    groupName = node.getString (groupbyProp, false);
+	                    groupName = node.getString (groupbyProp);
 	                    List sn = (List) groupbySubnodes.get (groupName);
 	                    if (sn == null) {
 	                        sn = new ExternalizableVector ();
@@ -876,7 +876,7 @@ public final class NodeManager {
 	                // if relation doesn't use primary key as accessor, get accessor value
 	                String accessName = null;
 	                if (accessProp != null) {
-	                    accessName = node.getString (accessProp, false);
+	                    accessName = node.getString (accessProp);
 	                }
 
 	                // register new nodes with the cache. If an up-to-date copy

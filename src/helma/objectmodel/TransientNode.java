@@ -32,15 +32,12 @@ public class TransientNode implements INode, Serializable {
 
     transient String prototype;
 
-    protected String contentType;
-    protected byte content[];
-
     protected long created;
     protected long lastmodified;
 
     protected String id, name;
     // is the main identity a named property or an anonymous node in a collection?
-    protected boolean anonymous = false; 
+    protected boolean anonymous = false;
 
     transient DbMapping dbmap;
 
@@ -51,13 +48,13 @@ public class TransientNode implements INode, Serializable {
 	// and are unique within on runtime session
 	return "t"+idgen++;
     }
-    
+
     public TransientNode () {
 	id = generateID ();
 	name = id;
 	created = lastmodified = System.currentTimeMillis ();
     }
-    
+
     /**
      *  Make a new TransientNode object with a given name
      */
@@ -249,14 +246,10 @@ public class TransientNode implements INode, Serializable {
     }
 
     public IPathElement getChildElement (String name) {
-	return getNode (name, false);
+	return getNode (name);
     }
 
     public INode getSubnode (String name) {
-	return getSubnode (name, false);
-    }
-
-    public INode getSubnode (String name, boolean inherit) {
 	StringTokenizer st = new StringTokenizer (name, "/");
 	TransientNode retval = this, runner;
 	while (st.hasMoreTokens () && retval != null) {
@@ -267,9 +260,7 @@ public class TransientNode implements INode, Serializable {
 	    else 
 	        retval = runner.nodeMap == null ? null : (TransientNode) runner.nodeMap.get (next);
 	    if (retval == null)
-	        retval = (TransientNode) runner.getNode (next, inherit);
-	    if (retval == null && inherit && runner == this && parent != null)
-	        retval = (TransientNode) parent.getSubnode (next, inherit);
+	        retval = (TransientNode) runner.getNode (next);
 	}
 	return retval;
     }
@@ -311,12 +302,6 @@ public class TransientNode implements INode, Serializable {
 	            p.node.propMap.remove (p.propname.toLowerCase ());
 	        } catch (Exception ignore) {}
 	    }
-	    /* for (Enumeration e2 = n.properties (); e2.hasMoreElements (); ) {
-	        // tell all nodes that are properties of n that they are no longer used as such
-	        Property p = (Property) n.get ((String) e2.nextElement (), false);
-	        if (p != null && p.type == Property.NODE)
-	            p.unregisterNode ();
-	    } */
 	    // remove all subnodes, giving them a chance to destroy themselves.
 	    Vector v = new Vector ();  // removeElement modifies the Vector we are enumerating, so we are extra careful.
 	    for (Enumeration e3 = n.getSubnodes (); e3.hasMoreElements (); ) {
@@ -325,10 +310,6 @@ public class TransientNode implements INode, Serializable {
 	    int m = v.size ();
 	    for (int i=0; i<m; i++) {
 	        n.removeNode ((TransientNode) v.elementAt (i));
-	    }
-	    if (n.content != null) {
-	        // IServer.getLogger().log ("destroying content of node "+n.getName ());
-	        // ObjectStore.destroy (n.content);
 	    }
 	} else {
 	    //
@@ -372,11 +353,8 @@ public class TransientNode implements INode, Serializable {
     }
 
 
-    private Property getProperty (String propname, boolean inherit) {  
+    private Property getProperty (String propname) {  
 	Property prop = propMap == null ? null : (Property) propMap.get (propname);
-	if (prop == null && inherit && parent != null) {
-	    prop = parent.getProperty (propname, inherit);
-	}
 	// check if we have to create a virtual node
 	if (prop == null && dbmap != null) {
 	    Relation rel = dbmap.getPropertyRelation (propname);
@@ -400,46 +378,46 @@ public class TransientNode implements INode, Serializable {
     }
 
 
-    public IProperty get (String propname, boolean inherit) {
+    public IProperty get (String propname) {
 	propname = propname.toLowerCase ();
-	return getProperty (propname, inherit);
+	return getProperty (propname);
     }
 
-    public String getString (String propname, String defaultValue, boolean inherit) {
-	String propValue = getString (propname, inherit);
+    public String getString (String propname, String defaultValue) {
+	String propValue = getString (propname);
 	return propValue == null ? defaultValue : propValue;
     }
 
-    public String getString (String propname, boolean inherit) {  
+    public String getString (String propname) {  
 	propname = propname.toLowerCase ();
-	Property prop = getProperty (propname, inherit);
+	Property prop = getProperty (propname);
 	try {
 	    return prop.getStringValue ();
 	} catch (Exception ignore) {}
 	return null;
     }
 
-    public long getInteger (String propname, boolean inherit) {  
+    public long getInteger (String propname) {  
 	propname = propname.toLowerCase ();
-	Property prop = getProperty (propname, inherit);
+	Property prop = getProperty (propname);
 	try {
 	    return prop.getIntegerValue ();
 	} catch (Exception ignore) {}
 	return 0;
     }
 
-    public double getFloat (String propname, boolean inherit) {  
+    public double getFloat (String propname) {  
 	propname = propname.toLowerCase ();
-	Property prop = getProperty (propname, inherit);
+	Property prop = getProperty (propname);
 	try {
 	    return prop.getFloatValue ();
 	} catch (Exception ignore) {}
 	return 0.0;
     }
 
-    public Date getDate (String propname, boolean inherit) {  
+    public Date getDate (String propname) {  
 	propname = propname.toLowerCase ();
-	Property prop = getProperty (propname, inherit);
+	Property prop = getProperty (propname);
 	try {
 	    return prop.getDateValue ();
 	} catch (Exception ignore) {}
@@ -447,27 +425,27 @@ public class TransientNode implements INode, Serializable {
     }
 
 
-    public boolean getBoolean (String propname, boolean inherit) {  
+    public boolean getBoolean (String propname) {  
 	propname = propname.toLowerCase ();
-	Property prop = getProperty (propname, inherit);
+	Property prop = getProperty (propname);
 	try {
 	    return prop.getBooleanValue ();
 	} catch (Exception ignore) {}
 	return false;
     }
 
-    public INode getNode (String propname, boolean inherit) {  
+    public INode getNode (String propname) {  
 	propname = propname.toLowerCase ();
-	Property prop = getProperty (propname, inherit);
+	Property prop = getProperty (propname);
 	try {
 	    return prop.getNodeValue ();
 	} catch (Exception ignore) {}
 	return null;
     }
 
-    public Object getJavaObject (String propname, boolean inherit) {
+    public Object getJavaObject (String propname) {
 	propname = propname.toLowerCase ();
-	Property prop = getProperty (propname, inherit);
+	Property prop = getProperty (propname);
 	try {
 	    return prop.getJavaObjectValue ();
 	} catch (Exception ignore) {}

@@ -162,9 +162,9 @@ public class XmlConverter implements XmlConstants {
 	                String prototype = helmaKey.substring (0, dot);
 	                INode node = (INode) nodeCache.get (prototype);
 	                helmaKey = helmaKey.substring (dot+1);
-	                if (node != null && node.getString(helmaKey, false)==null)
+	                if (node != null && node.getString(helmaKey)==null)
 	                    node.setString (helmaKey, XmlUtil.getTextContent (childNode));
-	            } else if ( helmaNode.getString(helmaKey,false)==null ) {
+	            } else if ( helmaNode.getString(helmaKey)==null ) {
 	                helmaNode.setString( helmaKey, XmlUtil.getTextContent(childNode) );
 	                if (DEBUG)
 	                    debug("childtext-2-property mapping, setting " + helmaKey + " as string" );
@@ -195,10 +195,10 @@ public class XmlConverter implements XmlConstants {
 	            if (node == null)
 	                continue;
 
-	            if ( node.getNode(helmaKey,false)==null ) {
+	            if ( node.getNode(helmaKey)==null ) {
 	                convert( childElement, node.createNode(helmaKey), nodeCache );
 	                if (DEBUG)
-	                    debug( "read " + childElement.toString() + node.getNode(helmaKey,false).toString() );
+	                    debug( "read " + childElement.toString() + node.getNode(helmaKey).toString() );
 	            }
 	            continue;
 	        }
@@ -243,7 +243,7 @@ public class XmlConverter implements XmlConstants {
 	        if ("_children".equals (helmaKey)) {
 	            worknode = node;
 	        } else {
-	            worknode = node.getNode( helmaKey, false );
+	            worknode = node.getNode( helmaKey );
 	            if ( worknode==null ) {
 	                // if virtual node doesn't exist, create it
 	                worknode = helmaNode.createNode( helmaKey );

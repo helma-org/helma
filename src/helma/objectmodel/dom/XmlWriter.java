@@ -190,7 +190,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 		}
 		while ( e.hasMoreElements() ) {
 			String key = (String)e.nextElement();
-			IProperty prop = node.get(key,false);
+			IProperty prop = node.get(key);
 			if ( prop!=null ) {
 				boolean validName = isValidElementName (key);
 				String elementName, propName;

@@ -62,14 +62,14 @@ public interface INode extends INodeState, IPathElement {
      */
 
     public Enumeration properties ();
-    public IProperty get (String name, boolean inherit);
-    public String getString (String name, boolean inherit);
-    public boolean getBoolean (String name, boolean inherit);
-    public Date getDate (String name, boolean inherit);
-    public long getInteger (String name, boolean inherit);
-    public double getFloat (String name, boolean inherit);
-    public INode getNode (String name, boolean inherit);
-    public Object getJavaObject (String name, boolean inherit);
+    public IProperty get (String name);
+    public String getString (String name);
+    public boolean getBoolean (String name);
+    public Date getDate (String name);
+    public long getInteger (String name);
+    public double getFloat (String name);
+    public INode getNode (String name);
+    public Object getJavaObject (String name);
 
     public void setString (String name, String value);
     public void setBoolean (String name, boolean value);
