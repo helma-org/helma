@@ -87,16 +87,18 @@ public final class TypeManager {
         zipfiles = new HashMap();
         jarfiles = new HashSet();
 
-        URL[] urls = ((URLClassLoader) TypeManager.class.getClassLoader()).getURLs();
-        URL helmajar = null;
+        URL helmajar = TypeManager.class.getResource("/");
 
-        for (int i = 0; i < urls.length; i++) {
-            String url = urls[i].toString().toLowerCase();
+        if (helmajar == null) {
+            // Helma classes are in jar file, get helma.jar URL
+            URL[] urls = ((URLClassLoader) TypeManager.class.getClassLoader()).getURLs();
 
-            if (url.endsWith("helma.jar")) {
-                helmajar = urls[i];
-
-                break;
+            for (int i = 0; i < urls.length; i++) {
+                String url = urls[i].toString().toLowerCase();
+                if (url.endsWith("helma.jar")) {
+                    helmajar = urls[i];
+                    break;
+                }
             }
         }
 
