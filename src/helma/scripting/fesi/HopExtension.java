@@ -654,24 +654,9 @@ public class HopExtension {
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
             try {
-                // Class.forName ("org.apache.xerces.parsers.DOMParser");
-                // org.apache.xerces.parsers.DOMParser parser = new org.apache.xerces.parsers.DOMParser();
-                Class.forName ("org.openxml.parser.XMLParser");
-                org.openxml.parser.XMLParser parser = new org.openxml.parser.XMLParser();
                 Object p = arguments[0].toJavaObject ();
-                if (p instanceof String) try {
-                   // first try to interpret string as URL
-                   java.net.URL u = new java.net.URL (p.toString ());
-                   parser.parse (p.toString());
-                } catch (java.net.MalformedURLException nourl) {
-                   // if not a URL, maybe it is the XML itself
-                   parser.parse (new InputSource (new StringReader (p.toString())));
-                }
-                else if (p instanceof InputStream)
-                   parser.parse (new InputSource ((InputStream) p));
-                else if (p instanceof Reader)
-                   parser.parse (new InputSource ((Reader) p));
-                return ESLoader.normalizeObject (parser.getDocument(), evaluator);
+                Object doc = helma.util.XmlUtils.parseXml (p);
+                return ESLoader.normalizeObject (doc, evaluator);
             } catch (Exception noluck) {
                 app.logEvent ("Error creating XML document: "+noluck);
             }
@@ -685,22 +670,9 @@ public class HopExtension {
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
             try {
-                Class.forName ("org.openxml.parser.HTMLParser");
-                org.openxml.parser.HTMLParser parser = new org.openxml.parser.HTMLParser();
                 Object p = arguments[0].toJavaObject ();
-                if (p instanceof String) try {
-                   // first try to interpret string as URL
-                   java.net.URL u = new java.net.URL (p.toString ());
-                   parser.parse (p.toString());
-                } catch (java.net.MalformedURLException nourl) {
-                   // if not a URL, maybe it is the HTML itself
-                   parser.parse (new InputSource (new StringReader (p.toString())));
-                }
-                else if (p instanceof InputStream)
-                   parser.parse (new InputSource ((InputStream) p));
-                else if (p instanceof Reader)
-                   parser.parse (new InputSource ((Reader) p));
-                return ESLoader.normalizeObject (parser.getDocument(), evaluator);
+                Object doc = helma.util.XmlUtils.parseHtml (p);
+                return ESLoader.normalizeObject (doc, evaluator);
             } catch (Exception noluck) {
                 app.logEvent ("Error creating HTML document: "+noluck);
             }
@@ -714,13 +686,13 @@ public class HopExtension {
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
             try {
-	   Class.forName ("org.w3c.dom.Document");
+                Class.forName ("org.w3c.dom.Document");
                 org.w3c.dom.Document doc = (org.w3c.dom.Document) arguments[0].toJavaObject ();
                 Class.forName ("org.jdom.input.DOMBuilder");
-	   org.jdom.input.DOMBuilder builder = new org.jdom.input.DOMBuilder ();
+                org.jdom.input.DOMBuilder builder = new org.jdom.input.DOMBuilder ();
                 return ESLoader.normalizeObject (builder.build (doc), evaluator);
             } catch (Exception noluck) {
-                app.logEvent ("Error wrapping JDOM document: "+noluck);
+                app.logEvent ("Error building JDOM document: "+noluck);
             }
             return ESNull.theNull;
         }
