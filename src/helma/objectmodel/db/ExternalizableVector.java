@@ -30,9 +30,9 @@ public class ExternalizableVector extends ArrayList implements Externalizable {
     static final long serialVersionUID = 2316243615310540423L;
 
     /**
+     * Reads an externalized representation of the list from a stream.
      *
-     *
-     * @param in ...
+     * @param in the input stream to read from
      *
      * @throws IOException ...
      */
@@ -49,9 +49,9 @@ public class ExternalizableVector extends ArrayList implements Externalizable {
     }
 
     /**
+     * Writes an externalized representation of the list to the stream.
      *
-     *
-     * @param out ...
+     * @param out the output stream to write to
      *
      * @throws IOException ...
      */
