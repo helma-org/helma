@@ -50,7 +50,7 @@ public class Session implements Serializable {
      * attach the given user node to this session.
      */
     public void login (INode usernode) {
-	if (usernode==null)	{
+	if (usernode==null) {
 	    userHandle = null;
 	    uid = null;
 	} else {
