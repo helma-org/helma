@@ -413,43 +413,45 @@ public final class Node implements INode, Serializable {
      * and a property value for named properties.
      */
     public String getElementName() {
-        // for relational nodes we need to consult parent mapping to find element name
-        if (isRelational()) {
-            long lastmod = Math.max(lastmodified, dbmap.getLastTypeChange());
+        // check element name - this is either the Node's id or name.
+        long lastmod = lastmodified;
 
-            if ((parentHandle != null) && (lastNameCheck <= lastmod)) {
-                try {
-                    Node p = parentHandle.getNode(nmgr);
-                    DbMapping parentmap = p.getDbMapping();
-                    Relation prel = parentmap.getSubnodeRelation();
+        if (dbmap != null) {
+            lastmod = Math.max(lastmod, dbmap.getLastTypeChange());
+        }
 
-                    if (prel != null) {
-                        if (prel.groupby != null) {
-                            setName(getString("groupname"));
+        if ((parentHandle != null) && (lastNameCheck <= lastmod)) {
+            try {
+                Node p = parentHandle.getNode(nmgr);
+                DbMapping parentmap = p.getDbMapping();
+                Relation prel = parentmap.getSubnodeRelation();
+
+                if (prel != null) {
+                    if (prel.groupby != null) {
+                        setName(getString("groupname"));
+                        anonymous = false;
+                    } else if (prel.accessName != null) {
+                        String propname = dbmap.columnNameToProperty(prel.accessName);
+                        String propvalue = getString(propname);
+
+                        if ((propvalue != null) && (propvalue.length() > 0)) {
+                            setName(propvalue);
                             anonymous = false;
-                        } else if (prel.accessName != null) {
-                            String propname = dbmap.columnNameToProperty(prel.accessName);
-                            String propvalue = getString(propname);
-
-                            if ((propvalue != null) && (propvalue.length() > 0)) {
-                                setName(propvalue);
-                                anonymous = false;
-                            } else if (!anonymous && p.isParentOf(this)) {
-                                anonymous = true;
-                            }
-                        } else {
+                        } else if (!anonymous && p.isParentOf(this)) {
                             anonymous = true;
                         }
-                    } else if (!anonymous && p.isParentOf(this)) {
+                    } else {
                         anonymous = true;
                     }
-                } catch (Exception ignore) {
-                    // FIXME: add proper NullPointer checks in try statement
-                    // just fall back to default method
+                } else if (!anonymous && p.isParentOf(this)) {
+                    anonymous = true;
                 }
-
-                lastNameCheck = System.currentTimeMillis();
+            } catch (Exception ignore) {
+                // FIXME: add proper NullPointer checks in try statement
+                // just fall back to default method
             }
+
+            lastNameCheck = System.currentTimeMillis();
         }
 
         return (anonymous || (name == null) || (name.length() == 0)) ? id : name;
