@@ -57,29 +57,28 @@ public class MailObject extends ScriptableObject implements Serializable {
     StringBuffer buffer;
     int status;
 
+    // these are only set on the prototype object
+    Session session = null;
+    Properties props = null;
+    String host = null;
+
     /**
-     * Creates a new MailObject prototype object.
+     * Creates a new Mail object.
      */
-    MailObject() {
+    MailObject(Session session) {
+        this.status = OK;
+        message = new MimeMessage(session);
     }
 
 
     /**
-     * Creates a new MailObject.
+     * Creates a new MailObject prototype.
      *
      * @param mprops the Mail properties
      */
     MailObject(Properties mprops) {
         this.status = OK;
-
-        // create some properties and get the default Session
-        Properties props = new Properties();
-
-        props.put("mail.smtp.host", mprops.getProperty("smtp", "mail"));
-
-        Session session = Session.getInstance(props);
-
-        message = new MimeMessage(session);
+        this.props = mprops;
     }
 
     /**
@@ -89,18 +88,62 @@ public class MailObject extends ScriptableObject implements Serializable {
         return "Mail";
     }
 
-    public static MailObject mailObjCtor(Context cx, Object[] args,
-                Function ctorObj, boolean inNewExpr) {
-        Properties props = (Properties) ctorObj.get("props", ctorObj);
+    /**
+     * Get the cached JavaMail session. This is similar to Session.getDefaultSession(),
+     * except that we check if the properties have changed.
+     */
+    protected Session getSession() {
         if (props == null) {
-            props = new Properties();
+            throw new NullPointerException("getSession() called on non-prototype MailObject");
         }
-        return new MailObject(props);
+
+        // set the mail encoding system property if it isn't set. Necessary
+        // on Macs, where we otherwise get charset=MacLatin
+        // http://java.sun.com/products/javamail/javadocs/overview-summary.html
+        System.setProperty("mail.mime.charset",
+                           props.getProperty("mail.charset", "ISO-8859-15"));
+
+        // get the host property - first try "mail.host", then "smtp" property
+        String newHost = props.getProperty("mail.host");
+        if (newHost == null) {
+            newHost = props.getProperty("smtp");
+        }
+
+        // has the host changed?
+        boolean hostChanged = (host == null && newHost != null) ||
+                              (host != null && !host.equals(newHost));
+
+        if (session == null || hostChanged) {
+            host = newHost;
+
+            // create properties and for the Session. Only set mail host if it is
+            // explicitly set, otherwise we'll go with the system default.
+            Properties sessionProps = new Properties();
+            if (host != null) {
+                sessionProps.put("mail.smtp.host", host);
+            }
+
+            session = Session.getInstance(sessionProps);
+        }
+
+        return session;
     }
 
+    /**
+     * JavaScript constructor, called by the Rhino runtime.
+     */
+    public static MailObject mailObjCtor(Context cx, Object[] args,
+                Function ctorObj, boolean inNewExpr) {
+        MailObject proto = (MailObject) ctorObj.get("prototype", ctorObj);
+        return new MailObject(proto.getSession());
+    }
+
+    /**
+     * Initialize Mail extension for the given scope, called by RhinoCore.
+     */
     public static void init(Scriptable scope, Properties props) {
         Method[] methods = MailObject.class.getDeclaredMethods();
-        ScriptableObject proto = new MailObject();
+        MailObject proto = new MailObject(props);
         proto.setPrototype(getObjectPrototype(scope));
         Member ctorMember = null;
         for (int i=0; i<methods.length; i++) {
