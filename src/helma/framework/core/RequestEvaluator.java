@@ -77,7 +77,7 @@ public final class RequestEvaluator implements Runnable {
     protected void initScriptingEngine() {
         if (scriptingEngine == null) {
             String engineClassName = app.getProperty("scriptingEngine",
-                                                     "helma.scripting.fesi.PhantomEngine");
+                                                     "helma.scripting.rhino.RhinoEngine");
 
             try {
                 Class clazz = app.getClassLoader().loadClass(engineClassName);
