@@ -8,6 +8,7 @@ import helma.framework.core.*;
 import helma.objectmodel.*;
 import helma.util.*;
 import helma.framework.IPathElement;
+import helma.scripting.ScriptingException;
 import FESI.Interpreter.*;
 import FESI.Exceptions.*;
 import FESI.Extensions.*;
@@ -759,10 +760,29 @@ public final class HopExtension {
             Object elem = thisObject.toJavaObject ();
             String tmpname = arguments.length == 0 ? "" : arguments[0].toString ();
             String basicHref =app.getNodeHref (elem, tmpname);
+            // check if the app.properties specify a href-function to post-process the
+            // basic href.
+            String hrefFunction = app.getProperty ("hrefFunction", null);
+            if (hrefFunction != null) {
+                Object funcElem = elem;
+                while (funcElem != null) {
+                    if (engine.hasFunction (funcElem, hrefFunction)) {
+                       Object obj;
+                       try {
+                           obj = engine.invoke (funcElem, hrefFunction, new Object[] {basicHref}, false);
+                       } catch (ScriptingException x) {
+                           throw new RuntimeException ("Error in hrefFunction: "+x);
+                       }
+                       if (obj == null)
+                           throw new RuntimeException ("hrefFunction "+hrefFunction+" returned null");
+                       basicHref = obj.toString ();
+                    }
+                    funcElem = app.getParentElement (funcElem);
+                }
+            }
+            // check if the app.properties specify a href-skin to post-process the
+            // basic href.
             String hrefSkin = app.getProperty ("hrefSkin", null);
-                
-            // FIXME: we should actually walk down the path from the object we called href() on
-            // instead we move down the URL path.
             if (hrefSkin != null) {
                 // we need to post-process the href with a skin for this application
                 // first, look in the object href was called on.
@@ -774,29 +794,24 @@ public final class HopExtension {
                     Prototype proto = app.getPrototype (skinElem);
                     if (proto != null) {
                         skin = proto.getSkin (hrefSkin);
-                        /* String skinid = proto.getName()+"/"+hrefSkin;
-                        skin = res.getCachedSkin (skinid);
-                         if (skin == null) {
-                            skin = app.getSkin (skinElem, hrefSkin, skinpath);
-                            res.cacheSkin (skinid, skin);
-                        } */
                     }
                     if (skin == null)
                         skinElem = app.getParentElement (skinElem);
                 }
 
                 if (skin != null) {
-                    return renderSkin (skin, basicHref, skinElem);
+                    basicHref = renderSkin (skin, basicHref, skinElem);
                 }
             }
+
             return new ESString (basicHref);
         }
-        private ESString renderSkin (Skin skin, String path, Object skinElem) throws EcmaScriptException {
+        private String renderSkin (Skin skin, String path, Object skinElem) throws EcmaScriptException {
             engine.getResponse().pushStringBuffer ();
             HashMap param = new HashMap ();
             param.put ("path", path);
             skin.render (engine.getRequestEvaluator(), skinElem, param);
-            return new ESString (engine.getResponse().popStringBuffer ().trim ());
+            return engine.getResponse().popStringBuffer ().trim ();
         }
     }
 
