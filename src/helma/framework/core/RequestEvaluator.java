@@ -74,7 +74,7 @@ public final class RequestEvaluator implements Runnable {
 	            "scripting.engine.factory",
 	            "helma.scripting.fesi.FesiEngineFactory");
 	    try {
-	        Class clazz = Class.forName (engineClassName);
+	        Class clazz = app.typemgr.loader.loadClass (engineClassName);
 	        Class[] argClasses = {app.getClass(), getClass()};
 	        Method method = clazz.getMethod ("getEngine", argClasses);
 	        Object[] args = {app, this};

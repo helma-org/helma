@@ -9,7 +9,8 @@ import helma.scripting.*;
 import helma.util.*;
 import java.util.*;
 import java.io.*;
-
+import java.net.URL;
+import java.net.MalformedURLException;
 
 /**
  * The type manager periodically checks the prototype definitions for its 
@@ -20,8 +21,9 @@ public final class TypeManager {
 
     Application app;
     File appDir;
-    HashMap prototypes;
-    HashMap zipfiles;
+    HashMap prototypes;   // map of prototypes
+    HashMap zipfiles;        // map of zipped script files
+	HashSet jarfiles;        // set of Java archives
     long lastCheck = 0;
     long appDirMod = 0;
     // a checksum that changes whenever something in the application files changes.
@@ -31,6 +33,9 @@ public final class TypeManager {
     Prototype hopobjectProto;
     // the global prototype
     Prototype globalProto;
+	
+	// app specific class loader, includes jar files in the app directory
+	HelmaClassLoader loader;
     
     final static String[] standardTypes = {"user", "global", "root", "hopobject"};
 
@@ -39,7 +44,7 @@ public final class TypeManager {
     final static String actionExtension = ".hac";
     final static String skinExtension = ".skin";
 
-    public TypeManager (Application app) {
+    public TypeManager (Application app) throws MalformedURLException {
         this.app = app;
         appDir = app.appDir;
         // make sure the directories for the standard prototypes exist, and lament otherwise
@@ -54,6 +59,9 @@ public final class TypeManager {
         }
         prototypes = new HashMap ();
         zipfiles = new HashMap ();
+		jarfiles = new HashSet ();
+		URL helmajar = new URL ("file:"+app.home.getAbsolutePath()+"/lib/helma.jar");
+		loader = new HelmaClassLoader(new URL[] { helmajar });
     }
 
 
@@ -108,6 +116,16 @@ public final class TypeManager {
 	                    zipped = new ZippedAppFile (f, app);
 	                    zipfiles.put (list[i], zipped);
 	                }
+	            }
+	            continue;
+	        }
+	        if (list[i].endsWith (".jar")) {
+	            if (!jarfiles.contains (list[i])) {
+	                jarfiles.add (list[i]);
+	                File f = new File (appDir, list[i]);
+					try {
+					    loader.addURL (new URL ("file:"+f.getAbsolutePath()));
+				    } catch (MalformedURLException ignore) {}
 	            }
 	            continue;
 	        }

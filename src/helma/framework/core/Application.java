@@ -17,6 +17,7 @@ import org.apache.xmlrpc.*;
 import java.util.*;
 import java.io.*;
 import java.net.URLEncoder;
+import java.net.MalformedURLException;
 import java.lang.reflect.*;
 import java.rmi.*;
 import java.rmi.server.*;
@@ -123,13 +124,6 @@ public final class Application implements IPathElement, Runnable {
 
 
     /**
-     *  Zero argument constructor needed for RMI
-     */
-    /* public Application () throws RemoteException {
-	super ();
-    } */
-
-    /**
      * Build an application with the given name in the app directory. No Server-wide
      * properties are created or used.
      */
@@ -224,7 +218,7 @@ public final class Application implements IPathElement, Runnable {
     /**
      * Get the application ready to run, initializing the evaluators and type manager.
      */
-    public void init () throws DatabaseException, ScriptingException {
+    public void init () throws DatabaseException, ScriptingException, MalformedURLException {
 	// scriptingEngine = new helma.scripting.fesi.FesiScriptingEnvironment ();
 	// scriptingEngine.init (this, props);
 
@@ -540,11 +534,11 @@ public final class Application implements IPathElement, Runnable {
 	    if (rootObject == null) {
 	        try {
 	            if ( classMapping.containsKey("root.factory.class") && classMapping.containsKey("root.factory.method") ) {
-	                Class c = Class.forName( classMapping.getProperty("root.factory.class") );
+	                Class c = typemgr.loader.loadClass( classMapping.getProperty("root.factory.class") );
 	                Method m = c.getMethod( classMapping.getProperty("root.factory.method"), null );
 	                rootObject = m.invoke(c, null);
 	            } else {
-	                Class c = Class.forName( classMapping.getProperty("root") );
+	                Class c = typemgr.loader.loadClass( classMapping.getProperty("root") );
 	                rootObject = c.newInstance();
 	            }
 	        } catch ( Exception e )	{
