@@ -46,7 +46,9 @@ public class RequestEvaluator implements Runnable {
     Object result;
     Exception exception;
     protected ArrayPrototype reqPath;
+
     private ESMapWrapper reqData;
+    private ESMapWrapper resData;
 
     // vars for FESI EcmaScript support
     public Evaluator evaluator;
@@ -120,6 +122,7 @@ public class RequestEvaluator implements Runnable {
 	    global.putHiddenProperty ("app", appnode);
 	    reqPath = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
 	    reqData = new ESMapWrapper (this);
+	    resData = new ESMapWrapper (this);
 
 	} catch (Exception e) {
 	    System.err.println("Cannot initialize interpreter");
@@ -199,9 +202,12 @@ public class RequestEvaluator implements Runnable {
 	                }
 	                global.putHiddenProperty ("path", reqPath);
 	                global.putHiddenProperty ("app", appnode);
-	                // set and mount the request data object
+
+	                // set and mount the request and response data object
 	                reqData.setData (req.getRequestData());
 	                req.data = reqData;
+	                resData.setData (new HashMap ());
+	                res.data = resData;
 
 	                try {
 
@@ -437,6 +443,9 @@ public class RequestEvaluator implements Runnable {
 	            global.deleteProperty ("path", "path".hashCode());
 	            global.putHiddenProperty ("app", appnode);
 
+	            resData.setData (new HashMap ());
+	            res.data = resData;
+
 	            // convert arguments
 	            int l = args.size ();
 	            current = getElementWrapper (root);
@@ -508,7 +517,10 @@ public class RequestEvaluator implements Runnable {
 	            global.deleteProperty ("path", "path".hashCode());
 	            global.putHiddenProperty ("app", appnode);
 
-                         if (current == null) {
+	            resData.setData (new HashMap ());
+	            res.data = resData;
+
+	            if (current == null) {
 	                if (user == null) {
 	                    current = global;
 	                } else {
