@@ -360,7 +360,7 @@ public class RequestEvaluator implements Runnable {
 	            HashMap globals = new HashMap ();
 	            globals.put ("root", root);
 	            globals.put ("res", res);
-	            globals.put ("app", app.getAppNode());
+	            globals.put ("app", app);
 
 	            currentElement = root;
 
@@ -419,7 +419,7 @@ public class RequestEvaluator implements Runnable {
 	            HashMap globals = new HashMap ();
 	            globals.put ("root", root);
 	            globals.put ("res", res);
-	            globals.put ("app", app.getAppNode());
+	            globals.put ("app", app);
 
 	            app.scriptingEngine.invoke (thisObject, method, args, globals, this);
 	            commitTransaction ();
