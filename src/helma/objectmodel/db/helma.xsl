@@ -9,14 +9,15 @@
 <xsl:output method="html"/>
 
 <xsl:template match="/">
+   <xsl:variable name="id" select="/xmlroot/hopobject/@id"/>
+
    <html>
    <head>
-   <title>Helma Object Publisher XML Database File</title>
+   <title><xsl:value-of select="$id"/>.xml (Hop XML Database File)</title>
    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-15" />
    </head>  
    <body bgcolor="white">
 
-   <xsl:variable name="id" select="/xmlroot/hopobject/@id"/>
    <h2>
    <xsl:if test="$id = 0">root</xsl:if>
    <xsl:if test="$id &gt; 0">
@@ -51,7 +52,7 @@
       <xsl:call-template name="property">
          <xsl:with-param name="name">_parent</xsl:with-param>
          <xsl:with-param name="value">
-             HopObject <xsl:value-of select="$parent/@idref"/>
+            HopObject <xsl:value-of select="$parent/@idref"/>
          </xsl:with-param>
          <xsl:with-param name="href">
             <xsl:value-of select="$parent/@idref"/>.xml
@@ -66,7 +67,8 @@
       <td>
       <xsl:for-each select="/xmlroot/hopobject/hop:child">
          <xsl:sort select="@idref" data-type="number"/>
-         <a href="{@idref}.xml">HopObject <xsl:value-of select="@idref"/></a>
+         <a href="{@idref}.xml"><nowrap><xsl:value-of select="@prototyperef"/>
+         <xsl:text> </xsl:text><xsl:value-of select="@idref"/></nowrap></a>
          <xsl:if test="position() &lt; count($children)">
             <xsl:text>, </xsl:text>
          </xsl:if> 
@@ -76,6 +78,7 @@
    </xsl:if>
 
    <xsl:for-each select="/xmlroot/hopobject/*">
+      <xsl:sort select="@name"/>
       <xsl:sort select="name()"/>
       <xsl:choose>
          <xsl:when test="name() = 'hop:parent'"/>
@@ -95,7 +98,14 @@
          </xsl:when>
          <xsl:otherwise>
             <xsl:call-template name="property">
-               <xsl:with-param name="name"><xsl:value-of select="name()"/></xsl:with-param>
+               <xsl:with-param name="name">
+                  <xsl:if test="name() = 'property'">
+                     <xsl:value-of select="@name"/>
+                  </xsl:if>
+                  <xsl:if test="name() != 'property'">
+                     <xsl:value-of select="name()"/>
+                  </xsl:if>
+               </xsl:with-param>
                <xsl:with-param name="value"><xsl:value-of select="text()"/></xsl:with-param>
             </xsl:call-template>
          </xsl:otherwise>
@@ -112,16 +122,34 @@
    <xsl:param name="type"/>
    <xsl:param name="href"/>
    <xsl:param name="value"/>
+   <xsl:param name="display">
+      <xsl:call-template name="getName">
+         <xsl:with-param name="name" select="$value"/>
+      </xsl:call-template>
+   </xsl:param>
 
    <tr bgcolor="white">
    <td valign="top" nowrap="nowrap"><xsl:value-of select="$name"/></td>
    <td><xsl:if test="$href">
-      <a href="{$href}"><xsl:value-of select="$value"/></a>
+      <a href="{$href}"><xsl:value-of select="$display"/></a>
    </xsl:if>
    <xsl:if test="$href = ''">
-      <xsl:value-of select="$value"/>
-   </xsl:if></td>
+      <xsl:value-of select="$display"/>
+   </xsl:if>
+
+</td>
    </tr>
+</xsl:template>
+
+<xsl:template name="getName">
+   <xsl:param name="name"/>
+   <xsl:param name="isRoot" select="substring-after($name, 'HopObject ') = '0'"/>
+   <xsl:if test="$isRoot">
+      root
+   </xsl:if>
+   <xsl:if test="$isRoot = false">
+      <xsl:value-of select="$name"/>
+   </xsl:if>
 </xsl:template>
 
 </xsl:stylesheet>
