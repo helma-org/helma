@@ -27,13 +27,11 @@ import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.io.EOFException;
 import java.io.IOException;
-import java.util.Date;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Function;
 import org.mozilla.javascript.FunctionObject;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
-import org.mozilla.javascript.PropertyException;
 import org.mozilla.javascript.Undefined;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
@@ -117,15 +115,6 @@ public class FileObject extends ScriptableObject {
         } catch (Exception ignore) {
             System.err.println ("Error defining function properties: "+ignore);
         }
-    }
-
-    static private Method lookupMethod(Method[] methods, String name) {
-        for (int i=0; i<methods.length; i++) {
-            if (name.equals(methods[i].getName())) {
-                return methods[i];
-            }
-        }
-        return null;
     }
 
     public String getClassName() {
