@@ -217,6 +217,8 @@ public class XmlConverter implements XmlConstants {
 	        if ( helmaKey==null && !sparse ) {
 	            helmaKey = childElement.getNodeName().replace(':',defaultSeparator);
 	        }
+	        if (helmaKey == null)
+	            continue;
 
 	        // get the node on which to opererate, depending on the helmaKey
 	        // value from the properties file.
@@ -232,10 +234,15 @@ public class XmlConverter implements XmlConstants {
 	            continue;
 
 	        // try to get the virtual node
-	        helma.objectmodel.INode worknode = node.getNode( helmaKey, false );
-	        if ( worknode==null ) {
-	            // if virtual node doesn't exist, create it
-	            worknode = helmaNode.createNode( helmaKey );
+	        INode worknode = null;
+	        if ("_children".equals (helmaKey)) {
+	            worknode = node;
+	        } else {
+	            node.getNode( helmaKey, false );
+	            if ( worknode==null ) {
+	                // if virtual node doesn't exist, create it
+	                worknode = helmaNode.createNode( helmaKey );
+	            }
 	        }
 	        if (DEBUG)
 	            debug( "mounting child "+ childElement.getNodeName() + " at worknode " + worknode.toString() );
