@@ -23,7 +23,7 @@ public class Relation {
     public DbMapping home;
     public DbMapping other;
     public String propname;
-    public String localField, remoteField;
+    protected String localField, remoteField;
     public int direction;
 
     public boolean virtual;
@@ -164,8 +164,11 @@ public class Relation {
     }
 
     public boolean usesPrimaryKey () {
-	if (remoteField == null || other == null)
+	if (other == null)
 	    return false;
+	if (remoteField == null)
+	    // if remote field is null, it is assumed that it points to the primary key
+	    return true;
 	return remoteField.equalsIgnoreCase (other.getIDField());
     }
 
@@ -192,11 +195,21 @@ public class Relation {
     }
 
     /**
-     * Get the local column name for this relation. Uses the home node's id as fallback if local field is not specified.
+     * Get the local column name for this relation to use in where clauses of select statements.
+     * This uses the home node's id as fallback if local field is not specified.
      */
     public String getLocalField () {
-	if (localField == null)
+	// only assume local field is primary key if other objects "point" to this object
+	if (localField == null && direction == BACKWARD)
 	    return home.getIDField ();
+	return localField;
+    }
+
+    /**
+     * Return the local field name for updates. This is the same as getLocalField, but does not return the
+     * primary key name as a fallback.
+     */
+    public String getDbField () {
 	return localField;
     }
 
@@ -204,7 +217,8 @@ public class Relation {
      * Get the "remote" column name for this relation. Uses the remote node's id as fallback if the remote field is not specified.
      */
     public String getRemoteField () {
-	if (remoteField == null)
+	// only assume remote field is primary key if this relation "points" to an object
+	if (remoteField == null && direction == FORWARD)
 	    return other.getIDField ();
 	return remoteField;
     }
