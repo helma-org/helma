@@ -77,7 +77,7 @@ public class MailObject extends ScriptableObject implements Serializable {
 
         props.put("mail.smtp.host", mprops.getProperty("smtp", "mail"));
 
-        Session session = Session.getDefaultInstance(props, null);
+        Session session = Session.getInstance(props);
 
         message = new MimeMessage(session);
     }
