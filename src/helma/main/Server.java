@@ -532,13 +532,19 @@ public class Server implements IPathElement, Runnable {
             Logging.shutdown();
         }
         
+        server = null;
+        
         try {
             Runtime.getRuntime().removeShutdownHook(shutdownhook);
+            // HACK: running the shutdownhook seems to be necessary in order
+            // to prevent it from blocking garbage collection of helma 
+            // classes/classloaders. Since we already set server to null it 
+            // won't do anything anyhow.
+            shutdownhook.start();
+            shutdownhook = null;
         } catch (Exception x) {
             // invalid shutdown hook or already shutting down. ignore.
         }
-        
-        server = null;
     }
 
     /**
@@ -554,30 +560,7 @@ public class Server implements IPathElement, Runnable {
                 // disable Jetty logging  FIXME: seems to be a jetty bug; as soon
                 // as the logging is disabled, the more is logged
                 org.mortbay.util.Log.instance().disableLog();
-                org.mortbay.util.Log.instance().add(new LogSink() {
-                        public String getOptions() {
-                            return null;
-                        }
-
-                        public void log(String formattedLog) {
-                        }
-
-                        public void log(String tag, Object msg, Frame frame, long time) {
-                        }
-
-                        public void setOptions(String options) {
-                        }
-
-                        public boolean isStarted() {
-                            return true;
-                        }
-
-                        public void start() {
-                        }
-
-                        public void stop() {
-                        }
-                    });
+                org.mortbay.util.Log.instance().add(new HelmaLogSink());
             }
 
             // start embedded web server if port is specified
@@ -921,4 +904,31 @@ public class Server implements IPathElement, Runnable {
         return "root";
     }
 
+    static class HelmaLogSink implements LogSink {
+                        
+        public String getOptions() {
+            return null;
+        }
+
+        public void log(String formattedLog) {
+        }
+
+        public void log(String tag, Object msg, Frame frame, long time) {
+        }
+
+        public void setOptions(String options) {
+        }
+
+        public boolean isStarted() {
+            return true;
+        }
+
+        public void start() {
+        }
+
+        public void stop() {
+        }
+    }
 }
+
+
