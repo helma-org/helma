@@ -1,5 +1,8 @@
 function main_action () {
-	this.getParentElement ().readFiles ();
+	if (checkAddress()==false)
+	   return;
+	if (checkAuth()==false)
+	   return;
 	res.data.body = this.renderSkinAsString ("main");
 	renderSkin ("api");
 }
