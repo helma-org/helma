@@ -737,7 +737,7 @@ public final class HopExtension {
                     skin = res.getCachedSkin(skinid);
 
                     if (skin == null) {
-                        skin = app.getSkin(javaObject, arguments[0].toString(), skinpath);
+                        skin = app.getSkin(app.getPrototypeName(javaObject), arguments[0].toString(), skinpath);
                         res.cacheSkin(skinid, skin);
                     }
                 }
