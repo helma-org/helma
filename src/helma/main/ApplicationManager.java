@@ -16,7 +16,11 @@ import helma.framework.core.*;
 import helma.objectmodel.*;
 import helma.servlet.*;
 import helma.util.SystemProperties;
-import Acme.Serve.*;
+// import Acme.Serve.*;
+import org.mortbay.http.*;
+import org.mortbay.http.handler.*;
+import org.mortbay.jetty.servlet.*;
+import org.mortbay.util.*;
 import javax.servlet.Servlet;
 
 
@@ -63,27 +67,29 @@ public class ApplicationManager {
 	            // check if application has been removed and should be stopped
 	            if (!props.containsKey (appName)) {
 	                stop (appName);
-	            } else if (server.websrv != null) {
+	            } else if (server.http != null) {
 	                // check if application should be remounted at a
 	                // different location on embedded web server
 	                String oldMountpoint = mountpoints.getProperty (appName);
-	                String mountpoint = props.getProperty (appName+".mountpoint");
-	                    if (mountpoint == null || "".equals (mountpoint.trim()))
-	                    mountpoint = "/"+URLEncoder.encode(appName);
-	                if (!mountpoint.equals (oldMountpoint)) {
-	                    Server.getLogger().log("Moving application "+appName+" from "+oldMountpoint+" to "+mountpoint);
-	                    if ("/".equals (oldMountpoint))
-	                        server.websrv.removeDefaultServlet ();
-	                       else
-	                        server.websrv.removeServlet (oldMountpoint+"/*");
+	                String mountpoint = getMountpoint (appName);
+	                String pattern = getPathPattern (mountpoint);
+	                    if (!pattern.equals (oldMountpoint)) {
+	                    Server.getLogger().log("Moving application "+appName+" from "+oldMountpoint+" to "+pattern);
+	                    HandlerContext oldContext = server.http.getContext (null, oldMountpoint);
+	                    if (oldContext != null) {
+	                        oldContext.stop ();
+	                        oldContext.destroy ();
+	                    }
 	                    Application app = (Application) applications.get (appName);
 	                    app.setBaseURI (mountpoint);
-	                    EmbeddedServletClient servlet = new EmbeddedServletClient (appName, mountpoint);
-	                    if ("/".equals (mountpoint))
-	                        server.websrv.setDefaultServlet (servlet);
-	                    else
-	                        server.websrv.addServlet (mountpoint+"/*", servlet);
-	                    mountpoints.setProperty (appName, mountpoint);
+	                    ServletHandlerContext context = new ServletHandlerContext (server.http, pattern);
+	                    server.http.addContext (null, context);
+	                    ServletHolder holder = context.addServlet (appName, "/*", "helma.servlet.EmbeddedServletClient");
+	                    holder.setInitParameter ("application", appName);
+	                    holder.setInitParameter ("mountpoint", mountpoint);
+	                    // holder.start ();
+	                    context.start ();
+	                    mountpoints.setProperty (appName, pattern);
 	                }
 	            }
 	        }
@@ -112,16 +118,15 @@ public class ApplicationManager {
 	Server.getLogger().log ("Stopping application "+appName);
 	try {
 	    Application app = (Application) applications.get (appName);
-	    if (server.websrv == null) {
+	    if (server.http == null) {
 	        Naming.unbind ("//:"+port+"/"+appName);
 	    } else {
 	        String mountpoint = mountpoints.getProperty (appName);
-	        if (mountpoint == null || "".equals (mountpoint.trim()))
-	            mountpoint = "/"+URLEncoder.encode(appName);
-	        if ("/".equals (mountpoint))
-	            server.websrv.removeDefaultServlet ();
-	        else
-	            server.websrv.removeServlet (mountpoint+"/*");
+	        HandlerContext context = server.http.getContext (null, mountpoint);
+	        if (context != null) {
+	            context.stop ();
+	            context.destroy ();
+	        }
 	    }
 	    app.stop ();
 	    Server.getLogger().log ("Unregistered application "+appName);
@@ -135,27 +140,26 @@ public class ApplicationManager {
 	try {
 	    Server.getLogger().log ("Binding application "+appName);
 	    Application app = (Application) applications.get (appName);
-	    if (server.websrv == null) {
+	    if (server.http == null) {
 	        Naming.rebind ("//:"+port+"/"+appName, app);
 	    } else {
-	        String mountpoint = props.getProperty (appName+".mountpoint");
-	        if (mountpoint == null || "".equals (mountpoint.trim()))
-	            mountpoint = "/"+URLEncoder.encode(appName);
+	        String mountpoint = getMountpoint (appName);
 	        // set application URL prefix
 	        app.setBaseURI (mountpoint);
-	        // is the application mounted on the server root?
-	        boolean isRoot = "/".equals (mountpoint);
-	        EmbeddedServletClient servlet = new EmbeddedServletClient (appName, mountpoint);
-	        if (isRoot) {
-	            server.websrv.setDefaultServlet (servlet);
-	        } else {
-	            server.websrv.addServlet (mountpoint+"/*", servlet);
-	        }
-	        mountpoints.setProperty (appName, mountpoint);
+	        String pattern = getPathPattern (mountpoint);
+	        ServletHandlerContext context = new ServletHandlerContext (server.http, pattern);
+	        server.http.addContext (null, context);
+	        ServletHolder holder = context.addServlet (appName, "/*", "helma.servlet.EmbeddedServletClient");
+	        holder.setInitParameter ("application", appName);
+	        holder.setInitParameter ("mountpoint", mountpoint);
+	        // holder.start ();
+	        context.start ();
+	        mountpoints.setProperty (appName, pattern);
 	    }
 	    app.start ();
 	} catch (Exception x) {
 	    Server.getLogger().log ("Couldn't register and start app: "+x);
+	    x.printStackTrace ();
 	}
     }
 
@@ -171,12 +175,14 @@ public class ApplicationManager {
 	        if (appName.indexOf (".") == -1)
 	            register (appName);
 	    }
-	    if (server.websrv != null) {
+	    if (server.http != null) {
+	        // add handler for static files.
 	        File staticContent = new File (server.getHopHome(), "static");
 	        Server.getLogger().log("Serving static content from "+staticContent.getAbsolutePath());
-	        AcmeFileServlet fsrv = new AcmeFileServlet (staticContent);
-	        server.websrv.addServlet ("/static/", fsrv);
-	        server.websrv.addServlet ("/static/*", fsrv);
+	        HandlerContext context = server.http.addContext ("/static/*");
+	        context.setResourceBase (staticContent.getAbsolutePath());
+	        context.setServingResources (true);
+	        context.start ();
 	    }
 	    lastModified = System.currentTimeMillis ();
 	} catch (Exception mx) {
@@ -197,6 +203,26 @@ public class ApplicationManager {
     */
     public Application getApplication(String name)	{
 	return (Application)applications.get(name);
+    }
+
+    private String getMountpoint (String appName) {
+	String mountpoint = props.getProperty (appName+".mountpoint");
+	if (mountpoint == null)
+	    return "/"+URLEncoder.encode(appName);
+	mountpoint = mountpoint.trim ();
+	if ("".equals (mountpoint))
+	    return "/";
+	else if (!mountpoint.startsWith ("/"))
+	    return "/"+mountpoint;
+	return mountpoint;
+    }
+
+    private String getPathPattern (String mountpoint) {
+	if ("/".equals (mountpoint))
+	    return "/";
+	if (!mountpoint.endsWith ("/"))
+	    return mountpoint+"/*";
+	return mountpoint+"*";
     }
 
 }

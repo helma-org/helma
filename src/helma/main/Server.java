@@ -15,7 +15,9 @@ import helma.framework.*;
 import helma.framework.core.*;
 import helma.xmlrpc.*;
 import helma.util.*;
-import Acme.Serve.Serve;
+// import Acme.Serve.Serve;
+import org.mortbay.http.*;
+import org.mortbay.util.*;
 
 
 /**
@@ -59,7 +61,8 @@ import Acme.Serve.Serve;
     private static Logger logger;
 
     // the embedded web server
-    protected Serve websrv;
+    // protected Serve websrv;
+    protected HttpServer http;
 
     // the XML-RPC server
     protected WebServer xmlrpc;
@@ -242,7 +245,9 @@ import Acme.Serve.Serve;
 
 	    // start embedded web server if port is specified
 	    if (websrvPort > 0) {
-	        websrv = new Acme.Serve.Serve (websrvPort, sysProps);
+	        // websrv = new Acme.Serve.Serve (websrvPort, sysProps);
+	       http = new HttpServer ();
+	       http.addListener (new InetAddrPort (websrvPort));
 	    }
 
 	    String xmlparser = sysProps.getProperty ("xmlparser");
@@ -274,7 +279,7 @@ import Acme.Serve.Serve;
 	        RMISocketFactory.setSocketFactory (factory);
 	    }
 
-	    if (websrv == null) {
+	    if (http == null) {
 	        getLogger().log ("Starting RMI server on port "+rmiPort);
 	        LocateRegistry.createRegistry (rmiPort);
 	    }
@@ -294,9 +299,14 @@ import Acme.Serve.Serve;
 	appManager.startAll ();
 
 	// start embedded web server
-	if (websrv != null) {
+	/* if (websrv != null) {
 	    Thread webthread = new Thread (websrv, "WebServer");
 	    webthread.start ();
+	} */
+	if (http != null) try {
+	    http.start ();
+	} catch (MultiException m) {
+	    getLogger().log ("Error starting embedded web server: "+m);
 	}
 
 	int count = 0;
@@ -317,14 +327,14 @@ import Acme.Serve.Serve;
      *  Get an Iterator over the applications currently running on this Server.
      */
     public Object[] getApplications () {
-		return appManager.getApplications ();
+	return appManager.getApplications ();
     }
 
     /**
      * Get an Application by name
      */
     public Application getApplication(String name)	{
-    	return appManager.getApplication(name);
+	return appManager.getApplication(name);
     }
 
     /**
