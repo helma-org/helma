@@ -237,6 +237,13 @@ public final class DbMapping implements Updatable {
     }
 
 
+    /** 
+     * Method in interface Updatable.
+     */
+    public void remove () {
+	// do nothing, removing of type properties is not implemented.
+    }
+
     /**
      * Get a JDBC connection for this DbMapping.
      */

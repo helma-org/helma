@@ -69,10 +69,7 @@ public final class SkinFile implements Updatable {
 
 	if (!file.exists ()) {
 	    // remove skin from  prototype
-	    if (prototype != null) {
-	        prototype.skins.remove (name);
-	        prototype.updatables.remove (file.getName());
-	    }
+	    remove ();
 	} else {
 	    // we only need to update if the skin has already been initialized
 	    if (skin != null)
@@ -90,9 +87,18 @@ public final class SkinFile implements Updatable {
 	} catch (IOException x) {
 	    app.logEvent ("Error reading Skin "+file+": "+x);
 	}
-	
+
 	lastmod = file.lastModified ();
     }
+
+    public void remove () {
+	if (prototype != null) {
+	    prototype.skins.remove (name);
+	    if (file != null)
+	        prototype.updatables.remove (file.getName());
+	}
+    }
+
 
     public Skin getSkin () {
 	if (skin == null)
@@ -103,7 +109,7 @@ public final class SkinFile implements Updatable {
     public String getName () {
 	return name;
     }
-	
+
     public String toString () {
 	return prototype.getName()+"/"+file.getName();
     }
