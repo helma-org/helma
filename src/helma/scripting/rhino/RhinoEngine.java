@@ -394,15 +394,17 @@ public final class RhinoEngine implements ScriptingEngine {
         try {
             Object prop = so.get(propname, so);
 
-            if (prop != Undefined.instance) {
+            if ((prop == null) || (prop == Undefined.instance)) {
+                return null;
+            } else if (prop instanceof NativeJavaObject) {
+                return ((NativeJavaObject) prop).unwrap();
+            } else {
                 return prop;
             }
         } catch (Exception esx) {
             // System.err.println ("Error in getProperty: "+esx);
             return null;
         }
-
-        return null;
     }
 
     /**
