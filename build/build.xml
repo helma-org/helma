@@ -11,7 +11,7 @@
     <target name="init">
         <property name="Name" value="helma"/>
         <property name="year" value="1998-2001"/>
-        <property name="version" value="1.2"/>
+        <property name="version" value="1.2pre2"/>
         <property name="project" value="helma"/>
         <property name="build.compiler" value="classic"/>
         <property name="build.dir" value=".."/>
@@ -183,6 +183,7 @@
         <copy todir="${final.dir}/build">
             <fileset dir="${build.dir}/build"/>
         </copy>
+        <chmod file="${final.dir}/build/build.sh" perm="755"/>
 
         <copy todir="${final.dir}/docs">
             <fileset dir="../docs"/>
