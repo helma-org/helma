@@ -31,6 +31,8 @@ public final class ResponseTrans implements Externalizable {
     static final long serialVersionUID = -8627370766119740844L;
     static final int INITIAL_BUFFER_SIZE = 2048;
 
+    static final String newLine = System.getProperty("line.separator");
+
     /**
      * Set the MIME content type of the response.
      */
@@ -236,7 +238,7 @@ public final class ResponseTrans implements Externalizable {
                 buffer = new StringBuffer(Math.max(str.length() + 100, INITIAL_BUFFER_SIZE));
             }
 
-            buffer.append(what.toString());
+            buffer.append(str);
         }
     }
 
@@ -244,15 +246,9 @@ public final class ResponseTrans implements Externalizable {
      * Utility function that appends a <br> to whatever is written.
      */
     public void writeln(Object what) {
-        if (buffer == null) {
-            buffer = new StringBuffer(INITIAL_BUFFER_SIZE);
-        }
-
-        if (what != null) {
-            buffer.append(what.toString());
-        }
-
-        buffer.append("<br />\r\n");
+        this.write(what);
+        buffer.append("<br />");
+        buffer.append(newLine);
     }
 
     /**
