@@ -23,7 +23,7 @@ import com.workingdogs.village.*;
  
 public final class NodeManager {
 
-    private Application app;
+    protected Application app;
 
     private CacheMap cache;
 
