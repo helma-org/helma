@@ -94,7 +94,7 @@ public class ClassInfo {
      * @param   cls  The class for which we look for the property.
      * @return  The PropertyDescriptor or null if not found or in case of error
      */
-   synchronized public static PropertyDescriptor lookupBeanField(String fieldName, Class cls) {
+   public static PropertyDescriptor lookupBeanField(String fieldName, Class cls) {
         ClassInfo classInfo = ClassInfo.ensureClassInfo(cls);
         return classInfo.cachedBeanFieldLookup(fieldName, cls);
    }
@@ -109,7 +109,7 @@ public class ClassInfo {
      * @param   cls  The class for which we look for the property.
      * @return  The PropertyDescriptor or null if not found or in case of error
      */
-    private PropertyDescriptor cachedBeanFieldLookup(String propertyName, Class cls) {
+    private synchronized PropertyDescriptor cachedBeanFieldLookup(String propertyName, Class cls) {
         boolean debug = ESLoader.isDebugJavaAccess();
 
         // Check that there is a bean properties cache, chech if the property was cached
@@ -258,7 +258,7 @@ public class ClassInfo {
      * @param   cls  The class of the method being looked up
      * @return  The method array or null if none found or in case of error  
      */
-   synchronized public static Method[] lookupPublicMethod(String functionName, Class cls) throws EcmaScriptException {
+   public static Method[] lookupPublicMethod(String functionName, Class cls) throws EcmaScriptException {
         ClassInfo classInfo = ClassInfo.ensureClassInfo(cls);
         return classInfo.cachedPublicMethodLookup(functionName, cls);
    }
@@ -336,7 +336,7 @@ public class ClassInfo {
      * @param   cls  The class in which the function is defined
      * @return   The list of methods or null in case of error or if none found.
      */
-   private Method [] cachedPublicMethodLookup(String functionName, Class cls) throws EcmaScriptException {
+   private synchronized Method [] cachedPublicMethodLookup(String functionName, Class cls) throws EcmaScriptException {
         boolean debug = ESLoader.isDebugJavaAccess();
         if (publicMethods != null) {
            if (debug) System.out.println("** Method descriptor for class '" +
@@ -449,7 +449,7 @@ public class ClassInfo {
      * @param   cls  The class of the method being looked up
      * @return  The method array or null if none found or in case of error  
      */
-   synchronized public static Method[] lookupBeanMethod(String functionName, Class cls) {
+   public static Method[] lookupBeanMethod(String functionName, Class cls) {
         ClassInfo classInfo = ClassInfo.ensureClassInfo(cls);
         return classInfo.cachedBeanMethodLookup(functionName, cls);
    }
@@ -468,7 +468,7 @@ public class ClassInfo {
      * @param   cls  The class in which the function is defined
      * @return   The list of methods or null in case of error or if none found.
      */
-   private Method [] cachedBeanMethodLookup(String functionName, Class cls) {
+   private synchronized Method [] cachedBeanMethodLookup(String functionName, Class cls) {
         boolean debug = ESLoader.isDebugJavaAccess();
         if (beanMethods != null) {
            if (debug) System.out.println("** Method descriptor for bean '" +
