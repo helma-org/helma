@@ -1,18 +1,5 @@
 <?xml version="1.0"?>
 
-<!-- todo:
-	app-package
-   
-	fixcrlf ??
-	switch to ant5?
-
-    Correct permissions and line endings on "bin" scripts 
-    fixcrlf srcdir="${tomcat.dist}/bin"   includes="*.sh"  eol="lf"/
-    fixcrlf srcdir="${tomcat.dist}/bin"   includes="*.bat" eol="crlf"/
-    chmod      dir="${tomcat.dist}/bin"   includes="*.sh"  perm="+x"/
-
-   -->
-
 <project name="Helma" default="usage" basedir=".">
 
     <!-- =================================================================== -->
