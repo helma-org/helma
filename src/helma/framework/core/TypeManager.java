@@ -17,7 +17,6 @@
 package helma.framework.core;
 
 import helma.objectmodel.db.DbMapping;
-import helma.framework.repository.ZipRepository;
 import helma.framework.repository.Resource;
 import helma.framework.repository.Repository;
 import helma.framework.repository.ResourceTracker;
@@ -47,7 +46,7 @@ public final class TypeManager {
 
     private long lastCheck = 0;
     private long lastCodeUpdate;
-    private long lastRepositoryScan;
+    private long[] lastRepoScan;
 
     // app specific class loader, includes jar files in the app directory
     private AppClassLoader loader;
@@ -125,7 +124,7 @@ public final class TypeManager {
                     checkRepository(list[i]);
                 }
             } else {
-                // its an prototype
+                // it's an prototype
                 String name = null;
                 name = list[i].getShortName();
                 Prototype proto = getPrototype(name);
@@ -160,13 +159,17 @@ public final class TypeManager {
      * there are any prototypes to be created.
      */
     private void checkRepositories() throws IOException {
-        // check if any files have been created/removed since last time we checked...
-        Iterator it = app.getRepositories();
-        while (it.hasNext()) {
-            Repository repository = (Repository) it.next();
-            if (repository.lastModified() > lastRepositoryScan) {
-                lastRepositoryScan = Math.max(System.currentTimeMillis(),
-                                              repository.lastModified());
+        List list = app.getRepositories();
+        // first check if we need to create or adapt our array of last scans
+        if (lastRepoScan == null || lastRepoScan.length != list.size()) {
+            lastRepoScan = new long[list.size()];
+        }
+
+        // walk through repositories and check if any of them have changed.
+        for (int i = 0; i < lastRepoScan.length; i++) {
+            Repository repository = (Repository) list.get(i);
+            if (repository.lastModified() != lastRepoScan[i]) {
+                lastRepoScan[i] = repository.lastModified();
 
                 checkRepository(repository);
             }

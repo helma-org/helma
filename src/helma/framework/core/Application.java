@@ -1636,8 +1636,8 @@ public final class Application implements IPathElement, Runnable {
      * Returns the repositories of this application
      * @return iterator through application repositories
      */
-    public Iterator getRepositories() {
-        return ((List) repositories.clone()).iterator();
+    public List getRepositories() {
+        return Collections.unmodifiableList(repositories);
     }
 
     /**

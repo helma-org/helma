@@ -160,7 +160,7 @@ public final class ResourceProperties extends Properties {
             /* next we try to load properties from the application's
              repositories, if we blong to any application */
             if (app != null) {
-                Iterator iterator = app.getRepositories();
+                Iterator iterator = app.getRepositories().iterator();
                 while (iterator.hasNext()) {
                     try {
                         Repository repository = (Repository) iterator.next();
@@ -267,7 +267,7 @@ public final class ResourceProperties extends Properties {
         long checksum = 0;
 
         if (app != null) {
-            Iterator iterator = app.getRepositories();
+            Iterator iterator = app.getRepositories().iterator();
             while (iterator.hasNext()) {
                 try {
                     Repository repository = (Repository) iterator.next();
