@@ -17,14 +17,11 @@
 package helma.scripting.rhino.extensions;
 
 import helma.scripting.rhino.*;
-import helma.framework.core.Application;
-import helma.framework.core.RequestEvaluator;
 import helma.objectmodel.INode;
 import helma.objectmodel.db.Node;
 import helma.objectmodel.dom.*;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.StringReader;
 

@@ -18,9 +18,7 @@ package helma.scripting;
 
 import helma.framework.IPathElement;
 import helma.framework.core.Application;
-import helma.framework.core.Prototype;
 import helma.framework.core.RequestEvaluator;
-import java.io.File;
 import java.util.*;
 
 /**

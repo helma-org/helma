@@ -19,8 +19,6 @@ package helma.scripting.rhino.extensions;
 import helma.scripting.rhino.*;
 import org.mozilla.javascript.*;
 import org.apache.xmlrpc.*;
-import java.io.*;
-import java.net.*;
 import java.util.*;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;

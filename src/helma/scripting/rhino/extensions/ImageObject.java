@@ -17,10 +17,7 @@
 package helma.scripting.rhino.extensions;
 
 import helma.image.*;
-import helma.util.*;
 import java.awt.image.*;
-import java.io.*;
-import java.util.*;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Function;
 import org.mozilla.javascript.FunctionObject;
