@@ -69,19 +69,29 @@ public class HopObject extends ScriptableObject implements Wrapper {
 
 
     /**
+     * Creates a new HopObject prototype.
+     *
+     * @param cname ...
+     */
+    protected HopObject(String cname, Scriptable proto) {
+        className = cname;
+        setPrototype(proto);
+    }
+
+    /**
      *  This method is used as HopObject constructor from JavaScript.
      */
     public static Object jsConstructor(Context cx, Object[] args,
                                               Function ctorObj, boolean inNewExpr)
                          throws EvaluatorException, ScriptingException {
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
-        RhinoCore c = engine.core;
-        String prototype = ((FunctionObject) ctorObj).getFunctionName();
+        RhinoCore core = engine.core;
+        String protoname = ((FunctionObject) ctorObj).getFunctionName();
 
         // if this is a java object prototype, create a new java object
         // of the given class instead of a HopObject.
-        if (c.app.isJavaPrototype(prototype)) {
-            String classname = c.app.getJavaClassForPrototype(prototype);
+        if (core.app.isJavaPrototype(protoname)) {
+            String classname = core.app.getJavaClassForPrototype(protoname);
             try {
                 Class clazz = Class.forName(classname);
                 // try to get the constructor matching our arguments
@@ -98,14 +108,13 @@ public class HopObject extends ScriptableObject implements Wrapper {
                 throw new EvaluatorException(x.toString());
             }
         } else {
-            INode n = new helma.objectmodel.db.Node(prototype, prototype,
-                                                c.app.getWrappedNodeManager());
-            HopObject hobj = new HopObject(prototype);
+            INode node = new helma.objectmodel.db.Node(protoname, protoname,
+                                                    core.app.getWrappedNodeManager());
+            Scriptable proto = core.getPrototype(protoname);
+            HopObject hobj = new HopObject(protoname, proto);
 
-            hobj.init(c, n);
-            Scriptable p = c.getPrototype(prototype);
-            if (p != null) {
-                hobj.setPrototype(p);
+            hobj.init(core, node);
+            if (proto != null) {
                 engine.invoke(hobj, "constructor", args, false);
             }
 

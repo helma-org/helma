@@ -605,9 +605,8 @@ public final class RhinoCore {
                 protoname = "hopobject";
             }
 
-            esn = new HopObject(protoname);
+            esn = new HopObject(protoname, op);
             esn.init(this, n);
-            esn.setPrototype(op);
 
             wrappercache.put(n, esn);
         }
