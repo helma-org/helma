@@ -199,13 +199,11 @@ public final class Application implements IPathElement, Runnable {
             // if appDir and dbDir weren't explicitely passed, use the
             // standard subdirectories of the Hop home directory
             if (appDir == null) {
-                appDir = new File(home, "apps");
-                appDir = new File(appDir, name);
+                appDir = new File(server.getAppsHome(), name);
             }
 
             if (dbDir == null) {
-                dbDir = new File(home, "db");
-                dbDir = new File(dbDir, name);
+                dbDir = new File(server.getDbHome(), name);
             }
 
             // get system-wide properties

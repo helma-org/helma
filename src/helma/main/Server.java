@@ -673,12 +673,27 @@ public class Server implements IPathElement, Runnable {
      * @return ...
      */
     public File getAppsHome() {
-        String appHome = sysProps.getProperty("appHome");
+        String appHome = sysProps.getProperty("appHome", "");
 
-        if ((appHome != null) && !"".equals(appHome.trim())) {
+        if (appHome.trim().length() != 0) {
             return new File(appHome);
         } else {
             return new File(hopHome, "apps");
+        }
+    }
+
+    /**
+     *
+     *
+     * @return ...
+     */
+    public File getDbHome() {
+        String dbHome = sysProps.getProperty("dbHome", "");
+
+        if (dbHome.trim().length() != 0) {
+            return new File(dbHome);
+        } else {
+            return new File(hopHome, "db");
         }
     }
 
