@@ -1116,6 +1116,7 @@ public class Node implements INode, Serializable {
 	return subnodes.indexOf (node.getHandle ());
     }
 
+
     /**
      * Count the subnodes of this node. If they're stored in a relational data source, we
      * may actually load their IDs in order to do this.
@@ -1249,6 +1250,7 @@ public class Node implements INode, Serializable {
 	// either because it is mapped from a relational database or defined as virtual node
 	if (prop == null && dbmap != null) {
 	    Relation prel =  dbmap.getPropertyRelation (propname);
+	    Relation srel = dbmap.getSubnodeRelation ();
 	    /* if (prel != null && prel.virtual && prel.other != null &&  !prel.other.isRelational ()) {
 	        Node pn = (Node) createNode (propname);
 	        if (prel.prototype != null) {
@@ -1257,9 +1259,11 @@ public class Node implements INode, Serializable {
 	        prop =  (Property) propMap.get (propname);
 
 	    } else { */
+	        if (prel == null && srel != null && srel.groupby != null)
+	            prel = srel;
 	        if (prel == null)
 	            prel = dbmap.getPropertyRelation ();
-	        if (prel != null && (prel.direction == Relation.DIRECT || prel.virtual)) {
+	        if (prel != null && (prel.direction == Relation.DIRECT || prel.virtual || prel.groupby != null)) {
 	            // this may be a relational node stored by property name
 	            try {
 	                Node pn = nmgr.getNode (this, propname, prel);
@@ -1770,4 +1774,5 @@ public class Node implements INode, Serializable {
     }
 
 }
+
 
