@@ -22,22 +22,25 @@ public final class EmbeddedServletClient extends AbstractServletClient {
     private String appName;
 
     // The path where this servlet is mounted
-    String servletPath;
+    String mountpoint;
 
     public EmbeddedServletClient () {
 	super ();
     }
 
-    public EmbeddedServletClient (String appName, String servletPath) {
+    /* public EmbeddedServletClient (String appName, String servletPath) {
 	this.appName = appName;
 	this.servletPath = servletPath;
-    }
+    } */
 
     public void init (ServletConfig init) throws ServletException {
 	super.init (init);
-	String app = init.getInitParameter ("application");
-	if (app != null)
-	    appName = app;
+	appName = init.getInitParameter ("application");
+	if (appName == null)
+	    throw new ServletException ("Application name not set in init parameters");
+	mountpoint = init.getInitParameter ("mountpoint");
+	if (mountpoint == null)
+	    mountpoint = "/"+appName;
     }
 
     IRemoteApp getApp (String appID) {
@@ -58,9 +61,9 @@ public final class EmbeddedServletClient extends AbstractServletClient {
     String getRequestPath (String path) {
 	if (path == null)
 	    return "";
-	int pathMatch = path.indexOf (servletPath);
+	int pathMatch = path.indexOf (mountpoint);
 	if (pathMatch > -1)
-	    return trim (path.substring (pathMatch+servletPath.length()));
+	    return trim (path.substring (pathMatch+mountpoint.length()));
 	else
 	    return trim (path);
     }
