@@ -13,6 +13,7 @@ import helma.objectmodel.*;
 import helma.objectmodel.db.NodeManager;
 import helma.objectmodel.db.WrappedNodeManager;
 import helma.xmlrpc.*;
+import helma.util.CacheMap;
 import FESI.Data.*;
 import FESI.Interpreter.*;
 import com.sleepycat.db.DbException;
@@ -57,6 +58,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     protected volatile long errorCount = 0;
 
     private DbMapping rootMapping, userRootMapping, userMapping;
+
+    protected CacheMap skincache = new CacheMap (100);
 
 
     public Application () throws RemoteException {
@@ -246,13 +249,13 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     }
 
     public INode getDataRoot () {
-	INode root = nmgr.safe.getNode ("0", null);
+	INode root = nmgr.safe.getNode ("0", rootMapping);
 	root.setDbMapping (rootMapping);
 	return root;
     }
 
     public INode getUserRoot () {
-	INode users = nmgr.safe.getNode ("1", null);
+	INode users = nmgr.safe.getNode ("1", userRootMapping);
 	users.setDbMapping (userRootMapping);
 	return users;
     }
