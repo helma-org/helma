@@ -40,62 +40,101 @@ public class CommandlineRunner {
      */
     public static void main(String[] args) throws Exception {
 
-        // parse arguments
+        Config config = new Config();
         String commandStr = null;
+        Vector funcArgs = new Vector();
+    
+        // get possible environment setting for helma home
+        if (System.getProperty("helma.home")!=null) {
+            config.homeDir = new File(System.getProperty("helma.home"));
+        }
+
+        // parse arguments
         for (int i = 0; i < args.length; i++) {
-            if ((i%2)==0 && !args[i].startsWith("-")) {
+            if (args[i].equals("-h") && ((i + 1) < args.length)) {
+                config.homeDir = new File(args[++i]);
+            } else if (args[i].equals("-f") && ((i + 1) < args.length)) {
+                config.propFile = new File(args[++i]);
+            } else if (commandStr != null) {
+                // we're past the command str, all args for the function
+                funcArgs.add (args[i]);
+            } else if ((i%2)==0 && !args[i].startsWith("-")) {
+                // first argument without a switch
                 commandStr = args[i];
             }
         }
 
+        // get server.properties from home dir or vv
+        try {
+            Server.guessConfig (config);
+        } catch (Exception ex) {
+            printUsageError(ex.toString());
+            System.exit(1);
+        }
+
         String appName = null;
         String function = null;
+        // now split application name + path/function-name
         try {
             int pos1 = commandStr.indexOf(".");
             appName = commandStr.substring(0, pos1);
             function = commandStr.substring(pos1+1);
-        } catch (Exception str) {
-            System.out.println("Error parsing command");
-            System.out.println("");
-            System.out.println("Usage: java helma.main.launcher.Commandline [appname].[function]");
-            System.out.println("");
+        } catch (Exception ex) {
+            printUsageError();
             System.exit(1);
         }
 
-        String installDir = System.getProperty("helma.home");
-
-        String propsPath = new File(installDir, "apps.properties").getAbsolutePath();
-        // try to load server properties
-        SystemProperties props = new SystemProperties(propsPath);
-
-        String appPath = props.getProperty(appName+".appdir");
-        String dbPath = props.getProperty(appName+".dbdir");
-
-        File appHome = appPath == null ?
-                new File(new File(installDir, "apps"), appName) :
-                new File(appPath);
-        File dbHome = dbPath == null ?
-                new File(new File(installDir, "db"), appName) :
-                new File(dbPath);
-
-        // set up helma logging
-        System.setProperty("org.apache.commons.logging.LogFactory",
-                           "helma.util.Logging");
-        System.setProperty("helma.logdir", "console");
-
-        Application app = new Application(appName, appHome, dbHome);
-
-        // init + start the app
-        app.init();
-        app.start();
+        // init a server instance and start the application
+        Server server = new Server(config);
+        server.init();
+        server.checkAppManager(0);
+        server.startApplication(appName);
+        Application app = server.getApplication(appName);
 
         // execute the function
-        Vector nargs = new Vector();
-        Object result = app.executeExternal(function, nargs);
-        System.out.println("got result " + result);
+        try {
+            Object result = app.executeExternal(function, funcArgs);
+            if (result != null) {
+                System.out.println(result.toString());
+            }
+        } catch (Exception ex) {
+            System.out.println("Error in application " + appName + ":");
+            System.out.println(ex.getMessage());
+            if ("true".equals(server.getProperty("debug"))) {
+                System.out.println("");
+                ex.printStackTrace();
+            }
+        }
 
-        // stop the app
-        app.stop();
+        // stop the application
+        server.stopApplication(appName);
 
     }
+
+    
+
+    /**
+      * print the usage hints and prefix them with a message.
+      */
+    public static void printUsageError(String msg) {
+        System.out.println(msg);
+        printUsageError();
+    }
+
+
+    /**
+      * print the usage hints
+      */
+    public static void printUsageError() {
+        System.out.println("");
+        System.out.println("Error parsing command");
+        System.out.println("");
+        System.out.println("Usage: java helma.main.launcher.Commandline [options] [appname].[function] [argument-list]");
+        System.out.println("");
+        System.out.println("Possible options:");
+        System.out.println("  -h dir       Specify hop home directory");
+        System.out.println("  -f file      Specify server.properties file");
+        System.out.println("");
+    }
+
 }
