@@ -16,8 +16,8 @@ import java.security.Policy;
  */
 public class Main {
 
-    public static final String[] jars = { "helma.jar",  "jetty.jar", "crimson.jar", "xmlrpc.jar", 
-                                                         "village.jar", "servlet.jar", "regexp.jar", "mail.jar", 
+    public static final String[] jars = { "helma.jar",  "jetty.jar", "crimson.jar", "xmlrpc.jar",
+                                                         "village.jar", "servlet.jar", "regexp.jar", "mail.jar",
                                                           "activation.jar",  "netcomponents.jar", "jimi.jar",
                                                           "apache-dom.jar", "jdom.jar"};
 
@@ -25,13 +25,14 @@ public class Main {
     public static void main (String[] args) throws Exception {
 
 	// check if home directory is set via command line arg. If not,
-	// we'll get it from the location of the jar file this class 
+	// we'll get it from the location of the jar file this class
 	// has been loaded from.
 	String home = null;
 	// first, try to get helma home dir from command line options
 	for (int i=0; i<args.length; i++) {
-	    if (args[i].equals ("-h") && i+1<args.length)
+	    if (args[i].equals ("-h") && i+1<args.length) {
 	        home = args[i+1];
+	    }
 	}
 	URLClassLoader apploader = (URLClassLoader) ClassLoader.getSystemClassLoader();
 	// try to get Helma installation directory
@@ -63,7 +64,7 @@ public class Main {
 	// set the current working directory to the helma home dir.
 	// note that this is not a real cwd, which is not supported
 	// by java. It makes sure relative to absolute path name
-	// conversion is done right, so for Helma code, this should 
+	// conversion is done right, so for Helma code, this should
 	// work.
 	System.setProperty ("user.dir", home);
 
@@ -72,8 +73,7 @@ public class Main {
 	ArrayList jarlist = new ArrayList ();
 	for (int i=0;i<jars.length;i++) {
 	    File jar = new File (libdir, jars[i]);
-	    if (jar.exists())
-	        jarlist.add (new URL ("file:" + jar.getAbsolutePath()));
+	    jarlist.add (new URL ("file:" + jar.getAbsolutePath()));
 	}
 	// add all jar files from the lib/ext directory
 	File extdir =new File (libdir, "ext");
