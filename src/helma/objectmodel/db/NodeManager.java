@@ -949,7 +949,7 @@ public final class NodeManager {
         // tx.timer.beginEvent ("getNodes "+home);
         if ((rel == null) || (rel.otherType == null) || !rel.otherType.isRelational()) {
             // this should never be called for embedded nodes
-            throw new RuntimeException("NodeMgr.countNodes called for non-relational node " +
+            throw new RuntimeException("NodeMgr.getNodes called for non-relational node " +
                                        home);
         } else {
             List retval = new ArrayList();
@@ -1218,7 +1218,10 @@ public final class NodeManager {
                      tables.append(',').append(rel.additionalTables);
                 }
 
-                StringBuffer b = new StringBuffer("SELECT count(*) FROM ").append(tables);
+                // NOTE: we explicitly convert tables StringBuffer to a String
+                // before appending to be compatible with JDK 1.3
+                StringBuffer b = new StringBuffer("SELECT count(*) FROM ")
+                        .append(tables.toString());
 
                 if (home.getSubnodeRelation() != null) {
                     // use the manually set subnoderelation of the home node
@@ -1288,9 +1291,11 @@ public final class NodeManager {
             }
 
             try {
+                // NOTE: we explicitly convert tables StringBuffer to a String
+                // before appending to be compatible with JDK 1.3
                 StringBuffer q = new StringBuffer("SELECT ").append(namefield)
                                                             .append(" FROM ")
-                                                            .append(tables);
+                                                            .append(tables.toString());
 
                 if (home.getSubnodeRelation() != null) {
                     q.append(" ").append(home.getSubnodeRelation());
