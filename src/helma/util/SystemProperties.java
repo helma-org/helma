@@ -79,7 +79,7 @@ public final class SystemProperties extends Properties {
     */
     public long lastModified () {
 	if (file == null || !file.exists ())
-	    return 0;
+	    return lastread;
 	return file.lastModified ();
     }
 
@@ -98,19 +98,39 @@ public final class SystemProperties extends Properties {
      */
     private synchronized void readFile () {
 	// IServer.getLogger().log ("Reading properties from file "+file);
-	newProps = defaultProps == null ?
-	    new Properties () : new Properties (defaultProps);
+	FileInputStream bpin = null;
 	try {
-	    FileInputStream bpin = new FileInputStream (file);
+	    bpin = new FileInputStream (file);
 	    load (bpin);
-	    bpin.close ();
 	} catch (Exception x) {
 	    System.err.println ("Error reading properties from file "+file+": "+x);
+	} finally {
+	    try {
+	        bpin.close ();
+	    } catch (Exception ignore) {}
 	}
+    }
+
+
+    public synchronized void load (InputStream in) throws IOException {
+	newProps = defaultProps == null ?
+	    new Properties () : new Properties (defaultProps);
+	super.load (in);
 	lastread = System.currentTimeMillis ();
 	props = newProps;
 	newProps = null;
     }
+
+
+    /**
+     * Similar to load(), but adds to the existing properties instead
+     * of discarding them.
+     */
+    public synchronized void add (InputStream in) throws IOException {
+	super.load (in);
+	lastread = System.currentTimeMillis ();
+    }
+
 
     /*
      * This should not be used directly if properties are read from file,
