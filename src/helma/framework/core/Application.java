@@ -866,7 +866,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Get the logger object for logging generic events
      */
     public void logEvent (String msg) {
-	if (eventLog == null)
+	if (eventLog == null || eventLog.isClosed ())
 	    eventLog = getLogger ("event");
 	eventLog.log (msg);
     }
@@ -875,7 +875,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Get the logger object for logging access events
      */
     public void logAccess (String msg) {
-	if (accessLog == null)
+	if (accessLog == null || accessLog.isClosed ())
 	    accessLog = getLogger ("access");
 	accessLog.log (msg);
     }
@@ -891,19 +891,13 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	// allow log to be redirected to System.out by setting logdir to "console"
 	if ("console".equalsIgnoreCase (logDir))
 	    return new Logger (System.out);
-	try {
-	    File helper = new File (logDir);
-	    // construct the fully qualified log name
-	    String fullLogname = name +"_"+logname;
-	    if (home != null && !helper.isAbsolute ())
-                      helper = new File (home, logDir);
-	    logDir = helper.getAbsolutePath ();
-	    log = Logger.getLogger (logDir, fullLogname);
-	} catch (IOException iox) {
-	    System.err.println ("Could not create log "+logname+" for application "+name+": "+iox);
-	    // fallback to System.out
-	    log = new Logger (System.out);
-	}
+	File helper = new File (logDir);
+	// construct the fully qualified log name
+	String fullLogname = name +"_"+logname;
+	if (home != null && !helper.isAbsolute ())
+	    helper = new File (home, logDir);
+	logDir = helper.getAbsolutePath ();
+	log = Logger.getLogger (logDir, fullLogname);
 	return log;
     }
 
