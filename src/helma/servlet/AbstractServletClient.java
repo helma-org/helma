@@ -30,6 +30,8 @@ public abstract class AbstractServletClient extends HttpServlet {
     boolean caching;
     boolean debug;
 
+    static final byte HTTP_GET = 0;
+    static final byte HTTP_POST = 1;
 
     public void init (ServletConfig init) throws ServletException {
 	super.init (init);
@@ -64,23 +66,23 @@ public abstract class AbstractServletClient extends HttpServlet {
 
     public void doGet (HttpServletRequest request, HttpServletResponse response)
 		throws ServletException, IOException {
-	execute (request, response);
+	execute (request, response, HTTP_GET);
     }
 	
     public void doPost (HttpServletRequest request, HttpServletResponse response)
 		throws ServletException, IOException {
-	execute (request, response);
+	execute (request, response, HTTP_POST);
     }
 	
 	
-    protected void execute (HttpServletRequest request, HttpServletResponse response) {
+    protected void execute (HttpServletRequest request, HttpServletResponse response, byte method) {
 	String protocol = request.getProtocol ();
 	Cookie[] cookies = request.getCookies();
 
 	// get app and path from original request path
 	String pathInfo = request.getPathInfo ();
 	String appID = getAppID (pathInfo);
-	RequestTrans reqtrans = new RequestTrans ();
+	RequestTrans reqtrans = new RequestTrans (method);
 	reqtrans.path = getRequestPath (pathInfo);
 
 	try {						

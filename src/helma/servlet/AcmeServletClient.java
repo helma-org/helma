@@ -28,6 +28,8 @@ public class AcmeServletClient extends HttpServlet {
     private boolean caching;
     private boolean debug;
 
+    static final byte HTTP_GET = 0;
+    static final byte HTTP_POST = 1;
 
     public AcmeServletClient (Application app) {
 	this.app = app;
@@ -39,27 +41,22 @@ public class AcmeServletClient extends HttpServlet {
 	// do nothing
     }
 
-    public void service (HttpServletRequest request, HttpServletResponse response)
-		throws ServletException, IOException {
-	execute (request, response);
-    }
-
     public void doGet (HttpServletRequest request, HttpServletResponse response)
 		throws ServletException, IOException {
-	execute (request, response);
+	execute (request, response, HTTP_GET);
     }
 	
     public void doPost (HttpServletRequest request, HttpServletResponse response)
 		throws ServletException, IOException {
-	execute (request, response);
+	execute (request, response, HTTP_POST);
     }
 	
-	
-    private void execute (HttpServletRequest request, HttpServletResponse response) {
+    private void execute (HttpServletRequest request, HttpServletResponse response, byte method) {
 	String protocol = request.getProtocol ();
 	Cookie[] cookies = request.getCookies();
 	try {						
-	    RequestTrans reqtrans = new RequestTrans ();
+	    RequestTrans reqtrans = new RequestTrans (method);
+	
 	    // HACK - sessions not fully supported in Acme.Serve
 	    // Thats ok, we dont need the session object, just the id.
 	    reqtrans.session = request.getRequestedSessionId();  
