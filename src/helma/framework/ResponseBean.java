@@ -393,21 +393,38 @@ public class ResponseBean implements Serializable {
         res.digestDependencies();
     }
 
-    /////////////////////////////////////
-    // The following are legacy methods used by
-    // Helma templates (*.hsp files) and shouldn't
-    // be used otherwise.
-    ////////////////////////////////////
+    /**
+     * Push a string buffer on the response object. All further
+     * writes will be redirected to this buffer.
+     */
+    public void push() {
+        res.pushStringBuffer();
+    }
+
+    /**
+     * Pop a string buffer from the response object containing
+     * all the writes since the last pushBuffer
+     *
+     * @return ...
+     */
+    public String pop() {
+        return res.popStringBuffer();
+    }
+
+    /**
+     * Old version for push() kept for compatibility
+     */
     public void pushStringBuffer() {
         res.pushStringBuffer();
     }
 
     /**
-     *
+     * Old version for pop() kept for compatibility
      *
      * @return ...
      */
     public String popStringBuffer() {
         return res.popStringBuffer();
     }
+
 }
