@@ -321,7 +321,9 @@ public class ESNode extends ObjectPrototype {
      *  the prototype functions in that case.
      */
     public ESValue getNodeProperty (String propertyName) throws EcmaScriptException {
-
+	// check for null
+	if (propertyName == null)
+	    return ESNull.theNull;
 	// persistent or persistent capable nodes have a cache property that's a transient node.
 	// it it hasn't requested before, initialize it now
 	if ("cache".equalsIgnoreCase (propertyName) && node instanceof Node) {
@@ -337,18 +339,8 @@ public class ESNode extends ObjectPrototype {
 	    return rel == null ?  (ESValue) ESNull.theNull :  new ESString (rel);
 	}
 
-	if ("_id".equals (propertyName))
-	    return new ESString (node.getID ());
-	if ("_parent".equals (propertyName)) {
-	    INode n = node.getParent ();
-	    if (n != null)
-	        return eval.getNodeWrapper (n);
-	    else
-	        return ESNull.theNull;
-	}
-
-	// this is not very nice, but as a hack we return the id of a node as node.__id__
-	if (propertyName.startsWith ("__") && propertyName.endsWith ("__"))
+	// Everything starting with an underscore is interpreted as internal property
+	if (propertyName.startsWith ("_"))
 	    return getInternalProperty (propertyName);
 
              // this _may_ do a relational query if properties are mapped to a relational type.
@@ -393,24 +385,24 @@ public class ESNode extends ObjectPrototype {
      *  used for debugging Helma applications.
      */
     private ESValue getInternalProperty (String propertyName) throws EcmaScriptException {
-	if ("__id__".equalsIgnoreCase (propertyName)) {
+	if ("__id__".equals (propertyName) || "_id".equals (propertyName)) {
 	    return new ESString (node.getID ());
 	}
-	if ("__prototype__".equalsIgnoreCase (propertyName)) {
+	if ("__prototype__".equals (propertyName) || "_prototype".equals (propertyName)) {
 	    String p = node.getPrototype ();
 	    if (p == null)
 	        return ESNull.theNull;
 	    else
 	        return new ESString (node.getPrototype ());
 	}
-	// some more internal properties
-	if ("__parent__".equals (propertyName)) {
-                 INode n = node.getParent ();
+	if ("__parent__".equals (propertyName) || "_parent".equals (propertyName)) {
+	    INode n = node.getParent ();
 	    if (n == null)
 	        return ESNull.theNull;
 	    else
 	        return eval.getNodeWrapper (n);
-             }
+	}
+	// some more internal properties
 	if ("__name__".equals (propertyName))
 	    return new ESString (node.getName ());
 	if ("__fullname__".equals (propertyName))
@@ -423,7 +415,7 @@ public class ESNode extends ObjectPrototype {
 	    return new DatePrototype (evaluator, node.created ());
 	if ("__lastmodified__".equalsIgnoreCase (propertyName))
 	    return new DatePrototype (evaluator, node.lastModified ());
-	
+
 	return ESNull.theNull;
     }
 
