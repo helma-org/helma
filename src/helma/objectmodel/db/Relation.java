@@ -153,10 +153,6 @@ public class Relation {
 
 	    constraints = new Constraint[cnst.size()];
 	    cnst.copyInto (constraints);
-
-	    // System.err.println ("PARSED RELATION "+this);
-	    // if (accessor != null)
-	    //     System.err.println ("SET ACCESSOR: "+accessor);
 	}
     }
 
@@ -401,25 +397,6 @@ public class Relation {
 	    cnst.addElement (new Constraint (local, otherType.getTableName (), foreign, false));
 	    columnName = local;
 	}
-	/* if ("_properties".equalsIgnoreCase (propName) || virtual) {
-	    String subnodes2props = props.getProperty (propName+".aresubnodes");
-	    subnodesAreProperties = "true".equalsIgnoreCase (subnodes2props);
-	    if (virtual) {
-	        String subnodefilter = props.getProperty (propName+".subnoderelation");
-	        if (subnodefilter != null) {
-	            Constraint c = null; // parseConstraint_v1 (subnodefilter);
-	            if (c != null) {
-	                cnst.add (c);
-	            }
-	        }
-	    }
-	    // update virtual mapping, if it already exists
-	    if (virtualMapping != null) {
-	        virtualMapping.subnodesRel = getVirtualSubnodeRelation ();
-	        virtualMapping.propertiesRel = getVirtualPropertyRelation ();
-	        virtualMapping.lastTypeChange = ownType.lastTypeChange;
-	    }
-	} */
     }
 
 
@@ -674,24 +651,29 @@ public class Relation {
 	for (int i=0; i<constraints.length; i++) {
 	    // don't set groupby constraints since we don't know if the
 	    // parent node is the base node or a group node
-	    if (constraints[i].isGroupby)
-	        continue;
+	    // if (constraints[i].isGroupby)
+	    //    continue;
 	    Relation crel = otherType.columnNameToRelation (constraints[i].foreignName);
 	    if (crel != null) {
 	        // INode home = constraints[i].isGroupby ? parent : nonVirtual;
 	        String localName = constraints[i].localName;
 	        if (localName == null  || localName.equalsIgnoreCase (ownType.getIDField ())) {
-	            INode currentValue = child.getNode (crel.propName, false);
-	            // we set the backwards reference iff the reference is currently unset, if
-	            // is set to a transient object, or if the new target is not transient. This
-	            // prevents us from overwriting a persistent refererence with a transient one,
-	            // which would most probably not be what we want.
-	            if (currentValue == null ||
+	            // only set node if property in child object is defined as reference.
+	            if (crel.reftype == REFERENCE) {
+	                INode currentValue = child.getNode (crel.propName, false);
+	                // we set the backwards reference iff the reference is currently unset, if
+	                // is set to a transient object, or if the new target is not transient. This
+	                // prevents us from overwriting a persistent refererence with a transient one,
+	                // which would most probably not be what we want.
+	                if (currentValue == null ||
 				(currentValue != home &&
 				(currentValue.getState() == Node.TRANSIENT ||
 				home.getState() != Node.TRANSIENT)))
-	                child.setNode (crel.propName, home);
-	        } else {
+	                    child.setNode (crel.propName, home);
+	            } else if (crel.reftype == PRIMITIVE) {
+	                child.setString (crel.propName, home.getID ());
+	            }
+	        } else if (crel.reftype == PRIMITIVE) {
 	            String value = null;
 	            if (ownType.isRelational ())
 	                value = home.getString (ownType.columnNameToProperty (localName), false);
