@@ -255,6 +255,7 @@ public class DbMapping implements Updatable {
 	        if (propertiesRel.subnodesAreProperties && subnodesRel != null) {
 	            propertiesRel.groupby = subnodesRel.groupby;
 	            propertiesRel.constraints = subnodesRel.constraints;
+	            propertiesRel.filter = subnodesRel.filter;
 	        }
 	
 	    } catch (Exception x) {
