@@ -1,7 +1,10 @@
 // HtmlEncoder.java
 // Copyright (c) Hannes Wallnöfer 1997-2000
-// $Id$
+// 
+// $RCSfile$
+// $Author$
 // $Revision$
+// $Date$
 
 package helma.util;
 
