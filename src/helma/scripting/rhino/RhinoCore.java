@@ -752,12 +752,12 @@ public final class RhinoCore {
                 return getNodeWrapper((INode) obj);
             }
 
-            if (obj != null && app.getPrototypeName(obj) != null) {
-                return getElementWrapper(obj);
-            }
-
             if (obj instanceof SystemMap || obj instanceof WrappedMap) {
                 return new MapWrapper((Map) obj, RhinoCore.this);
+            }
+
+            if (obj != null && app.getPrototypeName(obj) != null) {
+                return getElementWrapper(obj);
             }
 
             if (obj instanceof String) {
@@ -765,14 +765,6 @@ public final class RhinoCore {
             }
 
             return super.wrap(cx, scope, obj, staticType);
-        }
-
-        public Scriptable wrapAsJavaObject(Context cx, Scriptable scope, Object javaObject) {
-            if (javaObject != null && app.getPrototypeName(javaObject) != null) {
-                return getElementWrapper(javaObject);
-            }
-
-            return super.wrapAsJavaObject(cx, scope, javaObject);
         }
 
         public Scriptable wrapNewObject(Context cx, Scriptable scope, Object obj) {
