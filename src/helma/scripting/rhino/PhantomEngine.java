@@ -19,7 +19,13 @@ package helma.scripting.rhino;
 import helma.scripting.ScriptingException;
 
 /**
- * 
+ * This class is filtered out by Helma's main class loader
+ * although it is present in the main helma.jar file. This forces
+ * it to be loaded through the per-application class loader. The
+ * goal is to make jar files in the application directory visible to
+ * application code.
+ *
+ * @see helma.main.launcher.FilteredClassLoader
  */
 public final class PhantomEngine extends RhinoEngine {
     /**
