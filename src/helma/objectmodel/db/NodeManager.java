@@ -401,34 +401,40 @@ public final class NodeManager {
 	                if (p.dirty) {
 	                    switch (p.getType ()) {
 	                        case IProperty.STRING:
+	                            updated++;
 	                            rec.setValue (rel.getDbField(), p.getStringValue ());
 	                            break;
 	                        case IProperty.BOOLEAN:
+	                            updated++;
 	                            rec.setValue (rel.getDbField(), p.getBooleanValue ());
 	                            break;
 	                        case IProperty.DATE:
+	                            updated++;
 	                            Timestamp t = new Timestamp (p.getDateValue ().getTime ());
 	                            rec.setValue (rel.getDbField(), t);
 	                            break;
 	                        case IProperty.INTEGER:
+	                            updated++;
 	                            rec.setValue (rel.getDbField(), p.getIntegerValue ());
 	                            break;
 	                        case IProperty.FLOAT:
+	                            updated++;
 	                            rec.setValue (rel.getDbField(), p.getFloatValue ());
 	                            break;
 	                        case IProperty.NODE:
-	                            if (rel.direction == Relation.FORWARD) {
+	                            if (!rel.virtual && rel.direction == Relation.FORWARD) {
 	                                // INode n = p.getNodeValue ();
 	                                // String foreignID = n == null ? null : n.getID ();
+	                                updated++;
 	                                rec.setValue (rel.getDbField(), p.getStringValue ());
 	                            }
 	                            break;
 	                    }
-	                    updated++;
 	                    p.dirty = false;
 	                }
 
 	            } else if (rel != null && rel.getDbField() != null) {
+
 	                updated++;
 	                rec.setValueNull (rel.getDbField());
 	            }
