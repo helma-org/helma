@@ -76,6 +76,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 
     protected CacheMap skincache = new CacheMap (100);
 
+    private CryptFile pwfile;
+
 
     public Application () throws RemoteException {
 	super ();
@@ -111,6 +113,11 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 
 	File propfile = new File (appDir, "app.properties");
 	props = new SystemProperties (propfile.getAbsolutePath (), sysProps);
+
+	File pwf = new File (home, "passwd");
+	CryptFile parentpwfile = new CryptFile (pwf, null);
+	pwf = new File (appDir, "passwd");
+	pwfile = new CryptFile (pwf, parentpwfile);
 
 	nmgr = new NodeManager (this, dbDir.getAbsolutePath (), props);
 
@@ -430,6 +437,17 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	    u.setNode (u.user.getNode ());
 	}
 	return true;
+    }
+
+    /**
+     * In contrast to login, this works outside the Hop user object framework. Instead, the user is
+     * authenticated against a passwd file in the application directory. This is to have some sort of
+     * authentication available *before* the application is up and running, i.e. for application setup tasks.
+     */
+    public boolean authenticate (String uname, String password) {
+	if (uname == null || password == null)
+	    return false;
+	return pwfile.authenticate (uname, password);
     }
 
     public String getNodePath (INode n, String tmpname) {

@@ -108,6 +108,7 @@ public class HopExtension {
         go.putHiddenProperty("createSkin", new GlobalCreateSkin ("createSkin", evaluator, fp));
         go.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, reval, true, false));
         go.putHiddenProperty("renderSkin_as_string", new RenderSkin ("renderSkin_as_string", evaluator, fp, reval, true, true));
+        go.putHiddenProperty("authenticate", new GlobalAuthenticate ("authenticate", evaluator, fp));
         go.deleteProperty("exit", "exit".hashCode());
 
         // and some methods for session management from JS...
@@ -555,6 +556,18 @@ public class HopExtension {
             String defval = (arguments.length > 1) ? arguments[1].toString () : "";
             return new ESString (app.props.getProperty (arguments[0].toString (), defval));
                 
+        }
+    }
+
+    class GlobalAuthenticate extends BuiltinFunctionObject {
+        GlobalAuthenticate (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 1);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+            if (arguments.length != 2)
+                return ESBoolean.makeBoolean (false);
+            return ESBoolean.makeBoolean (app.authenticate (arguments[0].toString (), arguments[1].toString ()));
+
         }
     }
 
