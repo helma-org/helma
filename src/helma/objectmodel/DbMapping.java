@@ -245,7 +245,14 @@ public class DbMapping {
 	if (propname == null)
 	    return properties;
 	Relation rel = (Relation) prop2db.get (propname.toLowerCase());
-	return rel != null && !rel.virtual ? rel.other : properties;
+	if (rel != null) {
+	    // if this is a virtual node, it doesn't have a dbmapping
+	    if (rel.virtual && rel.prototype == null)
+	        return null;
+	    else
+	        return rel.other;
+	}
+	return properties;
     }
 
     public void setPropertyMapping (DbMapping pm) {
