@@ -12,7 +12,6 @@ import java.io.*;
 import java.util.*;
 import helma.framework.*;
 import helma.framework.core.Application;
-import helma.objectmodel.Node;
 import helma.util.Uploader;
 
 /**
