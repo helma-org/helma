@@ -9,7 +9,7 @@ import java.util.Hashtable;
 
 /**
  * @version $Revision$
- * @author  Benoît Mahé (bmahe@w3.org)
+ * @author  Benoit Mahe (bmahe@w3.org)
  */
 public class Utils {
     
