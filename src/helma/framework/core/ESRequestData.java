@@ -7,7 +7,8 @@ package helma.framework.core;
 import FESI.Data.*;
 import FESI.Exceptions.*;
 import FESI.Interpreter.Evaluator;
-import java.util.*;
+import java.util.Hashtable;
+import java.util.Enumeration;
 import helma.objectmodel.INode;
 
 

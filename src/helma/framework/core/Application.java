@@ -3,7 +3,6 @@
 
 package helma.framework.core;
 
-import java.util.*;
 import java.io.*;
 import java.lang.reflect.*;
 import java.rmi.*;
@@ -17,7 +16,12 @@ import helma.util.*;
 import FESI.Data.*;
 import FESI.Interpreter.*;
 import com.sleepycat.db.DbException;
-
+import java.util.Hashtable;
+import java.util.Vector;
+import java.util.Enumeration;
+import java.util.Stack;
+import java.util.EmptyStackException;
+import java.util.StringTokenizer;
 
 /**
  * The central class of a HOP application. This class keeps a pool of so-called
