@@ -208,6 +208,7 @@ public class XmlReader implements XmlConstants	{
 			if ( childElement.getTagName().equals("hop:parent") )	{
 				// add a NodeHandle to parent object
 				helmaNode.setParentHandle (new NodeHandle (new DbKey(null,childElement.getAttribute("idref") ) ) );
+				continue;
 			}	
 
 			// if we come until here, childelement is a property value
