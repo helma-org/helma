@@ -30,7 +30,17 @@ public class FilteredClassLoader extends URLClassLoader {
      *  so that they can load classes from jar files in the app directories.
      */
     public FilteredClassLoader(URL[] urls) {
-        super(urls, null);
+        super(urls);
+    }
+
+    /**
+     *  Create a server wide class loader that doesn't see the scripting engine(s)
+     *  embedded in helma.jar. These files should be loaded by the per-application
+     *  class loaders so that special security policies can be applied to them and
+     *  so that they can load classes from jar files in the app directories.
+     */
+    public FilteredClassLoader(URL[] urls, ClassLoader parent) {
+        super(urls, parent);
     }
 
     /**
