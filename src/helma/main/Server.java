@@ -22,9 +22,10 @@ import com.sleepycat.db.*;
  * Helma server main class.
  */
  
- public class Server {
+ public class Server implements IPathElement	{
 
-    public static final String version = "1.2pre2 2002/02/25";
+    public static final String version = "1.2pre2 2002/03/07";
+    public static final long starttime = System.currentTimeMillis();
 
     public static boolean useTransactions = true;
     public static boolean paranoid;
@@ -46,6 +47,8 @@ import com.sleepycat.db.*;
     Acme.Serve.Serve websrv;
 
     static Hashtable dbSources;
+
+	static Server server;
 
     protected static File hopHome = null;
 
@@ -107,7 +110,7 @@ import com.sleepycat.db.*;
 	    System.exit (0);
 	}
 
-	new Server (homeDir);
+	server = new Server (homeDir);
 
     }
 
@@ -274,7 +277,14 @@ import com.sleepycat.db.*;
      *  Get an Iterator over the applications currently running on this Server.
      */
     public Object[] getApplications () {
-	return appManager.getApplications ();
+		return appManager.getApplications ();
+    }
+    
+    /**
+     * Get an Application by name
+     */
+    public Application getApplication(String name)	{
+    	return appManager.getApplication(name);
     }
 
     /**
@@ -309,6 +319,13 @@ import com.sleepycat.db.*;
 	return hopHome;
     }
 
+	/**
+     * Get the main Server
+     */
+	public static Server getServer()	{
+		return server;
+	}
+
     /**
     *  Get the Server's  XML-RPC web server.
     */
@@ -329,4 +346,57 @@ import com.sleepycat.db.*;
 	throw new Exception ("Error: Server already running on this port");
     }
 
+	public static String getProperty( String key )	{
+		return (String)sysProps.get(key);		
+	}
+	
+	public static SystemProperties getProperties()	{
+		return sysProps;
+	}
+
+	public static File getAppsHome()	{
+		String appHome = sysProps.getProperty ("appHome");
+		if (appHome != null && !"".equals (appHome.trim()))
+		    return new File (appHome);
+		else
+	    	return new File (hopHome, "apps");
+	}
+
+	public void startApplication(String name)	{
+		appManager.start(name,false);
+		appManager.register(name,false);
+	}
+	
+	public void stopApplication(String name)	{
+		appManager.stop(name);
+	}
+
+	/**
+	  * method from helma.framework.IPathElement
+	  */
+	public String getElementName()	{
+		return "root";
+	}
+
+	/**
+	  * method from helma.framework.IPathElement,
+	  * returning active applications
+	  */
+	public IPathElement getChildElement(String name)	{
+		return appManager.getApplication(name);
+	}
+
+	/**
+	  * method from helma.framework.IPathElement
+	  */
+	public IPathElement getParentElement()	{
+		return null;
+	}
+
+	/**
+	  * method from helma.framework.IPathElement
+	  */
+	public String getPrototype()	{
+		return "root";
+	}
 }
