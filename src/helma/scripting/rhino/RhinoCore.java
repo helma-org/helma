@@ -26,6 +26,7 @@ import helma.objectmodel.db.Relation;
 import helma.scripting.*;
 import helma.util.CacheMap;
 import helma.util.SystemMap;
+import helma.util.WrappedMap;
 import helma.util.SystemProperties;
 import helma.util.Updatable;
 import org.mozilla.javascript.*;
@@ -746,7 +747,7 @@ public final class RhinoCore {
                 return getElementWrapper(obj);
             }
 
-            if (obj instanceof SystemMap) {
+            if (obj instanceof SystemMap || obj instanceof WrappedMap) {
                 return new MapWrapper((Map) obj, RhinoCore.this);
             }
 

@@ -19,6 +19,7 @@ package helma.framework.core;
 import helma.objectmodel.INode;
 import helma.util.CronJob;
 import helma.util.SystemMap;
+import helma.util.WrappedMap;
 import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -34,6 +35,8 @@ import java.util.Map;
  */
 public class ApplicationBean implements Serializable {
     Application app;
+
+    WrappedMap properties = null;
 
     /**
      * Creates a new ApplicationBean object.
@@ -387,7 +390,11 @@ public class ApplicationBean implements Serializable {
      * @return ...
      */
     public Map getproperties() {
-        return new SystemMap(app.getProperties());
+        if (properties == null) {
+            properties = new WrappedMap(app.getProperties());
+            properties.setReadonly(true);
+        }
+        return properties;
     }
 
     /**
