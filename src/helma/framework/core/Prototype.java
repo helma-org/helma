@@ -179,14 +179,19 @@ public final class Prototype {
     }
 
     /**
-     * Register an object as handler for this prototype and all our parent prototypes.
+     * Register an object as handler for all our parent prototypes.
      */
-    public final void addToHandlerMap(Map handlers, Object obj) {
-        if ((parent != null) && !"hopobject".equalsIgnoreCase(parent.getName())) {
-            parent.addToHandlerMap(handlers, obj);
-        }
+    public final void registerParents(Map handlers, Object obj) {
 
-        handlers.put(name, obj);
+        Prototype p = parent;
+
+        while ((p != null) && !"hopobject".equalsIgnoreCase(p.getName())) {
+            if (!handlers.containsKey(p.name)) {
+                handlers.put(p.name, obj);
+            }
+
+            p = p.parent;
+        }
     }
 
     /**

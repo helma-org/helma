@@ -168,8 +168,6 @@ public final class RequestEvaluator implements Runnable {
                                     session.message = null;
                                 }
 
-                                Map macroHandlers = res.getMacroHandlers();
-
                                 try {
                                     if (error != null) {
                                         // there was an error in the previous loop, call error handler
@@ -189,7 +187,7 @@ public final class RequestEvaluator implements Runnable {
                                                    "".equals(req.path.trim())) {
                                         currentElement = root;
                                         requestPath.add(currentElement);
-                                        macroHandlers.put("root", root);
+
                                         action = getAction(currentElement, null);
 
                                         if (action == null) {
@@ -213,7 +211,7 @@ public final class RequestEvaluator implements Runnable {
 
                                         currentElement = root;
                                         requestPath.add(currentElement);
-                                        macroHandlers.put("root", root);
+
 
                                         for (int i = 0; i < ntokens; i++) {
                                             if (currentElement == null) {
@@ -242,13 +240,6 @@ public final class RequestEvaluator implements Runnable {
                                                 if (currentElement != null) {
                                                     // add to requestPath array
                                                     requestPath.add(currentElement);
-
-                                                    Prototype proto = app.getPrototype(currentElement);
-
-                                                    if (proto != null) {
-                                                        proto.addToHandlerMap(macroHandlers,
-                                                                              currentElement);
-                                                    }
                                                 }
                                             }
                                         }
@@ -285,6 +276,33 @@ public final class RequestEvaluator implements Runnable {
 
                                     if (action == null) {
                                         throw new FrameworkException(notfound.getMessage());
+                                    }
+                                }
+
+                                // register path objects with their prototype names in
+                                // res.handlers
+                                Map macroHandlers = res.getMacroHandlers();
+                                int l = requestPath.size();
+                                Prototype[] protos = new Prototype[l];
+
+                                for (int i=0; i<l; i++) {
+
+                                    Object obj = requestPath.get(i);
+
+                                    protos[i] = app.getPrototype(obj);
+
+                                    // immediately register objects with their direct prototype name
+                                    if (protos[i] != null) {
+                                        macroHandlers.put(protos[i].getName(), obj);
+                                    }
+                                }
+
+                                // in a second pass, we register path objects with their indirect
+                                // (i.e. parent prototype) names, starting at the end and only
+                                // if the name isn't occupied yet.
+                                for (int i=l-1; i>=0; i--) {
+                                    if (protos[i] != null) {
+                                        protos[i].registerParents(macroHandlers, requestPath.get(i));
                                     }
                                 }
 
