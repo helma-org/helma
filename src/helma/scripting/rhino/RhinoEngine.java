@@ -262,7 +262,7 @@ public final class RhinoEngine implements ScriptingEngine {
                 }
             }
 
-            Object f = ScriptableObject.getProperty(eso, functionName);
+            Object f = ScriptableObject.getProperty(eso, functionName.replace('.', '_'));
 
             if ((f == ScriptableObject.NOT_FOUND) || !(f instanceof Function)) {
                 return null;
@@ -343,7 +343,7 @@ public final class RhinoEngine implements ScriptingEngine {
      */
     public boolean hasFunction(Object obj, String fname) {
         // System.err.println ("HAS_FUNC: "+fname);
-        return core.hasFunction(app.getPrototypeName(obj), fname);
+        return core.hasFunction(app.getPrototypeName(obj), fname.replace('.', '_'));
     }
 
     /**
@@ -444,4 +444,26 @@ public final class RhinoEngine implements ScriptingEngine {
     public RhinoCore getCore() {
         return core;
     }
+
+    /**
+     *  Get a skin for the given prototype and skin name. This method considers the
+     *  skinpath set in the current response object and does per-response skin
+     *  caching.
+     */
+    public Skin getSkin(String protoName, String skinName) {
+        SkinKey key = new SkinKey(protoName, skinName);
+
+        Skin skin = reval.res.getCachedSkin(key);
+
+        if (skin == null) {
+            // retrieve res.skinpath, an array of objects that tell us where to look for skins
+            // (strings for directory names and INodes for internal, db-stored skinsets)
+            Object[] skinpath = reval.res.getSkinpath();
+            core.unwrapSkinpath(skinpath);
+            skin = app.getSkin(protoName, skinName, skinpath);
+            reval.res.cacheSkin(key, skin);
+        }
+        return skin;
+    }
+
 }
