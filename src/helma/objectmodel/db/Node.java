@@ -113,7 +113,7 @@ public final class Node implements INode, Serializable {
      */
     public Node(Node home, String propname, WrappedNodeManager nmgr, String prototype) {
         this.nmgr = nmgr;
-        setParentHandle(home.getHandle());
+        setParent(home);
 
         // this.dbmap = null;
         // generate a key for the virtual node that can't be mistaken for a Database Key
@@ -624,31 +624,14 @@ public final class Node implements INode, Serializable {
     }
 
     /**
-     * Register a node as parent of the present node. This performs a check
-     * to prevent cyclic parent paths. If the argument is accepted as parent,
-     * the method returns true. Otherwise, false is returned.
+     * Set this node's parent node.
      */
-    protected boolean setParent(Node parent) {
-        // walk down parent node to see if we are in its parent chain.
-        // this is to prevent cyclic parent chains.
-        Node p = parent;
-        while (p != null) {
-            p = p.parentHandle == null ? null : p.parentHandle.getNode(nmgr);
-            if (p == this) {
-                // we found ourself in the argument node's parent chain -
-                // ignore request to make it our parent.
-                return false;
-            }
-        }
+    protected void setParent(Node parent) {
         parentHandle = (parent == null) ? null : parent.getHandle();
-        return true;
     }
 
     /**
-     * Set the parent handle which can be used to get the actual parent node.
-     * In contrast to <code>getParent()</code> this does not perform any
-     * cyclic parent chain checks, so it should only be used when one is sure
-     * the argument handle doesn't refer to a Node we are a parent of.
+     *  Set this node's parent node to the node referred to by the NodeHandle.
      */
     public void setParentHandle(NodeHandle parent) {
         parentHandle = parent;
@@ -658,8 +641,6 @@ public final class Node implements INode, Serializable {
      * This version of setParent additionally marks the node as anonymous or non-anonymous,
      * depending on the string argument. This is the version called from the scripting framework,
      * while the one argument version is called from within the objectmodel classes only.
-     *
-     * @deprecated use Helma _parent mapping instead
      */
     public void setParent(Node parent, String propertyName) {
         // we only do that for relational nodes.
@@ -730,6 +711,7 @@ public final class Node implements INode, Serializable {
         // if not, try to get one that does.
         if (parentInfo != null) {
             for (int i = 0; i < parentInfo.length; i++) {
+
                 ParentInfo pinfo = parentInfo[i];
                 Node pn = null;
 
@@ -767,7 +749,7 @@ public final class Node implements INode, Serializable {
                         }
 
                         if (pn != null && pn.isParentOf(this)) {
-                            setParentHandle(pn.getHandle());
+                            setParent(pn);
                             lastParentSet = System.currentTimeMillis();
 
                             return pn;
@@ -932,9 +914,8 @@ public final class Node implements INode, Serializable {
                 // transient while we are persistent, make this the nodes new parent.
                 if ((nparent == null) ||
                         ((state != TRANSIENT) && (nparent.getState() == TRANSIENT))) {
-                    if (node.setParent(this)) {
-                        node.anonymous = true;
-                    }
+                    node.setParent(this);
+                    node.anonymous = true;
                 }
             }
         }
@@ -1100,12 +1081,10 @@ public final class Node implements INode, Serializable {
             // This would be an alternative way to do it, without loading the subnodes:
             //    if (dbmap != null && dbmap.getSubnodeRelation () != null)
             //         retval = nmgr.getNode (this, subid, dbmap.getSubnodeRelation ());
-
             if ((retval != null) && (retval.parentHandle == null) &&
                     !"root".equalsIgnoreCase(retval.getPrototype())) {
-                if (retval.setParent(this)) {
-                    retval.anonymous = true;
-                }
+                retval.setParent(this);
+                retval.anonymous = true;
             }
         }
 
@@ -1134,9 +1113,8 @@ public final class Node implements INode, Serializable {
 
             if ((retval != null) && (retval.parentHandle == null) &&
                     !"root".equalsIgnoreCase(retval.getPrototype())) {
-                if (retval.setParent(this)) {
-                    retval.anonymous = true;
-                }
+                retval.setParent(this);
+                retval.anonymous = true;
             }
         }
 
@@ -1330,7 +1308,7 @@ public final class Node implements INode, Serializable {
         }
 
         // mark the node as deleted
-        setParentHandle(null);
+        setParent(null);
         markAs(DELETED);
     }
 
@@ -1658,7 +1636,7 @@ public final class Node implements INode, Serializable {
             // consulting the NodeManager about it.
             Node n = new Node(propname, rel.getPrototype(), nmgr);
             n.setDbMapping(rel.getVirtualMapping());
-            n.setParentHandle(this.getHandle());
+            n.setParent(this);
             setNode(propname, n);
             return (Property) propMap.get(propname.toLowerCase());
         }
@@ -1671,10 +1649,9 @@ public final class Node implements INode, Serializable {
                 if (n != null) {
                     if ((n.parentHandle == null) &&
                             !"root".equalsIgnoreCase(n.getPrototype())) {
-                        if (n.setParent(this)) {
-                            n.name = propname;
-                            n.anonymous = false;
-                        }
+                        n.setParent(this);
+                        n.name = propname;
+                        n.anonymous = false;
                     }
                     return new Property(propname, this, n);
                 }
@@ -2186,10 +2163,9 @@ public final class Node implements INode, Serializable {
             // transient while we are persistent, make this the nodes new parent.
             if ((nparent == null) ||
                ((state != TRANSIENT) && (nparent.getState() == TRANSIENT))) {
-                if (n.setParent(this)) {
-                    n.setName(propname);
-                    n.anonymous = false;
-                }
+                n.setParent(this);
+                n.name = propname;
+                n.anonymous = false;
             }
         }
 
