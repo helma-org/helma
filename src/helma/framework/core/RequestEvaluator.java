@@ -59,9 +59,7 @@ public class RequestEvaluator implements Runnable {
 
 
     /**
-     *  Build a RenderContext from a RequestTrans. Checks if the path is the user home node ("user")
-     *  or a subnode of it. Otherwise, the data root of the site is used. Two arrays are built, one
-     *  that contains the data nodes, and anotherone with the corresponding Prototypes or Prototype.Parts.
+     *  Create a new RequestEvaluator for this application.
      */
     public RequestEvaluator (Application app) {
 	this.app = app;
