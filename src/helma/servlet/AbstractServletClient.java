@@ -120,7 +120,6 @@ public abstract class AbstractServletClient extends HttpServlet {
     protected void execute(HttpServletRequest request, HttpServletResponse response,
                            byte method) {
         RequestTrans reqtrans = new RequestTrans(method);
-
         // get app and path from original request path
         // String pathInfo = request.getPathInfo ();
         // String appID = getAppID (pathInfo);
@@ -236,23 +235,8 @@ public abstract class AbstractServletClient extends HttpServlet {
                 }
             }
 
-            // check if we need to create a session id. also handle the
-            // case that the session id doesn't match the remote host address
-            if ((reqtrans.session == null) || !reqtrans.session.startsWith(remotehost)) {
-                reqtrans.session = remotehost + "." +
-                                   Long.toString(Math.round(Math.random() * Long.MAX_VALUE) -
-                                                 System.currentTimeMillis(), 36);
-
-                Cookie c = new Cookie("HopSession", reqtrans.session);
-
-                c.setPath("/");
-
-                if (resCookieDomain != null) {
-                    c.setDomain(resCookieDomain);
-                }
-
-                response.addCookie(c);
-            }
+            // check if session cookie is present and valid, creating it if not.
+            checkSessionCookie(request, response, reqtrans, resCookieDomain);
 
             String browser = request.getHeader("User-Agent");
 
@@ -447,6 +431,52 @@ public abstract class AbstractServletClient extends HttpServlet {
     Object getUploadPart(FileUpload upload, String name) {
         return upload.getParts().get(name);
     }
+
+    /**
+     *  Check if the session cookie is set and valid for this request.
+     *  If not, create a new one.
+     */
+    private void checkSessionCookie(HttpServletRequest request, HttpServletResponse response,
+                        RequestTrans reqtrans, String resCookieDomain) {
+        // check if we need to create a session id. also handle the
+        // case that the session id doesn't match the remote host address
+        StringBuffer b = new StringBuffer();
+        addIPAddress(b, request.getRemoteAddr());
+        addIPAddress(b, request.getHeader("X-Forwarded-For"));
+        addIPAddress(b, request.getHeader("Client-ip"));
+        if ((reqtrans.session == null) || !reqtrans.session.startsWith(b.toString())) {
+            b.append (Long.toString(Math.round(Math.random() * Long.MAX_VALUE) -
+                        System.currentTimeMillis(), 36));
+
+            reqtrans.session = b.toString();
+            Cookie c = new Cookie("HopSession", reqtrans.session);
+
+            c.setPath("/");
+
+            if (resCookieDomain != null) {
+                c.setDomain(resCookieDomain);
+            }
+
+            response.addCookie(c);
+        }
+    }
+
+    /**
+     *  Adds an the 3 most significant bytes of an IP address to the
+     *  session cookie id.
+     */
+    private void addIPAddress(StringBuffer b, String addr) {
+        if (addr != null) {
+            int cut = addr.lastIndexOf(".");
+            if (cut == -1) {
+                cut = addr.lastIndexOf(":");
+            }
+            if (cut > -1) {
+                b.append(addr.substring(0, cut+1));
+            }
+        }
+    }
+
 
     /**
      * Put name value pair in map.
