@@ -70,7 +70,7 @@ public class DomExtension extends Extension  {
 			}
 			try	{
 				File tmpFile = new File(arguments[1].toString()+".tmp."+XmlWriter.generateID());
-				XmlWriter writer = new XmlWriter (tmpFile);
+				XmlWriter writer = new XmlWriter (tmpFile, "UTF-8");
 				writer.setDatabaseMode(false);
 				boolean result = writer.write(node);
 				writer.close();
