@@ -66,6 +66,7 @@ public class GlobalObject extends ScriptableObject {
                                    "renderSkin", "renderSkinAsString", "getProperty",
                                    "authenticate", "createSkin", "format", "encode",
                                    "encodeXml", "encodeForm", "stripTags",
+                                   "getXmlDocument", "getHtmlDocument",
                                    "getDBConnection", "getURL", "write", "writeln"
                                };
 
@@ -282,6 +283,46 @@ public class GlobalObject extends ScriptableObject {
             return Context.toObject(mime, this);
         } catch (Exception xcept) {
             System.err.println ("Error in getURL(): "+xcept);
+        }
+
+        return null;
+    }
+
+    /**
+     *  Try to parse an object to a XML DOM tree. The argument must be
+     *  either a URL, a piece of XML, an InputStream or a Reader.
+     */
+    public Object getXmlDocument(Object src) {
+        try {
+            Object p = src;
+            if (p instanceof NativeJavaObject) {
+                p = ((NativeJavaObject) p).unwrap();
+            }
+            Object doc = XmlUtils.parseXml(p);
+
+            return Context.toObject(doc, this);
+        } catch (Exception noluck) {
+            app.logEvent("Error creating XML document: " + noluck);
+        }
+
+        return null;
+    }
+
+    /**
+     *  Try to parse an object to a XML DOM tree. The argument must be
+     *  either a URL, a piece of XML, an InputStream or a Reader.
+     */
+    public Object getHtmlDocument(Object src) {
+        try {
+            Object p = src;
+            if (p instanceof NativeJavaObject) {
+                p = ((NativeJavaObject) p).unwrap();
+            }
+            Object doc = helma.util.XmlUtils.parseHtml(p);
+
+            return Context.toObject(doc, this);
+        } catch (Exception noluck) {
+            app.logEvent("Error creating HTML document: " + noluck);
         }
 
         return null;
