@@ -250,6 +250,9 @@ public final class RequestEvaluator implements Runnable {
 
 	                    // set the req.action property, cutting off the _action suffix
 	                    req.action = action.substring (0, action.length()-7);
+	                    // set the application checksum in response to make ETag 
+	                    // generation sensitive to changes in the app
+	                    res.setApplicationChecksum (app.getChecksum ());
 
 	                    // reset skin recursion detection counter
 	                    skinDepth = 0;
@@ -529,7 +532,9 @@ public final class RequestEvaluator implements Runnable {
 	    app.logEvent ("Stopping Thread for Request "+app.getName()+"/"+req.path);
 	    stopThread ();
 	    res.reset ();
-	    res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>Request timed out.</pre>");
+	    res.write ("<b>Error in application '" +
+	               app.getName() +
+	               "':</b> <br><br><pre>Request timed out.</pre>");
 	}
 	return res;
     }
