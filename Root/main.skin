@@ -27,12 +27,17 @@
 <tr>
 	<td class="list_property" align="right" width="200" valign="top">total active sessions:</td>
 	<td class="list_property" width="5">&nbsp;</td>
-	<td class="list_property" align="left"><% this.countSessions %></td>
+	<td class="list_property" align="left"><% this.countSessions default="&nbsp;" %></td>
 </tr>
 <tr>
 	<td class="list_property" align="right" width="200" valign="top">total requests / 5 min:</td>
 	<td class="list_property" width="5">&nbsp;</td>
-	<td class="list_property" align="left"><% this.countRequests %></td>
+	<td class="list_property" align="left"><% this.countRequests default="&nbsp;" %></td>
+</tr>
+<tr>
+	<td class="list_property" align="right" width="200" valign="top">loaded extensions:</td>
+	<td class="list_property" width="5">&nbsp;</td>
+	<td class="list_property" align="left"><% this.extensions default="&nbsp;" %></td>
 </tr>
 
 <tr>

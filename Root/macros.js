@@ -56,7 +56,17 @@ function countRequests_macro(par)	{
 }
 
 
-
+function extensions_macro (par) {
+	var vec = this.getExtensions ();
+	var str = "";
+	for (var i=0; i<vec.size(); i++) {
+		str += vec.elementAt (i).getClass ().getName ();
+		if (i!=(vec.size()-1)) {
+			str += (par && par.separator) ? par.separator : ", ";
+		}
+	}
+	return str;
+}
 
 /**
   * Macro returning hostname of this machine
