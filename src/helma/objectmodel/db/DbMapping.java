@@ -938,10 +938,6 @@ public final class DbMapping implements Updatable {
         s.append(table);
         s.append(".*");
 
-        if (rel != null && rel.additionalTables != null) {
-            s.append(',').append(rel.additionalTables);
-        }
-
         for (int i = 0; i < joins.length; i++) {
             if (!joins[i].otherType.isRelational()) {
                 continue;
@@ -955,6 +951,11 @@ public final class DbMapping implements Updatable {
         s.append(" FROM ");
 
         s.append(table);
+
+        if (rel != null && rel.additionalTables != null) {
+            s.append(',').append(rel.additionalTables);
+        }
+
         s.append(" ");
 
         for (int i = 0; i < joins.length; i++) {
