@@ -82,6 +82,16 @@ public abstract class ImageWrapper {
 
 
     /**
+     * Dispose the Graphics context and null out the image.
+     */
+    public void dispose() {
+        if (img != null) {
+            g.dispose();
+            img = null;
+        }
+    }
+
+    /**
      *  Set the font used to write on this image.
      */
     public void setFont(String name, int style, int size) {
