@@ -182,7 +182,7 @@ public class ApplicationManager {
 	    }
 	    if (server.http != null) {
 	        // add handler for static files.
-	        File staticContent = new File (server.getHopHome(), "static");
+	        File staticContent = new File (server.getHopHome(), "static").getCanonicalFile();
 	        Server.getLogger().log("Serving static content from "+staticContent.getAbsolutePath());
 	        HandlerContext context = server.http.addContext ("/static/*");
 	        context.setResourceBase (staticContent.getAbsolutePath());
