@@ -411,17 +411,19 @@ public class Node implements INode, Serializable {
     public String getNameOrID () {
 	// if subnodes are also mounted as properties, try to get the "nice" prop value
 	// instead of the id by turning the anonymous flag off.
-	if (anonymous && parentmap != null) {
+	if (parentmap != null) {
 	    Relation prel = parentmap.getPropertyRelation();
 	    if (prel != null && prel.subnodesAreProperties && !prel.usesPrimaryKey ()) try {
 	        Relation localrel = dbmap.columnNameToProperty (prel.getRemoteField ());
 	        String propvalue = getString (localrel.propname, false);
 	        if (propvalue != null && propvalue.length() > 0) {
 	            setName (propvalue);
-	            anonymous = false;
+	            // anonymous = false;
 	            // nameProp = localrel.propname;
 	        }
-	    } catch (Exception ignore) {} // just fall back to ID
+	    } catch (Exception ignore) {
+	        // just fall back to ID
+	    }
 	}
     	return anonymous || name == null || name.length() == 0 ? id : name;
     }
@@ -610,22 +612,22 @@ public class Node implements INode, Serializable {
 	            pn = nmgr.getNode ("0", nmgr.getDbMapping ("root"));
 	        if (pn != null) {
 	            // see if dbmapping specifies anonymity for this node
-	            anonymous = !pinfo.named;
 	            if (pinfo.virtualname != null)
 	                pn = pn.getNode (pinfo.virtualname, false);
 	            DbMapping dbm = pn == null ? null : pn.getDbMapping ();
-	            if (dbm != null && dbm.getSubnodeGroupby () != null) {
-	                // check for groupby
-	                try {
+	            try {
+	                if (dbm != null && dbm.getSubnodeGroupby () != null) {
+	                    // check for groupby
 	                    Relation rel = (Relation) dbmap.db2prop.get (dbm.getSubnodeGroupby());
 	                    pn = pn.getSubnode (getString (rel.propname, false));
-	                } catch (Exception ignore) {}
-	            }
-	            if (pn != null) {
-	                setParent ((Node) pn);
-	                lastParentSet = System.currentTimeMillis ();
-	                return pn;
-	            }
+	                }
+	                if (pn != null) {
+	                    setParent ((Node) pn);
+	                    anonymous = !pinfo.named;
+	                    lastParentSet = System.currentTimeMillis ();
+	                    return pn;
+	                }
+	            } catch (Exception ignore) {}
 	        }
 	    }
 	}
@@ -1473,6 +1475,13 @@ public class Node implements INode, Serializable {
 
     public void setNode (String propname, INode value) {
 	// nmgr.logEvent ("setting node prop");
+
+	// check if types match, otherwise throw exception
+	DbMapping nmap = dbmap == null ? null : dbmap.getPropertyMapping (propname);
+	if (nmap != null && nmap != value.getDbMapping()) {
+	    throw new RuntimeException ("Can't set "+propname+" to object with prototype "+value.getPrototype()+", was expecting "+nmap.getTypeName());
+	}
+
 	checkWriteLock ();
 
     	Node n = null;
@@ -1499,12 +1508,6 @@ public class Node implements INode, Serializable {
 	    propMap = new Hashtable ();
 	propname = propname.trim ();
 	String p2 = propname.toLowerCase ();
-
-	DbMapping nmap = dbmap == null ? null : dbmap.getPropertyMapping (propname);
-	if (nmap != null && nmap != n.getDbMapping()) {
-	    n.setDbMapping (nmap);
-	    n.setPrototype (nmap.getTypeName ());
-	}
 
 	Property prop = (Property) propMap.get (p2);
 	if (prop != null) {
