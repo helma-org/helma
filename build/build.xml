@@ -18,7 +18,7 @@
         <property name="home.dir" value=".."/>
 
 		<!-- values for building a snapshot -->
-        <property name="snapshot.src" value="${home.dir}/src/hop"/>
+        <property name="snapshot.src" value="${home.dir}/src"/>
         <property name="snapshot.classes" value="${home.dir}/classes"/>
         <property name="snapshot.lib" value="${home.dir}/lib"/>
 
@@ -51,10 +51,18 @@
     </target>
 
     <!-- =================================================================== -->
-    <!-- Copies the source code to the build directory and does filtering    -->
+    <!-- Copies the source code to the src directroy                         -->
     <!-- =================================================================== -->
     <target name="checkout" depends="init">
-        <mkdir dir="${build.src}"/>
+        <mkdir dir="${snapshot.src}"/>
+        <cvs cvsRoot="${cvs.root}" package="hop" dest="${snapshot.src}"/>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Copies the everything from cvs that's needed to build a full        -->
+    <!-- helma distribution                                                  -->
+    <!-- =================================================================== -->
+    <target name="fullcheckout" depends="init">
         <mkdir dir="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="hop" dest="${build.checkout}"/>
         <cvs cvsRoot="${cvs.root}" package="hopbuild" dest="${build.checkout}"/>
@@ -170,7 +178,7 @@
     <!-- =================================================================== -->
     <!-- Package                                                             -->
     <!-- =================================================================== -->
-    <target name="package" depends="init, checkout, jar, javadocs, helmadocs">
+    <target name="package" depends="init, fullcheckout, jar, javadocs, helmadocs">
         <mkdir dir="${final.dir}"/>
 
         <mkdir dir="${final.dir}/src/hop"/>
@@ -245,7 +253,7 @@
     <!-- =================================================================== -->
     <target name="snapshotcompile" depends="init">
         <mkdir dir="${snapshot.classes}"/>
-        <javac srcdir="${snapshot.src}"
+        <javac srcdir="${snapshot.src}/hop"
             destdir="${snapshot.classes}"
             debug="${debug}"
             deprecation="${deprecation}"
