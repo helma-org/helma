@@ -419,15 +419,11 @@ public final class FesiEngine implements ScriptingEngine {
 	    // has the request timed out? If so, throw TimeoutException
 	    if (evaluator.thread != Thread.currentThread())
 	        throw new TimeoutException ();
-	    // create and throw a ScriptingException with the right message
-	    String msg = x.getMessage ();
-	    if (msg == null || msg.length() < 10)
-	        msg = x.toString ();
 	    if (app.debug ()) {
-	        System.err.println ("Error in Script: "+msg);
 	        x.printStackTrace ();
 	    }
-	    throw new ScriptingException (msg);
+	    // create and throw a ScriptingException wrapping the original exception
+	    throw new ScriptingException (x);
 	}
     }
 
