@@ -526,12 +526,12 @@ public final class Node implements INode, Serializable {
 
 
     public String getPrototype () {
-	if (prototype == null && propMap != null) {
+	/* if (prototype == null && propMap != null) {
 	    // retrieve prototype name from properties
 	    Property pp = (Property) propMap.get ("prototype");
 	    if (pp != null)
 	        prototype = pp.getStringValue ();
-	}
+	} */
 	return prototype;
     }
 
