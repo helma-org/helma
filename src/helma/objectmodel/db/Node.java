@@ -1821,7 +1821,7 @@ public final class Node implements INode, Serializable {
             }
 
             // so if we have a property relation and it does in fact link to another object...
-            if ((propRel != null) && propRel.isCollection()) {
+            if ((propRel != null) && (propRel.isCollection() || propRel.isComplexReference())) {
                 // in some cases we just want to create and set a generic node without consulting
                 // the NodeManager if it exists: When we get a collection (aka virtual node)
                 // from a transient node for the first time, or when we get a collection whose
@@ -1835,9 +1835,9 @@ public final class Node implements INode, Serializable {
                 }
                 // if this is from relational database only fetch if this node
                 // is itself persistent.
-                else if ((state != TRANSIENT) && propRel.createPropertyOnDemand()) {
+                else if ((state != TRANSIENT) && propRel.createOnDemand()) {
                     // this may be a relational node stored by property name
-                    try {
+                    // try {
                         Node pn = nmgr.getNode(this, propname, propRel);
 
                         if (pn != null) {
@@ -1850,9 +1850,9 @@ public final class Node implements INode, Serializable {
 
                             prop = new Property(propname, this, pn);
                         }
-                    } catch (RuntimeException nonode) {
+                    // } catch (RuntimeException nonode) {
                         // wasn't a node after all
-                    }
+                    // }
                 }
             }
         }
@@ -2367,6 +2367,15 @@ public final class Node implements INode, Serializable {
 
         String p2 = propname.toLowerCase();
 
+        Relation rel = (dbmap == null) ? null : dbmap.getPropertyRelation(propname);
+
+        if (rel != null && rel.isComplexReference()) {
+            rel.setConstraints(this, n);
+            Key key = new MultiKey(n.getDbMapping(), rel.getKeyParts(this));
+            nmgr.nmgr.registerNode(n, key);
+            return;
+        }
+
         Property prop = (propMap == null) ? null : (Property) propMap.get(p2);
 
         if (prop != null) {
@@ -2388,8 +2397,6 @@ public final class Node implements INode, Serializable {
         }
 
         prop.setNodeValue(n);
-
-        Relation rel = (dbmap == null) ? null : dbmap.getPropertyRelation(propname);
 
         if ((rel == null) || (rel.reftype == Relation.REFERENCE) || rel.virtual ||
                 (rel.otherType == null) || !rel.otherType.isRelational()) {

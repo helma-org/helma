@@ -21,6 +21,8 @@ import helma.objectmodel.*;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * This describes how a property of a persistent Object is stored in a
@@ -40,6 +42,10 @@ public final class Relation {
 
     // a 1-to-many relation, a field in another table points to objects of this type
     public final static int COLLECTION = 2;
+
+    // a 1-to-1 reference with multiple or otherwise not-trivial constraints
+    // this is managed differently than REFERENCE, hence the separate type.
+    public final static int COMPLEX_REFERENCE = 3;
 
     // direct mapping is a very powerful feature: objects of some types can be directly accessed
     // by one of their properties/db fields.
@@ -141,6 +147,12 @@ public final class Relation {
                     throw new RuntimeException("DbMapping for " + proto +
                                                " not found from " + ownType.typename);
                 }
+
+                // make sure the type we're referring to is up to date!
+                if (otherType != null && otherType.needsUpdate()) {
+                    otherType.update();
+                }
+
             } else {
                 virtual = false;
                 columnName = desc;
@@ -148,13 +160,7 @@ public final class Relation {
             }
         }
 
-        String rdonly = props.getProperty(propName + ".readonly");
-
-        if ((rdonly != null) && "true".equalsIgnoreCase(rdonly)) {
-            readonly = true;
-        } else {
-            readonly = false;
-        }
+        readonly = "true".equalsIgnoreCase(props.getProperty(propName + ".readonly"));
 
         isPrivate = "true".equalsIgnoreCase(props.getProperty(propName + ".private"));
 
@@ -166,6 +172,15 @@ public final class Relation {
 
             constraints = new Constraint[newConstraints.size()];
             newConstraints.copyInto(constraints);
+
+
+            // check if this is a non-trivial reference
+            if (reftype == REFERENCE) {
+                if (constraints.length > 1 || !usesPrimaryKey()) {
+                    reftype = COMPLEX_REFERENCE;
+                }
+            }
+
 
             // if DbMapping for virtual nodes has already been created,
             // update its subnode relation.
@@ -248,21 +263,18 @@ public final class Relation {
         String foreign = props.getProperty(propName + ".foreign");
 
         if ((local != null) && (foreign != null)) {
-            cnst.addElement(new Constraint(local, otherType.getTableName(), foreign, false));
+            cnst.addElement(new Constraint(local, foreign, false));
             columnName = local;
         }
 
-        // parse additional contstraints
+        // parse additional contstraints from *.1 to *.9
         for (int i=1; i<10; i++) {
             local = props.getProperty(propName + ".local."+i);
             foreign = props.getProperty(propName + ".foreign."+i);
 
             if ((local != null) && (foreign != null)) {
-                cnst.addElement(new Constraint(local, otherType.getTableName(), foreign, false));
-            } else {
-                break;
+                cnst.addElement(new Constraint(local, foreign, false));
             }
-
         }
     }
 
@@ -297,6 +309,13 @@ public final class Relation {
     }
 
     /**
+     *  Returns true if this Relation describes a complex object reference property
+     */
+    public boolean isComplexReference() {
+        return reftype == COMPLEX_REFERENCE;
+    }
+
+    /**
      *  Tell wether the property described by this relation is to be handled as private, i.e.
      *  a change on it should not result in any changed object/collection relations.
      */
@@ -310,8 +329,8 @@ public final class Relation {
      *  node. Virtual nodes are objects which are only generated on demand
      *  and never stored to a persistent storage.
      */
-    public boolean createPropertyOnDemand() {
-        return virtual || (accessName != null) || (groupby != null);
+    public boolean createOnDemand() {
+        return virtual || (accessName != null) || (groupby != null) || isComplexReference();
     }
 
     /**
@@ -392,7 +411,9 @@ public final class Relation {
     public boolean usesPrimaryKey() {
         if (otherType != null) {
             if (reftype == REFERENCE) {
-                return (constraints.length == 1) && constraints[0].foreignKeyIsPrimary();
+                return constraints.length == 0 ||
+                       ((constraints.length == 1) &&
+                         constraints[0].foreignKeyIsPrimary());
             }
 
             if (reftype == COLLECTION) {
@@ -448,13 +469,13 @@ public final class Relation {
             return null;
         }
 
-        // if the collection node is prototyped, return the app's DbMapping 
+        // if the collection node is prototyped, return the app's DbMapping
         // for that prototype
         if (prototype != null) {
             return otherType;
         }
 
-        // create a synthetic DbMapping that describes how to fetch the 
+        // create a synthetic DbMapping that describes how to fetch the
         // collection's child objects.
         if (virtualMapping == null) {
             virtualMapping = new DbMapping(ownType.app);
@@ -523,7 +544,7 @@ public final class Relation {
         vr.prototype = groupbyPrototype;
         vr.filter = filter;
         vr.constraints = constraints;
-        vr.addConstraint(new Constraint(null, null, groupby, true));
+        vr.addConstraint(new Constraint(null, groupby, true));
         vr.aggressiveLoading = aggressiveLoading;
         vr.aggressiveCaching = aggressiveCaching;
 
@@ -544,7 +565,7 @@ public final class Relation {
         vr.prototype = groupbyPrototype;
         vr.filter = filter;
         vr.constraints = constraints;
-        vr.addConstraint(new Constraint(null, null, groupby, true));
+        vr.addConstraint(new Constraint(null, groupby, true));
 
         return vr;
     }
@@ -558,7 +579,7 @@ public final class Relation {
         StringBuffer q = new StringBuffer();
         String prefix = pre;
 
-        if (kstr != null) {
+        if (kstr != null && !isComplexReference()) {
             q.append(prefix);
 
             String accessColumn = (accessName == null) ? otherType.getIDField() : accessName;
@@ -669,16 +690,14 @@ public final class Relation {
             if (propname != null) {
                 INode home = constraints[i].isGroupby ? parent
                                                       : parent.getNonVirtualParent();
-                String localName = constraints[i].localName;
                 String value = null;
 
-                if ((localName == null) ||
-                        localName.equalsIgnoreCase(ownType.getIDField())) {
+                if (constraints[i].localKeyIsPrimary()) {
                     value = home.getID();
                 } else if (ownType.isRelational()) {
-                    value = home.getString(ownType.columnNameToProperty(localName));
+                    value = home.getString(constraints[i].localProperty());
                 } else {
-                    value = home.getString(localName);
+                    value = home.getString(constraints[i].localName);
                 }
 
                 if ((value != null) && !value.equals(child.getString(propname))) {
@@ -704,14 +723,19 @@ public final class Relation {
                 continue;
             }
 
-            Relation crel = otherType.columnNameToRelation(constraints[i].foreignName);
+            // check if we update the local or the other object, depending on
+            // whether the primary key of either side is used.
 
+            if (constraints[i].foreignKeyIsPrimary()) {
+                parent.setString(constraints[i].localProperty(), child.getID());
+                continue;
+            }
+
+            Relation crel = otherType.columnNameToRelation(constraints[i].foreignName);
             if (crel != null) {
                 // INode home = constraints[i].isGroupby ? parent : nonVirtual;
-                String localName = constraints[i].localName;
 
-                if ((localName == null) ||
-                        localName.equalsIgnoreCase(ownType.getIDField())) {
+                if (constraints[i].localKeyIsPrimary()) {
                     // only set node if property in child object is defined as reference.
                     if (crel.reftype == REFERENCE) {
                         INode currentValue = child.getNode(crel.propName);
@@ -733,10 +757,9 @@ public final class Relation {
                     Property prop = null;
 
                     if (ownType.isRelational()) {
-                        prop = home.getProperty(ownType.columnNameToProperty(localName));
-                        // value = home.getString(ownType.columnNameToProperty(localName));
+                        prop = home.getProperty(constraints[i].localProperty());
                     } else {
-                        prop = home.getProperty(localName);
+                        prop = home.getProperty(constraints[i].localName);
                     }
 
                     if (prop != null) {
@@ -745,6 +768,21 @@ public final class Relation {
                 }
             }
         }
+    }
+
+    /**
+     *  Returns a map containing the key/value pairs for a specific Node
+     */
+    public Map getKeyParts(INode home) {
+        Map map = new HashMap();
+        for (int i=0; i<constraints.length; i++) {
+            if (ownType.getIDField().equals(constraints[i].localName)) {
+                map.put(constraints[i].foreignName, home.getID());
+            } else {
+                map.put(constraints[i].foreignName, home.getString(constraints[i].localProperty()));
+            }
+        }
+        return map;
     }
 
     // a utility method to escape single quotes
@@ -780,13 +818,20 @@ public final class Relation {
      */
     public String toString() {
         String c = "";
+        String spacer = "";
 
         if (constraints != null) {
-            for (int i = 0; i < constraints.length; i++)
+            c = " constraints: ";
+            for (int i = 0; i < constraints.length; i++) {
+                c += spacer;
                 c += constraints[i].toString();
+                spacer = ", ";
+            }
         }
 
-        return "Relation[" + ownType + "." + propName + ">" + otherType + "]" + c;
+        String target = otherType == null ? columnName : otherType.toString();
+
+        return "Relation " + ownType+"."+propName + " -> " + target + c;
     }
 
     /**
@@ -795,13 +840,11 @@ public final class Relation {
      */
     class Constraint {
         String localName;
-        String tableName;
         String foreignName;
         boolean isGroupby;
 
-        Constraint(String local, String table, String foreign, boolean groupby) {
+        Constraint(String local, String foreign, boolean groupby) {
             localName = local;
-            tableName = table;
             foreignName = foreign;
             isGroupby = groupby;
         }
@@ -837,6 +880,11 @@ public final class Relation {
                    foreignName.equalsIgnoreCase(otherType.getIDField());
         }
 
+        public boolean localKeyIsPrimary() {
+            return (localName == null) ||
+                   localName.equalsIgnoreCase(ownType.getIDField());
+        }
+
         public String foreignProperty() {
             return otherType.columnNameToProperty(foreignName);
         }
@@ -846,7 +894,7 @@ public final class Relation {
         }
 
         public String toString() {
-            return ownType + "." + localName + "=" + tableName + "." + foreignName;
+            return localName + "=" + otherType.getTypeName() + "." + foreignName;
         }
     }
 }

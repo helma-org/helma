@@ -270,7 +270,10 @@ public final class NodeManager {
         Key key = null;
 
         // check what kind of object we're looking for and make an apropriate key
-        if (rel.virtual || (rel.groupby != null) || !rel.usesPrimaryKey()) {
+        if (rel.isComplexReference()) {
+            // a key for a complex reference
+            key = new MultiKey(rel.otherType, rel.getKeyParts(home));
+        } else if (rel.virtual || (rel.groupby != null) || !rel.usesPrimaryKey()) {
             // a key for a virtually defined object that's never actually  stored in the db
             // or a key for an object that represents subobjects grouped by some property, generated on the fly
             key = new SyntheticKey(home.getKey(), kstr);
@@ -393,6 +396,14 @@ public final class NodeManager {
      */
     public void registerNode(Node node) {
         cache.put(node.getKey(), node);
+    }
+
+
+    /**
+     * Register a node in the node cache using the key argument.
+     */
+    protected void registerNode(Node node, Key key) {
+        cache.put(key, node);
     }
 
     /**
@@ -1523,7 +1534,7 @@ public final class NodeManager {
                 DbColumn[] columns = dbm.getColumns();
                 StringBuffer q = dbm.getSelect();
 
-                if (home.getSubnodeRelation() != null) {
+                if (home.getSubnodeRelation() != null && !rel.isComplexReference()) {
                     // combine our key with the constraints in the manually set subnode relation
                     q.append("WHERE ");
                     q.append(rel.accessName);

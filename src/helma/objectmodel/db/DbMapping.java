@@ -17,6 +17,7 @@
 package helma.objectmodel.db;
 
 import helma.framework.core.Application;
+import helma.framework.core.Prototype;
 import helma.util.SystemProperties;
 import helma.util.Updatable;
 import java.sql.*;
@@ -159,6 +160,7 @@ public final class DbMapping implements Updatable {
         return props.lastModified() != lastTypeChange;
     }
 
+
     /**
      * Read the mapping from the Properties. Return true if the properties were changed.
      * The read is split in two, this method and the rewire method. The reason is that in order
@@ -172,9 +174,6 @@ public final class DbMapping implements Updatable {
         // see if there is a field which specifies the prototype of objects, if different prototypes
         // can be stored in this table
         prototypeField = props.getProperty("_prototypefield");
-
-        // see if this prototype extends (inherits from) any other prototype
-        extendsProto = props.getProperty("_extends");
 
         dbSourceName = props.getProperty("_db");
 
@@ -220,17 +219,40 @@ public final class DbMapping implements Updatable {
 
         lastTypeChange = props.lastModified();
 
+        // see if this prototype extends (inherits from) any other prototype
+        extendsProto = props.getProperty("_extends");
+
+        if (extendsProto != null) {
+            parentMapping = app.getDbMapping(extendsProto);
+            if (parentMapping != null && parentMapping.needsUpdate()) {
+                parentMapping.update();
+            }
+        } else {
+            parentMapping = null;
+        }
+
+        // set the parent prototype in the corresponding Prototype object!
+        // this was previously done by TypeManager, but we need to do it
+        // ourself because DbMapping.update() may be called by other code than
+        // the TypeManager.
+        if (typename != null &&
+                !"global".equalsIgnoreCase(typename) &&
+                !"hopobject".equalsIgnoreCase(typename)) {
+            Prototype proto = app.getPrototypeByName(typename);
+            if (proto != null) {
+                if (extendsProto != null) {
+                    proto.setParentPrototype(app.getPrototypeByName(extendsProto));
+                } else if (!app.isJavaPrototype(typename)) {
+                    proto.setParentPrototype(app.getPrototypeByName("hopobject"));
+                }
+            }
+        }
+
         // null the cached columns and select string
         columns = null;
         columnMap.clear();
         selectString = insertString = updateString = null;
 
-        if (extendsProto != null) {
-            parentMapping = app.getDbMapping(extendsProto);
-        }
-
-        // if (tableName != null && dbSource != null) {
-        // app.logEvent ("set data dbSource for "+typename+" to "+dbSource);
         HashMap p2d = new HashMap();
         HashMap d2p = new HashMap();
 
@@ -259,7 +281,15 @@ public final class DbMapping implements Updatable {
                     if ((rel.columnName != null) &&
                             ((rel.reftype == Relation.PRIMITIVE) ||
                             (rel.reftype == Relation.REFERENCE))) {
-                        d2p.put(rel.columnName.toUpperCase(), rel);
+                        Relation old = (Relation) d2p.put(rel.columnName.toUpperCase(), rel);
+                        // check if we're overwriting another relation
+                        // if so, primitive relations get precendence to references
+                        if (old != null) {
+                            app.logEvent("*** Duplicate mapping for "+typename+"."+rel.columnName);
+                            if (old.reftype == Relation.PRIMITIVE) {
+                                d2p.put(old.columnName.toUpperCase(), old);
+                            }
+                        }
                     }
 
                     // app.logEvent ("Mapping "+propName+" -> "+dbField);
