@@ -294,50 +294,61 @@ public final class HtmlEncoder {
     }
 
     /**
-     *
+     *  Do "smart" encodging on a string. This means that valid HTML entities and tags,
+     *  Helma macros and HTML comments are passed through unescaped, while
+     *  other occurrences of '<', '>' and '&' are encoded to HTML entities.
      */
     public final static void encode (String str, StringBuffer ret) {
 	if  (str == null)
 	    return;
 
-	char[] chars = str.toCharArray ();
-	int l = chars.length;
+	int l = str.length();
 
-	// are we currently within a < and a >?
-	boolean insideTag=false;
+	// are we currently within a < and a > that consitute some kind of tag?
+	// we use tag balancing to know whether we are inside a tag (and should
+	// pass things through unchanged) or outside (and should encode stuff).
+	boolean insideTag = false;
+	// are we inside an HTML tag?
+	boolean insideHtmlTag = false;
 	// if we are inside a <code> tag, we encode everything to make
 	// documentation work easier
 	boolean insideCodeTag = false;
-	// are we within a macro tag?
+	// are we within a Helma <% macro %> tag? We treat macro tags and
+	// comments specially, since we can't rely on tag balancing
+	// to know when we leave a macro tag or comment.
 	boolean insideMacroTag = false;
 	// are we inside an HTML comment?
 	boolean insideComment = false;
+	// the quotation mark we are in within an HTML or Macro tag, if any
+	char htmlQuoteChar = '\u0000';
+	char macroQuoteChar = '\u0000';
 	// the difference between swallowOneNewline and ignoreNewline is that
 	// swallowOneNewline is just effective once (for the next newline)
 	boolean ignoreNewline = false;
 	boolean swallowOneNewline = false;
 
 	for (int i=0; i<l; i++) {
-	    char c = chars[i];
+	    char c = str.charAt(i);
 
 	    switch (c) {
 	        case '&':
-	            // check if this is an HTML entity already, in which case we pass it though unchanged
+	            // check if this is an HTML entity already,
+	            // in which case we pass it though unchanged
 	            if (i < l-3 && !insideCodeTag) {
 	                // is this a numeric entity?
-	                if (chars[i+1] == '#' ) {
+	                if (str.charAt(i+1) == '#' ) {
 	                   int j = i+2;
-	                   while (j<l && Character.isDigit (chars[j]))
+	                   while (j<l && Character.isDigit (str.charAt(j)))
 	                       j++;
-	                   if (j<l && chars[j] == ';') {
+	                   if (j<l && str.charAt(j) == ';') {
 	                       ret.append ("&");
 	                       break;
 	                   }
 	                } else {
 	                   int j = i+1;
-	                   while (j<l && Character.isLetterOrDigit (chars[j]))
+	                   while (j<l && Character.isLetterOrDigit (str.charAt(j)))
 	                       j++;
-	                   if (j<l && chars[j] == ';') {
+	                   if (j<l && str.charAt(j) == ';') {
 	                       ret.append ("&");
 	                       break;
 	                   }
@@ -347,75 +358,101 @@ public final class HtmlEncoder {
 	            ret.append ("&amp;");
 	            break;
 	        case '<':
-	            if (insideTag) {
-	                ret.append ('<');
-	                break;
-	            } else if (i < l-2) {
-	                boolean insideCloseTag = ('/' == chars[i+1]);
-	                int tagStart = insideCloseTag ? i+2 : i+1;
-	                int j = tagStart;
-	                while (j<l && Character.isLetterOrDigit (chars[j]))
-	                    j++;
-	                // if we haven't gotten past the <,
-	                // check if it's an HTML comment or Helma macro tag
-	                if (j == tagStart && !insideCodeTag) {
-	                    if ('%' == chars[j]) {
-	                        insideMacroTag = insideTag = true;
-	                        ret.append ('<');
-	                        continue;
-	                    } else if (j < l-2 && '!' == chars[j] && '-' == chars[j+1] && '-' == chars[j+2]) {
-	                        insideComment = insideTag = true;
-	                        ret.append ('<');
-	                        continue;
-	                    }
-	                }
-	                if (j > tagStart && j < l) {
-	                    String tagName = new String (chars, tagStart, j-tagStart).toLowerCase ();
-	                    if ("code".equals (tagName) && insideCloseTag && insideCodeTag)
-	                        insideCodeTag = false;
-	                    if (allTags.contains (tagName) && !insideCodeTag) {
-	                        insideTag = true;
-	                        ret.append ('<');
-	                        // set ignoreNewline on some tags, depending on wheather they're
-	                        // being opened or closed.
-	                        // what's going on here? we switch newline encoding on inside some tags, for
-	                        // others we switch it on when they're closed
-	                        if (encodeLinebreakTags.contains (tagName)) {
-	                            ignoreNewline = insideCloseTag;
-	                            swallowOneNewline = true;
-	                        } else if (suppressLinebreakTags.contains (tagName)) {
-	                            ignoreNewline = !insideCloseTag;
-	                            swallowOneNewline = true;
-	                        } else if ("p".equals (tagName) || "blockquote".equals (tagName) || "bq".equals (tagName)) {
-	                            swallowOneNewline = true;
+	            if (i < l-2) {
+	                if (!insideMacroTag && '%' == str.charAt(i+1)) {
+	                    // this is the beginning of a Helma macro tag
+	                    insideMacroTag = insideTag = true;
+	                    macroQuoteChar = '\u0000';
+	                } else if ('!' == str.charAt(i+1) && '-' == str.charAt(i+2)) {
+	                    // the beginning of an HTML comment?
+	                    insideComment = insideTag = (i<l-3 && '-' == str.charAt(i+3));
+	                } else if (!insideTag) {
+	                    // check if this is a HTML tag.
+	                    boolean insideCloseTag = ('/' == str.charAt(i+1));
+	                    int tagStart = insideCloseTag ? i+2 : i+1;
+	                    int j = tagStart;
+	                    while (j<l && Character.isLetterOrDigit (str.charAt(j)))
+	                        j++;
+	                    // if we haven't gotten past the <,
+	                    // check if it's an HTML comment or Helma macro tag
+	                    // if (j == tagStart && !insideCodeTag) {
+	                    // }
+	                    if (j > tagStart && j < l) {
+	                        String tagName = str.substring (tagStart, j).toLowerCase();
+	                        if ("code".equals (tagName) && insideCloseTag && insideCodeTag)
+	                            insideCodeTag = false;
+	                        if (allTags.contains (tagName) && !insideCodeTag) {
+	                            insideHtmlTag = insideTag = true;
+	                            htmlQuoteChar = '\u0000';
+	                            // set ignoreNewline on some tags, depending on wheather they're
+	                            // being opened or closed.
+	                            // what's going on here? we switch newline encoding on inside some tags, for
+	                            // others we switch it on when they're closed
+	                            if (encodeLinebreakTags.contains (tagName)) {
+	                                ignoreNewline = insideCloseTag;
+	                                swallowOneNewline = true;
+	                            } else if (suppressLinebreakTags.contains (tagName)) {
+	                                ignoreNewline = !insideCloseTag;
+	                                swallowOneNewline = true;
+	                            } else if ("p".equals (tagName) || "blockquote".equals (tagName) || "bq".equals (tagName)) {
+	                                swallowOneNewline = true;
+	                            }
+	                            if ("code".equals (tagName) && !insideCloseTag)
+	                                insideCodeTag = true;
 	                        }
-	                        if ("code".equals (tagName) && !insideCloseTag)
-	                            insideCodeTag = true;
-	                        break;
 	                    }
 	                }
 	            } // if (i < l-2)
-	            ret.append ("&lt;");
+	            if (insideTag)
+	                ret.append ('<');
+	            else
+	                ret.append ("&lt;");
+	            break;
+	        case '"':
+	        case '\'':
+	            ret.append (c);
+	            if (!insideComment) {
+	                if (insideMacroTag) {
+	                    if (macroQuoteChar == c)
+	                        macroQuoteChar = '\u0000';
+	                    else if (macroQuoteChar == '\u0000')
+	                        macroQuoteChar = c;
+	                } else if (insideHtmlTag) {
+	                    if (htmlQuoteChar == c)
+	                        htmlQuoteChar = '\u0000';
+	                    else if (htmlQuoteChar == '\u0000')
+	                        htmlQuoteChar = c;
+	                }
+	            }
 	            break;
 	        case  '\n':
 	            ret.append ('\n');
-	            if (!insideTag && !ignoreNewline && !swallowOneNewline)
-	                ret.append ("<br />");
-	            if (!insideTag)
+	            if (!insideTag) {
+	                if (!ignoreNewline && !swallowOneNewline)
+	                    ret.append ("<br />");
 	                swallowOneNewline = false;
+	            }
 	            break;
 	        case '>':
-	            if (insideTag) {
+	            // For Helma macro tags and comments, we overrule tag balancing,
+	            // i.e. we don't require that '<' and '>' be balanced within
+	            // macros and comments. Rather, we check for the matching closing tag.
+	            if (insideComment) {
 	                ret.append ('>');
-	                if (insideMacroTag)
-	                    insideMacroTag = insideTag = !(chars[i-1] == '%');
-	                else if (insideComment)
-	                    insideComment = insideTag = !(chars[i-2] == '-' && chars[i-1] == '-');
-	                else
-	                    insideTag = false;
+	                insideComment = !(str.charAt(i-2) == '-' && str.charAt(i-1) == '-');
+	            } else if (insideMacroTag) {
+	                ret.append ('>');
+	                insideMacroTag = !(str.charAt(i-1) == '%' && macroQuoteChar == '\u0000');
+	            } else if (insideHtmlTag) {
+	                ret.append ('>');
+	                // only leave HTML tag if quotation marks are balanced
+	                // within that tag.
+	                insideHtmlTag = htmlQuoteChar != '\u0000';
 	            } else {
 	                ret.append ("&gt;");
 	            }
+	            // check if we still are inside any kind of tag
+	            insideTag = insideComment || insideMacroTag || insideHtmlTag;
 	            break;
 	        default:
 	            // ret.append (c);
@@ -428,7 +465,7 @@ public final class HtmlEncoder {
 	                ret.append ((int) c);
 	                ret.append (";");
 	            }
-	            if (!insideTag && !Character.isWhitespace (c))
+	            if (swallowOneNewline && !insideTag && !Character.isWhitespace (c))
 	                swallowOneNewline = false;
 	    }
 	}
