@@ -5,6 +5,8 @@ package helma.framework.core;
 
 import helma.doc.DocApplication;
 import helma.doc.DocException;
+import helma.extensions.HelmaExtension;
+import helma.extensions.ConfigurationException;
 import helma.framework.*;
 import helma.main.Server;
 import helma.scripting.*;
@@ -225,6 +227,16 @@ public final class Application extends UnicastRemoteObject implements IRemoteApp
 	// scriptingEngine = new helma.scripting.fesi.FesiScriptingEnvironment ();
 	// scriptingEngine.init (this, props);
 
+	Vector extensions = Server.getServer ().getExtensions ();
+	for (int i=0; i<extensions.size(); i++) {
+	    HelmaExtension ext = (HelmaExtension)extensions.get(i);
+	    try {
+	        ext.applicationStarted (this);
+	    } catch (ConfigurationException e) {
+	        logEvent ("couldn't init extension " + ext.getName () + ": " + e.toString ());
+	    }
+	}
+
 	typemgr = new TypeManager (this);
 	typemgr.createPrototypes ();
 	// logEvent ("Started type manager for "+name);
@@ -315,6 +327,13 @@ public final class Application extends UnicastRemoteObject implements IRemoteApp
 
 	// null out type manager
 	typemgr = null;
+
+	// tell the extensions that we're stopped.
+	Vector extensions = Server.getServer ().getExtensions ();
+	for (int i=0; i<extensions.size(); i++) {
+	    HelmaExtension ext = (HelmaExtension)extensions.get(i);
+	    ext.applicationStopped (this);
+	}
 
 	// stop logs if they exist
 	if (eventLog != null) {
