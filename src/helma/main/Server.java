@@ -363,12 +363,12 @@ import com.sleepycat.db.*;
 	}
 
 	public void startApplication(String name)	{
-		appManager.start(name,false);
-		appManager.register(name,false);
+		appManager.start (name);
+		appManager.register (name);
 	}
 	
 	public void stopApplication(String name)	{
-		appManager.stop(name);
+		appManager.stop (name);
 	}
 
 	/**
