@@ -67,15 +67,25 @@ public final class Logger {
      * Create a file logger. The actual file names do have numbers appended and are
      * rotated every x bytes.
      */
-    private Logger (String dirname, String filename) throws IOException {
+    private Logger (String dirname, String filename) {
 	this.filename = filename;
 	logdir = new File (dirname);
 	logfile = new File (logdir, filename+".log");
-	canonicalName = logfile.getCanonicalPath ();
+
+	try {
+	    canonicalName = logfile.getCanonicalPath ();
+	} catch (IOException iox) {
+	    canonicalName = logfile.getAbsolutePath ();
+	}
 
 	if (!logdir.exists())
 	    logdir.mkdirs ();
-	rotateLogFile ();
+
+	try {
+	    rotateLogFile ();
+	} catch (IOException iox) {
+	    System.err.println ("Error creating log "+canonicalName+": "+iox);
+	}
 
 	// create a synchronized list for log entries since different threads may
 	// attempt to modify the list at the same time
@@ -89,13 +99,16 @@ public final class Logger {
     /**
      * Get a logger with a symbolic file name within a directory.
      */
-    public static synchronized Logger getLogger (String dirname, String filename) throws IOException {
+    public static synchronized Logger getLogger (String dirname, String filename) {
 	if (filename == null || dirname == null)
-	    throw new IOException ("Logger can't use null as file or directory name");
+	    throw new RuntimeException ("Logger can't use null as file or directory name");
 	File file = new File (dirname, filename+".log");
 	Logger log = null;
-	if (loggerMap != null)
+	if (loggerMap != null) try {
 	    log = (Logger) loggerMap.get (file.getCanonicalPath());
+	} catch (IOException iox) {
+	    log = (Logger) loggerMap.get (file.getAbsolutePath());
+	}
 	if (log == null || log.isClosed ())
 	    log = new Logger (dirname, filename);
 	return log;
@@ -144,8 +157,9 @@ public final class Logger {
 	    return;
 	try {
 	    if (logfile != null &&
-		(logfile.length() > 10000000 || !logfile.exists())) {
-	        // rotate log files each 10 megs
+			(logfile.length() > 10000000 || writer == null ||
+			!logfile.exists() || !logfile.canWrite())) {
+	        // rotate log files each 10 megs of if we can't write to it
 	        rotateLogFile ();
 	    }
 
@@ -168,13 +182,14 @@ public final class Logger {
 	    }
 
 	} catch (Exception x) {
-	    System.err.println ("Error writing log file "+this+": "+x);
-	    if (entries.size() > 1000) {
+	    int e = entries.size();
+	    if (e > 1000) {
 	        // more than 1000 entries queued plus exception - something
-	        // is definitely wrong with this logger. Close and write error msg to std out.
-	        System.err.println (entries.size()+" log entries queued in "+this+". Closing Logger.");
+	        // is definitely wrong with this logger. Write a message to std err and
+	        // discard queued log entries.
+	        System.err.println ("Error writing log file "+this+": "+x);
+	        System.err.println ("Discarding "+e+" log entries.");
 	        entries.clear ();
-	        close ();
 	    }
 	}
     }
@@ -199,7 +214,7 @@ public final class Logger {
 	    if (logfile.renameTo (archive))
 	        (new GZipper(archive)).start();
 	    else
-	        System.err.println ("Error renaming old log file to "+archive);
+	        System.err.println ("Error rotating log file "+canonicalName+". Old file will possibly be overwritten!");
 	}
 	writer = new PrintWriter (new FileWriter (logfile), false);
     }
