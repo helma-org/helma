@@ -16,13 +16,12 @@
 
 package helma.doc;
 
-import helma.framework.IPathElement;
 import java.awt.Point;
-import java.lang.reflect.Constructor;
 import java.io.*;
 import java.util.Vector;
 import org.mozilla.javascript.TokenStream;
 import org.mozilla.javascript.Token;
+import org.mozilla.javascript.Context;
 
 /**
  * 
@@ -158,7 +157,8 @@ public class DocFunction extends DocFileElement {
         }
         String name = f.getName();
         int line = 0;
-        return new TokenStream (reader, null, null, name, line);
+        return new TokenStream (Context.getCurrentContext(), reader, null, false, name,
+                                line, null);
     }
 
 
