@@ -31,6 +31,11 @@
         <filter token="year" value="${year}"/>
         <filter token="version" value="${version}"/>
         <filter token="date" value="${TODAY}"/>
+
+        <!-- JDK1.1 collections support -->
+        <property name="coll.import" value="com.sun.java.util.collections"/>
+        <available classname="${coll.import}.Collection" property="coll.present"/>
+
     </target>
 
     <!-- =================================================================== -->
@@ -56,6 +61,38 @@
         </copy>
 
     </target>
+
+    <!-- =================================================================== -->
+    <!-- Does replacement on files for dealing with collections.             -->
+    <!-- XXX The efficiency could be improved here; all replacements should  -->
+    <!-- XXX happen during one read/write phase and only for files that have -->
+    <!-- XXX changed.                                                        -->
+    <!-- =================================================================== -->
+    <target name="collections" if="coll.present" depends="prepare">
+      <replace dir="${build.src}" includes="**"
+             token="java.util.Collection" value="${coll.import}.Collection"/>
+      <replace dir="${build.src}" includes="**"
+             token="java.util.Map" value="${coll.import}.Map"/>
+      <replace dir="${build.src}" includes="**"
+             token="java.util.HashMap" value="${coll.import}.HashMap"/>
+      <replace dir="${build.src}" includes="**"
+             token="java.util.List" value="${coll.import}.List"/>
+      <replace dir="${build.src}" includes="**"
+             token="java.util.LinkedList" value="${coll.import}.LinkedList"/>
+      <replace dir="${build.src}" includes="**"
+             token="java.util.Set" value="${coll.import}.Set"/>
+      <replace dir="${build.src}" includes="**"
+             token="java.util.HashSet" value="${coll.import}.HashSet"/>
+      <replace dir="${build.src}" includes="**"
+             token="java.util.Iterator" value="${coll.import}.Iterator"/>
+      <!-- The following replace handles the "import java.util.*" case by    -->
+      <!-- adding an "import com.sun.java.util.collections.*" after it.      -->
+      <!-- BTW, \u000a is the Unicode escape for a new line. (jhunter)       -->
+      <replace dir="${build.src}" includes="**"
+             token="java.util.*"
+             value="java.util.*;\u000aimport ${coll.import}.*"/>
+    </target>
+
 
     <!-- =================================================================== -->
     <!-- Compiles the source directory                                       -->
