@@ -65,7 +65,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
                                    "authenticate", "createSkin", "format", "encode",
                                    "encodeXml", "encodeForm", "stripTags", "formatParagraphs",
                                    "getXmlDocument", "getHtmlDocument", "seal",
-                                   "getDBConnection", "getURL", "write", "writeln"
+                                   "getDBConnection", "getURL", "write", "writeln", "getById"
                                };
 
         defineFunctionProperties(globalFuncs, GlobalObject.class, 0);
@@ -94,6 +94,27 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
             changedProperties.add(name);
         }
         super.put(name, start, value);
+    }
+
+    /**
+     * Retrieve any persistent HopObject by type name and id.
+     *
+     * @param type the prototype name
+     * @param id the id
+     * @return the HopObject or null if it doesn't exist
+     */
+    public Object getById(String type, String id) {
+        DbMapping dbmap = app.getDbMapping(type);
+        if (dbmap == null)
+            return null;
+        Object node = null;
+        try {
+            DbKey key = new DbKey(dbmap, id);
+            node = app.getNodeManager().getNode(key);
+        } catch (Exception x) {
+            return null;
+        }
+        return node == null ? null : Context.toObject(node, this);
     }
 
     /**
