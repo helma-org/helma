@@ -847,7 +847,7 @@ public final class Node implements INode, Serializable {
                 String groupbyProp = (groupbyRel != null) ? groupbyRel.propName
                                                               : srel.groupby;
                 String groupbyValue = node.getString(groupbyProp);
-                INode groupbyNode = getNode(groupbyValue);
+                INode groupbyNode = (INode) getChildElement(groupbyValue);
 
                 // if group-by node doesn't exist, we'll create it
                 if (groupbyNode == null) {
@@ -1167,8 +1167,15 @@ public final class Node implements INode, Serializable {
                         subnodes.add(node.getHandle());
                     }
 
+                    // Set the dbmapping on the group node
                     node.setPrototype(groupbyMapping.getTypeName());
-                    nmgr.evictKey(node.getKey());
+                    // If we created the group node, we register it with the 
+                    // nodemanager. Otherwise, we just evict whatever was there before
+                    if (create) {
+                        nmgr.registerNode(node);
+                    } else {
+                        nmgr.evictKey(node.getKey());
+                    }
 
                     return node;
                 }
@@ -1869,7 +1876,7 @@ public final class Node implements INode, Serializable {
 
             if ((propRel != null) && (propRel.accessName != null) &&
                     propRel.accessName.equals(dbcolumn)) {
-                INode n = parent.getNode(value);
+                INode n = (INode) parent.getChildElement(value);
 
                 if ((n != null) && (n != this)) {
                     parent.unset(value);
