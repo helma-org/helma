@@ -89,7 +89,7 @@ public final class Application implements IPathElement, Runnable {
     Hashtable dbSources;
 
     // map of app modules reflected at app.modules
-    Hashtable modules;
+    Map modules;
 
     // internal worker thread for scheduler, session cleanup etc.
     Thread worker;
@@ -249,7 +249,7 @@ public final class Application implements IPathElement, Runnable {
 
         sessions = new Hashtable();
         dbSources = new Hashtable();
-        modules = new Hashtable();
+        modules = new SystemMap();
 
         cachenode = new TransientNode("app");
     }
