@@ -54,11 +54,17 @@ public class NodeConstructor extends BuiltinFunctionObject {
                    // with the name of the type.
                    // HACK: There is an incompatibility problem here, because the property
                    // constructor is defined as the constructor of the object by EcmaScript.
-                   if (op.getProperty ("constructor", "constructor".hashCode()) instanceof ConstructedFunctionObject)
+                   if (op.getProperty ("constructor", 
+                            "constructor".hashCode())
+                            instanceof ConstructedFunctionObject)
                        node.doIndirectCall (engine.getEvaluator(), node, "constructor", arguments);
-                   else
+                   else if (op.getProperty (typename,
+                            typename.hashCode())
+                            instanceof ConstructedFunctionObject)
                        node.doIndirectCall (engine.getEvaluator(), node, typename, arguments);
-               } catch (Exception ignore) {}
+               } catch (Exception x) {
+                   throw new EcmaScriptException (x.toString());
+               }
            }
            return node;
         }
