@@ -82,6 +82,7 @@ public class FileObject extends ScriptableObject {
         FunctionObject ctor = new FunctionObject("File", ctorMember, scope);
         ctor.addAsConstructor(scope, proto);
         String[] fileFuncs = {
+                                "toString",
                                 "getName",
                                 "getParent",
                                 "isAbsolute",
@@ -325,9 +326,9 @@ public class FileObject extends ScriptableObject {
     public double lastModified() {
        if (file == null) {
            setError(new IllegalArgumentException("Uninitialized File object"));
-           return (short) 0L;
+           return (double) 0L;
        }
-       return (short) file.lastModified();
+       return (double) file.lastModified();
     }
   
     public String error() {
