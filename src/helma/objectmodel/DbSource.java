@@ -21,13 +21,13 @@ public class DbSource {
 
     public DbSource (String name) throws ClassNotFoundException {
 	this.name = name;
+	IServer.dbSources.put (name.toLowerCase (), this);
 	url = IServer.dbProps.getProperty (name+".url");
 	driver = IServer.dbProps.getProperty (name+".driver");
 	Class.forName (driver);
 	user = IServer.dbProps.getProperty (name+".user");
 	password = IServer.dbProps.getProperty (name+".password");
 	IServer.getLogger().log ("created db source ["+name+", "+url+", "+driver+", "+user+"]");
-	IServer.dbSources.put (name.toLowerCase (), this);
     }
 
     public Connection getConnection () throws ClassNotFoundException, SQLException {
