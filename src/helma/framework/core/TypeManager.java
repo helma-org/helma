@@ -65,20 +65,6 @@ public final class TypeManager {
                 registerPrototype (pname, new File (appDir, pname), proto);
             }
         }
-        Prototype hobjectProto = getPrototype ("hopobject");
-        // loop through freshly created prototypes and rewire them,
-        // i.e. establish connections between them (inherit, collection etc.)
-        for (Iterator i = prototypes.values().iterator(); i.hasNext(); ) {
-            Prototype proto = (Prototype) i.next();
-            DbMapping dbm = proto.getDbMapping ();
-            dbm.update ();
-            // set parent prototype
-            String parentName = dbm.getExtends ();
-            if (parentName == null)
-                proto.setParentPrototype (hobjectProto);
-            else
-                proto.setParentPrototype (getPrototype (parentName));
-        }
     }
 
 
@@ -138,9 +124,10 @@ public final class TypeManager {
 	        dbmap.update ();
 	        // set parent prototype, in case it has changed.
 	        String parentName = dbmap.getExtends ();
-	        if (parentName == null)
-	            parentName = "hopobject";
-	        proto.setParentPrototype (getPrototype (parentName));
+	        if (parentName != null)
+	            proto.setParentPrototype (getPrototype (parentName));
+	        else
+	            proto.setParentPrototype (null);
 	    }
 	}
 
