@@ -273,7 +273,9 @@ public class DbMapping implements Updatable {
     }
 
 
-
+    /**
+     * Get a JDBC connection for this DbMapping.
+     */
     public Connection getConnection () throws ClassNotFoundException, SQLException {
 	// if source was previously not available, check again
 	if (source == null && sourceName != null)
@@ -289,36 +291,58 @@ public class DbMapping implements Updatable {
 	return source.getConnection ();
     }
 
+    /**
+     * Get the DbSource object for this DbMapping. The DbSource describes a JDBC
+     * data source including URL, JDBC driver, username and password.
+     */
     public DbSource getDbSource () {
 	if (source == null && parentMapping != null)
 	    return parentMapping.getDbSource ();
 	return source;
     }
 
+    /**
+     * Get the URL of the data source used for this mapping.
+     */
     public String getSourceID () {
 	if (source == null && parentMapping != null)
 	    return parentMapping.getSourceID ();
 	return source == null ? "" : source.url;
     }
 
+    /**
+     * Get the table name used for this type mapping.
+     */
     public String getTableName () {
 	if (source == null && parentMapping != null)
 	    return parentMapping.getTableName ();
 	return table;
     }
 
+    /**
+     * Get the application this DbMapping belongs to.
+     */
     public Application getApplication () {
 	return app;
     }
 
+    /**
+     * Get the name of this mapping's application
+     */
     public String getAppName () {
 	return app.getName();
     }
 
+    /**
+     * Get the name of the object type this DbMapping belongs to.
+     */
     public String getTypeName () {
 	return typename;
     }
 
+    /**
+     * Get the name of this type's parent type, if any.
+     */
     public String getExtends () {
 	return extendsProto;
     }
@@ -402,12 +426,21 @@ public class DbMapping implements Updatable {
     }
 
 
+    /**
+     * This returns the parent info array, which tells an object of this type how to
+     * determine its parent object.
+     */
     public synchronized ParentInfo[] getParentInfo () {
     	if (parent == null && parentMapping != null)
     	    return parentMapping.getParentInfo ();
 	return parent;
     }
 
+    /**
+     *  Return a list of properties of this object which represent skin managers. Skin managers
+     *  are objects structures which allow applications to override the application level skins (templates)
+     *  with user-controlled skins stored in a database.
+     */
     public String[] getSkinManagers () {
 	return skinmgr;
     }
