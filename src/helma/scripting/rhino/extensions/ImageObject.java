@@ -29,7 +29,7 @@ import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 
 /**
- * Extension to do Image manipulation from HOP.
+ * Extension to provide Helma with Image processing features.
  */
 public class ImageObject {
     static ImageGenerator imggen;
