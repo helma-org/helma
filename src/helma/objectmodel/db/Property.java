@@ -145,13 +145,14 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	dirty = true;
 	// if this is not a string property, try to parse a value out of it
 	if (type == DATE) {
+	    SimpleDateFormat dateformat = new SimpleDateFormat ();
 	    try {
-	        SimpleDateFormat dateformat = new SimpleDateFormat ();
 	        dateformat.setLenient (true);
 	        Date date = dateformat.parse (value);
 	        this.lvalue =  date.getTime ();
 	        return;
 	    } catch (ParseException nodate) {
+	        IServer.getLogger().log ("Couldn't parse date: was expecting something like "+dateformat.format (new Date()));
 	        // store as plain string
 	    }
 	}
