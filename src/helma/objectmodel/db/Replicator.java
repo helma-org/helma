@@ -69,15 +69,22 @@ public class Replicator implements Runnable {
                         String url = (String) urls.elementAt(i);
                         IReplicationListener listener = (IReplicationListener) Naming.lookup(url);
 
+                        if (listener == null) {
+                            throw new NullPointerException("Replication listener not bound for URL "+url);
+                        }
+
                         listener.replicateCache(currentAdd, currentDelete);
 
                         if (nmgr.logReplication) {
                             nmgr.app.logEvent("Sent cache replication event: " +
-                                              add.size() + " added, " + delete.size() +
+                                              currentAdd.size() + " added, " + currentDelete.size() +
                                               " deleted");
                         }
                     } catch (Exception x) {
                         nmgr.app.logEvent("Error sending cache replication event: " + x);
+                        if (nmgr.app.debug()) {
+                            x.printStackTrace();
+                        }
                     }
                 }
             }

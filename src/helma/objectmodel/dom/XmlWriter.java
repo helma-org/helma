@@ -420,7 +420,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
         }
 
         write("\" name=\"");
-        write(node.getName());
+        write(HtmlEncoder.encodeXml(node.getName()));
         write("\" prototype=\"");
         write(getNodePrototype(node));
         write("\" created=\"");

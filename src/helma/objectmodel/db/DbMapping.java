@@ -38,7 +38,7 @@ public final class DbMapping implements Updatable {
     Application app;
 
     // prototype name of this mapping
-    String typename;
+    private String typename;
 
     // properties from where the mapping is read
     SystemProperties props;
@@ -137,13 +137,9 @@ public final class DbMapping implements Updatable {
      */
     public DbMapping(Application app, String typename, SystemProperties props) {
         this.app = app;
-        this.typename = typename;
-
-        // create a unique instance of the string. This is useful so 
+        // create a unique instance of the string. This is useful so
         // we can compare types just by using == instead of equals.
-        if (typename != null) {
-            typename = typename.intern();
-        }
+        this.typename = typename == null ? null : typename.intern();
 
         prop2db = new HashMap();
         db2prop = new HashMap();

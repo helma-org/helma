@@ -149,7 +149,7 @@ public final class Relation {
 
                 if (otherType == null) {
                     throw new RuntimeException("DbMapping for " + proto +
-                                               " not found from " + ownType.typename);
+                                               " not found from " + ownType.getTypeName());
                 }
 
                 // make sure the type we're referring to is up to date!
@@ -370,12 +370,17 @@ public final class Relation {
 
     /**
      *  Returns true if the object represented by this Relation has to be
-     *  created dynamically by the Helma objectmodel runtime as a virtual
-     *  node. Virtual nodes are objects which are only generated on demand
-     *  and never stored to a persistent storage.
+     *  created on demand at runtime by the NodeManager. This is true for:
+     *
+     *  - collection (aka virtual) nodes
+     *  - nodes accessed via accessname
+     *  - group nodes
+     *  - complex reference nodes
      */
     public boolean createOnDemand() {
-        return virtual || (accessName != null) || (groupby != null) || isComplexReference();
+        return virtual ||
+            (otherType.isRelational() && accessName != null) ||
+            (groupby != null) || isComplexReference();
     }
 
     /**

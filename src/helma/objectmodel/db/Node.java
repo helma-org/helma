@@ -429,8 +429,9 @@ public final class Node implements INode, Serializable {
     public String getElementName() {
         // if subnodes are also mounted as properties, try to get the "nice" prop value
         // instead of the id by turning the anonymous flag off.
-        if ((parentHandle != null) &&
-                (lastNameCheck < Math.max(dbmap.getLastTypeChange(), lastmodified))) {
+        long lastmod = Math.max(dbmap.getLastTypeChange(), lastmodified);
+        if ((parentHandle != null) && (lastNameCheck < lastmod) &&
+            (dbmap != null) && (dbmap.isRelational())) {
             try {
                 Node p = parentHandle.getNode(nmgr);
                 DbMapping parentmap = p.getDbMapping();
@@ -1648,34 +1649,36 @@ public final class Node implements INode, Serializable {
         // the property does not exist in our propmap - see if we should create it on the fly,
         // either because it is mapped to an object from relational database or defined as
         // collection aka virtual node
-        if ((prop == null) && (dbmap != null)) {
+        if (dbmap != null) {
+            // the explicitly defined property mapping
             Relation propRel = dbmap.getPropertyRelation(propname);
 
-            // if no property relation is defined for this specific property name,
-            // use the generic property relation, if one is defined.
-            if (propRel == null) {
-                propRel = dbmap.getPropertyRelation();
-            }
-
-            // so if we have a property relation and it does in fact link to another object...
-            if ((propRel != null) && (propRel.isCollection() || propRel.isComplexReference())) {
-                // in some cases we just want to create and set a generic node without consulting
-                // the NodeManager if it exists: When we get a collection (aka virtual node)
-                // from a transient node for the first time, or when we get a collection whose
-                // content objects are stored in the embedded XML data storage.
-                if ((state == TRANSIENT) && propRel.virtual) {
-                    Node pn = new Node(propname, propRel.getPrototype(), nmgr);
-
-                    pn.setDbMapping(propRel.getVirtualMapping());
-                    pn.setParent(this);
-                    setNode(propname, pn);
-                    prop = (Property) propMap.get(propname);
+            // property was not found in propmap
+            if (prop == null) {
+                // if no property relation is defined for this specific property name,
+                // use the generic property relation, if one is defined.
+                if (propRel == null) {
+                    propRel = dbmap.getPropertyRelation();
                 }
-                // if this is from relational database only fetch if this node
-                // is itself persistent.
-                else if ((state != TRANSIENT) && propRel.createOnDemand()) {
-                    // this may be a relational node stored by property name
-                    // try {
+
+                // so if we have a property relation and it does in fact link to another object...
+                if ((propRel != null) && (propRel.isCollection() || propRel.isComplexReference())) {
+                    // in some cases we just want to create and set a generic node without consulting
+                    // the NodeManager if it exists: When we get a collection (aka virtual node)
+                    // from a transient node for the first time, or when we get a collection whose
+                    // content objects are stored in the embedded XML data storage.
+                    if ((state == TRANSIENT) && propRel.virtual) {
+                        Node pn = new Node(propname, propRel.getPrototype(), nmgr);
+
+                        pn.setDbMapping(propRel.getVirtualMapping());
+                        pn.setParent(this);
+                        setNode(propname, pn);
+                        prop = (Property) propMap.get(propname);
+                    }
+                    // if this is from relational database only fetch if this node
+                    // is itself persistent.
+                    else if ((state != TRANSIENT) && propRel.createOnDemand()) {
+                        // this may be a relational node stored by property name
                         Node pn = nmgr.getNode(this, propname, propRel);
 
                         if (pn != null) {
@@ -1688,9 +1691,14 @@ public final class Node implements INode, Serializable {
 
                             prop = new Property(propname, this, pn);
                         }
-                    // } catch (RuntimeException nonode) {
-                        // wasn't a node after all
-                    // }
+                    }
+                }
+            } else if (propRel != null && propRel.isVirtual()) {
+                // prop was found and explicit property relation is collection -
+                // this is a collection node containing objects stored in the embedded db
+                INode pn = prop.getNodeValue();
+                if (pn != null) {
+                    pn.setDbMapping(propRel.getVirtualMapping());
                 }
             }
         }
