@@ -143,8 +143,8 @@ public class EcmaScriptException extends Exception {
      * Prints this <code>Throwable</code> and its backtrace to the 
      * standard error stream. 
      */
-    public void printStackTrace() { 
-        System.err.println(this);
+    public void printStackTrace() {
+        // System.err.println(this);
         printStackTrace0(new PrintWriter(System.err));
     }
 
