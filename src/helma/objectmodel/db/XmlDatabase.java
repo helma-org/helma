@@ -12,7 +12,7 @@ import helma.objectmodel.dom.*;
  * A simple XML-database
  */
 
-public class XmlDatabase implements IDatabase {
+public final class XmlDatabase implements IDatabase {
 
 	private String dbHome;
 	private File dbBaseDir;
@@ -61,8 +61,8 @@ public class XmlDatabase implements IDatabase {
 		if ( ! f.exists() )
 			throw new ObjectNotFoundException ("Object not found for key "+kstr+".");
 		try {
-			XmlReader reader = new XmlReader (nmgr);
-			Node node = (Node)reader.read (f, null);
+			XmlDatabaseReader reader = new XmlDatabaseReader (nmgr);
+			Node node = reader.read (f);
 			return node;
 		} catch ( RuntimeException x )   {
 			nmgr.app.logEvent("error reading node from XmlDatbase: " + x.toString() );

@@ -3,6 +3,7 @@ package helma.objectmodel.dom;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 
@@ -10,37 +11,38 @@ import java.text.SimpleDateFormat;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.List;
+import java.util.Stack;
 
-import org.w3c.dom.*;
-import org.xml.sax.InputSource;
+import javax.xml.parsers.*;
+
+import org.xml.sax.*;
+import org.xml.sax.helpers.DefaultHandler;
 
 import helma.objectmodel.INode;
-import helma.objectmodel.db.DbKey;
-import helma.objectmodel.db.ExternalizableVector;
-import helma.objectmodel.db.Node;
-import helma.objectmodel.db.NodeHandle;
-import helma.objectmodel.db.NodeManager;
-import helma.objectmodel.db.Property;
-import helma.objectmodel.db.DbMapping;
 
-public class XmlReader implements XmlConstants	{
+public final class XmlReader extends DefaultHandler implements XmlConstants {
 
+    private INode rootNode, currentNode;
+    private Stack nodeStack;
     private HashMap convertedNodes;
-    private NodeManager nmgr = null;
+
+    private String elementType = null;
+    private String elementName = null;
+    private StringBuffer charBuffer = null;
+
+    static SAXParserFactory factory = SAXParserFactory.newInstance ();
+
+    boolean parsingHopObject;
 
     public XmlReader () {
     }
 
-    public XmlReader (NodeManager nmgr) {
-	this.nmgr = nmgr;
-    }
 
     /**
      * main entry to read an xml-file.
      */
-    public INode read (File file, INode helmaNode) throws RuntimeException {
+    public INode read (File file, INode helmaNode)
+	throws ParserConfigurationException, SAXException, IOException {
 	try {
 	    return read (new FileInputStream(file), helmaNode);
 	} catch (FileNotFoundException notfound) {
@@ -52,218 +54,159 @@ public class XmlReader implements XmlConstants	{
     /**
      * read an InputStream with xml-content.
      */
-    public INode read (InputStream in, INode helmaNode) throws RuntimeException {
+    public INode read (InputStream in, INode helmaNode)
+	throws ParserConfigurationException, SAXException, IOException {
 	return read (new InputSource (in), helmaNode);
     }
 
     /**
      * read an character reader with xml-content.
      */
-    public INode read (Reader in, INode helmaNode) throws RuntimeException {
+    public INode read (Reader in, INode helmaNode)
+	throws ParserConfigurationException, SAXException, IOException {
 	return read (new InputSource (in), helmaNode);
     }
 
     /**
      * read an InputSource with xml-content.
      */
-    public INode read (InputSource in, INode helmaNode) throws RuntimeException {
-	if (helmaNode==null && nmgr==null)
-	    throw new RuntimeException ("can't create a new Node without a NodeManager");
-	Document document = XmlUtil.parse (in);
-	Element element = XmlUtil.getFirstElement(document);
-	if (element==null)
-	    throw new RuntimeException ("corrupted xml-file");
+    public INode read (InputSource in, INode helmaNode)
+	throws ParserConfigurationException, SAXException, IOException {
+	if (helmaNode==null)
+	    throw new RuntimeException ("Can't create a new Node without a root Node");
 
-	if (helmaNode==null) {
-	    return convert (element);
+	SAXParser parser = factory.newSAXParser ();
+
+	rootNode = helmaNode;
+	currentNode = null;
+	convertedNodes = new HashMap ();
+	nodeStack = new Stack ();
+	parsingHopObject = true;
+
+	parser.parse (in, this);
+	return rootNode;
+    }
+
+
+    public void startElement(String namespaceURI, String localName, String qName, Attributes atts)
+                        throws SAXException {
+	// System.err.println ("XML-READ: startElement "+namespaceURI+", "+localName+", "+qName+", "+atts.getValue("id"));
+	// discard the first element called xmlroot
+	if ("xmlroot".equals (qName) && currentNode == null)
+	    return;
+	// if currentNode is null, this must be the hopobject node
+	String id = atts.getValue ("id");
+	if (id != null) {
+	    // check if there is a current node.
+	    if (currentNode == null) {
+	        // If currentNode is null, this is the root node we're parsing.
+	        currentNode = rootNode;
+	    } else if ("hop:child".equals (qName)) {
+	        // it's an anonymous child node
+	        nodeStack.push (currentNode);
+	        currentNode = currentNode.createNode (null);
+	    } else {
+	        // it's a named node property
+	        nodeStack.push (currentNode);
+	        currentNode = currentNode.createNode (qName);
+	    }
+	    // set the prototype on the current node and
+	    // add it to the map of parsed nodes.
+	    String name = atts.getValue ("name");
+	    String prototype = atts.getValue ("prototype");
+	    if ( !"".equals(prototype) && !"hopobject".equals(prototype) )
+	        currentNode.setPrototype (prototype);
+	    String key = id + "-" + prototype;
+	    convertedNodes.put( key, currentNode );
+	    return;
+	}
+	
+	// check if we have a currentNode to set properties on,
+	// otherwise throw exception.
+	if (currentNode == null)
+	    throw new SAXException ("Invalid XML: No valid root HopObject found");
+	// check if we are inside a HopObject - otherwise throw an exception
+	if (!parsingHopObject)
+	    throw new SAXException ("Invalid XML: Found nested non-HobObject elements");
+
+	// if we got so far, the element is not a hopobject. Set flag to prevent
+	// the hopobject stack to be popped when the element
+	// is closed.
+	parsingHopObject = false;
+
+	// Is it a reference to an already parsed node?
+	String idref = atts.getValue ("idref");
+	if (idref != null) {
+	    // a reference to a node that should have been parsed
+	    // and lying in our cache of parsed nodes.
+	    String prototyperef = atts.getValue ("prototyperef");
+	    String key = idref + "-" + prototyperef;
+	    INode n = (INode) convertedNodes.get (key);
+	    if (n != null) {
+	        if ("hop:child".equals (qName)) {
+	           // add an already parsed node as child to current node
+	           currentNode.addNode (n);
+	        } else {
+	           // set an already parsed node as node property to current node
+	           currentNode.setNode (qName, n);
+	        }
+	    }
 	} else {
-	    convertedNodes = new HashMap ();
-	    INode convertedNode = convert (element, helmaNode);
-	    convertedNodes = null;
-	    return convertedNode;
+	    // It's a primitive property. Remember the property name and type
+	    // so we can properly parse/interpret the character data when we
+	    // get it later on.
+	    elementType = atts.getValue ("type");
+	    if (elementType == null)
+	        elementType = "string";
+	    elementName = qName;
+	    if (charBuffer == null)
+	        charBuffer = new StringBuffer();
+	    else
+	        charBuffer.setLength (0);
 	}
     }
 
-    /**
-     * convert children of an Element to a given helmaNode
-     */
-    public INode convert (Element element, INode helmaNode) {
-	String idref = element.getAttribute("idref");
-	String key = idref + "-" + element.getAttribute("prototyperef");
-	if( idref!=null && !idref.equals("") ) {
-	    if( convertedNodes.containsKey(key) ) {
-	        return (INode)convertedNodes.get(key);
-	    }
-	}
-	key = element.getAttribute("id") + "-" + element.getAttribute("prototype");
-	convertedNodes.put( key, helmaNode );
-	String prototype = element.getAttribute("prototype");
-	if( !prototype.equals("") && !prototype.equals("hopobject") ) {
-	    helmaNode.setPrototype( prototype );
-	}
-	children(helmaNode, element);
-	return helmaNode;
+    public void characters (char[] ch, int start, int length) throws SAXException {
+	// System.err.println ("CHARACTERS: "+new String (ch, start, length));
+	// append chars to char buffer
+	if (elementType != null)
+	    charBuffer.append (ch, start, length);
     }
 
-
-    // used by convert(Element,INode)
-    private INode children( INode helmaNode, Element element ) {
-	NodeList list = element.getChildNodes();
-	int len = list.getLength();
-	Element childElement;
-	for ( int i=0; i<len; i++ ) {
-	    try {
-	        childElement = (Element)list.item(i);
-	    } catch( ClassCastException e ) {
-	        // ignore CDATA, comments etc
-	        continue;
-	    }
-	    INode workNode = null;
-
-	    if ( childElement.getTagName().equals("hop:child") ) {
-	        convert (childElement, helmaNode.createNode(null));
-	    } else if ( !"".equals(childElement.getAttribute("id")) ||
-	                !"".equals(childElement.getAttribute("idref")) ) {
-	        String childTagName = childElement.getTagName();
-	        INode newNode = convert (childElement, helmaNode.createNode (childTagName));
-	        helmaNode.setNode (childTagName, newNode);
-	    } else {
-	        String type = childElement.getAttribute("type");
-	        String key  = childElement.getTagName();
-	        String content = XmlUtil.getTextContent(childElement);
-	        if ( type.equals("boolean") ) {
-	            if ( content.equals("true") ) {
-	                helmaNode.setBoolean(key,true);
-	            } else {
-	                helmaNode.setBoolean(key,false);
-	            }
-	        } else if ( type.equals("date") ) {
-	            SimpleDateFormat format = new SimpleDateFormat ( DATEFORMAT );
-	            try {
-	                Date date = format.parse(content);
-	                helmaNode.setDate(key, date);
-	            } catch ( ParseException e ) {
-	                helmaNode.setString(key,content);
-	            }
-	        } else if ( type.equals("float") ) {
-	            helmaNode.setFloat(key, (new Double(content)).doubleValue() );
-	        } else if ( type.equals("integer") ) {
-	            helmaNode.setInteger(key, (new Long(content)).longValue() );
+    public void endElement(String namespaceURI, String localName, String qName)
+                        throws SAXException {
+	if (elementType != null) {
+	    String charValue = charBuffer.toString ();
+	    charBuffer.setLength (0);
+	    if ( "boolean".equals (elementType) ) {
+	        if ( "true".equals(charValue) ) {
+	            currentNode.setBoolean(elementName, true);
 	        } else {
-	            helmaNode.setString(key,content);
+	            currentNode.setBoolean(elementName, false);
 	        }
-	    }
-	}
-	return helmaNode;
-    }
-
-
-    /**
-     * This is a basic de-serialization method for XML-2-Node conversion.
-     * It reads a Node from a database-like file and should return a Node
-     * that matches exactly the one dumped to that file before.
-     * It only supports persistent-capable Nodes (from objectmodel.db-package).
-     */
-    public helma.objectmodel.db.Node convert (Element element) {
-	// FIXME: this method should use Element.getAttributeNS():
-	// FIXME: do we need the name value or is it retrieved through mappings anyway?
-	String name = element.getAttribute("name");
-	// String name = null;
-	String id = element.getAttribute("id");
-	String prototype = element.getAttribute("prototype");
-	if ( "".equals(prototype) )
-	    prototype = "hopobject";
-	helma.objectmodel.db.Node helmaNode = null;
-	try {
-	    long created = Long.parseLong (element.getAttribute ("created"));
-	    long lastmodified = Long.parseLong (element.getAttribute ("lastModified"));
-	    helmaNode = new helma.objectmodel.db.Node (name,id,prototype,nmgr.safe,created,lastmodified);
-	} catch ( NumberFormatException e ) {
-	    helmaNode = new helma.objectmodel.db.Node (name,id,prototype,nmgr.safe);
-	}
-
-	// now loop through all child elements and retrieve properties/subnodes for this node.
-	NodeList list = element.getChildNodes();
-	int len = list.getLength();
-	Hashtable propMap  = new Hashtable();
-	List subnodes = new ExternalizableVector();
-
-	for ( int i=0; i<len; i++ ) {
-	    Element childElement;
-	    try {
-	        childElement = (Element)list.item(i);
-	    } catch( ClassCastException e ) {
-	        // ignore CDATA, comments etc
-	        continue;
-	    }
-
-	    if ( childElement.getTagName().equals("hop:child") ) {
-	        // add a new NodeHandle, presume all IDs in this objectcache are unique,
-	        // a prerequisite for a simple internal database.
-	        subnodes.add (makeNodeHandle (childElement) );
-	        continue;
-	    }
-
-	    if ( childElement.getTagName().equals("hop:parent") ) {
-	        // add a NodeHandle to parent object
-	        helmaNode.setParentHandle (makeNodeHandle (childElement) );
-	        continue;
-	    }
-
-	    // if we come until here, childelement is a property value
-	    // FIXME: Stefan, why are we checking for id, and not just for 
-	    // idref here? (hns)
-	    Property prop = new Property (childElement.getTagName(), helmaNode);
-	    if ( !"".equals(childElement.getAttribute("id")) ||
-	         !"".equals(childElement.getAttribute("idref")) ) {
-	        // we've got an object!
-	        prop.setNodeHandle (makeNodeHandle(childElement));
+	    } else if ( "date".equals(elementType) ) {
+	        SimpleDateFormat format = new SimpleDateFormat ( DATEFORMAT );
+	        try {
+	            Date date = format.parse(charValue);
+	            currentNode.setDate (elementName, date);
+	        } catch ( ParseException e ) {
+	            currentNode.setString (elementName, charValue);
+	        }
+	    } else if ( "float".equals(elementType) ) {
+	        currentNode.setFloat (elementName, (new Double(charValue)).doubleValue());
+	    } else if ( "integer".equals(elementType) ) {
+	        currentNode.setInteger (elementName, (new Long(charValue)).longValue());
 	    } else {
-	        String type = childElement.getAttribute("type");
-	        String content = XmlUtil.getTextContent(childElement);
-	        if ( type.equals("boolean") ) {
-	            if ( content.equals("true") ) {
-	                prop.setBooleanValue(true);
-	            } else {
-	                prop.setBooleanValue(false);
-	            }
-	        } else if ( type.equals("date") ) {
-	            SimpleDateFormat format = new SimpleDateFormat ( DATEFORMAT );
-	            try {
-	                Date date = format.parse(content);
-	                prop.setDateValue (date);
-	            } catch ( ParseException e ) {
-	                prop.setStringValue (content);
-	            }
-	        } else if ( type.equals("float") ) {
-	            prop.setFloatValue ((new Double(content)).doubleValue());
-	        } else if ( type.equals("integer") ) {
-	            prop.setIntegerValue ((new Long(content)).longValue());
-	        } else {
-	            prop.setStringValue (content);
-	        }
+	        currentNode.setString (elementName, charValue);
 	    }
-	    propMap.put (childElement.getTagName().toLowerCase(), prop);
+	    elementName = null;
+	    elementType = null;
+	    charValue = null;
 	}
-	if ( propMap.size()>0 )
-	    helmaNode.setPropMap (propMap);
+	if (parsingHopObject && !nodeStack.isEmpty ())
+	    currentNode = (INode) nodeStack.pop ();
 	else
-	    helmaNode.setPropMap (null);
-	if ( subnodes.size()>0 )
-	    helmaNode.setSubnodes (subnodes);
-	else
-	    helmaNode.setSubnodes (null);
-	return helmaNode;
-    }
-
-    // create a node handle from a node reference DOM element
-    private NodeHandle makeNodeHandle (Element element) {
-	String idref = element.getAttribute("idref");
-	String protoref = element.getAttribute("prototyperef");
-	DbMapping dbmap = null;
-	if (protoref != null)
-	    dbmap = nmgr.getDbMapping(protoref);
-	return new NodeHandle (new DbKey (dbmap, idref));
+	    parsingHopObject = true;  // the next element end tag closes a hopobject again
     }
 
 }
