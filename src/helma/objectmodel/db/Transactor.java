@@ -21,9 +21,9 @@ public class Transactor extends Thread {
     NodeManager nmgr;
 
     // List of nodes to be updated
-    private Hashtable nodes;
+    private HashMap nodes;
     // List of visited clean nodes
-    private Hashtable cleannodes;
+    private HashMap cleannodes;
     // Is a transaction in progress?
     private volatile boolean active;
     private volatile boolean killed;
@@ -31,7 +31,7 @@ public class Transactor extends Thread {
     // Transaction for the embedded database
     protected DbTxn txn;
     // Transactions for SQL data sources
-    protected Hashtable sqlCon;
+    protected HashMap sqlCon;
 
     public Timer timer;
     // when did the current transaction start?
@@ -43,9 +43,9 @@ public class Transactor extends Thread {
     public Transactor (Runnable runnable, NodeManager nmgr) {
 	super (Server.txgroup, runnable, "Transactor");
 	this.nmgr = nmgr;
-	nodes = new Hashtable ();
-	cleannodes = new Hashtable ();
-	sqlCon = new Hashtable ();
+	nodes = new HashMap ();
+	cleannodes = new HashMap ();
+	sqlCon = new HashMap ();
 	active = false;
 	killed = false;
 	timer = new Timer();
@@ -123,8 +123,8 @@ public class Transactor extends Thread {
 	int ins = 0, upd = 0, dlt = 0;
 	int l = nodes.size ();
 
-	for (Enumeration e=nodes.elements (); e.hasMoreElements (); ) {
-	    Node node = (Node) e.nextElement ();
+	for (Iterator i=nodes.values().iterator(); i.hasNext (); ) {
+	    Node node = (Node) i.next ();
 
 	    // update nodes in db
 	    int nstate = node.getState ();
@@ -171,8 +171,8 @@ public class Transactor extends Thread {
     public synchronized void abort () throws Exception {
 
 	int l = nodes.size ();
-	for (Enumeration e=nodes.elements(); e.hasMoreElements(); ) {
-	    Node node = (Node) e.nextElement ();
+	for (Iterator i=nodes.values().iterator(); i.hasNext(); ) {
+	    Node node = (Node) i.next ();
 	    // Declare node as invalid, so it won't be used by other threads that want to
 	    // write on it and remove it from cache
 	    nmgr.evictNode (node);
@@ -180,9 +180,9 @@ public class Transactor extends Thread {
 	}
 	nodes.clear ();
 	cleannodes.clear ();
-	for (Enumeration e=sqlCon.elements(); e.hasMoreElements(); ) {
+	for (Iterator i=sqlCon.values().iterator(); i.hasNext(); ) {
 	    try {
-	        Connection con = (Connection) e.nextElement ();
+	        Connection con = (Connection) i.next ();
 	        con.close ();
 	    } catch (Exception ignore) {}
 	}
@@ -223,9 +223,9 @@ public class Transactor extends Thread {
 
     public void cleanup () {
 	if (sqlCon != null) {
-	    for (Enumeration e=sqlCon.elements(); e.hasMoreElements(); ) {
+	    for (Iterator i=sqlCon.values().iterator(); i.hasNext(); ) {
 	        try {
-	            Connection con = (Connection) e.nextElement ();
+	            Connection con = (Connection) i.next();
 	            con.close ();
 	        } catch (Exception ignore) {}
 	    }
