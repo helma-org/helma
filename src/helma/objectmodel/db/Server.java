@@ -30,8 +30,6 @@ import com.sleepycat.db.*;
 
     private  Thread mainThread;
 
-    protected static ThreadGroup txgroup;
-
     static String dbFilename = "hop.db";
     static String propfile;
     static String dbPropfile = "db.properties";
@@ -137,7 +135,6 @@ import com.sleepycat.db.*;
 	getLogger().log ("TimeZone = "+TimeZone.getDefault());
 
 	dbSources = new Hashtable ();
-             txgroup = new ThreadGroup ("Transactor");
 
 	new Server ();
 
@@ -251,15 +248,8 @@ import com.sleepycat.db.*;
 	while (Thread.currentThread () == mainThread) {
 	    try {
 	        mainThread.sleep (3000l);
-	    } catch (InterruptedException ie) {
-	        return;
-	    }
+	    } catch (InterruptedException ie) {}
 	    appManager.checkForChanges ();
-	    // print some thread stats now and then
-	    if (count++ > 20) {
-	        printThreadStats ();
-	        count = 0;
-	    }
 	}
 
     }
@@ -273,15 +263,6 @@ import com.sleepycat.db.*;
 	}
 	// if we got so far, another server is already running on this port and db
 	throw new Exception ("Error: Server already running on this port");
-    }
-
-    public void printThreadStats () {
-	getLogger().log ("Thread Stats: "+txgroup.activeCount()+" active");
-    	Runtime rt = Runtime.getRuntime ();
-	long free = rt.freeMemory ();
-	long total = rt.totalMemory ();
-	getLogger().log ("Free memory: "+(free/1024)+" kB");
-	getLogger().log ("Total memory: "+(total/1024)+" kB");
     }
 
 }
