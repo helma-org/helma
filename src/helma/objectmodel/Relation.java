@@ -35,8 +35,10 @@ public class Relation {
     public String groupbyorder;
     public String groupby;
     public String prototype;
+    public String groupbyprototype;
+    public String filter;
 
-    Relation filter = null; // additional relation used to filter subnodes
+    Relation subnoderelation = null; // additional relation used to filter subnodes
 
     /**
      * This constructor is used to directly construct a Relation, as opposed to reading it from a proerty file
@@ -144,6 +146,10 @@ public class Relation {
 	order = props.getProperty (propname+".order");
 	if (order != null && order.trim().length() == 0)
 	    order = null;
+	// get additional filter property
+	filter = props.getProperty (propname+".filter");
+	if (filter != null && filter.trim().length() == 0)
+	    filter = null;
 	// get group by property
 	groupby = props.getProperty (propname+".groupby");
 	if (groupby != null && groupby.trim().length() == 0)
@@ -152,6 +158,9 @@ public class Relation {
 	    groupbyorder = props.getProperty (propname+".groupby.order");
 	    if (groupbyorder != null && groupbyorder.trim().length() == 0)
 	        groupbyorder = null;
+	    groupbyprototype = props.getProperty (propname+".groupby.prototype");
+	    if (groupbyprototype != null && groupbyprototype.trim().length() == 0)
+	        groupbyprototype = null;
 	}
 	// check if subnode condition should be applied for property relations
 	if ("_properties".equalsIgnoreCase (propname) || virtual) {
@@ -160,9 +169,9 @@ public class Relation {
 	    if (virtual) {
 	        String subnodefilter = props.getProperty (propname+".subnoderelation");
 	        if (subnodefilter != null) {
-	            filter = new Relation (subnodefilter, propname+".subnoderelation", home, props);
-	            filter.groupby = groupby;
-	            filter.order = order;
+	            subnoderelation = new Relation (subnodefilter, propname+".subnoderelation", home, props);
+	            subnoderelation.groupby = groupby;
+	            subnoderelation.order = order;
 	        }
 	    }
 	}
@@ -181,8 +190,8 @@ public class Relation {
 	return remoteField.equalsIgnoreCase (other.getIDField());
     }
 
-    public Relation getFilter () {
-	return filter;
+    public Relation getSubnodeRelation () {
+	return subnoderelation;
     }
 
     /**
@@ -239,13 +248,16 @@ public class Relation {
     public Relation getVirtualSubnodeRelation () {
 	if (!virtual)
 	    throw new RuntimeException ("getVirtualSubnodeRelation called on non-virtual relation");
-	if (filter != null)
-	    return filter;
-	Relation vr = new Relation (other, localField, remoteField, direction, subnodesAreProperties);
+	Relation vr = null;
+	if (subnoderelation != null)
+	    vr = subnoderelation;
+	else
+	    vr = new Relation (other, localField, remoteField, direction, subnodesAreProperties);
 	vr.groupby = groupby;
 	vr.groupbyorder = groupbyorder;
+	vr.groupbyprototype = groupbyprototype;
 	vr.order = order;
-	vr.filter = filter;
+	vr.subnoderelation = subnoderelation;
 	return vr;
     }
 
@@ -258,8 +270,9 @@ public class Relation {
 	Relation vr = new Relation (other, localField, remoteField, direction, subnodesAreProperties);
 	vr.groupby = groupby;
 	vr.groupbyorder = groupbyorder;
+	vr.groupbyprototype = groupbyprototype;
 	vr.order = order;
-	vr.filter = filter;
+	vr.subnoderelation = subnoderelation;
 	return vr;
     }
 
@@ -269,10 +282,13 @@ public class Relation {
     public Relation getGroupbySubnodeRelation () {
 	if (groupby == null)
 	    throw new RuntimeException ("getGroupbyPropertyRelation called on non-group-by relation");
-	if (filter != null)
-	    return filter;
-	Relation vr =  new Relation (other, localField, remoteField, direction, subnodesAreProperties);
+	Relation vr = null;
+	if (subnoderelation != null)
+	    vr =  subnoderelation;
+	else
+	    vr =  new Relation (other, localField, remoteField, direction, subnodesAreProperties);
 	vr.order = order;
+	vr.prototype = groupbyprototype;
 	return vr;
     }
 
@@ -284,6 +300,7 @@ public class Relation {
 	    throw new RuntimeException ("getGroupbyPropertyRelation called on non-group-by relation");
 	Relation vr = new Relation (other, localField, remoteField, direction, subnodesAreProperties);
 	vr.order = order;
+	vr.prototype = groupbyprototype;
 	return vr;
     }
 
