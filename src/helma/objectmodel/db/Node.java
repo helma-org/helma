@@ -255,7 +255,7 @@ public final class Node implements INode, Serializable {
 	    if (rel.reftype != Relation.PRIMITIVE && rel.reftype != Relation.REFERENCE)
 	        continue;
 
-                 Value val = rec.getValue (rel.getDbField ());
+	    Value val = rec.getValue (rel.getDbField ());
 
 	    if (val.isNull ())
 	        continue;
