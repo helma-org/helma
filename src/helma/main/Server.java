@@ -24,7 +24,7 @@ import helma.util.*;
  
  public class Server implements IPathElement, Runnable {
 
-    public static final String version = "1.2pre3 2002/06/07";
+    public static final String version = "1.2pre3 2002/06/18";
     public static final long starttime = System.currentTimeMillis();
 
     public static boolean useTransactions = true;
