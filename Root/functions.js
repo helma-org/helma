@@ -1,9 +1,25 @@
 
 /**
-  * of no use, just to avoid error message
+  * renders the api of a given application. used from commandline.
   */
-function onRequest () {
+function renderApi(appName) {
+
+    // supress security checks when accessing actions
+    res.data.noWeb = true;
+
+    // start the application
+    this.startApplication(appName);
+    var appObj = this.getApp(appName);
+    var docApp = appObj.getChildElement("api");
+
+    // now render the api
+    var ct = docApp.renderApi();
+    writeln("rendered " + ct + " files");
+    
+    // cleanup
+    this.stopApplication(appName);
 }
+
 
 /**
   * lists all applications in appdir.
