@@ -22,55 +22,22 @@ import java.util.*;
  * 
  */
 public final class DocTag {
-    // for public use we have less types than
-    // internally. eg, we're combining "return" and "returns"
-    // or "arg" and "param".
-    // the values here have to match the index of
-    // the tags-array!
-    public static final int PARAMETER = 0;
-    public static final int RETURN = 2;
-    public static final int AUTHOR = 4;
-    public static final int VERSION = 5;
-    public static final int SEE = 6;
-    public static final int DEPRECATED = 7;
-    public static final int OVERRIDES = 8;
-    public static final String[][] tags = {
-                                              { "@arg", "Argument" },
-                                              { "@param", "Parameter" },
-                                              { "@return", "Returns" },
-                                              { "@returns", "Returns" },
-                                              { "@author", "Author" },
-                                              { "@version", "Version" },
-                                              { "@see", "See also" },
-                                              { "@deprecated", "Deprecated" },
-                                              { "@overrides", "Overrides" }
-                                          };
-    private String name;
 
-    // "kind" is for internal use, "type" is external
-    private int kind;
+    // the tag name
+    private String type;
+
+    // the name of the parameter
+    private String name;
+    
+    // the actual comment
     private String text;
 
-    private DocTag(int kind, String name, String text) {
-        this.kind = kind;
-        this.name = (name != null) ? name : "";
-        this.text = (text != null) ? text : "";
+    private DocTag(String type, String name, String text) {
+        this.type = type;
+        this.name = (name != null) ? name.trim() : "";
+        this.text = (text != null) ? text.trim() : "";
     }
 
-    /**
-     *
-     *
-     * @param rawTag ...
-     *
-     * @return ...
-     */
-    public static boolean isTagStart(String rawTag) {
-        if (getTagNumber(rawTag) > -1) {
-            return true;
-        } else {
-            return false;
-        }
-    }
 
     /**
      *
@@ -82,45 +49,72 @@ public final class DocTag {
      * @throws DocException ...
      */
     public static DocTag parse(String rawTag) throws DocException {
-        int kind = getTagNumber(rawTag);
-
-        if (kind == -1) {
-            throw new DocException("unsupported tag type: " + rawTag);
+        StringTokenizer tok = new StringTokenizer(rawTag.trim());
+        String name = "";
+        String type = "";
+        StringBuffer comment = new StringBuffer ();
+        try {
+            type = matchTagName(tok.nextToken().substring (1));
+        } catch (NoSuchElementException nsee) {
+            throw new DocException ("invalid tag: " + rawTag);
         }
-
-        String content = rawTag.substring(tags[kind][0].length() + 1).trim();
-
-        if ((kind == 0) || (kind == 1)) {
-            StringTokenizer tok = new StringTokenizer(content);
-            String name = "";
-
-            if (tok.hasMoreTokens()) {
+        try {
+            if (isTagWithName(type)) {
                 name = tok.nextToken();
             }
-
-            String comment = "";
-
-            try {
-                comment = content.substring(name.length() + 1).trim();
-            } catch (StringIndexOutOfBoundsException e) {
+            while (tok.hasMoreTokens()) {
+                comment.append (" " + tok.nextToken());
             }
+        } catch (NoSuchElementException nsee) { // ignore
+        }
+        return new DocTag (type, name, comment.toString());
+    }
 
-            return new DocTag(kind, name, comment);
+
+    /**
+     * @param checks if a line is a tag
+     * @return true/false
+     */
+    public static boolean isTagStart(String rawTag) {
+        if (rawTag.trim().startsWith("@"))
+            return true;
+        else
+            return false;
+    }
+
+
+    /**
+     * match tags where we want different names to be valid
+     * as one and the same tag
+     * @param tagname original name
+     * @return modified name if tag was matched
+     */
+    public static String matchTagName(String tagName) {
+        if ("returns".equals(tagName)) {
+            return "return";
+        } else if ("arg".equals(tagName)) {
+            return "param";
         } else {
-            return new DocTag(kind, "", content);
+            return tagName;
         }
     }
 
-    private static int getTagNumber(String rawTag) {
-        rawTag = rawTag.trim().toLowerCase();
 
-        for (int i = 0; i < tags.length; i++) {
-            if (rawTag.startsWith(tags[i][0])) {
-                return i;
-            }
-        }
+    public static boolean isTagWithName(String tagName) {
+        if ("param".equals (tagName))
+            return true;
+        else
+            return false;
+    }
 
-        return -1;
+
+    /**
+     *
+     *
+     * @return ...
+     */
+    public String getType() {
+        return type;
     }
 
     /**
@@ -130,30 +124,6 @@ public final class DocTag {
      */
     public String getName() {
         return name;
-    }
-
-    /**
-     *
-     *
-     * @return ...
-     */
-    public int getType() {
-        if ((kind == 0) || (kind == 1)) {
-            return PARAMETER;
-        } else if ((kind == 2) || (kind == 3)) {
-            return RETURN;
-        } else {
-            return kind;
-        }
-    }
-
-    /**
-     *
-     *
-     * @return ...
-     */
-    public String getTag() {
-        return tags[kind][0];
     }
 
     /**
@@ -171,6 +141,11 @@ public final class DocTag {
      * @return ...
      */
     public String toString() {
-        return tags[kind][1] + ": " + name + " " + text;
+        StringBuffer buf = new StringBuffer ("[@" + type);
+        if (name!=null && !"".equals(name))
+            buf.append (" " + name);
+        if (text!=null && !"".equals(text))
+            buf.append (" " + text);
+        return buf.toString() + "]";
     }
 }
