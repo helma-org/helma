@@ -125,9 +125,9 @@ public class DocFunction extends DocFileElement {
 
             }
 
-        } catch (IOException io) {
-            io.printStackTrace();
-            throw new DocException (io.toString());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            throw new DocException (ex.toString());
         }
         return (DocFunction[]) vec.toArray(new DocFunction[0]);
     }
