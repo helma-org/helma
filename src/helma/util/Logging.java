@@ -80,6 +80,7 @@ public class Logging extends LogFactory {
 
         if ((runner == null) || !runner.isAlive()) {
             runner = new Runner();
+            runner.setDaemon(true);
             runner.start();
         }
 
@@ -92,6 +93,7 @@ public class Logging extends LogFactory {
     public static Log getConsoleLog() {
         if ((runner == null) || !runner.isAlive()) {
             runner = new Runner();
+            runner.setDaemon(true);
             runner.start();
         }
 
