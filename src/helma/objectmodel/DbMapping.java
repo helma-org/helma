@@ -330,7 +330,7 @@ public class DbMapping {
 	return idgen;
     }
 
-    public String getSQLIDGen () {
+    public String getSQLIDgen () {
         return sqlidgen;
     }
     
