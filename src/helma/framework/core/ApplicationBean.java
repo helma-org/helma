@@ -18,6 +18,7 @@ package helma.framework.core;
 
 import helma.objectmodel.INode;
 import helma.util.CronJob;
+import helma.util.SystemMap;
 import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -386,7 +387,7 @@ public class ApplicationBean implements Serializable {
      * @return ...
      */
     public Map getproperties() {
-        return app.getProperties();
+        return new SystemMap(app.getProperties());
     }
 
     /**
@@ -432,7 +433,7 @@ public class ApplicationBean implements Serializable {
      * @return ...
      */
     public Map getSkinfiles() {
-        Map skinz = new HashMap();
+        Map skinz = new SystemMap();
 
         for (Iterator it = app.getPrototypes().iterator(); it.hasNext();) {
             Prototype p = (Prototype) it.next();
@@ -451,7 +452,7 @@ public class ApplicationBean implements Serializable {
      * @return ...
      */
     public Map getSkinfilesInPath(Object[] skinpath) {
-        Map skinz = new HashMap();
+        Map skinz = new SystemMap();
 
         for (Iterator it = app.getPrototypes().iterator(); it.hasNext();) {
             Prototype p = (Prototype) it.next();

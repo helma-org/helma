@@ -18,6 +18,7 @@ package helma.framework;
 
 import helma.objectmodel.*;
 import helma.util.Base64;
+import helma.util.SystemMap;
 import java.io.*;
 import java.util.*;
 
@@ -59,7 +60,7 @@ public class RequestTrans implements Externalizable {
      */
     public RequestTrans() {
         httpMethod = 0;
-        values = new HashMap();
+        values = new SystemMap();
     }
 
     /**
@@ -67,7 +68,7 @@ public class RequestTrans implements Externalizable {
      */
     public RequestTrans(byte method) {
         httpMethod = method;
-        values = new HashMap();
+        values = new SystemMap();
     }
 
     /**

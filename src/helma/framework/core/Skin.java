@@ -21,6 +21,7 @@ import helma.objectmodel.ConcurrencyException;
 import helma.objectmodel.INode;
 import helma.scripting.*;
 import helma.util.HtmlEncoder;
+import helma.util.SystemMap;
 import java.io.*;
 import java.net.URLEncoder;
 import java.util.*;
@@ -485,8 +486,8 @@ public final class Skin {
                         // if (parameters == null)
                         //     parameters = new HashMap ();
                         Object[] arguments = {
-                                                 (parameters == null) ? new HashMap()
-                                                                      : new HashMap(parameters)
+                                                 (parameters == null) ? new SystemMap()
+                                                                      : new SystemMap(parameters)
                                              };
 
                         Object value = reval.scriptingEngine.invoke(handlerObject,

@@ -123,8 +123,8 @@ public final class ResponseTrans implements Externalizable {
     public ResponseTrans() {
         super();
         message = error = null;
-        values = new HashMap();
-        handlers = new HashMap();
+        values = new SystemMap();
+        handlers = new SystemMap();
     }
 
     /**

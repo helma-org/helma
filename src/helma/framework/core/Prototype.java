@@ -21,6 +21,7 @@ import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
 import helma.scripting.*;
 import helma.util.Updatable;
+import helma.util.SystemMap;
 import java.io.*;
 import java.util.*;
 
@@ -447,7 +448,7 @@ public final class Prototype {
     }
 
     // a map that dynamically expands to all skins in this prototype
-    final class SkinMap extends HashMap {
+    final class SkinMap extends SystemMap {
         long lastSkinmapLoad = 0;
         Object[] skinpath;
 
