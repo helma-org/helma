@@ -23,6 +23,7 @@ import helma.util.HtmlEncoder;
 import helma.util.MimePart;
 import helma.util.XmlUtils;
 import org.mozilla.javascript.*;
+import org.mozilla.javascript.serialize.*;
 
 import java.util.*;
 import java.net.HttpURLConnection;
@@ -65,7 +66,8 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
                                    "authenticate", "createSkin", "format", "encode",
                                    "encodeXml", "encodeForm", "stripTags", "formatParagraphs",
                                    "getXmlDocument", "getHtmlDocument", "seal",
-                                   "getDBConnection", "getURL", "write", "writeln"
+                                   "getDBConnection", "getURL", "write", "writeln",
+                                   "serialize", "deserialize"
                                };
 
         defineFunctionProperties(globalFuncs, GlobalObject.class, 0);
@@ -506,6 +508,50 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
 
         return str;
     }
+
+    public static void serialize(Context cx, Scriptable thisObj,
+                                 Object[] args, Function funObj)
+        throws IOException
+    {
+        if (args.length < 2) {
+            throw Context.reportRuntimeError(
+                "Expected an object to serialize and a filename to write " +
+                "the serialization to");
+        }
+        Object obj = args[0];
+        String filename = cx.toString(args[1]);
+        FileOutputStream fos = new FileOutputStream(filename);
+        Scriptable scope = ScriptableObject.getTopLevelScope(thisObj).getPrototype();
+        // use a ScriptableOutputStream that unwraps Wrappers
+        ScriptableOutputStream out = new ScriptableOutputStream(fos, scope) {
+            protected Object replaceObject(Object obj) throws IOException {
+                if (obj instanceof Wrapper)
+                    obj = ((Wrapper) obj).unwrap();
+                return super.replaceObject(obj);
+            }
+        };
+        out.writeObject(obj);
+        out.close();
+    }
+
+    public static Object deserialize(Context cx, Scriptable thisObj,
+                                     Object[] args, Function funObj)
+        throws IOException, ClassNotFoundException
+    {
+        if (args.length < 1) {
+            throw Context.reportRuntimeError(
+                "Expected a filename to read the serialization from");
+        }
+        String filename = cx.toString(args[0]);
+        FileInputStream fis = new FileInputStream(filename);
+        Scriptable scope = ScriptableObject.getTopLevelScope(thisObj).getPrototype();
+        ObjectInputStream in = new ScriptableInputStream(fis, scope);
+        Object deserialized = in.readObject();
+        in.close();
+        return cx.toObject(deserialized, scope);
+    }
+
+
 
     private static String toString(Object obj) {
         if (obj == null || obj == Undefined.instance) {
