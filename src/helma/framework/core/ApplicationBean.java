@@ -331,6 +331,15 @@ public class ApplicationBean implements Serializable {
      *
      * @return ...
      */
+    public String getname() {
+        return app.getName();
+    }
+
+    /**
+     *
+     *
+     * @return ...
+     */
     public Date getupSince() {
         return new Date(app.starttime);
     }
