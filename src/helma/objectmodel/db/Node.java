@@ -1743,7 +1743,7 @@ public class Node implements INode, Serializable {
     }
 
     public String toString () {
-	return "Node " + name;
+	return "HopObject " + name;
     }
 
 

@@ -26,6 +26,7 @@ public class ESNode extends ObjectPrototype {
 
     // The ID of the wrapped Node. Makes ESNodes comparable without accessing the wrapped node.
     String nodeID;
+    DbMapping dbmap;
     ESObject cacheWrapper;
     Throwable lastError = null;
     RequestEvaluator eval;
@@ -39,6 +40,7 @@ public class ESNode extends ObjectPrototype {
 
         cacheWrapper = null;
         nodeID = node.getID ();
+        dbmap = node.getDbMapping ();
     }
     
     public ESNode (ESObject prototype, Evaluator evaluator, Object obj, RequestEvaluator eval) {
@@ -55,7 +57,8 @@ public class ESNode extends ObjectPrototype {
             node = new Node (obj.toString ());
         // set nodeID to id of wrapped node
         nodeID = node.getID ();
-        
+        dbmap = node.getDbMapping ();
+
         // get transient cache Node
         cache = node.getCacheNode ();
         cacheWrapper = new ESNode (cache, eval);
@@ -79,6 +82,8 @@ public class ESNode extends ObjectPrototype {
     public void setNode (INode node) {
         if (node != null) {
             this.node = node;
+            nodeID = node.getID ();
+            dbmap = node.getDbMapping ();
             eval.objectcache.put (node, this);
             // get transient cache Node
             cache = node.getCacheNode ();
@@ -221,6 +226,7 @@ public class ESNode extends ObjectPrototype {
         // set node and nodeID to new node
         node = newnode;
         nodeID = node.getID ();
+        dbmap = node.getDbMapping ();
 
         int l = oldnode.numberOfNodes ();
         for (int i=0; i<l; i++) {
@@ -363,7 +369,8 @@ public class ESNode extends ObjectPrototype {
      public ESValue getProperty (int i) throws EcmaScriptException {
              checkNode ();
  	INode n = node.getSubnodeAt (i);
- 	if (n == null) return ESNull.theNull;
+ 	if (n == null)
+	    return ESNull.theNull;
  	return eval.getNodeWrapper (n);
      }
 
@@ -500,10 +507,13 @@ public class ESNode extends ObjectPrototype {
      * or the wrapped INode itself. FIXME: doesen't check dbmapping/type!
      */
     public boolean equals (Object what) {
-        if (what == null) return false;
-        if (what == this) return true;
+        if (what == null)
+            return false;
+        if (what == this)
+            return true;
         if (what instanceof ESNode) {
-            return (((ESNode) what).nodeID.equals (this.nodeID));
+            ESNode other = (ESNode) what;
+            return (other.nodeID.equals (nodeID) && other.dbmap == dbmap);
         }
         return false;
     }	

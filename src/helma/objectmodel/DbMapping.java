@@ -40,10 +40,9 @@ public class DbMapping {
     String idField;
     String nameField;
     
-    // id generator via sequence
+    // descriptor for key generation method
     private String idgen;
-    // id generator for dbs that don't support sequences
-    private String sqlidgen;
+    // remember last key generated for this table
     public long lastID;
 
 
@@ -96,15 +95,13 @@ public class DbMapping {
 
 	this.table = props.getProperty ("_tablename");
 	this.idgen = props.getProperty ("_idgen");
-	this.sqlidgen = props.getProperty ("_sqlidgen");
+
 	String sourceName = props.getProperty ("_datasource");
 	if (sourceName != null)
 	    source = (DbSource) IServer.dbSources.get (sourceName.toLowerCase ());
 
-	idField = props.getProperty ("_id");
-	// id field must not be null
-	if (idField == null)
-	    idField = "id";
+	// id field must not be null, default is "id"
+	idField = props.getProperty ("_id", "id");
 
 	nameField = props.getProperty ("_name");
 
@@ -331,10 +328,6 @@ public class DbMapping {
 	return idgen;
     }
 
-    public String getSQLIDgen () {
-        return sqlidgen;
-    }
-    
 
     public WrappedNodeManager getWrappedNodeManager () {
 	if (app == null)

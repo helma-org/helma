@@ -116,14 +116,15 @@ import java.util.Vector;
 
     public String generateID (DbMapping map) {
 	try {
-            if (map == null || (map.getIDgen() == null && map.getSQLIDgen() == null))
+	    // check if we use internal id generator
+	    if (map == null || !map.isRelational () || "[hop]".equalsIgnoreCase (map.getIDgen()))
 	        return nmgr.idgen.newID ();
-	    else {
-	        if ("true".equalsIgnoreCase (map.getSQLIDgen()))
-                    return nmgr.generateSQLID (map);
-                else
-                    return nmgr.generateID (map);
-	    }
+	    // or if we query max key value
+                  else if (map.getIDgen() == null || "[max]".equalsIgnoreCase (map.getIDgen()))
+                      return nmgr.generateMaxID (map);
+	    else
+                     return nmgr.generateID (map);
+	     // otherwise, we use an oracle sequence
 	} catch (Exception x) {
 	    throw new RuntimeException (x.toString ());
 	}

@@ -72,6 +72,9 @@ public class ApplicationManager {
 	try {
 	    Application app = new Application (appName, dbHome, appHome);
 	    applications.put (appName, app);
+	    // if we're running with the embedded web server, set app base uri to /appname
+	    if (server.websrv != null)
+	        app.setBaseURI ("/"+java.net.URLEncoder.encode (appName));
 	    app.start ();
 	} catch (Exception x) {
 	    IServer.getLogger().log ("Error creating application "+appName+": "+x);

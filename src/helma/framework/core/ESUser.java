@@ -64,6 +64,8 @@ public class ESUser extends ESNode {
     public void setNode (INode node) {
 	if (node != null) {
 	    this.node = node;
+	    nodeID = node.getID ();
+	    dbmap = node.getDbMapping ();
 	    eval.objectcache.put (node, this);
 	    // we don't take over the transient cache from the node,
 	    // because we always use the one from the user object.

@@ -478,7 +478,7 @@ public final class NodeManager {
     /**
      * Generates an ID for the table by finding out the maximum current value
      */
-    public synchronized String generateSQLID (DbMapping map) throws Exception {
+    public synchronized String generateMaxID (DbMapping map) throws Exception {
 
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("generateID "+map);

@@ -34,6 +34,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     protected static WebServer xmlrpc;
     protected XmlRpcAccess xmlrpcAccess;
 
+    private String baseURI;
+
     public boolean debug;
 
     TypeManager typemgr;
@@ -376,6 +378,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	    String uid = u.user.uid;
                  if (uid != null)
 	        activeUsers.remove (uid);
+
+	    // switch back to the non-persistent user node as cache
 	    u.user.setNode (null);
 	    u.setNode (u.user.getNode ());
 	}
@@ -390,17 +394,26 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     }
 
     public String getNodeHref (INode n, String tmpname) {
-	boolean linkByQuery = "query".equalsIgnoreCase (props.getProperty ("linkmethod", ""));
 	INode root = getDataRoot ();
 	INode users = getUserRoot ();
-	String connector = linkByQuery ? "?path=" : "/";
-	String req = props.getProperty ("baseURI", "") + connector;
-	String href = n.getHref (root, users, tmpname, req);
+	// check base uri from app.properties
+	String base = props.getProperty ("baseURI");
+	if (base != null)
+	    setBaseURI (base);
+	String href = n.getHref (root, users, tmpname, baseURI);
 	// add cache teaser
 	// href = href + "&tease="+((int) (Math.random ()*999));
 	return href;
     }
     
+    public void setBaseURI (String uri) {
+	if (uri == null)
+	    this.baseURI = "/";
+	else if (!uri.endsWith ("/"))
+	    this.baseURI = uri+"/";
+	else
+	    this.baseURI = uri;
+    }
 
     public void run () {
 	long cleanupSleep = 60000;    // thread sleep interval (fixed)
