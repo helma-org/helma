@@ -681,6 +681,7 @@ public final class NodeManager {
     private Node getNodeByRelation (DbWrapper db, DbTxn txn, Node home, String kstr, Relation rel) throws Exception {
 
 	Node node = null;
+
 	if (rel != null && rel.virtual && home.getState() != INode.VIRTUAL) {
 	    Key k = home.getKey ().getVirtualKey (kstr);
 	    node = (Node) cache.get (k);
@@ -712,7 +713,8 @@ public final class NodeManager {
 	    }
 
 	} else if (rel != null && rel.groupby != null) {
-	    return home.getGroupbySubnode (kstr, rel);
+	    return home.getGroupbySubnode (kstr);
+
 	} else if (rel == null || rel.other == null || !rel.other.isRelational ()) {
 	    node = db.getNode (txn, kstr);
 	    node.nmgr = safe;
