@@ -3,10 +3,6 @@
 
 package helma.framework.core;
 
-import java.io.*;
-import java.lang.reflect.*;
-import java.rmi.*;
-import java.rmi.server.*;
 import helma.framework.*;
 import helma.scripting.*;
 import helma.scripting.fesi.ESUser;
@@ -16,6 +12,11 @@ import helma.xmlrpc.*;
 import helma.util.*;
 import com.sleepycat.db.DbException;
 import java.util.*;
+import java.io.*;
+import java.net.URLEncoder;
+import java.lang.reflect.*;
+import java.rmi.*;
+import java.rmi.server.*;
 
 /**
  * The central class of a Helma application. This class keeps a pool of so-called
@@ -688,12 +689,12 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	
 	    // users always have a canonical URL like /users/username
 	    if ("user".equals (getPrototypeName (p))) {
-	        b.insert (0, UrlEncoder.encode (getElementName (p)));
+	        b.insert (0, URLEncoder.encode (getElementName (p)));
 	        p = users;
 	        break;
 	    }
 	
-	    b.insert (0, UrlEncoder.encode (getElementName (p)));
+	    b.insert (0, URLEncoder.encode (getElementName (p)));
 	    	
 	    p = getParentElement (p);
 
@@ -707,7 +708,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	}
 	
 	if (actionName != null)
-	    b.append (UrlEncoder.encode (actionName));
+	    b.append (URLEncoder.encode (actionName));
 	
 	return baseURI + b.toString ();
     }

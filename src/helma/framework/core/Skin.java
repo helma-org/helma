@@ -3,14 +3,14 @@
  
 package helma.framework.core;
 
-import java.io.*;
-import java.util.*;
 import helma.framework.*;
 import helma.scripting.*;
 import helma.objectmodel.INode;
 import helma.objectmodel.ConcurrencyException;
 import helma.util.HtmlEncoder;
-import helma.util.UrlEncoder;
+import java.net.URLEncoder;
+import java.io.*;
+import java.util.*;
 
 /**
  * This represents a Helma skin, i.e. a template created from JavaScript. It uses the request path array
@@ -391,7 +391,7 @@ public class Skin {
 	    if ("form".equalsIgnoreCase (encoding))
 	        return HtmlEncoder.encodeFormValue (text);
 	    if ("url".equalsIgnoreCase (encoding))
-	        return UrlEncoder.encode (text);
+	        return URLEncoder.encode (text);
 	    return text;
 	}
 
