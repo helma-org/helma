@@ -179,14 +179,24 @@ public final class NodeManager {
 	        else
 	            node = null;
 	    } else
-	        node = getNodeByKey (tx.txn, key);
+	        node = getNodeByKey (tx.txn, (DbKey) key);
 	
 	    if (node != null) {
+	        Key primKey = node.getKey ();
+	        boolean keyIsPrimary = primKey.equals (key);
 	        synchronized (cache) {
-	            Node oldnode = (Node) cache.put (node.getKey (), node);
-	            if (oldnode != null && oldnode.getState () != Node.INVALID && !oldnode.isNullNode ()) {
-	                cache.put (node.getKey (), oldnode);
+	            // check if node is already in cache with primary key
+	            Node oldnode = (Node) cache.put (primKey, node);
+	            // no need to check for oldnode != node because we fetched a new node from db
+	            if (oldnode != null && !oldnode.isNullNode() && oldnode.getState () != Node.INVALID) {
+	                cache.put (primKey, oldnode);
+	                if (!keyIsPrimary) {
+	                    cache.put (key, oldnode);
+	                }
 	                node = oldnode;
+	            } else if (!keyIsPrimary) {
+	                // cache node with secondary key
+	                cache.put (key, node);
 	            }
 	        }  // synchronized
 	    }
@@ -216,7 +226,8 @@ public final class NodeManager {
 	    key = new SyntheticKey (home.getKey (), kstr);
 	else
 	    // if a key for a node from within the DB
-	    key = new DbKey (rel.other, rel.getKeyID (home, kstr));
+	    // FIXME: This should never apply, since for every relation-based loading Synthetic Keys are used. Right?
+	    key = new DbKey (rel.other, kstr);
 	
 	// See if Transactor has already come across this node
 	Node node = tx.getVisitedNode (key);
@@ -624,7 +635,8 @@ public final class NodeManager {
 
 	        qds.fetchRecords ();
 	
-	        Key k = home.getKey ();
+	        // problem: how do we derive a SyntheticKey from a not-yet-persistent Node?
+	        Key k = rel.groupby != null ?  home.getKey (): null;
 	        for (int i=0; i<qds.size (); i++) {
 	            Record rec = qds.getRecord (i);
 	            String kstr = rec.getValue (1).asString ();
@@ -832,10 +844,11 @@ public final class NodeManager {
     // private getNode methods
     ///////////////////////////////////////////////////////////////////////////////////////
 
-    private Node getNodeByKey (DbTxn txn, Key key) throws Exception {
+    private Node getNodeByKey (DbTxn txn, DbKey key) throws Exception {
+	// Note: Key must be a DbKey, otherwise will not work for relational objects
 	Node node = null;
-	String kstr = key.getID ();
 	DbMapping dbm = app.getDbMapping (key.getStorageName ());
+	String kstr = key.getID ();
 	
 	if (dbm == null || !dbm.isRelational ()) {
 	    node = db.getNode (txn, kstr);
@@ -843,10 +856,14 @@ public final class NodeManager {
 	    if (node != null && dbm != null)
 	        node.setDbMapping (dbm);
 	} else {
+	    String idfield = key.getIDField ();
+	    if (idfield == null)
+	        idfield =dbm.getIDField ();
+	
 	    TableDataSet tds = null;
 	    try {
 	        tds = new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
-	        tds.where (dbm.getIDField ()+" = '"+kstr+"'");
+	        tds.where (idfield+" = '"+kstr+"'");
 
 	        if (logSql)
 	            app.logEvent ("### getNodeByKey: "+tds.getSelectString());
