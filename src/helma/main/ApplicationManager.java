@@ -150,6 +150,12 @@ public class ApplicationManager implements XmlRpcHandler {
                 String appName = (String) e.nextElement();
 
                 if (appName.indexOf(".") == -1) {
+                    String appValue = props.getProperty(appName);
+
+                    if (appValue != null && appValue.length() > 0) {
+                        appName = appValue;
+                    }
+
                     AppDescriptor desc = new AppDescriptor(appName);
                     desc.start();
                 }
