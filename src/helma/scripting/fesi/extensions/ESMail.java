@@ -91,7 +91,6 @@ public class ESMail extends ESObject implements Serializable {
 	    multipart = new MimeMultipart ();
 	}
 	for (int i=0; i<val.length; i++) {
-	    // FIXME: addPart is broken.
 	    MimeBodyPart part = new MimeBodyPart ();
 	    Object obj = val[i].toJavaObject ();
 	    if (obj instanceof String) {
@@ -107,7 +106,7 @@ public class ESMail extends ESObject implements Serializable {
     public void setSubject (ESValue val) throws Exception {
 	if (val == null)
 	    return;
-	message.setSubject (MimeUtility.encodeWord (val.toString (), "iso-8859-1", null));
+	message.setSubject (MimeUtility.encodeWord (val.toString ()));
     }
 
     public void setReplyTo (ESValue add) throws Exception {
@@ -125,7 +124,7 @@ public class ESMail extends ESObject implements Serializable {
 	    throw new AddressException ();
 	Address address  = null;
 	if (add.length > 1)
-	    address =  new InternetAddress (addstring, MimeUtility.encodeWord (add[1].toString (), "iso-8859-1", null));
+	    address =  new InternetAddress (addstring, MimeUtility.encodeWord (add[1].toString ()));
 	else
 	    address = new InternetAddress (addstring);
 	message.setFrom (address);
@@ -137,7 +136,7 @@ public class ESMail extends ESObject implements Serializable {
 	    throw new AddressException ();
 	Address address  = null;
 	if (add.length > 1)
-	    address =  new InternetAddress (addstring, MimeUtility.encodeWord (add[1].toString (), "iso-8859-1", null));
+	    address =  new InternetAddress (addstring, MimeUtility.encodeWord (add[1].toString ()));
 	else
 	    address = new InternetAddress (addstring);
 	message.addRecipient (Message.RecipientType.TO, address);
@@ -149,7 +148,7 @@ public class ESMail extends ESObject implements Serializable {
 	    throw new AddressException ();
 	Address address  = null;
 	if (add.length > 1)
-	    address =  new InternetAddress (addstring, MimeUtility.encodeWord (add[1].toString (), "iso-8859-1", null));
+	    address =  new InternetAddress (addstring, MimeUtility.encodeWord (add[1].toString ()));
 	else
 	    address = new InternetAddress (addstring);
 	message.addRecipient (Message.RecipientType.CC, address);
@@ -161,7 +160,7 @@ public class ESMail extends ESObject implements Serializable {
 	    throw new AddressException ();
 	Address address  = null;
 	if (add.length > 1)
-	    address =  new InternetAddress (addstring, MimeUtility.encodeWord (add[1].toString (), "iso-8859-1", null));
+	    address =  new InternetAddress (addstring, MimeUtility.encodeWord (add[1].toString ()));
 	else
 	    address = new InternetAddress (addstring);
 	message.addRecipient (Message.RecipientType.BCC, address);
