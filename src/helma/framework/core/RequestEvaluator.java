@@ -77,7 +77,8 @@ public class RequestEvaluator implements Runnable {
     static final int XMLRPC = 2;      // via XML-RPC
     static final int INTERNAL = 3;     // generic function call, e.g. by scheduler
 
-    INode root, userroot, currentNode, skinManager;
+    INode root, userroot, currentNode;
+    INode[] skinmanagers;
 
     /**
      *  Build a RenderContext from a RequestTrans. Checks if the path is the user home node ("user")
@@ -141,7 +142,7 @@ public class RequestEvaluator implements Runnable {
 
 	    // app.logEvent ("got request "+reqtype);
 	    // reset skinManager
-	    skinManager = null;
+	    skinmanagers = null;
 
 	    switch (reqtype) {
 	    case HTTP:
@@ -737,50 +738,39 @@ public class RequestEvaluator implements Runnable {
     }
 
     public Skin getSkin (ESObject thisObject, String skinname) {
-	INode n = null;
 	Prototype proto = null;
-	Skin skin = null;
-	// FIXME: we can't do that, because if no db skinmanager exists we'll query over and over again
-	if (skinManager == null) {
-	    skinManager = currentNode == null ? null : currentNode.getNode ("skinmanager", true);
-	    // System.err.println ("SKINMGR: "+skinManager);
-	    // mark as null
-	    if (skinManager == null)
-	        skinManager = new Node ("dummy");
-	}
-	if (thisObject != null && thisObject instanceof ESNode) {
-	    n = ((ESNode) thisObject).getNode ();
-	    // System.err.println ("GOT SKINMGR "+skinNode+" FROM "+n);
-	    if (skinManager != null && !"dummy".equals (skinManager.getName())) {
-	        skin = getSkinFromNode (skinManager, n.getPrototype (), skinname);
-	        if (skin != null)
-	            return skin;
-	    }
-	    proto = app.getPrototype (n);
-	    // not found in node manager for this prototype.
-	    // the next step is to look if it is defined as skin file for this prototype
-	    if (proto != null) {
-	        skin = proto.getSkin (skinname);
-	        // if we have a thisObject and didn't find the skin, try in parent prototype
-	        if (skin == null && n != null) {
-	            proto = proto.getPrototype ();
-	            if (proto != null)
-	                skin = proto.getSkin (skinname);
-	        }
-	    }
-	} else {
-	    // the requested skin is global - start from currentNode (=end of request path) for app skin retrieval
-	    if (skinManager != null) {
-	        skin = getSkinFromNode (skinManager, "global", skinname);
-	        if (skin != null)
-	            return skin;
-	    }
+	if (thisObject == null)
 	    proto = app.typemgr.getPrototype ("global");
-	    skin = proto.getSkin (skinname);
-	}
-	return skin;
+	else
+	    proto = app.getPrototype (((ESNode) thisObject).getNode ());
+	return getSkin (proto, skinname);
     }
 	
+	
+    public Skin getSkin (Prototype proto, String skinname) {
+	if (proto == null)
+	    return null;
+	if (skinmanagers == null)
+	    getSkinManagers ();
+	do {
+	    for (int i=0; i<skinmanagers.length; i++) {
+	        Skin skin = getSkinFromNode (skinmanagers[i], proto.getName (), skinname);
+	        if (skin != null)
+	            return skin;
+	    }
+	    // not found in node managers for this prototype.
+	    // the next step is to look if it is defined as skin file for this prototype
+	    Skin skin = proto.getSkin (skinname);
+	    if (skin != null)
+	        return skin;
+	    // still not found. See if there is a parent prototype which might define the skin
+	    proto = proto.getPrototype ();
+	} while (proto != null);
+	// looked every where, nothing to be found
+	return null;
+    }
+
+    	
     private Skin getSkinFromNode (INode node, String prototype, String skinname) {
 	if (prototype == null)
 	    return null;
@@ -803,6 +793,31 @@ public class RequestEvaluator implements Runnable {
 	// }
 	return null;
     }
+
+    /**
+     * Get an array of skin managers for a request path so it is retrieved ony once per request
+     */
+     private void getSkinManagers () {
+ 	Vector v = new Vector ();
+	for (int i=reqPath.size()-1; i>=0; i--) try {
+	    ESNode esn = (ESNode) reqPath.getProperty (i);
+	    INode n = esn.getNode ();
+	    DbMapping dbm = n.getDbMapping ();
+	    if (dbm == null)
+	        continue;
+	    String[] skinmgr = dbm.getSkinManagers();
+	    if (skinmgr == null)
+	        continue;
+	    for (int j=0; j<skinmgr.length; j++) {
+	        INode sm = n.getNode (skinmgr[j], false);
+	        if (sm != null)
+	            v.addElement (sm);
+	    }
+	} catch (Exception ignore) { }
+	skinmanagers = new INode[v.size()];
+	v.copyInto (skinmanagers);
+    }	
+
 
     /**
      *  Returns a node wrapper only if it already exists in the cache table. This is used
