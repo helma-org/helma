@@ -670,6 +670,21 @@ public class DbMapping implements Updatable {
 	return !other.isRelational ();
     }
 
+    /**
+     *  Return true if this db mapping represents the prototype indicated
+     *  by the string argument, either itself or via one of its parent prototypes.
+     */
+    public boolean isInstanceOf (String other) {
+	if (typename.equals (other))
+	    return true;
+	DbMapping p = parentMapping;
+	while (p != null) {
+	    if (p.typename.equals (other))
+	        return true;
+	    p = p.parentMapping;
+	}
+	return false;
+    }
 
 }
 
