@@ -25,14 +25,24 @@ import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
 import org.mozilla.javascript.NativeJavaArray;
 import org.mozilla.javascript.NativeJavaObject;
+import org.mozilla.javascript.BaseFunction;
+import org.mozilla.javascript.Wrapper;
+
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+import java.io.InputStream;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.URL;
+import java.net.MalformedURLException;
 
 /**
  * Extension to provide Helma with Image processing features.
  */
 public class ImageObject {
-    static Scriptable global;
 
     /**
      * Called by the evaluator after the extension is loaded.
@@ -48,8 +58,7 @@ public class ImageObject {
         }
         FunctionObject ctor = new FunctionObject("Image", ctorMember, scope);
         ScriptableObject.defineProperty(scope, "Image", ctor, ScriptableObject.DONTENUM);
-        global = scope;
-        // ctor.addAsConstructor(scope, proto);
+        ctor.put("getInfo", ctor, new GetInfo());
     }
 
     public static Object imageCtor (Context cx, Object[] args,
@@ -68,6 +77,10 @@ public class ImageObject {
                     img = generator.createImage((byte[]) args[0]);
                 } else if (args[0] instanceof String) {
                     String imgurl = args[0].toString();
+                    // if path name convert to file: url
+                    if (imgurl.indexOf(":") < 0) {
+                        imgurl = "file:" + imgurl;
+                    }
                     img = generator.createImage(imgurl);
                 }
             } else if (args.length == 2) {
@@ -98,6 +111,68 @@ public class ImageObject {
             throw new RuntimeException("Error creating image: Bad parameters or setup problem.");
         }
 
-        return Context.toObject(img, global);
+        return Context.toObject(img, ctorObj.getParentScope());
+    }
+
+    static class GetInfo extends BaseFunction {
+        public Object call(Context cx, Scriptable scope,
+                           Scriptable thisObj, Object[] args) {
+            if (args.length != 1) {
+                throw new IllegalArgumentException("Image.getImageInfo() expects one argument");
+            }
+
+            Object arg = args[0];
+            InputStream in = null;
+            ImageInfo info = new ImageInfo();
+
+            if (arg instanceof Wrapper) {
+                arg = ((Wrapper) arg).unwrap();
+            }
+
+            if (arg instanceof InputStream) {
+                in = (InputStream) arg;
+            } else if (arg instanceof byte[]) {
+                in = new ByteArrayInputStream((byte[]) arg);
+            } else if (arg instanceof File) {
+                try {
+                    in = new FileInputStream((File) arg);
+                } catch (FileNotFoundException fnf) {
+                    return null;
+                }
+            } else if (arg instanceof String) {
+                String str = (String) arg;
+                // try to interpret argument as URL if it contains a colon,
+                // otherwise or if URL is malformed interpret as file name.
+                try {
+                    if (str.indexOf(":") > -1) {
+                        try {
+                            URL url = new URL(str);
+                            in = url.openStream();
+                        } catch (MalformedURLException mux) {
+                            in = new FileInputStream(str);
+                        } catch (IOException iox) {
+                            return null;
+                        }
+                    } else {
+                        in = new FileInputStream((String) arg);
+                    }
+                } catch (FileNotFoundException fnf) {
+                    return null;
+                }
+            }
+
+            if (in == null) {
+                String msg = "Unrecognized argument in Image.getImageInfo(): ";
+                msg += arg == null ? "null" : arg.getClass().toString();
+                throw new IllegalArgumentException(msg);
+            }
+
+            info.setInput(in);
+            if (info.check()) {
+                return Context.toObject(info, scope);
+            }
+
+            return null;
+        }
     }
 }
