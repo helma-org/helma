@@ -11,15 +11,15 @@ import Acme.JPM.Encoders.GifEncoder;
 import java.io.IOException;
 import java.io.FileOutputStream;
 
-/** 
+/**
  * A wrapper for an image that uses the Sun version of JIMI available at
  * http://java.sun.com/products/jimi.
  */
- 
+
 public class SunImageWrapper extends ImageWrapper {
 
     public SunImageWrapper (Image img, Graphics g, int width, int height,
-	    ImageGenerator imggen) throws ClassNotFoundException {
+	ImageGenerator imggen) throws ClassNotFoundException {
 	super (img, g, width, height, imggen);
 	Class.forName ("com.sun.jimi.core.Jimi");
     }
@@ -27,7 +27,7 @@ public class SunImageWrapper extends ImageWrapper {
 
     public void reduceColors (int colors) {
 	try {
-	    ColorReducer redux = new ColorReducer (colors, true);	
+	    ColorReducer redux = new ColorReducer (colors, true);
 	    img = redux.getColorReducedImage (img);
 	} catch (Exception x) {
 	    throw new RuntimeException (x.getMessage ());
@@ -35,7 +35,7 @@ public class SunImageWrapper extends ImageWrapper {
     }
 
     public void saveAs (String filename) {
-    	try {
+	try {
 	    if (filename.toLowerCase().endsWith (".gif")) {
 	        // sun's jimi package doesn't encode gifs, use Acme encoder
 	        FileOutputStream fout = new FileOutputStream (filename);
