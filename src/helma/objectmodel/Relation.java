@@ -96,12 +96,12 @@ public class Relation {
 	        direction = BACKWARD;
 	        int lt = desc.indexOf ("<");
 	        int dot = desc.indexOf (".");
-	        String otherType = dot < 0 ? desc.substring (1).trim () : desc.substring (1, dot).trim ();
+	        String otherType = dot < 0 ? desc.substring (lt+1).trim () : desc.substring (lt+1, dot).trim ();
 	        other = app.getDbMapping (otherType);
 	        if (other == null)
 	            throw new RuntimeException ("DbMapping for "+otherType+" not found from "+home.typename);
 	        remoteField = dot < 0 ? null : desc.substring (dot+1).trim ();
-                     localField = lt < 0 ? null : desc.substring (0, lt).trim ();
+	        localField = lt < 0 ? null : desc.substring (0, lt).trim ();
 	        if (mountpoint) prototype = otherType;
 	    } else if (desc.indexOf (">") > -1) {
 	        direction = FORWARD;
@@ -122,7 +122,7 @@ public class Relation {
 	        if (other == null)
 	            throw new RuntimeException ("DbMapping for "+otherType+" not found from "+home.typename);
 	        remoteField = desc.substring (dot+1).trim ();
-                     localField = null;
+	        localField = null;
 	        if (mountpoint) prototype = otherType;
 	    } else {
 	        if (virtual) {
@@ -205,7 +205,7 @@ public class Relation {
      * Relation uses the primary key return just the key value, otherwise include info on the
      * used column or even the base node to avoid collisions.
      */
-    public String getKeyID (INode home, String kval) {
+    /* public String getKeyID (INode home, String kval) {
 	// if the column is not the primary key, we add the column name to the key
 	if ((direction == DIRECT || direction == FORWARD) && !usesPrimaryKey ()) {
 	    // check if the subnode relation also has to be considered
@@ -216,7 +216,7 @@ public class Relation {
 	} else {
 	    return kval;
 	}
-    }
+    } */
 
     /**
      * Get the local column name for this relation to use in where clauses of select statements.
