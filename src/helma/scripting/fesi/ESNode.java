@@ -249,7 +249,7 @@ public class ESNode extends ObjectPrototype {
 	    return;
 	}
 
-	if (propertyValue instanceof ESNull)
+	if (propertyValue instanceof ESNull || propertyValue instanceof ESUndefined)
 	    node.unset (propertyName);
 	else if (propertyValue instanceof ESString)
 	    node.setString (propertyName, propertyValue.toString ());
