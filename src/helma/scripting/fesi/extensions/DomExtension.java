@@ -53,7 +53,17 @@ public class DomExtension extends Extension  {
 		public ESObject doConstruct(ESObject thisObject, ESValue[] arguments) throws EcmaScriptException	{
 			throw new EcmaScriptException("Xml can't be instanced");
 		}
+		public String toString() {
+			try {
+				String parser = javax.xml.parsers.DocumentBuilderFactory.newInstance().getClass ().getPackage ().getName();
+				return "[Xml " + parser + "]";
+			} catch (NullPointerException zeero) {
+				return "[Xml - no parser available]";
+			}
+		}
 	}
+
+
 
 	class XmlWrite extends BuiltinFunctionObject {
 		XmlWrite(String name, Evaluator evaluator, FunctionPrototype fp) {
