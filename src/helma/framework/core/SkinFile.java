@@ -61,7 +61,10 @@ public final class SkinFile implements Updatable {
      * the file has been modified or deleted.
      */
     public boolean needsUpdate () {
-	return (skin != null && lastmod != file.lastModified ()) || !file.exists ();
+	// if skin object is null we only need to call update if the file doesn't 
+	// exist anymore, while if the skin is initialized, we'll catch both 
+	// cases (file deleted and file changed) by just calling lastModified().
+	return skin != null ? lastmod != file.lastModified () : !file.exists ();
     }
 
 
