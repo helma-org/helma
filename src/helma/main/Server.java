@@ -321,10 +321,9 @@ public class Server implements IPathElement, Runnable {
 
                     ext.init(this);
                     extensions.add(ext);
-                    getLogger().log("loaded: " + extClassName);
-                } catch (Exception e) {
-                    getLogger().log("error:  " + extClassName + " (" + e.toString() +
-                                    ")");
+                    getLogger().log("Loaded: " + extClassName);
+                } catch (Throwable e) {
+                    getLogger().log("Error loading extension " + extClassName + ": " + e.toString());
                 }
             }
         }
