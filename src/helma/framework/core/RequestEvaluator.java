@@ -652,6 +652,15 @@ public class RequestEvaluator implements Runnable {
 	return result;
     }
 
+    protected Object invokeDirectFunction (Object obj, String functionName, Object[] args) throws Exception {
+	ESObject eso = getElementWrapper (obj);
+	ESValue[] esv = args == null ? new ESValue[0] : new ESValue[args.length];
+	for (int i=0; i<esv.length; i++)
+	    esv[i] = ESLoader.normalizeValue (args[i], evaluator);
+	ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
+	return retval.toJavaObject ();
+    }
+
     public synchronized Object invokeFunction (Object node, String functionName, Object[] args)
 		throws Exception {
 	ESObject obj = null;
@@ -877,8 +886,9 @@ public class RequestEvaluator implements Runnable {
 	
 	ObjectPrototype op = getPrototype (prototypeName);
 
+
 	if (op == null)
-                  op = esNodePrototype;
+	    op = esNodePrototype;
 
 	return new ESGenericObject (op, evaluator, e);
     }
