@@ -59,7 +59,6 @@ public class MapWrapper extends ScriptableObject {
         if (map == null) {
             map = new HashMap();
         }
-
         if (value instanceof NativeJavaObject) {
             map.put(name, ((NativeJavaObject) value).unwrap());
         } else {
@@ -82,13 +81,13 @@ public class MapWrapper extends ScriptableObject {
 
         Object obj = map.get(name);
 
-        if (obj != null) {
+        if (obj != null && !(obj instanceof Scriptable)) {
             Context cx = Context.getCurrentContext();
 
             return cx.toObject(obj, core.global);
         }
 
-        return null;
+        return obj;
     }
 
     /**
@@ -114,6 +113,71 @@ public class MapWrapper extends ScriptableObject {
         }
     }
 
+    /**
+     *
+     *
+     * @param name ...
+     * @param start ...
+     * @param value ...
+     */
+    public void put(int idx, Scriptable start, Object value) {
+        if (map == null) {
+            map = new HashMap();
+        }
+        if (value instanceof NativeJavaObject) {
+            map.put(Integer.toString(idx), ((NativeJavaObject) value).unwrap());
+        } else {
+            map.put(Integer.toString(idx), value);
+        }
+    }
+
+    /**
+     *
+     *
+     * @param name ...
+     * @param start ...
+     *
+     * @return ...
+     */
+    public Object get(int idx, Scriptable start) {
+        if (map == null) {
+            return null;
+        }
+
+        Object obj = map.get(Integer.toString(idx));
+
+        if (obj != null && !(obj instanceof Scriptable)) {
+            Context cx = Context.getCurrentContext();
+
+            return cx.toObject(obj, core.global);
+        }
+
+        return obj;
+    }
+
+    /**
+     *
+     *
+     * @param name ...
+     * @param start ...
+     *
+     * @return ...
+     */
+    public boolean has(int idx, Scriptable start) {
+        return (map != null) && map.containsKey(Integer.toString(idx));
+    }
+
+    /**
+     *
+     *
+     * @param name ...
+     */
+    public void delete(int idx) {
+        if (map != null) {
+            map.remove(Integer.toString(idx));
+        }
+    }
+
 
     /**
      *
@@ -126,6 +190,13 @@ public class MapWrapper extends ScriptableObject {
         }
 
         return map.keySet().toArray();
+    }
+
+    public Map unwrap() {
+        if (map == null) {
+            map = new HashMap();
+        }
+        return map;
     }
 
     /**
