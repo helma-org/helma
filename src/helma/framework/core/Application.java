@@ -274,17 +274,6 @@ public final class Application implements IPathElement, Runnable {
 
         running = true;
 
-        // create and init session manager
-        String sessionMgrImpl = props.getProperty("sessionManagerImpl",
-                                                  "helma.framework.core.SessionManager");
-        sessionMgr = (SessionManager) Class.forName(sessionMgrImpl).newInstance();
-        sessionMgr.init(this);
-
-        // read the sessions if wanted
-        if ("true".equalsIgnoreCase(getProperty("persistentSessions"))) {
-            sessionMgr.loadSessionData(null);
-        }
-
         // create and init type mananger
         typemgr = new TypeManager(this);
         typemgr.createPrototypes();
@@ -363,6 +352,17 @@ public final class Application implements IPathElement, Runnable {
         // create the node manager
         nmgr = new NodeManager(this);
         nmgr.init(dbDir.getAbsoluteFile(), props);
+
+        // create and init session manager
+        String sessionMgrImpl = props.getProperty("sessionManagerImpl",
+                                                  "helma.framework.core.SessionManager");
+        sessionMgr = (SessionManager) Class.forName(sessionMgrImpl).newInstance();
+        sessionMgr.init(this);
+
+        // read the sessions if wanted
+        if ("true".equalsIgnoreCase(getProperty("persistentSessions"))) {
+            sessionMgr.loadSessionData(null);
+        }
 
         // reset the classloader to the parent/system/server classloader.
         Thread.currentThread().setContextClassLoader(typemgr.getClassLoader().getParent());
