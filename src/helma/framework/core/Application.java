@@ -98,6 +98,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     // password file to use for authenticate() function
     private CryptFile pwfile;
 
+    // Map of java class names to object prototypes
+    Properties scriptables;
+
     // a cache for parsed skin objects
     CacheMap skincache = new CacheMap (100, 0.75f);
 
@@ -174,6 +177,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	pwf = new File (appDir, "passwd");
 	pwfile = new CryptFile (pwf, parentpwfile);
 
+	// the properties that map java class names to prototype names
+	scriptables = new SystemProperties (new File (appDir, "scriptable.properties").getAbsolutePath ());
+	
 	// character encoding to be used for responses
 	charset = props.getProperty ("charset", "ISO-8859-1");
 
@@ -646,7 +652,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     /**
      * Return a path to be used in a URL pointing to the given element  and action
      */
-    public String getNodeHref (IPathElement elem, String actionName) {
+    public String getNodeHref (Object elem, String actionName) {
 	// FIXME: will fail for non-node roots
 	Object root = getDataRoot ();
 	INode users = getUserRoot ();
@@ -733,7 +739,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ///   The following methods minic the IPathElement interface. This allows as
+    ///   The following methods mimic the IPathElement interface. This allows as
     ///   to script any Java object: If the object implements IPathElement (as does
     ///   the Node class in Helma's internal objectmodel) then the corresponding
     ///   method is called in the object itself. Otherwise, a corresponding script function
@@ -785,7 +791,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	    return ((IPathElement) obj).getPrototype ();
 	else
 	    // use java class name as prototype name
-	    return obj.getClass ().getName ();
+	    return scriptables.getProperty (obj.getClass ().getName ());
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -653,12 +653,16 @@ public class RequestEvaluator implements Runnable {
     }
 
     protected Object invokeDirectFunction (Object obj, String functionName, Object[] args) throws Exception {
-	ESObject eso = getElementWrapper (obj);
+	ESObject eso = null;
+	if (obj == null)
+	    eso = global;
+	else
+	    eso = getElementWrapper (obj);
 	ESValue[] esv = args == null ? new ESValue[0] : new ESValue[args.length];
 	for (int i=0; i<esv.length; i++)
 	    esv[i] = ESLoader.normalizeValue (args[i], evaluator);
 	ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
-	return retval.toJavaObject ();
+	return retval == null ? null : retval.toJavaObject ();
     }
 
     public synchronized Object invokeFunction (Object node, String functionName, Object[] args)
@@ -761,12 +765,8 @@ public class RequestEvaluator implements Runnable {
 	if (thisObject == null)
 	    proto = app.typemgr.getPrototype ("global");
 	else {
-	    try {
-	        IPathElement elem = (IPathElement) thisObject.toJavaObject ();
-	        proto = app.getPrototype (elem);
-	    } catch (ClassCastException wrongClass) {
-	        throw new RuntimeException ("Can't render a skin on something that is not a path element: "+wrongClass);
-	    }
+	    Object elem = thisObject.toJavaObject ();
+	    proto = app.getPrototype (elem);
 	}
 	return getSkin (proto, skinname);
     }
@@ -867,7 +867,24 @@ public class RequestEvaluator implements Runnable {
 	return (ESNode) objectcache.get (n);
     }
 
+    /**
+     *  Get a Script wrapper for an object. In contrast to getElementWrapper, this is called for
+     * any Java object, not just the ones in the request path which we know are scripted.
+     * So what we do is check if the object belongs to a scripted class. If so, we call getElementWrapper()
+     * with the object, otherwise we return a generic unscripted object wrapper.
+     */
+    public ESValue getObjectWrapper (Object e) {
+	if (app.getPrototypeName (e) != null)
+	    return getElementWrapper (e);
+	else
+	    return new ESWrapper (e, evaluator);
+    }
 
+    /**
+     *  Get a Script wrapper for any given object. If the object implements the IPathElement
+     *  interface, the getPrototype method will be used to retrieve the name of the prototype
+     * to use. Otherwise, a Java-Class-to-Script-Prototype mapping is consulted.
+     */
     public ESObject getElementWrapper (Object e) {
 	
 	// check if e is an instance of a helma objectmodel node.
@@ -875,17 +892,9 @@ public class RequestEvaluator implements Runnable {
 	    return getNodeWrapper ((INode) e);
 
 	// Gotta find out the prototype name to use for this object...
-	String prototypeName = null;
-	// check if e implements the IPathElement interface
-	if (e instanceof IPathElement)
-	    // e implements the getPrototype() method
-	    prototypeName = ((IPathElement) e).getPrototype ();
-	else
-	    // use java class name as prototype name
-	    prototypeName = e.getClass ().getName ();
+	String prototypeName = app.getPrototypeName (e);
 	
 	ObjectPrototype op = getPrototype (prototypeName);
-
 
 	if (op == null)
 	    op = esNodePrototype;
