@@ -13,6 +13,7 @@ import helma.framework.*;
 import helma.framework.core.*;
 import helma.objectmodel.*;
 import helma.servlet.*;
+import helma.util.SystemProperties;
 import Acme.Serve.*;
 import javax.servlet.Servlet;
 
