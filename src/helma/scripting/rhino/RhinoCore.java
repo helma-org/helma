@@ -574,10 +574,11 @@ public final class RhinoCore {
             Scriptable op = getPrototype(prototypeName);
 
             if (op == null) {
+                prototypeName = "hopobject";
                 op = getPrototype("hopobject");
             }
 
-            w = new JavaObject(global, e, op, this);
+            w = new JavaObject(global, e, prototypeName, op, this);
 
             wrappercache.put(e, w);
         }
@@ -685,6 +686,30 @@ public final class RhinoCore {
             }
         }
         return skinpath;
+    }
+
+    protected static Map getSkinParam(Object paramobj) {
+        Map param = null;
+
+        if ((paramobj != null) && (paramobj != Undefined.instance)) {
+            param = new HashMap();
+
+            if (paramobj instanceof Scriptable) {
+                Scriptable sp = (Scriptable) paramobj;
+                Object[] ids = sp.getIds();
+
+                for (int i = 0; i < ids.length; i++) {
+                    Object obj = sp.get(ids[i].toString(), sp);
+                    if (obj instanceof NativeJavaObject) {
+                        param.put(ids[i], ((NativeJavaObject) obj).unwrap());
+                    } else {
+                        param.put(ids[i], obj);
+                    }
+                }
+            }
+        }
+
+        return param;
     }
 
     private synchronized void updateEvaluator(Prototype prototype, Reader reader,

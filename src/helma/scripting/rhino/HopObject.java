@@ -172,44 +172,22 @@ public class HopObject extends ScriptableObject {
      *
      * @return ...
      */
-    public boolean jsFunction_renderSkin(Object skin, Object param) {
-        // System.err.println ("RENDERSKIN CALLED WITH PARAM "+param);
+    public boolean jsFunction_renderSkin(Object skinobj, Object paramobj) {
         Context cx = Context.getCurrentContext();
         RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
-        Skin s;
+        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+        Skin skin;
 
-        if (skin instanceof Skin) {
-            s = (Skin) skin;
+        if (skinobj instanceof Skin) {
+            skin = (Skin) skinobj;
         } else {
-            // retrieve res.skinpath, an array of objects that tell us where to look for skins
-            // (strings for directory names and INodes for internal, db-stored skinsets)
-            Object[] skinpath = reval.res.getSkinpath();
-            RhinoCore.unwrapSkinpath(skinpath);
-            s = core.app.getSkin(node, skin.toString(), skinpath);
+            skin = engine.getSkin(className, skinobj.toString());
         }
 
-        Map p = null;
+        Map param = RhinoCore.getSkinParam(paramobj);
 
-        if ((param != null) && (param != Undefined.instance)) {
-            p = new HashMap();
-
-            if (param instanceof Scriptable) {
-                Scriptable sp = (Scriptable) param;
-                Object[] ids = sp.getIds();
-
-                for (int i = 0; i < ids.length; i++) {
-                    Object obj = sp.get(ids[i].toString(), sp);
-                    if (obj instanceof NativeJavaObject) {
-                        p.put(ids[i], ((NativeJavaObject) obj).unwrap());
-                    } else {
-                        p.put(ids[i], obj);
-                    }
-                }
-            }
-        }
-
-        if (s != null) {
-            s.render(reval, node, p);
+        if (skin != null) {
+            skin.render(reval, node, param);
         }
 
         return true;
@@ -223,45 +201,23 @@ public class HopObject extends ScriptableObject {
      *
      * @return ...
      */
-    public String jsFunction_renderSkinAsString(Object skin, Object param) {
-        // System.err.println ("RENDERSKIN CALLED WITH PARAM "+param);
+    public String jsFunction_renderSkinAsString(Object skinobj, Object paramobj) {
         Context cx = Context.getCurrentContext();
         RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
-        Skin s;
+        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+        Skin skin;
 
-        if (skin instanceof Skin) {
-            s = (Skin) skin;
+        if (skinobj instanceof Skin) {
+            skin = (Skin) skinobj;
         } else {
-            // retrieve res.skinpath, an array of objects that tell us where to look for skins
-            // (strings for directory names and INodes for internal, db-stored skinsets)
-            Object[] skinpath = reval.res.getSkinpath();
-            RhinoCore.unwrapSkinpath(skinpath);
-            s = core.app.getSkin(node, skin.toString(), skinpath);
+            skin = engine.getSkin(className, skinobj.toString());
         }
 
-        Map p = null;
+        Map param = RhinoCore.getSkinParam(paramobj);
 
-        if ((param != null) && (param != Undefined.instance)) {
-            p = new HashMap();
-
-            if (param instanceof Scriptable) {
-                Scriptable sp = (Scriptable) param;
-                Object[] ids = sp.getIds();
-
-                for (int i = 0; i < ids.length; i++) {
-                    Object obj = sp.get(ids[i].toString(), sp);
-                    if (obj instanceof NativeJavaObject) {
-                        p.put(ids[i], ((NativeJavaObject) obj).unwrap());
-                    } else {
-                        p.put(ids[i], obj);
-                    }
-                }
-            }
-        }
-
-        if (s != null) {
+        if (skin != null) {
             reval.res.pushStringBuffer();
-            s.render(reval, node, p);
+            skin.render(reval, node, param);
 
             return reval.res.popStringBuffer();
         }
