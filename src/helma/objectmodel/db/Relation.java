@@ -1044,8 +1044,11 @@ public final class Relation {
                         if ((currentValue == null) ||
                                 ((currentValue != home) &&
                                 ((currentValue.getState() == Node.TRANSIENT) ||
-                                (home.getState() != Node.TRANSIENT)))) {
+                                (home.getState() != Node.TRANSIENT)))) try {
                             child.setNode(crel.propName, home);
+                        } catch (Exception ignore) {
+                            // in some cases, getNonVirtualParent() doesn't work
+                            // correctly for transient nodes, so this may fail.
                         }
                     } else if (crel.reftype == PRIMITIVE) {
                         child.setString(crel.propName, home.getID());
