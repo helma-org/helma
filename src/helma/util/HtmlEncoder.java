@@ -203,6 +203,7 @@ public final class HtmlEncoder {
 	allTags.add ("h6");
 	allTags.add ("head");
 	allTags.add ("html");
+	allTags.add ("hr");
 	allTags.add ("i");
 	allTags.add ("iframe");
 	allTags.add ("img");
