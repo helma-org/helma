@@ -77,8 +77,6 @@ public class HopExtension {
         reval.esNodePrototype.putHiddenProperty ("contains", new NodeContains ("contains", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("size", new NodeCount ("size", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("editor", new NodeEditor ("editor", evaluator, fp));
-        reval.esNodePrototype.putHiddenProperty ("chooser", new NodeChooser ("chooser", evaluator, fp));
-        reval.esNodePrototype.putHiddenProperty ("multiChooser", new MultiNodeChooser ("multiChooser", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("path", new NodeHref ("path", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("href", new NodeHref ("href", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("setParent", new NodeSetParent ("setParent", evaluator, fp));
@@ -87,7 +85,8 @@ public class HopExtension {
         reval.esNodePrototype.putHiddenProperty ("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, true));
         reval.esNodePrototype.putHiddenProperty ("clearCache", new NodeClearCache ("clearCache", evaluator, fp));
 
-        // default methods for generic Java wrapper object prototype
+        // default methods for generic Java wrapper object prototype.
+        // This is a small subset of the methods in esNodePrototype.
         reval.esObjectPrototype.putHiddenProperty ("href", new NodeHref ("href", evaluator, fp));
         reval.esObjectPrototype.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, false, false));
         reval.esObjectPrototype.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, true));
@@ -398,51 +397,13 @@ public class HopExtension {
         }
     }
 
-    class NodeChooser extends BuiltinFunctionObject {
-        NodeChooser (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            ESNode esn = (ESNode) thisObject;
-            if (arguments.length < 1) {
-            	   return ESBoolean.makeBoolean(false);
-            }
-            String nodename = arguments[0].toString ();
-            INode target = esn.getNode ().getNode (nodename, false);
-            ESNode collection = arguments.length > 1 ? (ESNode) arguments[1] : esn;
-            if (arguments.length > 2)
-                return new ESString (getNodeChooserDD (nodename, collection.getNode (), target, arguments[2].toString ()));
-            else 
-                return new ESString (getNodeChooserRB (nodename, collection.getNode (), target));
-        }
-    }
-
-     class MultiNodeChooser extends BuiltinFunctionObject {
-        MultiNodeChooser (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            ESNode esn = (ESNode) thisObject;
-            if (arguments.length < 1) {
-            	   return ESBoolean.makeBoolean(false);
-            }
-            String nodename = arguments[0].toString ();
-            INode thisNode = esn.getNode ();
-            INode target = thisNode.getNode (nodename, false);
-            if (target == null) {
-            	   target = thisNode.createNode (nodename);
-            }
-            ESNode collection = arguments.length > 1 ? (ESNode) arguments[1] : esn;
-            return new ESString (getNodeChooserCB (nodename, collection.getNode (), target));
-        }
-    }
 
     class UserLogin extends BuiltinFunctionObject {
         UserLogin (String name, Evaluator evaluator, FunctionPrototype fp) {
             super (fp, evaluator, name, 1);
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            if (arguments.length < 2) 
+            if (arguments.length < 2)
                 return ESBoolean.makeBoolean(false);
             ESUser u = (ESUser) thisObject;
             if (u.user == null)
@@ -865,7 +826,7 @@ public class HopExtension {
                 Object p = arguments[0].toJavaObject ();
                 if (p instanceof String) try {
                    // first try to interpret string as URL
-	      java.net.URL u = new java.net.URL (p.toString ());
+                   java.net.URL u = new java.net.URL (p.toString ());
                    parser.parse (p.toString());
                 } catch (java.net.MalformedURLException nourl) {
                    // if not a URL, maybe it is the XML itself
@@ -894,7 +855,7 @@ public class HopExtension {
                 Object p = arguments[0].toJavaObject ();
                 if (p instanceof String) try {
                    // first try to interpret string as URL
-	      java.net.URL u = new java.net.URL (p.toString ());
+                   java.net.URL u = new java.net.URL (p.toString ());
                    parser.parse (p.toString());
                 } catch (java.net.MalformedURLException nourl) {
                    // if not a URL, maybe it is the HTML itself
