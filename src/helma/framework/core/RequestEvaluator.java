@@ -1032,14 +1032,20 @@ public class RequestEvaluator implements Runnable {
      * is a java object) with that name.
      */
     public Object getProperty (Object obj, String propname) {
-	if (obj == null)
+	if (obj == null || propname == null)
 	    return null;
 
 	String prototypeName = app.getPrototypeName (obj);
 	if ("user".equalsIgnoreCase (prototypeName) &&
 		"password".equalsIgnoreCase (propname))
-	    return null;
+	    return "[macro access to password property not allowed]";
 
+	DbMapping dbm = app.getDbMapping (prototypeName);
+	if (dbm != null) {
+	    Relation rel = dbm.propertyToRelation (propname);
+	    if (rel == null || !rel.isPrimitive ())
+	        return "[property \""+propname+"\" is not defined for "+prototypeName+"]";
+	}
 	ESObject eso = getElementWrapper (obj);
 	try {
 	    ESValue prop = eso.getProperty (propname, propname.hashCode());
