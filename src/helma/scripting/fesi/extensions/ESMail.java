@@ -9,7 +9,6 @@ import javax.mail.internet.*;
 import javax.activation.*;
 import java.io.*;
 import java.util.*;
-import helma.framework.core.*;
 import helma.util.*;
 import FESI.Data.*;
 import FESI.Interpreter.*;
