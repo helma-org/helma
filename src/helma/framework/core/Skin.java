@@ -239,7 +239,7 @@ public class Skin {
 	 */
 	public void render (RequestEvaluator reval, ESObject thisObject, IPathElement elem, ESObject paramObject) throws RedirectException {
 
-	    if (sandbox != null && sandbox.contains (getFullName ())) {
+	    if (sandbox != null && !sandbox.contains (getFullName ())) {
 	        String h = handler == null ? "global" : handler;
 	        reval.res.write ("[Macro "+getFullName()+" not allowed in sandbox]");
 	        return;
