@@ -13,7 +13,7 @@ import java.io.Serializable;
  * key of the node and unique within each HOP application. Currently only 
  * single keys are supported.
  */
-public final class Key implements Serializable {
+public class Key {
 
     protected String type;
     protected String id;
@@ -29,13 +29,13 @@ public final class Key implements Serializable {
     public Key (String type, String id) {
 	this.type = type;
 	this.id = id;
-	hash = this.id.hashCode ();
+	hash = id.hashCode ();
     }
 
     public boolean equals (Object what) {
 	try {
 	    Key k = (Key) what;
-	    return (id == k.id || id.equals (k.id)) && (type == k.type || type.equals (k.type));
+	    return ((type == k.type || type.equals (k.type)) && (id == k.id || id.equals (k.id)));
 	} catch (Exception x) {
 	    return false;
 	}
@@ -61,7 +61,7 @@ public final class Key implements Serializable {
      *   a key that can't be mistaken for a relational db key.
      */
     public Key getVirtualKey (String sid) {
-	return new Key ("", makeVirtualID (type, id, sid));
+	return new Key ((String) null, makeVirtualID (type, id, sid));
     }
 
     public String getVirtualID (String sid) {
@@ -69,7 +69,7 @@ public final class Key implements Serializable {
     }
 
     public static String makeVirtualID (DbMapping pmap, String pid, String sid) {
-	return makeVirtualID (pmap == null ? "" : pmap.typename, pid, sid);
+	return makeVirtualID (pmap == null ? (String) null : pmap.typename, pid, sid);
     }
 
     public static String makeVirtualID (String ptype, String pid, String sid) {
