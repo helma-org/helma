@@ -97,8 +97,13 @@ public class DbMapping {
 	this.idgen = props.getProperty ("_idgen");
 
 	String sourceName = props.getProperty ("_datasource");
-	if (sourceName != null)
+	if (sourceName != null) {
 	    source = (DbSource) IServer.dbSources.get (sourceName.toLowerCase ());
+	    if (source == null) {
+	        // what we really want to do here is mark the DbMapping as invalid, so no data can be saved to it.
+	        // throw new RuntimeException ("DbSource \""+sourceName+"\" not found for prototype "+typename);
+	    }
+	}
 
 	// id field must not be null, default is "id"
 	idField = props.getProperty ("_id", "id");
