@@ -213,7 +213,7 @@ public final class Node implements INode, Serializable {
      * Constructor used for nodes being stored in a relational database table.
      */
     public Node (DbMapping dbmap, Record rec, WrappedNodeManager nmgr) throws DataSetException {
-	
+
 	this.nmgr = nmgr;
 	// see what prototype/DbMapping this object should use
 	DbMapping m = dbmap;
@@ -232,7 +232,7 @@ public final class Node implements INode, Serializable {
 	}
 	setPrototype (m.getTypeName ());
 	this.dbmap = m;
-	
+
 	id = rec.getValue (dbmap.getIDField ()).asString ();
 	// checkWriteLock ();
 	String nameField =  dbmap.getNameField ();
@@ -246,7 +246,7 @@ public final class Node implements INode, Serializable {
 	}
 
 	created = lastmodified = System.currentTimeMillis ();
-	
+
 	for (Enumeration e=dbmap.getDB2Prop ().elements (); e.hasMoreElements();  ) {
 
 	    Relation rel = (Relation) e.nextElement ();
@@ -316,7 +316,7 @@ public final class Node implements INode, Serializable {
 	            newprop.setStringValue (val.asString());
 	            break;
 	    }
-	
+
 	    if(propMap == null)
 	        propMap = new Hashtable ();
 	    propMap.put (rel.propName.toLowerCase(), newprop);
@@ -330,6 +330,11 @@ public final class Node implements INode, Serializable {
 	        newprop.type = IProperty.NODE;
 	    }
 	}
+	// again set created and lastmodified. This is because
+	// lastmodified has been been updated, and we want both values to
+	// be identical to show that the node hasn't been changed since
+	// it was first created.
+	created = lastmodified = System.currentTimeMillis ();
 	markAs (CLEAN);
     }
 
