@@ -20,6 +20,7 @@ import helma.scripting.rhino.extensions.*;
 import helma.framework.core.*;
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
+import helma.objectmodel.db.DbKey;
 import helma.scripting.*;
 import helma.util.CacheMap;
 import helma.util.SystemMap;
@@ -275,6 +276,8 @@ public final class RhinoCore {
         ScriptRuntime.setFunctionProtoAndParent(global, fo);
         fo.setImmunePrototypeProperty(op);
 
+        // add static getById() function
+        fo.defineProperty("getById", new GetById(name), GetById.ATTRIBUTES);
         op.setParentScope(fo);
 
         ScriptableObject.defineProperty(global, name, fo, ScriptableObject.DONTENUM);
@@ -1068,6 +1071,34 @@ public final class RhinoCore {
                 df = new DecimalFormat("#,##0.00");
             }
             return df.format(ScriptRuntime.toNumber(thisObj)).toString();
+        }
+    }
+
+    class GetById extends BaseFunction {
+        static final int ATTRIBUTES = DONTENUM | PERMANENT | READONLY;
+        String typeName;
+
+        public GetById(String typeName) {
+            this.typeName = typeName;
+        }
+
+        /**
+         * Retrieve any persistent HopObject by type name and id.
+         *
+         * @return the HopObject or null if it doesn't exist
+         */
+        public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
+            DbMapping dbmap = app.getDbMapping(typeName);
+            if (dbmap == null)
+                return null;
+            Object node = null;
+            try {
+                DbKey key = new DbKey(dbmap, Context.toString(args[0]));
+                node = app.getNodeManager().getNode(key);
+            } catch (Exception x) {
+                return null;
+            }
+            return node == null ? null : Context.toObject(node, this);
         }
     }
 
