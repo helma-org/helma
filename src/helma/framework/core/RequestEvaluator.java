@@ -270,7 +270,7 @@ public final class RequestEvaluator implements Runnable {
                                     // specified in the property file.
                                     res.status = 404;
 
-                                    String notFoundAction = app.props.getProperty("notFound",
+                                    String notFoundAction = app.props.getProperty("notfound",
                                                                                   "notfound");
 
                                     currentElement = root;
@@ -896,7 +896,7 @@ public final class RequestEvaluator implements Runnable {
     }
 
     private synchronized void checkThread() {
-        if (app.stopped) {
+        if (!app.isRunning()) {
             throw new ApplicationStoppedException();
         }
 

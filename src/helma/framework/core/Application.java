@@ -82,7 +82,7 @@ public final class Application implements IPathElement, Runnable {
      */
     protected Stack freeThreads;
     protected Vector allThreads;
-    boolean stopped = false;
+    boolean running = false;
     boolean debug;
     long starttime;
     Hashtable sessions;
@@ -273,7 +273,7 @@ public final class Application implements IPathElement, Runnable {
     /**
      * Get the application ready to run, initializing the evaluators and type manager.
      */
-    public void init()
+    public synchronized void init()
               throws DatabaseException, ScriptingException, MalformedURLException {
 
         // create and init type mananger
@@ -318,12 +318,16 @@ public final class Application implements IPathElement, Runnable {
             // not parsable as number, keep 0
         }
 
-        logEvent("Starting "+minThreads+" evaluator(s) for " + name);
+        if (minThreads > 0) {
+            logEvent("Starting "+minThreads+" evaluator(s) for " + name);
+        }
 
         for (int i = 0; i < minThreads; i++) {
             RequestEvaluator ev = new RequestEvaluator(this);
 
-            ev.initScriptingEngine();
+            if (i == 0) {
+                ev.initScriptingEngine();
+            }
             freeThreads.push(ev);
             allThreads.addElement(ev);
         }
@@ -363,24 +367,10 @@ public final class Application implements IPathElement, Runnable {
     /**
      *  Create and start scheduler and cleanup thread
      */
-    public void start() {
+    public synchronized void start() {
         starttime = System.currentTimeMillis();
 
-        // read in standard prototypes to make first request go faster
-        // typemgr.updatePrototype("root");
-        // typemgr.updatePrototype("global");
-
-        // as first thing, invoke global onStart() function
-        RequestEvaluator eval = getEvaluator();
-        try {
-            eval.invokeInternal(null, "onStart", new Object[0]);
-        } catch (Exception ignore) {
-            logEvent("Error in " + name + "/onStart(): " + ignore);
-        } finally {
-            if (!stopped) {
-                releaseEvaluator(eval);
-            }
-        }
+        running = true;
 
         worker = new Thread(this, "Worker-" + name);
         worker.setPriority(Thread.NORM_PRIORITY + 1);
@@ -390,8 +380,8 @@ public final class Application implements IPathElement, Runnable {
     /**
      * This is called to shut down a running application.
      */
-    public void stop() {
-        stopped = true;
+    public synchronized void stop() {
+        running = false;
 
         // stop all threads, this app is going down
         if (worker != null) {
@@ -411,7 +401,7 @@ public final class Application implements IPathElement, Runnable {
 
         // remove evaluators
         allThreads.removeAllElements();
-        freeThreads = null;
+        freeThreads.clear();
 
         // shut down node manager and embedded db
         try {
@@ -441,11 +431,15 @@ public final class Application implements IPathElement, Runnable {
 
     }
 
+    public synchronized boolean isRunning() {
+        return running;
+    }
+
     /**
      * Returns a free evaluator to handle a request.
      */
-    protected RequestEvaluator getEvaluator() {
-        if (stopped) {
+    private RequestEvaluator getEvaluator() {
+        if (!running) {
             throw new ApplicationStoppedException();
         }
 
@@ -464,8 +458,8 @@ public final class Application implements IPathElement, Runnable {
             synchronized (this) {
                 // allocate a new evaluator
                 if (allThreads.size() < maxThreads) {
-                    logEvent("Starting evaluator " + (allThreads.size() + 1) +
-                             " for application " + name);
+                    logEvent("Starting engine " + (allThreads.size() + 1) +
+                             " for " + name);
 
                     RequestEvaluator ev = new RequestEvaluator(this);
 
@@ -1383,6 +1377,17 @@ public final class Application implements IPathElement, Runnable {
      * kicking out expired user sessions.
      */
     public void run() {
+
+        // as first thing, invoke global onStart() function
+        RequestEvaluator eval = getEvaluator();
+        try {
+            eval.invokeInternal(null, "onStart", new Object[0]);
+        } catch (Exception xcept) {
+            logEvent("Error in " + name + "/onStart(): " + xcept);
+        } finally {
+            releaseEvaluator(eval);
+        }
+
         // interval between session cleanups
         long sessionCleanupInterval = 60000;
         long lastSessionCleanup = System.currentTimeMillis();
@@ -1441,7 +1446,7 @@ public final class Application implements IPathElement, Runnable {
                     logEvent("Error cleaning up sessions: " + cx);
                     cx.printStackTrace();
                 } finally {
-                    if (!stopped && thisEvaluator != null) {
+                    if (thisEvaluator != null) {
                         releaseEvaluator(thisEvaluator);
                     }
                 }
@@ -1475,7 +1480,7 @@ public final class Application implements IPathElement, Runnable {
                     try {
                         thisEvaluator = getEvaluator();
                     } catch (RuntimeException rt) {
-                        if (!stopped) {
+                        if (running) {
                             logEvent("couldn't execute " + j +
                                      ", maximum thread count reached");
 
@@ -1500,9 +1505,7 @@ public final class Application implements IPathElement, Runnable {
                         } catch (Exception ex) {
                             logEvent("error running " + j + ": " + ex.toString());
                         } finally {
-                            if (!stopped) {
-                                releaseEvaluator(thisEvaluator);
-                            }
+                            releaseEvaluator(thisEvaluator);
                         }
                     }
                 }
@@ -1956,9 +1959,7 @@ public final class Application implements IPathElement, Runnable {
             } catch (Exception ex) {
                 // gets logged in RequestEvaluator
             } finally {
-                if (!stopped) {
-                    releaseEvaluator(thisEvaluator);
-                }
+                releaseEvaluator(thisEvaluator);
                 thisEvaluator = null;
                 activeCronJobs.remove(job.getName());
             }
