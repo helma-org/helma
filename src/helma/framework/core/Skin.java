@@ -71,7 +71,7 @@ public class Skin {
 	if (lastIdx < l)
 	    partBuffer.add (new String (cnt, lastIdx, l - lastIdx));
 
-             parts = partBuffer.toArray ();
+	parts = partBuffer.toArray ();
     }
 
     /**
@@ -287,7 +287,7 @@ public class Skin {
 	                    }
 	                }
 	            }
-	
+
 	            // the macro handler object couldn't be found
 	            if (handlerObject == null)
 	                objectFound = false;
@@ -298,10 +298,19 @@ public class Skin {
 	        }
 
 	        if (objectFound) {
-	            Object v = reval.invokeDirectFunction (handlerObject, name+"_macro", arguments);
-	            // ESValue v = handlerObject.doIndirectCall (reval.evaluator, handlerObject, name+"_macro", arguments);
+	            // check if a function called name_macro is defined.
+	            // if so, the macro evaluates to the function. Otherwise,
+	            // a property/field with the name is used, if defined.
+	            Object v = null;
+	            if (reval.hasFunction (handlerObject, name+"_macro")) {
+	                // System.err.println ("Getting macro from function");
+	                v = reval.invokeDirectFunction (handlerObject, name+"_macro", arguments);
+	            } else {
+	                // System.err.println ("Getting macro from property");
+	                v = reval.getProperty (handlerObject, name);
+	            }
 	            if (v != null)
-	                reval.res.write (v);
+	                writeToResponse (v.toString (), reval.res);
 	        } else {
 	            String msg = "[HopMacro unhandled: "+getFullName()+"]";
 	            reval.res.write (" "+msg+" ");
@@ -320,40 +329,59 @@ public class Skin {
 	}
 
 	private void renderFromResponse (RequestEvaluator reval) {
-	    String encoding = (String) parameters.get ("encoding");
-	    if ("title".equals (name) && reval.res.title != null)
-	        reval.res.write (encode (reval.res.title, encoding));
-	    else if ("head".equals (name) && reval.res.head != null)
-	        reval.res.write (encode (reval.res.head, encoding));
-	    else if ("body".equals (name) && reval.res.body != null)
-	        reval.res.write (encode (reval.res.body, encoding));
-	    else if ("message".equals (name) && reval.res.message != null)
-	        reval.res.write (encode (reval.res.message, encoding));
+	    Object value = null;
+	    // as a transitional solution, try to get the value from the
+	    // hardcoded fields in the response object. If not present, try
+	    // the response object's data object.
+	    if ("title".equals (name))
+	        value = reval.res.title;
+	    else if ("head".equals (name))
+	        value = reval.res.head;
+	    else if ("body".equals (name))
+	        value = reval.res.body;
+	    else if ("message".equals (name))
+	        value = reval.res.message;
+	    if (value == null)
+	        value = reval.res.get (name);
+	    if (value != null)
+	        writeToResponse (value.toString (), reval.res);
 	}
 
 	private void renderFromRequest (RequestEvaluator reval) {
-	    String encoding = (String) parameters.get ("encoding");
 	    Object value = reval.req.get (name);
 	    if (value != null)
-	        reval.res.write (encode (value.toString (), encoding));
+	        writeToResponse (value.toString (), reval.res);
 	}
 
 	private void renderFromParam (RequestEvaluator reval, HashMap paramObject) {
-	    String encoding = (String) parameters.get ("encoding");
 	    if (paramObject == null)
 	        reval.res.write ("[HopMacro error: Skin requires a parameter object]");
 	    else {
 	        Object value = paramObject.get (name);
 	        if (value != null)
-	            reval.res.write (encode (value.toString (), encoding));
+	            writeToResponse (value.toString (), reval.res);
 	    }
 	}
-	
+
 	/**
-	 * Utility method for performing different kind of character encodings on the
-	 * macro output.
+	 * Utility method for writing text out to the response object.
 	 */
-	public String encode (String text, String encoding) {
+	void writeToResponse (String text, ResponseTrans res) {
+	    if (text == null || text.length() == 0)
+	        return;
+	    String encoding = (String) parameters.get ("encoding");
+	    String prefix = (String) parameters.get ("prefix");
+	    String suffix = (String) parameters.get ("suffix");
+	    res.write (encode (prefix, encoding));
+	    res.write (encode (text, encoding));
+	    res.write (encode (suffix, encoding));
+	}
+
+	/**
+	 * Utility method for performing different kind of character
+	 * encodings on the macro output.
+	 */
+	String encode (String text, String encoding) {
 	    if (encoding == null || text == null)
 	        return text;
 	    if ("html".equalsIgnoreCase (encoding))
@@ -367,10 +395,11 @@ public class Skin {
 	    return text;
 	}
 
+
 	public String toString () {
 	    return "[HopMacro: "+getFullName()+"]";
 	}
-	
+
 	/**
 	 * Return the full name of the macro in handler.name notation
 	 */
@@ -388,32 +417,5 @@ public class Skin {
 
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
