@@ -98,8 +98,8 @@ public class FunctionFile implements Updatable {
 
 
     void remove () {
-	prototype.functions.remove (name);
-	prototype.updatables.remove (file.getName());
+	prototype.removeFunctionFile (name);
+	prototype.removeUpdatable (file.getName());
 
 	// if we did not add anything to any evaluator, we're done
 	/* if (declaredProps == null || declaredProps.size() == 0)

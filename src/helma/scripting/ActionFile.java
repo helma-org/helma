@@ -94,9 +94,9 @@ public class ActionFile implements Updatable {
     }
 
     protected void remove () {
-	prototype.actions.remove (name);
+	prototype.removeAction (name);
 	if (file != null)
-	    prototype.updatables.remove (file.getName());
+	    prototype.removeUpdatable (file.getName());
     }
 
     public String getName () {

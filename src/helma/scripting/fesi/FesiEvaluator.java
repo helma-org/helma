@@ -24,7 +24,6 @@ import Acme.LruHashtable;
 /**
  * This is the implementation of ScriptingEnvironment for the FESI EcmaScript interpreter.
  */
-
 public final class FesiEvaluator implements ScriptingEngine {
 
     // the application we're running in
@@ -32,7 +31,7 @@ public final class FesiEvaluator implements ScriptingEngine {
 
     // The FESI evaluator
     final Evaluator evaluator;
-   
+
     // the global object
     final GlobalObject global;
 
@@ -44,7 +43,7 @@ public final class FesiEvaluator implements ScriptingEngine {
 
     // the request evaluator instance owning this fesi evaluator
     final RequestEvaluator reval;
-    
+
     // extensions loaded by this evaluator
     static String[] extensions = new String[] {
 	"FESI.Extensions.BasicIO",
@@ -63,6 +62,9 @@ public final class FesiEvaluator implements ScriptingEngine {
 	// the global vars set by extensions
 	HashMap extensionGlobals;
 
+    /**
+     *  Create a FESI evaluator for the given application and request evaluator.
+     */
     public FesiEvaluator (Application app, RequestEvaluator reval) {
 	this.app = app;
 	this.reval = reval;
@@ -81,7 +83,7 @@ public final class FesiEvaluator implements ScriptingEngine {
 	    Database dbx = (Database) evaluator.addExtension ("helma.scripting.fesi.extensions.Database");
 	    dbx.setApplication (app);
 	    // load extensions defined in server.properties:
-		extensionGlobals = new HashMap ();
+	    extensionGlobals = new HashMap ();
 	    Vector extVec = Server.getServer ().getExtensions ();
 	    for (int i=0; i<extVec.size(); i++ ) {
 	        HelmaExtension ext = (HelmaExtension)extVec.get(i);
@@ -108,6 +110,10 @@ public final class FesiEvaluator implements ScriptingEngine {
 	}
     }
 
+    /**
+     *  Initialize the evaluator, making sure the minimum type information 
+     *  necessary to bootstrap the rest is parsed.
+     */
     private void initialize () {
 	Collection prototypes = app.getPrototypes();
 	for (Iterator i=prototypes.iterator(); i.hasNext(); ) {
@@ -120,6 +126,9 @@ public final class FesiEvaluator implements ScriptingEngine {
 	getPrototype ("global");
     }
 
+    /** 
+     *   Initialize a prototype without fully parsing its script files.
+     */
     void initPrototype (Prototype prototype) {
         // System.err.println ("FESI INIT PROTO "+prototype);
 	ObjectPrototype op = null;
@@ -169,6 +178,9 @@ public final class FesiEvaluator implements ScriptingEngine {
 	// evaluatePrototype (prototype);
     }
 
+    /**
+     *   Set up a prototype, parsing and compiling all its script files.
+     */
     void evaluatePrototype (Prototype prototype) {
         // System.err.println ("FESI EVALUATE PROTO "+prototype+" FOR "+this);
 	ObjectPrototype op = null;
@@ -215,21 +227,21 @@ public final class FesiEvaluator implements ScriptingEngine {
 	        global.putHiddenProperty (name, new NodeConstructor (name, fp, this));
 	    } catch (EcmaScriptException ignore) {}
 	}
-	for (Iterator it = prototype.functions.values().iterator(); it.hasNext(); ) {
+	for (Iterator it = prototype.getFunctions().values().iterator(); it.hasNext(); ) {
 	    FunctionFile ff = (FunctionFile) it.next ();
 	    if (ff.hasFile ())
 	        evaluateFile (prototype, ff.getFile ());
 	    else
 	        evaluateString (prototype, ff.getContent ());
 	}
-	for (Iterator it = prototype.templates.values().iterator(); it.hasNext(); ) {
+	for (Iterator it = prototype.getTemplates().values().iterator(); it.hasNext(); ) {
 	    Template tmp = (Template) it.next ();
 	    try {
 	        FesiActionAdapter adp = new FesiActionAdapter (tmp);
 	        adp.updateEvaluator (this);
 	    } catch (EcmaScriptException ignore) {}
 	}
-	for (Iterator it = prototype.actions.values().iterator(); it.hasNext(); ) {
+	for (Iterator it = prototype.getActions().values().iterator(); it.hasNext(); ) {
 	    ActionFile act = (ActionFile) it.next ();
 	    try {
 	        FesiActionAdapter adp = new FesiActionAdapter (act);
@@ -380,6 +392,9 @@ public final class FesiEvaluator implements ScriptingEngine {
 	    // into an EcmaScript exception, which is why we can't explicitly catch it
 	    if (reval.res.getRedirect() != null)
 	        throw new RedirectException (reval.res.getRedirect ());
+	    // do the same for not-modified responses
+	    if (reval.res.getNotModified())
+	        throw new RedirectException (null);
 	    // create and throw a ScriptingException with the right message
 	    String msg = x.getMessage ();
 	    if (msg == null || msg.length() < 10)

@@ -176,9 +176,9 @@ public class Template extends ActionFile {
     }
 
     protected void remove () {
-	prototype.templates.remove (name);
+	prototype.removeTemplate (name);
 	if (file != null)
-	    prototype.updatables.remove (file.getName());
+	    prototype.removeUpdatable (file.getName());
 
 	/* Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
 	while (evals.hasNext ()) {

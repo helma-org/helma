@@ -3,6 +3,7 @@
  
 package helma.framework.core;
 
+import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.io.*;
@@ -25,11 +26,11 @@ public final class Prototype {
     final String name;
     final Application app;
 
-    public final HashMap templates;
-    public final HashMap functions;
-    public final HashMap actions;
-    public final HashMap skins;
-    public final HashMap updatables;
+    final HashMap templates;
+    final HashMap functions;
+    final HashMap actions;
+    final HashMap skins;
+    final HashMap updatables;
     
     // lastCheck is the time the prototype's files were last checked
     private long lastCheck;
@@ -180,7 +181,63 @@ public final class Prototype {
     public void markChecked () {
 	lastCheck = System.currentTimeMillis ();
     }
+    
+    /**
+     *  Return a clone of this prototype's actions container. Synchronized
+     *  to not return a map in a transient state where it is just being
+     *  updated by the type manager.
+     */
+    public synchronized Map getActions () {
+	return (Map) actions.clone();
+    }
 
+    /**
+     *  Return a clone of this prototype's functions container. Synchronized
+     *  to not return a map in a transient state where it is just being
+     *  updated by the type manager.
+     */
+    public synchronized Map getFunctions () {
+	return (Map) functions.clone();
+    }
+
+    /**
+     *  Return a clone of this prototype's templates container. Synchronized
+     *  to not return a map in a transient state where it is just being
+     *  updated by the type manager.
+     */
+    public synchronized Map getTemplates () {
+	return (Map) templates.clone();
+    }
+
+    /**
+     *  Return a clone of this prototype's skins container. Synchronized
+     *  to not return a map in a transient state where it is just being
+     *  updated by the type manager.
+     */
+    public synchronized Map getSkins () {
+	return (Map) skins.clone();
+    }
+
+    public synchronized void removeUpdatable (String fileName) {
+	updatables.remove (fileName);
+    }
+
+    public synchronized void removeAction (String actionName) {
+	actions.remove (actionName);
+    }
+
+    public synchronized void removeFunctionFile (String functionFileName) {
+	functions.remove (functionFileName);
+    }
+    
+    public synchronized void removeTemplate (String templateName) {
+	templates.remove (templateName);
+    }
+
+
+   /**
+    *  Return a string representing this prototype.
+    */
     public String toString () {
 	return "[Prototype "+ app.getName()+"/"+name+"]";
     }
