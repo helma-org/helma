@@ -1225,39 +1225,31 @@ public final class Node implements INode, Serializable {
 
 	// the property does not exist in our propmap - see if we can create it on the fly,
 	// either because it is mapped from a relational database or defined as virtual node
-	if (prop == null && dbmap != null && state != TRANSIENT && state != NEW) {
+	if (prop == null && dbmap != null) {
 	    Relation prel =  dbmap.getPropertyRelation (propname);
 	    Relation srel = dbmap.getSubnodeRelation ();
-	    /* if (prel != null && prel.virtual && prel.otherType != null &&  !prel.otherType.isRelational ()) {
-	        Node pn = (Node) createNode (propname);
-	        if (prel.prototype != null) {
-	            pn.setPrototype (prel.prototype);
-	        }
-	        prop =  (Property) propMap.get (propname);
-
-	    } else { */
-	        if (prel == null && srel != null && srel.groupby != null)
-	            prel = srel;
-	        if (prel == null)
-	            prel = dbmap.getPropertyRelation ();
-	        if (prel != null && (prel.accessor != null || prel.virtual || prel.groupby != null)) {
-	            // this may be a relational node stored by property name
-	            try {
-	                Node pn = nmgr.getNode (this, propname, prel);
-	                if (pn != null) {
-	                    if (pn.parentHandle == null && !"root".equalsIgnoreCase (pn.getPrototype ())) {
-	                        pn.setParent (this);
-	                        pn.name = propname;
-	                        pn.anonymous = false;
-	                    }
-	                    prop = new Property (propname, this, pn);
+	    if (prel == null && srel != null && srel.groupby != null)
+	        prel = srel;
+	    if (prel == null)
+	        prel = dbmap.getPropertyRelation ();
+	    if (prel != null && (prel.accessor != null || prel.virtual || prel.groupby != null)) {
+	        // this may be a relational node stored by property name
+	        try {
+	            Node pn = nmgr.getNode (this, propname, prel);
+	            if (pn != null) {
+	                if (pn.parentHandle == null && !"root".equalsIgnoreCase (pn.getPrototype ())) {
+	                    pn.setParent (this);
+	                    pn.name = propname;
+	                    pn.anonymous = false;
 	                }
-	            } catch (RuntimeException nonode) {
-	                // wasn't a node after all
+	                prop = new Property (propname, this, pn);
 	            }
+	        } catch (RuntimeException nonode) {
+	            // wasn't a node after all
 	        }
-	    // }
+	    }
 	}
+	
 	if (prop == null && inherit && getParent () != null && state != TRANSIENT) {
 	    prop = ((Node) getParent ()).getProperty (propname, inherit);
 	}
