@@ -1358,7 +1358,7 @@ public final class Node implements INode, Serializable {
      * @return true if the given node is contained in this node's child list
      */
     public boolean isParentOf(Node n) {
-        if (dbmap != null && n.isRelational()) {
+        if (dbmap != null) {
             Relation subrel = dbmap.getSubnodeRelation();
             // if we're dealing with relational child nodes use
             // Relation.checkConstraints to avoid loading the child index.
@@ -1368,6 +1368,11 @@ public final class Node implements INode, Serializable {
             if (subrel != null && subrel.otherType != null
                                && subrel.otherType.isRelational()
                                && subrel.filter == null) {
+                // first check if types are stored in same table
+                if (!subrel.otherType.isStorageCompatible(n.getDbMapping())) {
+                    return false;
+                }
+                // if they are, check if constraints are met
                 return subrel.checkConstraints(this, n);
             }
         }
