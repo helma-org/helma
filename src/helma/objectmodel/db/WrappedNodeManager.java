@@ -39,23 +39,21 @@ public final class WrappedNodeManager {
     }
 
     /**
+     * Get a node given its id and DbMapping
      *
-     *
-     * @param id ...
-     * @param dbmap ...
-     *
-     * @return ...
+     * @param id
+     * @param dbmap
+     * @return
      */
     public Node getNode(String id, DbMapping dbmap) {
         return getNode(new DbKey(dbmap, id));
     }
 
     /**
+     * Get a node given its key
      *
-     *
-     * @param key ...
-     *
-     * @return ...
+     * @param key
+     * @return
      */
     public Node getNode(Key key) {
         try {
@@ -74,13 +72,12 @@ public final class WrappedNodeManager {
     }
 
     /**
+     * Get the node specified by the given id and Relation.
      *
-     *
-     * @param home ...
-     * @param id ...
-     * @param rel ...
-     *
-     * @return ...
+     * @param home
+     * @param id
+     * @param rel
+     * @return
      */
     public Node getNode(Node home, String id, Relation rel) {
         try {
@@ -100,12 +97,12 @@ public final class WrappedNodeManager {
     }
 
     /**
+     * Get the list of nodes contained in the collection of the given
+     * Node specified by the given Relation.
      *
-     *
-     * @param home ...
-     * @param rel ...
-     *
-     * @return ...
+     * @param home
+     * @param rel
+     * @return
      */
     public List getNodes(Node home, Relation rel) {
         try {
@@ -120,12 +117,12 @@ public final class WrappedNodeManager {
     }
 
     /**
+     * Get a list of IDs of nodes contained in the given Node's
+     * collection specified by the given Relation.
      *
-     *
-     * @param home ...
-     * @param rel ...
-     *
-     * @return ...
+     * @param home
+     * @param rel
+     * @return
      */
     public List getNodeIDs(Node home, Relation rel) {
         try {
@@ -140,12 +137,12 @@ public final class WrappedNodeManager {
     }
 
     /**
+     * Count the nodes contained in the given Node's collection
+     * specified by the given Relation.
      *
-     *
-     * @param home ...
-     * @param rel ...
-     *
-     * @return ...
+     * @param home
+     * @param rel
+     * @return
      */
     public int countNodes(Node home, Relation rel) {
         try {
@@ -160,9 +157,9 @@ public final class WrappedNodeManager {
     }
 
     /**
+     * Delete a node from the database
      *
-     *
-     * @param node ...
+     * @param node
      */
     public void deleteNode(Node node) {
         try {
@@ -177,12 +174,12 @@ public final class WrappedNodeManager {
     }
 
     /**
+     * Get a list of property names from the given node.
+     * TODO: this retrieves access names of child nodes, not property names
      *
-     *
-     * @param home ...
-     * @param rel ...
-     *
-     * @return ...
+     * @param home
+     * @param rel
+     * @return
      */
     public Vector getPropertyNames(Node home, Relation rel) {
         try {
@@ -197,115 +194,100 @@ public final class WrappedNodeManager {
     }
 
     /**
+     * Register a node with the object cache using its primary key.
      *
-     *
-     * @param node ...
+     * @param node
      */
     public void registerNode(Node node) {
         nmgr.registerNode(node);
     }
 
     /**
+     * Register a node with the object cache using the given key.
      *
-     *
-     * @param node ...
+     * @param node
      */
     public void registerNode(Node node, Key key) {
         nmgr.registerNode(node, key);
     }
 
     /**
+     * Evict a node from the object cache
      *
-     *
-     * @param node ...
+     * @param node
      */
     public void evictNode(Node node) {
         nmgr.evictNode(node);
     }
 
     /**
+     * Completely evict the object with the given key from the object cache
      *
-     *
-     * @param key ...
+     * @param key
      */
     public void evictNodeByKey(Key key) {
         nmgr.evictNodeByKey(key);
     }
 
     /**
+     * Evict the object with the given key from the object cache
      *
-     *
-     * @param key ...
+     * @param key
      */
     public void evictKey(Key key) {
         nmgr.evictKey(key);
     }
 
     /**
+     * Generate a new id for an object specified by the DbMapping
      *
-     *
-     * @return ...
-     */
-    public String generateID() {
-        return nmgr.idgen.newID();
-    }
-
-    /**
-     *
-     *
-     * @param map ...
-     *
-     * @return ...
+     * @param map the DbMapping to generate an id for
+     * @return a new unique id
      */
     public String generateID(DbMapping map) {
         try {
-            // check if we use internal id generator
             if ((map == null) || !map.isRelational() ||
-                    "[hop]".equalsIgnoreCase(map.getIDgen())) {
-                return nmgr.idgen.newID();
-            }
-            // or if we query max key value
-            else if ((map.getIDgen() == null) ||
-                         "[max]".equalsIgnoreCase(map.getIDgen())) {
+                       "[hop]".equalsIgnoreCase(map.getIDgen())) {
+                // use embedded db id generator
+                return nmgr.db.nextID();
+            } else if ((map.getIDgen() == null) ||
+                       "[max]".equalsIgnoreCase(map.getIDgen())) {
+                // use select max as id generator
                 return nmgr.generateMaxID(map);
             } else {
+                // use db sequence as id generator
                 return nmgr.generateID(map);
             }
 
-            // otherwise, we use an oracle sequence
         } catch (Exception x) {
             if (nmgr.app.debug()) {
                 x.printStackTrace();
             }
-
             throw new RuntimeException(x.toString());
         }
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get an array of all objects in the object cache
      */
     public Object[] getCacheEntries() {
         return nmgr.getCacheEntries();
     }
 
     /**
+     * Write an entry to the application's event log
      *
-     *
-     * @param msg ...
+     * @param msg event message
      */
     public void logEvent(String msg) {
         nmgr.app.logEvent(msg);
     }
 
     /**
+     * Get the DbMapping corresponding to a type name
      *
-     *
-     * @param name ...
-     *
-     * @return ...
+     * @param name a type name
+     * @return the corresponding DbMapping
      */
     public DbMapping getDbMapping(String name) {
         return nmgr.app.getDbMapping(name);
