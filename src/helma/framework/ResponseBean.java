@@ -172,5 +172,19 @@ public class ResponseBean implements Serializable {
 	res.digestDependencies ();
     }
 
+    /////////////////////////////////////
+    // The following are legacy methods used by 
+    // Helma templates (*.hsp files) and shouldn't 
+    // be used otherwise.
+    ////////////////////////////////////
+
+    public void pushStringBuffer  () {
+	res.pushStringBuffer ();
+    }
+
+    public String popStringBuffer () {
+	return res.popStringBuffer ();
+    }
+
 }
 
