@@ -351,7 +351,14 @@ public abstract class AbstractServletClient extends HttpServlet {
 
         Writer writer = response.getWriter();
 
+        writer.write("<html><body><h3>");
+        writer.write("Error in application ");
+        try {
+            writer.write(getApplication().getName());
+        } catch (Exception besafe) {}
+        writer.write("</h3>");
         writer.write(message);
+        writer.write("</body></html>");
         writer.flush();
     }
 
