@@ -30,9 +30,9 @@ public class Relation {
     // public final static int DIRECT = 3;
 
     // the DbMapping of the type we come from
-    public DbMapping ownType;
+    DbMapping ownType;
     // the DbMapping of the prototype we link to, unless this is a "primitive" (non-object) relation
-    public DbMapping otherType;
+    DbMapping otherType;
 
     //  if this relation defines a virtual node, we need to provide a DbMapping for these virtual nodes
     DbMapping virtualMapping;
@@ -40,25 +40,26 @@ public class Relation {
     Relation virtualRelation;
     Relation groupRelation;
 
-    public String propName;
-    protected String columnName;
+    String propName;
+    String columnName;
 
-    public int reftype;
+    int reftype;
 
-    public Constraint[] constraints;
+    Constraint[] constraints;
 
-    public boolean virtual;
-    public boolean readonly;
-    public boolean aggressiveLoading;
-    public boolean aggressiveCaching;
-    public boolean subnodesAreProperties;
-    public String accessor; // db column used to access objects through this relation
-    public String order;
-    public String groupbyorder;
-    public String groupby;
-    public String prototype;
-    public String groupbyprototype;
-    public String filter;
+    boolean virtual;
+    boolean readonly;
+    boolean aggressiveLoading;
+    boolean aggressiveCaching;
+    boolean subnodesAreProperties;
+    String accessor; // db column used to access objects through this relation
+    String order;
+    String groupbyorder;
+    String groupby;
+    String prototype;
+    String groupbyprototype;
+    String filter;
+    int maxSize = 0;
 
     // Relation subnoderelation = null; // additional relation used to filter subnodes for virtual nodes
 
@@ -74,6 +75,7 @@ public class Relation {
 	this.reftype = rel.reftype;
 	this.constraints = rel.constraints;
 	this.accessor = rel.accessor;
+	this.maxSize = rel.maxSize;
 	this.subnodesAreProperties = rel.subnodesAreProperties;
     }
 
@@ -241,6 +243,13 @@ public class Relation {
 	filter = props.getProperty (propName+".filter");
 	if (filter != null && filter.trim().length() == 0)
 	    filter = null;
+	// get max size of collection
+	String max = props.getProperty (propName+".maxSize");
+	if (max != null) try {
+	    maxSize = Integer.parseInt (max);
+	} catch (NumberFormatException nfe) {
+	    maxSize = 0;
+	}
 	// get group by property
 	groupby = props.getProperty (propName+".groupby");
 	if (groupby != null && groupby.trim().length() == 0)
