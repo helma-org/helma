@@ -1217,8 +1217,8 @@ public final class Application implements IPathElement, Runnable {
         // we use the classes from helma.doc-pacakge for introspection.
         // the first time an url like /appname/api/ is parsed, the application is read again
         // parsed for comments and exposed as an IPathElement
-        if (name.equals("api")) {
-            return getCurrentRequestEvaluator().scriptingEngine.getIntrospector();
+        if (name.equals("api") && allThreads.size() > 0) {
+            return ((RequestEvaluator) allThreads.get(0)).scriptingEngine.getIntrospector();
         }
 
         return null;
@@ -1644,14 +1644,14 @@ public final class Application implements IPathElement, Runnable {
      *
      */
     public int countThreads() {
-        return threadgroup.activeCount() - 1;
+        return threadgroup.activeCount();
     }
 
     /**
      *
      */
     public int countEvaluators() {
-        return allThreads.size() - 1;
+        return allThreads.size();
     }
 
     /**
@@ -1665,7 +1665,7 @@ public final class Application implements IPathElement, Runnable {
      *
      */
     public int countActiveEvaluators() {
-        return allThreads.size() - freeThreads.size() - 1;
+        return allThreads.size() - freeThreads.size();
     }
 
     /**
