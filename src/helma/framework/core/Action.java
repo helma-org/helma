@@ -3,7 +3,8 @@
  
 package helma.framework.core;
 
-import java.util.*;
+import java.util.Vector;
+import java.util.Iterator;
 import java.io.*;
 import helma.framework.*;
 import helma.util.Updatable;

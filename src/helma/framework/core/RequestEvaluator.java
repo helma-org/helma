@@ -3,7 +3,9 @@
  
 package helma.framework.core;
 
-import java.util.*;
+import java.util.Vector;
+import java.util.Hashtable;
+import java.util.StringTokenizer;
 import java.io.*;
 import helma.objectmodel.*;
 import helma.objectmodel.db.Transactor;
