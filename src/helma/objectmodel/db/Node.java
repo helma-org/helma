@@ -710,7 +710,7 @@ public final class Node implements INode, Serializable {
 
         // check if current parent candidate matches presciption,
         // if not, try to get one that does.
-        if ((parentInfo != null) && (state != TRANSIENT)) {
+        if (parentInfo != null) {
             for (int i = 0; i < parentInfo.length; i++) {
                 ParentInfo pinfo = parentInfo[i];
                 Node pn = null;
@@ -875,7 +875,7 @@ public final class Node implements INode, Serializable {
             }
             subnodes.add(where, nhandle);
 
-            // check if properties are subnodes (_properties.aresubnodes=true)
+            // check if subnode accessname is set
             if ((dbmap != null) && (node.dbmap != null)) {
                 Relation prel = dbmap.getSubnodeRelation();
 
@@ -2459,7 +2459,11 @@ public final class Node implements INode, Serializable {
                 break;
             }
 
-            if (node.getState() != Node.VIRTUAL) {
+            if (node.getState() == Node.TRANSIENT) {
+                DbMapping map = node.getDbMapping();
+                if (map == null || map.getTypeName() != null)
+                    return node;
+            } else if (node.getState() != Node.VIRTUAL) {
                 return node;
             }
 
