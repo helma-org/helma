@@ -702,7 +702,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
      * It is recommended to leave it on except you suffer severe performance problems and know what you do.
      */
     public boolean doesSubnodeChecking () {
-	return "false".equalsIgnoreCase (props.getProperty ("subnodeChecking"));
+	return !"false".equalsIgnoreCase (props.getProperty ("subnodeChecking"));
     }
 
 }
