@@ -41,7 +41,7 @@ import java.util.*;
  */
 public class Server implements IPathElement, Runnable {
     // version string
-    public static final String version = "1.4.2 (2005/03/09)";
+    public static final String version = "1.4.3 (2005/03/15)";
 
     // static server instance
     private static Server server;
