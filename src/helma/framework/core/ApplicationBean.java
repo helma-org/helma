@@ -4,10 +4,10 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Map;
 
 import helma.objectmodel.INode;
-
 
 public class ApplicationBean implements Serializable {
 
@@ -166,21 +166,20 @@ public class ApplicationBean implements Serializable {
 		app.setNumberOfEvaluators (n+1);
 	}
 
-	public Object getskinfiles () {
-		//FIXME:
-//            ESObject skinz = new ObjectPrototype (null, evaluator);
-//            for (Iterator it = app.getPrototypes().iterator(); it.hasNext(); ) {
-//                Prototype p = (Prototype) it.next ();
-//                ESObject  proto = new ObjectPrototype (null, evaluator);
-//                for (Iterator it2 = p.skins.values().iterator(); it2.hasNext(); ) {
-//                    SkinFile sf = (SkinFile) it2.next ();
-//                    String name = sf.getName ();
-//                    Skin skin = sf.getSkin ();
-//                    proto.putProperty (name, new ESString (skin.getSource ()), name.hashCode ());
-//                }
-//                skinz.putProperty (p.getName (), proto, p.getName ().hashCode ());
-//            }
-            return null;
+	public Map getskinfiles () {
+		Map skinz = new Hashtable ();
+		for (Iterator it = app.getPrototypes().iterator(); it.hasNext(); ) {
+			Prototype p = (Prototype) it.next ();
+			Map proto = new Hashtable ();
+			for (Iterator it2 = p.skins.values().iterator(); it2.hasNext(); ) {
+				SkinFile sf = (SkinFile) it2.next ();
+				String name = sf.getName ();
+				Skin skin = sf.getSkin ();
+				proto.put (name, skin.getSource ());
+			}
+			skinz.put (p.getName (), proto);
+		}
+		return skinz;
 	}
 
 
