@@ -123,7 +123,7 @@ public class Node implements INode, Serializable {
 	setParent (home);
 	// this.dbmap = null;
 	// generate a key for the virtual node that can't be mistaken for a JDBC-URL
-	this.id = Key.getVirtualID (parentmap, parentID, propname);
+	this.id = Key.makeVirtualID (parentmap, parentID, propname);
 	this.name = propname;
 	this.anonymous = false;
 	if (prototype == null)

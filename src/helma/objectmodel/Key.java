@@ -23,7 +23,7 @@ public final class Key implements Serializable {
     public Key (DbMapping dbmap, String id) {
 	this.type = dbmap == null ? "" : dbmap.typename;
 	this.id = id;
-	hash = this.id.hashCode ();
+	hash = id.hashCode ();
     }
 
     public Key (String type, String id) {
@@ -33,19 +33,26 @@ public final class Key implements Serializable {
     }
 
     public boolean equals (Object what) {
-	if (what == this)
-	    return true;
-	if (what == null || !(what instanceof Key))
+	try {
+	    Key k = (Key) what;
+	    return (id == k.id || id.equals (k.id)) && (type == k.type || type.equals (k.type));
+	} catch (Exception x) {
 	    return false;
-	Key other = (Key) what;
-             if (type == null)
-	    return (id.equals (other.id) && other.type == null);
-             else
-                 return (id.equals (other.id) && type.equals (other.type));
+	}
     }
 
     public int hashCode () {
 	return hash;
+    }
+
+    public void recycle (DbMapping dbmap, String id) {
+	this.type = dbmap == null ? "" : dbmap.typename;
+	this.id = id;
+	hash = id.hashCode ();
+    }
+
+    public Key duplicate () {
+	return new Key (type, id);
     }
 
     /**
@@ -54,15 +61,18 @@ public final class Key implements Serializable {
      *   a key that can't be mistaken for a relational db key.
      */
     public Key getVirtualKey (String sid) {
-	return new Key ("", getVirtualID (type, id, sid));
+	return new Key ("", makeVirtualID (type, id, sid));
     }
 
-    public static String getVirtualID (DbMapping pmap, String pid, String sid) {
-	String ptype = pmap == null ? "" : pmap.typename;
-	return ptype+"/"+pid + "*h~v*" + sid;
+    public String getVirtualID (String sid) {
+	return makeVirtualID (type, id, sid);
     }
 
-    public static String getVirtualID (String ptype, String pid, String sid) {
+    public static String makeVirtualID (DbMapping pmap, String pid, String sid) {
+	return makeVirtualID (pmap == null ? "" : pmap.typename, pid, sid);
+    }
+
+    public static String makeVirtualID (String ptype, String pid, String sid) {
 	return ptype+"/"+pid + "*h~v*" + sid;
     }
 

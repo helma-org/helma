@@ -42,7 +42,8 @@ public final class NodeManager {
     public NodeManager (Application app, String dbHome, Properties props) throws DbException {
 	this.app = app;
 	int cacheSize = Integer.parseInt (props.getProperty ("cachesize", "1000"));
-	cache = new CacheMap (cacheSize, 0.8f);
+	// Make actual cache size bigger, since we use it only up to the threshold
+	cache = new CacheMap ((int) Math.ceil (cacheSize/0.75f), 0.75f);
 	IServer.getLogger().log ("set up node cache ("+cacheSize+")");
 
 	safe = new WrappedNodeManager (this);
@@ -139,11 +140,11 @@ public final class NodeManager {
 	if (kstr == null)
 	    return null;
 
-	Key key = new Key (dbmap, kstr);
 
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNode "+kstr);
-
+	Key key = tx.key;
+	key.recycle (dbmap, kstr);
 	// See if Transactor has already come across this node
 	Node node = tx.getVisitedNode (key);
 
@@ -169,10 +170,12 @@ public final class NodeManager {
 	            }
 	        }  // synchronized
 	    }
+	} else {
+	    // cache hit
 	}
 
 	if (node != null)
-	    tx.visitCleanNode (node.getKey (), node);
+	    tx.visitCleanNode (key.duplicate(), node);
 
 	// tx.timer.endEvent ("getNode "+kstr);
 	return node;
@@ -183,21 +186,23 @@ public final class NodeManager {
 	if (kstr == null)
 	    return null;
 
-	Key key;
-	// If what we want is a virtual node create a "synthetic" key
-	if (rel.virtual /*&& home.getState() != INode.VIRTUAL */  || rel.groupby != null)
-	    key = home.getKey ().getVirtualKey (kstr);
-	// if a key for a node from within the DB
-	else
-	    key = new Key (rel.other, rel.getKeyID (home, kstr));
-
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNode "+kstr);
+
+	Key key = tx.key;
+	// If what we want is a virtual node create a "synthetic" key
+	if (rel.virtual /*&& home.getState() != INode.VIRTUAL */  || rel.groupby != null)
+	    key.recycle (null,  home.getKey ().getVirtualID (kstr));
+	// if a key for a node from within the DB
+	else
+	    key.recycle (rel.other, rel.getKeyID (home, kstr));
+
 
 	// See if Transactor has already come across this node
 	Node node = tx.getVisitedNode (key);
 
 	if (node != null && node.getState() != Node.INVALID) {
+// System.err.println ("CACHE HIT THREAD 2");
 	    // tx.timer.endEvent ("getNode "+kstr);
 	    // if we didn't fetch the node via its primary key, refresh the primary key in the cache.
 	    // otherwise we risk cache corroption (duplicate node creation) if the node is fetched by its primary key
@@ -206,7 +211,7 @@ public final class NodeManager {
 	            Node oldnode = (Node) cache.put (node.getKey (), node);
 	            if (oldnode != null && oldnode.getState () != Node.INVALID) {
 	                cache.put (node.getKey (), oldnode);
-	                cache.put (key, oldnode);
+	                cache.put (key.duplicate(), oldnode);
 	                node = oldnode;
 	            }
 	        }
@@ -218,37 +223,43 @@ public final class NodeManager {
 	node = (Node) cache.get (key);
 
 	if (node == null || node.getState() == Node.INVALID) {
+// System.err.println ("CACHE MISS 2");
 	    // The requested node isn't in the shared cache. Synchronize with key to make sure only one
 	    // version is fetched from the database.
 
 	    node = getNodeByRelation (db, tx.txn, home, kstr, rel);
 	    if (node != null) {
 	        Key primKey = node.getKey ();
+	        boolean keyIsPrimary = primKey.equals (key);
 	        synchronized (cache) {
+	            // check if node is already in cache with primary key
 	            Node oldnode = (Node) cache.put (primKey, node);
 	            if (oldnode != null && oldnode.getState () != Node.INVALID) {
 	                cache.put (primKey, oldnode);
-	                cache.put (key, oldnode);
+	                if (!keyIsPrimary)
+	                    cache.put (key.duplicate(), oldnode);
 	                node = oldnode;
-	            }
+	            } else if (!keyIsPrimary) // cache node with secondary key
+	                cache.put (key.duplicate(), node);
 	        } // synchronized
 	    }
-	}
-
-	if (node != null) {
+	} else {
+// System.err.println ("CACHE HIT 2");
 	    // update primary key in cache, see above
 	    if (!rel.usesPrimaryKey ()) {
 	        synchronized (cache) {
 	            Node oldnode = (Node) cache.put (node.getKey (), node);
 	            if (oldnode != null && oldnode.getState () != Node.INVALID) {
 	                cache.put (node.getKey (), oldnode);
-	                cache.put (key, oldnode);
+	                cache.put (key.duplicate(), oldnode);
 	                node = oldnode;
 	            }
 	        }
 	    }
-	    tx.visitCleanNode (node.getKey (), node);
 	}
+
+	if (node != null)
+	    tx.visitCleanNode (key.duplicate(), node);
 
 	// tx.timer.endEvent ("getNode "+kstr);
 	return node;
