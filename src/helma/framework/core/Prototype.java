@@ -24,6 +24,11 @@ public final class Prototype {
 
     String name;
     Application app;
+    File directory;
+    
+    File [] files;
+    long lastDirectoryListing;
+    long checksum;
 
     HashMap code, zippedCode;
     HashMap skins, zippedSkins;
@@ -36,7 +41,7 @@ public final class Prototype {
     DbMapping dbmap;
 
     // lastCheck is the time the prototype's files were last checked
-    private long lastCheck;
+    private long lastChecksum;
     // lastUpdate is the time at which any of the prototype's files were
     // found updated the last time
     private long lastUpdate;
@@ -47,10 +52,11 @@ public final class Prototype {
     // as opposed to a Helma objectmodel node object.
     boolean isJavaPrototype;
 
-    public Prototype (String name, Application app) {
+    public Prototype (String name, File dir, Application app) {
 	// app.logEvent ("Constructing Prototype "+app.getName()+"/"+name);
 	this.app = app;
 	this.name = name;
+	this.directory = dir;
 
 	code = new HashMap ();
 	zippedCode = new HashMap ();
@@ -61,7 +67,7 @@ public final class Prototype {
 	skinMap = new SkinMap ();
 
 	isJavaPrototype = app.isJavaPrototype (name);
-	lastUpdate = lastCheck = 0;
+	lastUpdate = lastChecksum = 0;
     }
 
     /**
@@ -71,6 +77,43 @@ public final class Prototype {
 	return app;
     }
 
+    /**
+     *  Return this prototype's directory.
+     */
+    public File getDirectory () {
+	return directory;
+    }
+
+    /**
+     *  Get the list of files in this prototype's directory
+     */
+    public File[] getFiles () {
+	if (files == null || directory.lastModified() != lastDirectoryListing) {
+	    lastDirectoryListing = directory.lastModified ();
+	    files = directory.listFiles();
+	    if (files == null)
+	        files = new File[0];
+	}
+	return files;
+    }
+
+    /**
+     *  Get a checksum over the files in this prototype's directory
+     */
+    public long getChecksum () {
+    // long start = System.currentTimeMillis();
+	File[] f = getFiles ();
+	long c = 0;
+	for (int i=0; i<f.length; i++)
+	    c += f[i].lastModified();
+	checksum = c;
+    // System.err.println ("CHECKSUM "+name+": "+(System.currentTimeMillis()-start));
+	return checksum;
+    }
+    
+    public boolean isUpToDate () {
+	return checksum == lastChecksum;
+    }
 
     /**
      *  Set the parent prototype of this prototype, i.e. the prototype this
@@ -130,17 +173,6 @@ public final class Prototype {
 	return name;
     }
 
-    /* Updatable[] upd = null;
-    public Updatable[] getUpdatables () {
-	if (upd == null) {
-	    upd = new Updatable[updatables.size()];
-	    int i = 0;
-	    for (Iterator it = updatables.values().iterator(); it.hasNext(); ) {
-	        upd[i++] = (Updatable) it.next();
-	    }
-	}
-	return upd;
-    } */
 
     /**
      *  Get the last time any script has been re-read for this prototype.
@@ -162,17 +194,19 @@ public final class Prototype {
      *  Get the time at which this prototype's scripts were checked
      *  for changes for the last time.
      */
-    public long getLastCheck () {
+    /* public long getLastCheck () {
 	return lastCheck;
-    }
+    } */
 
     /**
      *  Signal that the prototype's scripts have been checked for
      *  changes.
      */
     public void markChecked () {
-	lastCheck = System.currentTimeMillis ();
+	// lastCheck = System.currentTimeMillis ();
+	lastChecksum = checksum;
     }
+
 
     /**
      *  Return a clone of this prototype's actions container. Synchronized
@@ -381,7 +415,7 @@ public final class Prototype {
 
 
 	private void checkForUpdates () {
-	    if (lastCheck < System.currentTimeMillis()- 2000l)
+	    if (/* lastCheck < System.currentTimeMillis()- 2000l*/ !isUpToDate())
 	        app.typemgr.updatePrototype (Prototype.this);
 	    if (lastUpdate > lastSkinmapLoad)
 	        load ();

@@ -24,6 +24,8 @@ public final class TypeManager {
     HashMap zipfiles;
     long lastCheck = 0;
     long appDirMod = 0;
+    // a checksum that changes whenever something in the application files changes.
+    long checksum;
 
     // the hopobject prototype
     Prototype hopobjectProto;
@@ -123,12 +125,16 @@ public final class TypeManager {
 	    }
 	}
 
+	// calculate this app's checksum by adding all checksums from all prototypes
+	long newChecksum = 0;
+
 	// loop through zip files to check for updates
 	for (Iterator it=zipfiles.values ().iterator (); it.hasNext (); ) {
 	    ZippedAppFile zipped = (ZippedAppFile) it.next ();
 	    if (zipped.needsUpdate ()) {
 	        zipped.update ();
 	    }
+	    newChecksum += zipped.lastmod;
 	}
 
 	// loop through prototypes and check if type.properties needs updates
@@ -136,6 +142,8 @@ public final class TypeManager {
 	// have been created in the previous loop.
 	for (Iterator i=prototypes.values().iterator(); i.hasNext(); ) {
 	    Prototype proto = (Prototype) i.next ();
+	    // calculate this app's type checksum
+	    newChecksum += proto.getChecksum();
 	    // update prototype's type mapping
 	    DbMapping dbmap = proto.getDbMapping ();
 	    if (dbmap != null && dbmap.needsUpdate ()) {
@@ -150,7 +158,7 @@ public final class TypeManager {
 	        }
 	    }
 	}
-
+	checksum = newChecksum;
     }
 
     protected void removeZipFile (String zipname) {
@@ -175,6 +183,14 @@ public final class TypeManager {
 	return true;
     }
 
+   /**
+    *  Return a checksum over all files in all prototypes in this application.
+    *  The checksum can be used to find out quickly if any file has changed.
+    */
+    public long getChecksum () {
+	return checksum;
+    }
+
     /**
     *   Get a prototype defined for this application
     */
@@ -184,7 +200,7 @@ public final class TypeManager {
 
     /**
      * Get a prototype, creating it if it doesn't already exist. Note
-     * that it doesn't create a DbMapping - this is left to the 
+     * that it doesn't create a DbMapping - this is left to the
      * caller (e.g. ZippedAppFile).
      */
     public Prototype createPrototype (String typename) {
@@ -196,7 +212,7 @@ public final class TypeManager {
      *  Create a prototype from a directory containing scripts and other stuff
      */
     public Prototype createPrototype (String typename, File dir) {
-	Prototype proto = new Prototype (typename, app);
+	Prototype proto = new Prototype (typename, dir, app);
 	// Create and register type properties file
 	File propfile = new File (dir, "type.properties");
 	SystemProperties props = new SystemProperties (propfile.getAbsolutePath ());
@@ -224,16 +240,16 @@ public final class TypeManager {
     * Update a prototype to the files in the prototype directory.
     */
     public void updatePrototype (Prototype proto) {
-        if (proto == null)
+        if (proto == null || proto.isUpToDate())
             return;
 
         synchronized (proto) {
             // check again because another thread may have checked the
             // prototype while we were waiting for access to the synchronized section
-            if (System.currentTimeMillis() - proto.getLastCheck() < 1000)
-                return;
+            /* if (System.currentTimeMillis() - proto.getLastCheck() < 1000)
+                return; */
 
-            File dir = new File (appDir, proto.getName());
+            File dir = proto.getDirectory ();
             HashSet updateSet = null;
             HashSet createSet = null;
 
@@ -249,10 +265,10 @@ public final class TypeManager {
             }
 
             // next we check if files have been created or removed since last update
-            if (proto.getLastCheck() < dir.lastModified ()) {
-                String[] list = dir.list();
+            // if (proto.getLastCheck() < dir.lastModified ()) {
+                File[] list = proto.getFiles();
                 for (int i=0; i<list.length; i++) {
-                    String fn = list[i];
+                    String fn = list[i].getName();
                     if (!proto.updatables.containsKey (fn)) {
                         if (fn.endsWith (templateExtension) ||
                             fn.endsWith (scriptExtension) ||
@@ -266,7 +282,7 @@ public final class TypeManager {
                         }
                     }
                 }
-            }
+            // }
 
             // if nothing needs to be updated, mark prototype as checked and return
             if (updateSet == null && createSet == null) {
@@ -278,34 +294,34 @@ public final class TypeManager {
             if (createSet != null) {
                 Object[] newFiles = createSet.toArray ();
                 for (int i=0; i<newFiles.length; i++) {
-                    String filename = (String) newFiles[i];
+                    File file = (File) newFiles[i];
+                    String filename = file.getName ();
                     int dot = filename.lastIndexOf (".");
                     String tmpname = filename.substring(0, dot);
-                    File tmpfile = new File (dir, filename);
 
                     if (filename.endsWith (templateExtension)) {
                         try {
-                            Template t = new Template (tmpfile, tmpname, proto);
+                            Template t = new Template (file, tmpname, proto);
                             proto.addTemplate (t);
                         } catch (Throwable x) {
                             app.logEvent ("Error updating prototype: "+x);
                         }
                     } else if (filename.endsWith (scriptExtension)) {
                         try {
-                            FunctionFile ff = new FunctionFile (tmpfile, proto);
+                            FunctionFile ff = new FunctionFile (file, proto);
                             proto.addFunctionFile (ff);
                         } catch (Throwable x) {
                             app.logEvent ("Error updating prototype: "+x);
                         }
                     }  else if (filename.endsWith (actionExtension)) {
                         try {
-                            ActionFile af = new ActionFile (tmpfile, tmpname, proto);
+                            ActionFile af = new ActionFile (file, tmpname, proto);
                             proto.addActionFile (af);
                         } catch (Throwable x) {
                             app.logEvent ("Error updating prototype: "+x);
                         }
                     }  else if (filename.endsWith (skinExtension)) {
-                        SkinFile sf = new SkinFile (tmpfile, tmpname, proto);
+                        SkinFile sf = new SkinFile (file, tmpname, proto);
                         proto.addSkinFile (sf);
                     }
                 }
