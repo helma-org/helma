@@ -601,26 +601,26 @@ public final class NodeManager {
 	// Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("generateID "+map);
 
-	QueryDataSet qds = null;
 	String retval = null;
+	Statement stmt = null;
 	try {
 	    Connection con = map.getConnection ();
 	    String q = "SELECT MAX("+map.getIDField()+") FROM "+map.getTableName();
-	    qds = new QueryDataSet (con, q);
-	    qds.fetchRecords ();
+	    stmt = con.createStatement ();
+	    ResultSet rs = stmt.executeQuery (q);
 	    // check for empty table
-	    if (qds.size () == 0) {
+	    if (!rs.next()) {
 	        long currMax = map.getNewID (0);
 	        retval = Long.toString (currMax);
 	    } else {
-	        long currMax = qds.getRecord (0).getValue (1).asLong ();
+	        long currMax = rs.getLong (1);
 	        currMax = map.getNewID (currMax);
 	        retval = Long.toString (currMax);
 	    }
 	} finally {
 	    // tx.timer.endEvent ("generateID "+map);
-	    if (qds != null) try {
-	        qds.close ();
+	    if (stmt != null) try {
+	        stmt.close ();
 	    } catch (Exception ignore) {}
 	}
 	return retval;
@@ -635,18 +635,18 @@ public final class NodeManager {
 	// Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("generateID "+map);
 
-	QueryDataSet qds = null;
+	Statement stmt = null;
 	String retval = null;
 	try {
 	    Connection con = map.getConnection ();
 	    String q = "SELECT "+map.getIDgen()+".nextval FROM dual";
-	    qds = new QueryDataSet (con, q);
-	    qds.fetchRecords ();
-	    retval = qds.getRecord (0).getValue (1).asString ();
+	    stmt = con.createStatement();
+	    ResultSet rs = stmt.executeQuery (q);
+	    retval = rs.getString (1);
 	} finally {
 	    // tx.timer.endEvent ("generateID "+map);
-	    if (qds != null) try {
-	        qds.close ();
+	    if (stmt != null) try {
+	        stmt.close ();
 	    } catch (Exception ignore) {}
 	}
 	return retval;
@@ -746,31 +746,31 @@ public final class NodeManager {
 	    List retval = new ArrayList ();
 	    DbMapping dbm = rel.otherType;
 
-	    TableDataSet tds =  new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
+	    Connection con = dbm.getConnection ();
+	    Statement stmt = con.createStatement ();
+	    StringBuffer q = dbm.getSelect ();
 	    try {
-
 	        if (home.getSubnodeRelation() != null) {
-	            // HACK: cut off the "where" part of manually set subnoderelation
-	            tds.where (home.getSubnodeRelation().trim().substring(5));
+	            q.append (home.getSubnodeRelation());
 	        } else {
 	            // let relation object build the query
-	            tds.where (rel.buildQuery (home, home.getNonVirtualParent (), null, "", false));
+	            q.append (" where ");
+	            q.append (rel.buildQuery (home, home.getNonVirtualParent (), null, "", false));
 	            if (rel.getOrder () != null)
-	                tds.order (rel.getOrder ());
+	                q.append (" "+rel.getOrder ());
 	        }
 
 	        if (logSql)
-	           app.logEvent ("### getNodes: "+tds.getSelectString());
+	           app.logEvent ("### getNodes: "+q.toString());
 
 	        if (rel.maxSize > 0)
-	            tds.fetchRecords (rel.maxSize);
-	        else
-	            tds.fetchRecords ();
+	            stmt.setMaxRows (rel.maxSize);
 
-	        for (int i=0; i<tds.size (); i++) {
+	        ResultSet rs = stmt.executeQuery (q.toString ());
+
+	        while (rs.next()) {
 	            // create new Nodes.
-	            Record rec = tds.getRecord (i);
-	            Node node = new Node (rel.otherType, rec, safe);
+	            Node node = new Node (rel.otherType, rs, safe);
 	            Key primKey = node.getKey ();
 	            retval.add (new NodeHandle (primKey));
 	            // do we need to synchronize on primKey here?
@@ -784,8 +784,8 @@ public final class NodeManager {
 
 	    } finally {
 	        // tx.timer.endEvent ("getNodes "+home);
-	        if (tds != null)  try {
-	            tds.close ();
+	        if (stmt != null)  try {
+	            stmt.close ();
 	        } catch (Exception ignore) {}
 	    }
 	    return retval;
@@ -804,42 +804,42 @@ public final class NodeManager {
 	} else {
 	    int missing = cache.containsKeys (keys);
 	    if (missing > 0) {
-	        TableDataSet tds =  new TableDataSet (dbm.getConnection (),
-					dbm.getSchema (),
-					dbm.getKeyDef ());
+	        Connection con = dbm.getConnection ();
+	        Statement stmt = con.createStatement ();
+	        StringBuffer q = dbm.getSelect ();
 	        try {
 	            String idfield = rel.groupby != null ? rel.groupby : dbm.getIDField ();
 	            boolean needsQuotes = dbm.needsQuotes (idfield);
-	            StringBuffer whereBuffer = new StringBuffer (idfield);
-	            whereBuffer.append (" in (");
+	            q.append (" where ");
+	            q.append (idfield);
+	            q.append (" in (");
 	            boolean first = true;
 	            for (int i=0; i<keys.length; i++) {
 	                if (keys[i] != null) {
 	                    if (!first)
-	                        whereBuffer.append (',');
+	                        q.append (',');
 	                    else
 	                        first = false;
 	                    if (needsQuotes) {
-	                        whereBuffer.append ("'");
-	                        whereBuffer.append (escape (keys[i].getID ()));
-	                        whereBuffer.append ("'");
+	                        q.append ("'");
+	                        q.append (escape (keys[i].getID ()));
+	                        q.append ("'");
 	                    } else {
-	                        whereBuffer.append (keys[i].getID ());
+	                        q.append (keys[i].getID ());
 	                    }
 	                }
 	            }
-	            whereBuffer.append (')');
+	            q.append (") ");
 	            if (rel.groupby != null) {
-	                whereBuffer.insert (0, rel.renderConstraints (home, home.getNonVirtualParent ()));
+	                q.append (rel.renderConstraints (home, home.getNonVirtualParent ()));
 	                if (rel.order != null)
-	                    whereBuffer.append (" ORDER BY "+rel.order);
+	                    q.append (" ORDER BY "+rel.order);
 	            }
-	            tds.where (whereBuffer.toString ());
 
 	            if (logSql)
-	               app.logEvent ("### prefetchNodes: "+tds.getSelectString());
+	               app.logEvent ("### prefetchNodes: "+q.toString());
 
-	            tds.fetchRecords ();
+	            ResultSet rs = stmt.executeQuery (q.toString());;
 
 	            String groupbyProp = null;
 	            HashMap groupbySubnodes = null;
@@ -852,10 +852,9 @@ public final class NodeManager {
 	            if (rel.accessor != null && !rel.usesPrimaryKey ())
 	                accessProp = dbm.columnNameToProperty (rel.accessor);
 
-	            for (int i=0; i<tds.size (); i++) {
+	            while (rs.next ()) {
 	                // create new Nodes.
-	                Record rec = tds.getRecord (i);
-	                Node node = new Node (dbm, rec, safe);
+	                Node node = new Node (dbm, rs, safe);
 	                Key primKey = node.getKey ();
 
 	                // for grouped nodes, collect subnode lists for the intermediary
@@ -906,8 +905,8 @@ public final class NodeManager {
 	                }
 	            }
 	        } finally {
-	            if (tds != null)  try {
-	                tds.close ();
+	            if (stmt != null)  try {
+	                stmt.close ();
 	            } catch (Exception ignore) {}
 	        }
 	    }
@@ -933,7 +932,7 @@ public final class NodeManager {
 	    Connection con = rel.otherType.getConnection ();
 	    String table = rel.otherType.getTableName ();
 
-	    QueryDataSet qds = null;
+	    Statement stmt = null;
 	    try {
 	
 	        String q = null;
@@ -948,18 +947,18 @@ public final class NodeManager {
 	        if (logSql)
 	            app.logEvent ("### countNodes: "+q);
 	
-	        qds = new QueryDataSet (con, q);
+	        stmt = con.createStatement();
 
-	        qds.fetchRecords ();
-	        if (qds.size () == 0)
+	        ResultSet rs = stmt.executeQuery (q);
+	        if (!rs.next())
 	            retval = 0;
 	        else
-	            retval = qds.getRecord (0).getValue (1).asInt ();
+	            retval = rs.getInt (1);
 
 	    } finally {
 	        // tx.timer.endEvent ("countNodes "+home);
-	        if (qds != null) try {
-	            qds.close ();
+	        if (stmt != null) try {
+	            stmt.close ();
 	        } catch (Exception ignore) {}
 	    }
 	    return rel.maxSize > 0 ? Math.min (rel.maxSize, retval) : retval;
@@ -985,27 +984,26 @@ public final class NodeManager {
 	    Connection con = rel.otherType.getConnection ();
 	    String table = rel.otherType.getTableName ();
 
-	    QueryDataSet qds = null;
+	    Statement stmt = null;
 
 	    try {
 	        String q = "SELECT "+namefield+" FROM "+table+" ORDER BY "+namefield;
-	        qds = new QueryDataSet (con, q);
+	        stmt = con.createStatement ();
 
 	        if (logSql)
-	           app.logEvent ("### getPropertyNames: "+qds.getSelectString());
+	           app.logEvent ("### getPropertyNames: "+q);
 
-	        qds.fetchRecords ();
-	        for (int i=0; i<qds.size (); i++) {
-	            Record rec = qds.getRecord (i);
-	            String n = rec.getValue (1).asString ();
+	        ResultSet rs = stmt.executeQuery (q);
+	        while (rs.next()) {
+	            String n = rs.getString (1);
 	            if (n != null)
 	                retval.addElement (n);
 	        }
 
 	    } finally {
 	        // tx.timer.endEvent ("getNodeIDs "+home);
-	        if (qds != null) try {
-	            qds.close ();
+	        if (stmt != null) try {
+	            stmt.close ();
 	        } catch (Exception ignore) {}
 	    }
 	    return retval;
@@ -1031,26 +1029,31 @@ public final class NodeManager {
 	} else {
 	    String idfield =dbm.getIDField ();
 
-	    TableDataSet tds = null;
+	    Statement stmt = null;
 	    try {
-	        tds = new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
-	        tds.where (idfield+" = "+kstr);
+	        Connection con = dbm.getConnection ();
+	        stmt = con.createStatement ();
+
+	        StringBuffer q = dbm.getSelect ();
+	        q.append (" where ");
+	        q.append (idfield);
+	        q.append (" = ");
+	        q.append (kstr);
 
 	        if (logSql)
-	            app.logEvent ("### getNodeByKey: "+tds.getSelectString());
+	            app.logEvent ("### getNodeByKey: "+q.toString());
 
-	        tds.fetchRecords ();
+	        ResultSet rs = stmt.executeQuery (q.toString());
 
-	        if (tds.size () == 0)
+	        if (!rs.next ())
 	            return null;
-	        if (tds.size () > 1)
+	        if (!rs.isLast ())
 	            throw new RuntimeException ("More than one value returned by query.");
-	        Record rec = tds.getRecord (0);
-	        node = new Node (dbm, rec, safe);
+	        node = new Node (dbm, rs, safe);
 
 	    } finally {
-	        if (tds != null) try {
-	            tds.close ();
+	        if (stmt != null) try {
+	            stmt.close ();
 	        } catch (Exception ignore) {}
 	    }
 	}
@@ -1086,35 +1089,35 @@ public final class NodeManager {
 	    return node;
 
 	} else {
-	    TableDataSet tds = null;
+	    Statement stmt = null;
 	    try {
 	        DbMapping dbm = rel.otherType;
 	
-	        tds = new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
-	
+	        Connection con = dbm.getConnection ();
+	        StringBuffer q = dbm.getSelect ();
 	        if (home.getSubnodeRelation () != null) {
 	            // combine our key with the constraints in the manually set subnode relation
-	            StringBuffer where = new StringBuffer ();
-	            where.append (rel.accessor);
-	            where.append (" = '");
-	            where.append (escape(kstr));
-	            where.append ("' AND ");
-                          where.append (home.getSubnodeRelation ().trim().substring(5).trim());
-	            tds.where (where.toString ());
-	        } else
-	            tds.where (rel.buildQuery (home, home.getNonVirtualParent (), kstr, "", false));
-
+                    q.append (home.getSubnodeRelation ());
+	            q.append (" and ");
+	            q.append (rel.accessor);
+	            q.append (" = '");
+	            q.append (escape(kstr));
+	            q.append ("'");
+	        } else {
+	            q.append (" where ");
+	            q.append (rel.buildQuery (home, home.getNonVirtualParent (), kstr, "", false));
+	        }
 	        if (logSql)
-	            app.logEvent ("### getNodeByRelation: "+tds.getSelectString());
+	            app.logEvent ("### getNodeByRelation: "+q.toString());
 
-	        tds.fetchRecords ();
+	        stmt = con.createStatement ();
+	        ResultSet rs = stmt.executeQuery (q.toString());
 
-	        if (tds.size () == 0)
+	        if (!rs.next ())
 	            return null;
-	        if (tds.size () > 1)
+	        if (!rs.isLast ())
 	            throw new RuntimeException ("More than one value returned by query.");
-	        Record rec = tds.getRecord (0);
-	        node = new Node (rel.otherType, rec, safe);
+	        node = new Node (rel.otherType, rs, safe);
 
 	        // Check if node is already cached with primary Key.
 	        if (!rel.usesPrimaryKey()) {
@@ -1126,8 +1129,8 @@ public final class NodeManager {
 	        }
 
 	    } finally {
-	        if (tds != null) try {
-	            tds.close ();
+	        if (stmt != null) try {
+	            stmt.close ();
 	        } catch (Exception ignore) {}
 	    }
 	}

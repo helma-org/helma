@@ -35,6 +35,9 @@ public final class Relation {
     // the DbMapping of the prototype we link to, unless this is a "primitive" (non-object) relation
     DbMapping otherType;
 
+    // the column type, as defined in java.sql.Types
+    int columnType;
+
     //  if this relation defines a virtual node, we need to provide a DbMapping for these virtual nodes
     DbMapping virtualMapping;
 
@@ -238,6 +241,14 @@ public final class Relation {
      */
     public String getPropName () {
 	return propName;
+    }
+
+    public void setColumnType (int ct) {
+	columnType = ct;
+    }
+
+    public int getColumnType () {
+	return columnType;
     }
 
 

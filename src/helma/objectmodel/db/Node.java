@@ -12,11 +12,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.io.*;
-import java.sql.Types;
+import java.sql.*;
 import helma.objectmodel.*;
 import helma.util.*;
 import helma.framework.IPathElement;
-import com.workingdogs.village.*;
+// import com.workingdogs.village.*;
 
 
 /**
@@ -234,16 +234,15 @@ public final class Node implements INode, Serializable {
     /**
      * Constructor used for nodes being stored in a relational database table.
      */
-    public Node (DbMapping dbm, Record rec, WrappedNodeManager nmgr) throws DataSetException {
+    public Node (DbMapping dbm, ResultSet rs, WrappedNodeManager nmgr) throws SQLException {
 
 	this.nmgr = nmgr;
 	// see what prototype/DbMapping this object should use
 	dbmap = dbm;
 	String protoField= dbmap.getPrototypeField ();
 	if (protoField != null) {
-	    Value val = rec.getValue (protoField);
-	    if (val != null && !val.isNull ()) {
-	        String protoName = val.asString ();
+	    String protoName = rs.getString (protoField);
+	    if (protoName != null) {
 	        dbmap = nmgr.getDbMapping (protoName);
 	        if (dbmap == null) {
 	            // invalid prototype name!
@@ -254,10 +253,10 @@ public final class Node implements INode, Serializable {
 	}
 	setPrototype (dbmap.getTypeName ());
 
-	id = rec.getValue (dbmap.getIDField ()).asString ();
+	id = rs.getString (dbmap.getIDField ());
 	// checkWriteLock ();
 	String nameField =  dbmap.getNameField ();
-	name = nameField == null ? id : rec.getValue (nameField).asString ();
+	name = nameField == null ? id : rs.getString (nameField);
 	if (name == null || name.length() == 0)
 	    name = dbmap.getTypeName() + " " + id;
 	// set parent for user objects to internal userroot node
@@ -276,60 +275,61 @@ public final class Node implements INode, Serializable {
 	    if (rel.reftype != Relation.PRIMITIVE && rel.reftype != Relation.REFERENCE)
 	        continue;
 
-	    Value val = rec.getValue (rel.getDbField ());
+	    // Value val = rec.getValue (rel.getDbField ());
 
 	    // if (val.isNull ())
 	    //     continue;
 
 	    Property newprop = new Property (rel.propName, this);
 
-	    if (val.isNull ())
-	        newprop.setStringValue (null);
-	    else switch (val.type ()) {
+	    // if (val.isNull ())
+	    //     newprop.setStringValue (null);
+	    // else 
+	    switch (rel.getColumnType()) {
 
 	        case Types.BIT:
-	            newprop.setBooleanValue (val.asBoolean());
+	            newprop.setBooleanValue (rs.getBoolean(rel.getDbField()));
 	            break;
 
 	        case Types.TINYINT:
 	        case Types.BIGINT:
 	        case Types.SMALLINT:
 	        case Types.INTEGER:
-	            newprop.setIntegerValue (val.asLong());
+	            newprop.setIntegerValue (rs.getLong(rel.getDbField()));
 	            break;
 
 	        case Types.REAL:
 	        case Types.FLOAT:
 	        case Types.DOUBLE:
-	            newprop.setFloatValue (val.asDouble());
+	            newprop.setFloatValue (rs.getDouble(rel.getDbField()));
 	            break;
 
 	        case Types.DECIMAL:
 	        case Types.NUMERIC:
-	            java.math.BigDecimal num = val.asBigDecimal ();
+	            java.math.BigDecimal num = rs.getBigDecimal (rel.getDbField());
 	            if (num.scale() > 0)
-	                newprop.setFloatValue (val.asDouble());
+	                newprop.setFloatValue (rs.getDouble(rel.getDbField()));
 	            else
-	                newprop.setIntegerValue (val.asLong());
+	                newprop.setIntegerValue (rs.getLong(rel.getDbField()));
 	            break;
 
 	        case Types.LONGVARBINARY:
 	        case Types.VARBINARY:
 	        case Types.BINARY:
-	            newprop.setStringValue (val.asString());
+	            newprop.setStringValue (rs.getString(rel.getDbField()));
 	            break;
 
 	        case Types.LONGVARCHAR:
 	        case Types.CHAR:
 	        case Types.VARCHAR:
 	        case Types.OTHER:
-	            newprop.setStringValue (val.asString());
+	            newprop.setStringValue (rs.getString(rel.getDbField()));
 	            break;
 
 	        case Types.DATE:
 	        case Types.TIME:
 	        case Types.TIMESTAMP:
-	            newprop.setDateValue (val.asTimestamp());
+	            newprop.setDateValue (rs.getTimestamp(rel.getDbField()));
 	            break;
 
 	        case Types.NULL:
@@ -338,9 +338,12 @@ public final class Node implements INode, Serializable {
 	            // continue;
 
 	        default:
-	            newprop.setStringValue (val.asString());
+	            newprop.setStringValue (rs.getString(rel.getDbField()));
 	            break;
 	    }
+
+	    if (rs.wasNull())
+	        newprop.setStringValue (null);
 
 	    if(propMap == null)
 	        propMap = new Hashtable ();

@@ -52,6 +52,10 @@ public final class DbMapping implements Updatable {
     HashMap prop2db;
      // Map of db columns to Relations objects
     HashMap db2prop;
+    // prerendered list of columns to fetch from db
+    String columns = null;
+    // pre-rendered select statement
+    String select = null;
 
     // db field used as primary key
     private String idField;
@@ -135,7 +139,9 @@ public final class DbMapping implements Updatable {
      * for rewire to work, all other db mappings must have been initialized and registered.
      */
     public synchronized void update () {
-
+	// reset columns
+	columns = select = null;
+	// read in properties
 	table = props.getProperty ("_table");
 	idgen = props.getProperty ("_idgen");
 	// see if there is a field which specifies the prototype of objects, if different prototypes
@@ -552,16 +558,66 @@ public final class DbMapping implements Updatable {
      * Return a Village Schema object for this DbMapping.
      */
     public synchronized Schema getSchema () throws ClassNotFoundException, SQLException, DataSetException {
+        if (!isRelational ())
+            throw new SQLException ("Can't get Schema for non-relational data mapping");
+        if (source == null && parentMapping != null)
+            return parentMapping.getSchema ();
+        // Use local variable s to avoid synchronization (schema may be nulled elsewhere)
+        Schema s = schema;
+        if (s != null)
+            return s;
+        schema = new Schema ().schema (getConnection (), table, "*");
+        return schema;
+    }
+
+
+    /**
+     * Return a Village Schema object for this DbMapping.
+     */
+    public synchronized String getColumns() throws ClassNotFoundException, SQLException {
 	if (!isRelational ())
 	    throw new SQLException ("Can't get Schema for non-relational data mapping");
 	if (source == null && parentMapping != null)
-	    return parentMapping.getSchema ();
+	    return parentMapping.getColumns ();
 	// Use local variable s to avoid synchronization (schema may be nulled elsewhere)
-	Schema s = schema;
-	if (s != null)
-	    return s;
-	schema = new Schema ().schema (getConnection (), table, "*");
-	return schema;
+	if (columns == null) {
+	    // we do two things here: set the SQL type on the Relation mappings
+	    // and build a string of column names.
+	    Connection con = getConnection ();
+	    Statement stmt = con.createStatement ();
+	    ResultSet rs = stmt.executeQuery ("select * from "+getTableName()+" where 1 = 0");
+	    if (rs == null)
+	        throw new SQLException ("Error retrieving DB scheme for "+this);
+	    ResultSetMetaData meta = rs.getMetaData ();
+	    // ok, we have the meta data, now loop through mapping...
+	    // StringBuffer cbuffer = new StringBuffer (getIDField ());
+	    for (Iterator i=getDBPropertyIterator(); i.hasNext(); ) {
+	        Relation rel = (Relation) i.next ();
+	        if (rel.reftype != Relation.PRIMITIVE && rel.reftype != Relation.REFERENCE)
+	            continue;
+	        // cbuffer.append (",");
+	        // cbuffer.append (rel.getDbField());
+	        int idx = rs.findColumn (rel.getDbField());
+	        rel.setColumnType (meta.getColumnType (idx));
+	    }
+	    // columns = cbuffer.toString();
+	    columns = " * ";
+	}
+	return columns;
+    }
+
+    public StringBuffer getSelect () throws SQLException, ClassNotFoundException {
+	String sel = select;
+	if (sel != null)
+	    return new StringBuffer (sel);
+	StringBuffer s = new StringBuffer ("select ");
+	s.append (getColumns ());
+	s.append (" from ");
+	s.append (table);
+	s.append (" ");
+	// cache rendered string for later calls.
+	select = s.toString();
+	return s;
     }
 
     /**
@@ -569,14 +625,16 @@ public final class DbMapping implements Updatable {
      *  to be quoted in SQL queries.
      */
     public boolean needsQuotes (String columnName) throws SQLException {
+	if (table == null && parentMapping != null)
+	    return parentMapping.needsQuotes (columnName);
 	try {
-	    Schema s = getSchema ();
-	    if (s == null)
+	    Relation rel = (Relation) db2prop.get (columnName);
+	    if (rel == null)
 	        throw new SQLException ("Error retrieving relational schema for "+this);
-	    Column c = s.getColumn (columnName);
-	    if (c == null)
-	        throw new SQLException ("Column "+columnName+" not found in "+this);
-	    switch (c.typeEnum()) {
+	    // make sure columns are initialized and up to date
+	    if (columns == null)
+	        getColumns();
+	    switch (rel.getColumnType()) {
 	        case Types.CHAR:
 	        case Types.VARCHAR:
 	        case Types.LONGVARCHAR:
