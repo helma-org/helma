@@ -84,6 +84,10 @@ public class MapWrapper extends ScriptableObject {
         if (obj != null && !(obj instanceof Scriptable)) {
             Context cx = Context.getCurrentContext();
 
+            if (obj instanceof String) {
+                return obj;
+            }
+
             return cx.toObject(obj, core.global);
         }
 
