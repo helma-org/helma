@@ -148,45 +148,42 @@ public final class Node implements INode, Serializable {
      * Constructor used for nodes being stored in a relational database table.
      */
     public Node(DbMapping dbm, ResultSet rs, DbColumn[] columns, WrappedNodeManager nmgr)
-         throws SQLException, IOException {
+            throws SQLException, IOException {
         this.nmgr = nmgr;
 
         // see what prototype/DbMapping this object should use
         dbmap = dbm;
 
-        String protoField = dbmap.getPrototypeField();
-
-        if (protoField != null) {
-            String protoName = rs.getString(protoField);
-
-            if (protoName != null) {
-                dbmap = nmgr.getDbMapping(protoName);
-
-                if (dbmap == null) {
-                    // invalid prototype name!
-                    System.err.println("Warning: Invalid prototype name: " + protoName +
-                                       " - using default");
-                    dbmap = dbm;
-                }
-            }
-        }
-
-        setPrototype(dbmap.getTypeName());
-
-        id = rs.getString(dbmap.getIDField());
-
-        // checkWriteLock ();
-        String nameField = dbmap.getNameField();
-
-        name = (nameField == null) ? id : rs.getString(nameField);
-
-        if ((name == null) || (name.length() == 0)) {
-            name = dbmap.getTypeName() + " " + id;
-        }
-
         created = lastmodified = System.currentTimeMillis();
 
         for (int i = 0; i < columns.length; i++) {
+
+            // set prototype?
+            if (columns[i].isPrototypeField()) {
+                String protoName = rs.getString(i+1);
+
+                if (protoName != null) {
+                    dbmap = nmgr.getDbMapping(protoName);
+
+                    if (dbmap == null) {
+                        // invalid prototype name!
+                        System.err.println("Warning: Invalid prototype name: " + protoName +
+                                       " - using default");
+                        dbmap = dbm;
+                    }
+                }
+            }
+
+            // set id?
+            if (columns[i].isIdField()) {
+                id = rs.getString(i+1);
+            }
+
+            // set name?
+            if (columns[i].isNameField()) {
+                name = rs.getString(i+1);
+            }
+
             Relation rel = columns[i].getRelation();
 
             if ((rel == null) ||
@@ -199,7 +196,7 @@ public final class Node implements INode, Serializable {
 
             switch (columns[i].getType()) {
                 case Types.BIT:
-                    newprop.setBooleanValue(rs.getBoolean(columns[i].getName()));
+                    newprop.setBooleanValue(rs.getBoolean(i+1));
 
                     break;
 
@@ -207,21 +204,21 @@ public final class Node implements INode, Serializable {
                 case Types.BIGINT:
                 case Types.SMALLINT:
                 case Types.INTEGER:
-                    newprop.setIntegerValue(rs.getLong(columns[i].getName()));
+                    newprop.setIntegerValue(rs.getLong(i+1));
 
                     break;
 
                 case Types.REAL:
                 case Types.FLOAT:
                 case Types.DOUBLE:
-                    newprop.setFloatValue(rs.getDouble(columns[i].getName()));
+                    newprop.setFloatValue(rs.getDouble(i+1));
 
                     break;
 
                 case Types.DECIMAL:
                 case Types.NUMERIC:
 
-                    BigDecimal num = rs.getBigDecimal(columns[i].getName());
+                    BigDecimal num = rs.getBigDecimal(i+1);
 
                     if (num == null) {
                         break;
@@ -237,7 +234,7 @@ public final class Node implements INode, Serializable {
 
                 case Types.VARBINARY:
                 case Types.BINARY:
-                    newprop.setStringValue(rs.getString(columns[i].getName()));
+                    newprop.setStringValue(rs.getString(i+1));
 
                     break;
 
@@ -245,9 +242,9 @@ public final class Node implements INode, Serializable {
                 case Types.LONGVARCHAR:
 
                     try {
-                        newprop.setStringValue(rs.getString(columns[i].getName()));
+                        newprop.setStringValue(rs.getString(i+1));
                     } catch (SQLException x) {
-                        Reader in = rs.getCharacterStream(columns[i].getName());
+                        Reader in = rs.getCharacterStream(i+1);
                         char[] buffer = new char[2048];
                         int read = 0;
                         int r = 0;
@@ -272,22 +269,22 @@ public final class Node implements INode, Serializable {
                 case Types.CHAR:
                 case Types.VARCHAR:
                 case Types.OTHER:
-                    newprop.setStringValue(rs.getString(columns[i].getName()));
+                    newprop.setStringValue(rs.getString(i+1));
 
                     break;
 
                 case Types.DATE:
-                    newprop.setDateValue(rs.getDate(columns[i].getName()));
+                    newprop.setDateValue(rs.getDate(i+1));
 
                     break;
 
                 case Types.TIME:
-                    newprop.setDateValue(rs.getTime(columns[i].getName()));
+                    newprop.setDateValue(rs.getTime(i+1));
 
                     break;
 
                 case Types.TIMESTAMP:
-                    newprop.setDateValue(rs.getTimestamp(columns[i].getName()));
+                    newprop.setDateValue(rs.getTimestamp(i+1));
 
                     break;
 
@@ -298,7 +295,7 @@ public final class Node implements INode, Serializable {
 
                 // continue;
                 default:
-                    newprop.setStringValue(rs.getString(columns[i].getName()));
+                    newprop.setStringValue(rs.getString(i+1));
 
                     break;
             }
@@ -324,6 +321,15 @@ public final class Node implements INode, Serializable {
 
             // mark property as clean, since it's fresh from the db
             newprop.dirty = false;
+        }
+
+        // set the prototype from the dbmap,
+        // which was possibly modified while reading the resultset
+        setPrototype(dbmap.getTypeName());
+
+        // If name was not set from resultset, create a synthetical name now.
+        if ((name == null) || (name.length() == 0)) {
+            name = dbmap.getTypeName() + " " + id;
         }
 
         // again set created and lastmodified. This is because
@@ -1585,7 +1591,7 @@ public final class Node implements INode, Serializable {
 
             // do not fetch subnodes for nodes that haven't been persisted yet or are in
             // the process of being persistified - except if "manual" subnoderelation is set.
-            if (subRel.aggressiveLoading &&
+            if (subRel.aggressiveLoading && subRel.getGroup() == null &&
                     (((state != TRANSIENT) && (state != NEW)) ||
                     (subnodeRelation != null))) {
                 // we don't want to load *all* nodes if we just want to count them

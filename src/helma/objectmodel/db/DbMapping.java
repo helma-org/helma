@@ -24,6 +24,7 @@ import java.sql.*;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 
@@ -836,15 +837,19 @@ public final class DbMapping implements Updatable {
 
             // ok, we have the meta data, now loop through mapping...
             int ncols = meta.getColumnCount();
-
-            columns = new DbColumn[ncols];
+            ArrayList list = new ArrayList(ncols);
 
             for (int i = 0; i < ncols; i++) {
                 String colName = meta.getColumnName(i + 1);
                 Relation rel = columnNameToRelation(colName);
 
-                columns[i] = new DbColumn(colName, meta.getColumnType(i + 1), rel);
+                DbColumn col = new DbColumn(colName, meta.getColumnType(i + 1), rel, this);
+                if (col.isMapped()) {
+                    list.add(col);
+                }
             }
+            columns = new DbColumn[list.size()];
+            columns = (DbColumn[]) list.toArray(columns);
         }
 
         return columns;
@@ -862,6 +867,7 @@ public final class DbMapping implements Updatable {
      */
     public DbColumn getColumn(String columnName)
                        throws ClassNotFoundException, SQLException {
+
         DbColumn col = (DbColumn) columnMap.get(columnName);
 
         if (col == null) {
@@ -879,10 +885,6 @@ public final class DbMapping implements Updatable {
                 }
             }
 
-            if (col == null) {
-                throw new SQLException("Column " + columnName + " not found in " + this);
-            }
-
             columnMap.put(columnName, col);
         }
 
@@ -890,12 +892,13 @@ public final class DbMapping implements Updatable {
     }
 
     /**
+     *  Get a StringBuffer initialized to the first part of the select statement
+     *  for objects defined by this DbMapping
      *
+     * @return the StringBuffer containing the first part of the select query
      *
-     * @return ...
-     *
-     * @throws SQLException ...
-     * @throws ClassNotFoundException ...
+     * @throws SQLException if the table meta data could not be retrieved
+     * @throws ClassNotFoundException if the JDBC driver class was not found
      */
     public StringBuffer getSelect() throws SQLException, ClassNotFoundException {
         String sel = selectString;
@@ -904,7 +907,22 @@ public final class DbMapping implements Updatable {
             return new StringBuffer(sel);
         }
 
-        StringBuffer s = new StringBuffer("SELECT * FROM ");
+        StringBuffer s = new StringBuffer("SELECT ");
+
+        DbColumn[] cols = columns;
+
+        if (cols == null) {
+            cols = getColumns();
+        }
+
+        for (int i = 0; i < cols.length; i++) {
+            s.append(cols[i].getName());
+            if (i < cols.length-1) {
+                s.append(',');
+            }
+        }
+
+        s.append(" FROM ");
 
         s.append(getTableName());
         s.append(" ");
@@ -973,6 +991,11 @@ public final class DbMapping implements Updatable {
 
         try {
             DbColumn col = getColumn(columnName);
+
+            // This is not a mapped column. In case of doubt, add quotes.
+            if (col == null) {
+                return true;
+            }
 
             switch (col.getType()) {
                 case Types.CHAR:

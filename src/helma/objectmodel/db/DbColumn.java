@@ -26,10 +26,16 @@ public final class DbColumn {
     private final int type;
     private final Relation relation;
 
+    private final boolean isId;
+    private final boolean isPrototype;
+    private final boolean isName;
+
+    private final boolean isMapped;
+
     /**
      *  Constructor
      */
-    public DbColumn(String name, int type, Relation rel) {
+    public DbColumn(String name, int type, Relation rel, DbMapping dbmap) {
         this.name = name;
         this.type = type;
         this.relation = rel;
@@ -37,6 +43,12 @@ public final class DbColumn {
         if (relation != null) {
             relation.setColumnType(type);
         }
+
+        isId = name.equalsIgnoreCase(dbmap.getIDField());
+        isPrototype = name.equalsIgnoreCase(dbmap.getPrototypeField());
+        isName = name.equalsIgnoreCase(dbmap.getNameField());
+
+        isMapped = relation != null || isId || isPrototype || isName;
     }
 
     /**
@@ -59,4 +71,33 @@ public final class DbColumn {
     public Relation getRelation() {
         return relation;
     }
+
+    /**
+     *  Returns true if this column serves as ID field for the prototype.
+     */
+    public boolean isIdField() {
+        return isId;
+    }
+
+    /**
+     *  Returns true if this column serves as prototype field for the prototype.
+     */
+    public boolean isPrototypeField() {
+        return isPrototype;
+    }
+
+    /**
+     *  Returns true if this column serves as name field for the prototype.
+     */
+    public boolean isNameField() {
+        return isName;
+    }
+
+    /**
+     * Returns true if this field is mapped by the prototype's db mapping.
+     */
+    public boolean isMapped() {
+        return isMapped;
+    }
+
 }
