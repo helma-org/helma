@@ -182,10 +182,10 @@ public class Skin {
 	        arguments[0] = par;
 
 	        if (handler != null) {
-	            // not a macro handled by global - check handler object
+	            // not a macro handled by global - need to find handler object
 	            if (handlerNode != null) {
 	                // was called with this object - check it or its parents for matching prototype
-	                if (!handler.equalsIgnoreCase (handlerNode.getPrototypeName ())) {
+	                if (!handler.equalsIgnoreCase ("hopobject") && !handler.equalsIgnoreCase (handlerNode.getPrototypeName ())) {
 	                    // the handler object is not what we want
 	                    INode n = handlerNode.getNode();
 	                    while (n != null) {
@@ -219,7 +219,9 @@ public class Skin {
 	        }
 
 	        if (handlerObject != null) {
-	            handlerObject.doIndirectCall (reval.evaluator, handlerObject, name+"_macro", arguments);
+	            ESValue v = handlerObject.doIndirectCall (reval.evaluator, handlerObject, name+"_macro", arguments);
+	            if (v != ESUndefined.theUndefined && v != ESNull.theNull)
+	                reval.res.write (v);
 	        } else {
 	            String msg = "[HopMacro unhandled: "+handler+"."+name+"]";
 	            reval.res.write (" "+msg+" ");
