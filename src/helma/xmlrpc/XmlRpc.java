@@ -37,6 +37,7 @@ public abstract class XmlRpc extends HandlerBase {
         saxDrivers.put ("oracle1", "oracle.xml.parser.XMLParser");
         saxDrivers.put ("oracle2", "oracle.xml.parser.v2.SAXParser");
         saxDrivers.put ("openxml", "org.openxml.parser.XMLSAXParser");
+        saxDrivers.put ("minml", "uk.co.wilson.xml.MinML");
     }
 
 
@@ -83,12 +84,14 @@ public abstract class XmlRpc extends HandlerBase {
     // mapping between java encoding names and "real" names used in XML prolog.
     // if you use an encoding not listed here send feedback to xmlrpc@helma.org
 
+
     static String encoding = "ISO8859_1";
     static Properties encodings = new Properties ();
     static {
 	encodings.put ("UTF8", "UTF-8");
 	encodings.put ("ISO8859_1", "ISO-8859-1");
     }
+    private final char[] encdecl = {'e','n','c','o','d','i','n','g','='};
 
 
     /**
@@ -188,9 +191,49 @@ public abstract class XmlRpc extends HandlerBase {
 	parser.setDocumentHandler (this);
 	parser.setErrorHandler (this);
 	
-	parser.parse (new InputSource (is));
+	parser.parse (new InputSource (getReader (is)));
 	if (debug)
 	    System.err.println ("Spent "+(System.currentTimeMillis () - now)+" millis parsing");
+    }
+
+    public Reader getReader (InputStream is) throws IOException {
+	if (is.markSupported ()) {
+	    // here we try to get to the encoding declaration in the XML declaration.
+	    // we deliberately don't do it right, instead we just scan the first 64 characters
+	    // for 'encoding="..."'. Actually this should be done by the parser, but it seems only
+	    // the 2+MB parsers like Xerces do.
+	    is.mark (64);
+	    int matchidx = 0;
+	    boolean seenquote = false;
+	    StringBuffer encb = new StringBuffer (16);
+	    for (int i=0; i<64; i++) {
+	        int c = is.read();
+	        if (matchidx < encdecl.length) {
+	            if (c == encdecl[matchidx])
+	                matchidx ++;
+	        } else if ('"' == c || '\'' == c) {
+	            if (!seenquote)
+	                seenquote = true;
+	            else {
+	                is.reset ();
+	                if (encb.length() > 0) {
+	                    try {
+	                        return new InputStreamReader (is, encb.toString ());
+	                    } catch (UnsupportedEncodingException ue) {
+	                        System.err.println ("Warning: guessed invalid encoding from XML stream: "+ue.getMessage ());
+	                        return new InputStreamReader (is);
+	                    }
+	                } else {
+	                    return new InputStreamReader (is);
+	                }
+	            }
+	        } else if (seenquote) {
+	            encb.append ((char) c);
+	        }
+	    }
+	    is.reset ();
+	}
+	return new InputStreamReader (is);
     }
 
     /**
