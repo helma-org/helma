@@ -9,7 +9,7 @@ import java.util.Date;
 /**
  * This represents a MIME part of a HTTP file upload
  */
- 
+
 public class MimePart implements Serializable {
 
     public final String name;
@@ -26,6 +26,18 @@ public class MimePart implements Serializable {
 	this.content = content == null ? new byte[0] : content;
 	this.contentType = contentType;
 	contentLength = content == null ? 0 : content.length;
+    }
+
+    public String getContentType () {
+	return contentType;
+    }
+
+    public int getContentLength () {
+	return contentLength;
+    }
+
+    public String getName () {
+	return name;
     }
 
     public byte[] getContent () {
@@ -75,10 +87,5 @@ public class MimePart implements Serializable {
 	    return null;
 	}
     }
-
-    public String getName () {
-	return name;
-    }
-
 
 }
