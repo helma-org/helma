@@ -140,9 +140,9 @@ public final class Application implements IPathElement, Runnable {
     // the name under which this app serves XML-RPC requests. Defaults to the app name
     private String xmlrpcHandlerName;
 
-    // the list of cron jobs
+    // the list of currently active cron jobs
     private Map activeCronJobs = null;
-    private Vector cronJobs = null;
+    // the list of custom cron jobs
     Hashtable customCronJobs = null;
 
     /**
@@ -334,7 +334,7 @@ public final class Application implements IPathElement, Runnable {
     public void start() {
         starttime = System.currentTimeMillis();
         worker = new Thread(this, "Worker-" + name);
-        // worker.setPriority(Thread.NORM_PRIORITY + 2);
+        worker.setPriority(Thread.NORM_PRIORITY + 1);
         worker.start();
 
         // logEvent ("session cleanup and scheduler thread started");
@@ -1320,6 +1320,10 @@ public final class Application implements IPathElement, Runnable {
             }
         }
 
+        // loop-local cron job data
+        List cronJobs = null;
+        long lastCronParse = 0;
+
         while (Thread.currentThread() == worker) {
 
             long now = System.currentTimeMillis();
@@ -1366,13 +1370,14 @@ public final class Application implements IPathElement, Runnable {
                 }
             }
 
-            if ((cronJobs == null) || (props.lastModified() > lastPropertyRead)) {
+            if ((cronJobs == null) || (props.lastModified() > lastCronParse)) {
                 updateProperties();
                 cronJobs = CronJob.parse(props);
+                lastCronParse = props.lastModified();
             }
 
             Date d = new Date();
-            List jobs = (List) cronJobs.clone();
+            List jobs = new ArrayList(cronJobs);
 
             jobs.addAll(customCronJobs.values());
             CronJob.sort(jobs);
@@ -1534,6 +1539,9 @@ public final class Application implements IPathElement, Runnable {
     private synchronized void updateProperties() {
         // if so property file has been updated, re-read props.
         if (props.lastModified() > lastPropertyRead) {
+            // force property update
+            props.update();
+
             // character encoding to be used for responses
             charset = props.getProperty("charset", "ISO-8859-1");
 
