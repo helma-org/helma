@@ -7,14 +7,8 @@ import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.framework.*;
 import helma.scripting.*;
-import helma.scripting.fesi.*;
-import helma.scripting.fesi.extensions.*;
-import helma.xmlrpc.fesi.*;
 import helma.util.*;
 import java.util.*;
-import java.io.*;
-import java.lang.reflect.*;
-import Acme.LruHashtable;
 
 /**
  * This class does the work for incoming requests. It holds a transactor thread
