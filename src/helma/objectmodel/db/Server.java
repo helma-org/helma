@@ -46,7 +46,7 @@ import com.sleepycat.db.*;
 	boolean usageError = false;
 
 	useTransactions = true;
-	
+
 	for (int i=0; i<args.length; i++) {
 	    if (args[i].equals ("-h") && i+1<args.length)
 	        hopHome = args[++i];
@@ -119,6 +119,14 @@ import com.sleepycat.db.*;
 	    helper = new File (hopHome, appsPropfile);
 	appsPropfile = helper.getAbsolutePath ();
 	getLogger().log ("appsPropfile = "+appsPropfile);
+
+	File libdir = new File (hopHome, "lib");
+	Properties p = System.getProperties ();
+	String libpath = p.getProperty ("java.library.path");
+	if (libpath != null && libpath.length () > 0)
+	    p.put ("java.library.path", libpath+System.getProperty("path.separator")+libdir.getCanonicalPath());
+	else
+	    p.put ("java.library.path", libdir.getCanonicalPath());
 
 	paranoid = "true".equalsIgnoreCase (sysProps.getProperty ("paranoid"));
 
@@ -249,7 +257,11 @@ import com.sleepycat.db.*;
 	    try {
 	        mainThread.sleep (3000l);
 	    } catch (InterruptedException ie) {}
-	    appManager.checkForChanges ();
+	    try {
+	        appManager.checkForChanges ();
+	    } catch (Exception x) {
+	        getLogger().log ("Caught in app manager loop: "+x);
+	    }
 	}
 
     }
