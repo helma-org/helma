@@ -458,6 +458,11 @@ public final class RequestEvaluator implements Runnable {
                                 break;
 
                         } // switch (reqtype)
+                    } catch (AbortException x) {
+                        // res.abort() just aborts the transaction and
+                        // leaves the respons untouched
+                        abortTransaction();
+                        done = true;
                     } catch (ConcurrencyException x) {
                         res.reset();
 
@@ -490,7 +495,7 @@ public final class RequestEvaluator implements Runnable {
                         // If the transactor thread has been killed by the invoker thread we don't have to
                         // bother for the error message, just quit.
                         if (localrtx != rtx) {
-                            break;
+                            return;
                         }
 
                         res.reset();
