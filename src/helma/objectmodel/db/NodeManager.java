@@ -195,6 +195,10 @@ public final class NodeManager {
 
 	if (node != null && node.getState() != Node.INVALID) {
 	    // tx.timer.endEvent ("getNode "+kstr);
+	    // if we didn't fetch the node via its primary key, refresh the primary key in the cache.
+	    // otherwise we risk cache corroption (duplicate node creation) if the node is fetched by its primary key
+	    if (!rel.usesPrimaryKey ())
+	        cache.put (node.getKey (), node);
 	    return node;
 	}
 
@@ -224,8 +228,12 @@ public final class NodeManager {
 	    } // synchronized
 	}
 
-	if (node != null)
+	if (node != null) {
+	    // update primary key in cache, see above
+	    if (!rel.usesPrimaryKey ())
+	        cache.put (node.getKey (), node);
 	    tx.visitCleanNode (node.getKey (), node);
+	}
 
 	// tx.timer.endEvent ("getNode "+kstr);
 	return node;
