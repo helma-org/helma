@@ -1,8 +1,13 @@
-<p><a href="<% root.href action="main" %>"><img src="<% root.href action="image" %>" title="helma" border="0" width="174" height="35" align="baseline" style="border-width:3px;border-color:white;"></a></p>
-<!--<p>at <b><a href="<% root.href action="main" %>?action=server"><% root.hostname %></a></b></p>-->
+
+<p><a href="<% root.href action="main" %>"><img src="<% root.href action="image" %>" title="helma" border="0" width="174" height="35" align="baseline" style="border-width:3px;border-color:white;"></a>
+	<a href="http://helma.org/">helma.org</a>
+	<a href="http://helma.org/docs">docs</a>
+	<a href="http://helma.org/lists/listinfo/hop">mailinglist</a>
+</p>
 
 <div class="list_apps">
-	<i><% root.appCount filter="active" singular=" app" plural=" apps"%> on <% root.hostname %></i>
+	<i><% root.appCount filter="active" singular=" app" plural=" apps"%> on 
+	<a href="<% root.href action="main" %>"><% root.hostname %></a></i>
 </div>
 
 <% root.appList filter="active" %>
