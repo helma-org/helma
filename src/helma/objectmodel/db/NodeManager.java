@@ -583,7 +583,7 @@ public final class NodeManager {
 
 	if (rel == null || rel.other == null || !rel.other.isRelational ()) {
 	    // this should never be called for embedded nodes
-	    throw new RuntimeException ("NodeMgr.countNodes called for non-relational node "+home);
+	    throw new RuntimeException ("NodeMgr.getNodeIDs called for non-relational node "+home);
 	} else {
 	    List retval = new ArrayList ();
 	    // if we do a groupby query (creating an intermediate layer of groupby nodes),
@@ -606,7 +606,10 @@ public final class NodeManager {
 	            if (subrel.direction == Relation.BACKWARD) {
 	                String homeid = home.getNonVirtualHomeID (); //  home.getState() == Node.VIRTUAL ? home.parentID : home.getID ();
 	                q += " WHERE "+subrel.getRemoteField()+" = '"+homeid+"'";
-	            }
+	                if (subrel.filter != null)
+	                    q += " AND "+subrel.filter;
+	            } else if (subrel.filter != null)
+	                q += " WHERE "+subrel.filter;
 	            // set order, if specified and if not using subnode's relation
 	            if (rel.groupby != null)
 	                q += " GROUP BY "+rel.groupby+" ORDER BY "+(rel.groupbyorder == null ? rel.groupby : rel.groupbyorder);
@@ -673,12 +676,17 @@ public final class NodeManager {
 	            tds.where (home.getSubnodeRelation().trim().substring(5));
 	        } else if (subrel.direction == Relation.BACKWARD) {
 	            String homeid = home.getState() == Node.VIRTUAL ? home.parentID : home.getID ();
-	            tds.where (subrel.getRemoteField()+" = '"+homeid+"'");
+	            if (rel.filter != null)
+	                tds.where (subrel.getRemoteField()+" = '"+homeid+"' AND "+subrel.filter);
+	            else
+	                tds.where (subrel.getRemoteField()+" = '"+homeid+"'");
 	            // set order if specified
 	            if (rel.order != null)
 	                 tds.order (rel.order);
 	        } else {
-	            //  don't set where clause, but set order.
+	            //  don't set where clause except for static filter, but set order.
+	            if (subrel.filter != null)
+	                tds.where (subrel.filter);
 	            if (rel.order != null)
 	                 tds.order (rel.order);
 	        }
@@ -736,9 +744,15 @@ public final class NodeManager {
 	            qds = new QueryDataSet (con, "SELECT count(*) FROM "+table+" "+home.getSubnodeRelation());
 	        } else if (subrel.direction == Relation.BACKWARD) {
 	            String homeid = home.getState() == Node.VIRTUAL ? home.parentID : home.getID ();
-	            qds = new QueryDataSet (con, "SELECT count(*) FROM "+table+" WHERE "+subrel.getRemoteField()+" = '"+homeid+"'");
+	            String qstr = "SELECT count(*) FROM "+table+" WHERE "+subrel.getRemoteField()+" = '"+homeid+"'";
+	            if (subrel.filter != null)
+	                qstr += " AND "+subrel.filter;
+	            qds = new QueryDataSet (con, qstr);
 	        } else {
-	            qds = new QueryDataSet (con, "SELECT count(*) FROM "+table);
+	            String qstr = "SELECT count(*) FROM "+table;
+	            if (subrel.filter != null)
+	                qstr += " WHERE "+subrel.filter;
+	            qds = new QueryDataSet (con, qstr);
 	        }
 
 	        if (logSql)

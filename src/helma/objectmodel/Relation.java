@@ -259,6 +259,7 @@ public class Relation {
 	vr.groupbyorder = groupbyorder;
 	vr.groupbyprototype = groupbyprototype;
 	vr.order = order;
+	vr.filter = filter;
 	vr.subnoderelation = subnoderelation;
 	vr.aggressiveLoading = aggressiveLoading;
 	vr.aggressiveCaching = aggressiveCaching;
@@ -276,6 +277,7 @@ public class Relation {
 	vr.groupbyorder = groupbyorder;
 	vr.groupbyprototype = groupbyprototype;
 	vr.order = order;
+	vr.filter = filter;
 	vr.subnoderelation = subnoderelation;
 	return vr;
     }
@@ -293,6 +295,7 @@ public class Relation {
 	    vr =  makeClone ();
 	vr.order = order;
 	vr.prototype = groupbyprototype;
+	vr.filter = filter;
 	return vr;
     }
 
@@ -305,6 +308,7 @@ public class Relation {
 	Relation vr = makeClone ();
 	vr.order = order;
 	vr.prototype = groupbyprototype;
+	vr.filter = filter;
 	return vr;
     }
 
