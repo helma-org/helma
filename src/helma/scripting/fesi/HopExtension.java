@@ -20,7 +20,7 @@ import org.xml.sax.InputSource;
 /**
  * This is the basic Extension for FESI interpreters used in Helma. It sets up
  * varios constructors, global functions and properties on the HopObject prototype
- * (Node objects), the user prototype, the global prototype  etc.
+ * (Node objects), the global prototype, the session object etc.
  */
 
 public class HopExtension {
@@ -61,8 +61,8 @@ public class HopExtension {
         ObjectPrototype esObjectPrototype = new ObjectPrototype (op, evaluator);
         // the Node prototype
         ObjectPrototype esNodePrototype = new ObjectPrototype(op, evaluator);
-        // the User prototype
-        ObjectPrototype esUserPrototype = new ObjectPrototype (esNodePrototype, evaluator);
+        // the Session prototype
+        ObjectPrototype esSessionPrototype = new ObjectPrototype (esNodePrototype, evaluator);
         // the Node constructor
         ESObject node = new NodeConstructor ("Node", fp, fesi);
 
@@ -97,12 +97,6 @@ public class HopExtension {
         go.putHiddenProperty("HopObject", node); // HopObject is the new name for node.
         go.putHiddenProperty("getProperty", new GlobalGetProperty ("getProperty", evaluator, fp));
         go.putHiddenProperty("token", new GlobalGetProperty ("token", evaluator, fp));
-        go.putHiddenProperty("getUser", new GlobalGetUser ("getUser", evaluator, fp));
-        go.putHiddenProperty("getUserBySession", new GlobalGetUserBySession ("getUserBySession", evaluator, fp));
-        go.putHiddenProperty("getAllUsers", new GlobalGetAllUsers ("getAllUsers", evaluator, fp));
-        go.putHiddenProperty("getActiveUsers", new GlobalGetActiveUsers ("getActiveUsers", evaluator, fp));
-        go.putHiddenProperty("countActiveUsers", new GlobalCountActiveUsers ("countActiveUsers", evaluator, fp));
-        go.putHiddenProperty("isActive", new GlobalIsActive ("isActive", evaluator, fp));
         go.putHiddenProperty("getAge", new GlobalGetAge ("getAge", evaluator, fp));
         go.putHiddenProperty("getURL", new GlobalGetURL ("getURL", evaluator, fp));
         go.putHiddenProperty("encode", new GlobalEncode ("encode", evaluator, fp));
@@ -120,20 +114,11 @@ public class HopExtension {
         go.putHiddenProperty("authenticate", new GlobalAuthenticate ("authenticate", evaluator, fp));
         go.deleteProperty("exit", "exit".hashCode());
 
-        // and some methods for session management from JS...
-        esUserPrototype.putHiddenProperty("logon", new UserLogin ("logon", evaluator, fp));
-        esUserPrototype.putHiddenProperty("login", new UserLogin ("login", evaluator, fp));
-        esUserPrototype.putHiddenProperty("register", new UserRegister ("register", evaluator, fp));
-        esUserPrototype.putHiddenProperty("logout", new UserLogout ("logout", evaluator, fp));
-        esUserPrototype.putHiddenProperty("onSince", new UserOnSince ("onSince", evaluator, fp));
-        esUserPrototype.putHiddenProperty("lastActive", new UserLastActive ("lastActive", evaluator, fp));
-        esUserPrototype.putHiddenProperty("touch", new UserTouch ("touch", evaluator, fp));
-
         // register object prototypes with FesiEvaluator
         fesi.putPrototype ("global", go);
         fesi.putPrototype ("hopobject", esNodePrototype);
         fesi.putPrototype ("__javaobject__", esObjectPrototype);
-        fesi.putPrototype ("user", esUserPrototype);
+//        fesi.putPrototype ("session", esSessionPrototype);
     }
 
     class NodeAdd extends BuiltinFunctionObject {
@@ -415,92 +400,6 @@ public class HopExtension {
 		}
 	}
 
-    class UserLogin extends BuiltinFunctionObject {
-        UserLogin (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            if (arguments.length < 2)
-                return ESBoolean.makeBoolean(false);
-            ESUser u = (ESUser) thisObject;
-            if (u.user == null)
-                throw new EcmaScriptException ("login() can only be called for user objects that are online at the moment!");
-            boolean success = app.loginUser (arguments[0].toString (), arguments[1].toString (), u);
-            try {
-                u.doIndirectCall (this.evaluator, u, "onLogin", new ESValue[0]);
-            } catch (Exception nosuch) {}
-            return ESBoolean.makeBoolean (success);
-        }
-    }
-
-    class UserRegister extends BuiltinFunctionObject {
-        UserRegister (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 2);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            if (arguments.length < 2) 
-                return ESBoolean.makeBoolean(false);
-            INode unode = app.registerUser (arguments[0].toString (), arguments[1].toString ());
-            if (unode == null)
-                return ESNull.theNull;
-            else
-                return  fesi.getNodeWrapper (unode);
-        }
-    }
-
-    class UserLogout extends BuiltinFunctionObject {
-        UserLogout (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            ESUser u = (ESUser) thisObject;
-            if (u.user == null)
-                return ESBoolean.makeBoolean (true);
-            try {
-                u.doIndirectCall (this.evaluator, u, "onLogout", new ESValue[0]);
-            } catch (Exception nosuch) {}
-            return ESBoolean.makeBoolean (app.logoutUser (u));
-        }
-    }
-    
-    class UserOnSince extends BuiltinFunctionObject {
-        UserOnSince (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            ESUser u = (ESUser) thisObject;
-            if (u.user == null)
-                throw new EcmaScriptException ("onSince() can only be called for users that are online at the moment!");
-            DatePrototype date =  new DatePrototype(this.evaluator, new Date (u.user.onSince ()));
-            return  date;
-        }
-    }
-
-    class UserLastActive extends BuiltinFunctionObject {
-        UserLastActive (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            ESUser u = (ESUser) thisObject;
-            if (u.user == null)
-                throw new EcmaScriptException ("lastActive() can only be called for users that are online at the moment!");
-            DatePrototype date =  new DatePrototype(this.evaluator, new Date (u.user.lastTouched ()));
-            return  date;
-        }
-    }
-
-    class UserTouch extends BuiltinFunctionObject {
-        UserTouch (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            ESUser u = (ESUser) thisObject;
-            if (u.user != null)
-                u.user.touch ();
-            return  ESNull.theNull;
-        }
-    }
-
     class GlobalGetProperty extends BuiltinFunctionObject {
         GlobalGetProperty (String name, Evaluator evaluator, FunctionPrototype fp) {
             super (fp, evaluator, name, 1);
@@ -624,109 +523,6 @@ public class HopExtension {
         }
     }
 
-
-
-    class GlobalGetUser extends BuiltinFunctionObject {
-        GlobalGetUser (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            INode user = null;
-            if (arguments.length > 0) {
-                String uname = arguments[0].toString ().trim ();
-                user = app.getUserNode (uname);
-            }
-            if (user == null)
-                return ESNull.theNull;
-            return fesi.getNodeWrapper (user);
-        }
-    }
-
-    class GlobalGetUserBySession extends BuiltinFunctionObject {
-        GlobalGetUserBySession (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            User user = null;
-            if (arguments.length > 0) {
-                String sid = arguments[0].toString ().trim ();
-                user = app.getUser (sid);
-            }
-            if (user == null || user.getUID() == null)
-                return ESNull.theNull;
-            user.touch ();
-            return fesi.getNodeWrapper (user.getNode ());
-        }
-    }
-
-
-    class GlobalGetAllUsers extends BuiltinFunctionObject {
-        GlobalGetAllUsers (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-        	INode users = app.getUserRoot ();
-             ESObject ap = this.evaluator.getArrayPrototype();
-             ArrayPrototype theArray = new ArrayPrototype(ap, this.evaluator);
-             int i=0;
-        	for (Enumeration e=users.properties (); e.hasMoreElements (); ) {
-        	    String propname = (String) e.nextElement ();
-                 theArray.putProperty (i++, new ESString (propname));
-             }
-             return theArray;
-        }
-    }
-
-    class GlobalGetActiveUsers extends BuiltinFunctionObject {
-        GlobalGetActiveUsers (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-           Hashtable sessions = (Hashtable) app.sessions.clone ();
-           ESObject ap = this.evaluator.getArrayPrototype();
-           ArrayPrototype theArray = new ArrayPrototype (ap, this.evaluator);
-           theArray.setSize (sessions.size ());
-           int i=0;
-           // Hashtable visited = new Hashtable ();
-           for (Enumeration e=sessions.elements(); e.hasMoreElements(); ) {
-               User u = (User) e.nextElement ();
-               // Note: we previously sorted out duplicate users - now we simply enumerate all active sessions.
-               // if (u.uid == null || !visited.containsKey (u.uid)) {
-               theArray.setElementAt (fesi.getNodeWrapper (u), i++);
-               // if (u.uid != null) visited.put (u.uid, u);
-               // }
-           }
-           return theArray;
-        }
-    }
-
-    class GlobalCountActiveUsers extends BuiltinFunctionObject {
-        GlobalCountActiveUsers (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-           return new ESNumber (app.sessions.size ());
-        }
-    }
-
-    class GlobalIsActive extends BuiltinFunctionObject {
-        GlobalIsActive (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            if (arguments.length < 1) 
-                return ESBoolean.makeBoolean (false);
-            String username = null;
-            boolean active = false;
-            if (arguments[0] instanceof ESUser) {
-                ESUser esu = (ESUser) arguments[0];
-                active = (esu.user != null);
-            } else {
-                active = app.activeUsers.contains (arguments[0].toString ());
-            }
-            return ESBoolean.makeBoolean (active);
-        }
-    }
 
     class GlobalGetAge extends BuiltinFunctionObject {
         GlobalGetAge (String name, Evaluator evaluator, FunctionPrototype fp) {
