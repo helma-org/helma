@@ -438,13 +438,13 @@ public final class Node implements INode, Serializable {
                         if ((propvalue != null) && (propvalue.length() > 0)) {
                             setName(propvalue);
                             anonymous = false;
-                        } else if (!anonymous && (p.contains(this) > -1)) {
+                        } else if (!anonymous && p.isParentOf(this)) {
                             anonymous = true;
                         }
                     } else {
                         anonymous = true;
                     }
-                } else if (!anonymous && (p.contains(this) > -1)) {
+                } else if (!anonymous && p.isParentOf(this)) {
                     anonymous = true;
                 }
             } catch (Exception ignore) {
@@ -716,7 +716,7 @@ public final class Node implements INode, Serializable {
         if ((parentInfo != null) && (state != TRANSIENT)) {
             for (int i = 0; i < parentInfo.length; i++) {
                 ParentInfo pinfo = parentInfo[i];
-                INode pn = null;
+                Node pn = null;
 
                 // see if there is an explicit relation defined for this parent info
                 // we only try to fetch a node if an explicit relation is specified for the prop name
@@ -724,7 +724,7 @@ public final class Node implements INode, Serializable {
 
                 if ((rel != null) && (rel.reftype == Relation.REFERENCE ||
                                       rel.reftype == Relation.COMPLEX_REFERENCE)) {
-                    pn = getNode(pinfo.propname);
+                    pn = (Node) getNode(pinfo.propname);
                 }
 
                 // the parent of this node is the app's root node...
@@ -736,7 +736,7 @@ public final class Node implements INode, Serializable {
                 if (pn != null) {
                     // see if dbmapping specifies anonymity for this node
                     if (pinfo.virtualname != null) {
-                        pn = pn.getNode(pinfo.virtualname);
+                        pn = (Node) pn.getNode(pinfo.virtualname);
                         if (pn == null)
                             System.err.println("Error: Can't retrieve parent "+
                                                "node "+pinfo+" for "+this);
@@ -748,11 +748,11 @@ public final class Node implements INode, Serializable {
                         if ((dbm != null) && (dbm.getSubnodeGroupby() != null)) {
                             // check for groupby
                             rel = dbmap.columnNameToRelation(dbm.getSubnodeGroupby());
-                            pn = pn.getSubnode(getString(rel.propName));
+                            pn = (Node) pn.getSubnode(getString(rel.propName));
                         }
 
-                        if (pn != null && pn.contains(this) >= 0) {
-                            setParent((Node) pn);
+                        if (pn != null && pn.isParentOf(this)) {
+                            setParent(pn);
                             lastParentSet = System.currentTimeMillis();
 
                             return pn;
@@ -1316,11 +1316,12 @@ public final class Node implements INode, Serializable {
     }
 
     /**
+     * Check if the given node is contained in this node's child list.
+     * If it is contained return its index in the list, otherwise return -1.
      *
+     * @param n a node
      *
-     * @param n ...
-     *
-     * @return ...
+     * @return the node's index position in the child list, or -1
      */
     public int contains(INode n) {
         if (n == null) {
@@ -1342,6 +1343,29 @@ public final class Node implements INode, Serializable {
         Node node = (Node) n;
 
         return subnodes.indexOf(node.getHandle());
+    }
+
+    /**
+     * Check if the given node is contained in this node's child list. This
+     * is similar to <code>contains(INode)</code> but does not load the
+     * child index for relational nodes.
+     *
+     * @param n a node
+     * @return true if the given node is contained in this node's child list
+     */
+    public boolean isParentOf(Node n) {
+        if (dbmap != null) {
+            Relation subrel = dbmap.getSubnodeRelation();
+            // if we're dealing with relational child nodes use
+            // Relation.checkConstraints to avoid loading the child index
+            if (subrel != null &&
+                subrel.otherType != null &&
+                subrel.otherType.isRelational()) {
+                return subrel.checkConstraints(this, n);
+            }
+        }
+        // just fall back to contains() for non-relational nodes
+        return contains(n) > -1;
     }
 
     /**
