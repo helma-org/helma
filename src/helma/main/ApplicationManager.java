@@ -76,7 +76,7 @@ public class ApplicationManager {
 	    if (server.websrv != null)
 	        app.setBaseURI ("/"+java.net.URLEncoder.encode (appName));
 	    // the application is initialized later in the register method, when it's bound
-	    app.start ();
+	    app.init ();
 	} catch (Exception x) {
 	    Server.getLogger().log ("Error creating application "+appName+": "+x);
 	    x.printStackTrace ();
@@ -113,6 +113,7 @@ public class ApplicationManager {
 	        server.websrv.addServlet ("/"+appName+"/", servlet);
 	        server.websrv.addServlet ("/"+appName+"/*", servlet);
 	    }
+	    app.start ();
 	} catch (Exception x) {
 	    Server.getLogger().log ("Couldn't register and start app: "+x);
 	}
