@@ -440,7 +440,7 @@ public final class Node implements INode, Serializable {
                         } else if (!anonymous && p.isParentOf(this)) {
                             anonymous = true;
                         }
-                    } else {
+                    } else if (!anonymous && p.isParentOf(this)) {
                         anonymous = true;
                     }
                 } else if (!anonymous && p.isParentOf(this)) {
