@@ -252,6 +252,10 @@ public class HopObject extends ScriptableObject implements Wrapper {
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
         Skin skin;
 
+        if (skinobj instanceof Wrapper) {
+            skinobj = ((Wrapper) skinobj).unwrap();
+        }
+
         if (skinobj instanceof Skin) {
             skin = (Skin) skinobj;
         } else {
@@ -280,6 +284,10 @@ public class HopObject extends ScriptableObject implements Wrapper {
         RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
         Skin skin;
+
+        if (skinobj instanceof Wrapper) {
+            skinobj = ((Wrapper) skinobj).unwrap();
+        }
 
         if (skinobj instanceof Skin) {
             skin = (Skin) skinobj;
