@@ -1,6 +1,6 @@
 // Skin.java
 // Copyright (c) Hannes Wallnöfer 2001
- 
+
 package helma.framework.core;
 
 import helma.framework.*;
@@ -13,15 +13,17 @@ import java.io.*;
 import java.util.*;
 
 /**
- * This represents a Helma skin, i.e. a template created from JavaScript. It uses the request path array
- * from the RequestEvaluator object to resolve dynamic tokens.
+ * This represents a Helma skin, i.e. a template created from containing Macro tags
+ * that will be dynamically evaluated.. It uses the request path array
+ * from the RequestEvaluator object to resolve Macro handlers by type name.
  */
 
 public class Skin {
 
-    Object[] parts;
+    Macro[] parts;
     Application app;
-    String source;
+    char[] source;
+    int sourceLength;
     HashSet sandbox;
 
     /**
@@ -37,64 +39,74 @@ public class Skin {
     public Skin (String content, Application app, HashSet sandbox) {
 	this.app = app;
 	this.sandbox = sandbox;
-	parse (content);
+	source = content.toCharArray ();
+	sourceLength = source.length;
+	parse ();
+    }
+
+    /**
+     *  Create a skin without any restrictions on the macros from a char array.
+     */
+    public Skin (char[] content, int length, Application app) {
+	this.app = app;
+	this.sandbox = null;
+	this.source = content;
+	this.sourceLength = length;
+	parse ();
     }
 
     /**
      * Parse a skin object from source text
      */
-    public void parse (String content) {
+    private void parse () {
 
-	this.source = content;
 	ArrayList partBuffer = new ArrayList ();
-	int l = content.length ();
-	char cnt[] = new char[l];
-	content.getChars (0, l, cnt, 0);
 
-	int lastIdx = 0;
-	for (int i = 0; i < l-1; i++) {
-	    if (cnt[i] == '<' && cnt[i+1] == '%') {
+	int start = 0;
+	for (int i = 0; i < sourceLength-1; i++) {
+	    if (source[i] == '<' && source[i+1] == '%') {
+	        // found macro start tag
 	        int j = i+2;
-	        while (j < l-1 && (cnt[j] != '%' || cnt[j+1] != '>')) {
+	        // search macr end tag
+	        while (j < sourceLength-1 && (source[j] != '%' || source[j+1] != '>')) {
 	            j++;
 	        }
 	        if (j > i+2) {
-	            if (i - lastIdx > 0)
-	                partBuffer.add (new String (cnt, lastIdx, i - lastIdx));
-	            String macrotext = new String (cnt, i+2, (j-i)-2);
-	            partBuffer.add (new Macro (macrotext));
-	            lastIdx = j+2;
+	            partBuffer.add (new Macro (i, j+2));
+	            start = j+2;
 	        }
 	        i = j+1;
 	    }
 	}
-	if (lastIdx < l)
-	    partBuffer.add (new String (cnt, lastIdx, l - lastIdx));
 
-	parts = partBuffer.toArray ();
+	parts = new Macro[partBuffer.size()];
+	partBuffer.toArray (parts);
     }
 
     /**
      * Get the raw source text this skin was parsed from
      */
     public String getSource () {
-	return source;
+	return new String (source, 0, sourceLength);
     }
 
     /**
      * Render this skin
      */
     public void render (RequestEvaluator reval, Object thisObject, HashMap paramObject) throws RedirectException {
-	
+
 	if (parts == null)
-	    return;
-	
+	    reval.res.writeCharArray (source, 0, sourceLength);
+
+	int written = 0;
 	for (int i=0; i<parts.length; i++) {
-	    if (parts[i] instanceof Macro)
-	        ((Macro) parts[i]).render (reval, thisObject, paramObject);
-	    else
-	        reval.res.write (parts[i]);
+	    if (parts[i].start > written)
+	        reval.res.writeCharArray (source, written, parts[i].start-written);
+	    parts[i].render (reval, thisObject, paramObject);
+	    written = parts[i].end;
 	}
+	if (written < sourceLength)
+	    reval.res.writeCharArray (source, written, sourceLength-written);
     }
 
     /**
@@ -128,18 +140,18 @@ public class Skin {
 
     class Macro {
 
+	int start, end;
 	String handler;
 	String name;
 	String fullname;
 	HashMap parameters;
 
-	public Macro (String str) {
+	public Macro (int start, int end) {
+
+	    this.start = start;
+	    this.end = end;
 
 	    parameters = new HashMap ();
-
-	    int l = str.length ();
-	    char cnt[] = new char[l];
-	    str.getChars (0, l, cnt, 0);
 
 	    int state = HANDLER;
 	    boolean escape = false;
@@ -147,37 +159,37 @@ public class Skin {
 	    String lastParamName = null;
 	    StringBuffer b = new StringBuffer();
 
-	    for (int i=0; i<l; i++) {
-	        switch (cnt[i]) {
+	    for (int i=start+2; i<end-2; i++) {
+	        switch (source[i]) {
 	            case '.':
 	                if (state == HANDLER) {
 	                    handler = b.toString ().trim();
 	                    b.setLength (0);
 	                    state = MACRO;
 	                } else
-	                    b.append (cnt[i]);
+	                    b.append (source[i]);
 	                break;
 	            case '\\':
 	                if (escape)
-	                    b.append (cnt[i]);
+	                    b.append (source[i]);
 	                escape = !escape;
 	                break;
 	            case '"':
 	            case '\'':
 	                if (!escape && state == PARAMVALUE) {
-	                    if (quotechar == cnt[i]) {
+	                    if (quotechar == source[i]) {
 	                        parameters.put (lastParamName, b.toString());
 	                        lastParamName = null;
 	                        b.setLength (0);
 	                        state = PARAMNAME;
 	                        quotechar = '\u0000';
 	                    } else if (quotechar == '\u0000') {
-	                        quotechar = cnt[i];
+	                        quotechar = source[i];
 	                        b.setLength (0);
 	                    } else
-	                        b.append (cnt[i]);
+	                        b.append (source[i]);
 	                } else
-	                    b.append (cnt[i]);
+	                    b.append (source[i]);
 	                escape = false;
 	                break;
 	            case ' ':
@@ -195,7 +207,7 @@ public class Skin {
 	                    b.setLength (0);
 	                    state = PARAMNAME;
 	                } else if (state == PARAMVALUE)
-	                    b.append (cnt[i]);
+	                    b.append (source[i]);
 	                else
 	                    b.setLength (0);
 	                break;
@@ -205,10 +217,10 @@ public class Skin {
 	                    b.setLength (0);
 	                    state = PARAMVALUE;
 	                } else
-	                    b.append (cnt[i]);
+	                    b.append (source[i]);
 	                break;
 	            default:
-	                b.append (cnt[i]);
+	                b.append (source[i]);
 	                escape = false;
 	        }
 	    }
@@ -247,7 +259,7 @@ public class Skin {
 
 	        Object[] arguments = new Object[1];
 	        arguments[0] = parameters;
-	
+
 	        // flag to tell whether we found our invocation target object
 	        boolean objectFound = true;
 
@@ -414,7 +426,6 @@ public class Skin {
 	}
 
     }
-
 
 }
 
