@@ -2,7 +2,8 @@
 <% this.description prefix="<br/>" %>
 	<br/>
 	-&gt;
-	<a href="<% this.href action="api" %>/main">AppDoc</a> |
+	<a href="<% this.href action="api" %>/main">showAPI</a> |
+	<a href="<% this.href action="api" %>/render">renderAPI</a> |
 	<a href="<% this.url %>">public</a> | 
 	<a href="<% root.href action="main" %>?app=<% this.title %>&action=flush">flush</a> |
 	<a href="<% root.href action="main" %>?app=<% this.title %>&action=restart">restart</a> |

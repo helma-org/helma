@@ -75,9 +75,9 @@ function appStat ()	{
   * utility function to sort object-arrays by name
   */
 function sortByName(a,b)	{
-	if ( a.name>b.name)
+	if ( a.getName () > b.getName ())
 		return 1;
-	else if ( a.name==b.name )
+	else if (a.getName () == b.getName ())
 		return 0;
 	else
 		return -1;

@@ -91,23 +91,32 @@ function inheritanceUtil (obj, param) {
 
 /**
   * loops through the parent prototypes and renders a skin on each
+  * if it has got any functions.
   * @param skin
   */
 function parentPrototype_macro (param) {
 	var skinname = (param.skin) ? param.skin : "asParentList";
 	var obj = this.getParentPrototype ();
 	while (obj!=null) {
-		obj.renderSkin (skinname);
+		if (obj.listChildren ().length>0) {
+			obj.renderSkin (skinname);
+		}
 		obj = obj.getParentPrototype ();
 	}
 }
 
-
+/**
+  * macro rendering a skin depending on wheter this prototype has got
+  * type-properties or not.
+  * @param skin
+  */
 function typeProperties_macro (param) {
 	var props = this.getTypeProperties ();
-	if (props!=null) {
-		res.encode(props.getContent ());
+	if (props!=null && props.getContent ()!="" ) {
+		var tmp = new Object ();
+		tmp.content = props.getContent ();
+		var skinname = (param.skinname) ? param.skinname : "typeproperties";
+		this.renderSkin (skinname, tmp);
 	}
 }
-
 

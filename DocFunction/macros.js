@@ -24,6 +24,7 @@ function link_macro (param) 		{	return renderLink (this, param);			}
 //// END OF COPIED FUNCTIONS
 
 
+
 function headline_macro (param)	{
 	var p = this.getParentElement ();
 	var handler = (p!=null) ? p.getName () : "";
@@ -77,7 +78,9 @@ function parameters_macro (param) {
 }
 
 
-
+function type_macro (param) {
+	return this.getTypeName ();
+}
 
 
 /**

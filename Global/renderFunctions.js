@@ -7,7 +7,7 @@ function renderLink (docEl, param) {
 	} else if (docEl.getType () == docEl.SKIN) {
 		text = docEl.getName () + ".skin";
 	} else if (docEl.getType () == docEl.MACRO) {
-		if (docEl.getParentElement () && docEl.getParentElement().getName()!="global") {
+		if (param.handler!="false" && docEl.getParentElement () && docEl.getParentElement().getName()!="global") {
 			text = docEl.getParentElement ().getName () + ".";
 		}
 		var str = docEl.getName ();

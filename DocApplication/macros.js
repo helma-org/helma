@@ -42,35 +42,42 @@ function hrefRoot_macro (param) {
 /**
   * list all prototypes of this application
   * @param skin name of skin to render on prototype
+  * @param separator
   */
-function prototypes_macro(par)	{
-	var skin = (par && par.skin&&par.skin!="") ? par.skin : "asPrototypeList";
+function prototypes_macro(param)	{
+	var skin = (param.skin) ? param.skin : "asPrototypeList";
+	var separator = (param.separator) ? param.separator : "";
 	var arr = this.listChildren ();
 	for ( var i=0; i<arr.length; i++ )	{
 		arr[i].renderSkin(skin);
+		if (i < arr.length-1)
+			res.write (separator);
 	}
 }
 
 
-///**
-//  * list all methods of all prototypes, sort and separate them alphabetically
-//  * @param skin name of skin to render on method
-//  * @param skinSeparator name of skin to render separator between start-letters
-//  */
-//function index_macro(par)	{
-//	var skin = (par && par.skin && par.skin!="") ? par.skin : "indexList";
-//	var skinSeparator = (par && par.skinSeparator && par.skinSeparator!="") ? par.skinSeparator : "indexListSeparator";
-//	var arr = this.listFunctions();
-//	var lastLetter = '';
-//	for ( var i=0; i<arr.length; i++ )	{
-//		if ( arr[i].name.substring(0,1)!=lastLetter )	{
-//			lastLetter = arr[i].name.substring(0,1);
-//			var obj = new Object();
-//			obj.letter = lastLetter.toUpperCase();
-//			arr[i].renderSkin(skinSeparator,obj);
-//		}
-//		arr[i].renderSkin(skin);
-//	}
-//}
+/**
+  * list all methods of all prototypes, sort them alphabetically
+  * @param skin name of skin to render on each method
+  * @param skinSeparator name of skin to render as separator between each letters
+  */
+function functions_macro(param)	{
+	var skinname = (param.skin) ? param.skin : "asListItem";
+	var skinIndexSeparator = (param.indexSeparator) ? param.indexSeparator : "indexSeparator";
+	var separator = (param.separator) ? param.separator : "";
+	var arr = this.listFunctions ();
+	var lastLetter = "";
+	for (var i=0; i<arr.length; i++) {
+		if (arr[i].getName ().substring (0,1)!=lastLetter) {
+			lastLetter = arr[i].getName ().substring (0,1);
+			var tmp = new Object ();
+			tmp.letter = lastLetter.toUpperCase ();
+			this.renderSkin (skinIndexSeparator, tmp);
+		}
+		arr[i].renderSkin (skinname);
+		if (i < arr.length-1)
+			res.write (separator);
+	}
+}
 
 
