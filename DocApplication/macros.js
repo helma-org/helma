@@ -24,6 +24,13 @@ function link_macro (param) 		{	return renderLink (this, param);			}
 //// END OF COPIED FUNCTIONS
 
 
+
+function linkToManage_macro (param) {
+   if (res.data.rendering != true) {
+      return ('<a href="' + root.href ("main") + '" target="_top">back to manage console</a>');
+   }
+}
+
 function headline_macro (param) {
 	res.write (this.getName ());
 }

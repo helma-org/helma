@@ -1,4 +1,4 @@
-
+<% this.linkToManage suffix="<br/><br/>" %>
 
 <big class="top">Application <a href="<% this.href action="summary" %>" target="main"><% this.name %></a></big><br><br>
 

@@ -43,11 +43,13 @@ function functionindex_action () {
 
 
 function render_action () {
+   // set res.data.rendering, this will suppress the link back to the manage
+   // console in the apidocs actions
+   res.data.rendering = true;
 	if (checkAddress()==false)
 	   return;
 	if (checkAuth(this.getParentElement ())==false)
 	   return;
-	res.writeln("<html><head><title>render</title></head><body>rendering API ... ");
 	var prefix = this.href ("");
 	this.storePage (this, "main", "", "index.html");
 	this.storePage (this, "prototypes");
@@ -65,5 +67,9 @@ function render_action () {
 			ct += 1;
 		}
 	}
-	res.writeln (" ... wrote " + ct + " files");
+	res.data.body =  '<body>rendering API ...<br/>wrote ' + ct + ' files<br/><br/>';
+	res.data.body += '<a href="' + root.href ("main") + '">back to manage console</a>';
+   res.data.title = "rendering helma api";
+   res.data.head = renderSkinAsString("head");
+   renderSkin ("basic");
 }
