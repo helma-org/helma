@@ -31,7 +31,7 @@ public class AcmeServletClient extends HttpServlet {
 
     public AcmeServletClient (Application app) {
 	this.app = app;
-	this.uploadLimit = 1024; // generous 1mb upload limit
+	this.uploadLimit = 1024;   // generous 1mb upload limit
     }
 
     public void init (ServletConfig config) throws ServletException {
@@ -101,8 +101,10 @@ public class AcmeServletClient extends HttpServlet {
 	        // Params parsen
 	        String nextKey = (String)e.nextElement();
 	        String[] paramValues = request.getParameterValues(nextKey);
-	        String nextValue = paramValues[0];   // Only take first value
-	        reqtrans.set (nextKey, nextValue);    // generic Header, Parameter
+	        if (paramValues != null && paramValues.length == 1)
+	            reqtrans.set (nextKey, paramValues[0]);    // set to single string value
+	        else if (paramValues != null)
+	            reqtrans.set (nextKey, paramValues);     // set to string array
 	    }			
 
 	    String contentType = request.getContentType();
