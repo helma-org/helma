@@ -35,6 +35,10 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
  	private SimpleDateFormat format = new SimpleDateFormat ( DATEFORMAT );
 
 	private boolean dbmode = true;
+	
+	// Only add encoding to XML declaration if it was explicitly set, not when we're using 
+	// the platform's standard encoding.
+	private String explicitEncoding;
 
 	/**
 	  * create ids that can be used for temporary files.
@@ -56,6 +60,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 
 	public XmlWriter (OutputStream out, String enc) throws UnsupportedEncodingException {
 		super(out, enc);
+		explicitEncoding = enc;
 	}
 
 	public XmlWriter (String desc) throws FileNotFoundException {
@@ -64,6 +69,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 
 	public XmlWriter (String desc, String enc) throws FileNotFoundException, UnsupportedEncodingException {
 		super (new FileOutputStream (desc), enc);
+		explicitEncoding = enc;
 	}
 
 	public XmlWriter (File file) throws FileNotFoundException {
@@ -72,6 +78,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 
 	public XmlWriter (File file, String enc) throws FileNotFoundException, UnsupportedEncodingException {
 		super (new FileOutputStream (file), enc);
+		explicitEncoding = enc;
 	}
 
 	/**
@@ -104,8 +111,10 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 	  */
 	public boolean write( INode node ) throws IOException {
 		convertedNodes = new Vector();
-		String encoding = getEncoding();
-		writeln ("<?xml version=\"1.0\" encoding=\""+encoding+"\"?>");
+		if (explicitEncoding == null)
+			writeln ("<?xml version=\"1.0\"?>");
+		else
+			writeln ("<?xml version=\"1.0\" encoding=\""+explicitEncoding+"\"?>");
 		writeln ("<!-- printed by helma object publisher     -->");
 		writeln ("<!-- created " + (new Date()).toString() + " -->" );
 		write   ("<xmlroot xmlns:hop=\"");
