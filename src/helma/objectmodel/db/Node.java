@@ -531,11 +531,7 @@ public final class Node implements INode, Serializable {
      * @param dbmap ...
      */
     public void setDbMapping(DbMapping dbmap) {
-        if (this.dbmap != dbmap) {
-            this.dbmap = dbmap;
-
-            // primaryKey = null;
-        }
+        this.dbmap = dbmap;
     }
 
     /**
@@ -854,6 +850,8 @@ public final class Node implements INode, Serializable {
                     // if group-by node doesn't exist, we'll create it
                     if (groupbyNode == null) {
                         groupbyNode = getGroupbySubnode(groupbyValue, true);
+                    } else {
+                        groupbyNode.setDbMapping(dbmap.getGroupbyMapping());
                     }
 
                     groupbyNode.addNode(node);
@@ -1130,7 +1128,7 @@ public final class Node implements INode, Serializable {
      *
      * @return ...
      */
-    public Node getGroupbySubnode(String sid, boolean create) {
+    protected Node getGroupbySubnode(String sid, boolean create) {
         loadNodes();
 
         if (subnodes == null) {
@@ -1151,10 +1149,10 @@ public final class Node implements INode, Serializable {
                     // set "groupname" property to value of groupby field
                     node.setString("groupname", sid);
                     node.setString("name", sid);
+                        
+                    node.setDbMapping(groupbyMapping);
 
-                    if (relational) {
-                        node.setDbMapping(groupbyMapping);
-                    } else {
+                    if (!relational) {
                         setNode(sid, node);
                         subnodes.add(node.getHandle());
                     }
@@ -2100,7 +2098,7 @@ public final class Node implements INode, Serializable {
     public void setNode(String propname, INode value) {
         // nmgr.logEvent ("setting node prop");
         // check if types match, otherwise throw exception
-        DbMapping nmap = (dbmap == null) ? null : dbmap.getPropertyMapping(propname);
+        DbMapping nmap = (dbmap == null) ? null : dbmap.getExactPropertyMapping(propname);
 
         if ((nmap != null) && (nmap != value.getDbMapping())) {
             if (value.getDbMapping() == null) {
