@@ -467,11 +467,14 @@ public final class HtmlEncoder {
                             insideMacroTag = insideTag = true;
                             macroQuoteChar = '\u0000';
                         }
-                    } else if (('!' == str.charAt(i + 1)) && ('-' == str.charAt(i + 2))) {
-                        // the beginning of an HTML comment?
+                    } else if ('!' == str.charAt(i + 1)) {
+                        // the beginning of an HTML comment or !doctype?
                         if (!insideCodeTag) {
-                            insideComment = insideTag = ((i < (l - 3)) &&
-                                                        ('-' == str.charAt(i + 3)));
+                            if (str.regionMatches(i + 2, "--", 0, 2)) {
+                                insideComment = insideTag = true;
+                            } else if (str.regionMatches(true, i+2, "doctype", 0, 7)) {
+                                insideHtmlTag = insideTag = true;
+                            }
                         }
                     } else if (!insideTag) {
                         // check if this is a HTML tag.
