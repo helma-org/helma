@@ -337,7 +337,13 @@ public class RhinoEngine implements ScriptingEngine {
      * is a java object) with that name.
      */
     public boolean hasFunction(Object obj, String fname) {
-        // System.err.println ("HAS_FUNC: "+obj+"."+fname);
+        // Treat HopObjects separately - otherwise we risk to fetch database
+        // references/child objects just to check for function properties.
+        if (obj instanceof INode) {
+            String protoname = ((INode) obj).getPrototype();
+            return core.hasFunction(protoname, fname.replace('.', '_'));
+        }
+
         Scriptable op = obj == null ? global : Context.toObject(obj, global);
 
         Object func = ScriptableObject.getProperty(op, fname.replace('.', '_'));
