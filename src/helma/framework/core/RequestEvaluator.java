@@ -608,9 +608,8 @@ public final class RequestEvaluator implements Runnable {
 	        try {
 	            t.abort ();
 	        } catch (Exception ignore) {}
-	        try {
-	            t.stop ();
-	        } catch (Exception ignore) {}
+	        // FIXME: do not call deprecated method stop() on threads -
+	        // do we need a substitute for it?
 	    } else {
 	        notifyAll ();
 	    }
