@@ -35,7 +35,7 @@ public class FilteredClassLoader extends URLClassLoader {
      *  so that they can load classes from jar files in the app directories.
      */
     public FilteredClassLoader(URL[] urls) {
-        super(urls);
+        super(urls, null);
     }
 
     /**
