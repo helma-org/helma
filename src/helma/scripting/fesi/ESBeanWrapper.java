@@ -29,24 +29,25 @@ public class ESBeanWrapper extends ESWrapper {
  	* Wrap getProperty, return ESNode if INode would be returned,
  	* ESMapWrapper if Map would be returned.
  	*/
-    public ESValue getProperty(String propertyName, int hash) throws EcmaScriptException {
-	try {
-	    ESValue val = super.getProperty (propertyName, hash);
-	    Object theObject = ((ESWrapper)val).getJavaObject ();
-	    if (val instanceof ESWrapper && theObject instanceof INode)	{
-	        return eval.getNodeWrapper ((INode) theObject);
-	    } else if (val instanceof ESWrapper && theObject instanceof Map)	{
-	        ESMapWrapper wrapper = new ESMapWrapper(eval, (Map) theObject);
-	        if (theObject instanceof SystemProperties && super.getJavaObject () instanceof ApplicationBean)
-	            wrapper.setReadonly(true);
-	        return wrapper;
-	    } else {
-	        return val;
-	    }
-	} catch (Exception rte) {
-	    return ESNull.theNull;
-	}
-    }
+   public ESValue getProperty(String propertyName, int hash) throws EcmaScriptException {
+      try {
+         ESValue val = super.getProperty (propertyName, hash);
+         if (val instanceof ESWrapper) {
+            Object theObject = ((ESWrapper)val).getJavaObject ();
+            if (val instanceof ESWrapper && theObject instanceof INode)	{
+               return eval.getNodeWrapper ((INode) theObject);
+            } else if (val instanceof ESWrapper && theObject instanceof Map)	{
+               ESMapWrapper wrapper = new ESMapWrapper(eval, (Map) theObject);
+               if (theObject instanceof SystemProperties && super.getJavaObject () instanceof ApplicationBean)
+                  wrapper.setReadonly(true);
+               return wrapper;
+            }
+         }
+         return val;
+      } catch (Exception rte) {
+         return ESNull.theNull;
+      }
+   }
 
     public void putProperty(String propertyName, ESValue propertyValue, int hash) throws EcmaScriptException {
 	try {
