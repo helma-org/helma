@@ -131,5 +131,15 @@ public class RequestPath {
 
         return buffer.toString();
     }
+    
+    /**
+     * Checks if the given object is contained in the request path
+     *
+     * @param obj the element to check
+     * @return the index of the element, or -1 if it isn't contained
+     */
+    public int contains(Object obj) {
+        return objects.indexOf(obj);
+    }
 
 }

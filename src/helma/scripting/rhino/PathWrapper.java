@@ -43,7 +43,8 @@ public class PathWrapper extends ScriptableObject {
         setParentScope(core.getScope());
         setPrototype(null);
         defineProperty("length", PathWrapper.class, attributes);
-        defineFunctionProperties(new String[] {"href"}, PathWrapper.class, attributes);
+        defineFunctionProperties(new String[] {"href", "contains"}, 
+                                 PathWrapper.class, attributes);
     }
 
     /**
@@ -124,6 +125,18 @@ public class PathWrapper extends ScriptableObject {
         }
 
         return path.href(null);
+    }
+    
+    /**
+     * Checks if the given object is contained in the request path
+     *
+     * @param obj the element to check
+     * @return the index of the element, or -1 if it isn't contained
+     */
+    public int contains(Object obj) {
+        if (obj instanceof Wrapper)
+            obj = ((Wrapper) obj).unwrap();
+        return path.contains(obj);
     }
 
     public String getClassName() {
