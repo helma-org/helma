@@ -280,7 +280,6 @@ public final class Logger {
 	}
     }
 
-
     /**
      *  Return a list of all active Loggers
      */
@@ -288,6 +287,14 @@ public final class Logger {
 	if (loggers == null)
 	    return null;
 	return (List) loggers.clone ();
+    }
+
+    /** 
+     *  Notify the runner thread that it should wake up and run.
+     */
+    public static void wakeup () {
+	if (runner != null)
+	    runner.wakeup ();
     }
 
     private static void rotateAllLogs () {
@@ -307,7 +314,7 @@ public final class Logger {
      */
     static class Runner extends Thread {
 
-	public void run () {
+	public synchronized void run () {
 	    long nextMidnight = nextMidnight ();
 	    while (runner == this  && !isInterrupted ()) {
 	        if (nextMidnight < System.currentTimeMillis ()) {
@@ -327,43 +334,50 @@ public final class Logger {
 	                System.err.println ("Error in Logger main loop: "+x);
 	            }
 	        }
+	        // if there are no active logs, exit logger thread
+	        if (loggers.size() == 0)
+	            return;
 	        try {
-	            sleep (500);
+	            wait (250);
 	        } catch (InterruptedException ix) {}
 	    }
+	}
+	
+	public synchronized void wakeup () {
+	    notifyAll ();
 	}
 
     }
 
-	/**
-	  * a Thread class that zips up a file, filename will stay the same.
-	  */
-	class GZipper extends Thread	{
-	    File file, temp;
-	    public GZipper (File file)	{
-	        this.file = file;
-	        this.temp = new File (file.getAbsolutePath()+".tmp");
-	    }
+    /**
+     * a Thread class that zips up a file, filename will stay the same.
+     */
+    class GZipper extends Thread	{
+	File file, temp;
+	public GZipper (File file)	{
+	    this.file = file;
+	    this.temp = new File (file.getAbsolutePath()+".tmp");
+	}
 
-	    public void run() {
-	        long start = System.currentTimeMillis();
-	        try {
-	            GZIPOutputStream zip = new GZIPOutputStream( new FileOutputStream(temp));
-	            BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
-	            byte[] b = new byte[1024];
-	            int len = 0;
-	            while( (len=in.read(b,0,1024))!=-1 ) {
-	                zip.write(b,0,len);
-	            }
-	            zip.close();
-	            in.close();
-	            file.delete();
-	            temp.renameTo(file);
-	        } catch ( Exception e )	{
-	            System.err.println (e.toString());
+	public void run() {
+	    long start = System.currentTimeMillis();
+	    try {
+	        GZIPOutputStream zip = new GZIPOutputStream( new FileOutputStream(temp));
+	        BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
+	        byte[] b = new byte[1024];
+	        int len = 0;
+	        while( (len=in.read(b,0,1024))!=-1 ) {
+	            zip.write(b,0,len);
 	        }
+	        zip.close();
+	        in.close();
+	        file.delete();
+	        temp.renameTo(file);
+	    } catch ( Exception e )	{
+	        System.err.println (e.toString());
 	    }
 	}
+    }
 
 
     public static long nextMidnight () {
