@@ -29,7 +29,7 @@ public class FesiEvaluator {
 
     // The FESI evaluator
     Evaluator evaluator;
-
+   
     // the global object
     GlobalObject global;
 
@@ -73,7 +73,7 @@ public class FesiEvaluator {
 	    // fake a cache member like the one found in ESNodes
 	    global.putHiddenProperty ("cache", new ESNode (new TransientNode ("cache"), this));
 	    global.putHiddenProperty ("undefined", ESUndefined.theUndefined);
-	    ESAppNode appnode = new ESAppNode (app.getAppNode (), this);
+	    ESBeanWrapper appnode = new ESBeanWrapper (new ApplicationBean (app), this);
 	    global.putHiddenProperty ("app", appnode);
 	    initialize();
 	} catch (Exception e) {
@@ -241,9 +241,9 @@ public class FesiEvaluator {
 	                }
 	                sv = parr;
 	            } else if ("session".equals (k)) {
-					sv = new ESSession ( (Session)v, this );
+					sv = new ESBeanWrapper (new SessionBean ((Session)v), this);
 	            } else if ("app".equals (k)) {
-	                sv = new ESAppNode ((INode) v, this);
+					sv = new ESBeanWrapper (new ApplicationBean ((Application)v), this);
 	            }
 	            else
 	                sv = ESLoader.normalizeValue (v, evaluator);
