@@ -197,6 +197,8 @@ public final class Skin {
         String defaultValue;
         int encoding = ENCODE_NONE;
         Map parameters = null;
+        // comment macros are silently dropped during rendering
+        boolean isCommentMacro = false;
 
         public Macro(int start, int end) {
             this.start = start;
@@ -210,6 +212,19 @@ public final class Skin {
 
             for (int i = start + 2; i < (end - 2); i++) {
                 switch (source[i]) {
+
+                    case '/':
+
+                        b.append(source[i]);
+                        escape = false;
+
+                        if (state == HANDLER && "//".equals(b.toString())) {
+                            isCommentMacro = true;
+                            return;
+                        }
+
+                        break;
+
                     case '.':
 
                         if (state == HANDLER) {
@@ -218,6 +233,7 @@ public final class Skin {
                             state = MACRO;
                         } else {
                             b.append(source[i]);
+                            escape = false;
                         }
 
                         break;
@@ -283,6 +299,7 @@ public final class Skin {
                             state = PARAMNAME;
                         } else if (state == PARAMVALUE) {
                             b.append(source[i]);
+                            escape = false;
                         } else {
                             b.setLength(0);
                         }
@@ -297,6 +314,7 @@ public final class Skin {
                             state = PARAMVALUE;
                         } else {
                             b.append(source[i]);
+                            escape = false;
                         }
 
                         break;
@@ -372,9 +390,12 @@ public final class Skin {
         public void render(RequestEvaluator reval, Object thisObject, Map paramObject,
                            Map handlerCache)
                 throws RedirectException, UnsupportedEncodingException {
-            if ((sandbox != null) && !sandbox.contains(fullName)) {
-                //String h = (handler == null) ? "global" : handler;
+            // immediately return for comment macros
+            if (isCommentMacro) {
+                return;
+            }
 
+            if ((sandbox != null) && !sandbox.contains(fullName)) {
                 reval.res.write("[Macro " + fullName + " not allowed in sandbox]");
 
                 return;
@@ -518,16 +539,24 @@ public final class Skin {
                             writeResponse(value, buffer, false);
                         }
                     } else {
-                        // System.err.println ("Getting macro from property");
-                        Object value = reval.scriptingEngine.get(handlerObject, name);
+                        // for unhandled global macros display error message,
+                        // otherwise try property lookup
+                        if (handlerObject == null) {
+                            String msg = "[Macro unhandled: " + fullName + "]";
+                            reval.res.write(" " + msg + " ");
+                            app.logEvent(msg);                            
 
-                        writeResponse(value, reval.res.getBuffer(), true);
+                        } else {
+                            Object value = reval.scriptingEngine.get(handlerObject, name);
+                            writeResponse(value, reval.res.getBuffer(), true);
+                        }
                     }
-                } else {
-                    String msg = "[HopMacro unhandled: " + fullName + "]";
 
+                } else {
+                    String msg = "[Macro unhandled: " + fullName + "]";
                     reval.res.write(" " + msg + " ");
                     app.logEvent(msg);
+
                 }
             } catch (RedirectException redir) {
                 throw redir;
