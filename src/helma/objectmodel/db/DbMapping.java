@@ -634,7 +634,7 @@ public class DbMapping implements Updatable {
 	    Column c = s.getColumn (columnName);
 	    if (c == null)
 	        throw new SQLException ("Column "+columnName+" not found in "+this);
-	    return c.isString ();
+	    return c.isString () || c.isVarBinary () || c.isLongVarBinary ();
 	} catch (Exception x) {
 	    throw new SQLException (x.getMessage ());
 	}
