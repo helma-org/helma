@@ -99,7 +99,7 @@ public class XmlReader implements XmlConstants	{
 			try	{
 				childElement = (Element)list.item(i);
 			}	catch( ClassCastException e )	{
-				continue;		// ignore CDATA (FIXME), comments etc
+				continue;		// ignore CDATA, comments etc
 			}
 			INode workNode = null;
 
@@ -168,8 +168,6 @@ public class XmlReader implements XmlConstants	{
 			helmaNode = new helma.objectmodel.db.Node (name,id,prototype,nmgr.safe);
 		}
 
-		// FIXME: handle parents
-
 		// now loop through all child elements and retrieve properties/subnodes for this node.
 		NodeList list = element.getChildNodes();
 		int len = list.getLength();
@@ -181,7 +179,7 @@ public class XmlReader implements XmlConstants	{
 			try	{
 				childElement = (Element)list.item(i);
 			}	catch( ClassCastException e )	{
-				continue;		// ignore CDATA (FIXME), comments etc
+				continue;		// ignore CDATA, comments etc
 			}
 
 			if ( childElement.getTagName().equals("hop:child") )	{
@@ -190,6 +188,11 @@ public class XmlReader implements XmlConstants	{
 				subnodes.add (new NodeHandle (new DbKey(null,childElement.getAttribute("hop:idref") ) ) );
 				continue;
 			}
+
+			if ( childElement.getTagName().equals("hop:parent") )	{
+				// add a NodeHandle to parent object
+				helmaNode.setParentHandle (new NodeHandle (new DbKey(null,childElement.getAttribute("hop:idref") ) ) );
+			}	
 
 			// if we come until here, childelement is a primitive property value
 			Property prop = new Property (childElement.getTagName(), helmaNode);
