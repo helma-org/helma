@@ -360,7 +360,7 @@ public class Relation {
 	if (!virtual)
 	    return null;
 	if (virtualMapping == null) {
-	    virtualMapping = new DbMapping ();
+	    virtualMapping = new DbMapping (ownType.app);
 	    virtualMapping.subnodesRel = getVirtualSubnodeRelation ();
 	    virtualMapping.propertiesRel = getVirtualPropertyRelation ();
 	}
@@ -483,6 +483,14 @@ public class Relation {
      * Check if the child node fullfills the constraints defined by this relation.
      */
     public boolean checkConstraints (Node parent, Node child) {
+	// problem: if a filter property is defined for this relation,
+	// i.e. a piece of static SQL-where clause, we'd have to evaluate it
+	// in order to check the constraints. Because of this, if a filter
+	// is defined, we return false as soon as the modified-time is greater
+	// than the create-time of the child, i.e. if the child node has been
+	// modified since it was first fetched from the db.
+	if (filter != null && child.lastModified() > child.created())
+	    return false;
 	for (int i=0; i<constraints.length; i++) {
 	    String propname = constraints[i].foreignProperty ();
 	    if (propname != null) {
