@@ -74,10 +74,12 @@ public class Main {
 
 
     /**
-     * Create a Helma <code>ClassLoader</code> from the Helma install directory.
+     * Create a server-wide ClassLoader from our install directory. 
+     * This will be used as parent ClassLoader for all application 
+     * ClassLoaders.
      *
      * @param installDir
-     * @return
+     * @return the main classloader we'll be using
      * @throws MalformedURLException
      */
     public static FilteredClassLoader createClassLoader(String installDir)
@@ -146,7 +148,7 @@ public class Main {
      * System property "helma.home" is set to the install directory path.
      *
      * @param args
-     * @return
+     * @return the base install directory we're running in
      * @throws IOException
      * @throws MalformedURLException
      */

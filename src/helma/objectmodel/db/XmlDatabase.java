@@ -137,9 +137,9 @@ public final class XmlDatabase implements IDatabase {
     }
 
     /**
-     * Get the next free id to use for new objects
+     * Get the id for the next new object to be stored.
      *
-     * @return
+     * @return the id for the next new object to be stored
      * @throws ObjectNotFoundException
      */
     public String nextID() throws ObjectNotFoundException {
@@ -151,10 +151,10 @@ public final class XmlDatabase implements IDatabase {
     }
 
     /**
-     * Get the id-generator
+     * Get the id-generator for this database.
      *
      * @param txn
-     * @return
+     * @return the id-generator for this database
      * @throws ObjectNotFoundException
      */
     public IDGenerator getIDGenerator(ITransaction txn)
@@ -167,7 +167,7 @@ public final class XmlDatabase implements IDatabase {
     }
 
     /**
-     * Write the id-generator to file
+     * Write the id-generator to file.
      *
      * @param txn
      * @param idgen
@@ -191,11 +191,11 @@ public final class XmlDatabase implements IDatabase {
     /**
      * Retrieves a Node from the database.
      *
-     * @param txn
-     * @param kstr
-     * @return
-     * @throws IOException
-     * @throws ObjectNotFoundException
+     * @param txn the current transaction
+     * @param kstr the key
+     * @return the object associated with the given key
+     * @throws IOException if an I/O error occurred loading the object.
+     * @throws ObjectNotFoundException if no object is stored by this key.
      */
     public INode getNode(ITransaction txn, String kstr)
                   throws IOException, ObjectNotFoundException {
