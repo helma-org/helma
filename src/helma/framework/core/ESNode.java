@@ -168,7 +168,7 @@ public class ESNode extends ObjectPrototype {
                 // only rewrap if a transient node was addet to a persistent one.
                 if (esn.getNode () instanceof helma.objectmodel.Node && 
                             !(node instanceof helma.objectmodel.Node))
-                    esn.reWrap (added);
+                    esn.rewrap (added);
             }
         return true;
     }
@@ -201,7 +201,7 @@ public class ESNode extends ObjectPrototype {
         // only rewrap if a transient node was addet to a persistent one.
         if (esn.getNode () instanceof helma.objectmodel.Node && 
                             !(node instanceof helma.objectmodel.Node))
-            esn.reWrap (added);
+            esn.rewrap (added);
         return true;
     }
     
@@ -209,10 +209,10 @@ public class ESNode extends ObjectPrototype {
      * This is necessary to remap ESNodes to their new peers
      *  when they go from transient to persistent state.
      */
-    protected void reWrap (INode newnode) {
+    protected void rewrap (INode newnode) {
         // IServer.getLogger().log ("rewrapping "+this+" from "+node+" to "+newnode);
         if (newnode == null)
-            throw new RuntimeException ("Non-consistent check-in detected in reWrap ()");
+            throw new RuntimeException ("Non-consistent check-in detected in rewrap ()");
         INode oldnode = node;
         if (oldnode == newnode) {
             // IServer.getLogger().log ("loop detected or new peers unchanged in rewrap");
@@ -228,7 +228,7 @@ public class ESNode extends ObjectPrototype {
             ESNode esn = eval.getNodeWrapperFromCache (next);
             // IServer.getLogger().log ("rewrapping node: "+next+" -> "+esn);
             if (esn != null) {
-                esn.reWrap (newnode.getSubnodeAt (i));
+                esn.rewrap (newnode.getSubnodeAt (i));
             }
         }
         for (Enumeration e=oldnode.properties (); e.hasMoreElements (); ) {
@@ -237,7 +237,7 @@ public class ESNode extends ObjectPrototype {
             	   INode next = p.getNodeValue ();
                 ESNode esn = eval.getNodeWrapperFromCache (next);
                 if (esn != null) {
-                    esn.reWrap (newnode.getNode (p.getName (), false));
+                    esn.rewrap (newnode.getNode (p.getName (), false));
                 }
             }
         }
@@ -338,7 +338,7 @@ public class ESNode extends ObjectPrototype {
 	    if (esn.getNode () instanceof helma.objectmodel.Node &&
                             !(node instanceof helma.objectmodel.Node)) {
 	        INode newnode = node.getNode (propertyName, false);
-	        esn.reWrap (newnode);
+	        esn.rewrap (newnode);
 	    }
 	    // IServer.getLogger().log ("*** spent "+(System.currentTimeMillis () - now)+" ms to set property "+propertyName);
 	} else {
