@@ -23,7 +23,12 @@ public interface ScriptingEnvironment {
     /**
      *  Evaluate a source file on a given type/class/prototype
      */
-    public void applyPrototype (Prototype prototype);
+    public void evaluateFile (Prototype prototype, File file);
+
+    /**
+     *  Evaluate a source string on a given type/class/prototype
+     */
+    public void evaluateString (Prototype prototype, String code);
 
     /**
      * Invoke a function on some object, using the given arguments and global vars.

@@ -97,8 +97,8 @@ public class Prototype {
 	return (FunctionFile) functions.get (ffname);
     }
 
-    public Action getAction (String afname) {
-	return (Action) actions.get (afname);
+    public ActionFile getActionFile (String afname) {
+	return (ActionFile) actions.get (afname);
     }
 
     public SkinFile getSkinFile (String sfname) {

@@ -278,9 +278,9 @@ public class Skin {
 	            if (handlerObject == null) {
 	                // eiter because thisObject == null or the right object wasn't found in the object's parent path
 	                // go check request path for an object with matching prototype
-	                int l = reval.reqPath.size();
+	                int l = reval.requestPath.size();
 	                for (int i=l-1; i>=0; i--) {
-	                    Object pathelem = reval.reqPath.getProperty (i).toJavaObject ();
+	                    Object pathelem = reval.requestPath.get (i);
 	                    if (handler.equalsIgnoreCase (app.getPrototypeName (pathelem))) {
 	                         handlerObject = pathelem;
 	                         break;

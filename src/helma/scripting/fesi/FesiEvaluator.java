@@ -10,7 +10,7 @@ import helma.framework.core.*;
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
 import java.util.*;
-import java.io.File;
+import java.io.*;
 import FESI.Data.*;
 import FESI.Interpreter.*;
 import FESI.Exceptions.*;
@@ -280,6 +280,80 @@ public class FesiEvaluator {
      */
     public RequestTrans getRequest () {
 	return reval.req;
+    }
+
+    public  synchronized void evaluateFile (Prototype prototype, File file) {
+	try {
+	    FileReader fr = new FileReader (file);
+	    EvaluationSource es = new FileEvaluationSource (file.getPath (), null);
+	    updateEvaluator (prototype, fr, es);
+	} catch (IOException iox) {
+	    app.logEvent ("Error updating function file: "+iox);
+	}
+    }
+
+    public synchronized void evaluateString (Prototype prototype, String code) {
+	StringReader reader = new StringReader (code);
+	StringEvaluationSource es = new StringEvaluationSource (code, null);
+	updateEvaluator (prototype, reader, es);
+    }
+
+    public  synchronized void updateEvaluator (Prototype prototype, Reader reader, EvaluationSource source) {
+
+        // HashMap priorProps = null;
+        // HashSet newProps = null;
+
+        try {
+
+            ObjectPrototype op = getPrototype (prototype.getName());
+
+            // extract all properties from prototype _before_ evaluation, so we can compare afterwards
+            // but only do this is declaredProps is not up to date yet
+            /*if (declaredPropsTimestamp != lastmod) {
+                priorProps = new HashMap ();
+                // remember properties before evaluation, so we can tell what's new afterwards
+                try {
+                    for (Enumeration en=op.getAllProperties(); en.hasMoreElements(); ) {
+                        String prop = (String) en.nextElement ();
+                        priorProps.put (prop, op.getProperty (prop, prop.hashCode()));
+                    }
+                } catch (Exception ignore) {}
+            } */
+
+            // do the update, evaluating the file
+            evaluator.evaluate(reader, op, source, false);
+
+            // check what's new
+            /* if (declaredPropsTimestamp != lastmod) try {
+                newProps = new HashSet ();
+                for (Enumeration en=op.getAllProperties(); en.hasMoreElements(); ) {
+                    String prop = (String) en.nextElement ();
+                    if (priorProps.get (prop) == null || op.getProperty (prop, prop.hashCode()) != priorProps.get (prop))
+                        newProps.add (prop);
+                }
+            } catch (Exception ignore) {} */
+
+        } catch (Throwable e) {
+            app.logEvent ("Error parsing function file "+source+": "+e);
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException ignore) {}
+            }
+
+            // now remove the props that were not refreshed, and set declared props to new collection
+            /* if (declaredPropsTimestamp != lastmod) {
+                declaredPropsTimestamp = lastmod;
+                if (declaredProps != null) {
+                    declaredProps.removeAll (newProps);
+                    removeProperties (declaredProps);
+                }
+                declaredProps = newProps;
+                // System.err.println ("DECLAREDPROPS = "+declaredProps);
+            } */
+
+        }
     }
 
 

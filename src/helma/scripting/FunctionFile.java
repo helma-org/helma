@@ -11,13 +11,10 @@ import java.io.*;
 import helma.framework.*;
 import helma.framework.core.*;
 import helma.util.Updatable;
-import FESI.Data.*;
-import FESI.Exceptions.EcmaScriptException;
-import FESI.Interpreter.*;
 
 
 /**
- * This represents a File containing JavaScript functions for a given Object. 
+ * This represents a File containing script functions for a given class/prototype.
  */
 
 
@@ -44,8 +41,8 @@ public class FunctionFile implements Updatable {
     }
 
     /**
-     * Create a function file without a file, passing the code directly. This is used for
-     * files contained in zipped applications. The whole update mechanism is bypassed
+     *  Create a function file without a file, passing the code directly. This is used for
+     *  files contained in zipped applications. The whole update mechanism is bypassed
      *  by immediately parsing the code.
      */
     public FunctionFile (String body, String name, Prototype proto) {
@@ -54,20 +51,7 @@ public class FunctionFile implements Updatable {
 	this.name = name;
 	this.file = null;
 	this.content = body;
-
-	Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
-	while (evals.hasNext ()) {
-	    try {
-
-	        StringEvaluationSource es = new StringEvaluationSource (body, null);
-	        StringReader reader = new StringReader (body);
-
-	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
-	        updateRequestEvaluator (reval, reader, es);
-
-	    } catch (Exception ignore) {}
-	}
-
+	update ();
     }
 
     /**
@@ -75,108 +59,30 @@ public class FunctionFile implements Updatable {
      * the file has been modified or deleted.
      */
     public boolean needsUpdate () {
-	return lastmod != file.lastModified ();
+	return file != null && lastmod != file.lastModified ();
     }
 
 
     public void update () {
 
-	if (!file.exists ()) {
-	    remove ();
-
-	} else {
-
-	    lastmod = file.lastModified ();
-	    // app.typemgr.readFunctionFile (file, prototype.getName ());
-
-	    Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
-	    while (evals.hasNext ()) {
-	        try {
-
-	            RequestEvaluator reval = (RequestEvaluator) evals.next ();
-	            FileReader fr = new FileReader(file);
-	            EvaluationSource es = new FileEvaluationSource(file.getPath(), null);
-	            updateRequestEvaluator (reval, fr, es);
-
-	        } catch (Throwable ignore) {}
-	    }
-	}
-
-    }
-
-
-    public  synchronized void updateRequestEvaluator (RequestEvaluator reval) {
 	if (file != null) {
-	    try {
-	        FileReader fr = new FileReader (file);
-	        EvaluationSource es = new FileEvaluationSource (file.getPath (), null);
-	        updateRequestEvaluator (reval, fr, es);
-	    } catch (IOException iox) {
-	        app.logEvent ("Error updating function file: "+iox);
+	    if (!file.exists ()) {
+	        remove ();
+	    } else {
+	        lastmod = file.lastModified ();
+	        // app.typemgr.readFunctionFile (file, prototype.getName ());
+	        // app.getScriptingEnvironment().evaluateFile (prototype, file);
 	    }
 	} else {
-	    StringReader reader = new StringReader (content);
-	    StringEvaluationSource es = new StringEvaluationSource (content, null);
-	    updateRequestEvaluator (reval, reader, es);
+	    // app.getScriptingEnvironment().evaluateString (prototype, content);
 	}
     }
 
-    public  synchronized void updateRequestEvaluator (RequestEvaluator reval, Reader reader, EvaluationSource source) {
-
-        HashMap priorProps = null;
-        HashSet newProps = null;
-
-        try {
-
-            ObjectPrototype op = reval.getPrototype (prototype.getName());
-
-            // extract all properties from prototype _before_ evaluation, so we can compare afterwards
-            // but only do this is declaredProps is not up to date yet
-            if (declaredPropsTimestamp != lastmod) {
-                priorProps = new HashMap ();
-                // remember properties before evaluation, so we can tell what's new afterwards
-                try {
-                    for (Enumeration en=op.getAllProperties(); en.hasMoreElements(); ) {
-                        String prop = (String) en.nextElement ();
-                        priorProps.put (prop, op.getProperty (prop, prop.hashCode()));
-                    }
-                } catch (Exception ignore) {}
-            }
-
-            // do the update, evaluating the file
-            reval.evaluator.evaluate(reader, op, source, false);
-
-            // check what's new
-            if (declaredPropsTimestamp != lastmod) try {
-                newProps = new HashSet ();
-                for (Enumeration en=op.getAllProperties(); en.hasMoreElements(); ) {
-                    String prop = (String) en.nextElement ();
-                    if (priorProps.get (prop) == null || op.getProperty (prop, prop.hashCode()) != priorProps.get (prop))
-                        newProps.add (prop);
-                }
-            } catch (Exception ignore) {}
-
-        } catch (Throwable e) {
-            app.logEvent ("Error parsing function file "+source+": "+e);
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException ignore) {}
-            }
-
-            // now remove the props that were not refreshed, and set declared props to new collection
-            if (declaredPropsTimestamp != lastmod) {
-                declaredPropsTimestamp = lastmod;
-                if (declaredProps != null) {
-                    declaredProps.removeAll (newProps);
-                    removeProperties (declaredProps);
-                }
-                declaredProps = newProps;
-                // System.err.println ("DECLAREDPROPS = "+declaredProps);
-            }
-
-        }
+    public void evaluate (ScriptingEnvironment env) {
+	if (file != null)
+	    env.evaluateFile (prototype, file);
+	else
+	    env.evaluateString (prototype, content);
     }
 
 
@@ -199,7 +105,7 @@ public class FunctionFile implements Updatable {
     void removeProperties (HashSet props) {
 	// first loop through other function files in this prototype to make a set of properties
 	// owned by other files.
-	HashSet otherFiles = new HashSet ();
+/*	HashSet otherFiles = new HashSet ();
 	for (Iterator it=prototype.functions.values ().iterator (); it.hasNext (); ) {
 	    FunctionFile other = (FunctionFile) it.next ();
 	    if (other != this && other.declaredProps != null)
@@ -220,7 +126,7 @@ public class FunctionFile implements Updatable {
 	            // System.err.println ("REMOVING PROP: "+fname);
 	        }
 	    } catch (Exception ignore) {}
-	}
+	} */
     }
 
     public String toString () {
@@ -232,42 +138,5 @@ public class FunctionFile implements Updatable {
 
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

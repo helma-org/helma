@@ -47,6 +47,9 @@ public class RequestEvaluator implements Runnable {
     // arguments passed to the function
     Object[] args;
 
+    // the object path of the request we're evaluating
+    List requestPath;
+
     // the result of the
     Object result;
 
@@ -85,14 +88,14 @@ public class RequestEvaluator implements Runnable {
 	    // long startCheck = System.currentTimeMillis ();
 	    app.typemgr.checkPrototypes ();
 	    // evaluators are only initialized as needed, so we need to check that here
-	    if (!initialized)
-	        app.typemgr.initRequestEvaluator (this);
+	    // if (!initialized)
+	    //     app.typemgr.initRequestEvaluator (this);
 	    // System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
 
 	    // object refs to ressolve request path
 	    Object root, currentElement;
 
-	    ArrayList reqPath = new ArrayList ();
+	    requestPath = new ArrayList ();
 
 	    switch (reqtype) {
 	    case HTTP:
@@ -106,11 +109,11 @@ public class RequestEvaluator implements Runnable {
 	            try {
 
 	                // used for logging
-	                String requestPath = app.getName()+"/"+req.path;
+	                String txname = app.getName()+"/"+req.path;
 	                // set Timer to get some profiling data
 	                localrtx.timer.reset ();
 	                localrtx.timer.beginEvent (requestPath+" init");
-	                localrtx.begin (requestPath);
+	                localrtx.begin (txname);
 
 	                String action = null;
 
@@ -121,7 +124,7 @@ public class RequestEvaluator implements Runnable {
 	                globals.put ("user", user);
 	                globals.put ("req", req);
 	                globals.put ("res", res);
-	                globals.put ("path", reqPath);
+	                globals.put ("path", requestPath);
 	                globals.put ("app", app.getAppNode());
 	                if (error != null)
 	                    res.error = error;
@@ -142,7 +145,7 @@ public class RequestEvaluator implements Runnable {
 	                    if (error != null) {
 	                        // there was an error in the previous loop, call error handler
 	                        currentElement = root;
-	                        reqPath.add (currentElement);
+	                        requestPath.add (currentElement);
 	                        String errorAction = app.props.getProperty ("error", "error");
 	                        action = getAction (currentElement, errorAction);
 	                        if (action == null)
@@ -150,7 +153,7 @@ public class RequestEvaluator implements Runnable {
 
 	                    } else if (req.path == null || "".equals (req.path.trim ())) {
 	                        currentElement = root;
-	                        reqPath.add (currentElement);
+	                        requestPath.add (currentElement);
 	                        action = getAction (currentElement, null);
 	                        if (action == null)
 	                            throw new FrameworkException ("Action not found");
@@ -168,7 +171,7 @@ public class RequestEvaluator implements Runnable {
 	                              pathItems[i] = st.nextToken ();
 
 	                        currentElement = root;
-	                        reqPath.add (currentElement);
+	                        requestPath.add (currentElement);
 
 	                        for (int i=0; i<ntokens; i++) {
 
@@ -181,14 +184,14 @@ public class RequestEvaluator implements Runnable {
 	                            if (i == 0 && "user".equalsIgnoreCase (pathItems[i])) {
 	                                currentElement = user.getNode ();
 	                                if (currentElement != null) {
-	                                    reqPath.add (currentElement);
+	                                    requestPath.add (currentElement);
 	                                }
 
 	                            } else if (i == 0 && "users".equalsIgnoreCase (pathItems[i])) {
 	                                currentElement = app.getUserRoot ();
 
 	                                if (currentElement != null) {
-	                                    reqPath.add (currentElement);
+	                                    requestPath.add (currentElement);
 	                                }
 
 	                            } else {
@@ -208,8 +211,8 @@ public class RequestEvaluator implements Runnable {
 
 	                                    // add object to request path if suitable
 	                                    if (currentElement != null) {
-	                                        // add to reqPath array
-	                                        reqPath.add (currentElement);
+	                                        // add to requestPath array
+	                                        requestPath.add (currentElement);
 	                                        String pt = app.getPrototypeName (currentElement);
 	                                    }
 	                                }
@@ -241,14 +244,14 @@ public class RequestEvaluator implements Runnable {
 	                        throw new FrameworkException (notfound.getMessage ());
 	                }
 
-	                localrtx.timer.endEvent (requestPath+" init");
+	                localrtx.timer.endEvent (txname+" init");
 	                /////////////////////////////////////////////////////////////////////////////
 	                // end of path resolution section
 
 	                /////////////////////////////////////////////////////////////////////////////
 	                // beginning of execution section
 	                try {
-	                    localrtx.timer.beginEvent (requestPath+" execute");
+	                    localrtx.timer.beginEvent (txname+" execute");
 
 	                    int actionDot = action.lastIndexOf (".");
 	                    boolean isAction =  actionDot == -1;
@@ -287,7 +290,7 @@ public class RequestEvaluator implements Runnable {
 	                        String sname = res.skin;
 	                        if (dot > -1) {
 	                            String soname = res.skin.substring (0, dot);
-	                            sobj = reqPath.getProperty (soname, soname.hashCode ());
+	                            sobj = requestPath.getProperty (soname, soname.hashCode ());
 	                            if (sobj == null || sobj == ESUndefined.theUndefined)
 	                                throw new RuntimeException ("Skin "+res.skin+" not found in path.");
 	                            sname = res.skin.substring (dot+1);
@@ -301,7 +304,7 @@ public class RequestEvaluator implements Runnable {
 	                            throw new RuntimeException ("Skin "+res.skin+" not found in path.");
 	                    }  */
 
-	                    localrtx.timer.endEvent (requestPath+" execute");
+	                    localrtx.timer.endEvent (txname+" execute");
 	                } catch (RedirectException redirect) {
 	                    // res.redirect = redirect.getMessage ();
 	                    // if there is a message set, save it on the user object for the next request

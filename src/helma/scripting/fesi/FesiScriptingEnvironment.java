@@ -32,7 +32,21 @@ public class FesiScriptingEnvironment implements ScriptingEnvironment {
     /**
      *  Evaluate a source file on a given type/class/prototype
      */
-    public void applyPrototype (Prototype prototype) {
+    public void evaluateFile (Prototype prototype, File file) {
+	for (Iterator i = evaluators.values().iterator(); i.hasNext(); ) {
+	    FesiEvaluator fesi = (FesiEvaluator) i.next();
+	    fesi.evaluateFile (prototype, file);
+	}
+    }
+
+    /**
+     *  Evaluate a source string on a given type/class/prototype
+     */
+    public void evaluateString (Prototype prototype, String code) {
+	for (Iterator i = evaluators.values().iterator(); i.hasNext(); ) {
+	    FesiEvaluator fesi = (FesiEvaluator) i.next();
+	    fesi.evaluateString (prototype, code);
+	}
     }
 
     /**
@@ -65,4 +79,8 @@ public class FesiScriptingEnvironment implements ScriptingEnvironment {
 	return false;
     }
 
+
+    Collection getEvaluators () {
+	return evaluators.values();
+    }
 }

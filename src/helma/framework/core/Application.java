@@ -367,7 +367,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	            try {
 	                RequestEvaluator re = (RequestEvaluator) freeThreads.pop ();
 	                allThreads.removeElement (re);
-	                typemgr.unregisterRequestEvaluator (re);
+	                // typemgr.unregisterRequestEvaluator (re);
 	                re.stopThread ();
 	            } catch (EmptyStackException empty) {
 	                return false;
@@ -920,6 +920,14 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 
 
     /**
+     *  Get scripting environment for this application
+     */
+    public ScriptingEnvironment getScriptingEnvironment () {
+	return scriptingEngine;
+    }
+
+
+    /**
      * The run method performs periodic tasks like executing the scheduler method and
      * kicking out expired user sessions.
      */
@@ -1146,7 +1154,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      *
      */
     public int countMaxActiveEvaluators () {
-	return typemgr.countRegisteredRequestEvaluators () -1;
+	// return typemgr.countRegisteredRequestEvaluators () -1;
+	// not available due to framework refactoring
+	return -1;
     }
 
     /**

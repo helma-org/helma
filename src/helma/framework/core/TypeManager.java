@@ -225,7 +225,7 @@ public class TypeManager {
 
                 } else if (list[i].endsWith (app.actionExtension) && tmpfile.length () > 0) {
                     try {
-                        Action af = new Action (tmpfile, tmpname, proto);
+                        ActionFile af = new ActionFile (tmpfile, tmpname, proto);
                         updatables.put (list[i], af);
                         nact.put (tmpname, af);
                     } catch (Throwable x) {
@@ -348,7 +348,7 @@ public class TypeManager {
 
             }  else if (list[i].endsWith (app.actionExtension)) {
                 try {
-                    Action af = new Action (tmpfile, tmpname, proto);
+                    ActionFile af = new ActionFile (tmpfile, tmpname, proto);
                     proto.updatables.put (list[i], af);
                     proto.actions.put (tmpname, af);
                 } catch (Throwable x) {

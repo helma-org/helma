@@ -9,14 +9,14 @@ import java.util.Iterator;
 import java.util.StringTokenizer;
 import helma.framework.*;
 import helma.framework.core.*;
-import FESI.Data.*;
-import FESI.Exceptions.*;
+// import FESI.Data.*;
+// import FESI.Exceptions.*;
 
 
 /**
  * This represents a Helma template, i.e. a file with the extension .hsp
  * (Helma server page) that contains both parts that are to be evaluated
- * as EcmaScript and parts that are to be delivered to the client as-is. 
+ * as EcmaScript and parts that are to be delivered to the client as-is.
  * Internally, templates are regular functions. 
  * Helma templates are callable via URL, but this is just a leftover from the
  * days when there were no .hac (action) files. The recommended way
@@ -24,18 +24,24 @@ import FESI.Exceptions.*;
  * template files to do the formatting.
  */
 
-public class Template extends Action {
+public class Template extends ActionFile {
 
     // this is the *_as_string function, which is in addition to the normal one
-    TypeUpdater psfunc;
+    // TypeUpdater psfunc;
 
 
     public Template (File file, String name, Prototype proto) {
 	super (file, name, proto);
+	functionName = name;
+    }
+
+    public Template (String content, String name, Prototype proto) {
+	super (content, name, proto);
+	functionName = name;
     }
 
 
-    public void update (String content) throws Exception {
+    public String getContent () {
 	// IServer.getLogger().log ("Reading text template " + name);
 
 	Vector partBuffer = new Vector ();
@@ -99,7 +105,7 @@ public class Template extends Action {
 	                // append a CRLF
 	                newLineCount++;
 	                templateBody.append ("\\r\\n");
-	            } else if (!"\r".equals (nextLine)){
+	            } else if (!"\r".equals (nextLine)) try {
 	                StringReader lineReader = new StringReader (nextLine);
 	                int c = lineReader.read ();
 	                while (c > -1) {
@@ -109,7 +115,7 @@ public class Template extends Action {
 	                    templateBody.append ((char) c);
 	                    c = lineReader.read ();
 	                }
-	            }
+	            } catch (IOException srx) {}
 
 	            nextLine = st.hasMoreTokens () ? st.nextToken () : null;
 
@@ -124,7 +130,7 @@ public class Template extends Action {
 	        // append the number of lines we have "swallowed" into
 	        // one write statement, so error messages will *approximately*
 	        // give correct line numbers.
-	        for (int i=0; i<newLineCount; i++) {							
+	        for (int i=0; i<newLineCount; i++) {
 	                templateBody.append ("\r\n");
 	        }
 
@@ -137,7 +143,9 @@ public class Template extends Action {
 	}
 	// templateBody.append ("\r\nreturn null;\r\n");
 
-             functionName = name;
+	return templateBody.toString ();
+
+	/*
 	String fname = name+"_as_string";
 	String body = templateBody.toString ();
 
@@ -164,14 +172,15 @@ public class Template extends Action {
 	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
 	        updateRequestEvaluator (reval);
 	    } catch (Exception ignore) {}
-	}
+	} */
     }
 
-    void remove () {
+    protected void remove () {
 	prototype.templates.remove (name);
-	prototype.updatables.remove (file.getName());
+	if (file != null)
+	    prototype.updatables.remove (file.getName());
 
-	Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
+	/* Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
 	while (evals.hasNext ()) {
 	    try {
 	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
@@ -187,16 +196,16 @@ public class Template extends Action {
 	            op.deleteProperty (fname, fname.hashCode());
 	        }
 	    } catch (Exception ignore) {}
-	}
+	} */
     }
 
 
-    public synchronized void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException {
+    /* public synchronized void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException {
         if (pfunc != null)
             pfunc.updateRequestEvaluator (reval);
         if (psfunc != null)
             psfunc.updateRequestEvaluator (reval);
-    }
+    } */
 
     class Part {
 
@@ -224,32 +233,7 @@ public class Template extends Action {
 
     }
 
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
