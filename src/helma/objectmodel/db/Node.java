@@ -1716,13 +1716,22 @@ public final class Node implements INode, Serializable {
 
 
     /**
-     * Get the cache node for this node. This can be used to store transient cache data per node from Javascript.
+     * Get the cache node for this node. This can be
+     * used to store transient cache data per node from Javascript.
      */
     public synchronized INode getCacheNode () {
 	if (cacheNode == null)
 	    cacheNode = new TransientNode();
 	return cacheNode;
     }
+
+    /**
+     * Reset the cache node for this node.
+     */
+    public synchronized void clearCacheNode () {
+	cacheNode = null;
+    }
+
 
     /**
      * This method walks down node path to the first non-virtual node and return it.

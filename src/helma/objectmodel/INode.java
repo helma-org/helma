@@ -34,11 +34,9 @@ public interface INode extends INodeState, IPathElement {
     public String getPrototype ();
     public void setPrototype (String prototype);
     public INode getCacheNode ();
-
+    public void clearCacheNode ();
     public String getFullName ();
     public String getFullName (INode root);
-    // public INode[] getPath ();
-    // public String getUrl (INode root, INode users, String tmpname, String rootproto);
 
     /**
      *  node-related methods

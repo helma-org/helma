@@ -589,12 +589,21 @@ public class TransientNode implements INode, Serializable {
 
     INode cacheNode;
     /**
-     * Get the cache node for this node. This can be used to store transient cache data per node from Javascript.
+     * Get the cache node for this node. This can
+     * be used to store transient cache data per node
+     * from Javascript.
      */
     public synchronized INode getCacheNode () {
 	if (cacheNode == null)
 	    cacheNode = new TransientNode();
 	return cacheNode;
+    }
+
+    /**
+     * Reset the cache node for this node.
+     */
+    public synchronized void clearCacheNode () {
+	cacheNode = null;
     }
 
 }
