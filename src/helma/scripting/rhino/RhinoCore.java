@@ -16,6 +16,7 @@
 
 package helma.scripting.rhino;
 
+import helma.scripting.rhino.extensions.*;
 import helma.framework.*;
 import helma.framework.core.*;
 import helma.main.Server;
@@ -144,7 +145,7 @@ public final class RhinoCore {
         if (!"global".equalsIgnoreCase(name) && !"hopobject".equalsIgnoreCase(name) &&
                 (opp == null)) {
             if (app.isJavaPrototype(name)) {
-                opp = getRawPrototype("__javaobject__");
+                opp = null;
             } else {
                 opp = getRawPrototype("hopobject");
             }
@@ -177,9 +178,7 @@ public final class RhinoCore {
         // the actual (scripted) constructor on it.
         if (!"global".equalsIgnoreCase(name) && !"root".equalsIgnoreCase(name)) {
             try {
-                FunctionObject fp = new FunctionObject(name, HopObject.hopObjCtor, global);
-
-                installConstructor(fp, op);
+                installConstructor(name, op);
             } catch (Exception ignore) {
                 System.err.println("Error adding ctor for " + name + ": " + ignore);
                 ignore.printStackTrace();
@@ -213,7 +212,7 @@ public final class RhinoCore {
         if (!"global".equalsIgnoreCase(name) && !"hopobject".equalsIgnoreCase(name) &&
                 (opp == null)) {
             if (app.isJavaPrototype(name)) {
-                opp = getPrototype("__javaobject__");
+                opp = null;
             } else {
                 opp = getPrototype("hopobject");
             }
@@ -244,20 +243,6 @@ public final class RhinoCore {
             op.setPrototype(opp);
         }
 
-        // Register a constructor for all types except global.
-        // This will first create a new prototyped hopobject and then calls
-        // the actual (scripted) constructor on it.
-        /* if (!"global".equalsIgnoreCase(name) && !"root".equalsIgnoreCase(name)) {
-            try {
-                FunctionObject fp = new FunctionObject(name, HopObject.hopObjCtor, global);
-
-                installConstructor(fp, op);
-            } catch (Exception ignore) {
-                System.err.println("Error adding ctor for " + name + ": " + ignore);
-                ignore.printStackTrace();
-            }
-        } */
-
         for (Iterator it = prototype.getZippedCode().values().iterator(); it.hasNext();) {
             Object code = it.next();
 
@@ -276,13 +261,14 @@ public final class RhinoCore {
      *  that does not set the constructor property in the prototype. This is because
      *  we want our own scripted constructor function to prevail, if it is defined.
      */
-    private void installConstructor(FunctionObject fo, Scriptable prototype) {
+    private void installConstructor(String name, Scriptable prototype) {
+        FunctionObject fo = new FunctionObject(name, HopObject.hopObjCtor, global);
+
         ScriptRuntime.setFunctionProtoAndParent(global, fo);
         fo.setImmunePrototypeProperty(prototype);
 
         prototype.setParentScope(fo);
 
-        String name = prototype.getClassName();
         ScriptableObject.defineProperty(global, name, fo, ScriptableObject.DONTENUM);
 
         fo.setParentScope(global);
@@ -563,7 +549,7 @@ public final class RhinoCore {
     /**
      * Register an object prototype for a certain prototype name.
      */
-    public void putPrototype(String protoName, Scriptable op) {
+    private void putPrototype(String protoName, Scriptable op) {
         if ((protoName != null) && (op != null)) {
             prototypes.put(protoName, new TypeInfo(op, protoName));
         }
@@ -575,7 +561,7 @@ public final class RhinoCore {
      *  interface, the getPrototype method will be used to retrieve the name of the prototype
      * to use. Otherwise, a Java-Class-to-Script-Prototype mapping is consulted.
      */
-    protected Scriptable getElementWrapper(Object e) {
+    public Scriptable getElementWrapper(Object e) {
 
         Scriptable w = (Scriptable) wrappercache.get(e);
 
@@ -600,7 +586,7 @@ public final class RhinoCore {
     /**
      *  Get a script wrapper for an instance of helma.objectmodel.INode
      */
-    protected Scriptable getNodeWrapper(INode n) {
+    public Scriptable getNodeWrapper(INode n) {
         // FIXME: is this needed? should this return ESNull.theNull?
         if (n == null) {
             return null;
@@ -710,6 +696,16 @@ public final class RhinoCore {
         }
     }
 
+    /**
+     *  Return the global scope of this RhinoCore.
+     */
+    public Scriptable getScope() {
+        return global;
+    }
+
+    /**
+     *  TypeInfo helper class
+     */
     class TypeInfo {
         Scriptable objectPrototype;
         long lastUpdate = 0;
@@ -725,16 +721,18 @@ public final class RhinoCore {
         }
     }
 
+    /**
+     *  Object wrapper class
+     */
     class Wrapper extends WrapFactory {
 
         public Object wrap(Context cx, Scriptable scope, Object obj, Class staticType)  {
             // System.err.println ("Wrapping: "+obj);
-
             if (obj instanceof INode) {
                 return getNodeWrapper((INode) obj);
             }
 
-            if (obj instanceof IPathElement) {
+            if (obj != null && app.getPrototypeName(obj) != null) {
                 return getElementWrapper(obj);
             }
 
@@ -750,7 +748,7 @@ public final class RhinoCore {
         }
 
         public Scriptable wrapAsJavaObject(Context cx, Scriptable scope, Object javaObject) {
-            if (javaObject instanceof IPathElement) {
+            if (javaObject != null && app.getPrototypeName(javaObject) != null) {
                 return getElementWrapper(javaObject);
             }
 
@@ -763,7 +761,7 @@ public final class RhinoCore {
                 return getNodeWrapper((INode) obj);
             }
 
-            if (obj instanceof IPathElement) {
+            if (obj != null && app.getPrototypeName(obj) != null) {
                 return getElementWrapper(obj);
             }
 

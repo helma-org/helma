@@ -23,6 +23,7 @@ import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import org.mozilla.javascript.*;
 import java.lang.reflect.Method;
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
@@ -73,22 +74,52 @@ public class HopObject extends ScriptableObject {
      */
     public static Object hopObjectConstructor(Context cx, Object[] args,
                                               Function ctorObj, boolean inNewExpr)
-                         throws ScriptingException {
+                         throws JavaScriptException, ScriptingException {
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
         RhinoCore c = engine.core;
         String prototype = ((FunctionObject) ctorObj).getFunctionName();
-        INode n = new helma.objectmodel.db.Node(prototype, prototype,
+
+        // if this is a java object prototype, create a new java object
+        // of the given class instead of a HopObject.
+        if (c.app.isJavaPrototype(prototype)) {
+            String classname = c.app.getJavaClassForPrototype(prototype);
+            try {
+                Class clazz = Class.forName(classname);
+                Constructor[] cnst = clazz.getConstructors();
+                // brute force loop through constructors -
+                // alas, this isn't very pretty.
+                for (int i=0; i<cnst.length; i++) try {
+                    FunctionObject fo = new FunctionObject("ctor", cnst[i], engine.global);
+                    Object obj = fo.call(cx, engine.global, null, args);
+                    return cx.toObject(obj, engine.global);
+                } catch (JavaScriptException x) {
+                    Object value = x.getValue();
+                    if (value instanceof Throwable) {
+                        ((Throwable) value).printStackTrace();
+                    }
+                    throw new JavaScriptException("Error in Java constructor: "+value);
+                } catch (Exception ignore) {
+                    // constructor arguments didn't match
+                }
+                throw new ScriptingException("No matching Java Constructor found in "+clazz);
+            } catch (Exception x) {
+                System.err.println("Error in Java constructor: "+x);
+                throw new JavaScriptException(x);
+            }
+        } else {
+            INode n = new helma.objectmodel.db.Node(prototype, prototype,
                                                 c.app.getWrappedNodeManager());
-        HopObject hobj = new HopObject(prototype);
+            HopObject hobj = new HopObject(prototype);
 
-        hobj.init(c, n);
-        Scriptable p = c.getPrototype(prototype);
-        if (p != null) {
-            hobj.setPrototype(p);
-            engine.invoke(hobj, "constructor", args, false);
+            hobj.init(c, n);
+            Scriptable p = c.getPrototype(prototype);
+            if (p != null) {
+                hobj.setPrototype(p);
+                engine.invoke(hobj, "constructor", args, false);
+            }
+
+            return hobj;
         }
-
-        return hobj;
     }
 
     /**
@@ -109,6 +140,15 @@ public class HopObject extends ScriptableObject {
     public void init(RhinoCore c, INode n) {
         core = c;
         node = n;
+    }
+
+    /**
+     *  Return the INode wrapped by this HopObject.
+     *
+     * @return the wrapped INode instance
+     */
+    public INode getNode() {
+        return node;
     }
 
     /**

@@ -16,6 +16,7 @@
 
 package helma.scripting.rhino;
 
+import helma.scripting.rhino.extensions.*;
 import helma.framework.*;
 import helma.framework.core.*;
 import helma.objectmodel.*;

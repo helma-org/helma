@@ -29,12 +29,26 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 
+ *
  */
 public class JavaObject extends NativeJavaObject {
 
     RhinoCore core;
     Scriptable prototype;
+
+    static HashMap overload;
+
+    static {
+        overload = new HashMap();
+        Method[] m = JavaObject.class.getMethods();
+        for (int i=0; i<m.length; i++) {
+            if ("href".equals(m[i].getName()) ||
+                "renderSkin".equals(m[i].getName()) ||
+                "renderSkinAsString".equals(m[i].getName())) {
+                overload.put(m[i].getName(), m[i]);
+            }
+        }
+    }
 
     /**
      *  Creates a new JavaObject wrapper.
@@ -168,19 +182,17 @@ public class JavaObject extends NativeJavaObject {
 
     public Object get(String name, Scriptable start) {
         // System.err.println ("GET: "+name);
-        Object obj = prototype.get(name, start);
-        if (obj != null && obj != UniqueTag.NOT_FOUND)
-            return obj;
-
-        Method[] m = JavaObject.class.getMethods();
-        for (int i=0; i<m.length; i++) {
-            if (name.equals(m[i].getName())) {
-                obj =  new FunctionObject(name, m[i], this);
-                // System.err.println ("GOT: "+obj);
-                return obj;
-            }
+        Object obj = overload.get(name);
+        if (obj != null) {
+            return new FunctionObject(name, (Method) obj, this);
         }
-      return super.get(name, start);
+
+        obj = prototype.get(name, start);
+        if (obj != null && obj != UniqueTag.NOT_FOUND) {
+            return obj;
+        }
+
+        return super.get(name, start);
     }
 
 }

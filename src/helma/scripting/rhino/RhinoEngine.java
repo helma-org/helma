@@ -26,7 +26,6 @@ import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Relation;
 import helma.scripting.*;
-import helma.scripting.fesi.extensions.*;
 import helma.util.CacheMap;
 import helma.util.Updatable;
 import org.mozilla.javascript.*;
@@ -37,6 +36,7 @@ import java.util.*;
  * This is the implementation of ScriptingEnvironment for the Mozilla Rhino EcmaScript interpreter.
  */
 public final class RhinoEngine implements ScriptingEngine {
+    // map for Application to RhinoCore binding
     static Map coreMap;
 
     // the application we're running in
@@ -123,7 +123,7 @@ public final class RhinoEngine implements ScriptingEngine {
         RhinoCore core = null;
 
         if (coreMap == null) {
-            coreMap = new HashMap();
+            coreMap = new WeakHashMap();
         } else {
             core = (RhinoCore) coreMap.get(app);
         }
@@ -227,17 +227,17 @@ public final class RhinoEngine implements ScriptingEngine {
         thread = null;
 
         // loop through previous globals and unset them, if necessary.
-        /* if (lastGlobals != null) {
+        if (lastGlobals != null) {
            for (Iterator i=lastGlobals.keySet().iterator(); i.hasNext(); ) {
                String g = (String) i.next ();
                try {
-                   global.deleteProperty (g, g.hashCode());
+                   global.delete (g);
                } catch (Exception x) {
                    System.err.println ("Error resetting global property: "+g);
                }
            }
            lastGlobals = null;
-           } */
+           }
     }
 
     /**
@@ -298,10 +298,15 @@ public final class RhinoEngine implements ScriptingEngine {
             }
 
             // has the request timed out? If so, throw TimeoutException
-            // if (evaluator.thread != Thread.currentThread())
-            //     throw new TimeoutException ();
+            if (thread != Thread.currentThread())
+                throw new TimeoutException ();
             // create and throw a ScriptingException with the right message
-            String msg = x.toString();
+            String msg;
+            if (x instanceof JavaScriptException) {
+                msg = ((JavaScriptException) x).getValue().toString();
+            } else {
+                msg = x.toString();
+            }
 
             if (app.debug()) {
                 System.err.println("Error in Script: " + msg);
@@ -416,16 +421,27 @@ public final class RhinoEngine implements ScriptingEngine {
     }
 
     /**
-     *  Return the Response object of the current evaluation context. Proxy method to RequestEvaluator.
+     *  Return the Response object of the current evaluation context.
+     *  Proxy method to RequestEvaluator.
      */
     public ResponseTrans getResponse() {
         return reval.res;
     }
 
     /**
-     *  Return the Request object of the current evaluation context. Proxy method to RequestEvaluator.
+     *  Return the Request object of the current evaluation context.
+     *  Proxy method to RequestEvaluator.
      */
     public RequestTrans getRequest() {
         return reval.req;
+    }
+
+    /**
+     *  Return the RhinoCore object for the application this engine belongs to.
+     *
+     * @return this engine's RhinoCore instance
+     */
+    public RhinoCore getCore() {
+        return core;
     }
 }
