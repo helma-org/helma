@@ -51,6 +51,7 @@ public class ResponseTrans implements Externalizable {
     public void reset () {
 	if (buffer != null)
 	    buffer.setLength (0);
+	response = null;
 	redirect = null;
 	skin = null;
 	title = head = body = message = error = "";
@@ -140,17 +141,32 @@ public class ResponseTrans implements Externalizable {
 	throw new RedirectException (url);
     }
 
+    /**
+     *  Allow to directly set the byte array for the response. Calling this more than once will
+     *  overwrite the previous output. We take a generic object as parameter to be able to
+     * generate a better error message, but it must be byte[].
+     */
+    public void writeBinary (byte[] what) {
+	/* if (what == null || !(what instanceof byte[])) {
+	    String type = what == null ? "null" : what.getClass ().getName();
+	    throw new RuntimeException ("Parameter for res.writeBinary must be byte[], but was "+type);
+	}  */
+	response = what;
+    }
+
 
     /**
      * This has to be called after writing to this response has finished and before it is shipped back to the
      * web server. Transforms the string buffer into a char array to minimize size.
      */
     public synchronized void close () {
-	if (buffer != null) {
-	    response = buffer.toString ().getBytes ();
-	    buffer = null; // make sure this is done only once, even with more requsts attached
-	} else {
-	    response = new byte[0];
+	if (response == null) {
+	    if (buffer != null) {
+	        response = buffer.toString ().getBytes ();
+	        buffer = null; // make sure this is done only once, even with more requsts attached
+	    } else {
+	        response = new byte[0];
+	    }
 	}
 	notifyAll ();
     }
