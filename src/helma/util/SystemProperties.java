@@ -98,6 +98,13 @@ public final class SystemProperties extends Properties {
     }
 
     /**
+     *  Update/re-read the properties from file if necessary.
+     */
+    public void update () {
+        checkFile();
+    }
+
+    /**
      *  Return a checksum that changes when something in the properties changes.
      */
     public long getChecksum() {
