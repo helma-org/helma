@@ -28,6 +28,9 @@ import java.util.*;
 public class RequestTrans implements Externalizable {
     static final long serialVersionUID = 5398880083482000580L;
 
+    public final static byte GET = 0;
+    public final static byte POST = 1;
+    
     // the uri path of the request
     public String path;
 
@@ -36,9 +39,9 @@ public class RequestTrans implements Externalizable {
 
     // the map of form and cookie data
     private Map values;
-
+    
     // the request method - 0 for GET, 1 for POST
-    private byte httpMethod = 0;
+    private byte httpMethod = GET;
 
     // timestamp of client-cached version, if present in request
     private long ifModifiedSince = -1;
@@ -53,12 +56,12 @@ public class RequestTrans implements Externalizable {
     public transient String action;
     private transient String httpUsername;
     private transient String httpPassword;
-
+    
     /**
      *  Create a new Request transmitter with an empty data map.
      */
     public RequestTrans() {
-        httpMethod = 0;
+        this(GET);
         values = new SystemMap();
     }
 
@@ -122,14 +125,14 @@ public class RequestTrans implements Externalizable {
      *  Return true if this object represents a HTTP GET Request.
      */
     public boolean isGet() {
-        return httpMethod == 0;
+        return httpMethod == GET;
     }
 
     /**
      *  Return true if this object represents a HTTP GET Request.
      */
     public boolean isPost() {
-        return httpMethod == 1;
+        return httpMethod == POST;
     }
 
     /**

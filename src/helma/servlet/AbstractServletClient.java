@@ -32,8 +32,6 @@ import javax.servlet.http.*;
  * via RMI. Subclasses are either one servlet per app, or one servlet that handles multiple apps
  */
 public abstract class AbstractServletClient extends HttpServlet {
-    static final byte HTTP_GET = 0;
-    static final byte HTTP_POST = 1;
 
     // host on which Helma app is running
     String host = null;
@@ -100,7 +98,7 @@ public abstract class AbstractServletClient extends HttpServlet {
      */
     public void doGet(HttpServletRequest request, HttpServletResponse response)
                throws ServletException, IOException {
-        execute(request, response, HTTP_GET);
+        execute(request, response, RequestTrans.GET);
     }
 
     /**
@@ -114,7 +112,7 @@ public abstract class AbstractServletClient extends HttpServlet {
      */
     public void doPost(HttpServletRequest request, HttpServletResponse response)
                 throws ServletException, IOException {
-        execute(request, response, HTTP_POST);
+        execute(request, response, RequestTrans.POST);
     }
 
     protected void execute(HttpServletRequest request, HttpServletResponse response,
@@ -153,7 +151,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 
             // check for MIME file uploads
             String contentType = request.getContentType();
-
+            
             if ((contentType != null) &&
                     (contentType.indexOf("multipart/form-data") == 0)) {
                 // File Upload
@@ -193,8 +191,9 @@ public abstract class AbstractServletClient extends HttpServlet {
                             reqtrans.session = nextPart;
                         } else {
                             reqtrans.set(nextKey, nextPart);
-                        }
+                        }               
                     } catch (Exception badCookie) {
+                        // ignore
                     }
             }
 
