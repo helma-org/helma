@@ -188,7 +188,7 @@ public class SessionBean implements Serializable {
      * Return the message that is to be displayed upon the next
      * request within this session.
      *
-     * @return
+     * @return the message, or null if none was set.
      */
     public String getMessage() {
         return session.message;

@@ -35,7 +35,7 @@ public class JimiGenerator extends ImageGenerator {
      * @param quality ...
      * @param alpha ...
      * @throws IOException
-     * @see helma.image.ImageGenerator#saveAs(helma.image.ImageWrapper, java.lang.String, float, boolean)
+     * @see helma.image.ImageGenerator#write(helma.image.ImageWrapper, java.lang.String, float, boolean)
      */
     public void write(ImageWrapper wrapper, String filename, float quality, boolean alpha) throws IOException {
         try {
@@ -61,7 +61,7 @@ public class JimiGenerator extends ImageGenerator {
                     // the quality value does mean something here and can be specified:
                     if (quality >= 0.0 && quality <= 1.0) {
                         JPGOptions options = new JPGOptions();
-                        options.setQuality((int) Math.round(quality * 100));
+                        options.setQuality(Math.round(quality * 100));
                         source.setOptions(options);
                     }
                 } else if (lowerCaseName.endsWith(".png")) {

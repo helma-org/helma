@@ -262,8 +262,7 @@ public class MimeType implements Serializable, Cloneable {
      * tries to be compliant with HTTP1.1, p 15, although it is not
      * (because of quoted-text not being accepted).
      * FIXME
-     * @parameter spec A string representing a MimeType
-     * @return A MimeType object
+     * @param spec A string representing a MimeType
      * @exception MimeTypeFormatException if the string couldn't be parsed.
      */
     public MimeType (String spec)

@@ -39,7 +39,7 @@ import helma.image.*;
  */
 public class ImageIOGenerator extends ImageGenerator {
     /**
-     * @param file the filename the filename of the image to create
+     * @param filename the filename of the image to create
      *
      * @return the newly created image
      * @throws IOException

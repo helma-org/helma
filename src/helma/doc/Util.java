@@ -54,7 +54,7 @@ public final class Util {
     /**
      * chops anything that comes after a closing comment tag
      *
-     * @param raw comment
+     * @param comment the raw comment
      *
      * @return chopped comment
      */

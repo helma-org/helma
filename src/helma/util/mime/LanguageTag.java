@@ -119,7 +119,7 @@ public class LanguageTag implements Serializable, Cloneable {
 
     /**
      * Construct a Language tag from a spec
-     * @parameter spec, A string representing a LangateTag
+     * @param spec A string representing a LangateTag
      */
     public LanguageTag(String spec) {
 	int strl  = spec.length() ;

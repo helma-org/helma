@@ -32,7 +32,15 @@ public abstract class ImageGenerator {
     protected static ImageGenerator generator = null;
 
     /**
-     * @return
+     * Returns an ImageGenerator singleton, creating it if necessary. If the JIMI
+     * package is installed, an instance of {@link helma.image.jimi.JimiGenerator JimiGenerator}
+     * will be returned. Otherwise, if the javax.imageio package is available,
+     * an instance of {@link helma.image.imageio.ImageIOGenerator ImageIOGenerator}
+     * is returned. Additionally, the class of the ImageGenerator implementation
+     * to be used can be set using the <code>imageGenerator</code> property in either
+     * the app.properties or server.properties file.
+     *
+     * @return a new ImageGenerator instance
      */
     public static ImageGenerator getInstance() {
         if (generator == null) {
@@ -150,7 +158,7 @@ public abstract class ImageGenerator {
     }
 
     /**
-     * @param file the filename the filename of the image to create
+     * @param filename the filename of the image to create
      * 
      * @return the newly created image
      * @throws IOException
@@ -188,7 +196,7 @@ public abstract class ImageGenerator {
     /**
      * Saves the image. Image format is deduced from filename.
      * 
-     * @param image
+     * @param wrapper
      * @param filename
      * @param quality
      * @param alpha

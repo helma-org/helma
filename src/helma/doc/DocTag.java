@@ -72,8 +72,8 @@ public final class DocTag {
 
 
     /**
-     * @param checks if a line is a tag
-     * @return true/false
+     * @param rawTag a line from a helmadoc comment
+     * @return true if the line represents a tag
      */
     public static boolean isTagStart(String rawTag) {
         if (rawTag.trim().startsWith("@"))
@@ -86,7 +86,7 @@ public final class DocTag {
     /**
      * match tags where we want different names to be valid
      * as one and the same tag
-     * @param tagname original name
+     * @param tagName original name
      * @return modified name if tag was matched
      */
     public static String matchTagName(String tagName) {

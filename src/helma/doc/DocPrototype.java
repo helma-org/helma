@@ -34,7 +34,7 @@ public class DocPrototype extends DocDirElement {
     /**
      * creates a prototype that is independent of an
      * application object
-     * @param homedirectory
+     * @param location
      */
     public static DocPrototype newInstance(File location) {
         return newInstance(location, null);
@@ -43,8 +43,8 @@ public class DocPrototype extends DocDirElement {
     /**
      * creates a prototype that is connected to an
      * application object and resides in app's home dir.
-     * @param application
-     * @param name
+     * @param location
+     * @param parent
      */
     public static DocPrototype newInstance(File location, DocElement parent) {
         DocPrototype pt = new DocPrototype(location.getName(), location, parent);

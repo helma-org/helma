@@ -215,7 +215,7 @@ public class MimeParser {
 
     /**
      * Create an instance of the MIMEParser class.
-     * @param in The input stream to be parsed as a MIME stream.
+     * @param input The input stream to be parsed as a MIME stream.
      * @param factory The factory used to create MIME header holders.
      */
 
