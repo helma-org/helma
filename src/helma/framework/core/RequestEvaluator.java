@@ -658,10 +658,16 @@ public class RequestEvaluator implements Runnable {
 	if (thisObject != null && thisObject instanceof ESNode)
 	    n = ((ESNode) thisObject).getNode ();
 	Prototype proto = app.getPrototype (n);
+	Skin skin = null;
 	if (proto != null)
-	    return proto.getSkin (skinname);
-	else
-	    return null;
+	    skin = proto.getSkin (skinname);
+	// if we have a thisObject and didn't find the skin, try in hopobject
+	if (skin == null) {
+	    proto = app.typemgr.getPrototype ("hopobject");
+	    if (proto != null)
+	        skin = proto.getSkin (skinname);
+	}
+	return skin;
     }
 	
 
