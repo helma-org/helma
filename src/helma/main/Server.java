@@ -24,7 +24,7 @@ import com.sleepycat.db.*;
  
  public class Server implements IPathElement, Runnable {
 
-    public static final String version = "1.2pre2 2002/03/26";
+    public static final String version = "1.2pre3 2002/04/26";
     public static final long starttime = System.currentTimeMillis();
 
     public static boolean useTransactions = true;
@@ -247,7 +247,7 @@ import com.sleepycat.db.*;
 	    getLogger().log ("Error initializing embedded database: "+gx);
 	    gx.printStackTrace ();
 	    return;
-             }
+	}
 
 	// start applications
 	appManager.startAll ();
@@ -295,17 +295,11 @@ import com.sleepycat.db.*;
 	    if (logDir == null || "console".equalsIgnoreCase (logDir)) {
 	        logger = new Logger (System.out);
 	    } else {
-	        try {
-	           File helper = new File (logDir);
-	            if (hopHome != null && !helper.isAbsolute ())
-                              helper = new File (hopHome, logDir);
-	            logDir = helper.getAbsolutePath ();
-	            logger = Logger.getLogger (logDir, "hop");
-	        } catch (IOException iox) {
-	            System.err.println ("Could not create Logger for log/hop: "+iox);
-	            // fallback to System.out
-	            logger = new Logger (System.out);
-	        }
+	       File helper = new File (logDir);
+	        if (hopHome != null && !helper.isAbsolute ())
+	            helper = new File (hopHome, logDir);
+	        logDir = helper.getAbsolutePath ();
+	        logger = Logger.getLogger (logDir, "hop");
 	    }
 	}
 	return logger;
