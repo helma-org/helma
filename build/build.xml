@@ -273,6 +273,7 @@ manage
     <!-- needs parameter ${filename} for final dist-file                     -->
     <!-- =================================================================== -->
     <target name="package-zip" depends="init">
+    	<mkdir dir="${build.dist}" />
         <fixcrlf srcdir="${build.work}" eol="crlf" includes="**/*.txt, **/*.properties, **/*.hac, **/*.js, **/*.skin, **/*.xml" />
 		<zip zipfile="${build.dist}/${filename}.zip">
 			<zipfileset dir="${build.work}" prefix="${filename}" includes="**" />
