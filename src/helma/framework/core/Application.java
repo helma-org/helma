@@ -91,11 +91,20 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 
 	threadgroup = new ThreadGroup ("TX-"+name);
 
-	appDir = new File (home, "apps");
+	String appHome = sysProps.getProperty ("appHome");
+	if (appHome != null && !"".equals (appHome.trim()))
+	    appDir = new File (appHome);
+	else
+	    appDir = new File (home, "apps");
 	appDir = new File (appDir, name);
 	if (!appDir.exists())	
 	    appDir.mkdirs ();
-	dbDir = new File (home, "db");
+
+	String dbHome = sysProps.getProperty ("dbHome");
+	if (dbHome != null && !"".equals (dbHome.trim()))
+	    dbDir = new File (dbHome);
+	else
+	    dbDir = new File (home, "db");
 	dbDir = new File (dbDir, name);
 	if (!dbDir.exists())	
 	    dbDir.mkdirs ();
