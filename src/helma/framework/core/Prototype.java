@@ -140,7 +140,7 @@ public final class Prototype {
     public final boolean isInstanceOf (String pname) {
 	if (name.equals (pname))
 	   return true;
-	if (parent != null)
+	if (parent != null && !"hopobject".equalsIgnoreCase (parent.getName()))
 	   return parent.isInstanceOf (pname);
 	return false;
     }
