@@ -35,10 +35,10 @@ public class ResponseTrans implements Externalizable {
      */
     public int status = 0;
 
-	/**
-	 * Used for HTTP authentication
-	 */
-	public String realm;
+    /**
+     * Used for HTTP authentication
+     */
+    public String realm;
 
     // name of the skin to be rendered  after completion, if any
     public transient String skin = null;
@@ -59,6 +59,9 @@ public class ResponseTrans implements Externalizable {
     private transient StringBuffer buffer = null;
     // these are used to implement the _as_string variants for Hop templates.
     private transient Stack buffers;
+
+    // the path used to resolve skin names
+    public transient String skinpath = null;
 
     static final long serialVersionUID = -8627370766119740844L;
 
