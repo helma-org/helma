@@ -63,7 +63,7 @@ public class ESMail extends ESObject implements Serializable {
 	    Session session = Session.getDefaultInstance(props, null);
 	    message = new MimeMessage (session);
 	} catch (Throwable t) {
-	    this.evaluator.reval.app.logEvent ("Error in mail constructor: "+t);
+	    this.evaluator.engine.getApplication().logEvent ("Error in mail constructor: "+t);
 	}
     }
 

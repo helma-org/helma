@@ -261,10 +261,10 @@ public abstract class ESLoader extends ESObject {
         } else if (obj.getClass().isArray()) {
             return new ESArrayWrapper(obj, evaluator);
         } // else if (obj instanceof helma.framework.IPathElement) {   // Hannes Wallnoefer, 13. Aug 2001
-        //     return evaluator.reval.getElementWrapper ((helma.framework.IPathElement) obj);
+        //     return evaluator.engine.getElementWrapper ((helma.framework.IPathElement) obj);
         // }
         // return new ESWrapper(obj, evaluator);
-        return evaluator.reval.getObjectWrapper (obj);
+        return evaluator.engine.getObjectWrapper (obj);
     }
     
     /**

@@ -18,26 +18,26 @@ import FESI.Data.ESWrapper;
 
 public class ESBeanWrapper extends ESWrapper {
 
-	FesiEvaluator eval;
+    FesiEngine engine;
 
-	public ESBeanWrapper (Object object, FesiEvaluator eval) {
-	super (object, eval.getEvaluator(),true);
-	this.eval = eval;
-	}
+    public ESBeanWrapper (Object object, FesiEngine engine) {
+	super (object, engine.getEvaluator(),true);
+	this.engine = engine;
+    }
 
-	/**
- 	* Wrap getProperty, return ESNode if INode would be returned,
- 	* ESMapWrapper if Map would be returned.
- 	*/
+  /**
+   * Wrap getProperty, return ESNode if INode would be returned,
+   * ESMapWrapper if Map would be returned.
+   */
    public ESValue getProperty(String propertyName, int hash) throws EcmaScriptException {
       try {
          ESValue val = super.getProperty (propertyName, hash);
          if (val instanceof ESWrapper) {
             Object theObject = ((ESWrapper)val).getJavaObject ();
             if (val instanceof ESWrapper && theObject instanceof INode)	{
-               return eval.getNodeWrapper ((INode) theObject);
+               return engine.getNodeWrapper ((INode) theObject);
             } else if (val instanceof ESWrapper && theObject instanceof Map)	{
-               ESMapWrapper wrapper = new ESMapWrapper(eval, (Map) theObject);
+               ESMapWrapper wrapper = new ESMapWrapper(engine, (Map) theObject);
                if (theObject instanceof SystemProperties && super.getJavaObject () instanceof ApplicationBean)
                   wrapper.setReadonly(true);
                return wrapper;
@@ -57,7 +57,7 @@ public class ESBeanWrapper extends ESWrapper {
 	    throw new EcmaScriptException("can't set property " + propertyName +
 	    " to this value on " + getJavaObject().toString() );
 	}
-	}
+    }
 
 }
 

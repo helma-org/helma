@@ -30,7 +30,7 @@ import org.xml.sax.InputSource;
 public final class HopExtension {
 
     protected Application app;
-    protected FesiEvaluator fesi;
+    protected FesiEngine engine;
 
     public HopExtension (Application app) {
         this.app = app;
@@ -40,9 +40,9 @@ public final class HopExtension {
     /**
      * Called by the evaluator after the extension is loaded.
      */
-    public void initializeExtension (FesiEvaluator fesi) throws EcmaScriptException {
-        this.fesi = fesi;
-        Evaluator evaluator = fesi.getEvaluator ();
+    public void initializeExtension (FesiEngine engine) throws EcmaScriptException {
+        this.engine = engine;
+        Evaluator evaluator = engine.getEvaluator ();
         GlobalObject go = evaluator.getGlobalObject();
         FunctionPrototype fp = (FunctionPrototype) evaluator.getFunctionPrototype();
 
@@ -68,7 +68,7 @@ public final class HopExtension {
         // the Session prototype
         ObjectPrototype esSessionPrototype = new ObjectPrototype (esNodePrototype, evaluator);
         // the Node constructor
-        ESObject node = new NodeConstructor ("Node", fp, fesi);
+        ESObject node = new NodeConstructor ("Node", fp, engine);
 
         // register the default methods of Node objects in the Node prototype
         esNodePrototype.putHiddenProperty ("add", new NodeAdd ("add", evaluator, fp));
@@ -119,11 +119,11 @@ public final class HopExtension {
         go.putHiddenProperty("authenticate", new GlobalAuthenticate ("authenticate", evaluator, fp));
         go.deleteProperty("exit", "exit".hashCode());
 
-        // register object prototypes with FesiEvaluator
-        fesi.putPrototype ("global", go);
-        fesi.putPrototype ("hopobject", esNodePrototype);
-        fesi.putPrototype ("__javaobject__", esObjectPrototype);
-//        fesi.putPrototype ("session", esSessionPrototype);
+        // register object prototypes with FesiEngine
+        engine.putPrototype ("global", go);
+        engine.putPrototype ("hopobject", esNodePrototype);
+        engine.putPrototype ("__javaobject__", esObjectPrototype);
+//        engine.putPrototype ("session", esSessionPrototype);
     }
 
     class NodeAdd extends BuiltinFunctionObject {
@@ -496,7 +496,7 @@ public final class HopExtension {
 
                 // retrieve res.skinpath, an array of objects that tell us where to look for skins
                 // (strings for directory names and INodes for internal, db-stored skinsets)
-                ResponseTrans res = fesi.getResponse();
+                ResponseTrans res = engine.getResponse();
                 Object[] skinpath = res.getSkinpath ();
 
                 // ready... retrieve the skin and render it.
@@ -512,7 +512,7 @@ public final class HopExtension {
                 if (asString)
                     res.pushStringBuffer ();
                 if (skin != null)
-                    skin.render (fesi.getRequestEvaluator(), javaObject, params);
+                    skin.render (engine.getRequestEvaluator(), javaObject, params);
                 else
                     res.write ("[Skin not found: "+arguments[0]+"]");
                 if (asString)
@@ -768,7 +768,7 @@ public final class HopExtension {
                 // first, look in the object href was called on.
                 Object skinElem = elem;
                 Skin skin = null;
-                // ResponseTrans res = fesi.getResponse();
+                // ResponseTrans res = engine.getResponse();
                 // Object[] skinpath = res.getSkinpath ();
                 while (skin == null && skinElem != null) {
                     Prototype proto = app.getPrototype (skinElem);
@@ -792,11 +792,11 @@ public final class HopExtension {
             return new ESString (basicHref);
         }
         private ESString renderSkin (Skin skin, String path, Object skinElem) throws EcmaScriptException {
-            fesi.getResponse().pushStringBuffer ();
+            engine.getResponse().pushStringBuffer ();
             HashMap param = new HashMap ();
             param.put ("path", path);
-            skin.render (fesi.getRequestEvaluator(), skinElem, param);
-            return new ESString (fesi.getResponse().popStringBuffer ().trim ());
+            skin.render (engine.getRequestEvaluator(), skinElem, param);
+            return new ESString (engine.getResponse().popStringBuffer ().trim ());
         }
     }
 

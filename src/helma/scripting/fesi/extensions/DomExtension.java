@@ -76,7 +76,7 @@ public class DomExtension extends Extension  {
 				writer.close();
 				File finalFile = new File(arguments[1].toString());
 				tmpFile.renameTo (finalFile);
-				this.evaluator.reval.app.logEvent("wrote xml to " + finalFile.getAbsolutePath() );
+				this.evaluator.engine.getApplication().logEvent("wrote xml to " + finalFile.getAbsolutePath() );
 			}	catch (IOException io)	{
 				throw new EcmaScriptException (io.toString());
 			}
@@ -132,7 +132,7 @@ public class DomExtension extends Extension  {
 				node = ((ESNode)arguments[1]).getNode();
 			}	catch ( Exception e )	{	//classcast, arrayindex etc
 				// make sure we have a node, even if 2nd arg doesn't exist or is not a node
-				node = new Node ( (String)null, (String)null, this.evaluator.reval.app.getWrappedNodeManager() );
+				node = new Node ( (String)null, (String)null, this.evaluator.engine.getApplication().getWrappedNodeManager() );
 			}
 			try	{
 				XmlReader reader = new XmlReader ();
@@ -141,7 +141,7 @@ public class DomExtension extends Extension  {
 					result = reader.read (new StringReader (arguments[0].toString()),node);
 				else
 					result = reader.read (new File(arguments[0].toString()),node);
-				return this.evaluator.reval.getNodeWrapper (result);
+				return this.evaluator.engine.getNodeWrapper (result);
 			}	catch ( NoClassDefFoundError e )	{
 				throw new EcmaScriptException ("Can't load XML parser:"+e);
 			}	catch ( Exception f )	{
@@ -164,9 +164,9 @@ public class DomExtension extends Extension  {
 				}	else	{
 					converter = new XmlConverter ();
 				}
-				INode node = new helma.objectmodel.db.Node ( (String)null, (String)null, this.evaluator.reval.app.getWrappedNodeManager() );
+				INode node = new helma.objectmodel.db.Node ( (String)null, (String)null, this.evaluator.engine.getApplication().getWrappedNodeManager() );
 				INode result = converter.convert (arguments[0].toString(),node);
-				return this.evaluator.reval.getNodeWrapper(result);
+				return this.evaluator.engine.getNodeWrapper(result);
 			}	catch ( NoClassDefFoundError e )	{
 				throw new EcmaScriptException("Can't load dom-capable xml parser.");
 			}	catch ( RuntimeException f )	{
