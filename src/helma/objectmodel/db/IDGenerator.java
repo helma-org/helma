@@ -43,6 +43,6 @@ public interface IDGenerator {
      * @param dbmap
      * @return
      */
-    public String generateID(DbMapping dbmap);
+    public String generateID(DbMapping dbmap) throws Exception;
 
 }
