@@ -81,8 +81,13 @@ public final class Logger {
 	    logdir.mkdirs ();
 
 	try {
-	    // create a new log file, append to an existing file
-	    writer = new PrintWriter (new FileWriter (logfile, true), false);
+	    if (logfile.exists () && logfile.lastModified () < lastMidnight ()) {
+    	    // rotate if a log file exists and is NOT from today
+	        rotateLogFile ();
+	    } else {
+	        // create a new log file, append to an existing file
+	        writer = new PrintWriter (new FileWriter (logfile, true), false);
+	    }
 	} catch (IOException iox) {
 	    System.err.println ("Error creating log "+canonicalName+": "+iox);
 	}
@@ -205,10 +210,13 @@ public final class Logger {
 	    String today = aformat.format(new Date());
 	    int ct=0;
 	    File archive = null;
+	    // first append just the date
+	    String archname = filename+"-"+today+".log.gz";
 	    while (archive==null || archive.exists()) {
-	        String archidx = ct>999 ? Integer.toString(ct) : nformat.format (++ct);
-	        String archname = filename+"-"+today+"-"+ archidx +".log.gz";
 	        archive = new File (logdir, archname);
+	        // for the next try we append a counter
+	        String archidx = ct>999 ? Integer.toString(ct) : nformat.format (++ct);
+	        archname = filename+"-"+today+"-"+ archidx +".log.gz";
 	    }
 	    if (logfile.renameTo (archive))
 	        (new GZipper(archive)).start();
@@ -366,6 +374,9 @@ public final class Logger {
         return cal.getTimeInMillis ();
     }
 
+    public static long lastMidnight () {
+        return nextMidnight () - 86400000;
+    }
 
     /**
      *  test main method
