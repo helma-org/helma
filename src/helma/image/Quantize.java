@@ -269,28 +269,12 @@ public class Quantize {
 %
 */
     
-    final static boolean QUICK = true;
+    final static boolean QUICK = false;
 
     final static int MAX_RGB = 255;
     final static int MAX_NODES = 266817;
     final static int MAX_TREE_DEPTH = 8;
     final static int MAX_CHILDREN = 16;
-
-    // these are precomputed in advance
-    //    static int SQUARES[];
-    static int SHIFT[];
-
-    static {
-        /*
-         * SQUARES = new int[MAX_RGB + MAX_RGB + 1]; for (int i= -MAX_RGB; i <=
-         * MAX_RGB; i++) { SQUARES[i + MAX_RGB] = i * i; }
-         */
-
-        SHIFT = new int[MAX_TREE_DEPTH + 1];
-        for (int i = 0; i < MAX_TREE_DEPTH + 1; ++i) {
-            SHIFT[i] = 1 << (15 - i);
-        }
-    }
 
     /**
      * Reduce the image to the given number of colors. The pixels are reduced in
@@ -429,10 +413,11 @@ public class Quantize {
                             | ((blue > node.midBlue ? 1 : 0) << 2) | ((alpha > node.midAlpha ? 1
                             : 0) << 3));
                         if (node.children[id] == null) {
-                            new Node(node, id, level);
+                            node = new Node(node, id, level);
+                        } else {
+                           node = node.children[id];
                         }
-                        node = node.children[id];
-                        node.numPixels += SHIFT[level];
+                        node.numPixels++;
                     }
 
                     ++node.unique;
