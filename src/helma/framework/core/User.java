@@ -22,6 +22,7 @@ public class User implements Serializable {
     String sessionID;
     String uid; // the unique id (login name) for the user, if logged in
     NodeHandle nhandle;
+    DbMapping umap;
     long onSince, lastTouched;
     Node cache;
     String message;
@@ -31,8 +32,10 @@ public class User implements Serializable {
 	this.nhandle = null;
     	this.app = app;
     	setNode (null);
+    	umap = app.getDbMapping ("user");
 	cache = new Node ("[session cache]");
 	cache.setPrototype ("user");
+	cache.setDbMapping (umap);
 	sessionID = sid;
 	onSince = System.currentTimeMillis ();
 	lastTouched = onSince;
