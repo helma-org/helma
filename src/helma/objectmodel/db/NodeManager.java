@@ -433,11 +433,11 @@ public final class NodeManager {
     ////////////////////////////////////////////////////////////////////////
 
     /**
-     *  Insert a new node in the embedded database or a relational database table, depending
-     * on its db mapping.
+     *  Insert a new node in the embedded database or a relational database table,
+     *  depending on its db mapping.
      */
     public void insertNode(IDatabase db, ITransaction txn, Node node)
-                    throws Exception {
+                    throws IOException, SQLException, ClassNotFoundException {
         // Transactor tx = (Transactor) Thread.currentThread ();
         // tx.timer.beginEvent ("insertNode "+node);
         DbMapping dbm = node.getDbMapping();
@@ -445,154 +445,7 @@ public final class NodeManager {
         if ((dbm == null) || !dbm.isRelational()) {
             db.saveNode(txn, node.getID(), node);
         } else {
-            // app.logEvent ("inserting relational node: "+node.getID ());
-            DbColumn[] columns = dbm.getColumns();
-
-            StringBuffer b1 = dbm.getInsert();
-            StringBuffer b2 = new StringBuffer(" ) VALUES ( ?");
-
-            String nameField = dbm.getNameField();
-            String prototypeField = dbm.getPrototypeField();
-
-            for (int i = 0; i < columns.length; i++) {
-                Relation rel = columns[i].getRelation();
-                String name = columns[i].getName();
-
-                if (((rel != null) && (rel.isPrimitive() || rel.isReference())) ||
-                        name.equals(nameField) || name.equals(prototypeField)) {
-                    b1.append(", " + columns[i].getName());
-                    b2.append(", ?");
-                }
-            }
-
-            b1.append(b2.toString());
-            b1.append(" )");
-
-            Connection con = dbm.getConnection();
-            PreparedStatement stmt = con.prepareStatement(b1.toString());
-
-            if (logSql) {
-                app.logEvent("### insertNode: " + b1.toString());
-            }
-
-            try {
-                int stmtNumber = 1;
-
-                stmt.setString(stmtNumber, node.getID());
-
-                Hashtable propMap = node.getPropMap();
-
-                for (int i = 0; i < columns.length; i++) {
-                    Relation rel = columns[i].getRelation();
-                    Property p = null;
-
-                    if ((rel != null) && (rel.isPrimitive() || rel.isReference())) {
-                        p = (Property) propMap.get(rel.getPropName());
-                    }
-
-                    String name = columns[i].getName();
-
-                    if (!((rel != null) && (rel.isPrimitive() || rel.isReference())) &&
-                            !name.equals(nameField) && !name.equals(prototypeField)) {
-                        continue;
-                    }
-
-                    stmtNumber++;
-
-                    if (p != null) {
-                        if (p.getValue() == null) {
-                            stmt.setNull(stmtNumber, columns[i].getType());
-                        } else {
-                            switch (columns[i].getType()) {
-                                case Types.BIT:
-                                case Types.TINYINT:
-                                case Types.BIGINT:
-                                case Types.SMALLINT:
-                                case Types.INTEGER:
-                                    stmt.setLong(stmtNumber, p.getIntegerValue());
-
-                                    break;
-
-                                case Types.REAL:
-                                case Types.FLOAT:
-                                case Types.DOUBLE:
-                                case Types.NUMERIC:
-                                case Types.DECIMAL:
-                                    stmt.setDouble(stmtNumber, p.getFloatValue());
-
-                                    break;
-
-                                case Types.VARBINARY:
-                                case Types.BINARY:
-                                case Types.BLOB:
-                                    stmt.setString(stmtNumber, p.getStringValue());
-
-                                    break;
-
-                                case Types.LONGVARBINARY:
-                                case Types.LONGVARCHAR:
-
-                                    try {
-                                        stmt.setString(stmtNumber, p.getStringValue());
-                                    } catch (SQLException x) {
-                                        String str = p.getStringValue();
-                                        Reader r = new StringReader(str);
-
-                                        stmt.setCharacterStream(stmtNumber, r,
-                                                                str.length());
-                                    }
-
-                                    break;
-
-                                case Types.CHAR:
-                                case Types.VARCHAR:
-                                case Types.OTHER:
-                                    stmt.setString(stmtNumber, p.getStringValue());
-
-                                    break;
-
-                                case Types.DATE:
-                                case Types.TIME:
-                                case Types.TIMESTAMP:
-                                    stmt.setTimestamp(stmtNumber, p.getTimestampValue());
-
-                                    break;
-
-                                case Types.NULL:
-                                    stmt.setNull(stmtNumber, 0);
-
-                                    break;
-
-                                default:
-                                    stmt.setString(stmtNumber, p.getStringValue());
-
-                                    break;
-                            }
-                        }
-                    } else {
-                        if (name.equals(nameField)) {
-                            stmt.setString(stmtNumber, node.getName());
-                        } else if (name.equals(prototypeField)) {
-                            stmt.setString(stmtNumber, node.getPrototype());
-                        } else {
-                            stmt.setNull(stmtNumber, columns[i].getType());
-                        }
-                    }
-                }
-
-                stmt.executeUpdate();
-            } catch (Exception x) {
-                x.printStackTrace();
-                throw x;
-            } finally {
-                if (stmt != null) {
-                    try {
-                        stmt.close();
-                    } catch (Exception ignore) {
-                    }
-                }
-            }
-
+            insertRelationalNode(node, dbm, dbm.getConnection());
             dbm.notifyDataChange();
         }
 
@@ -600,11 +453,187 @@ public final class NodeManager {
     }
 
     /**
+     *  Insert a node into a different (relational) database than its default one.
+     */
+    public void exportNode(Node node, DbSource dbs)
+                    throws IOException, SQLException, ClassNotFoundException {
+        if (node == null) {
+            throw new IllegalArgumentException("Node can't be null in exportNode");
+        }
+
+        DbMapping dbm = node.getDbMapping();
+
+        if (dbs == null) {
+            throw new IllegalArgumentException("DbSource can't be null in exportNode");
+        } else if ((dbm == null) || !dbm.isRelational()) {
+            throw new SQLException("Can't export into non-relational database");
+        } else {
+            insertRelationalNode(node, dbm, dbs.getConnection());
+        }
+    }
+
+    /**
+     * Insert a node into a relational database.
+     */
+    protected void insertRelationalNode(Node node, DbMapping dbm, Connection con)
+                throws ClassNotFoundException, SQLException {
+
+        if (con == null) {
+            throw new NullPointerException("Error inserting relational node: Connection is null");
+        }
+
+        // app.logEvent ("inserting relational node: "+node.getID ());
+        DbColumn[] columns = dbm.getColumns();
+
+        StringBuffer b1 = dbm.getInsert();
+        StringBuffer b2 = new StringBuffer(" ) VALUES ( ?");
+
+        String nameField = dbm.getNameField();
+        String prototypeField = dbm.getPrototypeField();
+
+        for (int i = 0; i < columns.length; i++) {
+            Relation rel = columns[i].getRelation();
+            String name = columns[i].getName();
+
+            if (((rel != null) && (rel.isPrimitive() || rel.isReference())) ||
+                    name.equals(nameField) || name.equals(prototypeField)) {
+                b1.append(", " + columns[i].getName());
+                b2.append(", ?");
+            }
+        }
+
+        b1.append(b2.toString());
+        b1.append(" )");
+
+        // Connection con = dbm.getConnection();
+        PreparedStatement stmt = con.prepareStatement(b1.toString());
+
+        if (logSql) {
+            app.logEvent("### insertNode: " + b1.toString());
+        }
+
+        try {
+            int stmtNumber = 1;
+
+            stmt.setString(stmtNumber, node.getID());
+
+            Hashtable propMap = node.getPropMap();
+
+            for (int i = 0; i < columns.length; i++) {
+                Relation rel = columns[i].getRelation();
+                Property p = null;
+
+                if ((rel != null) && (rel.isPrimitive() || rel.isReference())) {
+                    p = (Property) propMap.get(rel.getPropName());
+                }
+
+                String name = columns[i].getName();
+
+                if (!((rel != null) && (rel.isPrimitive() || rel.isReference())) &&
+                        !name.equals(nameField) && !name.equals(prototypeField)) {
+                    continue;
+                }
+
+                stmtNumber++;
+
+                if (p != null) {
+                    if (p.getValue() == null) {
+                        stmt.setNull(stmtNumber, columns[i].getType());
+                    } else {
+                        switch (columns[i].getType()) {
+                            case Types.BIT:
+                            case Types.TINYINT:
+                            case Types.BIGINT:
+                            case Types.SMALLINT:
+                            case Types.INTEGER:
+                                stmt.setLong(stmtNumber, p.getIntegerValue());
+
+                                break;
+
+                            case Types.REAL:
+                            case Types.FLOAT:
+                            case Types.DOUBLE:
+                            case Types.NUMERIC:
+                            case Types.DECIMAL:
+                                stmt.setDouble(stmtNumber, p.getFloatValue());
+
+                                break;
+
+                            case Types.VARBINARY:
+                            case Types.BINARY:
+                            case Types.BLOB:
+                                stmt.setString(stmtNumber, p.getStringValue());
+
+                                break;
+
+                            case Types.LONGVARBINARY:
+                            case Types.LONGVARCHAR:
+
+                                try {
+                                    stmt.setString(stmtNumber, p.getStringValue());
+                                } catch (SQLException x) {
+                                    String str = p.getStringValue();
+                                    Reader r = new StringReader(str);
+
+                                    stmt.setCharacterStream(stmtNumber, r,
+                                                            str.length());
+                                }
+
+                                break;
+
+                            case Types.CHAR:
+                            case Types.VARCHAR:
+                            case Types.OTHER:
+                                stmt.setString(stmtNumber, p.getStringValue());
+
+                                break;
+
+                            case Types.DATE:
+                            case Types.TIME:
+                            case Types.TIMESTAMP:
+                                stmt.setTimestamp(stmtNumber, p.getTimestampValue());
+
+                                break;
+
+                            case Types.NULL:
+                                stmt.setNull(stmtNumber, 0);
+
+                                break;
+
+                            default:
+                                stmt.setString(stmtNumber, p.getStringValue());
+
+                                break;
+                        }
+                    }
+                } else {
+                    if (name.equals(nameField)) {
+                        stmt.setString(stmtNumber, node.getName());
+                    } else if (name.equals(prototypeField)) {
+                        stmt.setString(stmtNumber, node.getPrototype());
+                    } else {
+                        stmt.setNull(stmtNumber, columns[i].getType());
+                    }
+                }
+            }
+
+            stmt.executeUpdate();
+        } finally {
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (Exception ignore) {}
+            }
+        }
+
+    }
+
+    /**
      *  Updates a modified node in the embedded db or an external relational database, depending
      * on its database mapping.
      */
     public void updateNode(IDatabase db, ITransaction txn, Node node)
-                    throws Exception {
+                    throws IOException, SQLException, ClassNotFoundException {
         // Transactor tx = (Transactor) Thread.currentThread ();
         // tx.timer.beginEvent ("updateNode "+node);
         DbMapping dbm = node.getDbMapping();
@@ -771,9 +800,6 @@ public final class NodeManager {
                 }
 
                 stmt.executeUpdate();
-            } catch (Exception x) {
-                x.printStackTrace();
-                throw x;
             } finally {
                 if (stmt != null) {
                     try {
