@@ -282,8 +282,13 @@ public final class HtmlEncoder {
      *
      */
     public final static String encode (String str) {
+	if  (str == null)
+	    return null;
+	int l = str.length();
+	if (l == 0)
+	    return "";
 	// try to make stringbuffer large enough from the start
-	StringBuffer ret = new StringBuffer (Math.round (str.length()*1.4f));
+	StringBuffer ret = new StringBuffer (Math.round (l*1.4f));
 	encode (str, ret);
 	return ret.toString();
     }
@@ -300,7 +305,7 @@ public final class HtmlEncoder {
 
 	// are we currently within a < and a >?
 	boolean insideTag=false;
-	// if we are inside a <code> tag, we encode everything to make 
+	// if we are inside a <code> tag, we encode everything to make
 	// documentation work easier
 	boolean insideCodeTag = false;
 	// are we within a macro tag?
@@ -351,9 +356,9 @@ public final class HtmlEncoder {
 	                int j = tagStart;
 	                while (j<l && Character.isLetterOrDigit (chars[j]))
 	                    j++;
-	                // if we haven't gotten past the <, 
+	                // if we haven't gotten past the <,
 	                // check if it's an HTML comment or Helma macro tag
-	                if (j == tagStart) {
+	                if (j == tagStart && !insideCodeTag) {
 	                    if ('%' == chars[j]) {
 	                        insideMacroTag = insideTag = true;
 	                        ret.append ('<');
@@ -402,7 +407,7 @@ public final class HtmlEncoder {
 	        case '>':
 	            if (insideTag) {
 	                ret.append ('>');
-	                if (insideMacroTag) 
+	                if (insideMacroTag)
 	                    insideMacroTag = insideTag = !(chars[i-1] == '%');
 	                else if (insideComment)
 	                    insideComment = insideTag = !(chars[i-2] == '-' && chars[i-1] == '-');
@@ -433,23 +438,33 @@ public final class HtmlEncoder {
      *
      */
     public final static String encodeFormValue (String str) {
-	StringBuffer ret = new StringBuffer (Math.round (str.length()*1.2f));
+	if  (str == null)
+	    return null;
+	int l = str.length();
+	if (l == 0)
+	    return "";
+	StringBuffer ret = new StringBuffer (Math.round (l*1.2f));
 	encodeAll (str, ret, false);
 	return ret.toString();
     }
 
 
     /**
-     *  
-     */ 
+     *
+     */
     public final static String encodeAll (String str) {
-	StringBuffer ret = new StringBuffer (Math.round (str.length()*1.2f));
+	if  (str == null)
+	    return null;
+	int l = str.length();
+	if (l == 0)
+	    return "";
+	StringBuffer ret = new StringBuffer (Math.round (l*1.2f));
 	encodeAll (str, ret, true);
-	return ret.toString(); 
+	return ret.toString();
     }
 
     /**
-     *  
+     *
      */
     public final static String encodeAll (String str, StringBuffer ret) {
 	encodeAll (str, ret, true);
@@ -458,8 +473,8 @@ public final class HtmlEncoder {
 
 
     /**
-     *  
-     */ 
+     *
+     */
     public final static void encodeAll (String str, StringBuffer ret, boolean encodeNewline) {
 	if  (str == null)
 	    return;
@@ -503,7 +518,12 @@ public final class HtmlEncoder {
 
 
     public final static String encodeXml (String str) {
-	StringBuffer ret = new StringBuffer (Math.round (str.length()*1.2f));
+	if  (str == null)
+	    return null;
+	int l = str.length();
+	if (l == 0)
+	    return "";
+	StringBuffer ret = new StringBuffer (Math.round (l*1.2f));
 	encodeXml (str, ret);
 	return ret.toString();
     }
@@ -539,25 +559,31 @@ public final class HtmlEncoder {
      }
 
     // test method
-	public static String printCharRange (int from, int to) {
-	    StringBuffer response = new StringBuffer();
-		for (int i=from;i<to;i++) {
-			response.append (i);
-			response.append ("      ");
-			response.append ((char) i);
-			response.append ("      ");
-	        if (i < 128)
-	            response.append ((char) i);
-	        else if (i >= 128 && i < 256)
-	            response.append (transform[i-128]);
-	        else {
-	            response.append ("&#");
-	            response.append (i);
-	            response.append (";");
-	        }
-			response.append ("\r\n");
-		}
-		return response.toString();
+    public static String printCharRange (int from, int to) {
+	StringBuffer response = new StringBuffer();
+	for (int i=from;i<to;i++) {
+	    response.append (i);
+	    response.append ("      ");
+	    response.append ((char) i);
+	    response.append ("      ");
+	    if (i < 128)
+	        response.append ((char) i);
+	    else if (i >= 128 && i < 256)
+	        response.append (transform[i-128]);
+	    else {
+	        response.append ("&#");
+	        response.append (i);
+	        response.append (";");
+	    }
+	    response.append ("\r\n");
 	}
+	return response.toString();
+    }
+
+    // for testing...
+    public static void main (String[] args) {
+	for (int i=0; i<args.length; i++)
+	    System.err.println (encode (args[i]));
+    }
 
 } // end of class
