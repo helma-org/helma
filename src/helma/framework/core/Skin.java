@@ -155,7 +155,8 @@ public final class Skin {
 	int start, end;
 	String handler;
 	String name;
-	String fullname;
+	String prefix;
+	String suffix;
 	HashMap parameters;
 
 	public Macro (int start, int end) {
@@ -242,6 +243,9 @@ public final class Skin {
 	        else if (state <= MACRO)
 	            name = b.toString().trim();
 	    }
+	    // get prefix and suffix from parameters
+	    prefix = (String) parameters.get ("prefix");
+	    suffix = (String) parameters.get ("suffix");
 	}
 
 
@@ -324,36 +328,27 @@ public final class Skin {
 	            // check if a function called name_macro is defined.
 	            // if so, the macro evaluates to the function. Otherwise,
 	            // a property/field with the name is used, if defined.
-	            Object v = null;
+
 	            // remember length of response buffer before calling macro
 	            int oldLength = reval.res.getBufferLength ();
 	            if (reval.scriptingEngine.hasFunction (handlerObject, name+"_macro")) {
 	                // System.err.println ("Getting macro from function");
-	                v = reval.scriptingEngine.invoke (handlerObject, name+"_macro", arguments, false);
+	                Object v = reval.scriptingEngine.invoke (handlerObject, name+"_macro", arguments, false);
+	                // check if macro wrote out to response buffer
+	                if (reval.res.getBufferLength () > oldLength) {
+	                    // insert prefix and append suffix
+	                    if (prefix != null)
+	                        reval.res.insert (oldLength, prefix);
+	                     if (suffix != null)
+	                        reval.res.write (suffix);
+	                    writeToResponse (v, reval.res, false);
+	                } else {
+	                    writeToResponse (v, reval.res, true);
+	                }
 	            } else {
 	                // System.err.println ("Getting macro from property");
-	                v = reval.scriptingEngine.get (handlerObject, name);
-	            }
-	            // check if macro wrote out to response buffer
-	            if (reval.res.getBufferLength () > oldLength) {
-	               // insert prefix and append suffix
-	               String prefix = (String) parameters.get ("prefix");
-	               String suffix = (String) parameters.get ("suffix");
-	               if (prefix != null)
-	                   reval.res.insert (oldLength, prefix);
-	               if (suffix != null)
-	                   reval.res.write (suffix);
-	            }
-	            // if macro returned something append it to response
-	            if (v != null) {
-	                writeToResponse (v.toString (), reval.res);
-	            }
-	            // if the macro hasn't produced any output, write default attribute
-	            // if it is specified.
-	            if (reval.res.getBufferLength () == oldLength) {
-	               String defaultValue = (String) parameters.get ("default");
-	               if (defaultValue != null)
-	                   reval.res.write (defaultValue);
+	                Object v = reval.scriptingEngine.get (handlerObject, name);
+	                writeToResponse (v, reval.res, true);
 	            }
 	        } else {
 	            String msg = "[HopMacro unhandled: "+getFullName()+"]";
@@ -389,14 +384,12 @@ public final class Skin {
 	        value = reval.res.message;
 	    if (value == null)
 	        value = reval.res.get (name);
-	    if (value != null)
-	        writeToResponse (value.toString (), reval.res);
+	    writeToResponse (value, reval.res, true);
 	}
 
 	private void renderFromRequest (RequestEvaluator reval) {
 	    Object value = reval.req.get (name);
-	    if (value != null)
-	        writeToResponse (value.toString (), reval.res);
+	    writeToResponse (value, reval.res, true);
 	}
 
 	private void renderFromParam (RequestEvaluator reval, HashMap paramObject) {
@@ -404,20 +397,26 @@ public final class Skin {
 	        reval.res.write ("[HopMacro error: Skin requires a parameter object]");
 	    else {
 	        Object value = paramObject.get (name);
-	        if (value != null)
-	            writeToResponse (value.toString (), reval.res);
+	        writeToResponse (value, reval.res, true);
 	    }
 	}
 
 	/**
 	 * Utility method for writing text out to the response object.
 	 */
-	void writeToResponse (String text, ResponseTrans res) {
+	void writeToResponse (Object value, ResponseTrans res, boolean useDefault) {
+	    String text;
+	    if (value == null) {
+	        if (useDefault)
+	            text = (String) parameters.get ("default");
+	        else
+	            return;
+	    } else {
+	        text = value.toString ();
+	    }
 	    if (text == null || text.length() == 0)
 	        return;
 	    String encoding = (String) parameters.get ("encoding");
-	    String prefix = (String) parameters.get ("prefix");
-	    String suffix = (String) parameters.get ("suffix");
 	    res.write (prefix);
 	    res.write (encode (text, encoding));
 	    res.write (suffix);
@@ -450,13 +449,10 @@ public final class Skin {
 	 * Return the full name of the macro in handler.name notation
 	 */
 	public String getFullName () {
-	    if (fullname == null) {
-	        if (handler == null)
-	            fullname = name;
-	        else
-	            fullname = handler+"."+name;
-	    }
-	    return fullname;
+	    if (handler == null)
+	        return name;
+	    else
+	        return handler+"."+name;
 	}
 
     }
