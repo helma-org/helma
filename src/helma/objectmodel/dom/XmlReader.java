@@ -152,8 +152,9 @@ public class XmlReader implements XmlConstants	{
 	  */
 	public helma.objectmodel.db.Node convert (Element element)	{
 		// FIXME: this method should use Element.getAttributeNS():
-
-		String name = element.getAttribute("hop:name");
+		// FIXME: do we need the name value or is it retrieved through mappings anyway?
+//		String name = element.getAttribute("hop:name");
+		String name = null;
 		String id = element.getAttribute("hop:id");
 		String prototype = element.getAttribute("hop:prototype");
 		if ( "".equals(prototype) )
@@ -193,11 +194,13 @@ public class XmlReader implements XmlConstants	{
 				helmaNode.setParentHandle (new NodeHandle (new DbKey(null,childElement.getAttribute("hop:idref") ) ) );
 			}	
 
-			// if we come until here, childelement is a primitive property value
+			// if we come until here, childelement is a property value
 			Property prop = new Property (childElement.getTagName(), helmaNode);
 			if ( !"".equals(childElement.getAttribute("hop:id")) || !"".equals(childElement.getAttribute("hop:idref")) )	{
 				// we've got an object!
-				prop.setNodeValue (convert (childElement));
+				String idref = childElement.getAttribute("hop:idref");
+				prop.setNodeHandle (new NodeHandle(new DbKey(null,idref)));
+				
 			}	else	{
 				String type = childElement.getAttribute("hop:type");
 				String content = XmlUtil.getTextContent(childElement);
@@ -222,8 +225,8 @@ public class XmlReader implements XmlConstants	{
 				}	else {
 	    			prop.setStringValue (content);
 				}
-    			propMap.put (childElement.getTagName(), prop);
 			}
+   			propMap.put (childElement.getTagName(), prop);
 		}
 		if ( propMap.size()>0 )
 			helmaNode.setPropMap (propMap);
