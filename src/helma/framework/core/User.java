@@ -21,6 +21,7 @@ public class User implements Serializable {
     long onSince, lastTouched;
     Node cache;
     DbMapping umap;
+    String message;
 
     public User (String sid, Application app) {
 	this.uid = null;

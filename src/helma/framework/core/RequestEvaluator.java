@@ -166,7 +166,13 @@ public class RequestEvaluator implements Runnable {
 	                global.putHiddenProperty("user", esu);
 	                global.putHiddenProperty ("req", new ESWrapper (req, evaluator));
 	                global.putHiddenProperty ("res", new ESWrapper (res, evaluator));
-	                if (error != null) res.error = error;
+	                if (error != null)
+	                    res.error = error;
+	                if (user.message != null) {
+	                    // bring over the message from a redirect
+	                    res.message = user.message;
+	                    user.message = null;
+	                }
 	                global.putHiddenProperty ("path", reqPath);
 	                global.putHiddenProperty ("app", appnode);
 	                // set and mount the request data object
@@ -290,6 +296,9 @@ public class RequestEvaluator implements Runnable {
 	                    localrtx.timer.endEvent (requestPath+" execute");
 	                } catch (RedirectException redirect) {
 	                    res.redirect = redirect.getMessage ();
+	                    // if there is a message set, save it on the user object for the next request
+	                    if (res.message != null)
+	                        user.message = res.message;
 	                    done = true;
 	                }
 
