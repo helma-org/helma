@@ -410,15 +410,21 @@ public abstract class ESLoader extends ESObject {
                 // The simplest case is direct object compatibility              
                 sourceClass = params[i].getClass();
                 accepted = targetClass.isAssignableFrom(sourceClass);
+                if (targetClass != sourceClass) {
+                    if (targetClass == Object.class)
+                        distance += 2;
+                    else
+                        distance += 1;
+                }
                 debugInfo = " accepted (subclassing)";
-                
+
                 if (!accepted) {
                     // If we do not have direct object compatibility, we check various
                     // allowed conversions.
-                    
+
                     // Handle number and number widening
                     if ((isPrimitiveNumberClass(sourceClass) ||
-                         sourceClass == Character.class) 
+                         sourceClass == Character.class)
                                  && isPrimitiveNumberClass(targetClass)) {
                         // Can be widened ?
                         int targetSize = getNumberSize(targetClass);
@@ -431,7 +437,7 @@ public abstract class ESLoader extends ESObject {
                         } else {
                             debugInfo = " rejected (not widening numbers)";
                         }
-                    // Handle String of length 1 as a Char, which can be converted to a number    
+                    // Handle String of length 1 as a Char, which can be converted to a number
                     } else if (targetClass == Character.class
                                               && params[i] instanceof String) {
                         if (((String) params[i]).length()==1) {
@@ -440,6 +446,7 @@ public abstract class ESLoader extends ESObject {
                                 convertToChar = new boolean[n];
                             }
                             convertToChar[i] = true;
+                            distance += 1;
                             debugInfo = " accepted (String(1) as Character)";
                         } else {
                             debugInfo = " rejected (String not of length 1)";
