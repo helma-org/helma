@@ -238,13 +238,16 @@ public class DbMapping implements Updatable {
 	} else
 	    propertiesRel = null;
 
-	app.logEvent ("rewiring: "+this);
+	// app.logEvent ("rewiring: "+this);
     }
 
 
 
     public Connection getConnection () throws ClassNotFoundException, SQLException {
-	if (source == null && parentMapping != null)
+	// if source was previously not available, check again
+	if (source == null && sourceName != null)
+	    source = app.getDbSource (sourceName);
+	if (sourceName == null && parentMapping != null)
 	    return parentMapping.getConnection ();
 	if (source == null) {
 	    if (sourceName == null)
