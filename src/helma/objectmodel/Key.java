@@ -21,7 +21,7 @@ public class Key implements Serializable {
 
 
     public Key (DbMapping dbmap, String id) {
-	this.type = dbmap == null ? null : dbmap.typename;
+	this.type = dbmap == null ? null : dbmap.getStorageTypeName ();
 	this.id = id;
 	hash = id.hashCode ();
     }
@@ -78,6 +78,7 @@ public class Key implements Serializable {
     public String toString () {
 	return type+"["+id+"]";
     }
+
 
 }
 
