@@ -8,12 +8,13 @@
     <target name="init">
         <property name="Name" value="helma"/>
         <property name="year" value="1998-${year}"/>
-        <property name="version" value="1.3.0-alpha"/>
+        <property name="version" value="1.3.1"/>
         <property name="project" value="helma"/>
         <property name="build.compiler" value="classic"/>
 
         <property name="cvs.root.apps" value=":pserver:anonymous@adele.helma.at:/opt/cvs/apps"/>
         <property name="cvs.root.helma" value=":pserver:anonymous@adele.helma.at:/opt/cvs/helma"/>
+        <property name="cvs.apps.tag" value="HEAD"/>
 
         <property name="home.dir" value=".."/>
         <property name="build.dir" value="${home.dir}/build"/>
@@ -240,11 +241,11 @@
         <mkdir dir="${build.work}/apps" />
 
         <!-- get demo apps -->
-        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="base" dest="${build.work}/apps" />
-        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="bloggerapi" dest="${build.work}/apps" />
-        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="himp" dest="${build.work}/apps" />
-        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="gong" dest="${build.work}/apps" />
-        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="lillebror" dest="${build.work}/apps" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="base" dest="${build.work}/apps" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="bloggerapi" dest="${build.work}/apps" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="himp" dest="${build.work}/apps" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="gong" dest="${build.work}/apps" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="lillebror" dest="${build.work}/apps" />
 
         <antcall target="package-manage" />
 
@@ -255,7 +256,7 @@
     <!-- Checkout and zip manage application                                 -->
     <!-- =================================================================== -->
     <target name="package-manage" depends="init">
-        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="manage" dest="${build.work}" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="manage" dest="${build.work}" />
         <mkdir dir="${build.work}/apps/manage"/>
         <zip zipfile="${build.work}/apps/manage/manage.zip" basedir="${build.work}/manage/" includes="**" excludes="**/properties,readme/**" />
             <copy todir="${build.work}/apps/manage">
