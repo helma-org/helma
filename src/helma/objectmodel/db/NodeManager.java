@@ -316,7 +316,7 @@ public final class NodeManager {
                         node = null;
                     }
 
-                    // for database nodes, check if constraints are fulfilled
+                // for database nodes, check if constraints are fulfilled
                 } else if (!rel.usesPrimaryKey()) {
                     if (!rel.checkConstraints(home, node)) {
                         node = null;
