@@ -210,6 +210,15 @@ public final class WrappedNodeManager {
      *
      * @param node ...
      */
+    public void registerNode(Node node, Key key) {
+        nmgr.registerNode(node, key);
+    }
+
+    /**
+     *
+     *
+     * @param node ...
+     */
     public void evictNode(Node node) {
         nmgr.evictNode(node);
     }

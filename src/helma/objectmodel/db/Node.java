@@ -924,6 +924,13 @@ public final class Node implements INode, Serializable {
                             old.remove();
                             this.removeNode(old);
                         }
+
+                        if (state != TRANSIENT) {
+                            Transactor tx = (Transactor) Thread.currentThread();
+                            SyntheticKey key = new SyntheticKey(this.getKey(), prop);
+                            tx.visitCleanNode(key, node);
+                            nmgr.registerNode(node, key);
+                        }
                     }
                 }
             }
@@ -2301,8 +2308,7 @@ public final class Node implements INode, Serializable {
             // if the field is not the primary key of the property, also register it
             if ((rel != null) && (rel.accessName != null) && (state != TRANSIENT)) {
                 Key secKey = new SyntheticKey(getKey(), propname);
-
-                nmgr.evictKey(secKey);
+                nmgr.registerNode(n, secKey);
                 tx.visitCleanNode(secKey, n);
             }
         }
