@@ -305,7 +305,7 @@ manage
         <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="antville" dest="${build.work}/apps" />
 
         <!-- unzip images -->
-        <mkdir dir="${build.work}/static/antville"/>
+        <mkdir dir="${build.work}/static/images"/>
         <unzip src="${build.work}/apps/antville/images.zip" dest="${build.work}/static/images">
             <patternset>
                 <include name="**"/>
