@@ -86,6 +86,9 @@
     <!-- =================================================================== -->
     <target name="compile" depends="init">
         <mkdir dir="${build.classes}"/>
+        <!-- copy the imageio file -->
+	    <copy file="${build.src}/META-INF/services/javax.imageio.spi.ImageWriterSpi"
+	      tofile="${build.classes}/META-INF/services/javax.imageio.spi.ImageWriterSpi"/>
         <javac srcdir="${build.src}"
             destdir="${build.classes}"
             debug="${debug}"
