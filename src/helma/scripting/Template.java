@@ -16,10 +16,8 @@
 
 package helma.scripting;
 
-import helma.framework.*;
 import helma.framework.core.*;
 import java.io.*;
-import java.util.Iterator;
 import java.util.StringTokenizer;
 import java.util.Vector;
 

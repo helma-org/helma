@@ -16,12 +16,9 @@
 
 package helma.scripting;
 
-import helma.framework.*;
 import helma.framework.core.*;
 import helma.util.Updatable;
 import java.io.*;
-import java.util.Iterator;
-import java.util.Vector;
 
 /**
  *  An ActionFile is a file containing function code that is exposed as a URI

@@ -16,13 +16,9 @@
 
 package helma.objectmodel;
 
-import helma.util.*;
 import java.io.*;
 import java.text.*;
 import java.util.Date;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Vector;
 
 /**
  * A property implementation for Nodes stored inside a database.

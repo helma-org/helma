@@ -16,14 +16,9 @@
 
 package helma.scripting;
 
-import helma.framework.*;
 import helma.framework.core.*;
 import helma.util.Updatable;
 import java.io.*;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 
 /**
  * This represents a File containing script functions for a given class/prototype.
