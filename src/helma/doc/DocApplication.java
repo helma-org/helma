@@ -2,10 +2,13 @@ package helma.doc;
 
 import helma.framework.IPathElement;
 import helma.main.Server;
+import helma.util.SystemProperties;
 import java.io.*;
 import java.util.*;
 
 public class DocApplication extends DocDirElement	{
+
+	HashSet excluded;
 
    public static void main (String args[]) {
 //		DocApplication app;
@@ -28,10 +31,41 @@ public class DocApplication extends DocDirElement	{
 
 	public DocApplication (String name, File location) throws DocException	{
 		super (name, location, APPLICATION);
+		readProps ();
 	}
 
 	public DocApplication (String name, String appDir) throws DocException	{
 		super (name, new File (appDir), APPLICATION);
+		readProps ();
+	}
+
+	/**
+	  * reads the app.properties file and parses for helma.excludeDocs
+	  */
+	private void readProps () {
+		File propsFile = new File (location, "app.properties");
+		SystemProperties serverProps = Server.getServer ().getProperties ();
+		SystemProperties appProps = new SystemProperties(propsFile.getAbsolutePath (), serverProps);
+
+		excluded = new HashSet ();
+		addExclude ("cvs");
+		addExclude (".docs");
+		String excludeProps = appProps.getProperty ("helma.excludeDocs");
+		if (excludeProps != null) {
+			StringTokenizer tok = new StringTokenizer (excludeProps, ",");
+			while (tok.hasMoreTokens ()) {
+				String str = tok.nextToken ().trim ();
+				addExclude (str);
+			}
+		}
+	}
+
+	public void addExclude (String str) {
+		excluded.add (str.toLowerCase ());
+	}
+
+	public boolean isExcluded (String str) {
+		return (excluded.contains (str.toLowerCase ()));
 	}
 
 
@@ -39,10 +73,11 @@ public class DocApplication extends DocDirElement	{
 	  * reads all prototypes and files of the application
 	  */
 	public void readApplication () {
+      readProps ();
 		String arr[] = location.list ();
 		children.clear ();
 		for (int i=0; i<arr.length; i++) {
-			if (Util.isExcluded (arr[i]))
+			if (isExcluded (arr[i]))
 				continue;
 			File f = new File (location.getAbsolutePath (), arr[i]);
 			if (!f.isDirectory ())
