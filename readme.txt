@@ -1,14 +1,10 @@
 To get the manage-application to work you must:
 
- - add it to the apps.properties file with the following line
+ - add it to the apps.properties file with the following line:
 
-     manage=self
+     manage
 
-   instead of just the application name. This is to let the 
-   application manager know that the subject of the application
-   is the server itself.
-
- - use snapshot 200203xx or later.
+ - use snapshot 20020326 or later.
 
  - add the following properties to server.properties:
  
@@ -18,10 +14,12 @@ To get the manage-application to work you must:
    adminUsername=<md5-encoded username>
    adminPassword=<md5-encoded password>
    
-   MD5-encoding can be done either on the shell:
-     java -classpath helma.jar helma.util.MD5Encode <username> <password>
+   MD5-encoding can be done - once you've got the application
+   up and running - on the web:
 
-   Or - once you've got the application up and running - on the web:
      http://<your-server-name>/manage/makekey
      http://<your-server-name>/base/makekey
+
+   or you can use a shell-tool integrated in helma:
+     java -classpath helma.jar helma.util.MD5Encoder <username> <password>
 
