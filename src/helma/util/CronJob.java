@@ -87,7 +87,7 @@ public class CronJob {
 
    private String name     = null;
    private String function = null;
-   private long   timeout = 20000;
+   private long   timeout = 600000;
 
    /** A method for parsing properties. It looks through the properties
      * file for entries that look like this:
@@ -182,7 +182,7 @@ public class CronJob {
   }
 
 
-  public static Vector parse(Properties props) {
+  public static List parse(Properties props) {
       Hashtable jobs = new Hashtable ();
       Enumeration e = props.keys ();
       while (e.hasMoreElements ()) {
@@ -222,8 +222,8 @@ public class CronJob {
          } catch (NoSuchElementException nsee) {
          }
       }
-      Vector jobVec = new Vector (jobs.values ());
-      return (Vector) sort (jobVec);
+      List jobVec = new ArrayList (jobs.values ());
+      return sort (jobVec);
    }
 
     public static List sort (List list) {

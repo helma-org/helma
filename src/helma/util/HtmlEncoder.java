@@ -342,6 +342,11 @@ public final class HtmlEncoder {
         emptyTags.add("param");
     }
 
+    final static byte TAG_NAME = 0;
+    final static byte TAG_SPACE = 1;
+    final static byte TAG_ATT_NAME = 2;
+    final static byte TAG_ATT_VAL = 3;
+
 
     /**
      *  Do "smart" encodging on a string. This means that valid HTML entities and tags,
@@ -397,6 +402,8 @@ public final class HtmlEncoder {
 
         // are we inside an HTML tag?
         boolean insideHtmlTag = false;
+        boolean insideCloseTag = false;
+        byte htmlTagMode = TAG_NAME;
 
         // if we are inside a <code> tag, we encode everything to make
         // documentation work easier
@@ -445,7 +452,7 @@ public final class HtmlEncoder {
                         }
                     } else if (!insideTag) {
                         // check if this is a HTML tag.
-                        boolean insideCloseTag = ('/' == str.charAt(i + 1));
+                        insideCloseTag = ('/' == str.charAt(i + 1));
                         int tagStart = insideCloseTag ? (i + 2) : (i + 1);
                         int j = tagStart;
 
@@ -464,6 +471,7 @@ public final class HtmlEncoder {
                                     allTags.contains(tagName) && !insideCodeTag) {
                                 insideHtmlTag = insideTag = true;
                                 htmlQuoteChar = '\u0000';
+                                htmlTagMode = TAG_NAME;
 
                                 // set ignoreNewline on some tags, depending on wheather they're
                                 // being opened or closed.
@@ -610,6 +618,7 @@ public final class HtmlEncoder {
                                 escape = false;
                             } else if (htmlQuoteChar == c) {
                                 htmlQuoteChar = '\u0000';
+                                htmlTagMode = TAG_SPACE;
                             } else if (htmlQuoteChar == '\u0000') {
                                 htmlQuoteChar = c;
                             }
@@ -650,7 +659,11 @@ public final class HtmlEncoder {
                         // Check if this is an empty tag so we don't generate an
                         // additional </close> tag.
                         if (str.charAt(i - 1) == '/') {
-                            openTags.pop();
+                            // this is to avoid misinterpreting tags like
+                            // <a href=http://foo/> as empty
+                            if (htmlTagMode != TAG_ATT_VAL && htmlTagMode != TAG_ATT_NAME) {
+                                openTags.pop();
+                            }
                         }
                     } else {
                         ret.append("&gt;");
@@ -663,7 +676,32 @@ public final class HtmlEncoder {
 
                 default:
 
-                    // ret.append (c);
+                    if (insideHtmlTag && !insideCloseTag) {
+                        switch(htmlTagMode) {
+                            case TAG_NAME:
+                                if (!Character.isLetterOrDigit(c)) {
+                                    htmlTagMode = TAG_SPACE;
+                                }
+                                break;
+                            case TAG_SPACE:
+                                if (Character.isLetterOrDigit(c)) {
+                                    htmlTagMode = TAG_ATT_NAME;
+                                }
+                                break;
+                            case TAG_ATT_NAME:
+                                if (c == '=') {
+                                    htmlTagMode = TAG_ATT_VAL;
+                                } else if (c == ' ') {
+                                    htmlTagMode = TAG_SPACE;
+                                }
+                                break;
+                            case TAG_ATT_VAL:
+                                if (Character.isWhitespace(c) && htmlQuoteChar == '\u0000') {
+                                    htmlTagMode = TAG_SPACE;
+                                }
+                                break;
+                        }
+                    }
                     if (c < 128) {
                         ret.append(c);
                     } else if ((c >= 128) && (c < 256)) {

@@ -378,6 +378,11 @@ public final class TypeManager {
             for (int i = 0; i < list.length; i++) {
                 String fn = list[i].getName();
 
+                // ignore files starting with ".".
+                if (fn.startsWith(".")) {
+                    continue;
+                }
+
                 if (!proto.updatables.containsKey(fn)) {
                     if (fn.endsWith(templateExtension) || fn.endsWith(scriptExtension) ||
                             fn.endsWith(actionExtension) || fn.endsWith(skinExtension) ||
