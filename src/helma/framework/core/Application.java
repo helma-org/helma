@@ -48,6 +48,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 
     Thread worker;
     long requestTimeout = 60000; // 60 seconds for request timeout.
+    ThreadGroup threadgroup;
     
     protected String templateExtension, scriptExtension, actionExtension;
 
@@ -69,6 +70,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     public Application (String name, File dbHome, File appHome) throws RemoteException, DbException {
 
 	this.name = name;
+
+	threadgroup = new ThreadGroup ("TX-"+name);
+
 	appDir = new File (appHome, name);
 	if (!appDir.exists())	
 	    appDir.mkdirs ();
@@ -484,6 +488,17 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	dbMappings.put (typename, dbmap);
     }
 
+    /**
+     * Periodically called to log thread stats for this application
+     */
+    public void printThreadStats () {
+	IServer.getLogger().log ("Thread Stats for "+name+": "+threadgroup.activeCount()+" active");
+    	Runtime rt = Runtime.getRuntime ();
+	long free = rt.freeMemory ();
+	long total = rt.totalMemory ();
+	IServer.getLogger().log ("Free memory: "+(free/1024)+" kB");
+	IServer.getLogger().log ("Total memory: "+(total/1024)+" kB");
+    }
 
     /**
      * Check if a method may be invoked via XML-RPC on a prototype
