@@ -215,6 +215,7 @@ public final class HtmlEncoder {
 	allTags.add ("isindex");
 	allTags.add ("kbd");
 	allTags.add ("label");
+	allTags.add ("legend");
 	allTags.add ("li");
 	allTags.add ("link");
 	allTags.add ("listing");
