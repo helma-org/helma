@@ -19,7 +19,6 @@ package helma.framework.core;
 import helma.objectmodel.db.DbMapping;
 import helma.framework.repository.Resource;
 import helma.framework.repository.Repository;
-import helma.framework.repository.ResourceTracker;
 
 import java.io.*;
 import java.net.URL;
@@ -212,11 +211,18 @@ public final class TypeManager {
     }
 
     /**
-     *  Return a checksum over all files in all prototypes in this application.
-     *  The checksum can be used to find out quickly if any file has changed.
+     *  Returns the last time any resource in this app was modified.
+     *  This can be used to find out quickly if any file has changed.
      */
-    public long lastCodeUpdate() {
+    public long getLastCodeUpdate() {
         return lastCodeUpdate;
+    }
+
+    /**
+     *  Set the last time any resource in this app was modified.
+     */
+    public void setLastCodeUpdate(long update) {
+        lastCodeUpdate = update;
     }
 
     /**
@@ -262,113 +268,6 @@ public final class TypeManager {
         prototypes.put(proto.getLowerCaseName(), proto);
 
         return proto;
-    }
-
-    /**
-     * Check a prototype for new or updated resources.
-     */
-    public void updatePrototype(Prototype proto) {
-
-        synchronized (proto) {
-            // check again because another thread may have checked the
-            // prototype while we were waiting for access to the synchronized section
-
-            boolean updatedResources = false;
-            List createdResources = null;
-
-            // our plan is to do as little as possible, so first check if
-            // anything the prototype knows about has changed on disk
-            for (Iterator i = proto.trackers.values().iterator(); i.hasNext();) {
-                ResourceTracker tracker = (ResourceTracker) i.next();
-
-                try {
-                    if (tracker.hasChanged()) {
-                        updatedResources = true;
-                        tracker.markClean();
-                    }
-                } catch (IOException iox) {
-                    iox.printStackTrace();
-                }
-            }
-
-            // next we check if files have been created or removed since last update
-            Resource[] resources = proto.getResources();
-
-            for (int i = 0; i < resources.length; i++) {
-                String name = resources[i].getName();
-                if (!proto.trackers.containsKey(name)) {
-                    if (name.endsWith(templateExtension) ||
-                        name.endsWith(scriptExtension) ||
-                        name.endsWith(actionExtension) ||
-                        name.endsWith(skinExtension)) {
-                        if (createdResources == null) {
-                            createdResources = new ArrayList();
-                        }
-
-                        createdResources.add(resources[i]);
-                    }
-                }
-            }
-
-            // if nothing needs to be updated, mark prototype as checked and return
-            if (!updatedResources && createdResources == null) {
-                proto.markChecked();
-
-                return;
-            }
-
-            // first go through new files and create new items
-            if (createdResources != null) {
-                Resource[] newResources = new Resource[createdResources.size()];
-                createdResources.toArray(newResources);
-
-                for (int i = 0; i < newResources.length; i++) {
-                     String resourceName = newResources[i].getName();
-                     if (resourceName.endsWith(templateExtension) ||
-                         resourceName.endsWith(scriptExtension) ||
-                         resourceName.endsWith(actionExtension)) {
-                         try {
-                             proto.addCodeResource(newResources[i]);
-                         } catch (Throwable x) {
-                             app.logEvent("Error updating prototype: " + x);
-                         }
-                     } else if (resourceName.endsWith(skinExtension)) {
-                         try {
-                             proto.addSkinResource(newResources[i]);
-                         } catch (Throwable x) {
-                             app.logEvent("Error updating prototype: " + x);
-                         }
-                     }
-                }
-            }
-
-            // next go through existing updatables
-            if (updatedResources) {
-                /*
-                for (Iterator i = updateSet.iterator(); i.hasNext();) {
-                    Updatable upd = (Updatable) i.next();
-
-                    try {
-                        upd.update();
-                    } catch (Exception x) {
-                        if (upd instanceof DbMapping) {
-                            app.logEvent("Error updating db mapping for type " +
-                                         proto.getName() + ": " + x);
-                        } else {
-                            app.logEvent("Error updating " + upd + " of prototye type " +
-                                         proto.getName() + ": " + x);
-                        }
-                    }
-                }
-                */
-            }
-
-            // mark prototype as checked and updated.
-            proto.markChecked();
-            proto.markUpdated();
-            lastCodeUpdate = proto.lastCodeUpdate();
-
-        } // end of synchronized (proto)
     }
 
 }

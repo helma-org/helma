@@ -33,19 +33,21 @@ import java.util.*;
  * relational database table.
  */
 public final class Prototype {
+    // the app this prototype belongs to
     Application app;
 
+    // this prototype's name in natural and lower case
     String name;
     String lowerCaseName;
 
+    // this prototype's resources
     Resource[] resources;
-    long lastResourceListing;
 
-    // lastCheck is the time the prototype's files were last checked
-    long lastChecksum;
-    long newChecksum;
-    // lastUpdate is the time at which any of the prototype's files were found updated the last time
-    long lastCodeUpdate;
+    // tells us the checksum of the repositories at the time we last updated them
+    long lastChecksum = 0;
+
+    // the time at which any of the prototype's files were found updated the last time
+    long lastCodeUpdate = 0;
 
     TreeSet code;
     TreeSet skins;
@@ -103,7 +105,6 @@ public final class Prototype {
         skinMap = new HashMap();
 
         isJavaPrototype = app.isJavaPrototype(name);
-        lastCodeUpdate = lastChecksum = 0;
     }
 
     /**
@@ -125,13 +126,73 @@ public final class Prototype {
     }
 
     /**
-     *  Returns the list of resources in this prototype's repositories
+     * Check a prototype for new or updated resources. After this has been
+     * called the code and skins collections of this prototype should be
+     * up-to-date and the lastCodeUpdate be set if there has been any changes.
      */
-    public Resource[] getResources() {
-        long resourceListing = getChecksum();
+    public void checkForUpdates() {
 
-        if (resources == null || resourceListing != lastResourceListing) {
-            lastResourceListing = resourceListing;
+        boolean updatedResources = false;
+
+        // check if any resource the prototype knows about has changed or gone
+        for (Iterator i = trackers.values().iterator(); i.hasNext();) {
+            ResourceTracker tracker = (ResourceTracker) i.next();
+
+            try {
+                if (tracker.hasChanged()) {
+                    updatedResources = true;
+                    tracker.markClean();
+                    if (!tracker.getResource().exists()) {
+                        i.remove();
+                        String name = tracker.getResource().getName();
+                        if (name.endsWith(TypeManager.skinExtension)) {
+                            skins.remove(tracker.getResource());
+                        } else {
+                            code.remove(tracker.getResource());
+                        }
+                    }
+                }
+            } catch (IOException iox) {
+                iox.printStackTrace();
+            }
+        }
+
+        // next we check if resources have been created or removed
+        Resource[] resources = getResources();
+
+        for (int i = 0; i < resources.length; i++) {
+            String name = resources[i].getName();
+            if (!trackers.containsKey(name)) {
+                if (name.endsWith(TypeManager.templateExtension) ||
+                        name.endsWith(TypeManager.scriptExtension) ||
+                        name.endsWith(TypeManager.actionExtension) ||
+                        name.endsWith(TypeManager.skinExtension)) {
+
+                    if (name.endsWith(TypeManager.skinExtension)) {
+                        addSkinResource(resources[i]);
+                    } else {
+                        addCodeResource(resources[i]);
+                    }
+                }
+            }
+        }
+
+        if (updatedResources) {
+            // mark prototype as dirty and the code as updated
+            lastCodeUpdate = System.currentTimeMillis();
+            app.typemgr.setLastCodeUpdate(lastCodeUpdate);
+        }
+    }
+
+
+    /**
+     *  Returns the list of resources in this prototype's repositories. Used
+     *  by checkForUpdates() to see whether there is anything new.
+     */
+    Resource[] getResources() {
+        long checksum = getRepositoryChecksum();
+        // reload resources if the repositories checksum has changed
+        if (checksum != lastChecksum) {
             ArrayList list = new ArrayList();
             Iterator iterator = repositories.iterator();
 
@@ -144,15 +205,16 @@ public final class Prototype {
             }
 
             resources = (Resource[]) list.toArray(new Resource[list.size()]);
+            lastChecksum = checksum;
         }
-
         return resources;
     }
 
     /**
-     *  Get a checksum over this prototype's sources
+     *  Get a checksum over this prototype's repositories. This tells us
+     *  if any resources were added or removed.
      */
-    public long getChecksum() {
+    long getRepositoryChecksum() {
         long checksum = 0;
         Iterator iterator = repositories.iterator();
 
@@ -164,18 +226,7 @@ public final class Prototype {
             }
         }
 
-        newChecksum = checksum;
         return checksum;
-    }
-
-    /**
-     *
-     *
-     * @return ...
-     */
-    public boolean isUpToDate() {
-        return (newChecksum == 0 && lastChecksum == 0) ?
-                false : newChecksum == lastChecksum;
     }
 
     /**
@@ -241,18 +292,14 @@ public final class Prototype {
     }
 
     /**
-     *
-     *
-     * @param dbmap ...
+     * Set the DbMapping associated with this prototype
      */
     protected void setDbMapping(DbMapping dbmap) {
         this.dbmap = dbmap;
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get the DbMapping associated with this prototype
      */
     public DbMapping getDbMapping() {
         return dbmap;
@@ -314,15 +361,6 @@ public final class Prototype {
      */
     public void markUpdated() {
         lastCodeUpdate = System.currentTimeMillis();
-    }
-
-    /**
-     *  Signal that the prototype's scripts have been checked for
-     *  changes.
-     */
-    public void markChecked() {
-        // lastCheck = System.currentTimeMillis ();
-        lastChecksum = newChecksum;
     }
 
     /**
@@ -483,10 +521,6 @@ public final class Prototype {
         }
 
         private void checkForUpdates() {
-            if (!isUpToDate()) {
-                app.typemgr.updatePrototype(Prototype.this);
-            }
-
             if (lastCodeUpdate > lastSkinmapLoad) {
                 load();
             }

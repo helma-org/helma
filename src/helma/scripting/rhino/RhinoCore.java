@@ -376,8 +376,8 @@ public final class RhinoCore implements ScopeProvider {
             updatePrototype(type.getParentType(), checked);
         }
 
-        // let the type manager scan the prototype's directory
-        app.typemgr.updatePrototype(type.frameworkProto);
+        // let the prototype check if its resources have changed
+        type.frameworkProto.checkForUpdates();
 
         // and re-evaluate if necessary
         if (type.needsUpdate()) {
@@ -428,7 +428,7 @@ public final class RhinoCore implements ScopeProvider {
         // otherwise, it has already been evaluated for this request by updatePrototypes(),
         // which is called before a request is handled.
         if ((type != null) && (type.lastUpdate == -1)) {
-            app.typemgr.updatePrototype(type.frameworkProto);
+            type.frameworkProto.checkForUpdates();
 
             if (type.needsUpdate()) {
                 evaluatePrototype(type);

@@ -1743,7 +1743,9 @@ public final class Application implements IPathElement, Runnable {
      *  change, too.
      */
     public long getChecksum() {
-        return starttime + typemgr.lastCodeUpdate() + props.getChecksum();
+        return starttime +
+               typemgr.getLastCodeUpdate() +
+               props.getChecksum();
     }
 
     /**
