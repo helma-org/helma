@@ -29,7 +29,7 @@ public class ImageGenerator extends Window {
                 }
 	}
 	);
-	setBounds (0, 0, 0, 0);
+	setBounds (0, 0, 1, 1);
 	setVisible (true);
     }
     
