@@ -1,4 +1,4 @@
-This is the README file for version 1.4.1 of Helma Object Publisher.
+This is the README file for version 1.4.2 of Helma Object Publisher.
 
 ===========
 ABOUT HELMA
@@ -26,14 +26,15 @@ there.
 SYSTEM REQUIREMENTS
 ===================
 
-You need a Java virtual machine 1.3 or higher to run Helma.
+You need a Java virtual machine 1.3 or higher to run Helma, but we 
+recommend using Java 1.4.
 
 For Windows, Linux and Solaris you can get a Java runtime or development 
 kit from http://java.sun.com/j2se/downloads.html. If you are on Mac OS X, 
 you already have a Java runtime that will work well with Helma.
 
 For other operating systems, please consult the documentation about the 
-availabilty of a Java 1.3 (or higher) runtime.
+availabilty of a Java virtual machine.
 
 ===============================================
 USING IMAGE MANIPULATION FEATURES WITH JAVA 1.3
@@ -105,4 +106,4 @@ hannes@helma.at.
 
 --
 
-Last modified on June 30, 2004 by Hannes Wallnoefer <hannes@helma.at>
+Last modified on March 09, 2005 by Hannes Wallnoefer <hannes@helma.at>
