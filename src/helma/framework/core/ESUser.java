@@ -70,6 +70,8 @@ public class ESUser extends ESNode {
 	// set node handle to wrapped node
 	if (node instanceof helma.objectmodel.db.Node)
 	    handle = ((helma.objectmodel.db.Node) node).getHandle ();
+	else
+	    handle = null;
 	// we don't take over the transient cache from the node,
 	// because we always use the one from the user object.
     }
@@ -79,6 +81,9 @@ public class ESUser extends ESNode {
 	// set node handle to wrapped node
 	if (node instanceof helma.objectmodel.db.Node)
 	    handle = ((helma.objectmodel.db.Node) node).getHandle ();
+	else
+	    handle = null;
+	
     }	
 
     public String toString () {

@@ -43,6 +43,8 @@ public class ESNode extends ObjectPrototype {
 	// set node handle to wrapped node
 	if (node instanceof helma.objectmodel.db.Node)
 	    handle = ((helma.objectmodel.db.Node) node).getHandle ();
+	else
+	    handle = null;
     }
     
     public ESNode (ESObject prototype, Evaluator evaluator, Object obj, RequestEvaluator eval) {
@@ -60,6 +62,8 @@ public class ESNode extends ObjectPrototype {
 	// set node handle to wrapped node
 	if (node instanceof helma.objectmodel.db.Node)
 	    handle = ((helma.objectmodel.db.Node) node).getHandle ();
+	else
+	    handle = null;
 
 	// get transient cache Node
 	cache = node.getCacheNode ();
@@ -87,6 +91,8 @@ public class ESNode extends ObjectPrototype {
 	    // set node handle to wrapped node
 	    if (node instanceof helma.objectmodel.db.Node)
 	        handle = ((helma.objectmodel.db.Node) node).getHandle ();
+	    else
+	        handle = null;
 	    eval.objectcache.put (node, this);
 	    // get transient cache Node
 	    cache = node.getCacheNode ();
@@ -351,8 +357,11 @@ public class ESNode extends ObjectPrototype {
     }
 
     private ESValue getInternalProperty (String propertyName) throws EcmaScriptException {
-	if ("__id__".equalsIgnoreCase (propertyName))
+	if ("__id__".equalsIgnoreCase (propertyName)) try {
 	    return new ESString (node.getID ());
+	} catch (Exception noid) {
+	    return new ESString ("transient");
+	}
 	if ("__prototype__".equalsIgnoreCase (propertyName)) {
 	    String p = node.getPrototype ();
 	    if (p == null)
@@ -415,7 +424,10 @@ public class ESNode extends ObjectPrototype {
             return true;
         if (what instanceof ESNode) {
             ESNode other = (ESNode) what;
-            return (other.handle.equals (handle));
+            if (handle != null)
+                return handle.equals (other.handle);
+            else
+                return (node == other.node);
         }
         return false;
     }	
