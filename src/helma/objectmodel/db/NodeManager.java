@@ -411,7 +411,7 @@ public final class NodeManager {
 	            Relation rel = dbm.propertyToColumnName (propname);
 
 	            // skip properties that don't need to be updated before fetching them
-	            if (rel != null && (rel.readonly || rel.virtual || rel.direction != Relation.FORWARD))
+	            if (rel != null && (rel.readonly || rel.virtual || (rel.direction != Relation.FORWARD && rel.direction != Relation.PRIMITIVE)))
 	                continue;
 
 	            Property p = node.getProperty (propname, false);
