@@ -1,4 +1,4 @@
- Copyright (c) 1999-2000 Helma.org.  All rights reserved.
+ Copyright (c) 1999-2001 Helma.org.  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -12,9 +12,9 @@
     the documentation and/or other materials provided with the
     distribution.
 
- 3. Attribution must be given to Hop in a way that is appropriate to how 
-     it is being used. For a website this attribution will normally consist 
-     of a link to http://helma.org/ with the line "Powered by Hop".
+ 3. Attribution must be given to Helma in a way that is appropriate to how 
+    it is being used. For a website this attribution will normally consist 
+    of a link to http://helma.org/ with the line "Powered by Helma".
 
  4. All advertising materials mentioning features or use of this
     software must display the following acknowledgment:
@@ -42,6 +42,3 @@
  STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  OF THE POSSIBILITY OF SUCH DAMAGE.
-
- 
-

@@ -2,15 +2,12 @@
 
 rem Batch file for starting Hop with a JDK-like virtual machine.
 
-set JARS=lib\helma.jar;lib\berkeley.jar;lib\village.jar;lib\jsdk.jar;lib\openxml.jar
-set JARS=%JARS%;lib\sax.jar;lib\regexp.jar;lib\netcomponents.jar;lib\jimi.jar
-set JARS=%JARS%;lib\mail.jar;lib\activation.jar;lib\mysql.jar
+set JARS = lib\helma.jar;lib\berkeley.jar;lib\village.jar;lib\jsdk.jar;lib\openxml.jar
+set JARS = %JARS%;lib\sax.jar;lib\regexp.jar;lib\netcomponents.jar;lib\jimi.jar
+set JARS = %JARS%;lib\mail.jar;lib\activation.jar;lib\mysql.jar
 
-set HOP_PORT=8080
+set HOP_PORT = 8080
 
 echo Starting Web server on port %HOP_PORT%
 
 java -classpath c:\winnt\java\packages\rmi.zip;%JARS% helma.objectmodel.db.Server -w %HOP_PORT%
-
-
-

@@ -1,9 +1,9 @@
-This is the first release of Hop. 
+This is the first release of Helma Object Publisher. 
 
 If you manage to get it running you should be able to connect your browser to 
 http://127.0.0.1:8080/ (port 8080, that is). There is not much in terms of documentation 
 at this point, please look at http://helma.org and have a look at the sample application 
-in the apps/base directory.
+in the apps/hopblog directory.
 
 This version is set up to use its own embedded Web server and a very basic 
 embedded object database. For this reason it is able to run virtually without installation 
