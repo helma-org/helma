@@ -85,11 +85,12 @@ public class ApplicationManager implements XmlRpcHandler {
 	                        app.setBaseURI (mountpoint);
 	                    ServletHttpContext context = new ServletHttpContext ();
 	                    context.setContextPath(pattern);
-	                    context.addHandler(new ContentEncodingHandler());
 	                    server.http.addContext (context);
 	                    ServletHolder holder = context.addServlet (appName, "/*", "helma.servlet.EmbeddedServletClient");
 	                    holder.setInitParameter ("application", appName);
 	                    holder.setInitParameter ("mountpoint", mountpoint);
+	                    if ("true".equalsIgnoreCase (props.getProperty (appName+".responseEncoding")))
+	                        context.addHandler(new ContentEncodingHandler());
 	                    String cookieDomain = props.getProperty (appName+".cookieDomain");
 	                    if (cookieDomain != null)
 	                        holder.setInitParameter ("cookieDomain", cookieDomain);
@@ -174,11 +175,12 @@ public class ApplicationManager implements XmlRpcHandler {
 	        String pattern = getPathPattern (mountpoint);
 	        ServletHttpContext context = new ServletHttpContext ();
 	        context.setContextPath(pattern);
-	        context.addHandler(new ContentEncodingHandler());
 	        server.http.addContext (context);
 	        ServletHolder holder = context.addServlet (appName, "/*", "helma.servlet.EmbeddedServletClient");
 	        holder.setInitParameter ("application", appName);
 	        holder.setInitParameter ("mountpoint", mountpoint);
+	        if ("true".equalsIgnoreCase (props.getProperty (appName+".responseEncoding")))
+	            context.addHandler(new ContentEncodingHandler());
 	        String cookieDomain = props.getProperty (appName+".cookieDomain");
 	        if (cookieDomain != null)
 	            holder.setInitParameter ("cookieDomain", cookieDomain);
@@ -227,6 +229,13 @@ public class ApplicationManager implements XmlRpcHandler {
 	} catch (Exception mx) {
 	    Server.getLogger().log ("Error starting applications: "+mx);
 	    mx.printStackTrace ();
+	}
+    }
+
+    public void stopAll () {
+	for (Enumeration en=applications.keys(); en.hasMoreElements(); ) {
+	    String appName = (String) en.nextElement();
+	    stop (appName);
 	}
     }
 
