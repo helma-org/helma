@@ -79,12 +79,17 @@ public class Main {
 	File extdir =new File (libdir, "ext");
 	File[] files = extdir.listFiles (new FilenameFilter() {
 	    public boolean accept (File dir, String name) {
-	        return name.endsWith (".jar");
+	        return name.toLowerCase().endsWith (".jar");
 	    }
 	});
 	if (files != null)
 	    for (int i=0;i<files.length; i++)
-	        jarlist.add (new URL ("file:" + files[i].getAbsolutePath()));
+	        // WORKAROUND: add the files in lib/ext before
+	        // lib/apache-dom.jar, since otherwise putting a full version 
+	        // of Xerces in lib/ext would cause a version conflict with the 
+	        // xerces classes in lib/apache-dom.jar. Generally, having some pieces 
+	        // of Xerces in lib/apache-dom.jar is kind of problematic.
+	        jarlist.add (jars.length-3, new URL ("file:" + files[i].getAbsolutePath()));
 	URL[] urls = new URL[jarlist.size()];
 	jarlist.toArray (urls);
 	FilteredClassLoader loader = new FilteredClassLoader (urls);
