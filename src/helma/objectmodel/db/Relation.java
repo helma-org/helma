@@ -281,7 +281,7 @@ public final class Relation {
             }
 
             // aggressive loading and caching is not supported for groupby-nodes
-            aggressiveLoading = aggressiveCaching = false;
+            // aggressiveLoading = aggressiveCaching = false;
         }
 
         // check if subnode condition should be applied for property relations
@@ -350,6 +350,13 @@ public final class Relation {
      */
     public boolean isPrivate() {
         return isPrivate;
+    }
+
+    /**
+     *  Check whether aggressive loading is set for this relation
+     */
+    public boolean loadAggressively() {
+        return aggressiveLoading;
     }
 
     /**
@@ -423,6 +430,15 @@ public final class Relation {
      */
     public int getColumnType() {
         return columnType;
+    }
+
+    /**
+     *  Get the group for a collection relation, if defined.
+     *
+     * @return the name of the column used to group child objects, if any.
+     */
+    public String getGroup() {
+        return groupby;
     }
 
     /**
