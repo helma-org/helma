@@ -404,7 +404,7 @@ public class TypeManager implements Runnable {
 
 
 
-    public synchronized void initRequestEvaluator (RequestEvaluator reval) {
+    public void initRequestEvaluator (RequestEvaluator reval) {
         if (!registeredEvaluators.contains (reval))
             registeredEvaluators.add (reval);
         for (Iterator it = prototypes.values().iterator(); it.hasNext(); ) {
@@ -427,100 +427,4 @@ public class TypeManager implements Runnable {
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
