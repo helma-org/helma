@@ -165,7 +165,7 @@ public final class Node implements INode, Serializable {
 
         // set lastmodified and created timestamps and mark as clean
         created = lastmodified = System.currentTimeMillis();
-        markAs(CLEAN);
+        state = CLEAN;
     }
 
     /**
