@@ -276,26 +276,25 @@ public class RhinoEngine implements ScriptingEngine {
         } catch (ConcurrencyException concur) {
             throw concur;
         } catch (Exception x) {
-            // check if this is a redirect exception, which has been converted by fesi
-            // into an EcmaScript exception, which is why we can't explicitly catch it
-            if (reval.res.getRedirect() != null) {
-                throw new RedirectException(reval.res.getRedirect());
-            }
-
-            // do the same for not-modified responses
-            if (reval.res.getNotModified()) {
-                throw new RedirectException(null);
-            }
-
             // has the request timed out? If so, throw TimeoutException
             if (thread != Thread.currentThread())
                 throw new TimeoutException ();
+
             // create and throw a ScriptingException with the right message
             String msg;
             if (x instanceof JavaScriptException) {
                 msg = ((JavaScriptException) x).getValue().toString();
             } else if (x instanceof WrappedException) {
-                msg = ((WrappedException) x).getWrappedException().toString();
+                Throwable wrapped = ((WrappedException) x).getWrappedException();
+                // if this is a wrapped concurrencyException, rethrow it.
+                if (wrapped instanceof ConcurrencyException) {
+                    throw (ConcurrencyException) wrapped;
+                }
+                // also check if this is a wrapped redirect exception
+                if (wrapped instanceof RedirectException) {
+                    throw (RedirectException) wrapped;
+                }
+                msg = wrapped.toString();
             } else {
                 msg = x.toString();
             }
