@@ -42,6 +42,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     protected Stack freeThreads;
     protected Vector allThreads;
 
+    boolean stopped = false;
+
     Hashtable sessions;
     Hashtable activeUsers;
     Hashtable dbMappings;
@@ -150,6 +152,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 
 
     public void stop () {
+
+	stopped = true;
+
 	// stop all threads, this app is going down
 	if (worker != null)
 	    worker.interrupt ();
@@ -174,7 +179,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     }
 
     protected RequestEvaluator getEvaluator () {
-	if (freeThreads == null)
+	if (stopped)
 	    throw new ApplicationStoppedException ();
 	try {
 	    return (RequestEvaluator) freeThreads.pop ();
@@ -228,6 +233,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	try {
 	    ev = getEvaluator ();
 	    res = ev.invoke (req, u);
+	} catch (ApplicationStoppedException stopped) {
+	    // let the servlet know that this application has gone to heaven
+	    throw stopped;
 	} catch (Exception x) {
 	    errorCount += 1;
 	    res = new ResponseTrans ();
@@ -418,6 +426,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	        worker.sleep (cleanupSleep);
 	    } catch (InterruptedException x) {
 	        IServer.getLogger().log ("Scheduler for "+name+" interrupted");
+	        worker = null;
+	        break;
 	    }
 	    try {
 	        IServer.getLogger().log ("Cleaning up "+name+": " + sessions.size () + " sessions active");
