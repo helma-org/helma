@@ -322,6 +322,9 @@ public class DbMapping implements Updatable {
 	return rel != null ? rel : propertiesRel;
     }
 
+    public String getSubnodeGroupby () {
+	return subnodesRel == null ? null : subnodesRel.groupby;
+    }
 
     public String getIDgen () {
 	return idgen;

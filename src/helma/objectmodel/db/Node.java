@@ -102,6 +102,8 @@ public class Node implements INode, Serializable {
     transient long lastSubnodeFetch = 0;
     transient long lastSubnodeChange = 0;
 
+    transient long lastParentSet = 0;
+
     transient long lastSubnodeCount = 0;  // these two are only used
     transient int subnodeCount = -1;    // for aggressive loading relational subnodes
 
@@ -142,6 +144,7 @@ public class Node implements INode, Serializable {
 	name = nameField == null ? id : rec.getValue (nameField).asString ();
 	if (name == null || name.length() == 0)
 	    name = id;
+	created = lastmodified = System.currentTimeMillis ();
 	setPrototype (dbmap.getTypeName ());
 	for (Enumeration e=dbmap.db2prop.elements (); e.hasMoreElements();  ) {
 
@@ -594,7 +597,7 @@ public class Node implements INode, Serializable {
 
 	// check what's specified in the type.properties for this node.
 	ParentInfo[] parentInfo = null;
-	if (dbmap != null && dbmap.isRelational ())
+	if (dbmap != null && dbmap.isRelational () && lastParentSet < Math.max (dbmap.getLastTypeChange(), lastmodified))
 	    parentInfo = dbmap.getParentInfo ();
 
 	// check if current parent candidate matches presciption, if not, try to get it
@@ -609,9 +612,19 @@ public class Node implements INode, Serializable {
 	            anonymous = !pinfo.named;
 	            if (pinfo.virtualname != null)
 	                pn = pn.getNode (pinfo.virtualname, false);
-	            // FIXME: check for groupby
-	            if (pn != null)
+	            DbMapping dbm = pn == null ? null : pn.getDbMapping ();
+	            if (dbm != null && dbm.getSubnodeGroupby () != null) {
+	                // check for groupby
+	                try {
+	                    Relation rel = (Relation) dbmap.db2prop.get (dbm.getSubnodeGroupby());
+	                    pn = pn.getSubnode (getString (rel.propname, false));
+	                } catch (Exception ignore) {}
+	            }
+	            if (pn != null) {
+	                setParent ((Node) pn);
+	                lastParentSet = System.currentTimeMillis ();
 	                return pn;
+	            }
 	        }
 	    }
 	}
