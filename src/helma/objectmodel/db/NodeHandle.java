@@ -58,18 +58,8 @@ public final class NodeHandle implements INodeState, Serializable {
      *  Get the node described by this node handle
      */
     public Node getNode (WrappedNodeManager nodemgr) {
-	if (node != null) {
-	    int state = node.getState ();
-	    if (state == TRANSIENT)
-	        return node;
-	    else {
-	        // this node went from TRANSIENT to some other state.
-	        // It's time to say goodby to the direct reference, from now on
-	        // we'll have to fetch let the node manager fetch it.
-	        key = node.getKey ();
-	        node = null;
-	    }
-	}
+	if (node != null)
+	    return node;
 	return nodemgr.getNode (key);
     }
 
@@ -91,23 +81,11 @@ public final class NodeHandle implements INodeState, Serializable {
 	return key.getID ();
     }
 
-    public DbMapping getDbMapping (WrappedNodeManager nmgr) {
-	if (dbmap == null) {
-	    if (node != null)
-	        dbmap = node.getDbMapping ();
-	    else
-	        dbmap = nmgr.getDbMapping (key.getStorageName ());
-	}
-	return dbmap;
-    }
-
     private Object getObject () {
-	if (node != null) {
-	    if (node.getState () != TRANSIENT)
-	        return node.getKey ();
+	if (node != null)
 	    return node;
-	}
-	return key;
+	else
+	    return key;
     }
 
     public boolean equals (Object other) {
@@ -118,14 +96,23 @@ public final class NodeHandle implements INodeState, Serializable {
 	}
     }
 
-    public String toString () {
+    /**
+     * This is to notify the handle that the underlying node is becoming
+     * persistent and we have to refer to it via the key from now on.
+     */
+    protected void becomePersistent () {
 	if (node != null) {
-	    if (node.getState () == TRANSIENT)
-	        return "NodeHandle[transient:"+node+"]";
-	    else
-	        key = node.getKey ();
+	    key = node.getKey ();
+	    node = null;
 	}
-	return "NodeHandle["+key+"]";
+    }
+	
+
+    public String toString () {
+	if (node != null)
+	    return "NodeHandle[transient:"+node+"]";
+	else
+	    return "NodeHandle["+key+"]";
     }
 
 }
