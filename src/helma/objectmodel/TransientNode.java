@@ -48,8 +48,10 @@ public class TransientNode implements INode, Serializable {
 
     private static long idgen = 0;
 
-    public String generateID () {
-    	return "t"+idgen++; // make transient ids differ from persistent ones
+    public static String generateID () {
+	// make transient ids differ from persistent ones
+	// and are unique within on runtime session
+	return "t"+idgen++;
     }
     
     public TransientNode () {
@@ -388,10 +390,10 @@ public class TransientNode implements INode, Serializable {
 	INode node = new helma.objectmodel.db.Node (rel.getPropName (), rel.getPrototype (), dbmap.getWrappedNodeManager());
 	// node.setState (TRANSIENT);
 	// make a db mapping good enough that the virtual node finds its subnodes
-	DbMapping dbm = new DbMapping ();
-	dbm.setSubnodeRelation (rel);
-	dbm.setPropertyRelation (rel);
-	node.setDbMapping (dbm);
+	// DbMapping dbm = new DbMapping ();
+	// dbm.setSubnodeRelation (rel);
+	// dbm.setPropertyRelation (rel);
+	node.setDbMapping (rel.getVirtualMapping ());
 	setNode (propname, node);
 	return (Property) propMap.get (propname);
     }
