@@ -103,8 +103,6 @@ public final class RequestEvaluator implements Runnable {
      *
      */
     public void run() {
-        int txcount = 0;
-
         // first, set a local variable to the current transactor thread so we know
         // when it's time to quit because another thread took over.
         Transactor localrtx = (Transactor) Thread.currentThread();
@@ -351,8 +349,7 @@ public final class RequestEvaluator implements Runnable {
                                         // wait a bit longer with each try
                                         int base = 800 * tries;
 
-                                        Thread.currentThread().sleep((long) (base +
-                                                                     (Math.random() * base * 2)));
+                                        Thread.sleep((long) (base + (Math.random() * base * 2)));
                                     } catch (Exception ignore) {
                                     }
 
@@ -905,4 +902,5 @@ public final class RequestEvaluator implements Runnable {
 
         return null;
     }
+
 }

@@ -58,7 +58,6 @@ public class DocSkin extends DocFileElement {
         ArrayList partBuffer = new ArrayList();
         char[] source = content.toCharArray();
         int sourceLength = source.length;
-        int start = 0;
 
         for (int i = 0; i < (sourceLength - 1); i++) {
             if ((source[i] == '<') && (source[i + 1] == '%')) {
@@ -92,8 +91,6 @@ public class DocSkin extends DocFileElement {
                             partBuffer.add(str);
                         }
                     }
-
-                    start = j + 2;
                 }
 
                 i = j + 1;

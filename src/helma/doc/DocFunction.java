@@ -90,11 +90,11 @@ public class DocFunction extends DocFileElement {
 
                 // if we're currently parsing a functionbody and come to the start
                 // of the next function or eof -> read function body
-                if (curFunction != null && (tok== ts.FUNCTION || ts.eof())) {
+                if (curFunction != null && (tok== TokenStream.FUNCTION || ts.eof())) {
                     curFunction.content = "function " + Util.getStringFromFile(location, curFunctionStart, endOfLastToken);
                 }
 
-                if (tok == ts.FUNCTION) {
+                if (tok == TokenStream.FUNCTION) {
                     // store the function start for parsing the function body later
                     curFunctionStart = getPoint (ts); 
                     // get and chop the comment
@@ -111,12 +111,12 @@ public class DocFunction extends DocFileElement {
                     // subloop on the tokenstream: find the parameters of a function
                     // only if it's a function (and not a macro or an action)
                     if (curFunction.type == FUNCTION) {
-                        while (!ts.eof() && tok != ts.RP) {
+                        while (!ts.eof() && tok != TokenStream.RP) {
                             // store the position of the last token 
                             endOfLastToken = getPoint (ts);
                             // new token
                             tok = ts.getToken();
-                            if (tok==ts.NAME) {
+                            if (tok==TokenStream.NAME) {
                                 curFunction.addParameter (ts.getString());
                             }
                         }

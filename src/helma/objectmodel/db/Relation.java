@@ -109,7 +109,6 @@ public final class Relation {
     ////////////////////////////////////////////////////////////////////////////////////////////
     public void update(String desc, Properties props) {
         Application app = ownType.getApplication();
-        boolean notPrimitive = false;
 
         if ((desc == null) || "".equals(desc.trim())) {
             if (propName != null) {

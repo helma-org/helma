@@ -407,7 +407,6 @@ class RowSet {
        if (!firstRowSeen) {
             throw new SQLException("Attempt to access data before the first row is read");
        }
-       int hash = propertyName.hashCode();
        try {
             int index = -1; // indicates not a valid index value
             try {

@@ -484,7 +484,6 @@ public final class Node implements INode, Serializable {
      * @return ...
      */
     public String getFullName(INode root) {
-        String fullname = "";
         String divider = null;
         StringBuffer b = new StringBuffer();
         INode p = this;
@@ -839,8 +838,6 @@ public final class Node implements INode, Serializable {
             node.makePersistentCapable();
         }
 
-        String n = node.getName();
-
         // if (n.indexOf('/') > -1)
         //     throw new RuntimeException ("\"/\" found in Node name.");
         // only mark this node as modified if subnodes are not in relational db
@@ -1153,11 +1150,13 @@ public final class Node implements INode, Serializable {
             return null;
         }
 
+        /*
         DbMapping smap = null;
 
         if (dbmap != null) {
             smap = dbmap.getSubnodeMapping();
         }
+        */
 
         Node retval = null;
 
@@ -1291,9 +1290,11 @@ public final class Node implements INode, Serializable {
 
         // check if the subnode is in relational db and has a link back to this
         // which needs to be unset
+        /*
         if (dbmap != null) {
             Relation srel = dbmap.getSubnodeRelation();
         }
+        */
 
         // check if subnodes are also accessed as properties. If so, also unset the property
         if ((dbmap != null) && (node.dbmap != null)) {

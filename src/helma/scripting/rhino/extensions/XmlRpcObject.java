@@ -88,7 +88,7 @@ public class XmlRpcObject extends BaseFunction {
             }
         }
         FunctionObject ctor = new FunctionObject("Remote", ctorMember, scope);
-        ((ScriptableObject)scope).defineProperty(scope, "Remote", ctor, ScriptableObject.DONTENUM);
+        ScriptableObject.defineProperty(scope, "Remote", ctor, ScriptableObject.DONTENUM);
         // ctor.addAsConstructor(scope, proto);
     }
 

@@ -22,6 +22,7 @@ import helma.framework.core.*;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import org.mozilla.javascript.*;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
@@ -91,7 +92,7 @@ public class HopObject extends ScriptableObject {
                 for (int i=0; i<cnst.length; i++) try {
                     FunctionObject fo = new FunctionObject("ctor", cnst[i], engine.global);
                     Object obj = fo.call(cx, engine.global, null, args);
-                    return cx.toObject(obj, engine.global);
+                    return Context.toObject(obj, engine.global);
                 } catch (JavaScriptException x) {
                     Object value = x.getValue();
                     if (value instanceof Throwable) {
@@ -262,7 +263,6 @@ public class HopObject extends ScriptableObject {
             return null;
         }
 
-        Context cx = Context.getCurrentContext();
         Object n = null;
 
         if (id instanceof Number) {
@@ -274,7 +274,7 @@ public class HopObject extends ScriptableObject {
         if (n == null) {
             return null;
         } else {
-            return cx.toObject(n, core.global);
+            return Context.toObject(n, core.global);
         }
     }
 
@@ -334,7 +334,6 @@ public class HopObject extends ScriptableObject {
      * @return ...
      */
     public Object[] jsFunction_list() {
-        int l = node.numberOfNodes();
         Enumeration e = node.getSubnodes();
         ArrayList a = new ArrayList();
 
@@ -358,11 +357,11 @@ public class HopObject extends ScriptableObject {
         }
 
         if (child instanceof HopObject) {
-            INode added = node.addNode(((HopObject) child).node);
+            node.addNode(((HopObject) child).node);
 
             return true;
         } else if (child instanceof INode) {
-            INode added = node.addNode((INode) child);
+            node.addNode((INode) child);
 
             return true;
         }
@@ -384,11 +383,11 @@ public class HopObject extends ScriptableObject {
         }
 
         if (child instanceof HopObject) {
-            INode added = node.addNode(((HopObject) child).node, index);
+            node.addNode(((HopObject) child).node, index);
 
             return true;
         } else if (child instanceof INode) {
-            INode added = node.addNode((INode) child, index);
+            node.addNode((INode) child, index);
 
             return true;
         }
@@ -416,7 +415,7 @@ public class HopObject extends ScriptableObject {
                     }
                 }
             } catch (Exception x) {
-                System.err.println("XXX: " + x);
+                System.err.println("Error in HopObject.remove(): " + x);
                 x.printStackTrace();
             }
         }
@@ -610,7 +609,7 @@ public class HopObject extends ScriptableObject {
                     if (n == null) {
                         return NOT_FOUND;
                     } else {
-                        return cx.toObject(n, core.global);
+                        return Context.toObject(n, core.global);
                     }
                 }
 
@@ -620,7 +619,7 @@ public class HopObject extends ScriptableObject {
                     if (obj == null) {
                         return NOT_FOUND;
                     } else {
-                        return cx.toObject(obj, core.global);
+                        return Context.toObject(obj, core.global);
                     }
                 }
             }
@@ -723,12 +722,8 @@ public class HopObject extends ScriptableObject {
     public Object get(int idx, Scriptable start) {
         if (node != null) {
             INode n = node.getSubnodeAt(idx);
-
-            if (n == null) {
-                return NOT_FOUND;
-            } else {
-                Context cx = Context.getCurrentContext();
-                return cx.toObject(n, core.global);
+            if (n != null) {
+                return Context.toObject(n, core.global);
             }
         }
 

@@ -473,8 +473,6 @@ public final class Logger {
         }
 
         public void run() {
-            long start = System.currentTimeMillis();
-
             try {
                 GZIPOutputStream zip = new GZIPOutputStream(new FileOutputStream(temp));
                 BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));

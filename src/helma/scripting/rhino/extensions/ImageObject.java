@@ -51,7 +51,7 @@ public class ImageObject {
             }
         }
         FunctionObject ctor = new FunctionObject("Image", ctorMember, scope);
-        ((ScriptableObject)scope).defineProperty(scope, "Image", ctor, ScriptableObject.DONTENUM);
+        ScriptableObject.defineProperty(scope, "Image", ctor, ScriptableObject.DONTENUM);
         global = scope;
         // ctor.addAsConstructor(scope, proto);
     }
@@ -105,6 +105,6 @@ public class ImageObject {
             throw new RuntimeException("Error creating image: Bad parameters or setup problem.");
         }
 
-        return cx.toObject(img, global);
+        return Context.toObject(img, global);
     }
 }

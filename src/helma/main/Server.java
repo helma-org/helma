@@ -545,11 +545,9 @@ public class Server implements IPathElement, Runnable {
             }
         }
 
-        int count = 0;
-
         while (Thread.currentThread() == mainThread) {
             try {
-                mainThread.sleep(3000L);
+                Thread.sleep(3000L);
             } catch (InterruptedException ie) {
             }
 
@@ -629,7 +627,7 @@ public class Server implements IPathElement, Runnable {
             addr = InetAddress.getLocalHost();
         }
         try {
-            Socket socket = new Socket(addr, addrPort.getPort());
+            new Socket(addr, addrPort.getPort());
         } catch (IOException x) {
             // we couldn't connect to the socket because no server
             // is running on it yet. Everything's ok.

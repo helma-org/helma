@@ -29,6 +29,7 @@ import helma.scripting.*;
 import helma.util.CacheMap;
 import helma.util.Updatable;
 import org.mozilla.javascript.*;
+
 import java.io.*;
 import java.util.*;
 
@@ -190,7 +191,7 @@ public class RhinoEngine implements ScriptingEngine {
                         // register path elements with their prototype
                         for (int j = 0; j < path.size(); j++) {
                             Object pathElem = path.get(j);
-                            Scriptable wrappedElement = context.toObject(pathElem, global);
+                            Scriptable wrappedElement = Context.toObject(pathElem, global);
 
                             arr.put(j, arr, wrappedElement);
 
@@ -204,7 +205,7 @@ public class RhinoEngine implements ScriptingEngine {
                         v = arr;
                     }
 
-                    scriptable = context.toObject(v, global);
+                    scriptable = Context.toObject(v, global);
                     global.put(k, global, scriptable);
                 } catch (Exception x) {
                     app.logEvent("Error setting global variable " + k + ": " + x);
@@ -223,7 +224,7 @@ public class RhinoEngine implements ScriptingEngine {
     public void exitContext() {
         context.removeThreadLocal("reval");
         context.removeThreadLocal("engine");
-        context.exit();
+        Context.exit();
         thread = null;
 
         // loop through previous globals and unset them, if necessary.
@@ -250,7 +251,7 @@ public class RhinoEngine implements ScriptingEngine {
         if (thisObject == null) {
             eso = global;
         } else {
-            eso = context.toObject(thisObject, global);
+            eso = Context.toObject(thisObject, global);
         }
         try {
             for (int i = 0; i < args.length; i++) {
@@ -258,7 +259,7 @@ public class RhinoEngine implements ScriptingEngine {
                 if (xmlrpc) {
                     args[i] = core.processXmlRpcArgument (args[i]);
                 } else if (args[i] != null) {
-                    args[i] = context.toObject(args[i], global);
+                    args[i] = Context.toObject(args[i], global);
                 }
             }
 
@@ -327,7 +328,7 @@ public class RhinoEngine implements ScriptingEngine {
         if (t != null && t.isAlive()) {
             t.interrupt();
             try {
-                Thread.currentThread().sleep(5000);
+                Thread.sleep(5000);
                 if (t.isAlive()) {
                     // thread is still running, gotta stop it.
                     t.stop();
@@ -377,7 +378,7 @@ public class RhinoEngine implements ScriptingEngine {
             }
         }
 
-        Scriptable so = context.toObject(obj, global);
+        Scriptable so = Context.toObject(obj, global);
 
         try {
             Object prop = so.get(propname, so);
@@ -459,7 +460,7 @@ public class RhinoEngine implements ScriptingEngine {
             // retrieve res.skinpath, an array of objects that tell us where to look for skins
             // (strings for directory names and INodes for internal, db-stored skinsets)
             Object[] skinpath = reval.res.getSkinpath();
-            core.unwrapSkinpath(skinpath);
+            RhinoCore.unwrapSkinpath(skinpath);
             skin = app.getSkin(protoName, skinName, skinpath);
             reval.res.cacheSkin(key, skin);
         }

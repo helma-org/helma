@@ -76,7 +76,7 @@ public class XmlObject {
 
         writer.setDatabaseMode(false);
 
-        boolean result = writer.write(node);
+        writer.write(node);
 
         writer.close();
 
@@ -112,7 +112,7 @@ public class XmlObject {
         //     writer.setMaxLevels(arguments[1].toInt32());
         writer.setDatabaseMode(false);
 
-        boolean result = writer.write(node);
+        writer.write(node);
 
         writer.flush();
 

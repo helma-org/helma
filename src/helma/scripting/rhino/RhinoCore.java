@@ -29,6 +29,7 @@ import helma.util.SystemMap;
 import helma.util.SystemProperties;
 import helma.util.Updatable;
 import org.mozilla.javascript.*;
+
 import java.io.*;
 import java.text.*;
 import java.util.*;
@@ -109,7 +110,7 @@ public final class RhinoCore {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
         } finally {
-            context.exit();
+            Context.exit();
         }
     }
 
@@ -168,8 +169,6 @@ public final class RhinoCore {
 
         if (op == null) {
             try {
-                Context context = Context.getCurrentContext();
-
                 op = new HopObject(name); // context.newObject (global /*, "HopObject" */);
                 op.setPrototype(opp);
                 op.setParentScope(global);
@@ -237,8 +236,6 @@ public final class RhinoCore {
 
         if (op == null) {
             try {
-                Context context = Context.getCurrentContext();
-
                 op = new HopObject(name); // context.newObject (global /*, "HopObject" */);
                 op.setPrototype(opp);
                 op.setParentScope(global);

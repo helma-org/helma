@@ -183,8 +183,6 @@ public final class NodeManager {
      */
     public void deleteNode(Node node) throws Exception {
         if (node != null) {
-            String id = node.getID();
-
             synchronized (this) {
                 Transactor tx = (Transactor) Thread.currentThread();
 
@@ -362,7 +360,7 @@ public final class NodeManager {
             } else {
                 // node fetched from db is null, cache result using nullNode
                 synchronized (cache) {
-                    Node oldnode = (Node) cache.put(key, new Node());
+                    cache.put(key, new Node());
 
                     // we ignore the case that onother thread has created the node in the meantime
                     return null;

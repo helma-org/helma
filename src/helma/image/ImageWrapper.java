@@ -309,7 +309,6 @@ public abstract class ImageWrapper {
             StringTokenizer tk = new StringTokenizer(string);
             StringBuffer buffer = new StringBuffer();
             int spaceWidth = metrics.stringWidth(" ");
-            int currentLine = 0;
             int currentWidth = 0;
             int maxWidth = w - 2;
             int maxHeight = (h + addedSpace) - 2;

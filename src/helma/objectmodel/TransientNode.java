@@ -167,7 +167,6 @@ public class TransientNode implements INode, Serializable {
      * @return ...
      */
     public String getFullName(INode root) {
-        String fullname = "";
         String divider = null;
         StringBuffer b = new StringBuffer();
         TransientNode p = this;
@@ -548,7 +547,7 @@ public class TransientNode implements INode, Serializable {
         }
 
         // nodes.remove (node);
-        Object what = nodeMap.remove(node.getName().toLowerCase());
+        nodeMap.remove(node.getName().toLowerCase());
 
         // Server.throwNodeEvent (new NodeEvent (node, NodeEvent.NODE_REMOVED));
         // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.SUBNODE_REMOVED, node));
@@ -923,7 +922,7 @@ public class TransientNode implements INode, Serializable {
         }
 
         try {
-            Property p = (Property) propMap.remove(propname.toLowerCase());
+            propMap.remove(propname.toLowerCase());
 
             lastmodified = System.currentTimeMillis();
         } catch (Exception ignore) {

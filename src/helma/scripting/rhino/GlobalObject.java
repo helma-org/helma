@@ -24,6 +24,7 @@ import helma.objectmodel.db.*;
 import helma.util.HtmlEncoder;
 import helma.util.MimePart;
 import org.mozilla.javascript.*;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Date;
@@ -63,8 +64,8 @@ public class GlobalObject extends ScriptableObject {
                                };
 
         defineFunctionProperties(globalFuncs, GlobalObject.class, 0);
-        put("app", this, cx.toObject(new ApplicationBean(app), this));
-        put("Xml", this, cx.toObject(new XmlObject(core), this));
+        put("app", this, Context.toObject(new ApplicationBean(app), this));
+        put("Xml", this, Context.toObject(new XmlObject(core), this));
     }
 
     /**

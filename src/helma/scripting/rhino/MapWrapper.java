@@ -82,13 +82,11 @@ public class MapWrapper extends ScriptableObject {
         Object obj = map.get(name);
 
         if (obj != null && !(obj instanceof Scriptable)) {
-            Context cx = Context.getCurrentContext();
-
             if (obj instanceof String) {
                 return obj;
             }
 
-            return cx.toObject(obj, core.global);
+            return Context.toObject(obj, core.global);
         }
 
         return obj;
@@ -151,9 +149,7 @@ public class MapWrapper extends ScriptableObject {
         Object obj = map.get(Integer.toString(idx));
 
         if (obj != null && !(obj instanceof Scriptable)) {
-            Context cx = Context.getCurrentContext();
-
-            return cx.toObject(obj, core.global);
+            return Context.toObject(obj, core.global);
         }
 
         return obj;

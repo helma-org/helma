@@ -87,8 +87,6 @@ public final class Skin {
     private void parse() {
         ArrayList partBuffer = new ArrayList();
 
-        int start = 0;
-
         for (int i = 0; i < (sourceLength - 1); i++) {
             if ((source[i] == '<') && (source[i + 1] == '%')) {
                 // found macro start tag
@@ -102,7 +100,6 @@ public final class Skin {
 
                 if (j > (i + 2)) {
                     partBuffer.add(new Macro(i, j + 2));
-                    start = j + 2;
                 }
 
                 i = j + 1;
@@ -376,7 +373,7 @@ public final class Skin {
         public void render(RequestEvaluator reval, Object thisObject, Map paramObject,
                            Map handlerCache) throws RedirectException {
             if ((sandbox != null) && !sandbox.contains(fullName)) {
-                String h = (handler == null) ? "global" : handler;
+                //String h = (handler == null) ? "global" : handler;
 
                 reval.res.write("[Macro " + fullName + " not allowed in sandbox]");
 

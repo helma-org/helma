@@ -116,7 +116,6 @@ public class GifEncoder extends ImageEncoder
 	int index = 0;
         for ( int row = 0; row < height; ++row )
             {
-            int rowOffset = row * width;
             for ( int col = 0; col < width; ++col )
                 {
                 int rgb = rgbPixels[row][col];
