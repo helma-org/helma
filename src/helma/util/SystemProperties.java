@@ -121,7 +121,7 @@ public final class SystemProperties extends Properties {
         clear();
 
         // read from the primary file
-        if (file != null) {
+        if (file != null && file.exists()) {
             FileInputStream bpin = null;
 
             try {
