@@ -32,10 +32,10 @@ import java.util.Vector;
 	} catch (ObjectNotFoundException x) {
 	    return null;
 	} catch (Exception x) {
-	    nmgr.app.logEvent ("Error retrieving Node via DbMapping: "+x.getMessage ());
+	    nmgr.app.logEvent ("Error retrieving Node via DbMapping: "+x);
 	    if (nmgr.app.debug ())
 	        x.printStackTrace();
-	    throw new RuntimeException ("Error retrieving Node: "+x.getMessage ());
+	    throw new RuntimeException ("Error retrieving Node: "+x);
 	}
     }
 
@@ -45,10 +45,10 @@ import java.util.Vector;
 	} catch (ObjectNotFoundException x) {
 	    return null;
 	} catch (Exception x) {
-	    nmgr.app.logEvent ("Error retrieving Node \""+id+"\" from "+home+": "+x.getMessage ());
+	    nmgr.app.logEvent ("Error retrieving Node \""+id+"\" from "+home+": "+x);
 	    if (nmgr.app.debug ())
 	        x.printStackTrace();
-	    throw new RuntimeException ("Error retrieving Node: "+x.getMessage ());
+	    throw new RuntimeException ("Error retrieving Node: "+x);
 	}
     }
 
@@ -58,7 +58,7 @@ import java.util.Vector;
 	} catch (Exception x) {
 	    if (nmgr.app.debug ())
 	        x.printStackTrace();
-	    throw new RuntimeException ("Error retrieving Nodes: "+x.getMessage ());
+	    throw new RuntimeException ("Error retrieving Nodes: "+x);
 	}
     }
 
@@ -68,7 +68,7 @@ import java.util.Vector;
 	} catch (Exception x) {
 	    if (nmgr.app.debug ())
 	        x.printStackTrace();
-	    throw new RuntimeException ("Error retrieving NodeIDs: "+x.getMessage ());
+	    throw new RuntimeException ("Error retrieving NodeIDs: "+x);
 	}
     }
 
@@ -78,7 +78,7 @@ import java.util.Vector;
 	} catch (Exception x) {
 	    if (nmgr.app.debug ())
 	        x.printStackTrace();
-	    throw new RuntimeException ("Error counting Node: "+x.getMessage ());
+	    throw new RuntimeException ("Error counting Node: "+x);
 	}
     }
 
@@ -88,7 +88,7 @@ import java.util.Vector;
 	} catch (Exception x) {
 	    if (nmgr.app.debug ())
 	        x.printStackTrace();
-	    throw new RuntimeException ("Error deleting Node: "+x.getMessage ());
+	    throw new RuntimeException ("Error deleting Node: "+x);
 	}
     }
 
@@ -98,7 +98,7 @@ import java.util.Vector;
 	} catch (Exception x) {
 	    if (nmgr.app.debug ())
 	        x.printStackTrace();
-	    throw new RuntimeException ("Error retrieving property names: "+x.getMessage ());
+	    throw new RuntimeException ("Error retrieving property names: "+x);
 	}
     }
 
