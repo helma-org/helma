@@ -25,8 +25,8 @@ import com.workingdogs.village.*;
  
 public class Node implements INode, Serializable {
 
-    // The ID of this node's parent node
-    protected String parentID;
+    // The handle to the node's parent
+    protected NodeHandle parentHandle;
     // Ordered list of subnodes of this node
     private List subnodes;
     // Named subnodes (properties) of this node
@@ -52,7 +52,11 @@ public class Node implements INode, Serializable {
 	    int version = in.readShort ();
 	    id = in.readUTF ();
 	    name = in.readUTF ();
-	    parentID = (String) in.readObject ();
+	    if (version < 5)
+	        throw new IOException ("Unsupported Data Format (pre 1.2)");
+	        // parentHandle = new NodeHandle (new Key (null, (String) in.readObject ()));
+	    else
+	        parentHandle = (NodeHandle) in.readObject ();
 	    created = in.readLong ();
 	    lastmodified = in.readLong ();
 	    if (version < 4) {
@@ -75,10 +79,10 @@ public class Node implements INode, Serializable {
     }
 
     private void writeObject (ObjectOutputStream out) throws IOException {
-	out.writeShort (4);  // serialization version
+	out.writeShort (5);  // serialization version
 	out.writeUTF (id);
 	out.writeUTF (name);
-	out.writeObject (parentID);
+	out.writeObject (parentHandle);
 	out.writeLong (created);
 	out.writeLong (lastmodified);
 	DbMapping smap = dbmap == null ? null : dbmap.getSubnodeMapping ();
@@ -93,12 +97,18 @@ public class Node implements INode, Serializable {
 	out.writeObject (prototype);
     }
 
-    transient String prototype;
-    transient INode cacheNode;
+    private transient String prototype;
+
+    private transient NodeHandle handle;
+
+    private transient INode cacheNode;
+
     transient WrappedNodeManager nmgr;
+
     transient DbMapping dbmap;
+
     transient Key primaryKey = null;
-    transient DbMapping parentmap;
+
     transient String subnodeRelation = null;
     transient long lastSubnodeFetch = 0;
     transient long lastSubnodeChange = 0;
@@ -117,11 +127,26 @@ public class Node implements INode, Serializable {
     static final long serialVersionUID = -3740339688506633675L;
 
     /**
-     * This constructor is only used for instances of the NullNode subclass. Do not use for ordinary Nodes!
+     * This constructor is only used for instances of the NullNode subclass. Do not use for ordinary Nodes!<
      */
-    public Node () {
+    Node () {
 	created = lastmodified = System.currentTimeMillis ();
     }
+
+    /**
+     * Creates a new Node with the given name. Only used by NodeManager for "root nodes" and
+     * not in a Transaction context, which is why we can immediately mark it as CLEAN.
+     */
+    protected Node (String name, String id, String prototype, WrappedNodeManager nmgr) {
+	this.nmgr = nmgr;
+ 	this.id = id;
+	this.name = name == null || "".equals (name) ? id : name;
+	if (prototype != null)
+	    setPrototype (prototype);
+	created = lastmodified = System.currentTimeMillis ();
+	markAs (CLEAN);
+    }
+
 
     /**
      * Constructor used for virtual nodes.
@@ -131,7 +156,8 @@ public class Node implements INode, Serializable {
 	setParent (home);
 	// this.dbmap = null;
 	// generate a key for the virtual node that can't be mistaken for a JDBC-URL
-	this.id = Key.makeVirtualID (parentmap, parentID, propname);
+	primaryKey = new SyntheticKey (home.getKey (), propname);
+	this.id = primaryKey.getID ();
 	this.name = propname;
 	this.anonymous = false;
 	setPrototype (prototype);
@@ -139,10 +165,29 @@ public class Node implements INode, Serializable {
     }
 
     /**
+     * Creates a new Node with the given name. This is used for ordinary transient nodes.
+     */
+    public Node (String n, String prototype, WrappedNodeManager nmgr) {
+	this.nmgr = nmgr;
+	this.prototype = prototype;
+	dbmap = nmgr.getDbMapping (prototype);
+	// the id is only generated when the node is actually checked into db.
+	// id = nmgr.generateID (dbmap);
+	// checkWriteLock ();
+	this.name = n == null ? "" : n;
+	created = lastmodified = System.currentTimeMillis ();
+	adoptName = true;
+	state = TRANSIENT;
+	// markAs (TRANSIENT);
+    }
+
+
+    /**
      * Constructor used for nodes being stored in a relational database table.
      */
     public Node (DbMapping dbmap, Record rec, WrappedNodeManager nmgr) throws DataSetException {
 	
+	this.nmgr = nmgr;
 	// see what prototype/DbMapping this object should use
 	DbMapping m = dbmap;
 	String protoField= dbmap.getPrototypeField ();
@@ -161,7 +206,6 @@ public class Node implements INode, Serializable {
 	setPrototype (m.getTypeName ());
 	this.dbmap = m;
 	
-	this.nmgr = nmgr;
 	id = rec.getValue (dbmap.getIDField ()).asString ();
 	checkWriteLock ();
 	String nameField =  dbmap.getNameField ();
@@ -170,8 +214,7 @@ public class Node implements INode, Serializable {
 	    name = m.getTypeName() + " " + id;
 	// set parent for user objects to internal userroot node
 	if ("user".equals (prototype)) {
-	    this.parentID = "1";
-	    this.parentmap =  nmgr.getDbMapping("__userroot__");
+	    parentHandle = new NodeHandle (new DbKey (null, "1"));
 	    anonymous = false;
 	}
 
@@ -255,7 +298,7 @@ public class Node implements INode, Serializable {
 
 	    // if the property is a pointer to another node, change the property type to NODE
 	    if (rel.direction == Relation.FORWARD) {
-	        newprop.nvalueID = newprop.getStringValue ();
+	        newprop.nhandle = new NodeHandle (new DbKey (rel.other, newprop.getStringValue ()));
 	        newprop.type = IProperty.NODE;
 	    }
 	}
@@ -263,93 +306,6 @@ public class Node implements INode, Serializable {
     }
 
 
-    /**
-     * Creates a new Node with the given name.
-     */
-    public Node (String n, String prototype, WrappedNodeManager nmgr) {
-	this.nmgr = nmgr;
-	this.prototype = prototype;
-	dbmap = nmgr.getDbMapping (prototype);
-	id = nmgr.generateID (dbmap);
-	// checkWriteLock ();
-	this.name = n == null || "".equals (n) ? id : n;
-	created = lastmodified = System.currentTimeMillis ();
-	adoptName = true;
-	markAs (TRANSIENT);
-	// nmgr.registerNode (this);
-    }
-
-    /**
-     * Creates a new Node with the given name. Only used by NodeManager for "root nodes" and
-     * not in a Transaction context, which is why we can immediately mark it as CLEAN.
-     */
-    protected Node (String name, String id, String prototype, WrappedNodeManager nmgr) {
-	this.nmgr = nmgr;
- 	this.id = id;
-	this.name = name == null || "".equals (name) ? id : name;
-	if (prototype != null)
-	    setPrototype (prototype);
-	created = lastmodified = System.currentTimeMillis ();
-	markAs (CLEAN);
-    }
-
-
-   /**
-    *  Creates a new instance of Node, transforming from another implementation of
-    *  interface INode. This Constructor is used when a transient
-    *  node is converted into a persistent-capable one, hence the status is set to NEW.
-    */ 
-    /* private Node (INode node, Hashtable ntable, boolean conversionRoot, WrappedNodeManager nmgr) {
-	this.nmgr = nmgr;
-	this.dbmap = node.getDbMapping ();
-	this.id = nmgr.generateID (dbmap);
-	checkWriteLock ();
-	this.name = node.getName ();
-	this.prototype = node.getPrototype ();
-	created = lastmodified = System.currentTimeMillis ();
-	ntable.put (node, this);
-	// only take over name from property if this is not the root of the current node conversion
-	adoptName = !conversionRoot;
-	for (Enumeration e = node.getSubnodes (); e.hasMoreElements (); ) {
-	    INode next = (INode) e.nextElement ();
-	    Node nextc = (next instanceof Node) ? (Node) next : (Node) ntable.get (next);  // is this a Node already?
-	    if (nextc == null)
-	        nextc = new Node (next, ntable, true, nmgr);
-	    if (nextc.state == INVALID)
-	        nextc = nmgr.getNode (nextc.getID (), nextc.getDbMapping ());
-	    addNode (nextc);
-	}
- 	for (Enumeration e = node.properties (); e.hasMoreElements (); ) {
-	    IProperty next = node.get ((String) e.nextElement (), false);
-	    if (next == null)
-	        continue;
-	    int t = next.getType ();
-	    if (t == IProperty.NODE) {
-	        INode n = next.getNodeValue ();
-	        Node nextc = (n instanceof Node) ? (Node) n : (Node) ntable.get (n);  // is this a Node already?
-	        if (nextc == null)
-	            nextc = new Node (n, ntable, true, nmgr);
-	        if (nextc.state == INVALID)
-	            nextc = nmgr.getNode (nextc.getID (), nextc.getDbMapping ());
-	        setNode (next.getName (), nextc);
-	    } else if (t == IProperty.STRING) {
-	        setString (next.getName (), next.getStringValue ());
-	    } else if (t == IProperty.INTEGER) {
-	        setInteger (next.getName (), next.getIntegerValue ());
-	    } else if (t == IProperty.FLOAT) {
-	        setFloat (next.getName (), next.getFloatValue ());
-	    } else if (t == IProperty.BOOLEAN) {
-	        setBoolean (next.getName (), next.getBooleanValue ());
-	    } else if (t == IProperty.DATE) {
-	        setDate (next.getName (), next.getDateValue ());
-	    } else if (t == IProperty.JAVAOBJECT) {
-	        setJavaObject (next.getName (), next.getJavaObjectValue ());
-	    }
-	}
-	adoptName = true; // switch back to normal name adoption behaviour
-	markAs (NEW);
-	// nmgr.registerNode (this);
-    } */
 
     protected synchronized void checkWriteLock () {
 	// System.err.println ("registering writelock for "+this.getName ()+" ("+lock+") to "+Thread.currentThread ());
@@ -422,6 +378,8 @@ public class Node implements INode, Serializable {
      */
 
     public String getID () {
+	if (state == TRANSIENT)
+	    throw new RuntimeException ("getID called on transient Node: "+this);
 	return id;
     }
 
@@ -445,20 +403,23 @@ public class Node implements INode, Serializable {
     public String getNameOrID () {
 	// if subnodes are also mounted as properties, try to get the "nice" prop value
 	// instead of the id by turning the anonymous flag off.
-	// HACK: work around this for user objects to alsways return a URL like /users/username
-             if ("user".equalsIgnoreCase (prototype)) {
+	// Work around this for user objects to alsways return a URL like /users/username
+	if ("user".equalsIgnoreCase (prototype)) {
 	    anonymous = false;
-	} else if (parentmap != null) {
-	    Relation prel = parentmap.getPropertyRelation();
-	    if (prel != null && prel.subnodesAreProperties && !prel.usesPrimaryKey ()) try {
-	        Relation localrel = dbmap.columnNameToProperty (prel.getRemoteField ());
-	        String propvalue = getString (localrel.propname, false);
-	        if (propvalue != null && propvalue.length() > 0) {
-	            setName (propvalue);
-	            anonymous = false;
-	            // nameProp = localrel.propname;
-	        } else {
-	            anonymous = true;
+	} else if (parentHandle != null) {
+	    try {
+	        DbMapping parentmap = parentHandle.getDbMapping (nmgr);
+	        Relation prel = parentmap.getPropertyRelation();
+	        if (prel != null && prel.subnodesAreProperties && !prel.usesPrimaryKey ()) {
+	            Relation localrel = dbmap.columnNameToProperty (prel.getRemoteField ());
+	            String propvalue = getString (localrel.propname, false);
+	            if (propvalue != null && propvalue.length() > 0) {
+	                setName (propvalue);
+	                anonymous = false;
+	                // nameProp = localrel.propname;
+	            } else {
+	                anonymous = true;
+	            }
 	        }
 	    } catch (Exception ignore) {
 	        // just fall back to default method
@@ -533,10 +494,7 @@ public class Node implements INode, Serializable {
     public void setDbMapping (DbMapping dbmap) {
 	if (this.dbmap != dbmap) {
 	    this.dbmap = dbmap;
-	    primaryKey = null;
-	    try {
-	        ((Transactor) Thread.currentThread()).visitCleanNode (this);
-	    } catch (ClassCastException ignore) {}
+	    // primaryKey = null;
 	}
     }
 
@@ -545,11 +503,19 @@ public class Node implements INode, Serializable {
     }
 
     public Key getKey () {
+	if (state == TRANSIENT)
+	    throw new RuntimeException ("getKey called on transient Node: "+this);
 	if (dbmap == null && prototype != null && nmgr != null)
 	    dbmap = nmgr.getDbMapping (prototype);
 	if (primaryKey == null)
-	    primaryKey = new Key (dbmap, id);
+	    primaryKey = new DbKey (dbmap, id);
 	return primaryKey;
+    }
+
+    public NodeHandle getHandle () {
+	if (handle == null)
+	    handle = new NodeHandle (this);
+	return handle;
     }
 
     public void setSubnodeRelation (String rel) {
@@ -584,8 +550,7 @@ public class Node implements INode, Serializable {
      * the ID + DB map combo.
      */
     public void setParent (Node parent) {
-	this.parentID = parent == null ? null : parent.getID();
-	this.parentmap = parent == null ? null : parent.getDbMapping();
+	parentHandle = parent == null ? null : parent.getHandle ();
     }
 
     /**
@@ -595,21 +560,21 @@ public class Node implements INode, Serializable {
      */
     public void setParent (Node parent, String propertyName) {
 	// we only do that for relational nodes.
-	if (dbmap == null || !dbmap.isRelational ())
+	if (!isRelational ())
 	    return;
 
-	String oldParentID = parentID;
-	parentID = parent == null ? null : parent.getID();
-	parentmap = parent == null ? null : parent.getDbMapping();
+	NodeHandle oldParentHandle = parentHandle;
+	parentHandle = parent == null ? null : parent.getHandle ();
 
-	if (parentID == null || parentID.equals (oldParentID))
+	if (parentHandle == null || parentHandle.equals (oldParentHandle))
 	    // nothing changed, no need to find access property
 	    return;
 
-	if (propertyName == null) {
+	if (parent != null && propertyName == null) {
 	    // see if we can find out the propertyName by ourselfes by looking at the
 	    // parent's property relation
 	    String newname = null;
+	    DbMapping parentmap = parent.getDbMapping ();
 	    if (parentmap != null) {
 	        // first try to retrieve name via generic property relation of parent
 	        Relation prel = parentmap.getPropertyRelation ();
@@ -645,8 +610,7 @@ public class Node implements INode, Serializable {
 
 	// check what's specified in the type.properties for this node.
 	ParentInfo[] parentInfo = null;
-	if (dbmap != null && dbmap.isRelational () &&
-		(lastParentSet < dbmap.getLastTypeChange() || lastParentSet < lastmodified))
+	if (isRelational () && (lastParentSet < dbmap.getLastTypeChange() || lastParentSet < lastmodified))
 	    parentInfo = dbmap.getParentInfo ();
 
 	// check if current parent candidate matches presciption, if not, try to get it
@@ -679,10 +643,9 @@ public class Node implements INode, Serializable {
 	}
 
 	// fall back to heuristic parent (the node that fetched this one from db)
-	if (parentID == null) {
+	if (parentHandle == null)
 	    return null;
-	}
-	return nmgr.getNode (parentID, parentmap);
+	return parentHandle.getNode (nmgr);
     }
 
 
@@ -690,9 +653,9 @@ public class Node implements INode, Serializable {
      * Get parent, using cached info if it exists.
      */
     public Node getCachedParent () {
-	if (parentID == null)
+	if (parentHandle == null)
 	    return null;
-	return nmgr.getNode (parentID, parentmap);
+	return parentHandle.getNode (nmgr);
     }
 
 
@@ -758,22 +721,17 @@ public class Node implements INode, Serializable {
 
 	if (where < 0 || where > numberOfNodes ())
 	    where = numberOfNodes ();
-	if (node.parentID != null) {
-	    // this makes the job of addLink, which means that addLink and addNode
-	    // are functionally equivalent now.
-	    if (!node.parentID.equals (id) || !node.anonymous) {
-	        node.registerLink (this);
-	    }
-	}
 
-	if (subnodes != null && subnodes.contains (node.getID ())) {
+	NodeHandle nhandle = node.getHandle ();
+	if (subnodes != null && subnodes.contains (nhandle)) {
 	    // Node is already subnode of this - just move to new position
-	    subnodes.remove (node.getID ());
+	    subnodes.remove (nhandle);
 	    where = Math.min (where, numberOfNodes ());
-	    subnodes.add (where, node.getID ());
+	    subnodes.add (where, nhandle);
 	} else {
-	    if (subnodes == null) subnodes = new ExternalizableVector ();
-	    subnodes.add (where, node.getID ());
+	    if (subnodes == null)
+	        subnodes = new ExternalizableVector ();
+	    subnodes.add (where, nhandle);
 
 	    // check if properties are subnodes (_properties.aresubnodes=true)
 	    if (dbmap != null && node.dbmap != null) {
@@ -795,9 +753,19 @@ public class Node implements INode, Serializable {
 	        }
 	    }
 
-	    if (node.parentID == null  && !"root".equalsIgnoreCase (node.getPrototype ())) {
-	        node.setParent (this);
-	        node.anonymous = true;
+	    if (!"root".equalsIgnoreCase (node.getPrototype ())) {
+	        Node nparent = (Node) node.getParent ();
+	        // if the node doesn't have a parent yet, or it has one but it's transient while we are
+	        // persistent, make this the nodes new parent.
+	        if (nparent == null || (state != TRANSIENT && nparent.getState () == TRANSIENT)) {
+	            node.setParent (this);
+	            node.anonymous = true;
+	        } else if (nparent != null && (nparent != this || !node.anonymous)) {
+	            // this makes the additional job of addLink, registering that we have a link to a node in our
+	            // subnodes that actually sits somewhere else. This means that addLink and addNode
+	            // are actually the same now.
+	            node.registerLinkFrom (this);
+	        }
 	    }
 	}
 
@@ -856,14 +824,18 @@ public class Node implements INode, Serializable {
 
 
     /**
-     * register a node that links to this node.
+     * register a node that links to this node so we can notify it when we cease to exist.
+     * this is only necessary if we are a non-relational node, since for relational nodes
+     * the referring object will notice that we've gone at runtime.
      */
-    protected void registerLink (Node from) {
+    protected void registerLinkFrom (Node from) {
+	if (isRelational ())
+	    return;
 	if (links == null)
 	    links = new ExternalizableVector ();
-	Object fromID = from.getID ();
-	if (!links.contains (fromID))
-	    links.add (fromID);
+	Object fromHandle = from.getHandle ();
+	if (!links.contains (fromHandle))
+	    links.add (fromHandle);
     }
 
     public INode getSubnode (String path) {
@@ -878,25 +850,28 @@ public class Node implements INode, Serializable {
 	        retval = this;
 	    } else {
 	        runner.loadNodes ();
-	        boolean found = runner.subnodes == null ? false : runner.subnodes.contains (next);
+	        Relation srel = null;
+	        DbMapping smap = null;
+	        if (runner.dbmap != null) {
+	            srel = runner.dbmap.getSubnodeRelation ();
+	            smap = runner.dbmap.getSubnodeMapping ();
+	        }
+	
+	        // check if there is a group-by relation
+	        NodeHandle nhandle = null;
+	        if (srel != null && srel.groupby != null)
+	            nhandle = new NodeHandle (new SyntheticKey (runner.getKey (), next));
+	        else
+	            nhandle = new NodeHandle (new DbKey (smap, next));
+	        boolean found = runner.subnodes == null ? false : runner.subnodes.contains (nhandle);
 
-	        if (!found)
+	        if (!found) {
 	            retval = null;
-	        else {
-	            Relation srel = null;
-	            DbMapping smap = null;
-	            if (runner.dbmap != null) {
-	                srel = runner.dbmap.getSubnodeRelation ();
-	                smap = runner.dbmap.getSubnodeMapping ();
-	            }
-	            // check if there is a group-by relation
-	            if (srel != null && srel.groupby != null)
-	                retval = nmgr.getNode (this, next, srel);
-	            else
-	                retval =  nmgr.getNode (next, smap);
+	        } else {
+	            retval = nhandle.getNode (nmgr);
 	        }
 
-	        if (retval != null && retval.parentID == null && !"root".equalsIgnoreCase (retval.getPrototype ())) {
+	        if (retval != null && retval.parentHandle == null && !"root".equalsIgnoreCase (retval.getPrototype ())) {
 	            retval.setParent (runner);
 	            retval.anonymous = true;
 	        }
@@ -914,20 +889,16 @@ public class Node implements INode, Serializable {
 	if (subnodes == null)
 	    return null;
 
-	Relation srel = null;
 	DbMapping smap = null;
-	if (dbmap != null) {
-	    srel = dbmap.getSubnodeRelation ();
+	if (dbmap != null)
 	    smap = dbmap.getSubnodeMapping ();
-	}
+	
 	Node retval = null;
 	if (subnodes.size () > index) {
 	    // check if there is a group-by relation
-	    if (srel != null && srel.groupby != null)
-	        retval = nmgr.getNode (this, (String) subnodes.get (index), srel);
-	    else
-	        retval =  nmgr.getNode ((String) subnodes.get (index), smap);
-	    if (retval != null && retval.parentID == null && !"root".equalsIgnoreCase (retval.getPrototype ())) {
+	    retval = ((NodeHandle) subnodes.get (index)).getNode (nmgr);
+	
+	    if (retval != null && retval.parentHandle == null && !"root".equalsIgnoreCase (retval.getPrototype ())) {
 	        retval.setParent (this);
 	        retval.anonymous = true;
 	    }
@@ -940,7 +911,8 @@ public class Node implements INode, Serializable {
 	if (subnodes == null)
 	    subnodes = new ExternalizableVector ();
 
-	if (subnodes.contains (sid) || create) try {
+	NodeHandle ghandle = new NodeHandle (new SyntheticKey (getKey(), sid));
+	if (subnodes.contains (ghandle) || create) try {
 	    Relation srel = dbmap.getSubnodeRelation ();
 	    Relation prel = dbmap.getPropertyRelation ();
 	    boolean relational = srel.other != null && srel.other.isRelational ();
@@ -976,7 +948,7 @@ public class Node implements INode, Serializable {
 	            node.setPrototype (gsrel.prototype);
 	        } else {
 	            setNode (sid, node);
-	            subnodes.add (node.getID ());
+	            subnodes.add (node.getHandle ());
 	        }
 	        nmgr.evictKey (node.getKey ());
 	        return node;
@@ -1014,7 +986,7 @@ public class Node implements INode, Serializable {
 	} else {
 	    // removed just a link, not the main node.
 	    if (n.links != null) {
-	        n.links.remove (this.id);
+	        n.links.remove (getHandle ());
 	        if (n.state == CLEAN) n.markAs (MODIFIED);
 	    }
 	}
@@ -1026,7 +998,7 @@ public class Node implements INode, Serializable {
      */
     protected void releaseNode (Node node) {
 	if (subnodes != null)
-	    subnodes.remove (node.getID ());
+	    subnodes.remove (node.getHandle ());
 
 	lastSubnodeChange = System.currentTimeMillis ();
 
@@ -1041,7 +1013,7 @@ public class Node implements INode, Serializable {
 	    }
 	}
 
-	// check if subnodes are handled as virtual fs
+	// check if subnodes are also accessed as properties. If so, also unset the property
 	if (dbmap != null && node.dbmap != null) {
 	    Relation prel = dbmap.getPropertyRelation();
 	    if (prel != null && prel.subnodesAreProperties && !prel.usesPrimaryKey ()) {
@@ -1072,22 +1044,22 @@ public class Node implements INode, Serializable {
     */
     protected void deepRemoveNode () {
 
-	// notify nodes that link to this node that it is being deleted.
+	// notify nodes that link to this node being deleted.
 	int l = links == null ? 0 : links.size ();
 	for (int i = 0; i < l; i++) {
-	    // TODO: solve dbmap problem
-	    Node link = nmgr.getNode ((String) links.get (i),  null);
-	    if (link != null) link.releaseNode (this);
+	    NodeHandle lhandle = (NodeHandle) links.get (i);
+	    Node link = lhandle.getNode (nmgr);
+	    if (link != null)
+	        link.releaseNode (this);
 	}
 
-	// clean up all nodes that use n as a property
+	// clean up all nodes that refer to this as a property
 	if (proplinks != null) {
 	    for (Iterator e1 = proplinks.iterator (); e1.hasNext ();  ) try {
-	        String pid = (String) e1.next ();
-	        Node pnode = nmgr.getNode (pid, null);
-	        if (pnode != null) {
-	            nmgr.logEvent("Warning: Not unsetting node property of "+pnode.getFullName ());
-	        }
+	        NodeHandle phandle = (NodeHandle) e1.next ();
+	        Node pnode = phandle.getNode (nmgr);
+	        if (pnode != null)
+	            nmgr.logEvent("Warning: Not unsetting node property of "+pnode.getName ());
 	    } catch (Exception ignore) {}
 	}
 
@@ -1113,7 +1085,7 @@ public class Node implements INode, Serializable {
 	        // getParent() is heuristical/implicit for relational nodes, so we don't base
 	        // a cascading delete on that criterium for relational nodes.
 	        Node n = (Node) v.get (i);
-	        if (n.dbmap == null || !n.dbmap.isRelational())
+	        if (!n.isRelational())
 	            removeNode (n);
 	    }
 	}
@@ -1130,14 +1102,18 @@ public class Node implements INode, Serializable {
 	if (subnodes == null)
 	    return -1;
 	// if the node contains relational groupby subnodes, the subnodes vector contains the names instead of ids.
-	Relation srel = dbmap == null ? null : dbmap.getSubnodeRelation ();
+	/* Relation srel = dbmap == null ? null : dbmap.getSubnodeRelation ();
 	if (srel != null && srel.groupby != null && srel.other != null && srel.other.isRelational ()) {
 	    if (n.getParent () != this)
 	        return -1;
 	    else
-	        return subnodes.indexOf (n.getName ());
+	        return subnodes.indexOf (new SyntheticKey (getKey (), n.getID ());
 	} else
-	    return subnodes.indexOf (n.getID ());
+	    return subnodes.indexOf (n.getKey ());*/
+	if (!(n instanceof Node))
+	    return -1;
+	Node node = (Node) n;
+	return subnodes.indexOf (node.getHandle ());
     }
 
     /**
@@ -1251,7 +1227,7 @@ public class Node implements INode, Serializable {
     }
 
     public String getParentInfo () {
-	return "anonymous:"+anonymous+",parentID:"+parentID+",parentmap:"+parentmap+",parent:"+getParent();
+	return "anonymous:"+anonymous+",parentHandle"+parentHandle+",parent:"+getParent();
     }
 
     protected Property getProperty (String propname, boolean inherit) {
@@ -1265,31 +1241,41 @@ public class Node implements INode, Serializable {
 	DbMapping pmap = dbmap == null ? null : dbmap.getExactPropertyMapping (propname);
 	if (pmap != null && prop != null && prop.type != IProperty.NODE) {
 	    // this is a relational node stored by id but we still think it's just a string. fix it
-	    prop.nvalueID = prop.getStringValue ();
+	    prop.nhandle = new NodeHandle (new DbKey (pmap, prop.getStringValue ()));
 	    prop.type = IProperty.NODE;
 	}
 
-
+	// the property does not exist in our propmap - see if we can create it on the fly,
+	// either because it is mapped from a relational database or defined as virtual node
 	if (prop == null && dbmap != null) {
 	    Relation prel =  dbmap.getPropertyRelation (propname);
-	    if (prel == null)
-	        prel = dbmap.getPropertyRelation ();
-	    if (prel != null && (prel.direction == Relation.DIRECT || prel.virtual)) {
-	        // this *may* be a relational node stored by property name
-	        try {
-	            Node pn = nmgr.getNode (this, propname, prel);
-	            if (pn != null) {
-	                if (pn.parentID == null && !"root".equalsIgnoreCase (pn.getPrototype ())) {
-	                    pn.setParent (this);
-	                    pn.name = propname;
-	                    pn.anonymous = false;
-	                }
-	                prop = new Property (propname, this, pn);
-	            }
-	        } catch (RuntimeException nonode) {
-	            // wasn't a node after all
+	    /* if (prel != null && prel.virtual && prel.other != null &&  !prel.other.isRelational ()) {
+	        Node pn = (Node) createNode (propname);
+	        if (prel.prototype != null) {
+	            pn.setPrototype (prel.prototype);
 	        }
-	    }
+	        prop =  (Property) propMap.get (propname);
+
+	    } else { */
+	        if (prel == null)
+	            prel = dbmap.getPropertyRelation ();
+	        if (prel != null && (prel.direction == Relation.DIRECT || prel.virtual)) {
+	            // this may be a relational node stored by property name
+	            try {
+	                Node pn = nmgr.getNode (this, propname, prel);
+	                if (pn != null) {
+	                    if (pn.parentHandle == null && !"root".equalsIgnoreCase (pn.getPrototype ())) {
+	                        pn.setParent (this);
+	                        pn.name = propname;
+	                        pn.anonymous = false;
+	                    }
+	                    prop = new Property (propname, this, pn);
+	                }
+	            } catch (RuntimeException nonode) {
+	                // wasn't a node after all
+	            }
+	        }
+	    // }
 	}
 	if (prop == null && inherit && getParent () != null) {
 	    prop = ((Node) getParent ()).getProperty (propname, inherit);
@@ -1393,12 +1379,12 @@ public class Node implements INode, Serializable {
 
 	// check if this may have an effect on the node's URL when using subnodesAreProperties
 	// but only do this if we already have a parent set, i.e. if we are already stored in the db
-	INode parent = parentID == null ? null : getParent ();
+	INode parent = parentHandle == null ? null : getParent ();
 
 	if (parent != null && parent.getDbMapping() != null) {
 	    // check if this node is already registered with the old name; if so, remove it.
 	    // then set parent's property to this node for the new name value
-	    parentmap = parent.getDbMapping ();
+	    DbMapping parentmap = parent.getDbMapping ();
 	    Relation prel = parentmap.getPropertyRelation ();
 
 	    if (prel != null && prel.subnodesAreProperties && propname.equals (prel.getRemoteField())) {
@@ -1414,7 +1400,7 @@ public class Node implements INode, Serializable {
 	                parent.unset (oldvalue);
 	                parent.addNode (this);
 	                // let the node cache know this key's not for this node anymore.
-	                nmgr.evictKey (new Key (prel.other, prel.getKeyID (parent, oldvalue)));
+	                nmgr.evictKey (new DbKey (prel.other, prel.getKeyID (parent, oldvalue)));
 	            }
 	        }
 	        parent.setNode (value, this);
@@ -1573,7 +1559,7 @@ public class Node implements INode, Serializable {
 
 	// check if the main identity of this node is as a named property
 	// or as an anonymous node in a collection
-	if (n.parentID == null && n.adoptName && !"root".equalsIgnoreCase (n.getPrototype ())) {
+	if (n.parentHandle == null && n.adoptName && !"root".equalsIgnoreCase (n.getPrototype ())) {
 	    n.setParent (this);
 	    n.name = propname;
 	    n.anonymous = false;
@@ -1587,7 +1573,7 @@ public class Node implements INode, Serializable {
 
 	Property prop = (Property) propMap.get (p2);
 	if (prop != null) {
-	    if (prop.type == IProperty.NODE && n.getID ().equals (prop.nvalueID)) {
+	    if (prop.type == IProperty.NODE && n.equals (prop.getNodeValue ())) {
 	        // nothing to do, just clean up locks and return
 	        if (state == CLEAN) clearWriteLock ();
 	        if (n.state == CLEAN) n.clearWriteLock ();
@@ -1608,10 +1594,10 @@ public class Node implements INode, Serializable {
 
 	// check node in with transactor cache
 	Transactor tx = (Transactor) Thread.currentThread ();
-	tx.visitCleanNode (new Key (nmap, nID), n);
+	tx.visitCleanNode (new DbKey (nmap, nID), n);
 	// if the field is not the primary key of the property, also register it
 	if (rel != null && rel.direction == Relation.DIRECT && !rel.getKeyID(this, p2).equals (nID)) {
-	    Key secKey = new Key (rel.other, rel.getKeyID(this, p2));
+	    Key secKey = new DbKey (rel.other, rel.getKeyID(this, p2));
 	    nmgr.evictKey (secKey);
 	    tx.visitCleanNode (secKey, n);
 	}
@@ -1644,21 +1630,21 @@ public class Node implements INode, Serializable {
 	} catch (Exception ignore) {}
     }
 
-    protected void registerPropLink (INode n) {
+    protected void registerPropLinkFrom (Node n) {
+	if (isRelational ())
+	    return;
 	if (proplinks == null)
 	    proplinks = new ExternalizableVector ();
-	String plid = n.getID ();
-	if (!proplinks.contains (plid))
-	    proplinks.add (n.getID ());
+	Object fromHandle = n.getHandle ();
+	if (!proplinks.contains (fromHandle))
+	    proplinks.add (fromHandle);
 	if (state == CLEAN || state == DELETED)
 	    markAs (MODIFIED);
     }
 
-    protected void unregisterPropLink (INode n) {
+    protected void unregisterPropLinkFrom (Node n) {
 	if (proplinks != null)
-	    proplinks.remove (n.getID ());
-	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.NODE_REMOVED));
-	// Server.throwNodeEvent (new NodeEvent (n, NodeEvent.SUBNODE_REMOVED, this));
+	    proplinks.remove (n.getHandle ());
 	if (state == CLEAN)
 	    markAs (MODIFIED);
     }
@@ -1716,21 +1702,28 @@ public class Node implements INode, Serializable {
 	return "HopObject " + name;
     }
 
-
     /**
-     * Recursively convert other implementations of INode into helma.objectmodel.db.Node.
+     * Tell whether this node is stored inside a relational db. This doesn't mean
+     * it actually is stored in a relational db, just that it would be, if the node was
+     * persistent
      */
-    /* protected Node convert (INode n) {
-    	Hashtable ntable = new Hashtable ();
-	Node converted = new Node (n, ntable, false, nmgr);
-	return converted;
-    } */
+    public boolean isRelational () {
+	return dbmap != null && dbmap.isRelational ();
+    }
+
 
     /**
      * Recursively turn node status from TRANSIENT to NEW so that the Transactor will
      * know it has to insert this node.
      */
     protected void makePersistentCapable () {
+	if (state == TRANSIENT) {
+	    state = NEW;
+	    id = nmgr.generateID (dbmap);
+	    Transactor current = (Transactor) Thread.currentThread ();
+	    current.visitNode (this);
+	    current.visitCleanNode (this);
+	}
 	for (Enumeration e = getSubnodes (); e.hasMoreElements (); ) {
 	    Node n = (Node) e.nextElement ();
 	    if (n.state == TRANSIENT)
@@ -1743,12 +1736,6 @@ public class Node implements INode, Serializable {
 	        if (n != null && n.state == TRANSIENT)
 	            n.makePersistentCapable ();
 	    }
-	}
-	if (state == TRANSIENT) {
-	    state = NEW;
-	    Transactor current = (Transactor) Thread.currentThread ();
-	    current.visitNode (this);
-	    current.visitCleanNode (this);
 	}
     }
 
@@ -1775,8 +1762,11 @@ public class Node implements INode, Serializable {
 	return null;
     }
 
-    public void dumpSubnodes () {
-	System.err.println (subnodes);
+    public void dump () {
+	System.err.println ("subnodes: "+subnodes);
+	System.err.println ("properties: "+propMap);
+	System.err.println ("links: "+links);
+	System.err.println ("proplinks: "+proplinks);
     }
 
 }
