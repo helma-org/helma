@@ -57,7 +57,7 @@ public final class DbKey implements Key, Serializable {
 
 
     public String toString () {
-	return storageName+"["+id+"]";
+	return storageName == null ? "["+id+"]" : storageName+"["+id+"]";
     }
 
 
