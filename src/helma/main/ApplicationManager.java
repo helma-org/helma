@@ -56,7 +56,7 @@ public class ApplicationManager {
 	    try {
 	        for (Enumeration e = props.keys(); e.hasMoreElements (); ) {
 	            String appName = (String) e.nextElement ();
-	            if (applications.get (appName) == null) {
+	            if (appName.indexOf (".") == -1 && applications.get (appName) == null) {
 	                start (appName);
 	                register (appName);
 	            }
