@@ -241,15 +241,15 @@ manage
     <!-- =================================================================== -->
     <!-- Checkout and zip manage application                                 -->
     <!-- =================================================================== -->
-	<target name="package-manage" depends="init">
+    <target name="package-manage" depends="init">
       	<cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="manage" dest="${build.work}" />
         <mkdir dir="${build.work}/apps/manage"/>
-		<zip zipfile="${build.work}/apps/manage/manage.zip" basedir="${build.work}/manage/" includes="**" excludes="**/properties,readme/**" />
-		<copy todir="${build.work}/apps/manage">
-			<fileset dir="${build.work}/manage" includes="app.properties,class.properties,readme.txt"/>
-		</copy>
-		<delete dir="${build.work}/manage" />
-	</target>
+        <zip zipfile="${build.work}/apps/manage/manage.zip" basedir="${build.work}/manage/" includes="**" excludes="**/properties,readme/**" />
+            <copy todir="${build.work}/apps/manage">
+                <fileset dir="${build.work}/manage" includes="app.properties,class.properties,readme.txt"/>
+            </copy>
+        <delete dir="${build.work}/manage" />
+    </target>
 
 
     <!-- =================================================================== -->
@@ -259,13 +259,13 @@ manage
     <target name="package-tgz" depends="init">
         <mkdir dir="${build.dist}" />
         <fixcrlf srcdir="${build.work}" eol="lf" eof="remove" includes="**/*.txt, **/*.properties, **/*.hac, **/*.js, **/*.skin" />
-        <tar tarfile="${build.dist}/${filename}.tar" basedir="${build.work}">
-            <tarfileset dir="${build.work}" mode="755">
-                <include name="${build.work}/hop.sh"/>
+        <tar tarfile="${build.dist}/${filename}.tar" basedir="${build.work}" excludes="**">
+            <tarfileset prefix="${filename}" dir="${build.work}" mode="755">
+                <include name="hop.sh"/>
             </tarfileset>
-            <tarfileset dir="${build.work}">
-                <include name="${build.work}/**"/>
-                <exclude name="${build.work}/hop.sh"/>
+            <tarfileset prefix="${filename}" dir="${build.work}">
+                <include name="**"/>
+                <exclude name="hop.sh"/>
             </tarfileset>
         </tar>
         <gzip zipfile="${build.dist}/${filename}.tar.gz" src="${build.dist}/${filename}.tar"/>
@@ -280,9 +280,9 @@ manage
     <target name="package-zip" depends="init">
     	<mkdir dir="${build.dist}" />
         <fixcrlf srcdir="${build.work}" eol="crlf" includes="**/*.txt, **/*.properties, **/*.hac, **/*.js, **/*.skin, **/*.xml" />
-		<zip zipfile="${build.dist}/${filename}.zip">
-			<zipfileset dir="${build.work}" prefix="${filename}" includes="**" />
-		</zip>
+        <zip zipfile="${build.dist}/${filename}.zip">
+            <zipfileset dir="${build.work}" prefix="${filename}" includes="**" />
+        </zip>
     </target>
 
 
@@ -297,33 +297,33 @@ manage
             <param name="distribution" value="antclick" />
         </antcall>
 
-		<!-- get antville -->
-		<mkdir dir="${build.work}/apps" />
-		<!-- to retrieve special versions of antville insert additional attributes:
-		tag="TAGNAME", date="1972-09-24" or date="1972-09-24 20:05" -->
-      	<cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="antville" dest="${build.work}/apps" />
+        <!-- get antville -->
+        <mkdir dir="${build.work}/apps" />
+        <!-- to retrieve special versions of antville insert additional attributes:
+             tag="TAGNAME", date="1972-09-24" or date="1972-09-24 20:05" -->
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="antville" dest="${build.work}/apps" />
 
-		<!-- unzip images -->
-		<mkdir dir="${build.work}/static/antville"/>
-		<unzip src="${build.work}/apps/antville/images.zip" dest="${build.work}/static/antville">
-			<patternset>
-				<include name="**"/>
-			</patternset>
-		</unzip>
+        <!-- unzip images -->
+        <mkdir dir="${build.work}/static/antville"/>
+        <unzip src="${build.work}/apps/antville/images.zip" dest="${build.work}/static/antville">
+            <patternset>
+                <include name="**"/>
+            </patternset>
+        </unzip>
 
-		<!-- delete antville's mysql-scripts, image-zip etc -->
-		<delete>
-			<fileset dir="${build.work}/apps/antville" includes="images.zip,*.sql" />
-		</delete>
+        <!-- delete antville's mysql-scripts, image-zip etc -->
+        <delete>
+            <fileset dir="${build.work}/apps/antville" includes="images.zip,*.sql" />
+        </delete>
 
-		<!-- get and zip manage-app -->
+        <!-- get and zip manage-app -->
         <antcall target="package-manage" />
 
-		<!-- zip up the whole thing -->
-		<antcall target="package-zip">
-			<param name="filename" value="${antclick.name}"/>
-		</antcall>
-		<antcall target="package-tgz">
+        <!-- zip up the whole thing -->
+        <antcall target="package-zip">
+            <param name="filename" value="${antclick.name}"/>
+        </antcall>
+        <antcall target="package-tgz">
             <param name="filename" value="${antclick.name}"/>
         </antcall>
 
@@ -339,8 +339,8 @@ manage
         <mkdir dir="${build.dist}" />
         <mkdir dir="${build.work}" />
 
-		<!-- to retrieve special versions of an application insert
-		additional attributes: tag="TAGNAME" or date="1972-09-24 20:05" -->
+        <!-- to retrieve special versions of an application insert
+        additional attributes: tag="TAGNAME" or date="1972-09-24 20:05" -->
       	<cvs cvsRoot="${cvs.root.apps}" command="export" tag="HEAD" package="${application}" dest="${build.work}" />
 
         <fixcrlf srcdir="${build.work}" eol="crlf" eof="add"  includes="**/*.txt, **/*.properties, **/*.hac, **/*.js, **/*.skin, **/*.xml" />
