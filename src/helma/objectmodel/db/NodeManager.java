@@ -149,9 +149,6 @@ public final class NodeManager {
 
     public Node getNode (Key key) throws Exception {
 
-	// if (kstr == null)
-	//     return null;
-
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNode "+kstr);
 
@@ -172,7 +169,19 @@ public final class NodeManager {
 
 	    // The requested node isn't in the shared cache. Synchronize with key to make sure only one
 	    // version is fetched from the database.
-	    node = getNodeByKey (tx.txn, key);
+	    if (key instanceof SyntheticKey) {
+	    System.err.println ("SPLITTING SYNTHETIC KEY: "+key);
+	        Node parent = getNode (key.getParentKey ());
+	        Relation rel = parent.dbmap.getPropertyRelation (key.getID());
+	        if (rel == null || rel.groupby != null)
+	            node = parent.getGroupbySubnode (key.getID (), true);
+	        else if (rel != null)
+	            node = getNode (parent, key.getID (), rel);
+	        else
+	            node = null;
+	    } else
+	        node = getNodeByKey (tx.txn, key);
+	
 	    if (node != null) {
 	        synchronized (cache) {
 	            Node oldnode = (Node) cache.put (node.getKey (), node);
@@ -201,12 +210,14 @@ public final class NodeManager {
 	Transactor tx = (Transactor) Thread.currentThread ();
 
 	Key key = null;
-	// If what we want is a virtual node create a "synthetic" key
-	if (rel.virtual  || rel.groupby != null)
-	    key = new Key ((String) null,  home.getKey ().getVirtualID (kstr));
-	// if a key for a node from within the DB
+	// check what kind of object we're looking for and make an apropriate key
+	if (rel.virtual || rel.groupby != null || !rel.usesPrimaryKey())
+	    // a key for a virtually defined object that's never actually  stored in the db
+	    // or a key for an object that represents subobjects grouped by some property, generated on the fly
+	    key = new SyntheticKey (home.getKey (), kstr);
 	else
-	    key = new Key (rel.other, rel.getKeyID (home, kstr));
+	    // if a key for a node from within the DB
+	    key = new DbKey (rel.other, rel.getKeyID (home, kstr));
 
 	// See if Transactor has already come across this node
 	Node node = tx.getVisitedNode (key);
@@ -224,12 +235,14 @@ public final class NodeManager {
 
 	// check if we can use the cached node without further checks.
 	// we need further checks for subnodes fetched by name if the subnodes were changed.
-	if (rel.subnodesAreProperties && node != null && node.getState() != Node.INVALID) {
+	if (!rel.virtual && rel.subnodesAreProperties && node != null && node.getState() != Node.INVALID) {
 	    // check if node is null node (cached null)
 	    if (node instanceof NullNode) {
 	        if (node.created() < rel.other.getLastDataChange ())
 	            node = null; //  cached null not valid anymore
 	    } else if (app.doesSubnodeChecking () && home.contains (node) < 0) {
+	    System.err.println ("NULLING SUBNODE: "+key);
+	    System.err.println ("REL = "+rel);
 	        node = null;
 	    }
 	}
@@ -238,8 +251,8 @@ public final class NodeManager {
 
 	    // The requested node isn't in the shared cache. Synchronize with key to make sure only one
 	    // version is fetched from the database.
-
-	    node = getNodeByRelation (db, tx.txn, home, kstr, rel);
+if (key instanceof SyntheticKey && node == null) System.err.println ("GETTING BY REL: "+key+" > "+node);
+	    node = getNodeByRelation (tx.txn, home, kstr, rel);
 
 	    if (node != null) {
 
@@ -596,7 +609,7 @@ public final class NodeManager {
 	        } else {
 	            String q = "SELECT "+idfield+" FROM "+table;
 	            if (subrel.direction == Relation.BACKWARD) {
-	                String homeid = home.getNonVirtualHomeID (); //  home.getState() == Node.VIRTUAL ? home.parentID : home.getID ();
+	                String homeid = home.getNonVirtualHomeID ();
 	                q += " WHERE "+subrel.getRemoteField()+" = '"+homeid+"'";
 	                if (subrel.filter != null)
 	                    q += " AND "+subrel.filter;
@@ -614,16 +627,20 @@ public final class NodeManager {
 	           app.logEvent ("### getNodeIDs: "+qds.getSelectString());
 
 	        qds.fetchRecords ();
+	
+	        Key k = home.getKey ();
 	        for (int i=0; i<qds.size (); i++) {
 	            Record rec = qds.getRecord (i);
 	            String kstr = rec.getValue (1).asString ();
-	            retval.add (kstr);
+	            // make the proper key for the object, either a generic DB key or a groupby key
+	            Key key = rel.groupby == null ?
+	            		(Key) new DbKey (rel.other, kstr) :
+	            		(Key) new SyntheticKey (k, kstr);
+	            System.err.println ("CREATED KEY: "+key);
+	            retval.add (new NodeHandle (key));
 	            // if these are groupby nodes, evict nullNode keys
-	            if (rel.groupby != null) {
-	                Key key = new Key ((String) null,  home.getKey ().getVirtualID (kstr));
-	                if (cache.get (key) instanceof NullNode)
-	                    evictKey (key);
-	            }
+	            if (rel.groupby != null && cache.get (key) instanceof NullNode)
+	                evictKey (key);
 	        }
 
 	    } finally {
@@ -667,7 +684,7 @@ public final class NodeManager {
 	            // HACK: subnodeRelation includes a "where", but we need it without
 	            tds.where (home.getSubnodeRelation().trim().substring(5));
 	        } else if (subrel.direction == Relation.BACKWARD) {
-	            String homeid = home.getState() == Node.VIRTUAL ? home.parentID : home.getID ();
+	            String homeid = home.getNonVirtualHomeID ();
 	            if (rel.filter != null)
 	                tds.where (subrel.getRemoteField()+" = '"+homeid+"' AND "+subrel.filter);
 	            else
@@ -691,8 +708,8 @@ public final class NodeManager {
 	            // create new Nodes.
 	            Record rec = tds.getRecord (i);
 	            Node node = new Node (rel.other, rec, safe);
-	            retval.add (node.getID());
 	            Key primKey = node.getKey ();
+	            retval.add (new NodeHandle (primKey));
 	            // do we need to synchronize on primKey here?
 	            synchronized (cache) {
 	                Node oldnode = (Node) cache.put (primKey, node);
@@ -735,7 +752,7 @@ public final class NodeManager {
 	        if (home.getSubnodeRelation() != null) {
 	            qds = new QueryDataSet (con, "SELECT count(*) FROM "+table+" "+home.getSubnodeRelation());
 	        } else if (subrel.direction == Relation.BACKWARD) {
-	            String homeid = home.getState() == Node.VIRTUAL ? home.parentID : home.getID ();
+	            String homeid = home.getNonVirtualHomeID ();
 	            String qstr = "SELECT count(*) FROM "+table+" WHERE "+subrel.getRemoteField()+" = '"+homeid+"'";
 	            if (subrel.filter != null)
 	                qstr += " AND "+subrel.filter;
@@ -776,7 +793,7 @@ public final class NodeManager {
 
 	if (rel == null || rel.other == null || !rel.other.isRelational ()) {
 	    // this should never be called for embedded nodes
-	    throw new RuntimeException ("NodeMgr.countNodes called for non-relational node "+home);
+	    throw new RuntimeException ("NodeMgr.getPropertyNames called for non-relational node "+home);
 	} else {
 	    Vector retval = new Vector ();
 	    // if we do a groupby query (creating an intermediate layer of groupby nodes),
@@ -820,7 +837,7 @@ public final class NodeManager {
     private Node getNodeByKey (DbTxn txn, Key key) throws Exception {
 	Node node = null;
 	String kstr = key.getID ();
-	DbMapping dbm = app.getDbMapping (key.getType ());
+	DbMapping dbm = app.getDbMapping (key.getStorageName ());
 	
 	if (dbm == null || !dbm.isRelational ()) {
 	    node = db.getNode (txn, kstr);
@@ -854,29 +871,16 @@ public final class NodeManager {
 	return node;
     }
 
-    private Node getNodeByRelation (DbWrapper db, DbTxn txn, Node home, String kstr, Relation rel) throws Exception {
+    private Node getNodeByRelation (DbTxn txn, Node home, String kstr, Relation rel) throws Exception {
 
 	Node node = null;
 
-	if (rel != null && rel.virtual && home.getState() != INode.VIRTUAL) {
-	    Key k = home.getKey ().getVirtualKey (kstr);
-	    node = (Node) cache.get (k);
-	    if (node != null && node.getState() != INode.INVALID) {
-	        if (rel.prototype != null && !rel.prototype.equals (node.getPrototype ()))
-	            node.setPrototype (rel.prototype);
-	        return node;
-	    }
+	if (rel.virtual) {
 
-	    // if subnodes are stored in embedded db we have to actually assign it the virtual node,
-	    // otherwise it and its subnodes will be lost across restarts.
-	    if (rel.other == null || (!rel.other.isRelational() && !home.getDbMapping().isRelational())) {
-	        node = (Node) home.createNode (rel.propname);
-	        if (rel.prototype != null)
-	            node.setPrototype (rel.prototype);
-	    } else {
-	        node = new Node (home, kstr, safe, rel.prototype);
-	    }
+	    node = new Node (home, kstr, safe, rel.prototype);
+	
 	    if (rel.prototype != null) {
+	        node.setPrototype (rel.prototype);
 	        node.setDbMapping (app.getDbMapping (rel.prototype));
 	    } else {
 	        // make a db mapping good enough that the virtual node finds its subnodes
@@ -916,7 +920,7 @@ public final class NodeManager {
 
 	        // Additionally filter properties through subnode relation?
 	        if (rel.subnodesAreProperties) {
-	            String homeid = home.getState() == Node.VIRTUAL ? home.parentID : home.getID ();
+	            String homeid = home.getNonVirtualHomeID ();
 	            // first check for dynamic subrel from node
 	            String nodesubrel = home.getSubnodeRelation();
 	            if (nodesubrel != null && nodesubrel.trim().length() > 5) {
@@ -977,7 +981,7 @@ public final class NodeManager {
 	if (str.indexOf ("'") < 0)
 	    return str;
 	int l = str.length();
-             StringBuffer sbuf = new StringBuffer (l + 10);
+	StringBuffer sbuf = new StringBuffer (l + 10);
 	for (int i=0; i<l; i++) {
 	    char c = str.charAt (i);
 	    if (c == '\'')
