@@ -161,11 +161,6 @@ public final class Logger {
 	if (entries.isEmpty ())
 	    return;
 	try {
-	    if (logfile != null &&
-	          (writer == null || !logfile.exists() || !logfile.canWrite())) {
-	        // rotate the log file if we can't write to it
-	        rotateLogFile ();
-	    }
 
 	    int l = entries.size();
 
@@ -177,6 +172,10 @@ public final class Logger {
 	            out.println (entry);
 	        }
 	    } else {
+	        if (writer == null || !logfile.exists() || !logfile.canWrite()) {
+	            // rotate the log file if we can't write to it
+	            rotateLogFile ();
+	        }
 	        for (int i=0; i<l; i++) {
 	            String entry = (String) entries.get (0);
 	            entries.remove (0);
@@ -203,6 +202,9 @@ public final class Logger {
      *  start a new one.
      */
     private void rotateLogFile () throws IOException {
+	// if the logger is not file based do nothing
+	if (logfile == null)
+	    return;
 	if (writer != null) try {
 	    writer.close();
 	} catch (Exception ignore) {}
