@@ -204,7 +204,7 @@ public class XmlConverter implements XmlConstants	{
 			}	else if ( attr.getNodeName().equals("_name") )	{
 				helmaNode.setName( attr.getNodeValue() );
 			}	else	{
-				String helmaKey = (String)props.get(element.getNodeName().toLowerCase()+".attributes."+attr.getNodeName().toLowerCase());
+				String helmaKey = (String)props.get(element.getNodeName().toLowerCase()+"._attribute."+attr.getNodeName().toLowerCase());
 				if ( helmaKey==null )
 					helmaKey = attr.getNodeName().replace(':',defaultSeparator);
 				helmaNode.setString( helmaKey, attr.getNodeValue() );
