@@ -110,6 +110,9 @@
             basedir="${build.classes}"
             includes="**/main/launcher/**"
             manifest="${build.src}/helma/main/launcher/manifest.txt"/>
+        <!-- Copy timestamped helma jar file to lib/helma.jar  -->
+        <copy file="${build.lib}/${jar.name}-${DSTAMP}.jar" 
+              tofile="${build.lib}/${jar.name}.jar"/>
     </target>
 
 
@@ -211,7 +214,7 @@
         <!-- copy all libraries except helma-YYYYMMDD.jar -->
         <copy todir="${build.work}/lib">
             <fileset dir="${home.dir}/lib">
-                <exclude name="**/helma*.jar" />
+                <exclude name="**/helma-*.jar" />
                 <include name="**/*.jar" />
             </fileset>
         </copy>
@@ -228,9 +231,6 @@
         <copy todir="${build.work}/scripts">
             <fileset dir="${home.dir}/scripts" excludes="**/CVS**"/>
         </copy>
-
-        <!-- rename the current jar-file -->
-        <copy file="${build.lib}/${jar.name}-${DSTAMP}.jar" tofile="${build.work}/lib/helma.jar"/>
 
         <!-- zip the sourcecode -->
         <!-- mkdir dir="${build.work}/src"/>
