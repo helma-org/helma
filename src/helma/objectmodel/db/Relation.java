@@ -51,6 +51,7 @@ public final class Relation {
     boolean aggressiveCaching;
     boolean subnodesAreProperties;
     boolean isPrivate;
+
     String accessor; // db column used to access objects through this relation
     String order;
     String groupbyorder;
@@ -131,13 +132,13 @@ public final class Relation {
 	        reftype = PRIMITIVE;
 	    }
 	}
-	String rdonly = props.getProperty (desc+".readonly");
+	String rdonly = props.getProperty (propName+".readonly");
 	if (rdonly != null && "true".equalsIgnoreCase (rdonly)) {
 	    readonly = true;
 	} else {
 	    readonly = false;
 	}
-	isPrivate = "true".equalsIgnoreCase (props.getProperty (desc+".private"));
+	isPrivate = "true".equalsIgnoreCase (props.getProperty (propName+".private"));
 
 	// the following options only apply to object and collection relations
 	if (reftype != PRIMITIVE && reftype != INVALID) {
@@ -147,7 +148,7 @@ public final class Relation {
 
 	    constraints = new Constraint[newConstraints.size()];
 	    newConstraints.copyInto (constraints);
-	    // if DbMapping for virtual nodes has already been created, 
+	    // if DbMapping for virtual nodes has already been created,
 	    // update its subnode relation.
 	    // FIXME: needs to be synchronized?
 	     if (virtualMapping != null) {
