@@ -125,11 +125,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 
             if (encoding == null) {
                 // no encoding from request, use standard one
-                encoding = defaultEncoding;
-            }
-
-            if (encoding == null) {
-                encoding = "ISO-8859-1";
+                encoding = defaultEncoding != null ? defaultEncoding : "ISO-8859-1";
             }
 
             // read and set http parameters
@@ -722,7 +718,8 @@ public abstract class AbstractServletClient extends HttpServlet {
         t = new StringTokenizer(req.getServletPath(), "/");
         prefixTokens += t.countTokens();
 
-        t = new StringTokenizer(req.getRequestURI(), "/");
+        String uri = req.getRequestURI();
+        t = new StringTokenizer(uri, "/");
 
         int uriTokens = t.countTokens();
         StringBuffer pathbuffer = new StringBuffer();
@@ -735,15 +732,19 @@ public abstract class AbstractServletClient extends HttpServlet {
             }
 
             if (i > prefixTokens) {
-                pathbuffer.append("/");
+                pathbuffer.append('/');
             }
 
-            if ((token.indexOf("+") == -1) && (token.indexOf("%") == -1)) {
+            if ((token.indexOf('+') == -1) && (token.indexOf('%') == -1)) {
                 pathbuffer.append(token);
             } else {
                 pathbuffer.append(URLDecoder.decode(token));
             }
         }
+        
+        // append trailing "/" if it is contained in original URI
+        if (uri.endsWith("/"))
+            pathbuffer.append('/');
 
         return pathbuffer.toString();
     }
