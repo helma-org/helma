@@ -390,7 +390,9 @@ public final class DbMapping implements Updatable {
 	    return null;
 	if (table == null && parentMapping != null)
 	    return parentMapping.propertyToColumnName (propName);
-	Relation rel = (Relation) prop2db.get (propName);
+	// FIXME: prop2db stores keys in lower case, because it gets them
+	// from a SystemProperties object which converts keys to lower case.
+	Relation rel = (Relation) prop2db.get (propName.toLowerCase());
 	if (rel != null  && (rel.reftype == Relation.PRIMITIVE || rel.reftype == Relation.REFERENCE))
 	    return rel.columnName;
 	return null;
@@ -415,7 +417,9 @@ public final class DbMapping implements Updatable {
 	    return null;
 	if (table == null && parentMapping != null)
 	    return parentMapping.propertyToRelation (propName);
-	return (Relation) prop2db.get (propName);
+	// FIXME: prop2db stores keys in lower case, because it gets them
+	// from a SystemProperties object which converts keys to lower case.
+	return (Relation) prop2db.get (propName.toLowerCase());
     }
 
 
