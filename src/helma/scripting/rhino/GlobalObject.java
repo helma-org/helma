@@ -287,7 +287,7 @@ public class GlobalObject extends ScriptableObject {
 
                 mime.eTag = etag;
 
-                return mime;
+                return Context.toObject(mime, this);
             } catch (Exception ignore) {
                 System.err.println ("EXCEPT: "+ignore);
             }
