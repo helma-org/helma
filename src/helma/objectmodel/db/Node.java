@@ -1253,6 +1253,11 @@ public final class Node implements INode, Serializable {
 
         boolean removed = false;
 
+        // load subnodes in case they haven't been loaded.
+        // this is to prevent subsequent access to reload the
+        // index which would potentially still contain the removed child
+        loadNodes();
+
         if (subnodes != null) {
             synchronized (subnodes) {
                 removed = subnodes.remove(node.getHandle());
