@@ -4,7 +4,6 @@
 package helma.util;
 
 import helma.mime.*;
-import helma.objectmodel.*;
 import java.io.*;
 import java.util.*;
 
@@ -76,9 +75,8 @@ public class Uploader {
 	            filename = filename.substring (sep+1);
 	    }
 	    if (filename != null) {
-	        Node node = new Node (filename);
-	        node.setContent (newb, type);
-	        parts.put (name, node);
+	        MimePart part = new MimePart (filename, newb, type);
+	        parts.put (name, part);
 	    } else {
 	        parts.put (name, new String (newb));
 	    }
