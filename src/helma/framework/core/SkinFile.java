@@ -26,7 +26,7 @@ public final class SkinFile implements Updatable {
 	this.prototype = proto;
 	this.file = file;
 	this.name = name;
-	app = proto.app;
+	this.app = proto.app;
 	skin = null;
     }
 
@@ -37,9 +37,9 @@ public final class SkinFile implements Updatable {
      */
     public SkinFile (String body, String name, Prototype proto) {
 	this.prototype = proto;
-	app = proto.app;
-	name = name;
-	file = null;
+	this.app = proto.app;
+	this.name = name;
+	this.file = null;
 	skin = new Skin (body, app);
     }
 
@@ -51,7 +51,7 @@ public final class SkinFile implements Updatable {
 	this.app = app;
 	this.file = file;
 	this.name = name;
-	prototype = null;
+	this.prototype = null;
 	skin = null;
     }
 
