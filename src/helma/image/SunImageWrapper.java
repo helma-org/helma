@@ -19,9 +19,8 @@ import java.io.FileOutputStream;
 public class SunImageWrapper extends ImageWrapper {
 
     public SunImageWrapper (Image img, Graphics g, int width, int height,
-	ImageGenerator imggen) throws ClassNotFoundException {
+	ImageGenerator imggen) {
 	super (img, g, width, height, imggen);
-	Class.forName ("com.sun.jimi.core.Jimi");
     }
 
 
@@ -39,8 +38,6 @@ public class SunImageWrapper extends ImageWrapper {
 	        }
 	    }
 	    img = imggen.createImage (new MemoryImageSource(w, h, pix, 0, w));
-	    // ColorReducer redux = new ColorReducer (colors, true);
-	    // img = redux.getColorReducedImage (img);
 	} catch (Exception x) {
 	    // throw new RuntimeException (x.getMessage ());
 	}
@@ -77,9 +74,6 @@ public class SunImageWrapper extends ImageWrapper {
 	        // Acme gif encoder
 	        GifEncoder enc = new GifEncoder (img, fout);
 	        enc.encode ();
-	        // new alternative gif encoder
-	        // GIFEncoder enc = new GIFEncoder (img);
-	        // enc.Write (fout);
 	        fout.close ();
 	    } else {
 	        Jimi.putImage (img, filename);
