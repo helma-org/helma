@@ -601,7 +601,7 @@ public final class DbMapping implements Updatable {
 	        rel.setColumnType (meta.getColumnType (idx));
 	    }
 	    // columns = cbuffer.toString();
-	    columns = " * ";
+	    columns = "*";
 	}
 	return columns;
     }
@@ -613,7 +613,7 @@ public final class DbMapping implements Updatable {
 	StringBuffer s = new StringBuffer ("select ");
 	s.append (getColumns ());
 	s.append (" from ");
-	s.append (table);
+	s.append (getTableName ());
 	s.append (" ");
 	// cache rendered string for later calls.
 	select = s.toString();
