@@ -395,6 +395,9 @@ public final class FesiEvaluator implements ScriptingEngine {
 	String protoname = app.getPrototypeName (obj);
 	try {
 	    ObjectPrototype op = getPrototype (protoname);
+	    // if this is an untyped object return false
+	    if (op == null)
+	        return false;
 	    ESValue func = op.getProperty (fname, fname.hashCode());
 	    if (func != null && func instanceof FunctionPrototype)
 	        return true;
