@@ -443,8 +443,8 @@ public final class Node implements INode, Serializable {
 	        DbMapping parentmap = p.getDbMapping ();
 	        Relation prel = parentmap.getPropertyRelation();
 	        if (prel != null && prel.subnodesAreProperties && !prel.usesPrimaryKey ()) {
-	            Relation localrel = dbmap.columnNameToProperty (prel.getRemoteField ());
-	            String propvalue = getString (localrel.propname, false);
+	            String propname = dbmap.columnNameToProperty (prel.getRemoteField ());
+	            String propvalue = getString (propname, false);
 	            if (propvalue != null && propvalue.length() > 0) {
 	                setName (propvalue);
 	                anonymous = false;
@@ -769,7 +769,7 @@ public final class Node implements INode, Serializable {
 	    if (dbmap != null && node.dbmap != null) {
 	        Relation prel = dbmap.getPropertyRelation();
 	        if (prel != null && prel.subnodesAreProperties && !prel.usesPrimaryKey ()) {
-	            Relation localrel = node.dbmap.columnNameToProperty (prel.getRemoteField ());
+	            Relation localrel = node.dbmap.columnNameToRelation (prel.getRemoteField ());
 	            // if no relation from db column to prop name is found, assume that both are equal
 	            String propname = localrel == null ? prel.getRemoteField() : localrel.propname;
 	            String prop = node.getString (propname, false);
@@ -779,7 +779,6 @@ public final class Node implements INode, Serializable {
 	                    unset (prop);
 	                    removeNode (old);
 	                }
-	                //     throw new RuntimeException ("Property "+prop+" is already defined for "+this);
 	                setNode (prop, node);
 	            }
 	        }
@@ -816,7 +815,7 @@ public final class Node implements INode, Serializable {
 	if (dbmap != null) {
 	    Relation srel = dbmap.getSubnodeRelation ();
 	    if (srel != null && srel.direction == Relation.BACKWARD) {
-	        Relation backlink = srel.other.columnNameToProperty (srel.getRemoteField());
+	        Relation backlink = srel.other.columnNameToRelation (srel.getRemoteField());
 	        if (backlink != null && backlink.propname != null) {
 	            if (node.get (backlink.propname, false) == null) {
 	                if (this.state == VIRTUAL)
@@ -947,9 +946,8 @@ public final class Node implements INode, Serializable {
 
 	NodeHandle ghandle = new NodeHandle (new SyntheticKey (getKey(), sid));
 	if (subnodes.contains (ghandle) || create) try {
-	    Relation srel = dbmap.getSubnodeRelation ();
-	    Relation prel = dbmap.getPropertyRelation ();
-	    boolean relational = srel.other != null && srel.other.isRelational ();
+	    DbMapping groupbyMapping = dbmap.getGroupbyMapping ();
+	    boolean relational = groupbyMapping.getSubnodeMapping ().isRelational ();
 
 	    if (relational || create) {
 	        Node node = relational ? new Node (this, sid, nmgr, null) : new Node ("groupby-"+sid, null, nmgr);
@@ -957,33 +955,12 @@ public final class Node implements INode, Serializable {
 	        node.setString ("groupname", sid);
 
 	        if (relational) {
-	            DbMapping dbm = new DbMapping ();
-	            Relation gsrel = srel.getGroupbySubnodeRelation();
-	            dbm.setSubnodeMapping (srel.other);
-	            dbm.setSubnodeRelation (gsrel);
-	            if (prel != null) {
-	                dbm.setPropertyMapping (prel.other);
-	                dbm.setPropertyRelation (prel.getGroupbyPropertyRelation());
-	            }
-	            node.setDbMapping (dbm);
-	            // one day, Relation should be smart enough to generate the subnode clause
-	            // on the fly. Until then, we prepare it statically for each groupby node.
-	            // This has the drawback that updates in the type definition won't affect already created
-	            // groupby objects.
-	            String snrel = "WHERE "+srel.groupby +"='"+sid+"'";
-	            if (gsrel.direction == Relation.BACKWARD)
-	                snrel += " AND "+gsrel.getRemoteField()+"='"+getNonVirtualHomeID()+"'";
-	            if (gsrel.filter != null)
-	                snrel += " AND "+gsrel.filter;
-	            if (gsrel.order != null)
-	                snrel += " ORDER BY "+gsrel.order;
-	            node.setSubnodeRelation (snrel);
-	            // set prototype of groupby-node
-	            node.setPrototype (gsrel.prototype);
+	            node.setDbMapping (groupbyMapping);
 	        } else {
 	            setNode (sid, node);
 	            subnodes.add (node.getHandle ());
 	        }
+	        node.setPrototype (groupbyMapping.getTypeName ());
 	        nmgr.evictKey (node.getKey ());
 	        return node;
 	    }
@@ -1041,7 +1018,7 @@ public final class Node implements INode, Serializable {
 	if (dbmap != null) {
 	    Relation srel = dbmap.getSubnodeRelation ();
 	    if (srel != null && srel.direction == Relation.BACKWARD) {
-	        Relation backlink = srel.other.columnNameToProperty (srel.getRemoteField ());
+	        Relation backlink = srel.other.columnNameToRelation (srel.getRemoteField ());
 	        if (backlink != null && id.equals (node.getString (backlink.propname, false)))
 	            node.unset (backlink.propname);
 	    }
@@ -1051,7 +1028,7 @@ public final class Node implements INode, Serializable {
 	if (dbmap != null && node.dbmap != null) {
 	    Relation prel = dbmap.getPropertyRelation();
 	    if (prel != null && prel.subnodesAreProperties && !prel.usesPrimaryKey ()) {
-	        Relation localrel = node.dbmap.columnNameToProperty (prel.getRemoteField());
+	        Relation localrel = node.dbmap.columnNameToRelation (prel.getRemoteField());
 	        // if no relation from db column to prop name is found, assume that both are equal
 	        String propname = localrel == null ? prel.getRemoteField () : localrel.propname;
 	        String prop = node.getString (propname, false);
@@ -1627,7 +1604,7 @@ public final class Node implements INode, Serializable {
 	if (rel != null && rel.direction == Relation.FORWARD && !rel.usesPrimaryKey ()) {
 	    // if the relation for this property doesn't use the primary key of the value object, make a
 	    // secondary key object with the proper db column
-	    String kval = n.getString (rel.other.columnNameToProperty (rel.getRemoteField ()).propname, false);
+	    String kval = n.getString (rel.other.columnNameToProperty (rel.getRemoteField ()), false);
 	    prop.nhandle = new NodeHandle (new DbKey (n.getDbMapping (), kval, rel.getRemoteField ()));
 	}
 	
@@ -1643,8 +1620,6 @@ public final class Node implements INode, Serializable {
 	    tx.visitCleanNode (secKey, n);
 	}
 
-	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.SUBNODE_ADDED, n));
-	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
 	lastmodified = System.currentTimeMillis ();
 	if (state == CLEAN) markAs (MODIFIED);
 	if (n.state == DELETED) n.markAs (MODIFIED);

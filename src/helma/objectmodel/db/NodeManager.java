@@ -361,7 +361,7 @@ public final class NodeManager {
 	        for (Enumeration e=dbm.getProp2DB ().keys(); e.hasMoreElements(); ) {
 	            String propname = (String) e.nextElement ();
 	            Property p = node.getProperty (propname, false);
-	            Relation rel = dbm.propertyToColumnName (propname);
+	            Relation rel = dbm.propertyToRelation (propname);
 
 	            if (p != null && rel != null) {
 	                switch (p.getType ()) {
@@ -431,7 +431,7 @@ public final class NodeManager {
 
 	        for (Enumeration e=dbm.getProp2DB ().keys(); e.hasMoreElements(); ) {
 	            String propname = (String) e.nextElement ();
-	            Relation rel = dbm.propertyToColumnName (propname);
+	            Relation rel = dbm.propertyToRelation (propname);
 
 	            // skip properties that don't need to be updated before fetching them
 	            if (rel != null && (rel.readonly || rel.virtual || (rel.direction != Relation.FORWARD && rel.direction != Relation.PRIMITIVE)))
@@ -620,6 +620,8 @@ public final class NodeManager {
 	                q += " WHERE "+subrel.getRemoteField()+" = '"+homeid+"'";
 	                if (subrel.filter != null)
 	                    q += " AND "+subrel.filter;
+	                if (rel.dogroupby != null)
+	                    q += " AND " + rel.dogroupby + " = '" + home.getString ("groupname", false) +"'";
 	            } else if (subrel.filter != null)
 	                q += " WHERE "+subrel.filter;
 	            // set order, if specified and if not using subnode's relation
@@ -766,6 +768,8 @@ public final class NodeManager {
 	            String qstr = "SELECT count(*) FROM "+table+" WHERE "+subrel.getRemoteField()+" = '"+homeid+"'";
 	            if (subrel.filter != null)
 	                qstr += " AND "+subrel.filter;
+	            if (rel.dogroupby != null)
+	                qstr += " AND " + rel.dogroupby + " = '" + home.getString ("groupname", false) +"'";
 	            qds = new QueryDataSet (con, qstr);
 	        } else {
 	            String qstr = "SELECT count(*) FROM "+table;
@@ -897,13 +901,7 @@ public final class NodeManager {
 	        node.setPrototype (rel.prototype);
 	        node.setDbMapping (app.getDbMapping (rel.prototype));
 	    } else {
-	        // make a db mapping good enough that the virtual node finds its subnodes
-	        DbMapping dbm = new DbMapping ();
-	        dbm.setSubnodeMapping (rel.other);
-	        dbm.setSubnodeRelation (rel.getVirtualSubnodeRelation());
-	        dbm.setPropertyMapping (rel.other);
-	        dbm.setPropertyRelation (rel.getVirtualPropertyRelation());
-	        node.setDbMapping (dbm);
+	        node.setDbMapping (rel.getVirtualMapping ());
 	    }
 
 	} else if (rel != null && rel.groupby != null) {
@@ -950,6 +948,13 @@ public final class NodeManager {
 	                        where.append (subrel.getRemoteField());
 	                        where.append (" = '");
 	                        where.append (homeid);
+	                        where.append ("'");
+	                    }
+	                    if (rel.dogroupby != null)  {
+	                        where.append (" and ");
+	                        where.append (rel.dogroupby);
+	                        where.append (" = '");
+	                        where.append (home.getString ("groupname", false));
 	                        where.append ("'");
 	                    }
 	                }
