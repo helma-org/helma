@@ -17,12 +17,15 @@
 package helma.doc;
 
 import helma.framework.IPathElement;
+import helma.framework.repository.FileResource;
+import helma.framework.repository.FileResource;
 import helma.main.Server;
-import helma.util.SystemProperties;
+import helma.util.SourceProperties;
 import java.io.*;
 import java.util.*;
+
 /**
- * 
+ *
  */
 public class DocApplication extends DocDirElement {
     HashSet excluded;
@@ -72,7 +75,7 @@ public class DocApplication extends DocDirElement {
 
 //        DocFunction[] func = DocFunction.newFunctions(new File(args[0]));
 //        for (int i=0; i<func.length; i++) {
-//            System.out.println("=============================================");     
+//            System.out.println("=============================================");
 //            System.out.println("function " + func[i].name);
 //            System.out.println("comment = " + func[i].comment + "<<<");
 //            String[] arr = func[i].listParameters();
@@ -94,12 +97,13 @@ public class DocApplication extends DocDirElement {
      */
     private void readProps() {
         File propsFile = new File(location, "app.properties");
-        SystemProperties serverProps = null;
+        SourceProperties serverProps = null;
         if (Server.getServer()!=null) {
             serverProps = Server.getServer().getProperties();
         }
-        SystemProperties appProps = new SystemProperties(propsFile.getAbsolutePath(),
-                                                         serverProps);
+        SourceProperties appProps = new SourceProperties();
+        appProps.setDefaultProperties(serverProps);
+        appProps.addResource(new FileResource(propsFile));
 
         excluded = new HashSet();
         addExclude("cvs");
