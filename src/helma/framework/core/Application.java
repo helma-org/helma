@@ -840,34 +840,31 @@ public final class Application implements IPathElement, Runnable {
      */
     public String getNodeHref (Object elem, String actionName) {
 	// Object root = getDataRoot ();
-
 	// check optional root prototype from app.properties
 	String rootProto = props.getProperty ("rootPrototype");
 
-	String divider = "/";
-	StringBuffer b = new StringBuffer ();
-	Object parent = null;
-	int loopWatch = 0;
+	StringBuffer b = new StringBuffer (baseURI);
 
-	while  (elem != null && (parent = getParentElement (elem)) != null && elem != rootObject) {
-
-	    if (rootProto != null && rootProto.equals (getPrototypeName (elem)))
-	        break;
-	    b.insert (0, divider);
-	    b.insert (0, UrlEncoded.encode (getElementName (elem)));
-	    // move down to the element's parent
-	    elem = parent;
-
-	    if (loopWatch++ > 20)
-	        break;
-	}
+	composeHref (elem, b, rootProto, 0);
 
 	if (actionName != null)
 	    b.append (UrlEncoded.encode (actionName));
 
-	return baseURI + b.toString ();
+	return b.toString ();
     }
 
+    private final void composeHref (Object elem, StringBuffer b, String rootProto, int pathCount) {
+	if (elem == null || pathCount > 20)
+	    return;
+	if (rootProto != null && rootProto.equals (getPrototypeName (elem)))
+	    return;
+	Object parent = getParentElement (elem);
+	if (parent == null)
+	    return;
+	composeHref (getParentElement (elem), b, rootProto, pathCount++);
+	b.append (UrlEncoded.encode (getElementName (elem)));
+	b.append ("/");
+    }
 
     /**
      *  This method sets the base URL of this application which will be prepended to
