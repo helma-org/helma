@@ -184,7 +184,7 @@ public class RequestEvaluator implements Runnable {
 	                localrtx.timer.beginEvent (requestPath+" init");
 	                localrtx.begin (requestPath);
 
-	                Action action = null;
+	                String action = null;
 
 	                root = app.getDataRoot ();
 
@@ -220,24 +220,24 @@ public class RequestEvaluator implements Runnable {
 	                        reqPath.putHiddenProperty ("root", current);
 	                        Prototype p = app.getPrototype (root);
 	                        String errorAction = app.props.getProperty ("error", "error");
-	                        action = p.getActionOrTemplate (errorAction);
+	                        action = getAction (current, errorAction);
 	                        if (action == null)
 	                            throw new RuntimeException (error);
-	
+
 	                    } else if (req.path == null || "".equals (req.path.trim ())) {
 	                        currentElement = root;
 	                        current = getElementWrapper (root);
 	                        reqPath.putProperty (0, current);
 	                        reqPath.putHiddenProperty ("root", current);
 	                        Prototype p = app.getPrototype (root);
-	                        action = p.getActionOrTemplate (null);
+	                        action = getAction (current, null);
 	                        if (action == null)
 	                            throw new FrameworkException ("Action not found");
 
 	                    } else {
 
 	                        // march down request path...
-	
+
 	                        StringTokenizer st = new StringTokenizer (req.path, "/");
 	                        int ntokens = st.countTokens ();
 	                        // limit path to < 50 tokens
@@ -246,17 +246,17 @@ public class RequestEvaluator implements Runnable {
 	                        String[] pathItems = new String [ntokens];
 	                        for (int i=0; i<ntokens; i++)
 	                              pathItems[i] = st.nextToken ();
-	
+
 	                        currentElement = root;
 	                        current = getElementWrapper (root);
 	                        reqPath.putProperty (0, current);
 	                        reqPath.putHiddenProperty ("root", current);
 
 	                        for (int i=0; i<ntokens; i++) {
-	
+
 	                            if (currentElement == null)
 	                                throw new FrameworkException ("Object not found.");
-	
+
 	                            // the first token in the path needs to be treated seprerately,
 	                            // because "/user" is a shortcut to the current user session, while "/users"
 	                            // is the mounting point for all users.
@@ -267,7 +267,7 @@ public class RequestEvaluator implements Runnable {
 	                                    reqPath.putProperty (1, current);
 	                                    reqPath.putHiddenProperty ("user", current);
 	                                }
-	
+
 	                            } else if (i == 0 && "users".equalsIgnoreCase (pathItems[i])) {
 	                                currentElement = app.getUserRoot ();
 
@@ -275,14 +275,17 @@ public class RequestEvaluator implements Runnable {
 	                                    current = getElementWrapper (currentElement);
 	                                    reqPath.putProperty (1, current);
 	                                }
-	
+
 	                            } else {
+
+	                                // if we're at the last element of the path,
+	                                // try to interpret it as action name.
 	                                if (i == ntokens-1) {
 	                                    Prototype p = app.getPrototype (currentElement);
 	                                    if (p != null)
-	                                        action = p.getActionOrTemplate (pathItems[i]);
+	                                        action = getAction (current, pathItems[i]);
 	                                }
-	
+
 	                                if (action == null) {
 
 	                                    if (pathItems[i].length () == 0)
@@ -313,7 +316,7 @@ public class RequestEvaluator implements Runnable {
 	                        if (action == null) {
 	                            Prototype p = app.getPrototype (currentElement);
 	                            if (p != null)
-	                                action = p.getActionOrTemplate (null);
+	                                action = getAction (current, null);
 	                        }
 
 	                        if (action == null)
@@ -330,10 +333,10 @@ public class RequestEvaluator implements Runnable {
 	                    res.status = 404;
 	                    String notFoundAction = app.props.getProperty ("notFound", "notfound");
 	                    Prototype p = app.getPrototype (root);
-	                    action = p.getActionOrTemplate (notFoundAction);
+	                    current = getElementWrapper (root);
+	                    action = getAction (current, notFoundAction);
 	                    if (action == null)
 	                        throw new FrameworkException (notfound.getMessage ());
-	                    current = getElementWrapper (root);
 	                }
 
 	                localrtx.timer.endEvent (requestPath+" init");
@@ -342,9 +345,17 @@ public class RequestEvaluator implements Runnable {
 	                    localrtx.timer.beginEvent (requestPath+" execute");
 
 	                    // set the req.action property
-	                    req.action = action.getName ();
+	                    req.action = action;
+	                    // try calling onRequest() function on object before
+	                    // calling the actual action
+	                    try {
+	                        current.doIndirectCall (evaluator, current, "onRequest", new ESValue[0]);
+	                    } catch (Exception ignore) {
+	                        System.err.println ("error in onRequest(): "+ignore);
+	                        // onRequest not defined
+	                    }
 	                    // do the actual action invocation
-	                    current.doIndirectCall (evaluator, current, action.getFunctionName (), new ESValue[0]);
+	                    current.doIndirectCall (evaluator, current, action, new ESValue[0]);
 
 	                    // check if the script set the name of a skin to render in res.skin
 	                    if (res.skin != null) {
@@ -607,6 +618,16 @@ public class RequestEvaluator implements Runnable {
 	Transactor localrtx = (Transactor) Thread.currentThread ();
 	if (reqtype != NONE)
 	    return; // is there a new request already?
+
+	// clear/reset global vars
+	/* for (Enumeration en = global.getProperties(); en.hasMoreElements(); ) {
+	    Object obj = en.nextElement ();
+	    try {
+	        global.deleteProperty(obj.toString(), obj.hashCode());
+	    } catch (Exception x) {}
+	    // System.err.println (">>> "+obj);
+	} */
+
 	notifyAll ();
 	try {
 	    // wait for request, max 30 min
@@ -879,8 +900,23 @@ public class RequestEvaluator implements Runnable {
 	} catch (Exception ignore) { }
 	skinmanagers = new INode[v.size()];
 	v.copyInto (skinmanagers);
-    }	
+    }
 
+    /**
+     * Check if an action with a given name is defined for a scripted object. If it is,
+     * return the action's function name. Otherwise, return null.
+     */
+    public String getAction (ESObject obj, String action) {
+	if (obj == null)
+	    return null;
+	String act = action == null ? "main_action" : action+"_action";
+	try {
+	    ESValue esv = obj.getProperty (act, act.hashCode());
+	    if (esv != null && esv instanceof FunctionPrototype)
+	        return act;
+	} catch (EcmaScriptException notfound) {}
+	return null;
+    }
 
     /**
      *  Returns a node wrapper only if it already exists in the cache table. This is used
