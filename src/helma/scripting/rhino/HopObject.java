@@ -663,7 +663,7 @@ public class HopObject extends ScriptableObject {
         }
 
         if ("__node__".equals(name)) {
-            return node;
+            return new NativeJavaObject(core.global, node, null);
         }
 
         if ("__created__".equalsIgnoreCase(name)) {
