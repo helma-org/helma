@@ -42,7 +42,8 @@ public class FilteredClassLoader extends URLClassLoader {
      *  Mask classes that implement the scripting engine(s) contained in helma.jar
      */
     protected Class findClass(String name) throws ClassNotFoundException {
-        if ((name != null) && "helma.scripting.fesi.PhantomEngine".equals(name)) {
+        if ((name != null) && (name.startsWith("helma")) &&
+                              (name.endsWith("PhantomEngine"))) {
             throw new ClassNotFoundException(name);
         }
 

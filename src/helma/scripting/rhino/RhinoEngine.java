@@ -35,7 +35,7 @@ import java.util.*;
 /**
  * This is the implementation of ScriptingEnvironment for the Mozilla Rhino EcmaScript interpreter.
  */
-public final class RhinoEngine implements ScriptingEngine {
+public class RhinoEngine implements ScriptingEngine {
     // map for Application to RhinoCore binding
     static Map coreMap;
 
