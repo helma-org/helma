@@ -613,7 +613,10 @@ public final class Application implements IPathElement, Runnable {
      *  to use for the object, then looking up the skin for the prototype.
      */
     public Skin getSkin (Object object, String skinname, Object[] skinpath) {
-	return skinmgr.getSkin (object, skinname, skinpath);
+	Prototype proto = getPrototype (object);
+	if (proto == null)
+	    return null;
+	return skinmgr.getSkin (proto, skinname, skinpath);
     }
 
     /**

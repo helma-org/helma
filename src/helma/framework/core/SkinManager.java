@@ -3,8 +3,7 @@
  
 package helma.framework.core;
 
-import java.util.Map;
-import java.util.Iterator;
+import java.util.*;
 import helma.objectmodel.INode;
 import java.io.*;
 
@@ -22,14 +21,8 @@ public final class SkinManager {
 	this.app = app;
     }
 
-    public Skin getSkin (Object object, String skinname, Object[] skinpath) {
-	Prototype proto = app.getPrototype (object);
-	Skin skin = getSkin (proto, skinname, "skin", skinpath);
-	return skin;
-    }
 
-
-    protected Skin getSkin (Prototype proto, String skinname, String extension, Object[] skinpath) {
+    protected Skin getSkin (Prototype proto, String skinname, Object[] skinpath) {
 	if (proto == null)
 	    return null;
 	Skin skin = null;
@@ -38,7 +31,7 @@ public final class SkinManager {
 	do {
 	    if (skinpath != null) {
 	        for (int i=0; i<skinpath.length; i++) {
-	            skin = getSkinInternal (skinpath[i], proto.getName (), skinname, extension);
+	            skin = getSkinInternal (skinpath[i], proto.getName (), skinname);
 	            if (skin != null) {
 	                return skin;
 	            }
@@ -58,7 +51,7 @@ public final class SkinManager {
     }
 
 
-    protected Skin getSkinInternal (Object skinset, String prototype, String skinname, String extension) {
+    protected Skin getSkinInternal (Object skinset, String prototype, String skinname) {
 	if (prototype == null || skinset == null)
 	    return null;
 	// check if the skinset object is a HopObject (db based skin)
@@ -68,7 +61,7 @@ public final class SkinManager {
 	    if (n != null) {
 	        n = n.getNode (skinname, false);
 	        if (n != null) {
-	            String skin = n.getString (extension, false);
+	            String skin = n.getString ("skin", false);
 	            if (skin != null) {
 	                return new Skin (skin, app);
 	            }
@@ -78,7 +71,7 @@ public final class SkinManager {
 	    // Skinset is interpreted as directory name from which to
 	    // retrieve the skin
 	    File f = new File (skinset.toString (), prototype);
-	    f = new File (f, skinname+"."+extension);
+	    f = new File (f, skinname+".skin");
 	    if (f.exists() && f.canRead()) {
 	        SkinFile sf = new SkinFile (f, skinname, app);
 	        return sf.getSkin ();
@@ -89,4 +82,23 @@ public final class SkinManager {
 	return null;
     }
 
+
+    protected Map getSkinFiles (String skinDir, Prototype proto) {
+	File dir = new File (skinDir.toString (), proto.getName ());
+	String[] skinNames = dir.list (new FilenameFilter () {
+	        public boolean accept (File d, String n) {
+	            return n.endsWith (".skin");
+	        }
+	    }
+	);
+	if (skinNames == null || skinNames.length == 0)
+	    return null;
+	HashMap map = new HashMap ();
+	for (int i=0; i<skinNames.length; i++) {
+	    String name = skinNames[i].substring (0, skinNames[i].length()-5);
+	    File file = new File (dir, skinNames[i]);
+	    map.put (name, new SkinFile(file, name, proto));
+	}
+	return map;
+    }
 }
