@@ -60,13 +60,13 @@ public class DomExtension extends Extension  {
 		}
 		public ESValue callFunction(ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
 			if ( arguments==null || arguments.length != 2 )
-				throw new EcmaScriptException("wrong number of arguments");
+				throw new EcmaScriptException("Wrong number of arguments in Xml.write()");
 			INode node = null;
 			try	{
 				node = ((ESNode)arguments[0]).getNode();
 			}	catch ( Exception e )	{
 				// we definitly need a node
-				throw new EcmaScriptException("first argument is not an hopobject");
+				throw new EcmaScriptException("First argument in Xml.write() is not an hopobject");
 			}
 			try	{
 				File tmpFile = new File(arguments[1].toString()+".tmp."+XmlWriter.generateID());
@@ -94,7 +94,7 @@ public class DomExtension extends Extension  {
 		}
 		public ESValue callFunction(ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
 			if ( arguments==null || arguments.length==0 )
-				throw new EcmaScriptException("not enough arguments");
+				throw new EcmaScriptException("Not enough arguments in Xml.writeToString()");
 			INode node = null;
 			try	{
 				node = ((ESNode)arguments[0]).getNode();
@@ -126,7 +126,7 @@ public class DomExtension extends Extension  {
         }
         public ESValue callFunction(ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
 			if ( arguments==null || arguments.length==0 )
-				throw new EcmaScriptException("no arguments for Xml.load()");
+				throw new EcmaScriptException("Missing arguments in Xml.read()");
 			INode node = null;
 			try	{
 				node = ((ESNode)arguments[1]).getNode();
@@ -143,8 +143,8 @@ public class DomExtension extends Extension  {
 					result = reader.read (new File(arguments[0].toString()),node);
 				return this.evaluator.reval.getNodeWrapper (result);
 			}	catch ( NoClassDefFoundError e )	{
-				throw new EcmaScriptException ("Can't load dom-capable xml parser.");
-			}	catch ( RuntimeException f )	{
+				throw new EcmaScriptException ("Can't load XML parser:"+e);
+			}	catch ( Exception f )	{
 				throw new EcmaScriptException (f.toString());
 			}
         }
