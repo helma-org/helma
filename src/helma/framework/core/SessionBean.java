@@ -66,6 +66,14 @@ public class SessionBean implements Serializable {
     public Date getonSince() {
 	return new Date (session.onSince ());
     }
+    
+    public Date getLastModified () {
+	return new Date (session.lastModified ());
+    }
+
+    public void setLastModified (Date date) {
+	session.setLastModified (date);
+    }
 
 }
 

@@ -30,7 +30,7 @@ public class Session implements Serializable {
     // this stays the same across logins and logouts.
     public TransientNode cacheNode;
 
-    long onSince, lastTouched;
+    long onSince, lastTouched, lastModified;
 
     // used to remember messages to the user between requests -
     // used for redirects.
@@ -43,7 +43,7 @@ public class Session implements Serializable {
 	this.userHandle = null;
 	cacheNode = new TransientNode ("session");
 	onSince = System.currentTimeMillis ();
-	lastTouched = onSince;
+	lastTouched = lastModified = onSince;
     }
 
     /**
@@ -57,6 +57,7 @@ public class Session implements Serializable {
 	    userHandle = ((Node)usernode).getHandle();
 	    uid = usernode.getElementName();
 	}
+	lastModified = System.currentTimeMillis ();
     }
 
     /**
@@ -65,6 +66,7 @@ public class Session implements Serializable {
     public void logout() {
 	userHandle = null;
 	uid = null;
+	lastModified = System.currentTimeMillis ();
     }
 
     public boolean isLoggedIn() {
@@ -106,6 +108,15 @@ public class Session implements Serializable {
 
     public long lastTouched () {
 	return lastTouched;
+    }
+
+    public long lastModified () {
+	return lastModified;
+    }
+    
+    public void setLastModified (Date date) {
+	if (date != null)
+	    lastModified = date.getTime ();
     }
 
     public long onSince () {
