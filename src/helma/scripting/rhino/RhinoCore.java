@@ -787,8 +787,12 @@ public final class RhinoCore implements ScopeProvider {
                 reader = new InputStreamReader(code.getInputStream());
                 cx.evaluateReader(op, reader, sourceName, 1, null);
             } else if (sourceName.endsWith(".hac")) {
-                RhinoActionAdapter raa = new RhinoActionAdapter(code);
-                reader = new StringReader(raa.function);
+                reader = new StringReader(HacHspConverter.convertHac(code));
+                cx.evaluateReader(op, reader, sourceName, 0, null);
+            } else if (sourceName.endsWith(".hsp")) {
+                reader = new StringReader(HacHspConverter.convertHsp(code));
+                cx.evaluateReader(op, reader, sourceName, 0, null);
+                reader = new StringReader(HacHspConverter.convertHspAsString(code));
                 cx.evaluateReader(op, reader, sourceName, 0, null);
             }
 
