@@ -126,7 +126,7 @@ public final class Application implements IPathElement, Runnable {
     private CryptFile pwfile;
 
     // Map of java class names to object prototypes
-    Properties classMapping;
+    SystemProperties classMapping;
 
     // Map of extensions allowed for public skins
     Properties skinExtensions;
@@ -144,6 +144,13 @@ public final class Application implements IPathElement, Runnable {
     private Map activeCronJobs = null;
     private Vector cronJobs = null;
     Hashtable customCronJobs = null;
+
+    /**
+     *  Simple constructor for dead application instances.
+     */
+    public Application(String name) {
+        this.name = name;
+    }
 
     /**
      * Build an application with the given name in the app directory. No Server-wide
@@ -241,6 +248,7 @@ public final class Application implements IPathElement, Runnable {
         File classMappingFile = new File(appDir, "class.properties");
 
         classMapping = new SystemProperties(classMappingFile.getAbsolutePath());
+        classMapping.setIgnoreCase(false);
 
         // get class name of root object if defined. Otherwise native Helma objectmodel will be used.
         rootObjectClass = classMapping.getProperty("root");
@@ -1470,6 +1478,23 @@ public final class Application implements IPathElement, Runnable {
 
         return false;
     }
+
+    /**
+     * Return the java class that a given prototype wraps, or null.
+     */
+    public String getJavaClassForPrototype(String typename) {
+
+        for (Iterator it = classMapping.entrySet().iterator(); it.hasNext();) {
+            Map.Entry entry = (Map.Entry) it.next();
+
+            if (typename.equals(entry.getValue())) {
+                return (String) entry.getKey();
+            }
+        }
+
+        return null;
+    }
+
 
     /**
      * Return a DbSource object for a given name. A DbSource is a relational database defined
