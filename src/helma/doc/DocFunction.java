@@ -22,7 +22,7 @@ public class DocFunction extends DocElement implements IPathElement	{
 			case TEMPLATE:   return ( "Template " + name );
 			case FUNCTION:   return ( "Function " + name );
 			case MACRO:      return ( "Macro " + name );
-			case SKIN:       return ( "Skin" + name );
+			case SKIN:       return ( "Skin " + name );
 		}
 		return ( "Method " + name );
 	}
