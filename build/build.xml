@@ -168,8 +168,9 @@
         <antcall target="package-tgz">
             <param name="filename" value="${package.name}"/>
         </antcall>
-        
+
         <!-- make the src distributions -->
+        <antcall target="javadocs"/>
         <antcall target="package-src-zip">
             <param name="filename" value="${package.name}"/>
         </antcall>
@@ -315,7 +316,7 @@
         <mkdir dir="${build.dist}" />
         <tar tarfile="${build.dist}/${filename}-src.tar">
             <tarfileset prefix="${filename}" dir="${home.dir}"
-                includes="src/**,build/**,license.txt,licenses/**"/>
+                includes="src/**,build/**,docs/**,license.txt,licenses/**,lib/jimi.jar"/>
         </tar>
         <gzip zipfile="${build.dist}/${filename}-src.tar.gz" src="${build.dist}/${filename}-src.tar"/>
         <delete file="${build.dist}/${filename}-src.tar"/>
@@ -330,7 +331,7 @@
         <mkdir dir="${build.dist}" />
         <zip zipfile="${build.dist}/${filename}-src.zip">
             <zipfileset dir="${home.dir}" prefix="${filename}" 
-             includes="src/**,build/**,license.txt,licenses/**" />
+             includes="src/**,build/**,docs/**,license.txt,licenses/**,lib/jimi.jar" />
         </zip>
     </target>
 
