@@ -50,17 +50,17 @@ public class ApplicationManager implements XmlRpcHandler {
     /**
      * Creates a new ApplicationManager object.
      *
-     * @param port The RMI port we're binding to
      * @param hopHome The Helma home directory
      * @param props the properties defining the running apps
      * @param server the server instance
+     * @param port The RMI port we're binding to
      */
-    public ApplicationManager(int port, File hopHome, SystemProperties props,
-                              Server server) {
-        this.port = port;
+    public ApplicationManager(File hopHome, SystemProperties props,
+                              Server server, int port) {
         this.hopHome = hopHome;
         this.props = props;
         this.server = server;
+        this.port = port;
         descriptors = new Hashtable();
         applications = new Hashtable();
         xmlrpcHandlers = new Hashtable();
