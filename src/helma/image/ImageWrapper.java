@@ -102,11 +102,16 @@ public abstract class ImageWrapper {
 
     public abstract void saveAs (String filename);
 
-    /**
-     * Get ImageProducer of the wrapped image
-     */
-    public ImageProducer getSource () {
-	return img.getSource ();
+    public void readFrom (String filename) {
+	throw new RuntimeException ("Image.readFrom() is currently not implemented.");
+    }
+
+    public byte[] getBytes (String type) { 
+	throw new RuntimeException ("Image.getBytes() is currently not implemented.");
+    }
+    
+    public void setBytes (byte[] bytes, String type) {
+	throw new RuntimeException ("Image.setBytes() is currently not implemented.");
     }
 
     public void fillString (String str) {

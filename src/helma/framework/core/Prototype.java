@@ -3,13 +3,12 @@
  
 package helma.framework.core;
 
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.*;
 import java.io.*;
 import helma.framework.*;
-import helma.scripting.*;
 import helma.objectmodel.*;
-import helma.util.Updatable;
+import FESI.Data.*;
+import FESI.Exceptions.EcmaScriptException;
 
 
 /**
@@ -25,65 +24,54 @@ public class Prototype {
     String id;
     String name;
     Application app;
-    public HashMap templates, functions, actions, skins, updatables;
+    Hashtable templates, functions, actions, skins;
+    File codeDir;
     long lastUpdate;
 
-    Prototype parent;
+    DbMapping dbmap;
 
-    // Tells us whether this prototype is used to script a generic Java object,
-    // as opposed to a Helma objectmodel node object.
-    boolean isJavaPrototype;
+    Prototype prototype;
 
-    public Prototype (String name, Application app) {
-	// app.logEvent ("Constructing Prototype "+app.getName()+"/"+name);
+
+     public Prototype (File codeDir, Application app) {
+
+	IServer.getLogger().log ("Constructing Prototype "+app.getName()+"/"+codeDir.getName ());
+
+	this.codeDir = codeDir;
 	this.app = app;
-	this.name = name;
-	isJavaPrototype = app.isJavaPrototype (name);
-	lastUpdate = 0; // System.currentTimeMillis ();
+	this.name = codeDir.getName ();
+	
+	File propfile = new File (codeDir, "type.properties");
+	SystemProperties props = new SystemProperties (propfile.getAbsolutePath ());
+	dbmap = new DbMapping (app, name, props);
+
+	lastUpdate = System.currentTimeMillis ();
+
     }
 
-    /**
-     *  Return the application this prototype is a part of
-     */
-    public Application getApplication () {
-	return app;
+
+    public Action getActionOrTemplate (String aname) {
+
+	Action retval = null;
+	if (aname == null || "".equals (aname))
+	    aname = "main";
+	retval = (Action) actions.get (aname);
+	// check if it's allowed to access templates via URL
+	// this should be cached in the future
+	if (retval == null && "true".equalsIgnoreCase (app.props.getProperty ("exposetemplates")))
+	    retval = (Action) templates.get (aname);
+	// if still not found, check if the action is defined for the generic node prototype
+	if (retval == null && this != app.typemgr.nodeProto && app.typemgr.nodeProto != null)
+	    retval = app.typemgr.nodeProto.getActionOrTemplate (aname);
+	return retval;
     }
 
-
-    /**
-     *  Set the parent prototype of this prototype, i.e. the prototype this one inherits from.
-     */
-    public void setParentPrototype (Prototype parent) {
-	// this is not allowed for the hopobject and global prototypes
-	if ("hopobject".equalsIgnoreCase (name) || "global".equalsIgnoreCase (name))
-	    return;
-	    
-	Prototype old = this.parent;
-	this.parent = parent;
-
-	// if parent has changed, update ES-prototypes in request evaluators
-	if (parent != old) {
-	    /* Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
-	    while (evals.hasNext ()) {
-	        try {
-	            RequestEvaluator reval = (RequestEvaluator) evals.next ();
-	            ObjectPrototype op = reval.getPrototype (getName());
-	            // use hopobject (node) as prototype even if prototype is null -
-	            // this is the case if no hopobject directory exists
-	            ObjectPrototype opp = parent == null ?
-	            	reval.esNodePrototype : reval.getPrototype (parent.getName ());
-	            // don't think this is possible, but check anyway
-	            if (opp == null)
-	                opp = reval.esNodePrototype;
-	            op.setPrototype (opp);
-	        } catch (Exception ignore) {
-	        }
-	    } */
-	}
+    public void setPrototype (Prototype prototype) {
+	this.prototype = prototype;
     }
 
-    public Prototype getParentPrototype () {
-	return parent;
+    public Prototype getPrototype () {
+	return prototype;
     }
 
     public Template getTemplate (String tmpname) {
@@ -94,8 +82,8 @@ public class Prototype {
 	return (FunctionFile) functions.get (ffname);
     }
 
-    public ActionFile getActionFile (String afname) {
-	return (ActionFile) actions.get (afname);
+    public Action getAction (String afname) {
+	return (Action) actions.get (afname);
     }
 
     public SkinFile getSkinFile (String sfname) {
@@ -110,29 +98,131 @@ public class Prototype {
 	    return null;
     }
 
+    public File getCodeDir () {
+	return codeDir;
+    }
+ 
+    public synchronized boolean checkCodeDir () {
+
+    	boolean retval = false;
+	String[] list = codeDir.list ();
+
+	for (int i=0; i<list.length; i++) {
+	    if (list[i].endsWith (app.templateExtension) || list[i].endsWith (app.scriptExtension)) {
+	        File f = new File (codeDir, list[i]);
+
+	        if (f.lastModified () > lastUpdate) {
+	            lastUpdate = System.currentTimeMillis ();
+	            try {
+	                app.typemgr.updatePrototype (this.name, codeDir,  this);
+	                // TypeManager.broadcaster.broadcast ("Finished update for prototype "+name+" @ "+new Date ()+"<br><hr>");
+	            } catch (Exception x) {
+	                IServer.getLogger().log ("Error building function protos in prototype: "+x);
+	                // TypeManager.broadcaster.broadcast ("Error updating prototype "+name+" in application "+app.getName()+":<br>"+x.getMessage ()+"<br><hr>");
+	            }
+	            retval = true;
+	        }
+	    }
+	}
+	return retval;
+    }
+ 
 
     public String getName () {
 	return name;
     }
 
-    Updatable[] upd = null;
-    public Updatable[] getUpdatables () {
-	if (upd == null) {
-	    upd = new Updatable[updatables.size()];
-	    int i = 0;
-	    for (Iterator it = updatables.values().iterator(); it.hasNext(); ) {
-	        upd[i++] = (Updatable) it.next();
-	    }
+
+    public void initRequestEvaluator (RequestEvaluator reval) {
+            ObjectPrototype op = null;
+            if ("user".equalsIgnoreCase (name))
+                op = reval.esUserPrototype;
+            else if ("global".equalsIgnoreCase (name))
+                op = reval.global;
+            else if ("hopobject".equalsIgnoreCase (name))
+                op = reval.esNodePrototype;
+            else {
+                op = new ObjectPrototype (reval.esNodePrototype, reval.evaluator);
+                try {
+                    op.putProperty ("prototypename", new ESString (name), "prototypename".hashCode ());
+                } catch (EcmaScriptException ignore) {}
+            }
+            reval.putPrototype (name, op);
+
+            // Register a constructor for all types except global.
+            // This will first create a node and then call the actual (scripted) constructor on it.
+            if (!"global".equalsIgnoreCase (name)) {
+                try {
+                    FunctionPrototype fp = (FunctionPrototype) reval.evaluator.getFunctionPrototype();
+                    reval.global.putHiddenProperty (name, new NodeConstructor (name, fp, reval));
+                } catch (EcmaScriptException ignore) {}
+            }
+
+	for (Enumeration en = functions.elements(); en.hasMoreElements(); ) {
+	    FunctionFile ff = (FunctionFile) en.nextElement ();
+	    ff.updateRequestEvaluator (reval);
 	}
-	return upd;
-
+	for (Enumeration en = templates.elements(); en.hasMoreElements(); ) {
+	    Template tmp = (Template) en.nextElement ();
+	    try {
+	        tmp.updateRequestEvaluator (reval);
+	    } catch (EcmaScriptException ignore) {}
+	}
+	for (Enumeration en = actions.elements(); en.hasMoreElements(); ) {
+	    Action act = (Action) en.nextElement ();
+	    try {
+	        act.updateRequestEvaluator (reval);
+	    } catch (EcmaScriptException ignore) {}
+	}
     }
-
-
-
-    public String toString () {
-	return "[Prototype "+ app.getName()+"/"+name+"]";
-    }
-
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -4,7 +4,6 @@
 package helma.objectmodel.db;
 
 import helma.objectmodel.*;
-import java.util.List;
 import java.util.Vector;
 
 
@@ -23,17 +22,13 @@ import java.util.Vector;
     }
 
     public Node getNode (String id, DbMapping dbmap) {
-	return getNode (new DbKey (dbmap, id));
-    }
-
-    public Node getNode (Key key) {
 	try {
-	    return nmgr.getNode (key);
+	    return nmgr.getNode (id, dbmap);
 	} catch (ObjectNotFoundException x) {
 	    return null;
 	} catch (Exception x) {
-	    nmgr.app.logEvent ("Error retrieving Node via DbMapping: "+x.getMessage ());
-	    if (nmgr.app.debug ())
+	    Server.getLogger().log ("Error retrieving Node via DbMapping: "+x.getMessage ());
+	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
 	        x.printStackTrace();
 	    throw new RuntimeException ("Error retrieving Node: "+x.getMessage ());
 	}
@@ -45,28 +40,28 @@ import java.util.Vector;
 	} catch (ObjectNotFoundException x) {
 	    return null;
 	} catch (Exception x) {
-	    nmgr.app.logEvent ("Error retrieving Node \""+id+"\" from "+home+": "+x.getMessage ());
-	    if (nmgr.app.debug ())
+	    Server.getLogger().log ("Error retrieving Node \""+id+"\" from "+home+": "+x.getMessage ());
+	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
 	        x.printStackTrace();
 	    throw new RuntimeException ("Error retrieving Node: "+x.getMessage ());
 	}
     }
 
-    public List getNodes (Node home, Relation rel) {
+    public Vector getNodes (Node home, Relation rel) {
 	try {
 	    return nmgr.getNodes (home, rel);
 	} catch (Exception x) {
-	    if (nmgr.app.debug ())
+	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
 	        x.printStackTrace();
 	    throw new RuntimeException ("Error retrieving Nodes: "+x.getMessage ());
 	}
     }
 
-    public List getNodeIDs (Node home, Relation rel) {
+    public Vector getNodeIDs (Node home, Relation rel) {
 	try {
 	    return nmgr.getNodeIDs (home, rel);
 	} catch (Exception x) {
-	    if (nmgr.app.debug ())
+	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
 	        x.printStackTrace();
 	    throw new RuntimeException ("Error retrieving NodeIDs: "+x.getMessage ());
 	}
@@ -76,7 +71,7 @@ import java.util.Vector;
 	try {
 	    return nmgr.countNodes (home, rel);
 	} catch (Exception x) {
-	    if (nmgr.app.debug ())
+	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
 	        x.printStackTrace();
 	    throw new RuntimeException ("Error counting Node: "+x.getMessage ());
 	}
@@ -86,7 +81,7 @@ import java.util.Vector;
 	try {
 	    nmgr.deleteNode (node);
 	} catch (Exception x) {
-	    if (nmgr.app.debug ())
+	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
 	        x.printStackTrace();
 	    throw new RuntimeException ("Error deleting Node: "+x.getMessage ());
 	}
@@ -96,7 +91,7 @@ import java.util.Vector;
 	try {
 	    return nmgr.getPropertyNames (home, rel);
 	} catch (Exception x) {
-	    if (nmgr.app.debug ())
+	    if ("true".equalsIgnoreCase (Server.sysProps.getProperty("debug")))
 	        x.printStackTrace();
 	    throw new RuntimeException ("Error retrieving property names: "+x.getMessage ());
 	}
@@ -137,14 +132,6 @@ import java.util.Vector;
 
     public Object[] getCacheEntries () {
 	return nmgr.getCacheEntries ();
-    }
-
-    public void logEvent (String msg) {
-	nmgr.app.logEvent (msg);
-    }
-
-    public DbMapping getDbMapping (String name) {
-	return nmgr.app.getDbMapping (name);
     }
 
 

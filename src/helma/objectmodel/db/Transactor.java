@@ -22,7 +22,6 @@ public class Transactor extends Thread {
 
     // List of nodes to be updated
     private HashMap nodes;
-    private ArrayList nodesArray;
     // List of visited clean nodes
     private HashMap cleannodes;
     // Is a transaction in progress?
@@ -45,7 +44,6 @@ public class Transactor extends Thread {
 	super (group, runnable, group.getName ());
 	this.nmgr = nmgr;
 	nodes = new HashMap ();
-	nodesArray = new ArrayList ();
 	cleannodes = new HashMap ();
 	sqlCon = new HashMap ();
 	active = false;
@@ -58,7 +56,6 @@ public class Transactor extends Thread {
 	    Key key = node.getKey ();
 	    if (!nodes.containsKey (key)) {
 	        nodes.put (key, node);
-	        nodesArray.add (node);
 	    }
 	}
     }
@@ -67,7 +64,6 @@ public class Transactor extends Thread {
 	if (node != null) {
 	    Key key = node.getKey ();
 	    nodes.remove (key);
-	    nodesArray.remove (node);
 	}
     }
 
@@ -114,7 +110,6 @@ public class Transactor extends Thread {
 	    abort ();
 
 	nodes.clear ();
-	nodesArray.clear ();
 	cleannodes.clear ();
 	txn = nmgr.db.beginTransaction ();
 	active = true;
@@ -130,44 +125,36 @@ public class Transactor extends Thread {
 	}
 
 	int ins = 0, upd = 0, dlt = 0;
-	int l = nodesArray.size ();
+	int l = nodes.size ();
 
-	Replicator replicator = nmgr.getReplicator ();
+	for (Iterator i=nodes.values().iterator(); i.hasNext (); ) {
+	    Node node = (Node) i.next ();
 
-	for (int i=0; i<l; i++) {
-	    Node node = (Node) nodesArray.get (i);
 	    // update nodes in db
 	    int nstate = node.getState ();
 	    if (nstate == Node.NEW) {
 	        nmgr.registerNode (node); // register node with nodemanager cache
 	        nmgr.insertNode (nmgr.db, txn, node);
 	        node.setState (Node.CLEAN);
-	        if (replicator != null)
-	            replicator.addNewNode (node);
 	        ins++;
-	        nmgr.app.logEvent ("inserted: Node "+node.getPrototype ()+"/"+node.getID ());
+	        IServer.getLogger().log ("inserted: Node "+node.getName ()+"/"+node.getID ());
 	    } else if (nstate == Node.MODIFIED) {
 	        nmgr.updateNode (nmgr.db, txn, node);
 	        node.setState (Node.CLEAN);
-	        if (replicator != null)
-	            replicator.addModifiedNode (node);
 	        upd++;
-	        nmgr.app.logEvent ("updated: Node "+node.getPrototype ()+"/"+node.getID ());
+	        IServer.getLogger().log ("updated: Node "+node.getName ()+"/"+node.getID ());
 	    } else if (nstate == Node.DELETED) {
-	        // nmgr.app.logEvent ("deleted: "+node.getFullName ()+" ("+node.getName ()+")");
+	        // IServer.getLogger().log ("deleted: "+node.getFullName ()+" ("+node.getName ()+")");
 	        nmgr.deleteNode (nmgr.db, txn, node);
 	        nmgr.evictNode (node);
-	        if (replicator != null)
-	            replicator.addDeletedNode (node);
 	        dlt++;
 	    } else {
-	        // nmgr.app.logEvent ("noop: "+node.getFullName ());
+	        // IServer.getLogger().log ("noop: "+node.getFullName ());
 	    }
 	    node.clearWriteLock ();
 	}
 
 	nodes.clear ();
-	nodesArray.clear ();
 	cleannodes.clear ();
 
 	if (nmgr.idgen.dirty) {
@@ -181,21 +168,19 @@ public class Transactor extends Thread {
 	    txn = null;
 	}
 
-	nmgr.app.logAccess (tname+" "+l+" marked, "+ins+" inserted, "+upd+" updated, "+dlt+" deleted in "+(System.currentTimeMillis()-tstart)+" millis");
+	IServer.getLogger().log (tname+" "+l+" marked, "+ins+" inserted, "+upd+" updated, "+dlt+" deleted in "+(System.currentTimeMillis()-tstart)+" millis");
     }
 
     public synchronized void abort () throws Exception {
 
-	int l = nodesArray.size ();
-	for (int i=0; i<l; i++ ) {
-	    Node node = (Node) nodesArray.get (i);
+	for (Iterator i=nodes.values().iterator(); i.hasNext(); ) {
+	    Node node = (Node) i.next ();
 	    // Declare node as invalid, so it won't be used by other threads that want to
 	    // write on it and remove it from cache
 	    nmgr.evictNode (node);
 	    node.clearWriteLock ();
 	}
 	nodes.clear ();
-	nodesArray.clear ();
 	cleannodes.clear ();
 	// close any JDBC connections associated with this transactor thread
 	closeConnections ();
@@ -206,7 +191,7 @@ public class Transactor extends Thread {
 	        nmgr.db.abortTransaction (txn);
 	        txn = null;
 	    }
-	    nmgr.app.logEvent (tname+" aborted after "+(System.currentTimeMillis()-tstart)+" millis");
+	    IServer.getLogger().log (tname+" aborted after "+(System.currentTimeMillis()-tstart)+" millis");
 	}
     }
 
@@ -229,13 +214,13 @@ public class Transactor extends Thread {
     }
 
     public void closeConnections () {
-	// nmgr.app.logEvent("Cleaning up Transactor thread");
+	// IServer.getLogger().log("Cleaning up Transactor thread");
 	if (sqlCon != null) {
 	    for (Iterator i=sqlCon.values().iterator(); i.hasNext(); ) {
 	        try {
 	            Connection con = (Connection) i.next();
 	            con.close ();
-	            nmgr.app.logEvent ("Closing DB connection: "+con);
+	            IServer.getLogger ().log ("Closing DB connection: "+con);
 	        } catch (Exception ignore) {}
 	    }
 	    sqlCon.clear ();
@@ -247,6 +232,104 @@ public class Transactor extends Thread {
     }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -5,7 +5,7 @@ package helma.framework.core;
 
 import java.util.*;
 import java.io.*;
-import helma.util.Updatable;
+import helma.objectmodel.IServer;
 
 
 /**
@@ -13,7 +13,7 @@ import helma.util.Updatable;
  */
 
 
-public class SkinFile implements Updatable {
+public class SkinFile {
 
     String name;
     Prototype prototype;
@@ -30,65 +30,28 @@ public class SkinFile implements Updatable {
 	this.skin = null;
     }
 
-    /**
-     * Create a skinfile without a file, passing the skin body directly. This is used for
-     * Skins contained in zipped applications. The whole update mechanism is bypassed
-     *  by immediately setting the skin member.
-     */
-    public SkinFile (String body, String name, Prototype proto) {
-	this.prototype = proto;
-	this.app = proto.app;
-	this.name = name;
-	this.file = null;
-	this.skin = new Skin (body, app);
-    }
 
-    /**
-     * Create a skinfile without that doesn't belong to a prototype, or at
-     * least it doesn't know about its prototype and isn't managed by the prototype.
-     */
-    public SkinFile (File file, String name, Application app) {
-	this.prototype = null;
-	this.app = app;
-	this.name = name;
-	this.file = file;
-	this.skin = null;
-    }
+    public void update (File f) {
 
+	this.file = f;
 
-     /**
-     * Tell the type manager whether we need an update. this is the case when
-     * the file has been modified or deleted.
-     */
-    public boolean needsUpdate () {
-	return (skin != null && lastmod != file.lastModified ()) || !file.exists ();
-    }
+	long fmod = file.lastModified ();
+	// we only update this if we already have read the skin
+	if (skin == null || lastmod == fmod)
+	    return;
 
-
-    public void update () {
-
-	if (!file.exists ()) {
-	    // remove skin from  prototype
-	    if (prototype != null) {
-	        prototype.skins.remove (name);
-	        prototype.updatables.remove (file.getName());
-	    }
-	} else {
-	    // we only need to update if the skin has already been initialized
-	    if (skin != null)
-	        read ();
-	}
+	read ();
     }
 
     private void read () {
 	try {
 	    FileReader reader = new FileReader (file);
 	    char c[] = new char[(int) file.length()];
-	    int length = reader.read (c);
+	    reader.read (c);
 	    reader.close();
-	    skin = new Skin (c, length, app);
+	    skin = new Skin (new String (c));
 	} catch (IOException x) {
-	    app.logEvent ("Error reading Skin "+file+": "+x);
+	    IServer.getLogger().log ("Error reading Skin "+file+": "+x);
 	}
 	
 	lastmod = file.lastModified ();
@@ -99,15 +62,45 @@ public class SkinFile implements Updatable {
 	    read ();
 	return skin;
     }
-
-    public String getName () {
-	return name;
-    }
 	
-    public String toString () {
-	return prototype.getName()+"/"+file.getName();
-    }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

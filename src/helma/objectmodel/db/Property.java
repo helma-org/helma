@@ -23,8 +23,8 @@ public final class Property implements IProperty, Serializable, Cloneable {
     protected boolean bvalue;
     protected long lvalue;
     protected double dvalue;
-    // protected String nvalueID;
-    protected NodeHandle nhandle;
+    protected String nvalueID;
+    private transient DbMapping dbm;
     protected Object jvalue;
 
     protected int type;
@@ -40,11 +40,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	    type = in.readInt ();
 	    switch (type) {
 	    case STRING:
-	        // try to convert from old format
-	        if (node.version < 7)
-	            svalue = in.readUTF ();
-	        else
-	            svalue = (String) in.readObject ();
+	        svalue = in.readUTF ();
 	        break;
 	    case BOOLEAN:
 	        bvalue = in.readBoolean ();
@@ -57,11 +53,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	        dvalue = in.readDouble ();
 	        break;
 	    case NODE:
-	        // try to convert from old format
-	        if (node.version > 4)
-	            nhandle = (NodeHandle) in.readObject ();
-	        else
-	            nhandle = new NodeHandle (new DbKey (null, in.readUTF ()));
+	        nvalueID = in.readUTF ();
 	        break;
 	    case JAVAOBJECT:
 	        jvalue = in.readObject ();
@@ -73,12 +65,15 @@ public final class Property implements IProperty, Serializable, Cloneable {
     }
 
     private void writeObject (ObjectOutputStream out) throws IOException {
+	// don't even start if this is a non-serializable Java object
+	if (type == JAVAOBJECT && jvalue != null && !(jvalue instanceof Serializable))
+	    return;
 	out.writeUTF (propname);
 	out.writeObject (node);
 	out.writeInt (type);
 	switch (type) {
 	case STRING:
-	    out.writeObject (svalue);
+	    out.writeUTF (svalue);
 	    break;
 	case BOOLEAN:
 	    out.writeBoolean (bvalue);
@@ -91,13 +86,10 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	    out.writeDouble (dvalue);
 	    break;
 	case NODE:
-	    out.writeObject (nhandle);
+	    out.writeUTF (nvalueID);
 	    break;
 	case JAVAOBJECT:
-	    if (jvalue != null && !(jvalue instanceof Serializable))
-	        out.writeObject (null);
-	    else
-	        out.writeObject (jvalue);
+	    out.writeObject (jvalue);
 	    break;
 	}
     }
@@ -117,7 +109,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
     public Property (String propname, Node node, Node value) {
 	this (propname, node);
 	type = NODE;
-	nhandle = value == null ? null : value.getHandle ();
+	nvalueID = value == null ? null : value.getID ();
 	dirty = true;
     }
 
@@ -148,11 +140,41 @@ public final class Property implements IProperty, Serializable, Cloneable {
     public void setStringValue (String value) {
 	if (type == NODE)
 	    unregisterNode ();
+	// IServer.getLogger().log ("setting string value of property "+propname + " to "+value);
+	// mark property as dirty
+	dirty = true;
+	// if this is not a string property, try to parse a value out of it
+	if (type == DATE) {
+	    SimpleDateFormat dateformat = new SimpleDateFormat ();
+	    try {
+	        dateformat.setLenient (true);
+	        Date date = dateformat.parse (value);
+	        this.lvalue =  date.getTime ();
+	        return;
+	    } catch (ParseException nodate) {
+	        IServer.getLogger().log ("Couldn't parse date: was expecting something like "+dateformat.format (new Date()));
+	        // store as plain string
+	    }
+	}
+	if (type == BOOLEAN) {
+	    if ("true".equalsIgnoreCase (value))
+	        this.bvalue = true;
+	    else if ("false".equalsIgnoreCase (value))
+	        this.bvalue = false;
+	    return;
+	}
+	if (type == INTEGER) {
+	    this.lvalue = Long.parseLong (value);
+	    return;
+	}
+	if (type == FLOAT) {
+	    this.dvalue = new Double (value).doubleValue ();
+	    return;
+	}
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
-	type = STRING;
 	this.svalue = value;
-	dirty = true;
+	type = STRING;
     }
 
 
@@ -197,16 +219,39 @@ public final class Property implements IProperty, Serializable, Cloneable {
     }
 
     public void setNodeValue (Node value) {
-	// value.checkWriteLock ();
+	value.checkWriteLock ();
 	if (type == NODE)
 	    unregisterNode ();
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
-	
-	// registerNode (value);	
+	registerNode (value);	
 	type = NODE;
-	
-	nhandle = value.getHandle ();
+	if (node.dbmap != null) {
+	    Relation rel = node.dbmap.getPropertyRelation (propname);
+	    if (rel != null && rel.other != null) {
+	        DbMapping vmap = value.getDbMapping ();
+	        // check if actual type matches expected type
+	        if (rel.other != vmap && (!rel.virtual || rel.prototype != null)) {
+	            throw new RuntimeException ("Can't assign property: expected prototype "+rel.other+", got "+vmap);
+	        }
+	        // check if this is a forward relation, i.e. if we point to a field in the value object
+	        // if so, we may use something else than the object's id to refer to it.
+	        if (!rel.virtual && rel.direction == Relation.FORWARD) {
+	            if (rel.usesPrimaryKey ()) {
+	                this.nvalueID = value.getID ();
+	            } else try {
+	                this.nvalueID = value.getString (vmap.columnNameToProperty (rel.getRemoteField()).propname, false);
+	            } catch (Exception x) {
+	                throw new RuntimeException ("Can't set "+propname+" to "+value+": error retrieving target property");
+	            }
+	            this.dbm = null;
+	            dirty = true;
+	            return;
+	        }
+	    }
+	}
+	this.nvalueID = value == null ? null : value.getID ();
+	this.dbm = value == null ? null : value.getDbMapping ();
 	dirty = true;
     }
 
@@ -223,38 +268,47 @@ public final class Property implements IProperty, Serializable, Cloneable {
      * If this was the "main" property for the node, also remove all other references.
      */
     protected void unregisterNode () {
-	Node nvalue = null;
-	if (nhandle != null)
-	    nvalue = nhandle.getNode (node.nmgr);
-	
-	DbMapping nvmap = null;
-	Relation nvrel = null;
-	if (node.dbmap != null) {
-	    nvmap = node.dbmap.getPropertyMapping (propname);
-	    nvrel = node.dbmap.getPropertyRelation (propname);
-	}
-	
-	if (nvalue == null)
-	    return;
-	
-	nvalue.checkWriteLock ();
-	// check if the property node is also a subnode
-	// BUG: this doesn't work because properties for subnode/properties are never stored and therefore
-	// never reused.
-	if (nvrel != null && nvrel.subnodesAreProperties) {
-	    node.removeNode (nvalue);
-	}
-	// only need to call unregisterPropLink if the value node is not stored in a relational db
-	// also, getParent is heuristical/implicit for relational nodes, so we don't do deepRemoveNode
-	// based on that for relational nodes.
-	if (nvmap == null || !nvmap.isRelational()) {
-	    if (!nvalue.isAnonymous() && propname.equals (nvalue.getName()) && this.node == nvalue.getParent()) {
-	        // this is the "main" property of a named node, so handle this as a cascading delete.
-	        nvalue.deepRemoveNode ();
+	if (nvalueID != null) {
+	    DbMapping nvmap = null;
+	    Relation nvrel = null;
+	    if (node.dbmap != null) {
+	        nvmap = node.dbmap.getPropertyMapping (propname);
+	        nvrel = node.dbmap.getPropertyRelation (propname);
+	    }
+	    Node nvalue = node.nmgr.getNode (nvalueID, nvmap);
+	    if (nvalue == null)
+	        return;
+	    nvalue.checkWriteLock ();
+	    // check if the property node is also a subnode
+	    // BUG: this doesn't work because properties for subnode/properties are never stored and therefore
+	    // never reused.
+	    if (nvrel != null && nvrel.subnodesAreProperties) {
+	        node.removeNode (nvalue);
+	    }
+	    // only need to call unregisterPropLink if the value node is not stored in a relational db
+	    // also, getParent is heuristical/implicit for relational nodes, so we don't do deepRemoveNode
+	    // based on that for relational nodes.
+	    if (nvmap == null || !nvmap.isRelational()) {
+	        if (!nvalue.isAnonymous() && propname.equals (nvalue.getName()) && this.node == nvalue.getParent()) {
+	            // this is the "main" property of a named node, so handle this as a cascading delete.
+	            nvalue.deepRemoveNode ();
+	        } else {
+	            nvalue.unregisterPropLink (this.node);
+	        }
 	    }
 	}
     }
 
+
+    /**
+     *  Tell the value node that it is being used as a property value.
+     */
+    protected void registerNode (Node n) {
+	// only need to call registerPropLink if the value node is not stored in a relational db
+	if (n != null && (n.dbmap == null || !n.dbmap.isRelational())) {
+	    n.registerPropLink (this.node);
+	}
+    }
 
     public String getStringValue () {
 	switch (type) {
@@ -270,9 +324,9 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	case FLOAT:
 	    return Double.toString (dvalue);
 	case NODE:
-	    return nhandle.getID ();
+	    return nvalueID;
 	case JAVAOBJECT:
-	    return jvalue == null ? null : jvalue.toString ();
+	    return jvalue.toString ();
 	}
 	return "";
     }
@@ -307,10 +361,46 @@ public final class Property implements IProperty, Serializable, Cloneable {
     }
 
     public INode getNodeValue () {
-	
-	if (nhandle != null) {
-	    Node n = nhandle.getNode (node.nmgr);
-	    if (n != null) return n;
+
+	if (type == NODE && nvalueID != null) {
+	    Relation rel = null;
+	    if (dbm == null && node.dbmap != null) {
+	        // try to get DbMap for property, if it isn't known yet
+	        rel = node.dbmap.getPropertyRelation (propname);
+	        // figure out db mapping from relation
+	        if (rel != null) {
+	            // is the property a virtual node containing objects from relational db?
+	            if (rel.virtual && rel.other.isRelational ())
+	                return node.nmgr.getNode (node, propname, rel);
+	            else if (!rel.virtual && rel.direction == Relation.FORWARD)
+	                return node.nmgr.getNode (node, nvalueID, rel);
+	            // avoid setting dbm for virtual and groupby relations, except for
+	            // [mountpoint] kind of prototyped virtual nodes
+	            else if ((!rel.virtual || rel.prototype != null) && rel.groupby == null)
+	                dbm = rel.other;
+	        }
+	    }
+
+	    // we have what we need, now get the node from the node manager
+	    Node retval = node.nmgr.getNode (nvalueID, dbm);
+	    if (retval != null && retval.parentID == null && !"root".equalsIgnoreCase (retval.getPrototype ())) {
+	        retval.setParent (node);
+	        retval.setName (propname);
+	        retval.anonymous = false;
+	    }
+
+	    if (retval != null && retval.getDbMapping () == null && rel != null && rel.virtual && rel.prototype == null) {
+	        // a virtual node whose child nodes are not relational -
+	        // set up dbmapping that describes subnodes and properties
+	        DbMapping _dbm = new DbMapping ();
+	        _dbm.setSubnodeMapping (rel.other);
+	        _dbm.setPropertyMapping (rel.other);
+	        _dbm.setSubnodeRelation (rel.getVirtualSubnodeRelation());
+	        _dbm.setPropertyRelation (rel.getVirtualPropertyRelation());
+	        retval.setDbMapping (_dbm);
+	    }
+
+	    return retval;
 	}
 	return null;
     }
@@ -321,9 +411,91 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	return null;
     }
 
+    public String getEditor () {
+	switch (type) {
+	case STRING:
+	    return "password".equalsIgnoreCase (propname) ? 
+	        "<input type=password name=\""+propname+"\" value='"+ svalue.replace ('\'', '"') +"'>" : 
+	        "<input type=text name=\""+propname+"\" value='"+ svalue.replace ('\'', '"') +"'>" ;
+	case BOOLEAN:
+	    return "<select name=\""+propname+"\"><option selected value="+bvalue+">"+bvalue+"</option><option value="+!bvalue+">"+!bvalue+"</option></select>";
+	case INTEGER:
+	    return "<input type=text name=\""+propname+"\" value=\""+lvalue+"\">" ;
+	case FLOAT:
+	    return "<input type=text name=\""+propname+"\" value=\""+dvalue+"\">" ;
+	case DATE:
+	    SimpleDateFormat format = new SimpleDateFormat ("dd.MM.yy hh:mm");
+	    String date =  format.format (new Date (lvalue));
+	    return "<input type=text name=\""+propname+"\" value=\""+date+"\">";
+	case NODE:
+	    DbMapping nvmap = null;
+	    if (node.dbmap != null)
+	        nvmap = node.dbmap.getPropertyMapping (propname);
+	    return "<input type=text size=25 name="+propname+" value='"+ node.nmgr.getNode (nvalueID, nvmap).getName () +"'>";
+	}
+	return "";
+    }
+
+    private String escape (String s) {
+	char c[] = new char[s.length()];
+	s.getChars (0, c.length, c, 0);
+	StringBuffer b = new StringBuffer ();
+	int copyfrom = 0;
+	for (int i = 0; i < c.length; i++) {
+	    switch (c[i]) {
+	        case '\\': 
+	        case '"':
+	            if (i-copyfrom > 0)
+	                b.append (c, copyfrom, i-copyfrom);
+	            b.append ('\\');
+	            b.append (c[i]);
+	            copyfrom = i+1;
+	    }   
+	}
+	if (c.length-copyfrom > 0)
+	    b.append (c, copyfrom, c.length-copyfrom);
+	return b.toString ();
+    }
 
     public int getType () {
 	return type;
+
+    }
+
+    public String getTypeString () {
+	switch (type) {
+	case STRING:
+	    return "string";
+	case BOOLEAN:
+	    return "boolean";
+	case DATE:
+	    return "date";
+	case INTEGER:
+	    return "integer";
+	case FLOAT:
+	    return "float";
+	case NODE:
+	    return "node";
+	}
+	return "";
+    }
+
+
+    public Object clone () {
+	try {
+	    Property c = (Property) super.clone();
+	    c.propname = this.propname;
+	    c.svalue = this.svalue;
+	    c.bvalue = this.bvalue;
+	    c.lvalue = this.lvalue;
+	    c.dvalue = this.dvalue;
+	    c.nvalueID = this.nvalueID;
+	    c.type = this.type;
+	    return c;
+	} catch (CloneNotSupportedException e) { 
+	    // this shouldn't happen, since we are Cloneable
+	    throw new InternalError ();
+	}
     }
 
 }

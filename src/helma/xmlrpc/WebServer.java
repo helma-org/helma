@@ -219,9 +219,6 @@ public class WebServer implements Runnable {
     if (listener != null) {
         Thread l = listener;
         listener = null;
-        try {
-            serverSocket.close ();
-        } catch (Exception ignore) {}
         l.interrupt ();
     }
   }
@@ -399,7 +396,7 @@ class Connection implements Runnable {
 
   private void parseAuth (String line) {
     try {
-      byte[] c = Base64.decode (line.substring (21).toCharArray ());
+      byte[] c = Base64.decode (line.substring (21).getBytes());
       String str = new String (c);
       int col = str.indexOf (":");
       user = str.substring (0, col);

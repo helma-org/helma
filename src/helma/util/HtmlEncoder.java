@@ -18,7 +18,6 @@ import java.text.*;
 public final class HtmlEncoder {
 
 
-    /*
     static final Hashtable convertor = new Hashtable (128);
 
     // conversion table
@@ -119,70 +118,70 @@ public final class HtmlEncoder {
      convertor.put(new Integer(253), "&yacute;");
      convertor.put(new Integer(254), "&thorn;");
      convertor.put(new Integer(255), "&yuml;");
-    }  */
+    }
 
     /**
      * 
      */ 
-    public final static String encode (String str) {
+    public final static String encode (String what) {
 	// try to make stringbuffer large enough from the start
-	StringBuffer ret = new StringBuffer (Math.round (str.length()*1.4f));
-	encode (str, ret);
+	StringBuffer ret = new StringBuffer (Math.round (what.length()*1.4f));
+	encode (what, ret);
 	return ret.toString(); 
     }
     
     /**
      *  
      */ 
-    public final static void encode (String str, StringBuffer ret) {
-	if  (str == null)
+    public final static void encode (String what, StringBuffer ret) {
+	if  (what == null || what.length() == 0) {
 	    return;
-	
-	int l = str.length();
-	
+	}
+
+	StringReader in = new StringReader (what);
+	int c;
 	boolean closeTag=false, readTag=false, tagOpen=false;
 	// the difference between swallowOneNewline and ignoreNewline is that swallowOneNewline is just effective once (for the next newline)
-	boolean ignoreNewline = false;
+             boolean ignoreNewline = false;
 	boolean swallowOneNewline = false;
 	StringBuffer tag = new StringBuffer ();
-	
-	for (int i=0; i<l; i++) {
-	    char c = str.charAt (i);
-	    if (readTag) {
-	        if (Character.isLetterOrDigit (c))
-	            tag.append (c);
-	        else if ('/' == c)
-	            closeTag = true;
-	        else {
-	            String t = tag.toString ();
-	            // set ignoreNewline on some tags, depending on wheather they're
-	            // being opened or closed.
-	            // what's going on here? we switch newline encoding on inside some tags, for
-	            // others we switch it on when they're closed
-	            if ("td".equalsIgnoreCase (t) || "th".equalsIgnoreCase (t) || "li".equalsIgnoreCase (t)) {
-	                ignoreNewline = closeTag;
-	                swallowOneNewline = true;
-	            } else if ("table".equalsIgnoreCase (t) || "ul".equalsIgnoreCase (t) || "ol".equalsIgnoreCase (t) || "pre".equalsIgnoreCase (t)) {
-	                ignoreNewline = !closeTag;
-	                swallowOneNewline = true;
-	            } else if ("p".equalsIgnoreCase (t)) {
-	                swallowOneNewline = true;
-	            }
-	
-	            readTag = false;
-	            closeTag = false;
-	            tag.setLength (0);
-	        }
-	    } // if (readTag)
+	try {
+	    while ((c = in.read()) != -1) {
+	        if (readTag) {
+	             if (Character.isLetterOrDigit ((char) c))
+	                 tag.append ((char) c);
+	             else if ('/' == c)
+	                 closeTag = true;
+	             else {
+	                 String t = tag.toString ();
+	                 // set ignoreNewline on some tags, depending on wheather they're
+	                 // being opened or closed.
+	                 // what's going on here? we switch newline encoding on inside some tags, for
+	                 // others we switch it on when they're closed
+	                 if ("td".equalsIgnoreCase (t) || "th".equalsIgnoreCase (t) || "li".equalsIgnoreCase (t)) {
+	                     ignoreNewline = closeTag;
+	                     swallowOneNewline = true;
+	                 } else if ("table".equalsIgnoreCase (t) || "ul".equalsIgnoreCase (t) || "ol".equalsIgnoreCase (t) || "pre".equalsIgnoreCase (t)) {
+	                     ignoreNewline = !closeTag;
+	                     swallowOneNewline = true;
+	                 } else if ("p".equalsIgnoreCase (t)) {
+	                     swallowOneNewline = true;
+	                 }
 
-	    switch (c) {
+	                 readTag = false;
+	                 closeTag = false;
+	                 tag.setLength (0);
+	             }
+	        } // if (readTag)
+
+	        switch (c) {
 	        // case '&':
-                      //    ret.append ("&amp;");
+                     //    ret.append ("&amp;");
 	        //    break;
 	        case  '\n':
-	            ret.append ('\n');
                          if (!ignoreNewline && !swallowOneNewline)
 	                ret.append ("<br>");
+	            ret.append ('\n');
 	            if (!tagOpen)
 	                swallowOneNewline = false;
 	            break;
@@ -197,28 +196,28 @@ public final class HtmlEncoder {
 	            ret.append ('>');
 	            break;
 	        default:
-	             ret.append (c);
-	             // if (c < 160)
-	             //     ret.append ((char) c);
-	             // else if (c >= 160 && c <= 255)
-	             //     ret.append (convertor.get(new Integer(c)));
-	             // else {
-	             //     ret.append ("&#");
-	             //     ret.append (c);
-	             //     ret.append (";");
-	             // }
-	             if (!tagOpen && !Character.isWhitespace (c))
+	             if (c < 160)
+	                 ret.append ((char) c);
+	             else if (c >= 160 && c <= 255)
+	                 ret.append (convertor.get(new Integer(c)));
+	             else {
+	                 ret.append ("&#");
+	                 ret.append (c);
+	                 ret.append (";");
+	             }
+	             if (!tagOpen && !Character.isWhitespace ((char)c))
 	                 swallowOneNewline = false;
+	        }
 	    }
-	}
+	} catch (IOException e) {}
      }
 
     /**
      *
      */
-    public final static String encodeFormValue (String str) {
-	StringBuffer ret = new StringBuffer (Math.round (str.length()*1.2f));
-	encodeAll (str, ret, false);
+    public final static String encodeFormValue (String what) {
+	StringBuffer ret = new StringBuffer (Math.round (what.length()*1.4f));
+	encodeAll (what, ret, false);
 	return ret.toString();
     }
 
@@ -226,17 +225,17 @@ public final class HtmlEncoder {
     /**
      *  
      */ 
-    public final static String encodeAll (String str) {
-	StringBuffer ret = new StringBuffer (Math.round (str.length()*1.2f));
-	encodeAll (str, ret, true);
+    public final static String encodeAll (String what) {
+	StringBuffer ret = new StringBuffer (Math.round (what.length()*1.4f));
+	encodeAll (what, ret, true);
 	return ret.toString(); 
     }
 
     /**
      *  
      */
-    public final static String encodeAll (String str, StringBuffer ret) {
-	encodeAll (str, ret, true);
+    public final static String encodeAll (String what, StringBuffer ret) {
+	encodeAll (what, ret, true);
 	return ret.toString();
     }
 
@@ -244,76 +243,115 @@ public final class HtmlEncoder {
     /**
      *  
      */ 
-    public final static void encodeAll (String str, StringBuffer ret, boolean encodeNewline) {
-	if  (str == null)
+    public final static void encodeAll (String what, StringBuffer ret, boolean encodeNewline) {
+	if  (what == null || what.length() == 0) {
 	    return;
+	}
 
-	int l = str.length();
-	for (int i=0; i<l; i++) {
-	    char c = str.charAt (i);
-	    switch (c) {
-	        case '<' :
+	StringReader in = new StringReader (what);
+	int c;
+	try {
+	    while ((c = in.read()) != -1) {
+	      switch (c) {
+	         case '<' :
 	            ret.append ("&lt;");
 	            break;
-	        case '>':
+	         case '>':
 	            ret.append ("&gt;");
 	            break;
-	        case '&':
+	         case '&':
 	            ret.append ("&amp;");
 	            break;
-	        case '"':
+	         case '"':
 	            ret.append ("&quot;");
 	            break;
-	        case  '\n':
-	            ret.append ('\n');
+	         case  '\n':
 	            if (encodeNewline) {
 	                ret.append ("<br>");
+	                break;
 	            }
-	            break;
-	        default:
-	             ret.append (c);
-	             // if (c < 160)
-	             //     ret.append ((char) c);
-	             // else if (c >= 160 && c <= 255)
-	             //     ret.append (convertor.get(new Integer(c)));
-	             // else {
-	             //     ret.append ("&#");
-	             //     ret.append (c);
-	             //     ret.append (";");
-	             // }
+	         default: 
+	             if (c < 160)
+	                 ret.append ((char) c);
+	             else if (c >= 160 && c <= 255)
+	                 ret.append (convertor.get(new Integer(c)));
+	             else {
+	                 ret.append ("&#");
+	                 ret.append (c);
+	                 ret.append (";");
+	             }
+	        }
 	    }
+	} catch (IOException e) {}
+     }
+
+    public final static String encodeSoft (String what) {
+	StringBuffer ret = new StringBuffer (Math.round (what.length()*1.4f));
+	encodeSoft (what, ret);
+	return ret.toString(); 
+    }
+    
+    public final static void encodeSoft (String what, StringBuffer ret) {
+	if  (what == null || what.length() == 0) {
+	    return;
 	}
+
+	StringReader in = new StringReader (what);
+	int c;
+	try {
+	    while ((c = in.read()) != -1) {
+	      switch (c) {
+ 	         case 128: // Euro-Symbol. This is for missing Unicode support in TowerJ.
+                         ret.append ("&#8364;");
+	            break; 
+	         default: 
+	             if (c < 160)
+	                 ret.append ((char) c);
+	             else if (c >= 160 && c <= 255)
+	                 ret.append (convertor.get(new Integer(c)));
+	             else {
+	                 ret.append ("&#");
+	                 ret.append (c);
+	                 ret.append (";");
+	             }
+	        }
+	    }
+	} catch (IOException e) {}
      }
 
 
-    public final static String encodeXml (String str) {
-	StringBuffer ret = new StringBuffer (Math.round (str.length()*1.2f));
-	encodeXml (str, ret);
+    public final static String encodeXml (String what) {
+	StringBuffer ret = new StringBuffer (Math.round (what.length()*1.4f));
+	encodeXml (what, ret);
 	return ret.toString();
     }
 
-    public final static void encodeXml (String str, StringBuffer ret) {
-	if  (str == null)
+    public final static void encodeXml (String what, StringBuffer ret) {
+	if  (what == null || what.length() == 0) {
 	    return;
+	}
 
-	int l = str.length();
-	for (int i=0; i<l; i++) {
-	    char c = str.charAt (i);
-	    switch (c) {
-	        case '<' :
+	StringReader in = new StringReader (what);
+	int c;
+	try {
+	    while ((c = in.read()) != -1) {
+	      switch (c) {
+	         case '<' :
 	            ret.append ("&lt;");
 	            break;
-	        case '>':
+	         case '>':
 	            ret.append ("&gt;");
 	            break;
-	        case '&':
+	         case '&':
 	            ret.append ("&amp;");
 	            break;
-	        default:
-	             ret.append (c);
+	         default:
+	             ret.append ((char) c);
+	        }
 	    }
-	}
+	} catch (IOException e) {}
      }
 
 
-} // end of class
+
+}

@@ -15,11 +15,3 @@ Changes to standard FESI distribution (1.1.4) for Hop
   ESNumber.
 - Made EcmaScriptFunctionVisitor recognise thisObj - Functions are now assigned 
   to the current thisObject.
-- Added setPrototype() method to FESI.Data.ESObject to be able to manipulate 
-  the prototype after the object was created.
-- Changed FESI.Interpreter.EcmaScriptEvaluateVisitor to use .equals instead of 
-  == in equal method for helma.framework.core.ESNode objects, since different  
-  wrappers may wrap the same object.
-- Added RequestEvaluator reval field to FESI.Interpreter.Evaluator in order to 
-  let ESLoader crate wrappers with correct prototype for path element objects.
-

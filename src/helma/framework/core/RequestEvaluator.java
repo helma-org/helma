@@ -3,52 +3,70 @@
  
 package helma.framework.core;
 
-import helma.objectmodel.*;
-import helma.objectmodel.db.*;
-import helma.framework.*;
-import helma.scripting.*;
-import helma.util.*;
 import java.util.*;
+import java.io.*;
+import helma.objectmodel.*;
+import helma.objectmodel.db.Transactor;
+import helma.framework.*;
+import helma.framework.extensions.*;
+import helma.xmlrpc.fesi.*;
+import helma.util.*;
+import Acme.LruHashtable;
+import FESI.Data.*;
+import FESI.Interpreter.*;
+import FESI.Exceptions.*;
 
 /**
- * This class does the work for incoming requests. It holds a transactor thread
- * and an EcmaScript evaluator to get the work done. Incoming threads are
+ * This class does the work for incoming requests. It holds a transactor thread 
+ * and an EcmaScript evaluator to get the work done. Incoming threads are 
  * blocked until the request has been serviced by the evaluator, or the timeout
  * specified by the application has passed. In the latter case, the evaluator thread
- * is killed and an error message is returned.
+ * is killed and an error message is returned. 
  */
 
 public class RequestEvaluator implements Runnable {
 
 
-    public Application app;
+    Application app;
     protected boolean initialized;
 
-    public RequestTrans req;
-    public ResponseTrans res;
+    RequestTrans req;
+    ResponseTrans res;
 
     volatile Transactor rtx;
 
-    // the object on which to invoke a function, if specified
-    Object thisObject;
-
-    // the method to be executed
     String method;
-
-    // the user object associated with the current request
+    ESObject current;
     User user;
-
-    // arguments passed to the function
-    Object[] args;
-
-    // the object path of the request we're evaluating
-    List requestPath;
-
-    // the result of the
+    Vector args;
+    ESValue[] esargs;
+    ESValue esresult;
     Object result;
-
-    // the exception thrown by the evaluator, if any.
     Exception exception;
+    protected ArrayPrototype reqPath;
+    private ESRequestData reqData;
+
+    // vars for FESI EcmaScript support
+    protected Evaluator evaluator;
+    protected ObjectPrototype esNodePrototype;
+    protected ObjectPrototype esUserPrototype;
+    protected LruHashtable objectcache;
+    protected Hashtable prototypes;
+
+    GlobalObject global;
+    HopExtension hopx;
+    MailExtension mailx;
+    FesiRpcServer xmlrpc;
+    ESAppNode appnode;
+    static String[] extensions = new String[] {
+	"FESI.Extensions.BasicIO",
+	"FESI.Extensions.FileIO",
+	"helma.xmlrpc.fesi.FesiRpcExtension",
+	"helma.framework.extensions.ImageExtension",
+	"helma.framework.extensions.FtpExtension",
+	"helma.framework.extensions.Database",
+	"FESI.Extensions.JavaAccess",
+	"FESI.Extensions.OptionalRegExp"};
 
     // the type of request to be serviced
     int reqtype;
@@ -57,13 +75,49 @@ public class RequestEvaluator implements Runnable {
     static final int XMLRPC = 2;      // via XML-RPC
     static final int INTERNAL = 3;     // generic function call, e.g. by scheduler
 
+    INode root, userroot, currentNode;
 
     /**
-     *  Create a new RequestEvaluator for this application.
+     *  Build a RenderContext from a RequestTrans. Checks if the path is the user home node ("user")
+     *  or a subnode of it. Otherwise, the data root of the site is used. Two arrays are built, one
+     *  that contains the data nodes, and anotherone with the corresponding Prototypes or Prototype.Parts.
      */
     public RequestEvaluator (Application app) {
-	this.app = app;
+    	this.app = app;
+	this.objectcache = new LruHashtable (100, .80f);
+	this.prototypes = new Hashtable ();
+	initEvaluator ();
 	initialized = false;
+	// startThread ();
+    }
+
+
+    // init Script Evaluator
+    private void initEvaluator () {
+	try {
+	    evaluator = new Evaluator();
+	    global = evaluator.getGlobalObject();
+	    for (int i=0; i<extensions.length; i++)
+	        evaluator.addExtension (extensions[i]);
+	    hopx = new HopExtension ();
+	    hopx.initializeExtension (this);
+	    mailx = (MailExtension) evaluator.addExtension ("helma.framework.extensions.MailExtension");
+	    mailx.setProperties (this.app.props);
+
+	    // fake a cache member like the one found in ESNodes
+	    global.putHiddenProperty ("cache", new ESNode (new Node ("cache"), this));
+	    global.putHiddenProperty ("undefined", ESUndefined.theUndefined);
+	    appnode = new ESAppNode (app.appnode, this);
+	    global.putHiddenProperty ("app", appnode);
+	    reqPath = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
+	    reqData = new ESRequestData (this);
+
+	} catch (Exception e) {
+	    System.err.println("Cannot initialize interpreter");
+	    System.err.println("Error: " + e);
+	    e.printStackTrace ();
+	    throw new RuntimeException (e.getMessage ());
+	}
     }
 
 
@@ -74,20 +128,14 @@ public class RequestEvaluator implements Runnable {
         // when it's time to quit because another thread took over.
         Transactor localrtx = (Transactor) Thread.currentThread ();
 
+        // evaluators are only initialized as needed, so we need to check that here
+        if (!initialized)
+	app.typemgr.initRequestEvaluator (this);
+
         try {
 	do {
 
-	    // long startCheck = System.currentTimeMillis ();
-	    app.typemgr.checkPrototypes ();
-	    // evaluators are only initialized as needed, so we need to check that here
-	    // if (!initialized)
-	    //     app.typemgr.initRequestEvaluator (this);
-	    // System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
-
-	    // object refs to ressolve request path
-	    Object root, currentElement;
-
-	    requestPath = new ArrayList ();
+	    // IServer.getLogger().log ("got request "+reqtype);
 
 	    switch (reqtype) {
 	    case HTTP:
@@ -96,28 +144,28 @@ public class RequestEvaluator implements Runnable {
 	        String error = null;
 	        while (!done) {
 
-	            currentElement = null;
+	            current = null;
+	            currentNode = null;
+	            reqPath.setSize (0);
 
 	            try {
 
-	                // used for logging
-	                String txname = app.getName()+"/"+req.path;
+	                String requestPath = app.getName()+"/"+req.path;
 	                // set Timer to get some profiling data
 	                localrtx.timer.reset ();
 	                localrtx.timer.beginEvent (requestPath+" init");
-	                localrtx.begin (txname);
+	                localrtx.begin (requestPath);
 
-	                String action = null;
+	                Action action = null;
 
 	                root = app.getDataRoot ();
 
-	                HashMap globals = new HashMap ();
-	                globals.put ("root", root);
-	                globals.put ("user", user);
-	                globals.put ("req", req);
-	                globals.put ("res", res);
-	                globals.put ("path", requestPath);
-	                globals.put ("app", app.getAppNode());
+	                ESUser esu = (ESUser) getNodeWrapper (user.getNode ());
+	                esu.setUser (user);
+	                global.putHiddenProperty ("root", getNodeWrapper (root));
+	                global.putHiddenProperty("user", esu);
+	                global.putHiddenProperty ("req", new ESWrapper (req, evaluator));
+	                global.putHiddenProperty ("res", new ESWrapper (res, evaluator));
 	                if (error != null)
 	                    res.error = error;
 	                if (user.message != null) {
@@ -125,80 +173,105 @@ public class RequestEvaluator implements Runnable {
 	                    res.message = user.message;
 	                    user.message = null;
 	                }
+	                global.putHiddenProperty ("path", reqPath);
+	                global.putHiddenProperty ("app", appnode);
+	                // set and mount the request data object
+	                reqData.setData (req.getReqData());
+	                req.data = reqData;
 
 	                try {
 
 	                    if (error != null) {
 	                        // there was an error in the previous loop, call error handler
-	                        currentElement = root;
-	                        requestPath.add (currentElement);
+	                        currentNode = root;
+	                        current = getNodeWrapper (root);
+	                        reqPath.putProperty (0, current);
+	                        Prototype p = app.getPrototype (root);
 	                        String errorAction = app.props.getProperty ("error", "error");
-	                        action = getAction (currentElement, errorAction);
-	                        if (action == null)
-	                            throw new RuntimeException (error);
-
+	                        action = p.getActionOrTemplate (errorAction);
+	
 	                    } else if (req.path == null || "".equals (req.path.trim ())) {
-	                        currentElement = root;
-	                        requestPath.add (currentElement);
-	                        action = getAction (currentElement, null);
-	                        if (action == null)
-	                            throw new FrameworkException ("Action not found");
+	                        currentNode = root;
+	                        current = getNodeWrapper (root);
+	                        reqPath.putProperty (0, current);
+	                        Prototype p = app.getPrototype (root);
+	                        action = p.getActionOrTemplate (null);
 
 	                    } else {
 
 	                        // march down request path...
+	                        // is the next path element a subnode or a property of the last one?
+	                        // currently only used for users node
+	                        boolean isProperty = false;
 	                        StringTokenizer st = new StringTokenizer (req.path, "/");
 	                        int ntokens = st.countTokens ();
-	                        // limit path to < 50 tokens
-	                        if (ntokens > 50)
-	                            throw new RuntimeException ("Path too long");
-	                        String[] pathItems = new String [ntokens];
-	                        for (int i=0; i<ntokens; i++)
-	                              pathItems[i] = st.nextToken ();
+	                        String next = null;
+	                        currentNode = root;
+	                        reqPath.putProperty (0, getNodeWrapper (currentNode));
 
-	                        currentElement = root;
-	                        requestPath.add (currentElement);
-
-	                        for (int i=0; i<ntokens; i++) {
-
-	                            if (currentElement == null)
-	                                throw new FrameworkException ("Object not found.");
-
-	                            // we used to do special processing for /user and /users
-	                            // here but with the framework cleanup, this stuff has to be
-	                            // mounted manually.
-
-	                            // if we're at the last element of the path,
-	                            // try to interpret it as action name.
-	                            if (i == ntokens-1) {
-	                                action = getAction (currentElement, pathItems[i]);
-	                            }
-
-	                            if (action == null) {
-
-	                                if (pathItems[i].length () == 0)
-	                                    continue;
-
-	                                currentElement = app.getChildElement (currentElement, pathItems[i]);
-
-	                                // add object to request path if suitable
-	                                if (currentElement != null) {
-	                                    // add to requestPath array
-	                                    requestPath.add (currentElement);
-	                                    String pt = app.getPrototypeName (currentElement);
-	                                }
+	                        // the first token in the path needs to be treated seprerately,
+	                        // because "/user" is a shortcut to the current user session, while "/users"
+	                        // is the mounting point for all users.
+	                        if (ntokens > 1) {
+	                            next = st.nextToken ();
+	                            if ("user".equalsIgnoreCase (next)) {
+	                                currentNode = user.getNode ();
+	                                ntokens -=1;
+	                                if (currentNode != null)
+	                                    reqPath.putProperty (1, getNodeWrapper (currentNode));
+	                            } else if ("users".equalsIgnoreCase (next)) {
+	                                currentNode = app.getUserRoot ();
+	                                ntokens -=1;
+	                                isProperty = true;
+	                            } else {
+	                                currentNode = currentNode.getSubnode (next);
+	                                ntokens -=1;
+	                                if (currentNode != null)
+	                                    reqPath.putProperty (1, getNodeWrapper (currentNode));
 	                            }
 	                        }
+	
+	                        for (int i=1; i<ntokens; i++) {
+	                            if (currentNode == null)
+	                                throw new FrameworkException ("Object not found.");
+	                            next = st.nextToken ();
+	                            if (isProperty)  // get next element as property
+	                                currentNode = currentNode.getNode (next, false);
+	                            else  // get next element as subnode
+	                                currentNode = currentNode.getSubnode (next);
+	                            isProperty = false;
+	                            if (currentNode != null && currentNode.getState() != INode.VIRTUAL) // add to reqPath array
+	                                reqPath.putProperty (reqPath.size(), getNodeWrapper (currentNode));
+	                            // limit path to < 50 tokens
+	                            if (i > 50) throw new RuntimeException ("Path too deep");
+	                        }
 
-	                        if (currentElement == null)
+	                        if (currentNode == null)
 	                            throw new FrameworkException ("Object not found.");
 
-	                        if (action == null)
-	                            action = getAction (currentElement, null);
+	                        Prototype p = app.getPrototype (currentNode);
+                                     next = st.nextToken ();
+	                        if (p != null)
+	                            action = p.getActionOrTemplate (next);
 
-	                        if (action == null)
-	                            throw new FrameworkException ("Action not found");
+	                        if (p == null || action == null) {
+	                            currentNode = currentNode.getSubnode (next);
+	                            if (currentNode == null)
+	                                throw new FrameworkException ("Object or Action '"+next+"' not found.");
+	                            p = app.getPrototype (currentNode);
+	                            // add to reqPath array
+	                            if (currentNode != null && currentNode.getState() != INode.VIRTUAL)
+	                                reqPath.putProperty (reqPath.size(), getNodeWrapper (currentNode));
+	                            if (p != null)
+	                                action = p.getActionOrTemplate ("main");
+	                        }
+
+	                        current = getNodeWrapper (currentNode);
+
 	                    }
+
+	                    if (action == null)
+	                        throw new FrameworkException ("Action not found");
 
 	                } catch (FrameworkException notfound) {
 	                    if (error != null)
@@ -207,81 +280,27 @@ public class RequestEvaluator implements Runnable {
 	                        throw new RuntimeException ();
 	                    // The path could not be resolved. Check if there is a "not found" action
 	                    // specified in the property file.
-	                    res.status = 404;
 	                    String notFoundAction = app.props.getProperty ("notFound", "notfound");
-	                    currentElement = root;
-	                    action = getAction (currentElement, notFoundAction);
+	                    Prototype p = app.getPrototype (root);
+	                    action = p.getActionOrTemplate (notFoundAction);
 	                    if (action == null)
 	                        throw new FrameworkException (notfound.getMessage ());
+	                    current = getNodeWrapper (root);
 	                }
 
-	                localrtx.timer.endEvent (txname+" init");
-	                /////////////////////////////////////////////////////////////////////////////
-	                // end of path resolution section
+	                localrtx.timer.endEvent (requestPath+" init");
 
-	                /////////////////////////////////////////////////////////////////////////////
-	                // beginning of execution section
 	                try {
-	                    localrtx.timer.beginEvent (txname+" execute");
-
-	                    int actionDot = action.lastIndexOf (".");
-	                    boolean isAction =  actionDot == -1;
-	                    // set the req.action property, cutting off the _action suffix
-	                    if (isAction)
-	                        req.action = action.substring (0, action.length()-7);
-	                    else
-	                        req.action = action;
-
-	                    // try calling onRequest() function on object before
-	                    // calling the actual action
-	                    try {
-	                        app.scriptingEngine.invoke (currentElement, "onRequest", new Object[0], globals, this);
-	                    } catch (RedirectException redir) {
-	                        throw redir;
-	                    } catch (Exception ignore) {
-	                        // function is not defined or caused an exception, ignore
+	                    localrtx.timer.beginEvent (requestPath+" execute");
+	                    current.doIndirectCall (evaluator, current, action.getFunctionName (), new ESValue[0]);
+	                    if (res.mainSkin != null) {
+	                        Skin mainSkin = getSkin (null, res.mainSkin);
+	                        if (mainSkin != null)
+	                            mainSkin.render (this, null, null);
 	                    }
-
-	                    // do the actual action invocation
-	                    if (isAction) {
-	                        app.scriptingEngine.invoke (currentElement, action, new Object[0], globals, this);
-	                    } else {
-	                        Skin skin = app.skinmgr.getSkinInternal (app.appDir, app.getPrototype(currentElement).getName(),
-	                                         action.substring (0, actionDot), action.substring (actionDot+1));
-	                        if (skin != null)
-	                            skin.render (this, currentElement, null);
-	                        else
-	                            throw new RuntimeException ("Skin "+action+" not found in "+req.path);
-	                    }
-
-	                    // check if the script set the name of a skin to render in res.skin
-	                    if (res.skin != null) {
-	                        int dot = res.skin.indexOf (".");
-	                        Object skinObject = null;
-	                        String skinName = res.skin;
-	                        if (dot > -1) {
-	                            String soname = res.skin.substring (0, dot);
-	                            int l = requestPath.size();
-	                            for (int i=l-1; i>=0; i--) {
-	                                Object pathelem = requestPath.get (i);
-	                                if (soname.equalsIgnoreCase (app.getPrototypeName (pathelem))) {
-	                                    skinObject = pathelem;
-	                                    break;
-	                                }
-	                            }
-
-	                            if (skinObject == null)
-	                                throw new RuntimeException ("Skin "+res.skin+" not found in path.");
-	                            skinName = res.skin.substring (dot+1);
-	                        }
-	                        Object[] skinNameArg = new Object[1];
-	                        skinNameArg[0] = skinName;
-	                        app.scriptingEngine.invoke (skinObject, "renderSkin", skinNameArg, globals, this);
-	                    }
-
-	                    localrtx.timer.endEvent (txname+" execute");
+	                    localrtx.timer.endEvent (requestPath+" execute");
 	                } catch (RedirectException redirect) {
-	                    // res.redirect = redirect.getMessage ();
+	                    res.redirect = redirect.getMessage ();
 	                    // if there is a message set, save it on the user object for the next request
 	                    if (res.message != null)
 	                        user.message = res.message;
@@ -295,12 +314,12 @@ public class RequestEvaluator implements Runnable {
 	            } catch (ConcurrencyException x) {
 
 	                res.reset ();
-	                if (++tries < 8) {
+	                if (++tries < 5) {
 	                    // try again after waiting some period
 	                    abortTransaction (true);
 	                    try {
 	                        // wait a bit longer with each try
-	                        int base = 800 * tries;
+	                        int base = 500 * tries;
 	                        Thread.currentThread ().sleep ((long) (base + Math.random ()*base*2));
 	                    } catch (Exception ignore) {}
 	                    continue;
@@ -308,8 +327,6 @@ public class RequestEvaluator implements Runnable {
 	                    abortTransaction (false);
 	                    if (error == null) {
 	                        app.errorCount += 1;
-	                        // set done to false so that the error will be processed
-	                        done = false;
 	                        error = "Couldn't complete transaction due to heavy object traffic (tried "+tries+" times)";
 	                    } else {
 	                        // error in error action. use traditional minimal error message
@@ -322,7 +339,7 @@ public class RequestEvaluator implements Runnable {
 
 	                abortTransaction (false);
 
-	                app.logEvent ("### Exception in "+app.getName()+"/"+req.path+": "+x);
+	                IServer.getLogger().log ("### Exception in "+app.getName()+"/"+req.path+": "+x);
 	                // Dump the profiling data to System.err
 	                if (app.debug) {
 	                    ((Transactor) Thread.currentThread ()).timer.dump (System.err);
@@ -337,8 +354,6 @@ public class RequestEvaluator implements Runnable {
 	                res.reset ();
 	                if (error == null) {
 	                    app.errorCount += 1;
-	                    // set done to false so that the error will be processed
-	                    done = false;
 	                    error = x.getMessage ();
 	                    if (error == null || error.length() == 0)
 	                        error = x.toString ();
@@ -357,31 +372,42 @@ public class RequestEvaluator implements Runnable {
 
 	            root = app.getDataRoot ();
 
-	            HashMap globals = new HashMap ();
-	            globals.put ("root", root);
-	            globals.put ("res", res);
-	            globals.put ("app", app.getAppNode());
+	            global.putHiddenProperty ("root", getNodeWrapper (root));
+	            global.deleteProperty("user", "user".hashCode());
+	            global.deleteProperty ("req", "req".hashCode());
+	            global.putHiddenProperty ("res", ESLoader.normalizeValue(new ResponseTrans (), evaluator));
+	            global.deleteProperty ("path", "path".hashCode());
+	            global.putHiddenProperty ("app", appnode);
 
-	            currentElement = root;
-
+	            // convert arguments
+	            int l = args.size ();
+	            current = getNodeWrapper (root);
 	            if (method.indexOf (".") > -1) {
 	                StringTokenizer st = new StringTokenizer (method, ".");
 	                int cnt = st.countTokens ();
 	                for (int i=1; i<cnt; i++) {
 	                    String next = st.nextToken ();
-	                    currentElement = app.getChildElement (currentElement, next);
+	                    try {
+	                        current = (ESObject) current.getProperty (next, next.hashCode ());
+	                    } catch (Exception x) {
+	                        throw new EcmaScriptException ("The property \""+next+"\" is not defined in the remote object.");
+	                    }
 	                }
-
-	                if (currentElement == null)
-	                    throw new FrameworkException ("Method name \""+method+"\" could not be resolved.");
+	                if (current == null)
+	                    throw new EcmaScriptException ("Method name \""+method+"\" could not be resolved.");
 	                method = st.nextToken ();
 	            }
 
 	            // check XML-RPC access permissions
-	            String proto = app.getPrototypeName (currentElement);
+	            String proto = ((ESNode) current).getNode().getPrototype ();
 	            app.checkXmlRpcAccess (proto, method);
 
-	            result = app.scriptingEngine.invoke (currentElement, method, args, globals, this);
+	            ESValue esa[] = new ESValue[l];
+	            for (int i=0; i<l; i++) {
+    	                esa[i] = FesiRpcUtil.convertJ2E (args.elementAt (i), evaluator);
+	            }
+	
+	            result = FesiRpcUtil.convertE2J (current.doIndirectCall (evaluator, current, method, esa));
 	            commitTransaction ();
 
 	        } catch (Exception wrong) {
@@ -399,32 +425,34 @@ public class RequestEvaluator implements Runnable {
 
 	        break;
 	    case INTERNAL:
+	        esresult = ESNull.theNull;
 	        // Just a human readable descriptor of this invocation
 	        String funcdesc = app.getName()+":internal/"+method;
-
-	        // avoid going into transaction if called function doesn't exist
-	        boolean functionexists = true;
-	        if (thisObject == null) try {
-	            functionexists = app.scriptingEngine.hasFunction (null, method, this);
-			} catch (ScriptingException ignore) {}
-
-	        if (!functionexists)
-	            // global function doesn't exist, nothing to do here.
-	            reqtype = NONE;
-	        else try {
+	        try {
 	            localrtx.begin (funcdesc);
 
 	            root = app.getDataRoot ();
 
-	            HashMap globals = new HashMap ();
-	            globals.put ("root", root);
-	            globals.put ("res", res);
-	            globals.put ("app", app.getAppNode());
+	            global.putHiddenProperty ("root", getNodeWrapper (root));
+	            global.deleteProperty("user", "user".hashCode());
+	            global.deleteProperty ("req", "req".hashCode());
+	            global.putHiddenProperty ("res", ESLoader.normalizeValue(new ResponseTrans (), evaluator));
+	            global.deleteProperty ("path", "path".hashCode());
+	            global.putHiddenProperty ("app", appnode);
 
-	            app.scriptingEngine.invoke (thisObject, method, args, globals, this);
+                         if (current == null) {
+	                if (user == null) {
+	                    current = global;
+	                } else {
+	                    ESUser esu = (ESUser) getNodeWrapper (user.getNode ());
+	                    esu.setUser (user);
+	                    current = esu;
+	                }
+	            }
+	            esresult = current.doIndirectCall (evaluator, current, method, new ESValue[0]);
 	            commitTransaction ();
 
-	        } catch (Exception wrong) {
+	        } catch (Throwable wrong) {
 
 	            abortTransaction (false);
 
@@ -434,9 +462,12 @@ public class RequestEvaluator implements Runnable {
 	                return;
 	            }
 
-	            this.exception = wrong;
+	            String msg = wrong.getMessage ();
+	            if (msg == null || msg.length () == 0)
+	                msg = wrong.toString ();
+	            IServer.getLogger().log ("Error executing "+funcdesc+": "+msg);
+	            this.exception = new Exception (msg);
 	        }
-
 	        break;
 
 	    }
@@ -486,11 +517,10 @@ public class RequestEvaluator implements Runnable {
 	Transactor localrtx = (Transactor) Thread.currentThread ();
 	if (reqtype != NONE)
 	    return; // is there a new request already?
-
 	notifyAll ();
 	try {
-	    // wait for request, max 10 min
-	    wait (1000*60*10);
+	    // wait for request, max 30 min
+	    wait (1800000l);
 	    //  if no request arrived, release ressources and thread
 	    if (reqtype == NONE && rtx == localrtx)
 	        rtx = null;
@@ -508,7 +538,7 @@ public class RequestEvaluator implements Runnable {
 	checkThread ();
 	wait (app.requestTimeout);
  	if (reqtype != NONE) {
-	    app.logEvent ("Stopping Thread for Request "+app.getName()+"/"+req.path);
+	    IServer.getLogger().log ("Stopping Thread for Request "+app.getName()+"/"+req.path);
 	    stopThread ();
 	    res.reset ();
 	    res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>Request timed out.</pre>");
@@ -532,12 +562,11 @@ public class RequestEvaluator implements Runnable {
     }
 
 
-    public synchronized Object invokeXmlRpc (String method, Object[] args) throws Exception {
+    public synchronized Object invokeXmlRpc (String method, Vector args) throws Exception {
 	this.reqtype = XMLRPC;
 	this.user = null;
 	this.method = method;
 	this.args = args;
-	this.res = new ResponseTrans ();
 	result = null;
 	exception = null;
 
@@ -552,19 +581,24 @@ public class RequestEvaluator implements Runnable {
 	return result;
     }
 
-    protected Object invokeDirectFunction (Object obj, String functionName, Object[] args) throws Exception {
-	return app.scriptingEngine.invoke (obj, functionName, args, null, this);
-    } 
-
-    public synchronized Object invokeFunction (Object object, String functionName, Object[] args)
+    public synchronized ESValue invokeFunction (INode node, String functionName, ESValue[] args)
 		throws Exception {
-	reqtype = INTERNAL;
-	user = null;
-	thisObject = object;
-	method = functionName;
-	this.args =args;
-	this.res = new ResponseTrans ();
-	result = null;
+	ESObject obj = null;
+	if  (node == null)
+	    obj = global;
+	else
+	    obj = getNodeWrapper (node);
+	return invokeFunction (obj, functionName, args);
+    }
+
+    public synchronized ESValue invokeFunction (ESObject obj, String functionName, ESValue[] args)
+		throws Exception {
+	this.reqtype = INTERNAL;
+	this.user = null;
+	this.current = obj;
+	this.method = functionName;
+	this.esargs = args;
+             esresult = ESNull.theNull;
 	exception = null;
 
 	checkThread ();
@@ -576,18 +610,17 @@ public class RequestEvaluator implements Runnable {
 
 	if (exception != null)
 	    throw (exception);
-	return result;
+	return esresult;
     }
 
-    public synchronized Object invokeFunction (User user, String functionName, Object[] args)
+    public synchronized ESValue invokeFunction (User user, String functionName, ESValue[] args)
 		throws Exception {
-	reqtype = INTERNAL;
+	this.reqtype = INTERNAL;
 	this.user = user;
-	thisObject = null;
-	method = functionName;
-	this.args = args;
-	res = new ResponseTrans ();
-	result = null;
+	this.current = null;
+	this.method = functionName;
+	this.esargs = args;
+             esresult = ESNull.theNull;
 	exception = null;
 
 	checkThread ();
@@ -599,7 +632,7 @@ public class RequestEvaluator implements Runnable {
 
 	if (exception != null)
 	    throw (exception);
-	return result;
+	return esresult;
     }
 
 
@@ -608,9 +641,9 @@ public class RequestEvaluator implements Runnable {
      *  notify.
      */
     public synchronized void stopThread () {
-	app.logEvent ("Stopping Thread "+rtx);
+	IServer.getLogger().log ("Stopping Thread "+rtx);
 	Transactor t = rtx;
-	// evaluator.thread = null;
+	evaluator.thread = null;
 	rtx = null;
 	if (t != null) {
 	    if (reqtype != NONE) {
@@ -632,48 +665,276 @@ public class RequestEvaluator implements Runnable {
 	    throw new ApplicationStoppedException ();
 
 	if (rtx == null || !rtx.isAlive()) {
-	    // app.logEvent ("Starting Thread");
+	    // IServer.getLogger().log ("Starting Thread");
 	    rtx = new Transactor (this, app.threadgroup, app.nmgr);
-	    // evaluator.thread = rtx;
+	    evaluator.thread = rtx;
 	    rtx.start ();
 	} else {
 	    notifyAll ();
 	}
     }
 
-
+    public Skin getSkin (ESObject thisObject, String skinname) {
+	INode n = null;
+	Prototype proto = null;
+	if (thisObject != null && thisObject instanceof ESNode) {
+	    n = ((ESNode) thisObject).getNode ();
+	    proto = app.getPrototype (n);
+	} else // the requested skin is global
+	    proto = app.typemgr.getPrototype ("global");
+	Skin skin = null;
+	if (proto != null)
+	    skin = proto.getSkin (skinname);
+	// if we have a thisObject and didn't find the skin, try in hopobject
+	if (skin == null && n != null) {
+	    proto = app.typemgr.getPrototype ("hopobject");
+	    if (proto != null)
+	        skin = proto.getSkin (skinname);
+	}
+	return skin;
+    }
+	
 
     /**
-     * Check if an action with a given name is defined for a scripted object. If it is,
-     * return the action's function name. Otherwise, return null.
+     *  Returns a node wrapper only if it already exists in the cache table. This is used
+     *  in those places when wrappers have to be updated if they already exist.
      */
-    public String getAction (Object obj, String action) {
-	if (obj == null)
+    public ESNode getNodeWrapperFromCache (INode n) {
+	if (n == null)
 	    return null;
-	// check if this is a public skin, i.e. something with an extension
-	// like "home.html"
-	if (action != null && action.indexOf (".") > -1) {
-	    int dot = action.lastIndexOf (".");
-	    String extension = action.substring (dot+1);
-	    String contentType = app.skinExtensions.getProperty (extension);
-	    if (contentType != null) {
-	        res.contentType = contentType;
-	        return action;
-	    } else
-	        return null;
-	} else {
-	    String act = action == null ? "main_action" : action+"_action";
-	    try {
-	        if (app.scriptingEngine.hasFunction (obj, act, this))
-	            return act;
-	    } catch (ScriptingException x) {
-	        return null;
-	    }
-	}
-	return null;
+	return (ESNode) objectcache.get (n);
+    }
+
+    public ESNode getNodeWrapper (INode n) {
+
+        if (n == null)
+            return null;
+
+        ESNode esn = (ESNode) objectcache.get (n);
+
+        if (esn == null || esn.getNode() != n) {
+            ObjectPrototype op = null;
+            String protoname = n.getPrototype ();
+
+            // set the DbMapping of the node according to its prototype.
+            // this *should* be done on the objectmodel level, but isn't currently
+            // for embedded nodes since there's not enough type info at the objectmodel level
+            // for those nodes.
+            if (protoname != null && protoname.length() > 0 && n.getDbMapping () == null) {
+                n.setDbMapping (app.getDbMapping (protoname));
+            }
+
+            try {
+                op = (ObjectPrototype) prototypes.get (protoname);
+            } catch (Exception ignore) {}
+
+            if (op == null)
+                op = esNodePrototype; // no prototype found for this node.
+
+            if ("user".equalsIgnoreCase (protoname))
+                esn = new ESUser (n, this);
+            else
+                esn = new ESNode (op, evaluator, n, this);
+
+            objectcache.put (n, esn);
+            // IServer.getLogger().log ("Wrapper for "+n+" created");
+        }
+
+        return esn;
+    }
+
+    public ObjectPrototype getPrototype (String protoName) {
+        return (ObjectPrototype) prototypes.get (protoName);
+    }
+
+    public void putPrototype (String protoName, ObjectPrototype op) {
+        prototypes.put (protoName, op);
     }
 
 
-
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

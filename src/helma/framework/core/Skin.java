@@ -1,136 +1,69 @@
 // Skin.java
 // Copyright (c) Hannes Wallnöfer 2001
-
+ 
 package helma.framework.core;
 
-import helma.framework.*;
-import helma.scripting.*;
-import helma.objectmodel.INode;
-import helma.objectmodel.ConcurrencyException;
-import helma.util.HtmlEncoder;
-import java.net.URLEncoder;
-import java.io.*;
 import java.util.*;
+import java.io.*;
+import helma.framework.*;
+import FESI.Data.*;
+import FESI.Exceptions.*;
+import helma.objectmodel.INode;
+import helma.objectmodel.IServer;
+
 
 /**
- * This represents a Helma skin, i.e. a template created from containing Macro tags
- * that will be dynamically evaluated.. It uses the request path array
- * from the RequestEvaluator object to resolve Macro handlers by type name.
+ * This represents a HOP skin, i.e. a template created from JavaScript. It uses the request path array
+ * from the RequestEvaluator object to resolve dynamic tokens.
  */
 
 public class Skin {
 
-    Macro[] parts;
-    Application app;
-    char[] source;
-    int sourceLength;
-    HashSet sandbox;
+    Object[] parts;
 
-    /**
-     * Create a skin without any restrictions on which macros are allowed to be called from it
-     */
-    public Skin (String content, Application app) {
-	this (content, app, null);
+    public Skin (String content) {
+	parse (content);
     }
 
-    /**
-     * Create a skin with a sandbox which contains the names of macros allowed to be called
-     */
-    public Skin (String content, Application app, HashSet sandbox) {
-	this.app = app;
-	this.sandbox = sandbox;
-	source = content.toCharArray ();
-	sourceLength = source.length;
-	parse ();
-    }
+    public void parse (String content) {
 
-    /**
-     *  Create a skin without any restrictions on the macros from a char array.
-     */
-    public Skin (char[] content, int length, Application app) {
-	this.app = app;
-	this.sandbox = null;
-	this.source = content;
-	this.sourceLength = length;
-	parse ();
-    }
+	Vector partBuffer = new Vector ();
+	int l = content.length ();
+	char cnt[] = new char[l];
+	content.getChars (0, l, cnt, 0);
 
-    /**
-     * Parse a skin object from source text
-     */
-    private void parse () {
-
-	ArrayList partBuffer = new ArrayList ();
-
-	int start = 0;
-	for (int i = 0; i < sourceLength-1; i++) {
-	    if (source[i] == '<' && source[i+1] == '%') {
-	        // found macro start tag
+	int lastIdx = 0;
+	for (int i = 0; i < l-1; i++) {
+	    if (cnt[i] == '<' && cnt[i+1] == '%') {
 	        int j = i+2;
-	        // search macr end tag
-	        while (j < sourceLength-1 && (source[j] != '%' || source[j+1] != '>')) {
+	        while (j < l-1 && (cnt[j] != '%' || cnt[j+1] != '>')) {
 	            j++;
 	        }
 	        if (j > i+2) {
-	            partBuffer.add (new Macro (i, j+2));
-	            start = j+2;
+	            if (i - lastIdx > 0)
+	                partBuffer.addElement (new String (cnt, lastIdx, i - lastIdx));
+	            String macrotext = new String (cnt, i+2, (j-i)-2);
+	            partBuffer.addElement (new Macro (macrotext));
+	            lastIdx = j+2;
 	        }
 	        i = j+1;
 	    }
 	}
+	if (lastIdx < l)
+	    partBuffer.addElement (new String (cnt, lastIdx, l - lastIdx));
 
-	parts = new Macro[partBuffer.size()];
-	partBuffer.toArray (parts);
-    }
+             parts = partBuffer.toArray ();
+   }
 
-    /**
-     * Get the raw source text this skin was parsed from
-     */
-    public String getSource () {
-	return new String (source, 0, sourceLength);
-    }
-
-    /**
-     * Render this skin
-     */
-    public void render (RequestEvaluator reval, Object thisObject, HashMap paramObject) throws RedirectException {
-
+    public void render (RequestEvaluator reval, ESNode thisNode, ESObject paramObject) {
 	if (parts == null)
-	    reval.res.writeCharArray (source, 0, sourceLength);
-
-	int written = 0;
+	    return;
 	for (int i=0; i<parts.length; i++) {
-	    if (parts[i].start > written)
-	        reval.res.writeCharArray (source, written, parts[i].start-written);
-	    parts[i].render (reval, thisObject, paramObject);
-	    written = parts[i].end;
+	    if (parts[i] instanceof Macro)
+	        ((Macro) parts[i]).render (reval, thisNode, paramObject);
+	    else
+	        reval.res.write (parts[i]);
 	}
-	if (written < sourceLength)
-	    reval.res.writeCharArray (source, written, sourceLength-written);
-    }
-
-    /**
-     * Check if a certain macro is present in this skin. The macro name is in handler.name notation
-     */
-    public boolean containsMacro (String macroname) {
-	for (int i=0; i<parts.length; i++) {
-	    if (parts[i] instanceof Macro) {
-	        Macro m = (Macro) parts[i];
-	        if (macroname.equals (m.getFullName ()))
-	            return true;
-	    }
-	}
-	return false;
-    }
-
-    /**
-     *  Adds a macro to the list of allowed macros. The macro is in handler.name notation.
-     */
-    public void allowMacro (String macroname) {
-	if (sandbox == null) {
-	    sandbox = new HashSet ();
-	}
-	sandbox.add (macroname);
     }
 
     static final int HANDLER = 0;
@@ -140,18 +73,17 @@ public class Skin {
 
     class Macro {
 
-	int start, end;
 	String handler;
 	String name;
-	String fullname;
-	HashMap parameters;
+	Hashtable parameters;
 
-	public Macro (int start, int end) {
+	public Macro (String str) {
 
-	    this.start = start;
-	    this.end = end;
+	    parameters = new Hashtable ();
 
-	    parameters = new HashMap ();
+	    int l = str.length ();
+	    char cnt[] = new char[l];
+	    str.getChars (0, l, cnt, 0);
 
 	    int state = HANDLER;
 	    boolean escape = false;
@@ -159,37 +91,37 @@ public class Skin {
 	    String lastParamName = null;
 	    StringBuffer b = new StringBuffer();
 
-	    for (int i=start+2; i<end-2; i++) {
-	        switch (source[i]) {
+	    for (int i=0; i<l; i++) {
+	        switch (cnt[i]) {
 	            case '.':
 	                if (state == HANDLER) {
 	                    handler = b.toString ().trim();
 	                    b.setLength (0);
 	                    state = MACRO;
 	                } else
-	                    b.append (source[i]);
+	                    b.append (cnt[i]);
 	                break;
 	            case '\\':
 	                if (escape)
-	                    b.append (source[i]);
+	                    b.append (cnt[i]);
 	                escape = !escape;
-	                break;
+	                break;;
 	            case '"':
 	            case '\'':
 	                if (!escape && state == PARAMVALUE) {
-	                    if (quotechar == source[i]) {
+	                    if (quotechar == cnt[i]) {
 	                        parameters.put (lastParamName, b.toString());
 	                        lastParamName = null;
 	                        b.setLength (0);
 	                        state = PARAMNAME;
 	                        quotechar = '\u0000';
 	                    } else if (quotechar == '\u0000') {
-	                        quotechar = source[i];
+	                        quotechar = cnt[i];
 	                        b.setLength (0);
 	                    } else
-	                        b.append (source[i]);
+	                        b.append (cnt[i]);
 	                } else
-	                    b.append (source[i]);
+	                    b.append (cnt[i]);
 	                escape = false;
 	                break;
 	            case ' ':
@@ -207,7 +139,7 @@ public class Skin {
 	                    b.setLength (0);
 	                    state = PARAMNAME;
 	                } else if (state == PARAMVALUE)
-	                    b.append (source[i]);
+	                    b.append (cnt[i]);
 	                else
 	                    b.setLength (0);
 	                break;
@@ -217,10 +149,10 @@ public class Skin {
 	                    b.setLength (0);
 	                    state = PARAMVALUE;
 	                } else
-	                    b.append (source[i]);
+	                    b.append (cnt[i]);
 	                break;
 	            default:
-	                b.append (source[i]);
+	                b.append (cnt[i]);
 	                escape = false;
 	        }
 	    }
@@ -233,16 +165,9 @@ public class Skin {
 	}
 
 
-	/**
-	 *  Render the macro given a handler object
-	 */
-	public void render (RequestEvaluator reval, Object thisObject, HashMap paramObject) throws RedirectException {
+	public void render (RequestEvaluator reval, ESNode thisNode, ESObject paramObject) {
 
-	    if (sandbox != null && !sandbox.contains (getFullName ())) {
-	        String h = handler == null ? "global" : handler;
-	        reval.res.write ("[Macro "+getFullName()+" not allowed in sandbox]");
-	        return;
-	    } else if ("response".equalsIgnoreCase (handler)) {
+	    if ("response".equalsIgnoreCase (handler)) {
 	        renderFromResponse (reval);
 	        return;
 	    } else if ("request".equalsIgnoreCase (handler)) {
@@ -255,178 +180,129 @@ public class Skin {
 
 	    try {
 
-	        Object handlerObject = null;
+	        ESObject handlerObject = null;
 
-	        Object[] arguments = new Object[1];
-	        arguments[0] = parameters;
-
-	        // flag to tell whether we found our invocation target object
-	        boolean objectFound = true;
+	        ESValue[] arguments = new ESValue[1];
+	        ESRequestData par =  new ESRequestData (reval);
+	        par.setData (parameters);
+	        arguments[0] = par;
 
 	        if (handler != null) {
-	            if ("currentuser".equalsIgnoreCase (handler)) {
-	                // as a special convention, we use "currentuser" to access macros in the current user object
-	                handlerObject = reval.user.getNode ();
-	            } else if (thisObject != null) {
-	                // not a global macro - need to find handler object
+	            // not a global macro - need to find handler object
+	            if (thisNode != null) {
 	                // was called with this object - check it or its parents for matching prototype
-	                if (!handler.equalsIgnoreCase ("this") && !handler.equalsIgnoreCase (app.getPrototypeName (thisObject))) {
+	                if (!handler.equalsIgnoreCase ("this") && !handler.equalsIgnoreCase (thisNode.getPrototypeName ())) {
 	                    // the handler object is not what we want
-	                    Object n = thisObject;
+	                    INode n = thisNode.getNode();
 	                    // walk down parent chain to find handler object
 	                    while (n != null) {
-	                        if (handler.equalsIgnoreCase (app.getPrototypeName (n))) {
-	                            handlerObject = n;
+	                        if (handler.equalsIgnoreCase (n.getPrototype())) {
+	                            handlerObject = reval.getNodeWrapper (n);
 	                            break;
 	                        }
-	                        n = app.getParentElement (n);
+	                        n = n.getParent ();
 	                    }
 	                } else {
 	                    // we already have the right handler object
-	                    handlerObject = thisObject;
+	                    handlerObject = thisNode;
 	                }
 	            }
 
 	            if (handlerObject == null) {
-	                // eiter because thisObject == null or the right object wasn't found in the object's parent path
+	                // eiter because thisNode == null or the right object wasn't found in the targetNode path
 	                // go check request path for an object with matching prototype
-	                int l = reval.requestPath.size();
+	                int l = reval.reqPath.size();
 	                for (int i=l-1; i>=0; i--) {
-	                    Object pathelem = reval.requestPath.get (i);
-	                    if (handler.equalsIgnoreCase (app.getPrototypeName (pathelem))) {
-	                         handlerObject = pathelem;
+	                    if (handler.equalsIgnoreCase (((ESNode) reval.reqPath.getProperty(i)).getPrototypeName())) {
+	                         handlerObject = (ESNode) reval.reqPath.getProperty(i);
 	                         break;
 	                    }
 	                }
 	            }
 
-	            // the macro handler object couldn't be found
-	            if (handlerObject == null)
-	                objectFound = false;
-
 	        } else {
 	            // this is a global macro with no handler specified
-	            handlerObject = null;
+	            handlerObject = reval.global;
 	        }
 
-	        if (objectFound) {
-	            // check if a function called name_macro is defined.
-	            // if so, the macro evaluates to the function. Otherwise,
-	            // a property/field with the name is used, if defined.
-	            Object v = null;
-	            if (app.scriptingEngine.hasFunction (handlerObject, name+"_macro", reval)) {
-	                // System.err.println ("Getting macro from function");
-	                v = app.scriptingEngine.invoke (handlerObject, name+"_macro", arguments, null, reval);
-	            } else {
-	                // System.err.println ("Getting macro from property");
-	                v = app.scriptingEngine.get (handlerObject, name, reval);
-	            }
-	            if (v != null)
-	                writeToResponse (v.toString (), reval.res);
+	        if (handlerObject != null) {
+	            ESValue v = handlerObject.doIndirectCall (reval.evaluator, handlerObject, name+"_macro", arguments);
+	            if (v != ESUndefined.theUndefined && v != ESNull.theNull)
+	                reval.res.write (v);
 	        } else {
-	            String msg = "[HopMacro unhandled: "+getFullName()+"]";
+	            String msg = "[HopMacro unhandled: "+handler+"."+name+"]";
 	            reval.res.write (" "+msg+" ");
-	            app.logEvent (msg);
+	            IServer.getLogger().log (msg);
 	        }
-	    } catch (RedirectException redir) {
-	        throw redir;
-	    } catch (ConcurrencyException concur) {
-	        throw concur;
 	    } catch (Exception x) {
-	        x.printStackTrace();
 	        String msg = "[HopMacro error: "+x+"]";
 	        reval.res.write (" "+msg+" ");
-	        app.logEvent (msg);
+	        IServer.getLogger().log (msg);
 	    }
 	}
 
 	private void renderFromResponse (RequestEvaluator reval) {
-	    Object value = null;
-	    // as a transitional solution, try to get the value from the
-	    // hardcoded fields in the response object. If not present, try
-	    // the response object's data object.
-	    if ("title".equals (name))
-	        value = reval.res.title;
-	    else if ("head".equals (name))
-	        value = reval.res.head;
-	    else if ("body".equals (name))
-	        value = reval.res.body;
-	    else if ("message".equals (name))
-	        value = reval.res.message;
-	    if (value == null)
-	        value = reval.res.get (name);
-	    if (value != null)
-	        writeToResponse (value.toString (), reval.res);
+	    if ("title".equals (name) && reval.res.title != null)
+	        reval.res.write (reval.res.title);
+	    else if ("head".equals (name) && reval.res.head != null)
+	        reval.res.write (reval.res.head);
+	    else if ("body".equals (name) && reval.res.body != null)
+	        reval.res.write (reval.res.body);
+	    else if ("message".equals (name) && reval.res.message != null)
+	        reval.res.write (reval.res.message);
 	}
 
 	private void renderFromRequest (RequestEvaluator reval) {
 	    Object value = reval.req.get (name);
 	    if (value != null)
-	        writeToResponse (value.toString (), reval.res);
+	        reval.res.write (value);
 	}
 
-	private void renderFromParam (RequestEvaluator reval, HashMap paramObject) {
+	private void renderFromParam (RequestEvaluator reval, ESObject paramObject) {
 	    if (paramObject == null)
 	        reval.res.write ("[HopMacro error: Skin requires a parameter object]");
 	    else {
-	        Object value = paramObject.get (name);
-	        if (value != null)
-	            writeToResponse (value.toString (), reval.res);
+	        try {
+	            ESValue value = paramObject.getProperty (name, name.hashCode());
+	            if (value != null && value != ESUndefined.theUndefined)
+	                reval.res.write (value);
+	        } catch (EcmaScriptException ignore) {}
 	    }
 	}
-
-	/**
-	 * Utility method for writing text out to the response object.
-	 */
-	void writeToResponse (String text, ResponseTrans res) {
-	    if (text == null || text.length() == 0)
-	        return;
-	    String encoding = (String) parameters.get ("encoding");
-	    String prefix = (String) parameters.get ("prefix");
-	    String suffix = (String) parameters.get ("suffix");
-	    res.write (prefix);
-	    res.write (encode (text, encoding));
-	    res.write (suffix);
-	}
-
-	/**
-	 * Utility method for performing different kind of character
-	 * encodings on the macro output.
-	 */
-	String encode (String text, String encoding) {
-	    if (encoding == null || text == null)
-	        return text;
-	    if ("html".equalsIgnoreCase (encoding))
-	        return HtmlEncoder.encode (text);
-	    if ("xml".equalsIgnoreCase (encoding))
-	        return HtmlEncoder.encodeXml (text);
-	    if ("form".equalsIgnoreCase (encoding))
-	        return HtmlEncoder.encodeFormValue (text);
-	    if ("url".equalsIgnoreCase (encoding))
-	        return URLEncoder.encode (text);
-	    return text;
-	}
-
 
 	public String toString () {
-	    return "[HopMacro: "+getFullName()+"]";
+	    return "[HopMacro: "+handler+","+name+"]";
 	}
-
-	/**
-	 * Return the full name of the macro in handler.name notation
-	 */
-	public String getFullName () {
-	    if (fullname == null) {
-	        if (handler == null)
-	            fullname = name;
-	        else
-	            fullname = handler+"."+name;
-	    }
-	    return fullname;
-	}
-
     }
 
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

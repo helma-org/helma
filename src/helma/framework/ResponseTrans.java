@@ -13,112 +13,47 @@ import helma.util.*;
  * class are directly exposed to JavaScript as global property res. 
  */
  
-public class ResponseTrans implements Externalizable {
+public class ResponseTrans implements Serializable {
 
-    /**
-     * Set the MIME content type of the response.
-     */
     public String contentType = "text/html";
-
-    /**
-     * Set the charset of the response.
-     */
-    public String charset;
-
-    /**
-     * used to allow or disable client side caching
-     */
-    public boolean cache = true;
-
-    /**
-     * Used for HTTP response code, if 0 code 200 OK will be used.
-     */
-    public int status = 0;
-
-    /**
-     * Used for HTTP authentication
-     */
-    public String realm;
-
-    // name of the skin to be rendered  after completion, if any
-    public transient String skin = null;
-
     // the actual response
     private byte[] response = null;
-
     // contains the redirect URL
-    private String redir = null;
+    public String redirect = null;
 
     // cookies
-    String cookieKeys[];
-    String cookieValues[];
-    int cookieDays[];
+    public String cookieKeys[];
+    public String cookieValues[];
+    public int cookieDays[];
     int nCookies = 0;
+
+    // used to allow or disable client side caching
+    public boolean cache = true;
 
     // the buffer used to build the response
     private transient StringBuffer buffer = null;
     // these are used to implement the _as_string variants for Hop templates.
     private transient Stack buffers;
 
-    // the path used to resolve skin names
-    private transient Object skinpath = null;
-    // the processed skinpath as array of Nodes or directory names
-    private transient Object[] translatedSkinpath = null;
-
-    static final long serialVersionUID = -8627370766119740844L;
-
-    /**
-     * the buffers used to build the single body parts -
-     * transient, response must be constructed before this is serialized
-     */
+    // the buffers used to build the single body parts -
+    // transient, response must be constructed before this is serialized
     public transient String title, head, body, message, error;
 
-    /**
-     *  JavaScript object to make the values Map accessible to
-     *  script code as res.data
-     */
-    public transient Object data;
-
-    // the map of form and cookie data
-    private transient Map values;
+    // name of the skin to be rendered  after completion, if any
+    public transient String mainSkin = null;
 
 
     public ResponseTrans () {
 	super ();
-	title = head = body = message = error = null;
-	values = new HashMap ();
+	title = head = body = message = error = "";
     }
-
-
-    /**
-     *  Get a value from the responses map by key.
-     */
-    public Object get (String name) {
-	try {
-	    return values.get (name);
-	} catch (Exception x) {
-	    return null;
-	}
-    }
-
-    /**
-     *  Get the data map for this response transmitter.
-     */
-    public Map getResponseData () {
-	return values;
-    }
-
-    /**
-     * Reset the response object to its initial empty state.
-     */
+    
     public void reset () {
 	if (buffer != null)
 	    buffer.setLength (0);
-	response = null;
-	redir = null;
-	skin = null;
-	title = head = body = message = error = null;
-	values.clear ();
+	redirect = null;
+	mainSkin = null;
+	title = head = body = message = error = "";
     }
 
 
@@ -152,26 +87,6 @@ public class ResponseTrans implements Externalizable {
 	        buffer = new StringBuffer (512);
 	    buffer.append (what.toString ());
 	}
-    }
-
-    /**
-     * Utility function that appends a <br> to whatever is written
-     */
-    public void writeln (Object what) {
-	if (buffer == null)
-	    buffer = new StringBuffer (512);
-	if (what != null)
-	    buffer.append (what.toString ());
-	buffer.append ("<br />\r\n");
-    }
-
-    /**
-     *  Append a part from a char array to the response buffer.
-     */
-    public void writeCharArray (char[] c, int start, int length) {
-	if (buffer == null)
-	    buffer = new StringBuffer (512);
-	buffer.append (c, start, length);
     }
 
     /**
@@ -212,18 +127,6 @@ public class ResponseTrans implements Externalizable {
     }
 
 
-    /**
-     * Encode HTML entities, but leave newlines alone. This is for the content of textarea forms.
-     */
-    public void encodeForm (Object what) {
-	if (what != null) {
-	    if (buffer == null)
-	        buffer = new StringBuffer (512);
-	    HtmlEncoder.encodeAll (what.toString (), buffer, false);
-	}
-    }
-
-
     public void append (String what) {
 	if (what != null) {
 	    if (buffer == null)
@@ -233,21 +136,8 @@ public class ResponseTrans implements Externalizable {
     }
 
     public void redirect (String url) throws RedirectException {
-	redir = url;
+	redirect = url;
 	throw new RedirectException (url);
-    }
-
-    public String getRedirect () {
-	return redir;
-    }
-
-    /**
-     *  Allow to directly set the byte array for the response. Calling this more than once will
-     *  overwrite the previous output. We take a generic object as parameter to be able to
-     * generate a better error message, but it must be byte[].
-     */
-    public void writeBinary (byte[] what) {
-	response = what;
     }
 
 
@@ -255,29 +145,14 @@ public class ResponseTrans implements Externalizable {
      * This has to be called after writing to this response has finished and before it is shipped back to the
      * web server. Transforms the string buffer into a char array to minimize size.
      */
-    public synchronized void close (String cset) throws UnsupportedEncodingException {
-	// only use default charset if not explicitly set for this response.
-	if (charset == null)
-	    charset = cset;
-
-	boolean error = false;
-	if (response == null) {
-	    if (buffer != null) {
-	        try {
-	            response = buffer.toString ().getBytes (charset);
-	        } catch (UnsupportedEncodingException uee) {
-	            error = true;
-	            response = buffer.toString ().getBytes ();
-	        }
-	        buffer = null; // make sure this is done only once, even with more requsts attached
-	    } else {
-	        response = new byte[0];
-	    }
+    public synchronized void close () {
+	if (buffer != null) {
+	    response = buffer.toString ().getBytes ();
+	    buffer = null; // make sure this is done only once, even with more requsts attached
+	} else {
+	    response = new byte[0];
 	}
 	notifyAll ();
-	// if there was a problem with the encoding, let the app know
-	if (error)
-	    throw new UnsupportedEncodingException (charset);
     }
 
     /**
@@ -302,26 +177,7 @@ public class ResponseTrans implements Externalizable {
     }
 
     public String getContentType () {
-	if (charset != null)
-	    return contentType+"; charset="+charset;
-	return contentType;
-    }
-
-    public void setSkinpath (Object obj) {
-	this.skinpath = obj;
-	this.translatedSkinpath = null;
-    }
-
-    public Object getSkinpath () {
-	return skinpath;
-    }
-
-    public void setTranslatedSkinpath (Object[] arr) {
-	this.translatedSkinpath = arr;
-    }
-
-    public Object[] getTranslatedSkinpath () {
-	return translatedSkinpath;
+    	return contentType;
     }
 
     public synchronized void setCookie (String key, String value) {
@@ -371,31 +227,6 @@ public class ResponseTrans implements Externalizable {
 	return cookieValues[i];
     }
 
-    public void readExternal (ObjectInput s) throws ClassNotFoundException, IOException {
-	contentType = (String) s.readObject ();
-	response = (byte[]) s.readObject ();
-	redir = (String) s.readObject ();
-	cookieKeys = (String[]) s.readObject ();
-	cookieValues = (String[]) s.readObject ();
-	cookieDays = (int[]) s.readObject ();
-	nCookies = s.readInt ();
-	cache = s.readBoolean ();
-	status = s.readInt ();
-	realm = (String) s.readObject ();
-    }
-
-    public void writeExternal (ObjectOutput s) throws IOException {
-	s.writeObject (contentType);
-	s.writeObject (response);
-	s.writeObject (redir);
-	s.writeObject (cookieKeys);
-	s.writeObject (cookieValues);
-	s.writeObject (cookieDays);
-	s.writeInt (nCookies);
-	s.writeBoolean (cache);
-	s.writeInt (status);
-	s.writeObject (realm);
-    }
 
 }
 

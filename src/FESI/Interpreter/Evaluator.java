@@ -44,8 +44,6 @@ public class Evaluator {
 
   // used to stop thread, 06.12.99 Hannes Wallnoefer
   public volatile Thread thread;
-  // used to retrieve wrappers with correct Prototype for path elements in ESLoader
-  public helma.scripting.fesi.FesiEvaluator reval;
 
   private static String eol = System.getProperty("line.separator", "\n");
 

@@ -16,7 +16,6 @@ public interface IRemoteImage extends Remote  {
     public void setFont (String name, int style, int size) throws RemoteException;
     public void setColor (int color) throws RemoteException;
     public void setColor (int r, int g, int b) throws RemoteException;
-
     public void reduceColors (int colors) throws RemoteException;
 
     public void drawString (String str, int x, int y) throws RemoteException;
@@ -30,5 +29,9 @@ public interface IRemoteImage extends Remote  {
     public void resize (int w, int h) throws RemoteException;
     
     public void saveAs (String filename) throws RemoteException;
+    public void readFrom (String filename) throws RemoteException;
+    
+    public byte[] getBytes (String type) throws RemoteException;
+    public void setBytes (byte[] bytes, String type) throws RemoteException;
 
 }

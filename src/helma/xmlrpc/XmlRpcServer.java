@@ -263,11 +263,7 @@ class Invoker implements XmlRpcHandler {
 	catch (SecurityException s_e){			
 	    throw s_e;
 	}
-
-	// our policy is to make all public methods callable except the ones defined in java.lang.Object
-	if (method.getDeclaringClass () == Class.forName ("java.lang.Object"))
-	    throw new XmlRpcException (0, "Invoker can't call methods defined in java.lang.Object");
-
+					
 	// invoke
 	Object returnValue = null;
 	try {

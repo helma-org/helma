@@ -6,353 +6,105 @@ package helma.util;
 import java.io.*;
 import java.util.*;
 import java.text.*;
-import java.util.zip.GZIPOutputStream;
 
 /**
  * Utility class for asynchronous logging.
  */
  
-public final class Logger {
+public class Logger implements Runnable {
 
-    // we use one static thread for all Loggers
-    static Runner runner;
-    // the list of active loggers
-    static ArrayList loggers;
-    // hash map of loggers
-    static HashMap loggerMap;
+    private Thread logger;
 
-    // buffer for log items
-    private List entries;
-
-    // fields used for logging to files
+    private Vector entries;
     private String filename;
-    private File logdir;
-    private File logfile;
-    private PrintWriter writer;
-    // the canonical name for this logger
-    String canonicalName;
-
-    // used when logging to a PrintStream such as System.out
+    private String dirname;
+    private File dir;
+    private File currentFile;
+    private PrintWriter currentWriter;
+    private int fileindex = 0;
+    private DecimalFormat nformat;
+    private DateFormat dformat;
+    private long dateLastRendered;
+    private String dateCache;
     private PrintStream out = null;
 
-    // flag to tell runner thread if this log should be closed/discarded
-    boolean closed = false;
-
-    // fields for date rendering and caching
-    static DateFormat dformat = new SimpleDateFormat ("[yyyy/MM/dd HH:mm] ");
-    static long dateLastRendered;
-    static String dateCache;
-    // number format for log file rotation
-    DecimalFormat nformat = new DecimalFormat ("000");
-    DateFormat aformat = new SimpleDateFormat ("yyyy-MM-dd");
-
-
-
-    /**
-     * Create a logger for a PrintStream, such as System.out.
-     */
     public Logger (PrintStream out) {
+	dformat = DateFormat.getInstance ();
 	this.out = out;
-	canonicalName = out.toString ();
-
-	// create a synchronized list for log entries since different threads may
-	// attempt to modify the list at the same time
-	entries = Collections.synchronizedList (new LinkedList ());
-
-	// register this instance with static logger list
-	start (this);
+	entries = new Vector ();
+	logger = new Thread (this);
+	// logger.setPriority (Thread.MIN_PRIORITY+2);
+	logger.start ();
     }
 
-    /**
-     * Create a file logger. The actual file names do have numbers appended and are
-     * rotated every x bytes.
-     */
-    private Logger (String dirname, String filename) {
-	this.filename = filename;
-	logdir = new File (dirname);
-	logfile = new File (logdir, filename+".log");
-
-	try {
-	    canonicalName = logfile.getCanonicalPath ();
-	} catch (IOException iox) {
-	    canonicalName = logfile.getAbsolutePath ();
-	}
-
-	if (!logdir.exists())
-	    logdir.mkdirs ();
-
-	try {
-	    rotateLogFile ();
-	} catch (IOException iox) {
-	    System.err.println ("Error creating log "+canonicalName+": "+iox);
-	}
-
-	// create a synchronized list for log entries since different threads may
-	// attempt to modify the list at the same time
-	entries = Collections.synchronizedList (new LinkedList ());
-
-	// register this instance with static logger list
-	start (this);
-    }
-
-
-    /**
-     * Get a logger with a symbolic file name within a directory.
-     */
-    public static synchronized Logger getLogger (String dirname, String filename) {
+    public Logger (String dirname, String filename) throws IOException {
 	if (filename == null || dirname == null)
-	    throw new RuntimeException ("Logger can't use null as file or directory name");
-	File file = new File (dirname, filename+".log");
-	Logger log = null;
-	if (loggerMap != null) try {
-	    log = (Logger) loggerMap.get (file.getCanonicalPath());
-	} catch (IOException iox) {
-	    log = (Logger) loggerMap.get (file.getAbsolutePath());
-	}
-	if (log == null || log.isClosed ())
-	    log = new Logger (dirname, filename);
-	return log;
+	    throw new IOException ("Logger can't use null as file or directory name");
+	this.filename = filename;
+	this.dirname = dirname;
+	nformat = new DecimalFormat ("00000");
+	dformat = DateFormat.getInstance ();
+	dir = new File (dirname);
+	if (!dir.exists())
+	    dir.mkdirs ();
+	currentFile =  new File (dir, filename+nformat.format(++fileindex)+".log");
+	while (currentFile.exists())
+	    currentFile =  new File (dir, filename+nformat.format(++fileindex)+".log");
+	currentWriter = new PrintWriter (new FileWriter (currentFile), false);
+	entries = new Vector ();
+	logger = new Thread (this);
+	// logger.setPriority (Thread.MIN_PRIORITY+2);
+	logger.start ();
     }
 
-
-    /**
-     * Append a message to the log.
-     */
     public void log (String msg) {
-	// if we are closed, drop message without further notice
-	if (closed)
-	    return;
 	// it's enough to render the date every 15 seconds
 	if (System.currentTimeMillis () - 15000 > dateLastRendered)
 	    renderDate ();
-	entries.add (dateCache + msg);
+	entries.addElement (dateCache + " " + msg);
     }
 
-    private static synchronized void renderDate () {
+    private synchronized void renderDate () {
 	dateLastRendered = System.currentTimeMillis ();
 	dateCache = dformat.format (new Date());
     }
 
-
-    /**
-     *  Return an object  which identifies  this logger.
-     */
-    public String getCanonicalName () {
-	return canonicalName;
-    }
-
-
-    /**
-     *  Get the list of unwritten entries
-     */
-    public List getEntries () {
-	return entries;
-    }
-
-    /**
-     * This is called by the runner thread to perform actual output.
-     */
-    public void write () {
-	if (entries.isEmpty ())
-	    return;
-	try {
-	    if (logfile != null &&
-			(logfile.length() > 10000000 || writer == null ||
-			!logfile.exists() || !logfile.canWrite())) {
-	        // rotate log files each 10 megs of if we can't write to it
-	        rotateLogFile ();
-	    }
-
-	    int l = entries.size();
-
-	    // check if writing to printstream or file
-	    if (out != null) {
+    public void run () {
+	while (Thread.currentThread () == logger) {
+	    try {
+	        if (currentFile != null && currentFile.length() > 10000000) {
+	            // rotate log files each 10 megs
+	            swapFile ();
+	        }
+	
+	        int l = entries.size();
 	        for (int i=0; i<l; i++) {
-	            String entry = (String) entries.get (0);
-	            entries.remove (0);
-	            out.println (entry);
+	            Object entry = entries.elementAt (0);
+	            entries.removeElementAt (0);
+	            if (out != null)
+	                out.println (entry.toString());
+	            else
+	                currentWriter.println (entry.toString());
 	        }
-	    } else {
-	        for (int i=0; i<l; i++) {
-	            String entry = (String) entries.get (0);
-	            entries.remove (0);
-	            writer.println (entry);
-	        }
-	        writer.flush ();
-	    }
 
-	} catch (Exception x) {
-	    int e = entries.size();
-	    if (e > 1000) {
-	        // more than 1000 entries queued plus exception - something
-	        // is definitely wrong with this logger. Write a message to std err and
-	        // discard queued log entries.
-	        System.err.println ("Error writing log file "+this+": "+x);
-	        System.err.println ("Discarding "+e+" log entries.");
-	        entries.clear ();
+                     if (currentWriter != null)
+	            currentWriter.flush ();
+	        logger.sleep (1000l);
+
+	    } catch (InterruptedException ir) {
+	        Thread.currentThread().interrupt ();
 	    }
 	}
     }
 
-    /**
-     *  Rotate log files, closing, renaming and gzipping the old file and
-     *  start a new one.
-     */
-    private void rotateLogFile () throws IOException {
-	if (writer != null) try {
-	    writer.close();
-	} catch (Exception ignore) {}
-	if (logfile.exists()) {
-	    String today = aformat.format(new Date());
-	    int ct=0;
-	    File archive = null;
-	    while (archive==null || archive.exists()) {
-	        String archidx = ct>999 ? Integer.toString(ct) : nformat.format (++ct);
-	        String archname = filename+"-"+today+"-"+ archidx +".log.gz";
-	        archive = new File (logdir, archname);
-	    }
-	    if (logfile.renameTo (archive))
-	        (new GZipper(archive)).start();
-	    else
-	        System.err.println ("Error rotating log file "+canonicalName+". Old file will possibly be overwritten!");
+    private void swapFile () {
+    	try {
+    	    currentWriter.close();
+	    currentFile =  new File (dir, filename+nformat.format(++fileindex)+".log");
+	    currentWriter = new PrintWriter (new FileWriter (currentFile), false);
+	} catch (IOException iox) {
+	    System.err.println ("Error swapping Log files: "+iox);
 	}
-	writer = new PrintWriter (new FileWriter (logfile), false);
-    }
-
-    /**
-     * Tell whether this log is closed.
-     */
-    public boolean isClosed () {
-	return closed;
-    }
-
-    /**
-     * Tells a log to close down. Only the flag is set, the actual closing is
-     * done by the runner thread next time it comes around.
-     */
-    public void close () {
-	this.closed = true;
-    }
-
-    /**
-     * Actually closes the file writer of a log.
-     */
-    void closeFiles () {
-	if (writer != null) try {
-	    writer.close ();
-	} catch (Exception ignore) {}
-    }
-
-    /**
-     * Return a string representation of this Logger
-     */
-    public String toString () {
-	return "Logger["+canonicalName+"]";
-    }
-
-
-    /**
-     *  Add a log to the list of logs and
-     *  create and start the runner thread if necessary.
-     */
-    static synchronized void start (Logger log) {
-	if (loggers == null)
-	    loggers = new ArrayList ();
-	if (loggerMap == null)
-	    loggerMap = new HashMap ();
-
-	loggers.add (log);
-	loggerMap.put (log.canonicalName, log);
-
-	if (runner == null || !runner.isAlive ()) {
-	    runner = new Runner ();
-	    runner.start ();
-	}
-    }
-
-
-    /**
-     *  Return a list of all active Loggers
-     */
-    public static List getLoggers () {
-	if (loggers == null)
-	    return null;
-	return (List) loggers.clone ();
-    }
-
-    /**
-     *  The static runner class that loops through all loggers.
-     */
-    static class Runner extends Thread {
-
-	public void run () {
-	    while (runner == this  && !isInterrupted ()) {
-	        int nloggers = loggers.size();
-	        for (int i=nloggers-1; i>=0; i--) {
-	            try {
-	                Logger log = (Logger) loggers.get (i);
-	                log.write ();
-	                if (log.closed && log.entries.isEmpty()) {
-	                    loggers.remove (log);
-	                    log.closeFiles ();
-	                }
-	            } catch (Exception x) {
-	                System.err.println ("Error in Logger main loop: "+x);
-	            }
-	        }
-	        try {
-	            sleep (500);
-	        } catch (InterruptedException ix) {}
-	    }
-	}
-
-    }
-
-	/**
-	  * a Thread class that zips up a file, filename will stay the same.
-	  */
-	class GZipper extends Thread	{
-	    File file, temp;
-	    public GZipper (File file)	{
-	        this.file = file;
-	        this.temp = new File (file.getAbsolutePath()+".tmp");
-	    }
-
-	    public void run() {
-	        long start = System.currentTimeMillis();
-	        try {
-	            GZIPOutputStream zip = new GZIPOutputStream( new FileOutputStream(temp));
-	            BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
-	            byte[] b = new byte[1024];
-	            int len = 0;
-	            while( (len=in.read(b,0,1024))!=-1 ) {
-	                zip.write(b,0,len);
-	            }
-	            zip.close();
-	            in.close();
-	            file.delete();
-	            temp.renameTo(file);
-	        } catch ( Exception e )	{
-	            System.err.println (e.toString());
-	        }
-	    }
-	}
-
-
-
-
-    /**
-     *  test main method
-     */
-    public static void main (String[] args) throws IOException {
-	Logger log = new Logger (".", "testlog");
-	long start = System.currentTimeMillis ();
-	for (int i=0; i<50000; i++)
-	    log.log ("test log entry "+i);
-	log.log ("done: "+(System.currentTimeMillis () - start));
-	System.err.println (System.currentTimeMillis () - start);
-	log.close ();
-	// System.exit (0);
     }
 
 }

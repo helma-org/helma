@@ -147,8 +147,6 @@ public class Serve implements ServletContext, Runnable
     private int port;
     private PrintStream logStream;
     Acme.WildcardDictionary registry;
-    // the servlet to use if no other matches the request
-    Servlet defaultServlet;
     Properties props;
 
     /// Constructor.
@@ -270,10 +268,6 @@ public class Serve implements ServletContext, Runnable
 	registry.remove (urlPat);
 	}
 
-    public void setDefaultServlet (Servlet servlet) {
-	defaultServlet = servlet;
-    }
-	
     /// Register a standard set of Servlets.  These will return
     // files or directory listings, and run CGI programs, much like a
     // standard HTTP server.
@@ -457,7 +451,8 @@ public class Serve implements ServletContext, Runnable
     // Same as the CGI variable SERVER_SOFTWARE.
     public String getServerInfo()
 	{
-	return  ServeUtils.serverName + " " + helma.main.Server.version + " (" + ServeUtils.serverUrl + ")";
+	return ServeUtils.serverName + " " + ServeUtils.serverVersion +
+	       " (" + ServeUtils.serverUrl + ")";
 	}
 
     /// Returns the value of the named attribute of the network service, or
@@ -658,11 +653,6 @@ class ServeConnection implements Runnable, HttpServletRequest, HttpServletRespon
 	    if (reqQuery != null)
 	    	reqQuery = decode (reqQuery);
 	    Servlet servlet = (Servlet) serve.registry.get( reqUriPath );
-	    // maybe the application name without slash? try with slash appended
-	    if (servlet == null)
-	    	servlet = (Servlet) serve.registry.get (reqUriPath+"//");
-	    if (servlet == null)
-	    	servlet = serve.defaultServlet;
 	    if ( servlet != null )
 		runServlet( (HttpServlet) servlet );
 	    else if ( "/".equals( reqUriPath ))
@@ -687,7 +677,7 @@ class ServeConnection implements Runnable, HttpServletRequest, HttpServletRespon
 	setStatus( SC_OK );
 	setDateHeader( "Date", System.currentTimeMillis() );
 	setHeader(
-	    "Server", ServeUtils.serverName + "/" + helma.main.Server.version );
+	    "Server", ServeUtils.serverName + "/" + ServeUtils.serverVersion );
 	setHeader( "Connection", "close" );
 	try
 	    {

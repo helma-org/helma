@@ -4,10 +4,7 @@
 package helma.objectmodel;
 
 import helma.util.*;
-import java.util.Vector;
-import java.util.Hashtable;
-import java.util.Date;
-import java.util.Enumeration;
+import java.util.*;
 import java.io.*;
 import java.text.*;
 
@@ -15,11 +12,11 @@ import java.text.*;
  * A property implementation for Nodes stored inside a database. 
  */
  
-public final class Property implements IProperty, Serializable {
+public final class Property implements IProperty, Serializable, Cloneable {
 
  
     protected String propname;
-    protected TransientNode node;
+    protected Node node;
 
     public String svalue;
     public boolean bvalue;
@@ -31,11 +28,11 @@ public final class Property implements IProperty, Serializable {
     public int type;
 
 
-    public Property (TransientNode node) {
+    public Property (Node node) {
 	this.node = node;
     }
 
-    public Property (String propname, TransientNode node) {
+    public Property (String propname, Node node) {
 	this.propname = propname;
 	this.node = node;
     }
@@ -66,16 +63,39 @@ public final class Property implements IProperty, Serializable {
 
     public void setStringValue (String value) throws ParseException {
 	if (type == NODE)
-	    this.nvalue = null;
+	    unregisterNode ();
+	// IServer.getLogger().log ("setting string value of property "+propname + " to "+value);
+	if (type == DATE) {
+	    SimpleDateFormat dateformat = new SimpleDateFormat ();
+	    dateformat.setLenient (true);
+	    Date date = dateformat.parse (value);
+	    this.lvalue =  date.getTime ();
+	    return;
+	}
+	if (type == BOOLEAN) {
+	    if ("true".equalsIgnoreCase (value))
+	        this.bvalue = true;
+	    else if ("false".equalsIgnoreCase (value))
+	        this.bvalue = false;
+	    return;
+	}
+	if (type == INTEGER) {
+	    this.lvalue = Long.parseLong (value);
+	    return;
+	}
+	if (type == FLOAT) {
+	    this.dvalue = new Double (value).doubleValue ();
+	    return;
+	}
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
-	type = STRING;
 	this.svalue = value;
+	type = STRING;
     }
 
     public void setIntegerValue (long value) {
 	if (type == NODE)
-	    this.nvalue = null;
+	    unregisterNode ();
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
 	type = INTEGER;
@@ -84,7 +104,7 @@ public final class Property implements IProperty, Serializable {
 
     public void setFloatValue (double value) {
 	if (type == NODE)
-	    this.nvalue = null;
+	    unregisterNode ();
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
 	type = FLOAT;
@@ -93,7 +113,7 @@ public final class Property implements IProperty, Serializable {
 
     public void setDateValue (Date value) {
 	if (type == NODE)
-	    this.nvalue = null;
+	    unregisterNode ();
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
 	type = DATE;
@@ -102,7 +122,7 @@ public final class Property implements IProperty, Serializable {
 
     public void setBooleanValue (boolean value) {
 	if (type == NODE)
-	    this.nvalue = null;
+	    unregisterNode ();
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
 	type = BOOLEAN;
@@ -112,18 +132,58 @@ public final class Property implements IProperty, Serializable {
     public void setNodeValue (INode value) {
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
+	if (type == NODE && nvalue != value) {
+	    unregisterNode ();
+	    registerNode (value);
+	} else if (type != NODE) 
+	    registerNode (value);	
 	type = NODE;
 	this.nvalue = value;
     }
 
     public void setJavaObjectValue (Object value) {
 	if (type == NODE)
-	    this.nvalue = null;
+	    unregisterNode ();
 	type = JAVAOBJECT;
 	this.jvalue = value;
     }
 
 
+    /**
+     * tell a the value node that it is no longer used as a property.
+     */
+    protected void unregisterNode () {
+	if (nvalue != null && nvalue instanceof Node) {
+	    Node n = (Node) nvalue;
+	    if (!n.anonymous && propname.equals (n.getName()) && this.node == n.getParent()) {
+	        // this is the "main" property of a named node, so handle this as a total delete.
+	        IServer.getLogger().log ("deleting named property");
+	        if (n.proplinks != null) {
+	            for (Enumeration e = n.proplinks.elements (); e.hasMoreElements (); ) {
+	            	   Property p = (Property) e.nextElement ();
+	            	   p.node.propMap.remove (p.propname.toLowerCase ());
+	            }
+	        }
+	        if (n.links != null) {
+	            for (Enumeration e = n.links.elements (); e.hasMoreElements (); ) {
+	            	   Node n2 = (Node) e.nextElement ();
+	            	   n2.releaseNode (n);
+	            }
+	        }
+
+	    } else {
+	        n.unregisterPropLink (this);
+	    }
+	}
+    }
+
+    /**
+     * tell the value node that it is being used as a property value.
+     */
+    protected void registerNode (INode n) {
+	if (n != null && n instanceof Node) 
+	    ((Node) n).registerPropLink (this);
+    }
 
     public String getStringValue () {
 	switch (type) {
@@ -141,7 +201,7 @@ public final class Property implements IProperty, Serializable {
 	case NODE:
 	    return nvalue.getName ();
 	case JAVAOBJECT:
-	    return jvalue == null ? null :  jvalue.toString ();
+	    return jvalue.toString ();
 	}
 	return "";
     }
@@ -187,9 +247,86 @@ public final class Property implements IProperty, Serializable {
 	return null;
     }
 
+    public String getEditor () {
+	switch (type) {
+	case STRING:
+	    return "password".equalsIgnoreCase (propname) ? 
+	        "<input type=password name=\""+propname+"\" value='"+ svalue.replace ('\'', '"') +"'>" : 
+	        "<input type=text name=\""+propname+"\" value='"+ svalue.replace ('\'', '"') +"'>" ;
+	case BOOLEAN:
+	    return "<select name=\""+propname+"\"><option selected value="+bvalue+">"+bvalue+"</option><option value="+!bvalue+">"+!bvalue+"</option></select>";
+	case INTEGER:
+	    return "<input type=text name=\""+propname+"\" value=\""+lvalue+"\">" ;
+	case FLOAT:
+	    return "<input type=text name=\""+propname+"\" value=\""+dvalue+"\">" ;
+	case DATE:
+	    SimpleDateFormat format = new SimpleDateFormat ("dd.MM.yy hh:mm");
+	    String date =  format.format (new Date (lvalue));
+	    return "<input type=text name=\""+propname+"\" value=\""+date+"\">";
+	case NODE:
+	    return "<input type=text size=25 name="+propname+" value='"+ nvalue.getFullName () +"'>";
+	}
+	return "";
+    }
+
+    private String escape (String s) {
+	char c[] = new char[s.length()];
+	s.getChars (0, c.length, c, 0);
+	StringBuffer b = new StringBuffer ();
+	int copyfrom = 0;
+	for (int i = 0; i < c.length; i++) {
+	    switch (c[i]) {
+	        case '\\': 
+	        case '"':
+	            if (i-copyfrom > 0)
+	                b.append (c, copyfrom, i-copyfrom);
+	            b.append ('\\');
+	            b.append (c[i]);
+	            copyfrom = i+1;
+	    }   
+	}
+	if (c.length-copyfrom > 0)
+	    b.append (c, copyfrom, c.length-copyfrom);
+	return b.toString ();
+    }
 
     public int getType () {
 	return type;
+    }
+
+    public String getTypeString () {
+	switch (type) {
+	case STRING:
+	    return "string";
+	case BOOLEAN:
+	    return "boolean";
+	case DATE:
+	    return "date";
+	case INTEGER:
+	    return "integer";
+	case FLOAT:
+	    return "float";
+	case NODE:
+	    return "node";
+	}
+	return "";
+    }
+
+
+    public Object clone () {
+	try {
+	    Property c = (Property) super.clone();
+	    c.propname = this.propname;
+	    c.svalue = this.svalue;
+	    c.bvalue = this.bvalue;
+	    c.lvalue = this.lvalue;
+	    c.dvalue = this.dvalue;
+	    c.type = this.type;
+	    return c;
+	} catch (CloneNotSupportedException e) { 
+	    // this shouldn't happen, since we are Cloneable
+	    throw new InternalError ();
+	}
     }
 
 }

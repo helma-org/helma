@@ -1,4 +1,4 @@
-// AcmeServletClient.java
+// ServletClient.java
 // Copyright (c) Hannes Wallnoefer, Raphael Spannocchi 1998-2000
 
 /* Portierung von helma.asp.AspClient auf Servlets */
@@ -12,63 +12,96 @@ import java.io.*;
 import java.util.*;
 import helma.framework.*;
 import helma.framework.core.Application;
+import helma.objectmodel.Node;
 import helma.util.Uploader;
 
 /**
- * This is the Hop servlet adapter that uses the Acme servlet API clone and communicates
+ * This is the HOP servlet adapter that uses the Acme servlet API clone and communicates 
  * directly with hop applications instead of using RMI. 
  */
  
-public class AcmeServletClient extends HttpServlet {
+public class AcmeServletClient extends HttpServlet{
 	
     private int uploadLimit;       // limit to HTTP uploads in kB
     private Hashtable apps;
     private Application app;
     private String cookieDomain;
+    private boolean caching;
     private boolean debug;
 
-    static final byte HTTP_GET = 0;
-    static final byte HTTP_POST = 1;
 
     public AcmeServletClient (Application app) {
 	this.app = app;
-	this.uploadLimit = 1024;   // generous 1mb upload limit
+	this.uploadLimit = 1024; // generous 1mb upload limit
     }
 
-    public void init (ServletConfig config) throws ServletException {
-	super.init (config);
-	// do nothing
+
+    public void service (HttpServletRequest request, HttpServletResponse response)
+		throws ServletException, IOException {
+	execute (request, response);
     }
 
     public void doGet (HttpServletRequest request, HttpServletResponse response)
 		throws ServletException, IOException {
-	execute (request, response, HTTP_GET);
+	execute (request, response);
     }
-
+	
     public void doPost (HttpServletRequest request, HttpServletResponse response)
 		throws ServletException, IOException {
-	execute (request, response, HTTP_POST);
+	execute (request, response);
     }
-
-    private void execute (HttpServletRequest request, HttpServletResponse response, byte method) {
+	
+	
+    private void execute (HttpServletRequest request, HttpServletResponse response) {
 	String protocol = request.getProtocol ();
 	Cookie[] cookies = request.getCookies();
-	try {
-	    RequestTrans reqtrans = new RequestTrans (method);
+	try {						
+	    RequestTrans reqtrans = new RequestTrans ();
+	    // HACK - sessions not fully supported in Acme.Serve
+	    // Thats ok, we dont need the session object, just the id.
+	    reqtrans.session = request.getRequestedSessionId();  
+	    if (cookies != null) {
+	        for (int i=0; i < cookies.length;i++) try {	// get Cookies
+	            String nextKey = cookies[i].getName ();
+	            String nextPart = cookies[i].getValue ();
+	            reqtrans.set (nextKey, nextPart);
+	        } catch (Exception badCookie) {}
+	    }
+	    // get optional path info
+	    String pathInfo = request.getServletPath ();
+	    if (pathInfo != null) {
+	        if (pathInfo.indexOf (app.getName()) == 1)
+	            pathInfo = pathInfo.substring (app.getName().length()+1);
+	        reqtrans.path = trim (pathInfo);	
+	    } else
+	        reqtrans.path = "";
 
-	    // read and set http parameters
+	    String host = request.getHeader ("Host");
+	    if (host != null) {
+	        host = host.toLowerCase();
+	        reqtrans.set ("http_host", host);
+	    }
+
+	    String referer = request.getHeader ("Referer");
+	    if (referer != null)
+	        reqtrans.set ("http_referer", referer);
+
+	    String remotehost = request.getRemoteAddr ();
+	    if (remotehost != null)
+	        reqtrans.set ("http_remotehost", remotehost);
+
+	    String browser = request.getHeader ("User-Agent");
+	    if (browser != null)
+	        reqtrans.set ("http_browser", browser);
+
 	    for (Enumeration e = request.getParameterNames(); e.hasMoreElements(); ) {
 	        // Params parsen
 	        String nextKey = (String)e.nextElement();
 	        String[] paramValues = request.getParameterValues(nextKey);
-	        if (paramValues != null) {
-	            reqtrans.set (nextKey, paramValues[0]);    // set to single string value
-	            if (paramValues.length > 1)
-	                reqtrans.set (nextKey+"_array", paramValues);     // set string array
-	        }
-	    }
+	        String nextValue = paramValues[0];   // Only take first value
+	        reqtrans.set (nextKey, nextValue);    // generic Header, Parameter
+	    }			
 
-	    // check for MIME file uploads
 	    String contentType = request.getContentType();
 	    if (contentType != null && contentType.indexOf("multipart/form-data")==0) {
 	        // File Upload
@@ -90,51 +123,6 @@ public class AcmeServletClient extends HttpServlet {
 	        }
 	    }
 
-	    // HACK - sessions not fully supported in Acme.Serve
-	    // Thats ok, we dont need the session object, just the id.
-	    reqtrans.session = request.getRequestedSessionId();
-
-	    // get Cookies
-	    if (cookies != null) {
-	        for (int i=0; i < cookies.length;i++) try {
-	            String nextKey = cookies[i].getName ();
-	            String nextPart = cookies[i].getValue ();
-	            reqtrans.set (nextKey, nextPart);
-	        } catch (Exception badCookie) {}
-	    }
-
-	    // get optional path info
-	    String pathInfo = request.getServletPath ();
-	    if (pathInfo != null) {
-	        if (pathInfo.indexOf (app.getName()) == 1)
-	            pathInfo = pathInfo.substring (app.getName().length()+1);
-	        reqtrans.path = trim (pathInfo);
-	    } else
-	        reqtrans.path = "";
-
-	    // do standard HTTP variables
-	    String host = request.getHeader ("Host");
-	    if (host != null) {
-	        host = host.toLowerCase();
-	        reqtrans.set ("http_host", host);
-	    }
-
-	    String referer = request.getHeader ("Referer");
-	    if (referer != null)
-	        reqtrans.set ("http_referer", referer);
-
-	    String remotehost = request.getRemoteAddr ();
-	    if (remotehost != null)
-	        reqtrans.set ("http_remotehost", remotehost);
-
-	    String browser = request.getHeader ("User-Agent");
-	    if (browser != null)
-	        reqtrans.set ("http_browser", browser);
-
-	    String authorization = request.getHeader("authorization");
-	    if ( authorization != null )
-	        reqtrans.set ("authorization", authorization );
-
 	    ResponseTrans restrans = null;
 	    restrans = app.execute (reqtrans);
 	    writeResponse (response, restrans, cookies, protocol);
@@ -154,38 +142,34 @@ public class AcmeServletClient extends HttpServlet {
     }
 
 
-    private void writeResponse (HttpServletResponse res, ResponseTrans trans, Cookie[] cookies, String protocol) {
+    private void writeResponse (HttpServletResponse res, ResponseTrans trans, Cookie[] cookies, String protocol) {			
 	for (int i = 0; i < trans.countCookies(); i++) try {
-	    Cookie c = new Cookie(trans.getKeyAt(i), trans.getValueAt(i));
+	    Cookie c = new Cookie(trans.getKeyAt(i), trans.getValueAt(i));	
 	    c.setPath ("/");
 	    if (cookieDomain != null)
-	        c.setDomain (cookieDomain);
+	        c.setDomain (cookieDomain);			
 	    int expires = trans.getDaysAt(i);
 	    if (expires > 0)
-	        c.setMaxAge(expires * 60*60*24);   // Cookie time to live, days -> seconds
-	    res.addCookie(c);
+	        c.setMaxAge(expires * 60*60*24);   // Cookie time to live, days -> seconds	
+	    res.addCookie(c);				
 	} catch (Exception ign) {}
 
-	if (trans.getRedirect () != null) {
-	    try {
-	        res.sendRedirect(trans.getRedirect ());
+	if (trans.redirect != null) {
+	    try { 
+	        res.sendRedirect(trans.redirect); 
 	    } catch(Exception io_e) {}
 
 	} else {
-
-	    if (!trans.cache) {
+                 if (!trans.cache || ! caching) {
 	        // Disable caching of response.
 	        if (protocol == null || !protocol.endsWith ("1.1"))
 	            res.setHeader ("Pragma", "no-cache"); // for HTTP 1.0
 	        else
 	            res.setHeader ("Cache-Control", "no-cache"); // for HTTP 1.1
 	    }
-		if ( trans.realm!=null )
-			res.setHeader( "WWW-Authenticate", "Basic realm=\"" + trans.realm + "\"" );
-	    if (trans.status > 0)
-	        res.setStatus (trans.status);
+	    res.setStatus( HttpServletResponse.SC_OK );
 	    res.setContentLength (trans.getContentLength ());			
-	    res.setContentType (trans.getContentType ());
+	    res.setContentType (trans.contentType);
 	    try {
 	        OutputStream out = res.getOutputStream ();
 	        out.write (trans.getContent ());
@@ -198,7 +182,7 @@ public class AcmeServletClient extends HttpServlet {
 	try { 
 	    res.sendRedirect(url); 
 	} catch (Exception e) { 
-	    System.err.println ("Exception in redirect: " + e + e.getMessage());
+	    System.err.println ("Exception bei redirect: " + e + e.getMessage());
 	}
     }
 	
@@ -226,8 +210,8 @@ public class AcmeServletClient extends HttpServlet {
     }
 
 	
-    public String getServletInfo (){
-	return new String("Hop ServletClient");
+    public String getServletInfo(){
+	return new String("Helma ServletClient");
     }
 
 
@@ -249,7 +233,6 @@ public class AcmeServletClient extends HttpServlet {
     }
 
 }
-
 
 
 

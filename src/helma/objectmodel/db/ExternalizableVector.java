@@ -4,14 +4,14 @@
 package helma.objectmodel.db;
 
 import java.io.*;
-import java.util.ArrayList;
+import java.util.*;
 
 /**
  * A subclass of Vector that implements the Externalizable interface in order 
  * to be able to control how it is serialized and deserialized.
  */
 
-public class ExternalizableVector extends ArrayList implements Externalizable {
+public class ExternalizableVector extends Vector implements Externalizable {
 
     static final long serialVersionUID = 2316243615310540423L;
 
@@ -19,7 +19,7 @@ public class ExternalizableVector extends ArrayList implements Externalizable {
 	try {
 	    int size = in.readInt ();
 	    for (int i=0; i<size; i++)
-	        add (in.readObject ());
+	        addElement (in.readObject ());
 	} catch (ClassNotFoundException x) {
 	    throw new IOException (x.toString ());
 	}
@@ -29,7 +29,7 @@ public class ExternalizableVector extends ArrayList implements Externalizable {
 	int size = size ();
 	out.writeInt (size);
 	for (int i=0; i<size; i++)
-	    out.writeObject (get (i));
+	    out.writeObject (elementAt (i));
     }
 
 }

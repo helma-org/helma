@@ -4,7 +4,6 @@
 package helma.image;
 
 import java.awt.*;
-import java.awt.image.*;
 import java.net.URL;
 
 /**
@@ -38,10 +37,14 @@ public class ImageGenerator extends Window {
 	Graphics g = img.getGraphics ();
 	ImageWrapper rimg = null;
 	try {
-	    rimg = new SunImageWrapper (img, g, w, h, this);
-	} catch (Exception x) {
-	    System.err.println ("Can't create image: "+x);
-	}
+	    try {
+	        rimg = new ActivatedImageWrapper (img, g, w, h, this);
+	    } catch (NoClassDefFoundError notfound) {
+	        rimg = new SunImageWrapper (img, g, w, h, this);
+	    } catch (ClassNotFoundException notfound) {
+	        rimg = new SunImageWrapper (img, g, w, h, this);
+	    }
+	} catch (Exception x) {}
 	return rimg;
     }
 
@@ -57,10 +60,14 @@ public class ImageGenerator extends Window {
 	    Image img = createImage (w, h);
 	    Graphics g = img.getGraphics ();
 	    g.drawImage (img1, 0, 0, null);
-	    rimg = new SunImageWrapper (img, g, w, h, this);
-	} catch (Exception x) {
-	    System.err.println ("Can't create image: "+x);
-	}
+	    try {
+	        rimg = new ActivatedImageWrapper (img, g, w, h, this);
+	    } catch (ClassNotFoundException notfound) {
+	        rimg = new SunImageWrapper (img, g, w, h, this);
+	    } catch (NoClassDefFoundError notfound) {
+	        rimg = new SunImageWrapper (img, g, w, h, this);
+	    }
+	} catch (Exception x) {}
 	return rimg;
     }
 
@@ -73,10 +80,14 @@ public class ImageGenerator extends Window {
 	    tracker.waitForAll ();
 	    int w = img.getWidth (null);
 	    int h = img.getHeight (null);
-	    rimg = new SunImageWrapper (img, null, w, h, this);
-	} catch (Exception x) {
-	    System.err.println ("Can't create image: "+x);
-	}
+	    try {
+	        rimg = new ActivatedImageWrapper (img, null, w, h, this);
+	    } catch (ClassNotFoundException notfound) {
+	        rimg = new SunImageWrapper (img, null, w, h, this);
+	    }  catch (NoClassDefFoundError notfound) {
+	        rimg = new SunImageWrapper (img, null, w, h, this);
+	    }
+	} catch (Exception x) {}
 	return rimg;
     }
 
@@ -86,7 +97,7 @@ public class ImageGenerator extends Window {
 	MediaTracker tracker = new MediaTracker (this);
 	try {
 	    URL url = new URL (urlstring);
-	    Image img1 = Toolkit.getDefaultToolkit ().createImage (url);
+	    Image img1 = Toolkit.getDefaultToolkit ().getImage (url);
 	    tracker.addImage (img1, 0);
 	    tracker.waitForAll ();
 	    int w = img1.getWidth (null);
@@ -94,44 +105,27 @@ public class ImageGenerator extends Window {
 	    Image img = createImage (w, h);
 	    Graphics g = img.getGraphics ();
 	    g.drawImage (img1, 0, 0, null);
-	    rimg = new SunImageWrapper (img, g, w, h, this);
+	    try {
+	        rimg = new ActivatedImageWrapper (img, g, w, h, this);
+	    } catch (ClassNotFoundException notfound) {
+	        rimg = new SunImageWrapper (img, g, w, h, this);
+	    } catch (NoClassDefFoundError notfound) {
+	        rimg = new SunImageWrapper (img, g, w, h, this);
+	    }
 	} catch (Exception x) {
-	    System.err.println ("Can't create image: "+x);
 	    x.printStackTrace ();
 	}
 	return rimg;
     }
-
-    public ImageWrapper createPaintableImage (ImageWrapper iw, ImageFilter filter) {
-	ImageWrapper rimg = null;
-	MediaTracker tracker = new MediaTracker (this);
-	try {
-	    FilteredImageSource fis = new FilteredImageSource (iw.getSource(), filter);
-	    Image img1 = createImage (fis);
-	    tracker.addImage (img1, 0);
-	    tracker.waitForAll ();
-	    int w = img1.getWidth (null);
-	    int h = img1.getHeight (null);
-	    Image img = createImage (w, h);
-	    Graphics g = img.getGraphics ();
-	    g.drawImage (img1, 0, 0, null);
-	    rimg = new SunImageWrapper (img, g, w, h, this);
-	} catch (Exception x) {
-	    System.err.println ("Can't create image: "+x);
-	}
-	return rimg;
-    }
-
-
+    
      public Image createImage (String filename) {
 	Image img = null;
 	MediaTracker tracker = new MediaTracker (this);
 	try {
-	    img = Toolkit.getDefaultToolkit ().createImage (filename);
+	    img = Toolkit.getDefaultToolkit ().getImage (filename);
 	    tracker.addImage (img, 0);
 	    tracker.waitForAll ();
 	} catch (Exception x) {
-	    System.err.println ("Can't create image: "+x);
 	    x.printStackTrace ();
 	}
 	return img;

@@ -29,7 +29,7 @@
 // Moved to helma.util to use java.util.HashMap instead of java.util.Hashtable
 package helma.util;
 
-import java.util.HashMap;
+import java.util.*;
 
 /// A Hashtable that expires least-recently-used objects.
 // <P>
@@ -59,9 +59,6 @@ public class CacheMap  {
     // The tables.
     private HashMap oldTable;
     private HashMap newTable;
-
-    // the logger to output messages to
-    private Logger logger = null;
 
     /// Constructs a new, empty hashtable with the specified initial 
     // capacity and the specified load factor.
@@ -187,8 +184,7 @@ public class CacheMap  {
 	else {
 	    if (newTable.size() >= eachCapacity) {
 		// Rotate the tables.
-		if (logger != null)
-		    logger.log ("Rotating Cache tables at "+newTable.size()+"/"+oldTable.size()+" (new/old)");
+	             helma.objectmodel.IServer.getLogger().log ("Rotating Cache tables at "+newTable.size()+"/"+oldTable.size()+" (new/old)");
 		oldTable = newTable;
 		newTable = new HashMap (eachCapacity, loadFactor);
 	    }
@@ -213,10 +209,6 @@ public class CacheMap  {
 	oldTable.clear ();
     }
 
-    /// Set the logger to use for debug and profiling output
-    public void setLogger (Logger log) {
-	this.logger = log;
-    }
 
     public synchronized Object[] getEntryArray () {
 	Object[] k1 = newTable.keySet().toArray();
@@ -227,9 +219,6 @@ public class CacheMap  {
 	return k;
     }
 
-    public String toString () {
-	return newTable.toString () + oldTable.toString () + hashCode ();
-    }
 
 }
 

@@ -64,6 +64,7 @@ public abstract class XmlRpc extends HandlerBase {
     static final int BASE64 = 5;
     static final int STRUCT = 6;
     static final int ARRAY = 7;
+    static final int NIL = 8;
 
     // Error level + message
     int errorLevel;
@@ -78,7 +79,7 @@ public abstract class XmlRpc extends HandlerBase {
 
     // for debugging output
     public static boolean debug = false;
-    final static String types[] = {"String", "Integer", "Boolean", "Double", "Date", "Base64", "Struct", "Array"};
+    final static String types[] = {"String", "Integer", "Boolean", "Double", "Date", "Base64", "Struct", "Array", "Nil"};
 
     // mapping between java encoding names and "real" names used in XML prolog.
     // if you use an encoding not listed here send feedback to xmlrpc@helma.org
@@ -175,7 +176,7 @@ public abstract class XmlRpc extends HandlerBase {
 	long now = System.currentTimeMillis ();
 	if (parserClass == null) {
 	    // try to get the name of the SAX driver from the System properties
-	    setDriver (System.getProperty ("sax.driver", "uk.co.wilson.xml.MinML"));
+	    setDriver (System.getProperty ("sax.driver", "org.openxml.parser.XMLSAXParser"));
 	}
 	
 	Parser parser = null;
@@ -240,7 +241,10 @@ public abstract class XmlRpc extends HandlerBase {
      */
     void writeObject (Object what, XmlWriter writer) throws XmlRpcException {
 	writer.startElement ("value");
-    	if (what instanceof String) {
+	if (what == null) {
+	    // try sending experimental <ni/> element
+	    writer.emptyElement ("nil");
+    	} else if (what instanceof String) {
     	    writer.chardata (what.toString ());
 	} else if (what instanceof Integer) {
 	    writer.startElement ("int");
@@ -290,11 +294,8 @@ public abstract class XmlRpc extends HandlerBase {
 	        }
 	    }
 	    writer.endElement ("struct");
-	} else if (what == null) {
-	    throw new XmlRpcException (0, "null is not supported as parameter in XML-RPC.");
-	} else {
+	} else
 	    throw new XmlRpcException (0, "Java class not supported in XML-RPC: " + what.getClass ());
-	}
 	writer.endElement ("value");
     }
 
@@ -420,6 +421,8 @@ public abstract class XmlRpc extends HandlerBase {
 	    currentValue.setType (STRUCT);
 	else if ("array".equals (name))
 	    currentValue.setType (ARRAY);
+	else if ("nil".equals (name))
+	    currentValue.setType (NIL);
    }
     
  
@@ -501,7 +504,7 @@ public abstract class XmlRpc extends HandlerBase {
 	            }
 	            break;
 	        case BASE64: 
-	            value = Base64.decode (cdata.toCharArray ());
+	            value = Base64.decode (cdata.getBytes());
 	            break;
 	        case STRING: 
 	            value = cdata;
@@ -588,10 +591,6 @@ public abstract class XmlRpc extends HandlerBase {
 
 	public void write (String text) {
 	    buf.append (text);
-	}
-
-	public void write (char c) {
-	    buf.append (c);
 	}
 
 	public String toString () {
