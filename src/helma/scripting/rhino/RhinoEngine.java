@@ -30,6 +30,7 @@ import helma.scripting.rhino.debug.Tracer;
 import org.mozilla.javascript.*;
 
 import java.util.*;
+import java.lang.ref.WeakReference;
 
 /**
  * This is the implementation of ScriptingEnvironment for the Mozilla Rhino EcmaScript interpreter.
@@ -127,12 +128,15 @@ public class RhinoEngine implements ScriptingEngine {
         if (coreMap == null) {
             coreMap = new WeakHashMap();
         } else {
-            core = (RhinoCore) coreMap.get(app);
+            WeakReference ref = (WeakReference) coreMap.get(app);
+            if (ref != null) {
+                core = (RhinoCore) ref.get();
+            }
         }
 
         if (core == null) {
             core = new RhinoCore(app);
-            coreMap.put(app, core);
+            coreMap.put(app, new WeakReference(core));
         }
 
         return core;
