@@ -127,16 +127,16 @@ public final class TypeManager {
             } else {
                 // its an prototype
                 String name = null;
-                name = ((Repository) list[i]).getShortName();
+                name = list[i].getShortName();
                 Prototype proto = getPrototype(name);
 
                 // if prototype doesn't exist, create it
                 if (proto == null) {
                     // create new prototype if type name is valid
                     if (isValidTypeName(name)) 
-                        createPrototype(name, (Repository) list[i]);
+                        createPrototype(name, list[i]);
                 } else {
-                    proto.addRepository((Repository) list[i]);
+                    proto.addRepository(list[i]);
                 }
             }
         }
