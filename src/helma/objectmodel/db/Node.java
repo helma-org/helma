@@ -23,7 +23,7 @@ import com.workingdogs.village.*;
  * an external relational database. 
  */
  
-public class Node implements INode, Serializable {
+public final class Node implements INode, Serializable {
 
     // The handle to the node's parent
     protected NodeHandle parentHandle;
@@ -127,10 +127,11 @@ public class Node implements INode, Serializable {
     static final long serialVersionUID = -3740339688506633675L;
 
     /**
-     * This constructor is only used for instances of the NullNode subclass. Do not use for ordinary Nodes!<
+     * This constructor is only used for instances of the NullNode subclass. Do not use for ordinary Nodes.
      */
     Node () {
 	created = lastmodified = System.currentTimeMillis ();
+	nmgr = null;
     }
 
     /**
@@ -838,50 +839,51 @@ public class Node implements INode, Serializable {
 	    links.add (fromHandle);
     }
 
-    public INode getSubnode (String path) {
-	StringTokenizer st = new StringTokenizer (path, "/");
-	Node retval = this, runner;
-
-	while (st.hasMoreTokens () && retval != null) {
-	    runner = retval;
-	    String next = st.nextToken().trim().toLowerCase ();
-
-	    if ("".equals (next)) {
-	        retval = this;
-	    } else {
-	        runner.loadNodes ();
-	        Relation srel = null;
-	        DbMapping smap = null;
-	        if (runner.dbmap != null) {
-	            srel = runner.dbmap.getSubnodeRelation ();
-	            smap = runner.dbmap.getSubnodeMapping ();
-	        }
+    public INode getSubnode (String subid) {
+	// System.err.println ("GETSUBNODE : "+this+" > "+subid);
+	Node retval = null;
+	if ("".equals (subid)) {
+	    return this;
+	} else if (subid != null) {
+	    loadNodes ();
+	    if (subnodes == null || subnodes.size() == 0)
+	        return null;
 	
 	        // check if there is a group-by relation
-	        NodeHandle nhandle = null;
-	        if (srel != null && srel.groupby != null)
+	    NodeHandle nhandle = null;
+	    int l = subnodes.size ();
+	    for (int i=0; i<l; i++) try {
+	        NodeHandle shandle = (NodeHandle) subnodes.get (i);
+	        if (subid.equals (shandle.getID ())) {
+	            // System.err.println ("FOUND SUBNODE: "+shandle);
+	            nhandle = shandle;
+	            break;
+	        }
+	    } catch (Exception x) {
+	        break;
+	    }
+	        /* if (srel != null && srel.groupby != null)
 	            nhandle = new NodeHandle (new SyntheticKey (runner.getKey (), next));
 	        else
 	            nhandle = new NodeHandle (new DbKey (smap, next));
-	        boolean found = runner.subnodes == null ? false : runner.subnodes.contains (nhandle);
-
-	        if (!found) {
-	            retval = null;
-	        } else {
-	            retval = nhandle.getNode (nmgr);
-	        }
-
-	        if (retval != null && retval.parentHandle == null && !"root".equalsIgnoreCase (retval.getPrototype ())) {
-	            retval.setParent (runner);
-	            retval.anonymous = true;
-	        }
+	        boolean found = runner.subnodes == null ? false : runner.subnodes.contains (nhandle); */
+	
+	    if (nhandle != null) {
+	        retval = nhandle.getNode (nmgr);
 	    }
-	    if (retval == null) {
-	        retval = (Node) runner.getNode (next, false);
+
+	    if (retval != null && retval.parentHandle == null && !"root".equalsIgnoreCase (retval.getPrototype ())) {
+	        retval.setParent (this);
+	        retval.anonymous = true;
 	    }
+	
+	    /* if (retval == null) {
+	        retval = (Node) getNode (subid, false);
+	    } */
 	}
 	return retval;
     }
+
 
     public INode getSubnodeAt (int index) {
 	loadNodes ();
@@ -1160,6 +1162,9 @@ public class Node implements INode, Serializable {
 	if (smap != null && smap.isRelational ()) {
 	    // check if subnodes need to be reloaded
 	    Relation subRel = dbmap.getSubnodeRelation ();
+	    // can't do backward relation on transient subnodes
+	    if (state == TRANSIENT && subRel.direction == Relation.BACKWARD)
+	        return;
 	    synchronized (this) {
 	        long lastChange = subRel.aggressiveCaching ? lastSubnodeChange : smap.getLastDataChange ();
 	        // also reload if the type mapping has changed.
@@ -1764,6 +1769,10 @@ public class Node implements INode, Serializable {
 	    node = node.getParent ();
 	}
 	return null;
+    }
+
+    public boolean isNullNode () {
+	return nmgr == null;
     }
 
     public void dump () {
