@@ -62,32 +62,29 @@ public class TypeManager implements Runnable {
     public void check () {
 	// long now = System.currentTimeMillis ();
 	// System.out.print ("checking "+Thread.currentThread ());
-	try {
-	    String[] list = appDir.list ();
-	    for (int i=0; i<list.length; i++) {
-	        File protoDir = new File (appDir, list[i]);
-	        // cut out ".." and other directories that contain "."
-	        if (isValidTypeName (list[i]) && protoDir.isDirectory ()) {
-	            Prototype proto = getPrototype (list[i]);
-	            if (proto != null) {
-	                // check if existing prototype needs update
-	                // app.logEvent (protoDir.lastModified ());
-	                updatePrototype (list[i], protoDir, proto);
-	            } else {
-	                // create new prototype
-	                proto = new Prototype (protoDir, app);
-	                registerPrototype (list[i], protoDir, proto);
-	                prototypes.put (list[i], proto);
-	                if ("hopobject".equalsIgnoreCase (list[i]))
-	                    nodeProto = proto;
-	                // give logger thread a chance to tell what's going on
-	                Thread.yield();
-	            }
+	String[] list = appDir.list ();
+	if (list == null)
+	    throw new RuntimeException ("Can't read app directory "+appDir+" - check permissions");
+	for (int i=0; i<list.length; i++) {
+	    File protoDir = new File (appDir, list[i]);
+	    // cut out ".." and other directories that contain "."
+	    if (isValidTypeName (list[i]) && protoDir.isDirectory ()) {
+	        Prototype proto = getPrototype (list[i]);
+	        if (proto != null) {
+	            // check if existing prototype needs update
+	            // app.logEvent (protoDir.lastModified ());
+	            updatePrototype (list[i], protoDir, proto);
+	        } else {
+	            // create new prototype
+	            proto = new Prototype (protoDir, app);
+	            registerPrototype (list[i], protoDir, proto);
+	            prototypes.put (list[i], proto);
+	            if ("hopobject".equalsIgnoreCase (list[i]))
+	                nodeProto = proto;
+	            // give logger thread a chance to tell what's going on
+	            Thread.yield();
 	        }
 	    }
-
-	} catch (Exception ignore) {
-	    app.logEvent (this+": "+ignore);
 	}
 
 	if (rewire) {
@@ -143,7 +140,9 @@ public class TypeManager implements Runnable {
 	        // app.logEvent ("Typechecker interrupted");
 	        break;
 	    }
-	    check ();
+	    try {
+	        check ();
+	    } catch (Exception ignore) {}
 	}
     }
 

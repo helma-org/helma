@@ -31,7 +31,7 @@ public class ParentInfo {
 	}
 	
 	isroot = "root".equals (propname);
-	System.err.println ("created "+this);
+	// System.err.println ("created "+this);
     }	
 
     public String toString () {

@@ -609,6 +609,7 @@ public class Node implements INode, Serializable {
 	            anonymous = !pinfo.named;
 	            if (pinfo.virtualname != null)
 	                pn = pn.getNode (pinfo.virtualname, false);
+	            // FIXME: check for groupby
 	            if (pn != null)
 	                return pn;
 	        }

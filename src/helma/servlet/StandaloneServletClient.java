@@ -18,7 +18,7 @@ import helma.util.*;
  
 public class StandaloneServletClient extends AbstractServletClient {
 	
-    private IRemoteApp app = null;
+    private Application app = null;
     private String appName;
     private String serverProps;
 
@@ -30,14 +30,19 @@ public class StandaloneServletClient extends AbstractServletClient {
 	super.init (init);
     }
 
-    IRemoteApp getApp (String appID) throws Exception {
+    synchronized IRemoteApp getApp (String appID) throws Exception {
 	if (app != null)
 	    return app;
-
-	File propfile = new File (serverProps);
-	File hopHome = new File (propfile.getParent());
-	SystemProperties sysProps = new SystemProperties (propfile.getAbsolutePath());
-	app = new Application (appName, sysProps, hopHome);
+	try {
+	    File propfile = new File (serverProps);
+	    File hopHome = new File (propfile.getParent());
+	    SystemProperties sysProps = new SystemProperties (propfile.getAbsolutePath());
+	    app = new Application (appName, sysProps, hopHome);
+	    app.start ();
+	} catch (Exception x) {
+	    System.err.println ("Error starting Application "+appName+": "+x);
+	    x.printStackTrace ();
+	}
 	return app;
     }
 
