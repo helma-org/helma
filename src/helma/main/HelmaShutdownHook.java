@@ -38,6 +38,8 @@ public class HelmaShutdownHook extends Thread {
      *
      */
     public void run() {
+        System.err.println("Shutting down Helma - please stand by");
+
         Logger logger = Server.getLogger();
 
         if (logger != null) {
