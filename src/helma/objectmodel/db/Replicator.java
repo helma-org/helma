@@ -3,7 +3,7 @@
  
 package helma.objectmodel.db;
 
-import helma.framework.IRemoteApp;
+import helma.framework.IReplicatedApp;
 import java.rmi.*;
 import java.util.*;
 
@@ -13,28 +13,47 @@ import java.util.*;
  
 public class Replicator implements Runnable {
 
-    String url;
+    Vector urls;
+    Vector apps;
     Vector add, delete, currentAdd, currentDelete;
     Thread runner;
 
-    public Replicator (String url) {
-	this.url = url;
+    public Replicator () {
+	urls = new Vector ();
+	apps = new Vector ();
 	add = new Vector ();
 	delete = new Vector ();
 	runner = new Thread (this);
 	runner.start ();
     }
 
+    public void addUrl (String url) {
+	urls.addElement (url);
+    }
+
+    public void addApp (IReplicatedApp app) {
+	apps.addElement (app);
+    }
 
     public void run () {
 	while (Thread.currentThread () == runner) {
-	    try {
-	        if (prepareReplication ()) {
-	            IRemoteApp app = (IRemoteApp) Naming.lookup (url);
-	            app.replicateCache (currentAdd, currentDelete);
+	    if (prepareReplication ()) {
+	        for (int i=0; i<urls.size(); i++) {
+	            try {
+	                IReplicatedApp app = (IReplicatedApp) Naming.lookup ((String) urls.elementAt (i));
+	                app.replicateCache (currentAdd, currentDelete);
+	            } catch (Exception x) {
+	                System.err.println ("ERROR REPLICATING CACHE: "+x);
+	            }
 	        }
-	    } catch (Exception x) {
-	        System.err.println ("ERROR REPLICATING CACHE: "+x);
+	        for (int i=0; i<apps.size(); i++) {
+	            try {
+	                IReplicatedApp app = (IReplicatedApp) apps.elementAt (i);
+	                app.replicateCache (currentAdd, currentDelete);
+	            } catch (Exception x) {
+	                System.err.println ("ERROR REPLICATING CACHE: "+x);
+	            }
+	        }
 	    }
 
 	    try {

@@ -55,9 +55,10 @@ public final class NodeManager {
 	// nullNode = new Node ("nullNode", "nullNode", null, safe);
 
 	String replicationUrl = props.getProperty ("replicationUrl");
-	if (replicationUrl != null)
-	    replicator = new Replicator (replicationUrl);
-	else
+	if (replicationUrl != null) {
+	    replicator = new Replicator ();
+	    replicator.addUrl (replicationUrl);
+	} else
 	    replicator = null;
 
 	// get the initial id generator value
@@ -647,6 +648,10 @@ public final class NodeManager {
      */
     public List getNodes (Node home, Relation rel) throws Exception {
 
+	// This does not apply for groupby nodes - use getNodeIDs instead
+	if (rel.groupby != null)
+	    return getNodeIDs (home, rel);
+
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("getNodes "+home);
 
@@ -982,6 +987,12 @@ public final class NodeManager {
 	return replicator;
     }
 
+    public void registerReplicatedApp (helma.framework.IReplicatedApp rapp) {
+	if (replicator == null)
+	    replicator = new Replicator ();
+	replicator.addApp (rapp);
+    }
+	
     public void replicateCache (Vector add, Vector delete) {
 	synchronized (cache) {
 	    for (Enumeration en=add.elements(); en.hasMoreElements(); ) {
