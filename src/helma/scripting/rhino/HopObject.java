@@ -454,8 +454,10 @@ public class HopObject extends ScriptableObject {
 
                 if ("Date".equals(s.getClassName())) {
                     node.setDate(name, new Date((long) ScriptRuntime.toNumber(s)));
+                } else if (s instanceof MapWrapper) {
+                    node.setJavaObject(name, ((MapWrapper) s).unwrap());
                 } else {
-                    node.setString(name, s.toString());
+                    node.setJavaObject(name, s);
                 }
             } else if (value instanceof String) {
                 node.setString(name, value.toString());
@@ -536,7 +538,7 @@ public class HopObject extends ScriptableObject {
 
         if (node != null) {
             // Everything starting with an underscore is interpreted as internal property
-            if (name.startsWith("_")) {
+            if (name.charAt(0) == '_') {
                 return getInternalProperty(name);
             }
 
