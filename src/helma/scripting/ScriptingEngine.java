@@ -15,6 +15,11 @@ import java.io.File;
  */
 public interface ScriptingEngine {
 
+    /** 
+     * Init the scripting engine with an application and a request evaluator
+     */
+    public void init (Application app, RequestEvaluator reval);
+
     /**
      *  This method is called before an execution context for a request
      *  evaluation is entered to let the Engine know it should update 
