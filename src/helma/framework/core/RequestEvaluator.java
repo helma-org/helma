@@ -272,8 +272,13 @@ public class RequestEvaluator implements Runnable {
 	                                        continue;
 	                                    if (isProperty)  // get next element as property
 	                                        currentNode = currentNode.getNode (pathItems[i], false);
-	                                    else  // get next element as subnode
-	                                        currentNode = currentNode.getSubnode (pathItems[i]);
+	                                    else {
+	                                        // try to get next element as subnode first, then fall back to property
+	                                        INode nextNode = currentNode.getSubnode (pathItems[i]);
+	                                        if (nextNode == null)
+	                                            nextNode = currentNode.getNode (pathItems[i], false);
+	                                        currentNode = nextNode;
+	                                    }
 	                                    isProperty = false;
 
 	                                    // add object to request path if suitable
