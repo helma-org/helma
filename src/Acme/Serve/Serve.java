@@ -457,8 +457,7 @@ public class Serve implements ServletContext, Runnable
     // Same as the CGI variable SERVER_SOFTWARE.
     public String getServerInfo()
 	{
-	return ServeUtils.serverName + " " + ServeUtils.serverVersion +
-	       " (" + ServeUtils.serverUrl + ")";
+	return helma.main.Server.version + " (" + ServeUtils.serverUrl + ")";
 	}
 
     /// Returns the value of the named attribute of the network service, or
@@ -685,7 +684,7 @@ class ServeConnection implements Runnable, HttpServletRequest, HttpServletRespon
 	setStatus( SC_OK );
 	setDateHeader( "Date", System.currentTimeMillis() );
 	setHeader(
-	    "Server", ServeUtils.serverName + "/" + ServeUtils.serverVersion );
+	    "Server", helma.main.Server.version );
 	setHeader( "Connection", "close" );
 	try
 	    {

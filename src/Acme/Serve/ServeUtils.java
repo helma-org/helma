@@ -42,8 +42,9 @@ public class ServeUtils
     {
 
     // Server identification.
-    public static final String serverName = "Helma";
-    public static final String serverVersion = "1.2 p1";
+    // public static final String serverName = "Helma";
+    // public static final String serverVersion = "1.2 p1";
+    // we're using the server version from helma.main.Server class.
     public static final String serverUrl = "http://helma.org/";
 
     /// Write a standard-format HTML address for this server.
@@ -52,7 +53,7 @@ public class ServeUtils
 	PrintStream p = new PrintStream( o );
 	p.println(
 	    "<ADDRESS><A HREF=\"" + serverUrl + "\">" +
-	    serverName + " " + serverVersion + "</A></ADDRESS>" );
+	    helma.main.Server.version + "</A></ADDRESS>" );
 	}
 
 
