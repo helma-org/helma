@@ -66,12 +66,12 @@ public class Prototype {
 
 	// if parent has changed, update ES-prototypes in request evaluators
 	if (parent != old) {
-	    Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
+	    /* Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
 	    while (evals.hasNext ()) {
 	        try {
 	            RequestEvaluator reval = (RequestEvaluator) evals.next ();
 	            ObjectPrototype op = reval.getPrototype (getName());
-	            // use hopobject (node) as prototype even if prototype is null - 
+	            // use hopobject (node) as prototype even if prototype is null -
 	            // this is the case if no hopobject directory exists
 	            ObjectPrototype opp = parent == null ?
 	            	reval.esNodePrototype : reval.getPrototype (parent.getName ());
@@ -81,7 +81,7 @@ public class Prototype {
 	            op.setPrototype (opp);
 	        } catch (Exception ignore) {
 	        }
-	    }
+	    } */
 	}
     }
 
@@ -131,11 +131,11 @@ public class Prototype {
 	
     }
 
-    public void initRequestEvaluator (RequestEvaluator reval) {
+/*    public void initRequestEvaluator (RequestEvaluator reval) {
 	// see if we already registered with this evaluator
 	if (reval.getPrototype (name) != null)
 	    return;
-	
+
 	ObjectPrototype op = null;
 
 	// get the prototype's prototype if possible and necessary
@@ -195,7 +195,7 @@ public class Prototype {
 	    } catch (EcmaScriptException ignore) {}
 	}
 
-    }
+    } */
 
 
     public String toString () {

@@ -1211,7 +1211,7 @@ class XmlRpcInvoker implements XmlRpcHandler {
 	RequestEvaluator ev = null;
 	try {
 	    ev = app.getEvaluator ();
-	    retval = ev.invokeXmlRpc (method, argvec);
+	    retval = ev.invokeXmlRpc (method, argvec.toArray());
 	}  finally {
 	    app.releaseEvaluator (ev);
 	}

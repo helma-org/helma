@@ -20,9 +20,9 @@ import FESI.Exceptions.*;
 
 
 /**
- * An Action is a JavaScript function that is exposed as a URI. It is 
+ * An Action is a JavaScript function that is exposed as a URI. It is
  * usually represented by a file with extension .hac (hop action file)
- * that contains the pure JavaScript body of the function. 
+ * that contains the raw JavaScript body of the function.
  */
 
 
@@ -257,35 +257,5 @@ public class Action implements Updatable {
         public void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

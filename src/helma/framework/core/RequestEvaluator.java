@@ -35,6 +35,9 @@ public class RequestEvaluator implements Runnable {
 
     volatile Transactor rtx;
 
+    // the object on which to invoke a function, if specified
+    Object thisObject;
+
     // the method to be executed
     String method;
 
@@ -42,16 +45,13 @@ public class RequestEvaluator implements Runnable {
     User user;
 
     // arguments passed to the function
-    Vector args;
+    Object[] args;
 
     // the result of the
     Object result;
 
     // the exception thrown by the evaluator, if any.
     Exception exception;
-
-    // Used to cache skins within one request evaluation
-    HashMap skincache;
 
     // the type of request to be serviced
     int reqtype;
@@ -60,7 +60,6 @@ public class RequestEvaluator implements Runnable {
     static final int XMLRPC = 2;      // via XML-RPC
     static final int INTERNAL = 3;     // generic function call, e.g. by scheduler
 
-    Object[] skinsets;
 
     /**
      *  Build a RenderContext from a RequestTrans. Checks if the path is the user home node ("user")
@@ -69,7 +68,6 @@ public class RequestEvaluator implements Runnable {
      */
     public RequestEvaluator (Application app) {
 	this.app = app;
-	skincache = new HashMap ();
 	initialized = false;
     }
 
@@ -93,10 +91,6 @@ public class RequestEvaluator implements Runnable {
 
 	    // object refs to ressolve request path
 	    Object root, currentElement;
-
-	    // reset skinsets array and skin cache
-	    skinsets = null;
-	    skincache.clear ();
 
 	    ArrayList reqPath = new ArrayList ();
 
@@ -601,7 +595,7 @@ public class RequestEvaluator implements Runnable {
     }
 
 
-    public synchronized Object invokeXmlRpc (String method, Vector args) throws Exception {
+    public synchronized Object invokeXmlRpc (String method, Object[] args) throws Exception {
 	this.reqtype = XMLRPC;
 	this.user = null;
 	this.method = method;
@@ -621,8 +615,8 @@ public class RequestEvaluator implements Runnable {
 	return result;
     }
 
-/*    protected Object invokeDirectFunction (Object obj, String functionName, Object[] args) throws Exception {
-	ESObject eso = null;
+    protected Object invokeDirectFunction (Object obj, String functionName, Object[] args) throws Exception {
+/*	ESObject eso = null;
 	if (obj == null)
 	    eso = global;
 	else
@@ -636,28 +630,19 @@ public class RequestEvaluator implements Runnable {
 	    else
 	        esv[i] = ESLoader.normalizeValue (args[i], evaluator);
 	ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
-	return retval == null ? null : retval.toJavaObject ();
-    } */
-
-/*    public synchronized Object invokeFunction (Object node, String functionName, Object[] args)
-		throws Exception {
-	ESObject obj = null;
-	if  (node == null)
-	    obj = global;
-	else
-	    obj = getElementWrapper (node);
-	return invokeFunction (obj, functionName, args);
+	return retval == null ? null : retval.toJavaObject (); */
+	return app.scriptingEngine.invoke (obj, functionName, args, null, this);
     }
 
-    public synchronized Object invokeFunction (ESObject obj, String functionName, Object[] args)
+    public synchronized Object invokeFunction (Object object, String functionName, Object[] args)
 		throws Exception {
-	this.reqtype = INTERNAL;
-	this.user = null;
-	this.current = obj;
-	this.method = functionName;
-	this.esargs = new ESValue[0];
+	reqtype = INTERNAL;
+	user = null;
+	thisObject = object;
+	method = functionName;
+	this.args =args;
 	this.res = new ResponseTrans ();
-	esresult = ESNull.theNull;
+	result = null;
 	exception = null;
 
 	checkThread ();
@@ -669,18 +654,18 @@ public class RequestEvaluator implements Runnable {
 
 	if (exception != null)
 	    throw (exception);
-	return esresult == null ? null : esresult.toJavaObject ();
-    } */
+	return result;
+    }
 
-/*     public synchronized Object invokeFunction (User user, String functionName, Object[] args)
+    public synchronized Object invokeFunction (User user, String functionName, Object[] args)
 		throws Exception {
-	this.reqtype = INTERNAL;
+	reqtype = INTERNAL;
 	this.user = user;
-	this.current = null;
-	this.method = functionName;
-	this.esargs = new ESValue[0];
-	this.res = new ResponseTrans ();
-	esresult = ESNull.theNull;
+	thisObject = null;
+	method = functionName;
+	this.args = args;
+	res = new ResponseTrans ();
+	result = null;
 	exception = null;
 
 	checkThread ();
@@ -692,8 +677,8 @@ public class RequestEvaluator implements Runnable {
 
 	if (exception != null)
 	    throw (exception);
-	return esresult == null ? null : esresult.toJavaObject ();
-    } */
+	return result;
+    }
 
 
     /**
@@ -756,8 +741,12 @@ public class RequestEvaluator implements Runnable {
 	        return null;
 	} else {
 	    String act = action == null ? "main_action" : action+"_action";
-	    if (app.scriptingEngine.hasFunction (obj, act))
-	        return act;
+	    try {
+	        if (app.scriptingEngine.hasFunction (obj, act))
+	            return act;
+	    } catch (ScriptingException x) {
+	        return null;
+	    }
 	}
 	return null;
     }

@@ -302,12 +302,12 @@ public class Skin {
 	            // if so, the macro evaluates to the function. Otherwise,
 	            // a property/field with the name is used, if defined.
 	            Object v = null;
-	            if (reval.hasFunction (handlerObject, name+"_macro")) {
+	            if (app.scriptingEngine.hasFunction (handlerObject, name+"_macro")) {
 	                // System.err.println ("Getting macro from function");
-	                v = reval.invokeDirectFunction (handlerObject, name+"_macro", arguments);
+	                v = app.scriptingEngine.invoke (handlerObject, name+"_macro", arguments, null, reval);
 	            } else {
 	                // System.err.println ("Getting macro from property");
-	                v = reval.getProperty (handlerObject, name);
+	                v = app.scriptingEngine.get (handlerObject, name);
 	            }
 	            if (v != null)
 	                writeToResponse (v.toString (), reval.res);

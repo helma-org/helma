@@ -32,7 +32,7 @@ public class FesiScriptingEnvironment implements ScriptingEnvironment {
     /**
      *  Evaluate a source file on a given type/class/prototype
      */
-    public void evaluate (File file, String type) throws ScriptingException {
+    public void applyPrototype (Prototype prototype) {
     }
 
     /**

@@ -40,6 +40,8 @@ public class FesiEvaluator {
     // the request evaluator instance owning this fesi evaluator
     RequestEvaluator reval;
 
+    // has this evaluator been initialized?
+    boolean initialized = false;
 
     // extensions loaded by this evaluator
     static String[] extensions = new String[] {
@@ -56,13 +58,6 @@ public class FesiEvaluator {
 	this.reval = reval;
 	wrappercache = new LruHashtable (100, .80f);
 	prototypes = new Hashtable ();
-	initEvaluator ();
-	// initialized = false;
-    }
-
-
-    // init Script Evaluator
-    private void initEvaluator () {
 	try {
 	    evaluator = new Evaluator();
 	    // evaluator.reval = this;
@@ -90,10 +85,17 @@ public class FesiEvaluator {
 	}
     }
 
+    private void initialize () {
+	Collection prototypes = app.getPrototypes();
+	initialized = true;
+    }
+
     /**
      * Invoke a function on some object, using the given arguments and global vars.
      */
     public Object invoke (Object thisObject, String functionName, Object[] args, HashMap globals) throws ScriptingException {
+	if (!initialized)
+	    initialize();
 	ESObject eso = null;
 	if (thisObject == null)
 	    eso = global;

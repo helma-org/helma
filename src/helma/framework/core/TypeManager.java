@@ -257,11 +257,12 @@ public class TypeManager {
         proto.updatables = updatables;
 
         // init prototype on evaluators that are already initialized.
-        Iterator evals = getRegisteredRequestEvaluators ();
+        /* Iterator evals = getRegisteredRequestEvaluators ();
         while (evals.hasNext ()) {
             RequestEvaluator reval = (RequestEvaluator) evals.next ();
             proto.initRequestEvaluator (reval);
-        }
+        }*/
+        app.scriptingEngine.applyPrototype (proto);
 
     }
 
@@ -383,8 +384,7 @@ public class TypeManager {
     }
 
 
-
-    public void initRequestEvaluator (RequestEvaluator reval) {
+    /*public void initRequestEvaluator (RequestEvaluator reval) {
         if (!registeredEvaluators.contains (reval))
             registeredEvaluators.add (reval);
         for (Iterator it = prototypes.values().iterator(); it.hasNext(); ) {
@@ -404,7 +404,7 @@ public class TypeManager {
 
     public int countRegisteredRequestEvaluators () {
         return registeredEvaluators.size ();
-    }
+    } */
 
 }
 

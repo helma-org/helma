@@ -4,6 +4,7 @@
 package helma.scripting;
 
 import helma.framework.core.Application;
+import helma.framework.core.Prototype;
 import helma.framework.core.RequestEvaluator;
 import java.util.*;
 import java.io.File;
@@ -22,7 +23,7 @@ public interface ScriptingEnvironment {
     /**
      *  Evaluate a source file on a given type/class/prototype
      */
-    public void evaluate (File file, String type) throws ScriptingException;
+    public void applyPrototype (Prototype prototype);
 
     /**
      * Invoke a function on some object, using the given arguments and global vars.
