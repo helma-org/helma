@@ -61,10 +61,8 @@ public final class ResponseTrans implements Externalizable {
     // these are used to implement the _as_string variants for Hop templates.
     private transient Stack buffers;
 
-    // the path used to resolve skin names
-    private transient Object skinpath = null;
-    // the processed skinpath as array of Nodes or directory names
-    private transient Object[] translatedSkinpath = null;
+    // the path used to tell where to look for skins
+    private transient Object[] skinpath = null;
     // hashmap for skin caching
     private transient HashMap skincache;
 
@@ -329,22 +327,15 @@ public final class ResponseTrans implements Externalizable {
 	return contentType;
     }
 
-    public void setSkinpath (Object obj) {
-	skinpath = obj;
-	translatedSkinpath = null;
+    public void setSkinpath (Object[] arr) {
+	this.skinpath = arr;
 	skincache = null;
     }
 
-    public Object getSkinpath () {
+    public Object[] getSkinpath () {
+	if (skinpath == null)
+	    skinpath = new Object[0];
 	return skinpath;
-    }
-
-    public void setTranslatedSkinpath (Object[] arr) {
-	this.translatedSkinpath = arr;
-    }
-
-    public Object[] getTranslatedSkinpath () {
-	return translatedSkinpath;
     }
 
     public Skin getCachedSkin (String id) {

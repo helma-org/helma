@@ -117,11 +117,11 @@ public class ResponseBean implements Serializable {
     }
 
     public void setskinpath (Object[] arr) {
-	res.setTranslatedSkinpath (arr);
+	res.setSkinpath (arr);
     }
 
     public Object[] getskinpath () {
-	return res.getTranslatedSkinpath ();
+	return res.getSkinpath ();
     }
 
     public int getstatus () {

@@ -476,25 +476,10 @@ public final class HopExtension {
                         skin = (Skin) obj;
                 }
 
-                // if res.skinpath is set, transform it into an array of java objects
+                // retrieve res.skinpath, an array of objects that tell us where to look for skins
                 // (strings for directory names and INodes for internal, db-stored skinsets)
                 ResponseTrans res = fesi.getResponse();
-                Object[] skinpath = res.getTranslatedSkinpath ();
-                if (skinpath == null) {
-                    skinpath =  new Object[0];
-                    Object rawSkinpath = res.getSkinpath ();
-                    if (rawSkinpath != null && rawSkinpath instanceof JSWrapper) {
-                        JSWrapper jsw = (JSWrapper) rawSkinpath;
-                        ESObject eso = jsw.getESObject ();
-                        if (eso instanceof ArrayPrototype) {
-                            ArrayPrototype array = (ArrayPrototype) eso;
-                            skinpath = new Object[array.size()];
-                            for (int i=0; i<skinpath.length; i++)
-                               skinpath[i] = array.getProperty(i).toJavaObject ();
-                        }
-                    }
-                    res.setTranslatedSkinpath (skinpath);
-                }
+                Object[] skinpath = res.getSkinpath ();
 
                 // ready... retrieve the skin and render it.
                 Object javaObject = thisObject == null ? null : thisObject.toJavaObject ();
