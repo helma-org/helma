@@ -16,7 +16,7 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-// Modified to use Helma database connections, Hannes Wallnöfer 2000-2003
+// Modified to use Helma database connections, Hannes Wallnoefer 2000-2003
 
 package helma.scripting.rhino.extensions;
 
