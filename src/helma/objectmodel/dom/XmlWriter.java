@@ -12,6 +12,7 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
+// import java.util.Set;
 
 import helma.objectmodel.*;
 import helma.objectmodel.INode;
@@ -32,13 +33,16 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 	private StringBuffer prefix = new StringBuffer();
 
 	private static int fileid;
- 	private SimpleDateFormat format = new SimpleDateFormat ( DATEFORMAT );
+	private SimpleDateFormat format = new SimpleDateFormat ( DATEFORMAT );
 
 	private boolean dbmode = true;
 	
 	// Only add encoding to XML declaration if it was explicitly set, not when we're using 
 	// the platform's standard encoding.
 	private String explicitEncoding;
+	
+	// Set of prototypes at which to stop writing.
+	// private Set stopTypes = null;
 
 	/**
 	  * create ids that can be used for temporary files.
@@ -94,6 +98,13 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 	}
 
 	/**
+	 *  Set a group of prototypes at which to stop XML serialization.
+	 */
+	/* public void setStopTypes (Set set) {
+		this.stopTypes = set;
+	} */
+
+	/**
 	  * set the number of space chars
 	  */
 	public void setIndent (int ct) {
@@ -115,8 +126,8 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 			writeln ("<?xml version=\"1.0\"?>");
 		else
 			writeln ("<?xml version=\"1.0\" encoding=\""+explicitEncoding+"\"?>");
-		writeln ("<!-- printed by helma object publisher     -->");
-		writeln ("<!-- created " + (new Date()).toString() + " -->" );
+		// writeln ("<!-- printed by helma object publisher     -->");
+		// writeln ("<!-- created " + (new Date()).toString() + " -->" );
 		write   ("<xmlroot xmlns:hop=\"");
 		write   (NAMESPACE);
 		writeln ("\">");
@@ -134,10 +145,13 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 	public void write (INode node, String name, int level) throws IOException {
 		if (node==null)
 			return;
+		// if (stopTypes != null && stopTypes.contains (node.getPrototype()))
+		// 	return;
+		int previousLength = prefix.length();
 		prefix.append(indent);
 		if ( ++level>maxLevels ) {
 			writeReferenceTag (node, name);
-			prefix = prefix.delete( prefix.length()-indent.length(), Integer.MAX_VALUE );
+			prefix.setLength( previousLength );
 			return;
 		}
 		if ( convertedNodes.contains(node) ) {
@@ -152,7 +166,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 			writeChildren (node,level);
 			writeTagClose (node,name);
 		}
-		prefix = prefix.delete( prefix.length()-indent.length(), Integer.MAX_VALUE );
+		prefix.setLength( previousLength );
 	}
 
 
@@ -201,31 +215,40 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 	  * apply xml-encoding.
 	  */
 	public void writeProperty (IProperty property) throws IOException {
+		int propType = property.getType();
+		// we can't encode java objects in XML
+		if (propType == IProperty.JAVAOBJECT)
+		    return;
+		String propName = property.getName();
 		write (prefix.toString());
 		write (indent);
 		write ("<");
-		write (property.getName());
-		switch (property.getType()) {
+		write (propName);
+		switch (propType) {
 			case IProperty.BOOLEAN:
-				write (" type=\"boolean\"");
+				write (" type=\"boolean\">");
+				write (property.getStringValue());
 				break;
 			case IProperty.FLOAT:
-				write (" type=\"float\"");
+				write (" type=\"float\">");
+				write (property.getStringValue());
 				break;
 			case IProperty.INTEGER:
-				write (" type=\"integer\"");
+				write (" type=\"integer\">");
+				write (property.getStringValue());
 				break;
-		}
-		if ( property.getType()==IProperty.DATE ) {
-			write (" type=\"date\"");
-			write (">");
-			write ( format.format (property.getDateValue()) );
-		} else {
-			write (">");
-			write ( HtmlEncoder.encodeXml (property.getStringValue()) );
+			case IProperty.DATE:
+				write (" type=\"date\">");
+				write ( format.format (property.getDateValue()) );
+				break;
+			case IProperty.STRING:
+				write (">");
+				String str = HtmlEncoder.encodeXml (property.getStringValue());
+				if (str != null)
+					write ( str );
 		}
 		write ("</");
-		write (property.getName());
+		write (propName);
 		write (">");
 		write (LINESEPARATOR);
 	}
