@@ -58,6 +58,9 @@ public final class RhinoCore {
     // the prototype for path objects
     PathWrapper pathProto;
 
+    // Any error that may have been found in global code
+    EcmaError globalError;
+
     /**
      *  Create a Rhino evaluator for the given application and request evaluator.
      */
@@ -100,10 +103,10 @@ public final class RhinoCore {
             XmlRpcObject.init(global);
             MailObject.init(global, app.getProperties());
             
-            putPrototype("hopobject",
+            registerPrototype("hopobject",
                     (ScriptableObject) ScriptableObject
                     .getClassPrototype(global, "HopObject"));
-            putPrototype("global", global);
+            registerPrototype("global", global);
 
             // add some convenience functions to string, date and number prototypes
             Scriptable stringProto = ScriptableObject.getClassPrototype(global, "String");
@@ -168,7 +171,7 @@ public final class RhinoCore {
                 System.err.println("Error creating prototype: " + ignore);
                 ignore.printStackTrace();
             }
-            putPrototype(name, op);
+            registerPrototype(name, op);
         }
 
         // Register a constructor for all types except global.
@@ -201,7 +204,7 @@ public final class RhinoCore {
         // or it has changed...
         setParentPrototype(prototype, op);
 
-        info.error = null;
+        globalError = info.error = null;
 
         // loop through the prototype's code elements and evaluate them
         // first the zipped ones ...
@@ -363,6 +366,9 @@ public final class RhinoCore {
      * invalid, a ScriptingException is thrown.
      */
     public Scriptable getValidPrototype(String protoName) {
+        if (globalError != null) {
+            throw new RuntimeException(globalError.toString());
+        }
         TypeInfo info = getPrototypeInfo(protoName);
         if (info != null && info.error != null) {
             throw new RuntimeException(info.error.toString());
@@ -418,10 +424,37 @@ public final class RhinoCore {
     /**
      * Register an object prototype for a prototype name.
      */
-    private void putPrototype(String protoName, ScriptableObject op) {
+    private void registerPrototype(String protoName, ScriptableObject op) {
         if ((protoName != null) && (op != null)) {
             prototypes.put(protoName, new TypeInfo(op, protoName));
         }
+    }
+
+    /**
+    * Check if an object has a function property (public method if it
+    * is a java object) with that name.
+    */
+    public boolean hasFunction(String protoname, String fname) {
+        // System.err.println ("HAS_FUNC: "+fname);
+        try {
+            Scriptable op = getPrototype(protoname);
+
+            // if this is an untyped object return false
+            if (op == null) {
+                return false;
+            }
+
+            Object func = ScriptableObject.getProperty(op, fname);
+
+            if ((func != null) && func instanceof Function) {
+                return true;
+            }
+        } catch (Exception esx) {
+            // System.err.println ("Error in hasFunction: "+esx);
+            return false;
+        }
+
+        return false;
     }
 
     /**
@@ -686,7 +719,11 @@ public final class RhinoCore {
             }
             // mark prototype as broken
             if (info.error == null && e instanceof EcmaError) {
-                info.error = (EcmaError) e;
+                if ("global".equals(info.protoName)) {
+                    globalError = (EcmaError) e;
+                } else {
+                    info.error = (EcmaError) e;
+                }
                 wrappercache.clear();
             }
             // e.printStackTrace();
