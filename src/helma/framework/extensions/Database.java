@@ -20,7 +20,8 @@
 
 package helma.framework.extensions;
 
-import helma.objectmodel.*;
+import helma.framework.core.Application;
+import helma.objectmodel.DbSource;
 import FESI.Parser.*;
 import FESI.AST.*;
 import FESI.Interpreter.*;
@@ -59,13 +60,12 @@ class ESDatabase extends ESObject {
     ESDatabase(ESObject prototype,
                 Evaluator evaluator,
                 ESObject esRowSetPrototype,
-                String dbsource, int flag) {
+                DbSource dbsource, int flag) {
         super(prototype, evaluator);
         this.esRowSetPrototype = esRowSetPrototype; // specific to an evaluator
         try {
-            DbSource src = (DbSource) IServer.dbSources.get (dbsource.toLowerCase ());
-            connection = src.getConnection ();
-            this.driverName = src.getDriverName ();
+            connection = dbsource.getConnection ();
+            driverName = dbsource.getDriverName ();
         } catch (Exception e) {
             // System.err.println("##Cannot find driver class: " + e);
             // e.printStackTrace();
@@ -717,11 +717,17 @@ public class Database extends Extension {
     private transient Evaluator evaluator = null;
     private ESObject esDatabasePrototype = null;
     private ESObject esRowSetPrototype = null;
+    Application app;
     
     public Database () {
         super();
     }
-    
+
+
+    public void setApplication (Application app) {
+        this.app = app;
+    }
+
     ////////////////// Added by Hannes Wallnoefer
     class GlobalGetDBConnection extends BuiltinFunctionObject {
         GlobalGetDBConnection(String name, Evaluator evaluator, FunctionPrototype fp) {
@@ -731,13 +737,17 @@ public class Database extends Extension {
                throws EcmaScriptException {
            if (arguments.length != 1)
                throw new EcmaScriptException ("Wrong number of arguments in getDBConnection(dbsource)");
+           String srcname = arguments[0].toString ();
+           DbSource dbsrc = app.getDbSource (srcname.toLowerCase ());
+           if (dbsrc == null)
+               throw new EcmaScriptException ("DbSource "+srcname+" does not exist");
            ESDatabase db = new ESDatabase (esDatabasePrototype, this.evaluator,
-		esRowSetPrototype, arguments[0].toString(), 0);
+		esRowSetPrototype, dbsrc, 0);
            return db;
         }
     }
 
-    
+
     class GlobalObjectDatabase extends BuiltinFunctionObject {
         GlobalObjectDatabase(String name, Evaluator evaluator, FunctionPrototype fp) {
             super(fp, evaluator, name, 1);
