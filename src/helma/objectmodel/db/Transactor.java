@@ -22,6 +22,7 @@ public class Transactor extends Thread {
 
     // List of nodes to be updated
     private HashMap nodes;
+    private ArrayList nodesArray;
     // List of visited clean nodes
     private HashMap cleannodes;
     // Is a transaction in progress?
@@ -44,6 +45,7 @@ public class Transactor extends Thread {
 	super (group, runnable, group.getName ());
 	this.nmgr = nmgr;
 	nodes = new HashMap ();
+	nodesArray = new ArrayList ();
 	cleannodes = new HashMap ();
 	sqlCon = new HashMap ();
 	active = false;
@@ -56,6 +58,7 @@ public class Transactor extends Thread {
 	    Key key = node.getKey ();
 	    if (!nodes.containsKey (key)) {
 	        nodes.put (key, node);
+	        nodesArray.add (node);
 	    }
 	}
     }
@@ -64,6 +67,7 @@ public class Transactor extends Thread {
 	if (node != null) {
 	    Key key = node.getKey ();
 	    nodes.remove (key);
+	    nodesArray.remove (node);
 	}
     }
 
@@ -110,6 +114,7 @@ public class Transactor extends Thread {
 	    abort ();
 
 	nodes.clear ();
+	nodesArray.clear ();
 	cleannodes.clear ();
 	txn = nmgr.db.beginTransaction ();
 	active = true;
@@ -125,12 +130,12 @@ public class Transactor extends Thread {
 	}
 
 	int ins = 0, upd = 0, dlt = 0;
-	int l = nodes.size ();
+	int l = nodesArray.size ();
 
 	Replicator replicator = nmgr.getReplicator ();
 
-	for (Iterator i=nodes.values().iterator(); i.hasNext (); ) {
-	    Node node = (Node) i.next ();
+	for (int i=0; i<l; i++) {
+	    Node node = (Node) nodesArray.get (i);
 	    // update nodes in db
 	    int nstate = node.getState ();
 	    if (nstate == Node.NEW) {
@@ -162,6 +167,7 @@ public class Transactor extends Thread {
 	}
 
 	nodes.clear ();
+	nodesArray.clear ();
 	cleannodes.clear ();
 
 	if (nmgr.idgen.dirty) {
@@ -180,14 +186,16 @@ public class Transactor extends Thread {
 
     public synchronized void abort () throws Exception {
 
-	for (Iterator i=nodes.values().iterator(); i.hasNext(); ) {
-	    Node node = (Node) i.next ();
+	int l = nodesArray.size ();
+	for (int i=0; i<l; i++ ) {
+	    Node node = (Node) nodesArray.get (i);
 	    // Declare node as invalid, so it won't be used by other threads that want to
 	    // write on it and remove it from cache
 	    nmgr.evictNode (node);
 	    node.clearWriteLock ();
 	}
 	nodes.clear ();
+	nodesArray.clear ();
 	cleannodes.clear ();
 	// close any JDBC connections associated with this transactor thread
 	closeConnections ();
@@ -239,104 +247,6 @@ public class Transactor extends Thread {
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
