@@ -526,7 +526,7 @@ public final class RequestEvaluator implements Runnable {
 	return result;
     }
 
-    protected Object invokeDirectFunction (Object obj, String functionName, Object[] args) throws Exception {
+    public Object invokeDirectFunction (Object obj, String functionName, Object[] args) throws Exception {
 	return scriptingEngine.invoke (obj, functionName, args);
     }
 
