@@ -1,4 +1,4 @@
-/** 
+/**
  * Copyright 1999 Hannes Wallnoefer
  * Implements a XML-RPC client. See http://www.xmlrpc.com/
  */
@@ -200,7 +200,7 @@ public class XmlRpcClient implements XmlRpcHandler {
 	    runAsync (call.method, call.params, call.callback);
 	    call = dequeue ();
 	}
-	releaseWorker (this, false);
+	releaseWorker (this, true);
     }
 
     void runAsync (String method, Vector params, AsyncCallback callback) {
