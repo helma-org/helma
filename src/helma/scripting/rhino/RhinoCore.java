@@ -803,11 +803,7 @@ public final class RhinoCore implements ScopeProvider {
             }
 
         } catch (Exception e) {
-            app.logEvent("Error parsing file " + sourceName + ": " + e);
-            // also write to standard out unless we're logging to it anyway
-            if (!"console".equalsIgnoreCase(app.getProperty("logDir"))) {
-                System.err.println("Error parsing file " + sourceName + ": " + e);
-            }
+            app.logError("Error parsing file " + sourceName,  e);
             // mark prototype as broken
             if (type.error == null) {
                 type.error = e.getMessage();
