@@ -83,8 +83,11 @@
     <target name="compile" depends="init">
         <mkdir dir="${build.classes}"/>
         <!-- copy the imageio file -->
-	    <copy file="${build.src}/META-INF/services/javax.imageio.spi.ImageWriterSpi"
-	      tofile="${build.classes}/META-INF/services/javax.imageio.spi.ImageWriterSpi"/>
+        <copy file="${build.src}/META-INF/services/javax.imageio.spi.ImageWriterSpi"
+            todir="${build.classes}/META-INF/services"/>
+        <!-- copy helma db style sheet -->
+        <copy file="${build.src}/helma/objectmodel/dom/helma.xsl"
+            todir="${build.classes}/helma/objectmodel/dom" />
         <javac srcdir="${build.src}"
             destdir="${build.classes}"
             debug="${debug}"
