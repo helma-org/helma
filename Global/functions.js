@@ -111,7 +111,7 @@ function checkAuth(appObj)	{
 	var adminAccess = root.getProperty("adminAccess");
 
 	if (adminAccess==null || adminAccess=="")	{
-		return createAuth();
+	   res.redirect (root.href ("makekey"));
 	}
 
 	var uname = req.username;
@@ -170,48 +170,6 @@ function forceAuth(realm)	{
 	return false;
 }
 
-
-
-
-/** 
-  * response is either a html form to enter auth data or input from
-  * html form is saved to server.properties
-  * access is only allowed if remote host is in the list of friendly
-  * ip-adresses in server.properties
-  */
-function createAuth()	{
-	if ( checkAddress()!=true )	{
-		// double check
-		return false;
-	}
-	var obj = new Object();
-	obj.msg = "";
-	if (req.data.username!=null && req.data.password!=null)	{
-		// we have input from webform
-		if ( req.data.username=="" )
-			obj.msg += "username can't be left empty!<br>";
-		if ( req.data.password=="" )
-			obj.msg += "password can't be left empty!<br>";
-		if ( obj.msg!="" )	{
-			obj.username = req.data.username;
-			res.reset();
-			renderSkin("pwdform",obj);
-			return false;
-		}
-		var str = "adminAccess=" + Packages.helma.util.MD5Encoder.encode(req.data.username + "-" + req.data.password) + "<br>\n";
-		res.write ("<pre>" + str + "</pre>");
-		return false;
-	
-	}	else	{
-		// no input from webform, so print it
-		res.reset();
-		res.data.title = "username & password on " + root.hostname_macro();
-		res.data.head = renderSkinAsString("head");
-		res.data.body = renderSkinAsString("pwdform",obj);
-		renderSkin("basic");
-		return false;
-	}
-}
 
 
 /**

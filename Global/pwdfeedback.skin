@@ -1,0 +1,20 @@
+<body bgcolor="white">
+
+<table width="500" border="0" cellspacing="0" cellpadding="5" bgcolor="#000000">
+<tr>
+<td width="500" align="left" valign="top" bgcolor="#ffffff">
+
+<big>Generated username and password for helma's manager:</big><br>
+
+<p>Please copy/paste this line into the server.properties file of your
+helma installation.</p>
+
+<pre><% param.propsString %></pre>
+
+<p>After that proceed to <a href="<% root.href action="main" %>">the manage console</a>,
+enter your credentials and you should be allowed in.</p>
+
+</td></tr>
+</table>
+
+</body>
