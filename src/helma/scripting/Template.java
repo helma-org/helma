@@ -24,7 +24,6 @@ import helma.framework.core.*;
 
 public class Template extends ActionFile {
 
-    String processedContent = null;
 
     public Template (File file, String name, Prototype proto) {
 	super (file, name, proto);
@@ -34,19 +33,15 @@ public class Template extends ActionFile {
 	super (content, name, sourceName, proto);
     }
 
-
     public String getFunctionName () {
 	return name;
     }
 
     public Reader getReader () {
-	return new StringReader(getContent());    
+	return new StringReader(getContent());
     }
 
     public String getContent () {
-
-	if (processedContent != null)
-	    return processedContent;
 
 	Vector partBuffer = new Vector ();
 	String cstring = super.getContent();
@@ -149,8 +144,7 @@ public class Template extends ActionFile {
 	}
 	// templateBody.append ("\r\nreturn null;\r\n");
 
-	processedContent = templateBody.toString ();
-	return processedContent;
+	return templateBody.toString ();
     }
 
     public void remove () {
