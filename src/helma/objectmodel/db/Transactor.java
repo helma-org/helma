@@ -241,10 +241,12 @@ public class Transactor extends Thread {
             int nstate = node.getState();
 
             if (nstate == Node.NEW) {
-                nmgr.registerNode(node); // register node with nodemanager cache
                 nmgr.insertNode(nmgr.db, txn, node);
                 dirtyDbMappings.add(node.getDbMapping());
                 node.setState(Node.CLEAN);
+
+                // register node with nodemanager cache
+                nmgr.registerNode(node);
 
                 if (replicator != null) {
                     replicator.addNewNode(node);
@@ -260,6 +262,9 @@ public class Transactor extends Thread {
                 }
                 node.setState(Node.CLEAN);
 
+                // update node with nodemanager cache
+                nmgr.registerNode(node);
+
                 if (replicator != null) {
                     replicator.addModifiedNode(node);
                 }
@@ -270,6 +275,8 @@ public class Transactor extends Thread {
             } else if (nstate == Node.DELETED) {
                 nmgr.deleteNode(nmgr.db, txn, node);
                 dirtyDbMappings.add(node.getDbMapping());
+
+                // remove node from nodemanager cache
                 nmgr.evictNode(node);
 
                 if (replicator != null) {

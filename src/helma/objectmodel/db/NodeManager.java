@@ -35,7 +35,7 @@ import java.util.*;
 public final class NodeManager {
 
     protected Application app;
-    private CacheMap cache;
+    private ObjectCache cache;
     private Replicator replicator;
     protected IDatabase db;
     protected IDGenerator idgen;
@@ -51,22 +51,17 @@ public final class NodeManager {
      * created in dbHome if one doesn't already exist.
      */
     public NodeManager(Application app, String dbHome, Properties props)
-                throws DatabaseException {
+            throws DatabaseException, ClassNotFoundException,
+                   IllegalAccessException, InstantiationException {
         this.app = app;
 
-        int cacheSize = Integer.parseInt(props.getProperty("cachesize", "1000"));
+        String cacheImpl = props.getProperty("cacheimpl", "helma.util.CacheMap");
 
-        // Make actual cache size bigger, since we use it only up to the threshold
-        // cache = new CacheMap ((int) Math.ceil (cacheSize/0.75f), 0.75f);
-        cache = new CacheMap(cacheSize, 0.75f);
-        cache.setApplication(app);
-        if (cacheSize != 1000) {
-            app.logEvent("Setting cache size for "+app.getName()+" to " + cacheSize);
-        }
+        cache = (ObjectCache) Class.forName(cacheImpl).newInstance();
+        cache.init(app);
 
         safe = new WrappedNodeManager(this);
 
-        // nullNode = new Node ();
         logSql = "true".equalsIgnoreCase(props.getProperty("logsql"));
         logReplication = "true".equalsIgnoreCase(props.getProperty("logReplication"));
 
@@ -102,9 +97,8 @@ public final class NodeManager {
      *  app.properties file has been updated. Reread some settings.
      */
     public void updateProperties(Properties props) {
-        int cacheSize = Integer.parseInt(props.getProperty("cachesize", "1000"));
-
-        cache.setCapacity(cacheSize);
+        // notify the cache about the properties update
+        cache.updateProperties(props);
         logSql = "true".equalsIgnoreCase(props.getProperty("logsql"));
         logReplication = "true".equalsIgnoreCase(props.getProperty("logReplication"));
     }
@@ -1788,7 +1782,7 @@ public final class NodeManager {
      *  Get an array of the the keys currently held in the object cache
      */
     public Object[] getCacheEntries() {
-        return cache.getEntryArray();
+        return cache.getCachedObjects();
     }
 
     /**

@@ -274,7 +274,9 @@ public final class Application implements IPathElement, Runnable {
      * Get the application ready to run, initializing the evaluators and type manager.
      */
     public synchronized void init()
-              throws DatabaseException, ScriptingException, MalformedURLException {
+            throws DatabaseException, MalformedURLException,
+                   IllegalAccessException, InstantiationException,
+                   ClassNotFoundException {
 
         // create and init type mananger
         typemgr = new TypeManager(this);

@@ -544,6 +544,15 @@ public final class Node implements INode, Serializable {
 
     /**
      *
+     * 
+     * @param nmgr
+     */
+    public void setWrappedNodeManager(WrappedNodeManager nmgr) {
+        this.nmgr = nmgr;
+    }
+
+    /**
+     *
      *
      * @return ...
      */
