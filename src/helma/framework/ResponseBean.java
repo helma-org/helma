@@ -7,39 +7,39 @@ import helma.framework.core.Application;
 
 public class ResponseBean implements Serializable {
 
-	ResponseTrans res;
+    ResponseTrans res;
 
-	public ResponseBean(ResponseTrans res)	{
+    public ResponseBean(ResponseTrans res)	{
 	this.res = res;
-	}
+    }
 
     public void encode (Object what) {
-    res.encode (what);
+	res.encode (what);
     }
 
     public void encodeXml (Object what) {
-    res.encodeXml (what);
+	res.encodeXml (what);
     }
 
     public void format (Object what) {
-    res.format (what);
-	}
+	res.format (what);
+    }
 
-	public void pushStringBuffer  () {
+    public void pushStringBuffer  () {
 	res.pushStringBuffer ();
-	}
+    }
 
-	public String popStringBuffer () {
+    public String popStringBuffer () {
 	return res.popStringBuffer ();
-	}
+    }
 
-	public void redirect (String url) throws RedirectException {
+    public void redirect (String url) throws RedirectException {
 	res.redirect (url);
     }
 
-	public void reset () {
+    public void reset () {
 	res.reset ();
-	}
+    }
 
     public void setCookie (String key, String value) {
 	res.setCookie (key, value, -1);
@@ -47,90 +47,90 @@ public class ResponseBean implements Serializable {
 
     public void setCookie (String key, String value, int days) {
 	res.setCookie (key, value, days);
-	}
+    }
 
     public void write (Object what) {
-    res.write (what);
+	res.write (what);
     }
 
     public void writeln (Object what) {
-    res.writeln (what);
+	res.writeln (what);
     }
 
     public void writeBinary (byte[] what) {
 	res.writeBinary (what);
     }
 
-	public String toString() {
+    public String toString() {
 	return "[Response]";
-	}
+    }
 
 
 	// property-related methods:
 
-	public boolean getcache () {
+    public boolean getcache () {
 	return res.cache;
-	}
+    }
 
-	public void setcache (boolean cache) {
+    public void setcache (boolean cache) {
 	res.cache = cache;
-	}
+    }
 
-	public String getcharset () {
+    public String getcharset () {
 	return res.charset;
-	}
-	
-	public void setcharset (String charset) {
+    }
+
+    public void setcharset (String charset) {
 	res.charset = charset;
-	}
+    }
 
-	public String getcontentType () {
+    public String getcontentType () {
 	return res.contentType;
-	}
+    }
 
-	public void setcontentType (String contentType) {
+    public void setcontentType (String contentType) {
 	res.contentType = contentType;
-	}
+    }
 
-	public Map getdata () {
+    public Map getdata () {
 	return res.getResponseData ();
-	}
+    }
 
-	public String geterror () {
+    public String geterror () {
 	return res.error;
-	}
+    }
 
-	public String getmessage () {
+    public String getmessage () {
 	return res.message;
-	}
-	
-	public void setmessage (String message) {
+    }
+
+    public void setmessage (String message) {
 	res.message = message;
-	}
+    }
 
-	public String getrealm () {
+    public String getrealm () {
 	return res.realm;
-	}
-	
-	public void setrealm (String realm) {
+    }
+
+    public void setrealm (String realm) {
 	res.realm = realm;
-	}
+    }
 
-	public void setskinpath (Object[] arr) {
+    public void setskinpath (Object[] arr) {
 	res.setTranslatedSkinpath (arr);
-	}
+    }
 
-	public Object[] getskinpath () {
+    public Object[] getskinpath () {
 	return res.getTranslatedSkinpath ();
-	}
+    }
 
-	public int getstatus () {
+    public int getstatus () {
 	return res.status;
-	}
-	
-	public void setstatus (int status) {
+    }
+
+    public void setstatus (int status) {
 	res.status = status;
-	}
+    }
 
 }
 
