@@ -30,12 +30,12 @@ import java.lang.reflect.Method;
  * All argument conversion is done automatically. Currently the following argument and return
  * types are supported:
  * <ul>
- * <li> plain objects (with all properties returned by ESObject.getProperties ())
- * <li> arrays
- * <li> strings
- * <li> date objects
- * <li> booleans
- * <li> integer and float numbers (long values are not supported!)
+ * <li> plain objects (with all properties returned by ESObject.getProperties ())</li>
+ * <li> arrays</li>
+ * <li> strings</li>
+ * <li> date objects</li>
+ * <li> booleans</li>
+ * <li> integer and float numbers (long values are not supported!)</li>
  * </ul>
  *
  */
@@ -100,10 +100,10 @@ public class XmlRpcObject extends BaseFunction {
                              Scriptable scope,
                              Scriptable thisObj,
                              Object[] args)
-                      throws JavaScriptException {
+                      throws EvaluatorException {
 
         if (method == null) {
-            throw new JavaScriptException("Invalid method name");
+            throw new EvaluatorException("Invalid method name");
         }
 
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
