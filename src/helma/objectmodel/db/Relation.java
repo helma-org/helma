@@ -344,9 +344,20 @@ public final class Relation {
     }
 
 
+    /**
+     *  get a DbMapping to use for virtual aka collection nodes.
+     */
     public DbMapping getVirtualMapping () {
+	// return null unless this relation describes a virtual/collection node.
 	if (!virtual)
 	    return null;
+	// if the collection node is prototyped, return the app's DbMapping 
+	// for that prototype
+	if (prototype != null) {
+	    return otherType;
+	}
+	// create a synthetic DbMapping that describes how to fetch the 
+	// collection's child objects.
 	if (virtualMapping == null) {
 	    virtualMapping = new DbMapping (ownType.app);
 	    virtualMapping.subRelation = getVirtualSubnodeRelation ();
