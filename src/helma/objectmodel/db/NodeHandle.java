@@ -77,7 +77,7 @@ public final class NodeHandle implements INodeState, Serializable {
      */
     public String getID () {
 	if (key == null)
-	    throw new RuntimeException ("getID called on transient Node");
+	    return node.getID ();
 	return key.getID ();
     }
 

@@ -199,8 +199,9 @@ public final class Node implements INode, Serializable {
 	this.nmgr = nmgr;
 	this.prototype = prototype;
 	dbmap = nmgr.getDbMapping (prototype);
-	// the id is only generated when the node is actually checked into db.
-	// id = nmgr.generateID (dbmap);
+	// the id is only generated when the node is actually checked into db,
+	// or when it's explicitly requested.
+	id = null;
 	this.name = n == null ? "" : n;
 	created = lastmodified = System.currentTimeMillis ();
 	adoptName = true;
@@ -401,22 +402,24 @@ public final class Node implements INode, Serializable {
      */
 
     public String getID () {
-	if (state == TRANSIENT) {
-	    Thread.dumpStack ();
-	    throw new RuntimeException ("getID called on transient Node: "+this);
-	}
+	// if we are transient, we generate an id on demand. It's possible that we'll never need
+	// it, but if we do it's important to keep the one we have.
+	if (state == TRANSIENT && id == null)
+	    id = nmgr.generateID (dbmap);
 	return id;
     }
 
-    protected void setID (String id) {
-	this.id = id;
-	((Transactor) Thread.currentThread()).visitCleanNode (this);
-    }
-
+    /**
+     * Returns true if this node is accessed by id from its aprent, false if it
+     * is accessed by name
+     */
     public boolean isAnonymous () {
  	return anonymous;
     }
 
+    /**
+     * Return this node' name, which may or may not have some meaning
+     */
     public String getName () {
 	return name; 
     }
@@ -1660,7 +1663,9 @@ public final class Node implements INode, Serializable {
     protected void makePersistentCapable () {
 	if (state == TRANSIENT) {
 	    state = NEW;
-	    id = nmgr.generateID (dbmap);
+	    // generate a real, persistent ID for this object, if it doesn't have one already.
+	    if (id == null)
+	        id = nmgr.generateID (dbmap);
 	    getHandle ().becomePersistent ();
 	    Transactor current = (Transactor) Thread.currentThread ();
 	    current.visitNode (this);
