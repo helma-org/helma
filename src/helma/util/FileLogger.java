@@ -228,31 +228,33 @@ public class FileLogger extends Logger implements Log {
      *
      * @return the timestamp for last midnight in millis
      */
-
     private static long lastMidnight() {
         return Logging.nextMidnight() - 86400000;
     }
 
+    // override error() and fatal() to print error and fatal messages 
+    // to the console, in addition to logging them to file.
+
     public void error(Object parm1) {
         System.err.println("Error: "+parm1);
-        info(parm1);
+        super.error(parm1);
     }
 
     public void error(Object parm1, Throwable parm2) {
         System.err.println("Error: "+parm1);
         System.err.println("See "+logfile+" for stack trace");
-        info(parm1, parm2);
+        super.error(parm1, parm2);
     }
 
     public void fatal(Object parm1) {
-        System.err.println("Fatal error: "+parm1);
-        info(parm1);
+        System.err.println("Fatal: "+parm1);
+        super.fatal(parm1);
     }
 
     public void fatal(Object parm1, Throwable parm2) {
-        System.err.println("Fatal error: "+parm1);
+        System.err.println("Fatal: "+parm1);
         System.err.println("See "+logfile+" for stack trace");
-        info(parm1, parm2);
+        super.fatal(parm1, parm2);
     }
 
     /**

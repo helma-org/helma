@@ -41,21 +41,53 @@ public class Logger implements Log {
     static long dateLastRendered;
     static String dateCache;
 
+    public final static int TRACE = 1;
+    public final static int DEBUG = 2;
+    public final static int INFO =  3;
+    public final static int WARN =  4;
+    public final static int ERROR = 5;
+    public final static int FATAL = 6;
+    
+    int logLevel = INFO;
+    
+    
     /**
      * zero argument constructor, only here for FileLogger subclass
      */
-    Logger() {}
+    Logger() {
+        init();
+    }
 
     /**
      * Create a logger for a PrintStream, such as System.out.
      */
     protected Logger(PrintStream out) {
+        init();
         writer = new PrintWriter(out);
         canonicalName = out.toString();
 
         // create a synchronized list for log entries since different threads may
         // attempt to modify the list at the same time
         entries = Collections.synchronizedList(new LinkedList());
+    }
+
+    /**
+     * Get loglevel from System properties
+     */
+     private void init() {
+        String level = System.getProperty("helma.loglevel");
+        if ("trace".equalsIgnoreCase(level))
+            logLevel = TRACE;
+        else if ("debug".equalsIgnoreCase(level))
+            logLevel = DEBUG;
+        else if ("info".equalsIgnoreCase(level))
+            logLevel = INFO;
+        else if ("warn".equalsIgnoreCase(level))
+            logLevel = WARN;
+        else if ("error".equalsIgnoreCase(level))
+            logLevel = ERROR;
+        else if ("fatal".equalsIgnoreCase(level))
+            logLevel = FATAL;    
     }
 
     /**
@@ -124,76 +156,94 @@ public class Logger implements Log {
 
     // methods to implement org.apache.commons.logging.Log interface
 
+    public boolean isTraceEnabled() {
+        return logLevel <= TRACE;
+    }
+
     public boolean isDebugEnabled() {
-        return true;
-    }
-
-    public boolean isErrorEnabled() {
-        return true;
-    }
-
-    public boolean isFatalEnabled() {
-        return true;
+        return logLevel <= DEBUG;
     }
 
     public boolean isInfoEnabled() {
-        return true;
-    }
-
-    public boolean isTraceEnabled() {
-        return true;
+        return logLevel <= INFO;
     }
 
     public boolean isWarnEnabled() {
-        return true;
+        return logLevel <= WARN;
+    }
+
+    public boolean isErrorEnabled() {
+        return logLevel <= ERROR;
+    }
+
+    public boolean isFatalEnabled() {
+        return logLevel <= FATAL;
     }
 
     public void trace(Object parm1) {
-        info(parm1);
+        if (logLevel <= TRACE)
+            log(parm1.toString());
     }
 
     public void trace(Object parm1, Throwable parm2) {
-        info(parm1, parm2);
+        if (logLevel <= TRACE)
+            log(parm1.toString() + "\n" + 
+                parm2.getStackTrace().toString());
     }
 
     public void debug(Object parm1) {
-        info(parm1);
+        if (logLevel <= DEBUG)
+            log(parm1.toString());
     }
 
     public void debug(Object parm1, Throwable parm2) {
-        info(parm1, parm2);
+        if (logLevel <= DEBUG)
+            log(parm1.toString() + "\n" + 
+                parm2.getStackTrace().toString());
     }
 
     public void info(Object parm1) {
-        log(parm1.toString());
+        if (logLevel <= INFO)
+            log(parm1.toString());
     }
 
     public void info(Object parm1, Throwable parm2) {
-        log(parm1.toString() + "\n" + parm2.getStackTrace().toString());
+        if (logLevel <= INFO)
+            log(parm1.toString() + "\n" + 
+                parm2.getStackTrace().toString());
     }
 
     public void warn(Object parm1) {
-        info(parm1);
+        if (logLevel <= WARN)
+            log(parm1.toString());
     }
 
     public void warn(Object parm1, Throwable parm2) {
-        info(parm1, parm2);
+        if (logLevel <= WARN)
+            log(parm1.toString() + "\n" + 
+                parm2.getStackTrace().toString());
     }
 
     public void error(Object parm1) {
-        info(parm1);
+        if (logLevel <= ERROR)
+            log(parm1.toString());
     }
 
     public void error(Object parm1, Throwable parm2) {
-        info(parm1, parm2);
+        if (logLevel <= ERROR)
+            log(parm1.toString() + "\n" + 
+                parm2.getStackTrace().toString());
     }
 
     public void fatal(Object parm1) {
-        info(parm1);
+        if (logLevel <= FATAL)
+            log(parm1.toString());
     }
 
     public void fatal(Object parm1, Throwable parm2) {
-        info(parm1, parm2);
+        if (logLevel <= FATAL)
+            log(parm1.toString() + "\n" + 
+                parm2.getStackTrace().toString());
     }
 
 }
