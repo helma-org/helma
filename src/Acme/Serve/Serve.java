@@ -653,8 +653,10 @@ class ServeConnection implements Runnable, HttpServletRequest, HttpServletRespon
 
 	    // Decode %-sequences.
 	    reqUriPath = decode( reqUriPath );
-	    if (reqQuery != null)
-	    	reqQuery = decode (reqQuery);
+	    // do not decode query string, since we do that from
+	    // helma servlet where we know more about encoding!
+	    // if (reqQuery != null)
+	    // 	reqQuery = decode (reqQuery);
 	    Servlet servlet = (Servlet) serve.registry.get( reqUriPath );
 	    // maybe the application name without slash? try with slash appended
 	    if (servlet == null)
