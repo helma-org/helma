@@ -820,8 +820,6 @@ public final class RequestEvaluator implements Runnable {
      *  notify.
      */
     public synchronized void stopThread() {
-        app.logEvent("Stopping Thread " + rtx);
-
         Transactor t = rtx;
 
         // let the scripting engine know that the
@@ -834,6 +832,7 @@ public final class RequestEvaluator implements Runnable {
 
         if (t != null) {
             if (reqtype != NONE) {
+                app.logEvent("Killing Thread " + t);
                 reqtype = NONE;
                 t.kill();
 
