@@ -23,6 +23,7 @@ import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.util.HtmlEncoder;
 import helma.util.MimePart;
+import helma.util.XmlUtils;
 import org.mozilla.javascript.*;
 
 import java.util.HashMap;
@@ -208,83 +209,83 @@ public class GlobalObject extends ScriptableObject {
      * @return a wrapped MIME object
      */
     public Object getURL(String location, Object opt) {
-            if (location ==  null) {
-                return null;
-            }
-
-            try {
-                URL url = new URL(location);
-                URLConnection con = url.openConnection();
-
-                // do we have if-modified-since or etag headers to set?
-                if (opt != null && opt != Undefined.instance) {
-                    if (opt instanceof Scriptable) {
-                        Scriptable scr = (Scriptable) opt;
-                        if ("Date".equals(scr.getClassName())) {
-                            Date date = new Date((long) ScriptRuntime.toNumber(scr));
-
-                            con.setIfModifiedSince(date.getTime());
-
-                            SimpleDateFormat format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz",
-                                                                       Locale.UK);
-
-                            format.setTimeZone(TimeZone.getTimeZone("GMT"));
-                            con.setRequestProperty("If-Modified-Since", format.format(date));
-                        }else {
-                            con.setRequestProperty("If-None-Match", scr.toString());
-                        }
-                    } else {
-                        con.setRequestProperty("If-None-Match", opt.toString());
-                    }
-                }
-
-                String httpUserAgent = app.getProperty("httpUserAgent");
-
-                if (httpUserAgent != null) {
-                    con.setRequestProperty("User-Agent", httpUserAgent);
-                }
-
-                con.setAllowUserInteraction(false);
-
-                String filename = url.getFile();
-                String contentType = con.getContentType();
-                long lastmod = con.getLastModified();
-                String etag = con.getHeaderField("ETag");
-                int length = con.getContentLength();
-                int resCode = 0;
-
-                if (con instanceof HttpURLConnection) {
-                    resCode = ((HttpURLConnection) con).getResponseCode();
-                }
-
-                ByteArrayOutputStream body = new ByteArrayOutputStream();
-
-                if ((length != 0) && (resCode != 304)) {
-                    InputStream in = new BufferedInputStream(con.getInputStream());
-                    byte[] b = new byte[1024];
-                    int read;
-
-                    while ((read = in.read(b)) > -1)
-                        body.write(b, 0, read);
-
-                    in.close();
-                }
-
-                MimePart mime = new MimePart(filename, body.toByteArray(), contentType);
-
-                if (lastmod > 0) {
-                    mime.lastModified = new Date(lastmod);
-                }
-
-                mime.eTag = etag;
-
-                return Context.toObject(mime, this);
-            } catch (Exception xcept) {
-                System.err.println ("Error in getURL(): "+xcept);
-            }
-
+        if (location ==  null) {
             return null;
         }
+
+        try {
+            URL url = new URL(location);
+            URLConnection con = url.openConnection();
+
+            // do we have if-modified-since or etag headers to set?
+            if (opt != null && opt != Undefined.instance) {
+                if (opt instanceof Scriptable) {
+                    Scriptable scr = (Scriptable) opt;
+                    if ("Date".equals(scr.getClassName())) {
+                        Date date = new Date((long) ScriptRuntime.toNumber(scr));
+
+                        con.setIfModifiedSince(date.getTime());
+
+                        SimpleDateFormat format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz",
+                                                                   Locale.UK);
+
+                        format.setTimeZone(TimeZone.getTimeZone("GMT"));
+                        con.setRequestProperty("If-Modified-Since", format.format(date));
+                    }else {
+                        con.setRequestProperty("If-None-Match", scr.toString());
+                    }
+                } else {
+                    con.setRequestProperty("If-None-Match", opt.toString());
+                }
+            }
+
+            String httpUserAgent = app.getProperty("httpUserAgent");
+
+            if (httpUserAgent != null) {
+                con.setRequestProperty("User-Agent", httpUserAgent);
+            }
+
+            con.setAllowUserInteraction(false);
+
+            String filename = url.getFile();
+            String contentType = con.getContentType();
+            long lastmod = con.getLastModified();
+            String etag = con.getHeaderField("ETag");
+            int length = con.getContentLength();
+            int resCode = 0;
+
+            if (con instanceof HttpURLConnection) {
+                resCode = ((HttpURLConnection) con).getResponseCode();
+            }
+
+            ByteArrayOutputStream body = new ByteArrayOutputStream();
+
+            if ((length != 0) && (resCode != 304)) {
+                InputStream in = new BufferedInputStream(con.getInputStream());
+                byte[] b = new byte[1024];
+                int read;
+
+                while ((read = in.read(b)) > -1)
+                    body.write(b, 0, read);
+
+                in.close();
+            }
+
+            MimePart mime = new MimePart(filename, body.toByteArray(), contentType);
+
+            if (lastmod > 0) {
+                mime.lastModified = new Date(lastmod);
+            }
+
+            mime.eTag = etag;
+
+            return Context.toObject(mime, this);
+        } catch (Exception xcept) {
+            System.err.println ("Error in getURL(): "+xcept);
+        }
+
+        return null;
+    }
 
     /**
      *
