@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- printed by helma object publisher     -->
+<!-- created Fri May 31 16:36:44 CEST 2002 -->
+<xmlroot xmlns:hop="http://www.helma.org/docs/guide/features/database">
+  <hopobject id="3" name="weblogstory" prototype="weblogstory" created="1022855804062" lastModified="1022855804064">
+  <hop:parent idref="0" prototyperef="root"/>
+    <postdate type="date">31.05.2002 16:36:44 CEST</postdate>
+    <day>2002.05.31</day>
+    <author idref="2" prototyperef="user"/>
+    <text>Congratulations! You successfully created your Helma HopBlog! 
+
+As a first step you can login to your HopBlog using "helma" as user name and password (certainly without the quotes) and create or edit stories. 
+
+Or you set-up HopBlog administration for yourself. You can do this by opening the file app.properties in the apps/hopblog directory of your Helma installation and editing the settings for siteAdmin, adminEmail and smtp. 
+
+After that you should register the new administrator as HopBlog user. Simply enter the data you chose for siteAdmin and adminEmail in the appropriate fields of the registration form, fill in the other form fields and submit your data. If you have set a valid e-mail address and smtp server, you should get a message confirming the registration. 
+
+Now you can login to your HopBlog using name and password of the newly created user. 
+
+Let the fun begin... 
+:)</text>
+    <moddate type="date">31.05.2002 16:36:44 CEST</moddate>
+  </hopobject>
+</xmlroot>
