@@ -71,8 +71,9 @@ public abstract class AbstractServletClient extends HttpServlet {
     }
 
 
-    protected void execute (HttpServletRequest request, HttpServletResponse response, byte method) {
-	String protocol = request.getProtocol ();
+    protected void execute (HttpServletRequest request,
+                            HttpServletResponse response, 
+	                    byte method) {
 	Cookie[] cookies = request.getCookies();
 
 	RequestTrans reqtrans = new RequestTrans (method);
@@ -111,13 +112,11 @@ public abstract class AbstractServletClient extends HttpServlet {
 	                }
 	            }
 	        } catch (Exception upx) {
-	            response.setStatus (HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
-	            writeError (response, "Sorry, upload size exceeds limit of "+uploadLimit+"kB.");
+	            sendError (
+	                response,
+	                response.SC_REQUEST_ENTITY_TOO_LARGE,
+	                "Sorry, upload size exceeds limit of "+uploadLimit+"kB.");
 	            return;
-	            /* String uploadErr = upx.getMessage ();
-	            if (uploadErr == null || uploadErr.length () == 0)
-	                uploadErr = upx.toString ();
-	            reqtrans.set ("uploadError", uploadErr); */
 	        }
 	    }
 
@@ -178,20 +177,33 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    String pathInfo = request.getPathInfo ();
 	    ResponseTrans restrans = execute (reqtrans, pathInfo);
 
-	    writeResponse (response, restrans, cookies, protocol);
+	    writeResponse (request, response, restrans, cookies);
 
 	} catch (Exception x) {
-	    // invalidateApp (appID);
-	    response.setStatus (HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-	    if (debug)
-	        writeError (response, "<b>Error:</b><br>" +x);
-	    else
-	        writeError (response, "This server is temporarily unavailable. Please check back later.");
+	    try {
+	        if (debug)
+	            sendError (
+	                response,
+	                response.SC_INTERNAL_SERVER_ERROR,
+	                "Error in request handler:" +x);
+	        else
+	            sendError (
+	                response,
+	                response.SC_INTERNAL_SERVER_ERROR,
+	                "The server encountered an error while processing your request. "+
+	                "Please check back later.");
+	        log ("Exception in execute: "+x);
+	    } catch (IOException io_e) {
+	        log ("Exception in sendError: "+io_e);
+	    }
 	}
     }
 
 
-    void writeResponse (HttpServletResponse res, ResponseTrans trans, Cookie[] cookies, String protocol) {
+    void writeResponse (HttpServletRequest req,
+                        HttpServletResponse res,
+                        ResponseTrans trans,
+	                Cookie[] cookies) {
 
 	for (int i = 0; i < trans.countCookies(); i++) try {
 	    Cookie c = new Cookie(trans.getKeyAt(i), trans.getValueAt(i));
@@ -205,19 +217,20 @@ public abstract class AbstractServletClient extends HttpServlet {
 	} catch (Exception ign) {}
 
 	if (trans.getRedirect () != null) {
-	    try {
-	        res.sendRedirect(trans.getRedirect ());
-	    } catch(Exception io_e) {}
+	    sendRedirect(req, res, trans.getRedirect ());
 	} else if (trans.getNotModified ()) {
 	    res.setStatus (HttpServletResponse.SC_NOT_MODIFIED);
 	} else {
 
 	    if (!trans.cache || ! caching) {
 	        // Disable caching of response.
-	        if (protocol == null || !protocol.endsWith ("1.1"))
-	            res.setHeader ("Pragma", "no-cache"); // for HTTP 1.0
-	        else
-	            res.setHeader ("Cache-Control", "no-cache"); // for HTTP 1.1
+	        if (isOneDotOne (req.getProtocol ())) {
+	            // for HTTP 1.0
+	            res.setHeader ("Pragma", "no-cache");
+	        } else {
+	            // for HTTP 1.1
+	            res.setHeader ("Cache-Control", "no-cache");
+	        }
 	    }
 	    if ( trans.realm!=null )
 	        res.setHeader( "WWW-Authenticate", "Basic realm=\"" + trans.realm + "\"" );
@@ -239,7 +252,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    try {
 	        OutputStream out = res.getOutputStream ();
 	        out.write (trans.getContent ());
-	        out.close ();
+	        out.flush ();
 	    } catch(Exception io_e) {
 	        log ("Exception in writeResponse: "+io_e);
 	    }
@@ -247,30 +260,62 @@ public abstract class AbstractServletClient extends HttpServlet {
     }
 
 
-    void writeError (HttpServletResponse res, String message) {
-	try {
-	    res.setContentType ("text/html");
-	    Writer out = res.getWriter ();
-	    out.write (message);
-	    out.flush ();
-	} catch (Exception io_e) {
-	    // ignore
+    void sendError (HttpServletResponse response, int code, String message)
+              throws IOException {
+	response.reset ();
+	response.setStatus (code);
+	response.setContentType ("text/html");
+	Writer writer = response.getWriter ();
+	writer.write (message);
+	writer.flush ();
+    }
+
+    void sendRedirect (HttpServletRequest req, HttpServletResponse res, String url) {
+	String location = url;
+	if (url.indexOf ("://") == -1)
+	{
+	    // need to transform a relative URL into an absolute one
+	    String scheme = req.getScheme ();
+	    StringBuffer loc = new StringBuffer(scheme);
+	    loc.append ("://");
+	    loc.append (req.getServerName ());
+	    int p = req.getServerPort ();
+	    // check if we need to include server port
+	    if (p > 0 && 
+	        (("http".equals(scheme) && p != 80) ||
+	        ("https".equals(scheme) && p != 443)))
+	    {
+	        loc.append (":");
+	        loc.append (p);
+	    }
+	    if (!url.startsWith ("/"))
+	    {
+	        String requri = req.getRequestURI ();
+	        int lastSlash = requri.lastIndexOf ("/");
+	        if (lastSlash == requri.length()-1)
+	            loc.append (requri);
+	        else if (lastSlash > -1)
+	            loc.append (requri.substring (0, lastSlash+1));
+	        else
+	            loc.append ("/");
+	    }
+	    loc.append (url);
+	    location = loc.toString ();
 	}
+	res.reset ();
+	// send status code 303 for HTTP 1.1, 302 otherwise
+	if (isOneDotOne (req.getProtocol ()))
+	    res.setStatus (res.SC_SEE_OTHER);
+	else
+	    res.setStatus (res.SC_MOVED_TEMPORARILY);
+	res.setContentType ("text/html");
+	res.setHeader ("Location", location);
     }
 
     FileUpload getUpload (HttpServletRequest request) throws Exception {
 	int contentLength = request.getContentLength ();
 	BufferedInputStream in = new BufferedInputStream (request.getInputStream ());
 	if (contentLength > uploadLimit*1024) {
-	    // consume all input to make Apache happy
-	    /* byte b[] = new byte[4096];
-	    int read = 0;
-	    int sum = 0;
-	    while (read > -1 && sum < contentLength) {
-	         read = in.read (b, 0, 4096);
-	         if (read > 0)
-	             sum += read;
-	    } */
 	    throw new RuntimeException ("Upload exceeds limit of "+uploadLimit+" kb.");
 	}
 	String contentType = request.getContentType ();
@@ -422,6 +467,14 @@ public abstract class AbstractServletClient extends HttpServlet {
         if ((b >= 'a') && (b <= 'f')) return (byte)(b - 'a' + 10);
         if ((b >= 'A') && (b <= 'F')) return (byte)(b - 'A' + 10);
         return 0;
+    }
+
+    boolean isOneDotOne (String protocol) {
+	if (protocol == null) 
+	    return false;
+	if (protocol.endsWith ("1.1"))
+	    return true;
+	return false;
     }
 
     public String getServletInfo(){
