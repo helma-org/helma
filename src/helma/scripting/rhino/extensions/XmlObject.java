@@ -260,7 +260,7 @@ public class XmlObject {
      * @return a HopObject obtained from parsing the XML
      */
     public Object getFromString(String str) {
-        return get(str, null);
+        return getFromString(str, null);
     }
 
 
