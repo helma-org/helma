@@ -71,7 +71,8 @@ public final class TypeManager {
         this.app = app;
         appDir = app.appDir;
 
-        // make sure the directories for the standard prototypes exist, and lament otherwise
+        // make sure the directories for the standard prototypes exist,
+        // and lament otherwise
         if (appDir.list().length == 0) {
             for (int i = 0; i < standardTypes.length; i++) {
                 File f = new File(appDir, standardTypes[i]);
@@ -127,7 +128,8 @@ public final class TypeManager {
     }
 
     /**
-     * Run through application's prototype directories and check if anything has been updated.
+     * Run through application's prototype directories and check if anything
+     * has been updated.
      * If so, update prototypes and scripts.
      */
     public synchronized void checkPrototypes() {
