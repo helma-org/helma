@@ -84,7 +84,8 @@ public class Prototype {
 	            if (opp == null)
 	                opp = reval.esNodePrototype;
 	            op.setPrototype (opp);
-	        } catch (Exception ignore) {}
+	        } catch (Exception ignore) {
+	        }
 	    }
 	}
     }
@@ -124,15 +125,25 @@ public class Prototype {
 
 
     public void initRequestEvaluator (RequestEvaluator reval) {
+	// see if we already registered with this evaluator
+	if (reval.getPrototype (name) != null)
+	    return;
+	
 	ObjectPrototype op = null;
 
 	// get the prototype's prototype if possible and necessary
 	ObjectPrototype opp = null;
-	if (prototype != null)
+	if (prototype != null) {
+	    // see if parent prototype is already registered. if not, register it
 	    opp = reval.getPrototype (prototype.getName ());
-	if (!"global".equalsIgnoreCase (name) &&
-		!"hopobject".equalsIgnoreCase (name) && opp == null)
+	    if (opp == null) {
+	        prototype.initRequestEvaluator (reval);
+	        opp = reval.getPrototype (prototype.getName ());
+	    }
+	}
+	if (!"global".equalsIgnoreCase (name) && !"hopobject".equalsIgnoreCase (name) && opp == null) {
 	    opp = reval.esNodePrototype;
+	}
 
 	if ("user".equalsIgnoreCase (name)) {
 	    op = reval.esUserPrototype;
