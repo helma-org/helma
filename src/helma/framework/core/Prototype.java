@@ -176,14 +176,21 @@ public final class Prototype {
     }
 
     /**
-     * Register an object as handler for all our parent prototypes.
+     * Register an object as handler for all our parent prototypes, but only if
+     * a handler by that prototype name isn't registered yet. This is used to
+     * implement direct over indirect prototype precedence and child over parent
+     *  precedence.
      */
     public final void registerParents(Map handlers, Object obj) {
 
         Prototype p = parent;
 
         while ((p != null) && !"hopobject".equalsIgnoreCase(p.getName())) {
-            handlers.put(p.name, obj);
+            Object old = handlers.put(p.name, obj);
+            // if an object was already registered by this name, put it back in again.
+            if (old != null) {
+                handlers.put(p.name, old);
+            }
 
             p = p.parent;
         }
