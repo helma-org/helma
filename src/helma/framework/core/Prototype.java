@@ -540,8 +540,7 @@ public final class Prototype {
         }
 
         private void checkForUpdates() {
-            if ( /* lastCheck < System.currentTimeMillis()- 2000l*/
-                !isUpToDate()) {
+            if (!isUpToDate()) {
                 app.typemgr.updatePrototype(Prototype.this);
             }
 
