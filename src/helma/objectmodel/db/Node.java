@@ -359,12 +359,8 @@ public final class Node implements INode, Serializable {
 
     protected synchronized void clearWriteLock () {
 	lock = null;
-	// check if the subnodes are relational.
-	// If so, clear the subnode vector.
-	// DbMapping smap = dbmap == null ? null : dbmap.getSubnodeMapping ();
-	// if (smap != null && smap.isRelational ())
-	//     subnodes = null;
     }
+
 
     protected void markAs (int s) {
 	if (state == INVALID || state == VIRTUAL || state == TRANSIENT)
@@ -487,24 +483,6 @@ public final class Node implements INode, Serializable {
 	return b.toString ();
     }
 
-    /* public INode[] getPath () {
-	int pathSize = 1;
-	INode p = getParent ();
-
-	while  (p != null) {
-	    pathSize +=1;
-	    p = p.getParent ();
-	    if (pathSize > 100) // sanity check
-	        break;
-	}
-	INode path[] = new INode[pathSize];
-	p = this;
-	for (int i = pathSize-1; i>=0; i--) {
-	    path[i] = p;
-	    p = p.getParent ();
-	}
-	return path;
-    } */
 
     public String getPrototype () {
 	if (prototype == null && propMap != null) {
@@ -704,18 +682,24 @@ public final class Node implements INode, Serializable {
 	    node = (Node) elem;
 	else 
 	    throw new RuntimeException ("Can't add fixed-transient node to a persistent node");
+	
+	// only lock node if it has to be modified for a change in subnodes
+	if (!ignoreSubnodeChange ())
+	    checkWriteLock ();
+	node.checkWriteLock ();
+	
+	// if subnodes are defined via realation, make sure its constraints are enforced.
+	if (dbmap != null && dbmap.getSubnodeRelation () != null)
+	    dbmap.getSubnodeRelation ().setConstraints (this, node);
+	
 	// if the new node is marked as TRANSIENT and this node is not, mark new node as NEW
 	if (state != TRANSIENT && node.state == TRANSIENT)
 	    node.makePersistentCapable ();
 
 	String n = node.getName();
+	
 	// if (n.indexOf('/') > -1)
 	//     throw new RuntimeException ("\"/\" found in Node name.");
-
-	// only lock node if it has to be modified for a change in subnodes
-	if (!ignoreSubnodeChange ())
-	    checkWriteLock ();
-	node.checkWriteLock ();
 
 	// only mark this node as modified if subnodes are not in relational db
 	// pointing to this node.
@@ -739,8 +723,6 @@ public final class Node implements INode, Serializable {
 	        if (groupbyNode == null)
 	            groupbyNode = getGroupbySubnode (groupbyValue, true);
 	        groupbyNode.addNode (node);
-	
-	        srel.setConstraints (this, node);
 	
 	        return node;
 	    } catch (Exception x) {
@@ -801,9 +783,6 @@ public final class Node implements INode, Serializable {
 	    }
 	}
 
-	if (dbmap != null && dbmap.getSubnodeRelation () != null)
-	    dbmap.getSubnodeRelation ().setConstraints (this, node);
-
 	lastmodified = System.currentTimeMillis ();
 	lastSubnodeChange = lastmodified;
 	// Server.throwNodeEvent (new NodeEvent (this, NodeEvent.SUBNODE_ADDED, node));
@@ -812,7 +791,8 @@ public final class Node implements INode, Serializable {
 
 
     public INode createNode () {
-	return createNode (null, numberOfNodes ()); // create new node at end of subnode array
+	// create new node at end of subnode array
+	return createNode (null, numberOfNodes ());
     }
 
     public INode createNode (int where) {
