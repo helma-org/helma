@@ -1,0 +1,3 @@
+
+   This file should appear at http://<host>:<port>/static/test.txt 
+   if you use the embedded Web server (-w option).
