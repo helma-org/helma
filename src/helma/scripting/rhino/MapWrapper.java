@@ -196,6 +196,13 @@ public class MapWrapper extends ScriptableObject {
         return map.keySet().toArray();
     }
 
+    public Object getDefaultValue(Class hint) {
+        if (hint == String.class) {
+            return map == null ? "{}" : map.toString();
+        }
+        return super.getDefaultValue(hint);
+    }
+
     public Map unwrap() {
         if (map == null) {
             map = new HashMap();
