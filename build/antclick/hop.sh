@@ -12,7 +12,7 @@
 
 # Set TCP ports for Helma servers
 # (comment/uncomment to de/activate)
-HTTP_PORT=80
+HTTP_PORT=8080
 XMLRPC_PORT=8081
 # AJP13_PORT=8009
 # RMI_PORT=5050
