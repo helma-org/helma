@@ -12,6 +12,9 @@ import java.io.File;
 /**
  * This is the interface that must be implemented to make a scripting environment
  * usable by the Helma application server.
+ *
+ * Implementations of this interface must have a public zero-argument constructor 
+ * to be usable by the Helma framework.
  */
 public interface ScriptingEngine {
 
