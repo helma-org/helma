@@ -13,8 +13,6 @@ import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.xmlrpc.*;
 import helma.util.*;
-import FESI.Data.*;
-import FESI.Interpreter.*;
 import com.sleepycat.db.DbException;
 import java.util.*;
 
@@ -32,6 +30,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     protected NodeManager nmgr;
     protected static WebServer xmlrpc;
     protected XmlRpcAccess xmlrpcAccess;
+
+    // the class name of the scripting environment implementation
+    static final String scriptEnvironmentName = "helma.scripting.fesi.Environment";
+
 
     private String baseURI;
 
@@ -712,7 +714,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	// as first thing, invoke function onStart in the root object
 
 	try {
-	    eval.invokeFunction ((INode) null, "onStart", new ESValue[0]);
+	    eval.invokeFunction ((INode) null, "onStart", new Object[0]);
 	} catch (Exception ignore) {}	
 
 	while (Thread.currentThread () == worker) {
@@ -734,7 +736,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	            if (now - u.lastTouched () > sessionTimeout * 60000) {
 	                if (u.uid != null) {
 	                    try {
-	                        eval.invokeFunction (u, "onLogout", new ESValue[0]);
+	                        eval.invokeFunction (u, "onLogout", new Object[0]);
 	                    } catch (Exception ignore) {
 	                        ignore.printStackTrace ();
 	                    }
@@ -753,12 +755,12 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	    // check if we should call scheduler
 	    if (now - lastScheduler > scheduleSleep) {
 	        lastScheduler = now;
-	        ESValue val = null;
+	        Object val = null;
 	        try {
-	            val = eval.invokeFunction ((INode) null, "scheduler", new ESValue[0]);
+	            val = eval.invokeFunction ((INode) null, "scheduler", new Object[0]);
 	        } catch (Exception ignore) {}	
 	        try {
-	            int ret = val.toInt32 ();
+	            int ret = ((Number) val).intValue ();
 	            if (ret < 1000)
 	                scheduleSleep = 60000l;
 	            else

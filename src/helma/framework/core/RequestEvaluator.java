@@ -652,7 +652,7 @@ public class RequestEvaluator implements Runnable {
 	return result;
     }
 
-    public synchronized ESValue invokeFunction (IPathElement node, String functionName, ESValue[] args)
+    public synchronized Object invokeFunction (IPathElement node, String functionName, Object[] args)
 		throws Exception {
 	ESObject obj = null;
 	if  (node == null)
@@ -662,13 +662,13 @@ public class RequestEvaluator implements Runnable {
 	return invokeFunction (obj, functionName, args);
     }
 
-    public synchronized ESValue invokeFunction (ESObject obj, String functionName, ESValue[] args)
+    public synchronized Object invokeFunction (ESObject obj, String functionName, Object[] args)
 		throws Exception {
 	this.reqtype = INTERNAL;
 	this.user = null;
 	this.current = obj;
 	this.method = functionName;
-	this.esargs = args;
+	this.esargs = new ESValue[0];
 	this.res = new ResponseTrans ();
 	esresult = ESNull.theNull;
 	exception = null;
@@ -682,16 +682,16 @@ public class RequestEvaluator implements Runnable {
 
 	if (exception != null)
 	    throw (exception);
-	return esresult;
+	return esresult == null ? null : esresult.toJavaObject ();
     }
 
-    public synchronized ESValue invokeFunction (User user, String functionName, ESValue[] args)
+    public synchronized Object invokeFunction (User user, String functionName, Object[] args)
 		throws Exception {
 	this.reqtype = INTERNAL;
 	this.user = user;
 	this.current = null;
 	this.method = functionName;
-	this.esargs = args;
+	this.esargs = new ESValue[0];
 	this.res = new ResponseTrans ();
 	esresult = ESNull.theNull;
 	exception = null;
@@ -705,7 +705,7 @@ public class RequestEvaluator implements Runnable {
 
 	if (exception != null)
 	    throw (exception);
-	return esresult;
+	return esresult == null ? null : esresult.toJavaObject ();
     }
 
 
