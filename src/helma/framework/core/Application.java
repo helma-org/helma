@@ -228,6 +228,11 @@ public final class Application implements IPathElement, Runnable {
 	    }
 	}
 
+	// read the sessions if wanted
+	if ("true".equalsIgnoreCase (getProperty("persistentSessions"))) {
+	    loadSessionData (null);
+	}
+
 	typemgr = new TypeManager (this);
 	typemgr.createPrototypes ();
 	// logEvent ("Started type manager for "+name);
@@ -317,6 +322,11 @@ public final class Application implements IPathElement, Runnable {
 	for (int i=0; i<extensions.size(); i++) {
 	    HelmaExtension ext = (HelmaExtension)extensions.get(i);
 	    ext.applicationStopped (this);
+	}
+
+	// store the sessions if wanted
+	if ("true".equalsIgnoreCase (getProperty("persistentSessions"))) {
+	    storeSessionData (null);
 	}
 
 	// stop logs if they exist
@@ -1392,5 +1402,65 @@ public final class Application implements IPathElement, Runnable {
 	    throw new Exception ("Method "+key+" is not callable via XML-RPC");
     }
 
+	public void storeSessionData (File f) {
+	if (f==null)
+	    f = new File(dbDir, "sessions");
+	try {
+	    OutputStream ostream = new BufferedOutputStream (new FileOutputStream(f));
+	    ObjectOutputStream p = new ObjectOutputStream(ostream);
+	    synchronized (sessions) {
+	        p.writeInt (sessions.size ());
+	        for (Enumeration e=sessions.elements (); e.hasMoreElements ();) {
+	            p.writeObject ((Session) e.nextElement ());
+	        }
+	    }
+	    p.flush();
+	    ostream.close();
+	    logEvent ("stored " + sessions.size () + " sessions in file");
+	} catch (Exception e) {
+	    logEvent ("error storing session data: " + e.toString ());
+	}
+	}
+
+
+	/**
+	  * loads the serialized session table from a given file or from dbdir/sessions
+	  */
+	public void loadSessionData (File f) {
+	if (f==null)
+	    f = new File(dbDir, "sessions");
+	// compute session timeout value
+	int sessionTimeout = 30;
+	try {
+	    sessionTimeout = Math.max (0, Integer.parseInt (props.getProperty ("sessionTimeout", "30")));
+	} catch (Exception ignore) {
+	    System.out.println(ignore.toString());
+	}
+	long now = System.currentTimeMillis ();
+	try {
+	    // load the stored data:
+	    InputStream istream = new BufferedInputStream (new FileInputStream(f));
+	    ObjectInputStream p = new ObjectInputStream(istream);
+	    int size = p.readInt ();
+	    int ct = 0;
+	    Hashtable newSessions = new Hashtable ();
+	    while (ct < size) {
+	        Session session = (Session) p.readObject ();
+	        if (now - session.lastTouched () < sessionTimeout * 60000) {
+	            session.setApp (this);
+	            newSessions.put (session.getSessionID (), session);
+	        }
+	        ct++;
+	    }
+	    p.close ();
+	    istream.close ();
+	    sessions = newSessions;
+	    logEvent ("loaded " + newSessions.size () + " sessions from file");
+	} catch (Exception e) {
+	    logEvent ("error loading session data: " + e.toString ());
+	}
+	}
+
 }
+
 
