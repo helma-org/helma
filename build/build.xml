@@ -288,6 +288,7 @@
             <tarfileset prefix="${filename}" dir="${build.work}">
                 <include name="**"/>
                 <exclude name="hop.sh"/>
+                <exclude name="**/jimi.jar"/>
             </tarfileset>
         </tar>
         <gzip zipfile="${build.dist}/${filename}.tar.gz" src="${build.dist}/${filename}.tar"/>
@@ -303,7 +304,7 @@
         <mkdir dir="${build.dist}" />
         <fixcrlf srcdir="${build.work}" eol="crlf" includes="**/*.txt, **/*.properties, **/*.hac, **/*.js, **/*.skin, **/*.xml" />
         <zip zipfile="${build.dist}/${filename}.zip">
-            <zipfileset dir="${build.work}" prefix="${filename}" includes="**" />
+            <zipfileset dir="${build.work}" prefix="${filename}" includes="**" excludes="**/jimi.jar"/>
         </zip>
     </target>
 
