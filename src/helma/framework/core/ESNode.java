@@ -400,10 +400,8 @@ public class ESNode extends ObjectPrototype {
 	}
 
 	// this is not very nice, but as a hack we return the id of a node as node.__id__
-	if ("__id__".equalsIgnoreCase (propertyName))
-	    return new ESString (node.getID ());
-	if ("__prototype__".equalsIgnoreCase (propertyName))
-	    return new ESString (node.getPrototype ());
+	if (propertyName.startsWith ("__") && propertyName.endsWith ("__"))
+	    return getInternalProperty (propertyName);
 
              // this _may_ do a relational query if properties are mapped to a relational type.
 	IProperty p = node.get (propertyName, false);
@@ -434,6 +432,24 @@ public class ESNode extends ObjectPrototype {
 	        return ESLoader.normalizeObject (p.getJavaObjectValue (), evaluator);
 	}
 
+	// as last resort, try to get property as anonymous subnode
+	INode anon = node.getSubnode (propertyName);
+	if (anon != null)
+	    return eval.getNodeWrapper (anon);
+
+	return ESNull.theNull;
+    }
+
+    private ESValue getInternalProperty (String propertyName) throws EcmaScriptException {
+	if ("__id__".equalsIgnoreCase (propertyName))
+	    return new ESString (node.getID ());
+	if ("__prototype__".equalsIgnoreCase (propertyName)) {
+	    String p = node.getPrototype ();
+	    if (p == null)
+	        return ESNull.theNull;
+	    else
+	        return new ESString (node.getPrototype ());
+	}
 	// some more internal properties
 	if ("__parent__".equals (propertyName)) {
                  INode n = node.getParent ();
@@ -450,12 +466,6 @@ public class ESNode extends ObjectPrototype {
 	    return new ESString (""+node.hashCode ());
 	if ("__node__".equals (propertyName))
 	    return ESLoader.normalizeObject (node, evaluator);
-
-	// as last resort, try to get property as anonymous subnode
-	INode anon = node.getSubnode (propertyName);
-	if (anon != null)
-	    return eval.getNodeWrapper (anon);
-
 	return ESNull.theNull;
     }
 
