@@ -361,11 +361,11 @@ public final class RhinoCore {
      */
     public Scriptable getValidPrototype(String protoName) {
         if (globalError != null) {
-            throw new RuntimeException(globalError.toString());
+            throw new EvaluatorException(globalError.toString());
         }
         TypeInfo type = getPrototypeInfo(protoName);
         if (type != null && type.error != null) {
-            throw new RuntimeException(type.error.toString());
+            throw new EvaluatorException(type.error.toString());
         }
         return type == null ? null : type.objectPrototype;
     }
@@ -640,11 +640,11 @@ public final class RhinoCore {
                         result = engine.invoke(handler, hrefFunction,
                                                new Object[] { basicHref }, false);
                     } catch (ScriptingException x) {
-                        throw new RuntimeException("Error in hrefFunction: " + x);
+                        throw new EvaluatorException("Error in hrefFunction: " + x);
                     }
 
                     if (result == null) {
-                        throw new RuntimeException("hrefFunction " + hrefFunction +
+                        throw new EvaluatorException("hrefFunction " + hrefFunction +
                                                        " returned null");
                     }
 
