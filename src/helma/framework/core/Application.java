@@ -3,7 +3,10 @@
 
 package helma.framework.core;
 
+import helma.doc.DocApplication;
+import helma.doc.DocException;
 import helma.framework.*;
+import helma.main.Server;
 import helma.scripting.*;
 import helma.scripting.fesi.ESUser;
 import helma.objectmodel.*;
@@ -24,7 +27,7 @@ import java.rmi.server.*;
  * requests from the Web server or XML-RPC port and dispatches them to 
  * the evaluators.
  */
-public class Application extends UnicastRemoteObject implements IRemoteApp, IReplicatedApp, Runnable {
+public class Application extends UnicastRemoteObject implements IRemoteApp, IPathElement, IReplicatedApp, Runnable {
 
     private String name;
     SystemProperties props, dbProps;
@@ -60,6 +63,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
     boolean stopped = false;
     boolean debug;
+	public long starttime;
 
     public Hashtable sessions;
     public Hashtable activeUsers;
@@ -107,6 +111,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     // a cache for parsed skin objects
     public CacheMap skincache = new CacheMap (200, 0.80f);
 
+	// DocApplication used for introspection
+	public DocApplication docApp;
+
     /**
      *  Zero argument constructor needed for RMI
      */
@@ -130,7 +137,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
      */
     public Application (String name, File home, SystemProperties sysProps, SystemProperties sysDbProps)
 		    throws RemoteException, IllegalArgumentException {
-	
+
 	if (name == null || name.trim().length() == 0)
 	    throw new IllegalArgumentException ("Invalid application name: "+name);
 
@@ -259,6 +266,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
      *  Create request evaluators and start scheduler and cleanup thread
      */
     public void start () {
+	starttime = System.currentTimeMillis();
 	worker = new Thread (this, "Worker-"+name);
 	worker.setPriority (Thread.NORM_PRIORITY+2);
 	worker.start ();
@@ -447,6 +455,13 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	nmgr.clearCache ();
     }
 
+    /**
+     * redundant method for clearCache() in order to be able to clear cache from 
+     * self-scripting base app - would otherwise interfere with ESNode.clearCache().
+     */
+    public void clearAppCache () {
+		nmgr.clearCache ();
+    }
 
     /**
      *  Set the application's root element to an arbitrary object. After this is called
@@ -533,7 +548,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
      * Return a collection containing all prototypes defined for this application
      */
     public Collection getPrototypes () {
-	return typemgr.prototypes.values ();
+    return typemgr.prototypes.values ();
     }
 
 
@@ -808,6 +823,42 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	    return classMapping.getProperty (obj.getClass ().getName ());
     }
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///   The following methods are the IPathElement interface for this application.
+    ///   this is useful for scripting and url-building in the base-app.
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	public String getElementName()	{
+		return name;
+	}
+
+	public IPathElement getChildElement(String name)	{
+		// as Prototype and the helma.scripting-classes don't offer enough information
+		// we use the classes from helma.doc-pacakge for introspection.
+		// the first time an url like /appname/api/ is parsed, the application is read again
+		// parsed for comments and exposed as an IPathElement
+		if ( name.equals("api") )	{
+			if ( docApp==null )	{
+				try	{
+					docApp = new DocApplication( this.name,appDir.toString() );
+				}	catch ( DocException e )	{
+					return null;
+				}
+			}
+			return docApp;			
+		}
+		return null;
+	}
+
+	public IPathElement getParentElement()	{
+		return helma.main.Server.getServer();
+	}
+
+	public String getPrototype()	{
+		return "application";
+	}
+
+
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
@@ -998,6 +1049,13 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	return name;
     }
 
+	/**
+	 * Return the directory of this application
+	 */
+	public File getAppDir()	{
+		return appDir;
+	}
+
     /**
      * Get the DbMapping associated with a prototype name in this application
      */
@@ -1024,6 +1082,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
     public String getProperty (String propname, String defvalue) {
 	return props.getProperty (propname, defvalue);
     }
+
+	public SystemProperties getProperties()	{
+		return props;
+	}
 
     /**
      *
