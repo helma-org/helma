@@ -279,7 +279,7 @@ public class GlobalObject extends ImporterTopLevel {
 
             return Context.toObject(mime, this);
         } catch (Exception xcept) {
-            System.err.println ("Error in getURL(): "+xcept);
+            app.logEvent("Error getting URL "+location+": "+xcept);
         }
 
         return null;
