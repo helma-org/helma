@@ -14,32 +14,47 @@ import helma.objectmodel.*;
  
 public class RequestTrans implements Externalizable {
 
+    // the uri path of the request
     public String path;
+    // the request's session id
     public String session;
-    private Hashtable values;
+    // the map of form and cookie data
+    private Map values;
+    // the request method - 0 for GET, 1 for POST
+    private byte httpMethod = 0;
 
     // this is used to hold the EcmaScript form data object
     public transient Object data;
     // when was execution started on this request?
     public transient long startTime;
 
+    /**
+     *  Create a new Request transmitter with an empty data map.
+     */
     public RequestTrans () {
-	super ();
-	values = new Hashtable ();
+	httpMethod = 0;
+	values = new HashMap ();
     }
 
-    public RequestTrans (Hashtable values) {
-	this.values = values;
+    /**
+    *  Create a new request transmitter with the given data map.
+    */
+    public RequestTrans (byte method) {
+	httpMethod = method;
+	values = new HashMap ();
     }
 
+    /**
+     *  Set a parameter value in this request transmitter.
+     */
     public void set (String name, Object value) {
 	values.put (name, value);
     }
 
-    public Enumeration keys () {
-	return values.keys ();
-    }
 
+    /**
+     *  Get a value from the requests map by key.
+     */
     public Object get (String name) {
 	try {
 	    return values.get (name);
@@ -48,10 +63,17 @@ public class RequestTrans implements Externalizable {
 	}
     }
 
-    public Hashtable getReqData () {
+    /**
+     *  Get the data map for this request transmitter.
+     */
+    public Map getRequestData () {
 	return values;
     }
 
+    /**
+     *  The hash code is computed from the session id if available. This is used to
+     *  detect multiple identic requests.
+     */
     public int hashCode () {
 	return session == null ? super.hashCode () : session.hashCode ();
     }
@@ -66,21 +88,43 @@ public class RequestTrans implements Externalizable {
 	    RequestTrans other = (RequestTrans) what;
 	    return (session.equals (other.session) &&
 		path.equalsIgnoreCase (other.path) &&
-		values.equals (other.getReqData ()));
+		values.equals (other.getRequestData ()));
 	} catch (Exception x) {
 	    return false;
 	}
     }
 
+    /**
+     *  Return true if this object represents a HTTP GET Request.
+     */
+    public boolean isGet () {
+	return httpMethod == 0;
+    }
+
+    /**
+     *  Return true if this object represents a HTTP GET Request.
+     */
+    public boolean isPost () {
+	return httpMethod == 1;
+    }
+
+    /**
+     * Custom externalization code for quicker serialization.
+     */
     public void readExternal (ObjectInput s) throws ClassNotFoundException, IOException {
 	path = s.readUTF ();
 	session = s.readUTF ();
 	values = (Hashtable) s.readObject ();
+	httpMethod = s.readByte ();
     }
 
+    /**
+     * Custom externalization code for quicker serialization.
+     */
     public void writeExternal (ObjectOutput s) throws IOException {
 	s.writeUTF (path);
 	s.writeUTF (session);
 	s.writeObject (values);
+	s.writeByte (httpMethod);
     }
 }
