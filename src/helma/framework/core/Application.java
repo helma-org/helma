@@ -13,7 +13,6 @@ import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.xmlrpc.*;
 import helma.util.*;
-import com.sleepycat.db.DbException;
 import java.util.*;
 import java.io.*;
 import java.net.URLEncoder;
@@ -231,7 +230,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     /**
      * Get the application ready to run, initializing the evaluators and type manager.
      */
-    public void init () throws DbException, ScriptingException {
+    public void init () throws DatabaseException, ScriptingException {
 	scriptingEngine = new helma.scripting.fesi.FesiScriptingEnvironment ();
 	scriptingEngine.init (this, props);
 
@@ -317,7 +316,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	// shut down node manager and embedded db
 	try {
 	    nmgr.shutdown ();
-	} catch (DbException dbx) {
+	} catch (DatabaseException dbx) {
 	    System.err.println ("Error shutting down embedded db: "+dbx);
 	}
 	

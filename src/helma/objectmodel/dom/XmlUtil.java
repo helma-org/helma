@@ -10,6 +10,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -52,6 +53,24 @@ public class XmlUtil	{
 		}	catch (IOException f)	{
 			throw new RuntimeException ("Could not read Xml: "+f.toString());
 		}
+	}
+
+	/**
+	  * get first "real" element (ie not the document-rootelement, but the next one
+	  */
+	public static Element getFirstElement (Document document)	{
+		Element workelement = null;
+		if ( document.getDocumentElement()!=null )	{
+			org.w3c.dom.Node tmp = document.getDocumentElement().getFirstChild();
+			while( tmp!=null )	{
+				tmp = tmp.getNextSibling();
+				if ( tmp.getNodeType()==org.w3c.dom.Node.ELEMENT_NODE )	{
+					workelement = (Element) tmp;
+					break;
+				}
+			}
+		}
+		return workelement;
 	}
 
 	/**

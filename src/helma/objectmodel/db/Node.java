@@ -124,6 +124,20 @@ public final class Node implements INode, Serializable {
 	out.writeObject (prototype);
     }
 
+    /**
+     * used by Xml deserialization
+     */
+     public void setPropMap (Hashtable propMap)	{
+	this.propMap = propMap;
+     }
+
+    /**
+     * used by Xml deserialization
+     */
+     public void setSubnodes (List subnodes)	{
+	this.subnodes = subnodes;
+}
+
     private transient String prototype;
 
     private transient NodeHandle handle;
@@ -164,8 +178,9 @@ public final class Node implements INode, Serializable {
     /**
      * Creates a new Node with the given name. Only used by NodeManager for "root nodes" and
      * not in a Transaction context, which is why we can immediately mark it as CLEAN.
+     * ADD: used by wrapped database to re-create an existing Node.
      */
-    protected Node (String name, String id, String prototype, WrappedNodeManager nmgr) {
+    public Node (String name, String id, String prototype, WrappedNodeManager nmgr) {
 	this.nmgr = nmgr;
  	this.id = id;
 	this.name = name == null || "".equals (name) ? id : name;
@@ -174,6 +189,17 @@ public final class Node implements INode, Serializable {
 	created = lastmodified = System.currentTimeMillis ();
 	markAs (CLEAN);
     }
+
+
+    /**
+     * Constructor used to create a Node with a given name from a wrapped database.
+     */
+    public Node (String name, String id, String prototype, WrappedNodeManager nmgr, long created, long lastmodified)	{
+	this (name,id,prototype,nmgr);
+	this.created = created;
+	this.lastmodified = lastmodified;
+    }
+
 
 
     /**
@@ -459,6 +485,8 @@ public final class Node implements INode, Serializable {
 	            } else {
 	                anonymous = true;
 	            }
+	        } else if (p.contains (this) > -1) {
+	           anonymous = true;
 	        }
 	    } catch (Exception ignore) {
 	        // just fall back to default method
@@ -575,6 +603,10 @@ public final class Node implements INode, Serializable {
      */
     public void setParent (Node parent) {
 	parentHandle = parent == null ? null : parent.getHandle ();
+    }
+
+    public void setParentHandle (NodeHandle parent)	{
+	parentHandle = parent;
     }
 
     /**
@@ -1197,6 +1229,10 @@ public final class Node implements INode, Serializable {
 	return new Enum ();
     }
 
+    public List getSubnodeList() {
+	return subnodes;
+    }
+
     private boolean ignoreSubnodeChange () {
 	// return true if a change in subnodes can be ignored because it is
 	// stored in the subnodes themselves.
@@ -1233,7 +1269,9 @@ public final class Node implements INode, Serializable {
 	// return propMap == null ? new Vector ().elements () : propMap.elements ();
     }
 
-
+    public Hashtable getPropMap()	{
+	return propMap;
+    }
 
     public IProperty get (String propname, boolean inherit) {
 	return getProperty (propname, inherit);
