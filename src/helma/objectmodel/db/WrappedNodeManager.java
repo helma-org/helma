@@ -125,12 +125,14 @@ import java.util.Vector;
 	    if (map == null || !map.isRelational () || "[hop]".equalsIgnoreCase (map.getIDgen()))
 	        return nmgr.idgen.newID ();
 	    // or if we query max key value
-                  else if (map.getIDgen() == null || "[max]".equalsIgnoreCase (map.getIDgen()))
-                      return nmgr.generateMaxID (map);
+	    else if (map.getIDgen() == null || "[max]".equalsIgnoreCase (map.getIDgen()))
+	        return nmgr.generateMaxID (map);
 	    else
-                     return nmgr.generateID (map);
-	     // otherwise, we use an oracle sequence
+	        return nmgr.generateID (map);
+	        // otherwise, we use an oracle sequence
 	} catch (Exception x) {
+	    if (nmgr.app.debug ())
+	        x.printStackTrace();
 	    throw new RuntimeException (x.toString ());
 	}
     }
