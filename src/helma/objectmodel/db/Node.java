@@ -660,7 +660,7 @@ public class Node implements INode, Serializable {
 	        }
 	    }
 
-	    if (node.getParent () == null) {
+	    if (node.getParent () == null  && !"root".equalsIgnoreCase (node.getPrototype ())) {
 	        node.setParent (this);
 	        node.anonymous = true;
 	    }
@@ -757,7 +757,7 @@ public class Node implements INode, Serializable {
 	                retval =  nmgr.getNode (next, smap);
 	        }
 
-	        if (retval != null && retval.parentID == null) {
+	        if (retval != null && retval.parentID == null && !"root".equalsIgnoreCase (retval.getPrototype ())) {
 	            retval.setParent (runner);
 	            retval.anonymous = true;
 	        }
@@ -788,7 +788,7 @@ public class Node implements INode, Serializable {
 	        retval = nmgr.getNode (this, (String) subnodes.elementAt (index), srel);
 	    else
 	        retval =  nmgr.getNode ((String) subnodes.elementAt (index), smap);
-	    if (retval != null && retval.parentID == null) {
+	    if (retval != null && retval.parentID == null && !"root".equalsIgnoreCase (retval.getPrototype ())) {
 	        retval.setParent (this);
 	        retval.anonymous = true;
 	    }
@@ -1109,7 +1109,7 @@ public class Node implements INode, Serializable {
 	// (i.e, still thinks it's just the key as a string)
 	DbMapping pmap = dbmap == null ? null : dbmap.getExactPropertyMapping (propname);
 	if (pmap != null && prop != null && prop.type != IProperty.NODE) {
-	    // this is a relational node stored by id
+	    // this is a relational node stored by id but we still think it's just a string. fix it
 	    prop.nvalueID = prop.getStringValue ();
 	    prop.type = IProperty.NODE;
 	}
@@ -1124,7 +1124,7 @@ public class Node implements INode, Serializable {
 	        try {
 	            Node pn = nmgr.getNode (this, propname, prel);
 	            if (pn != null) {
-	                if (pn.parentID == null) {
+	                if (pn.parentID == null && !"root".equalsIgnoreCase (pn.getPrototype ())) {
 	                    pn.setParent (this);
 	                    pn.name = propname;
 	                    pn.anonymous = false;
@@ -1406,7 +1406,7 @@ public class Node implements INode, Serializable {
 
 	// check if the main identity of this node is as a named property
 	// or as an anonymous node in a collection
-	if (n.getParent () == null && n.adoptName) {
+	if (n.getParent () == null && n.adoptName && !"root".equalsIgnoreCase (n.getPrototype ())) {
 	    n.setParent (this);
 	    n.name = propname;
 	    n.anonymous = false;

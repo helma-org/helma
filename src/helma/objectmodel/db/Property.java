@@ -382,7 +382,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 
 	    // we have what we need, now get the node from the node manager
 	    Node retval = node.nmgr.getNode (nvalueID, dbm);
-	    if (retval != null && retval.parentID == null) {
+	    if (retval != null && retval.parentID == null && !"root".equalsIgnoreCase (retval.getPrototype ())) {
 	        retval.setParent (node);
 	        retval.setName (propname);
 	        retval.anonymous = false;
