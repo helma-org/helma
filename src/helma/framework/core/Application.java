@@ -197,14 +197,16 @@ public final class Application implements IPathElement, Runnable {
             throw new IllegalArgumentException("Invalid application name: " + name);
         }
 
-        this.name = name;
-        if (repositories.length > 0) {
-            this.repositories = new ArrayList();
-            this.repositories.addAll(Arrays.asList(repositories));
-            resourceComparator = new ResourceComparator(this);
-        } else {
+        if (repositories.length == 0) {
             throw new java.lang.IllegalArgumentException("No sources defined for application: " + name);
         }
+
+        this.name = name;
+
+        this.repositories = new ArrayList();
+        this.repositories.addAll(Arrays.asList(repositories));
+        resourceComparator = new ResourceComparator(this);
+
         dbDir = customDbDir;
 
         // system-wide properties, default to null
