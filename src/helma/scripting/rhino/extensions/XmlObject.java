@@ -54,14 +54,8 @@ public class XmlObject {
      * @throws IOException ...
      * @throws RuntimeException ...
      */
-    public boolean write(Object hopObject, String file)
+    public boolean write(INode node, String file)
                   throws IOException {
-        INode node = null;
-
-        if (hopObject instanceof HopObject) {
-            node = ((HopObject) hopObject).getNode();
-        }
-
         // we definitly need a node
         if (node == null) {
             throw new RuntimeException("First argument in Xml.write() is not an hopobject");
@@ -92,13 +86,7 @@ public class XmlObject {
      * Xml.create() is used to get a string containing the xml-content.
      * Useful if Xml-content should be made public through the web.
      */
-    public String writeToString(Object hopObject) throws IOException {
-        INode node = null;
-
-        if (hopObject instanceof HopObject) {
-            node = ((HopObject) hopObject).getNode();
-        }
-
+    public String writeToString(INode node) throws IOException {
         // we definitly need a node
         if (node == null) {
             throw new RuntimeException("First argument in Xml.write() is not an hopobject");
@@ -142,15 +130,9 @@ public class XmlObject {
      *
      * @throws RuntimeException ...
      */
-    public Object read(String file, Object hopObject) throws RuntimeException {
+    public Object read(String file, INode node) throws RuntimeException {
         if (file == null) {
             throw new RuntimeException("Missing arguments in Xml.read()");
-        }
-
-        INode node = null;
-
-        if (hopObject instanceof HopObject) {
-            node = ((HopObject) hopObject).getNode();
         }
 
         if (node == null) {
@@ -194,16 +176,10 @@ public class XmlObject {
      *
      * @throws RuntimeException ...
      */
-    public Object readFromString(String str, Object hopObject)
+    public Object readFromString(String str, INode node)
                           throws RuntimeException {
         if (str == null) {
             throw new RuntimeException("Missing arguments in Xml.read()");
-        }
-
-        INode node = null;
-
-        if (hopObject instanceof HopObject) {
-            node = ((HopObject) hopObject).getNode();
         }
 
         if (node == null) {
