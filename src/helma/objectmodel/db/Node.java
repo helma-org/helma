@@ -737,7 +737,8 @@ public final class Node implements INode, Serializable {
 
                 // the parent of this node is the app's root node...
                 if ((pn == null) && pinfo.isroot) {
-                    pn = nmgr.getNode("0", nmgr.getDbMapping("root"));
+                    pn = nmgr.getNode(nmgr.nmgr.app.getProperty("rootid", "0"), 
+                                      nmgr.getDbMapping("root"));
                 }
 
                 // if we found a parent node, check if we ought to use a virtual or groupby node as parent
@@ -889,19 +890,13 @@ public final class Node implements INode, Serializable {
                 }
             }
         } else {
+            // create subnode list if necessary
             if (subnodes == null) {
                 subnodes = new ExternalizableVector();
             }
-            synchronized (subnodes) {
-                // check if index is out of bounds when adding
-                if (where < 0 || where > subnodes.size()) {
-                    subnodes.add(nhandle);
-                } else {
-                    subnodes.add(where, nhandle);
-                }
-            }
 
-            // check if subnode accessname is set
+            // check if subnode accessname is set. If so, check if another node
+            // uses the same access name and remove it
             if ((dbmap != null) && (node.dbmap != null)) {
                 Relation prel = dbmap.getSubnodeRelation();
 
@@ -935,6 +930,16 @@ public final class Node implements INode, Serializable {
                 }
             }
 
+            // actually add the new child to the subnode list
+            synchronized (subnodes) {
+                // check if index is out of bounds when adding
+                if (where < 0 || where > subnodes.size()) {
+                    subnodes.add(nhandle);
+                } else {
+                    subnodes.add(where, nhandle);
+                }
+            }
+
             if (node != this && !"root".equalsIgnoreCase(node.getPrototype())) {
                 // avoid calling getParent() because it would return bogus results
                 // for the not-anymore transient node
@@ -952,6 +957,8 @@ public final class Node implements INode, Serializable {
         }
 
         lastmodified = System.currentTimeMillis();
+        // we want the element name to be recomputed on the child node
+        node.lastNameCheck = 0;
         registerSubnodeChange();
 
         return node;
