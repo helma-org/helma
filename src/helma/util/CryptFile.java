@@ -25,8 +25,10 @@ public class CryptFile {
 
 
     public boolean authenticate (String username, String pw) {
-	if (file.exists() && file.lastModified () > lastRead)
+	if (file.exists () && file.lastModified () > lastRead)
 	    readFile ();
+	else if (!file.exists () && users.size () > 0)
+	    users.clear ();
 	String realpw = users.getProperty (username);
 	if (realpw != null) {
 	    // check if password matches
