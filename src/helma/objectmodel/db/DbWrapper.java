@@ -51,7 +51,7 @@ public class DbWrapper {
 
 	    try {
 	        dbenv.set_error_stream(System.err);
-	        dbenv.set_errpfx("HOP: ");
+	        dbenv.set_errpfx("Sleepycat");
 	    } catch (Exception e) {
 	        System.err.println("Error in DbWrapper: "+e.toString());
 	    }
