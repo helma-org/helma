@@ -85,7 +85,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 	RequestTrans reqtrans = new RequestTrans (method);
 	reqtrans.path = getRequestPath (pathInfo);
 
-	try {						
+	try {
 
 	    if (cookies != null) {
 	        for (int i=0; i < cookies.length;i++) try {	// get Cookies
@@ -102,10 +102,10 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    if (reqtrans.session == null) {
 	        reqtrans.session = Long.toString (Math.round (Math.random ()*Long.MAX_VALUE), 16);
 	        reqtrans.session += "@"+Long.toString (System.currentTimeMillis (), 16);
-	        Cookie c = new Cookie("HopSession", reqtrans.session);	
+	        Cookie c = new Cookie("HopSession", reqtrans.session);
 	        c.setPath ("/");
 	        if (cookieDomain != null)
-	            c.setDomain (cookieDomain);			
+	            c.setDomain (cookieDomain);
 	        response.addCookie(c);
 	    }
 
@@ -136,7 +136,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 	            if (paramValues.length > 1)
 	                reqtrans.set (nextKey+"_array", paramValues);     // set string array
 	        }
-	    }			
+	    }
 
 	    String contentType = request.getContentType();
 	    if (contentType != null && contentType.indexOf("multipart/form-data")==0) {
@@ -168,7 +168,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 	        invalidateApp (appID);
 	        app = getApp (appID);
 	        app.ping ();
-                     restrans = app.execute (reqtrans);
+                restrans = app.execute (reqtrans);
 	    }
 	    writeResponse (response, restrans, cookies, protocol);
 
@@ -177,9 +177,9 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    try {
 	        response.setContentType ("text/html");
 	        Writer out = response.getWriter ();
-	        if (debug) 
+	        if (debug)
 	            out.write ("<b>Error:</b><br>" +x);
-	        else 
+	        else
 	            out.write ("This server is temporarily unavailable. Please check back later.");
 	        out.flush ();
 	    } catch (Exception io_e) {}
@@ -187,21 +187,21 @@ public abstract class AbstractServletClient extends HttpServlet {
     }
 
 
-    private void writeResponse (HttpServletResponse res, ResponseTrans trans, Cookie[] cookies, String protocol) {			
+    void writeResponse (HttpServletResponse res, ResponseTrans trans, Cookie[] cookies, String protocol) {
 
 	for (int i = 0; i < trans.countCookies(); i++) try {
-	    Cookie c = new Cookie(trans.getKeyAt(i), trans.getValueAt(i));	
+	    Cookie c = new Cookie(trans.getKeyAt(i), trans.getValueAt(i));
 	    c.setPath ("/");
 	    if (cookieDomain != null)
-	        c.setDomain (cookieDomain);			
+	        c.setDomain (cookieDomain);
 	    int expires = trans.getDaysAt(i);
 	    if (expires > 0)
-	        c.setMaxAge(expires * 60*60*24);   // Cookie time to live, days -> seconds	
-	    res.addCookie(c);				
+	        c.setMaxAge(expires * 60*60*24);   // Cookie time to live, days -> seconds
+	    res.addCookie(c);
 	} catch (Exception ign) {}
 
 	if (trans.getRedirect () != null) {
-	    try { 
+	    try {
 	        res.sendRedirect(trans.getRedirect ());
 	    } catch(Exception io_e) {}
 

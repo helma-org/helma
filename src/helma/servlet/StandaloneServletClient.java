@@ -15,35 +15,61 @@ import helma.util.*;
 /**
  * This is a standalone Hop servlet client, running a Hop application by itself.
  */
- 
-public class StandaloneServletClient extends AbstractServletClient {
-	
+
+public final class StandaloneServletClient extends AbstractServletClient {
+
     private Application app = null;
     private String appName;
     private String serverProps;
 
+    
     public void init (ServletConfig init) throws ServletException {
 	super.init (init);
 	appName = init.getInitParameter ("application");
 	serverProps = init.getInitParameter ("serverprops");
-
-	super.init (init);
     }
 
-    synchronized IRemoteApp getApp (String appID) throws Exception {
+    IRemoteApp getApp (String appID) {
+	if (app == null)
+	    createApp ();
+	return app;
+    }
+
+    /**
+     * Create the application. Since we are synchronized only here, we
+     * do another check if the app already exists and immediately return if it does.
+     */
+    synchronized void createApp () {
 	if (app != null)
-	    return app;
+	    return;
 	try {
 	    File propfile = new File (serverProps);
 	    File hopHome = new File (propfile.getParent());
 	    SystemProperties sysProps = new SystemProperties (propfile.getAbsolutePath());
 	    app = new Application (appName, hopHome, sysProps, null);
+	    app.init ();
 	    app.start ();
 	} catch (Exception x) {
 	    System.err.println ("Error starting Application "+appName+": "+x);
 	    x.printStackTrace ();
 	}
-	return app;
+    }
+
+
+    /**
+     * The servlet is being destroyed. Close and release the application if
+     * it does exist.
+     */
+    public void destroy () {
+	if (app != null) {
+	    try {
+	        app.stop ();
+	    } catch (Exception x) {
+	        System.err.println ("Error shutting down app "+app.getName()+": ");
+	        x.printStackTrace ();
+	    }
+	}
+	app = null;
     }
 
     void invalidateApp (String appID) {
@@ -57,7 +83,7 @@ public class StandaloneServletClient extends AbstractServletClient {
     String getRequestPath (String path) {
 	// get request path
 	if (path != null)
-	    return trim (path);	
+	    return trim (path);
 	else
 	    return "";
     }
@@ -85,23 +111,8 @@ public class StandaloneServletClient extends AbstractServletClient {
       }
 
 
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
