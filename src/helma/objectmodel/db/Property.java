@@ -24,7 +24,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
     protected long lvalue;
     protected double dvalue;
     protected String nvalueID;
-    private transient DbMapping dbm;
+    private transient NodeHandle nhandle;
     protected Object jvalue;
 
     protected int type;
@@ -65,9 +65,6 @@ public final class Property implements IProperty, Serializable, Cloneable {
     }
 
     private void writeObject (ObjectOutputStream out) throws IOException {
-	// don't even start if this is a non-serializable Java object
-	if (type == JAVAOBJECT && jvalue != null && !(jvalue instanceof Serializable))
-	    return;
 	out.writeUTF (propname);
 	out.writeObject (node);
 	out.writeInt (type);
@@ -89,7 +86,10 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	    out.writeUTF (nvalueID);
 	    break;
 	case JAVAOBJECT:
-	    out.writeObject (jvalue);
+	    if (jvalue != null && !(jvalue instanceof Serializable))
+	        out.writeObject (null);
+	    else
+	        out.writeObject (jvalue);
 	    break;
 	}
     }
@@ -194,8 +194,10 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	    unregisterNode ();
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
+	
 	registerNode (value);	
 	type = NODE;
+	
 	if (node.dbmap != null) {
 	    Relation rel = node.dbmap.getPropertyRelation (propname);
 	    if (rel != null && rel.other != null) {
@@ -209,19 +211,21 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	        if (!rel.virtual && rel.direction == Relation.FORWARD) {
 	            if (rel.usesPrimaryKey ()) {
 	                this.nvalueID = value.getID ();
+	                nhandle = new NodeHandle (value);
 	            } else try {
 	                this.nvalueID = value.getString (vmap.columnNameToProperty (rel.getRemoteField()).propname, false);
+	                nhandle = null;
 	            } catch (Exception x) {
 	                throw new RuntimeException ("Can't set "+propname+" to "+value+": error retrieving target property");
 	            }
-	            this.dbm = null;
 	            dirty = true;
 	            return;
 	        }
 	    }
 	}
+	
+	nhandle = new NodeHandle (value);
 	this.nvalueID = value == null ? null : value.getID ();
-	this.dbm = value == null ? null : value.getDbMapping ();
 	dirty = true;
     }
 
@@ -238,33 +242,38 @@ public final class Property implements IProperty, Serializable, Cloneable {
      * If this was the "main" property for the node, also remove all other references.
      */
     protected void unregisterNode () {
-	if (nvalueID != null) {
-	    DbMapping nvmap = null;
-	    Relation nvrel = null;
-	    if (node.dbmap != null) {
-	        nvmap = node.dbmap.getPropertyMapping (propname);
-	        nvrel = node.dbmap.getPropertyRelation (propname);
-	    }
-	    Node nvalue = node.nmgr.getNode (nvalueID, nvmap);
-	    if (nvalue == null)
-	        return;
-	    nvalue.checkWriteLock ();
-	    // check if the property node is also a subnode
-	    // BUG: this doesn't work because properties for subnode/properties are never stored and therefore
-	    // never reused.
-	    if (nvrel != null && nvrel.subnodesAreProperties) {
-	        node.removeNode (nvalue);
-	    }
-	    // only need to call unregisterPropLink if the value node is not stored in a relational db
-	    // also, getParent is heuristical/implicit for relational nodes, so we don't do deepRemoveNode
-	    // based on that for relational nodes.
-	    if (nvmap == null || !nvmap.isRelational()) {
-	        if (!nvalue.isAnonymous() && propname.equals (nvalue.getName()) && this.node == nvalue.getParent()) {
-	            // this is the "main" property of a named node, so handle this as a cascading delete.
-	            nvalue.deepRemoveNode ();
-	        } else {
-	            nvalue.unregisterPropLink (this.node);
-	        }
+	Node nvalue = null;
+	if (nhandle != null)
+	    nvalue = nhandle.getNode ();
+	
+	DbMapping nvmap = null;
+	Relation nvrel = null;
+	if (node.dbmap != null) {
+	    nvmap = node.dbmap.getPropertyMapping (propname);
+	    nvrel = node.dbmap.getPropertyRelation (propname);
+	}
+	if (nvalue == null)
+	    nvalue = node.nmgr.getNode (nvalueID, nvmap);
+	
+	if (nvalue == null)
+	    return;
+	
+	nvalue.checkWriteLock ();
+	// check if the property node is also a subnode
+	// BUG: this doesn't work because properties for subnode/properties are never stored and therefore
+	// never reused.
+	if (nvrel != null && nvrel.subnodesAreProperties) {
+	    node.removeNode (nvalue);
+	}
+	// only need to call unregisterPropLink if the value node is not stored in a relational db
+	// also, getParent is heuristical/implicit for relational nodes, so we don't do deepRemoveNode
+	// based on that for relational nodes.
+	if (nvmap == null || !nvmap.isRelational()) {
+	    if (!nvalue.isAnonymous() && propname.equals (nvalue.getName()) && this.node == nvalue.getParent()) {
+	        // this is the "main" property of a named node, so handle this as a cascading delete.
+	        nvalue.deepRemoveNode ();
+	    } else {
+	        nvalue.unregisterPropLink (this.node);
 	    }
 	}
     }
@@ -331,7 +340,13 @@ public final class Property implements IProperty, Serializable, Cloneable {
     }
 
     public INode getNodeValue () {
-
+	
+	if (nhandle != null) {
+	    Node n = nhandle.getNode ();
+	    if (n != null) return n;
+	}
+	DbMapping dbm = null;
+	//// PROVISIONAL
 	if (type == NODE && nvalueID != null) {
 	    Relation rel = null;
 	    if (dbm == null && node.dbmap != null) {
