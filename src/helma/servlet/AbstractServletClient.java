@@ -45,7 +45,7 @@ public abstract class AbstractServletClient extends HttpServlet {
     String hopUrl;
 
     // limit to HTTP uploads in kB
-    int uploadLimit = 1024;
+    int uploadLimit = 4096;
 
     // cookie domain to use
     String cookieDomain;
