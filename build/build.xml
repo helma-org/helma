@@ -229,6 +229,7 @@
         <echo file="${build.work}/apps.properties" append="false">
 # list of applications to be started by helma
 base
+base.mountpoint = /
 bloggerapi
 himp
 hopblog
