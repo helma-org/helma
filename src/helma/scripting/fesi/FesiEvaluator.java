@@ -62,9 +62,6 @@ public final class FesiEvaluator implements ScriptingEngine {
     // the global vars set by extensions
     HashMap extensionGlobals;
     
-    // flag tells us if the current request has timed out
-    // and exceptions should thus be rethrown as TimeoutExceptions.
-    private volatile boolean timeout;
 
     /**
      *  Create a FESI evaluator for the given application and request evaluator.
@@ -300,8 +297,6 @@ public final class FesiEvaluator implements ScriptingEngine {
     public void enterContext (HashMap globals) throws ScriptingException {
 	// set the thread filed in the FESI evaluator
 	evaluator.thread = Thread.currentThread ();
-	// unset timeot flag
-	timeout = false;
 	// set globals on the global object
 	globals.putAll(extensionGlobals);
 	if (globals != null && globals != lastGlobals) {
@@ -405,7 +400,7 @@ public final class FesiEvaluator implements ScriptingEngine {
 	    if (reval.res.getNotModified())
 	        throw new RedirectException (null);
 	    // has the request timed out? If so, throw TimeoutException
-	    if (timeout)
+	    if (evaluator.thread != Thread.currentThread())
 	        throw new TimeoutException ();
 	    // create and throw a ScriptingException with the right message
 	    String msg = x.getMessage ();
@@ -425,9 +420,6 @@ public final class FesiEvaluator implements ScriptingEngine {
      * object to null.
      */
     public void abort () {
-	// set the timeout flag so we exceptions are
-	// rethrown as timeout exceptions
-	timeout = true;
 	// unset the thread filed in the FESI evaluator
 	evaluator.thread = null;
     }
