@@ -118,6 +118,7 @@ public class RequestEvaluator implements Runnable {
 	                globals.put ("res", res);
 	                globals.put ("path", requestPath);
 	                globals.put ("app", app);
+	                req.startTime = System.currentTimeMillis ();
 	                if (error != null)
 	                    res.error = error;
 	                if (session.message != null) {
