@@ -24,9 +24,13 @@ public class DbWrapper {
     volatile long txncount=0;
 
     private File dbBaseDir;
+    private String dbHome;
 
     public DbWrapper (String dbHome, String dbFilename, boolean useTx) throws DbException {
+
 	try {
+
+	    this.dbHome = dbHome;
 	    dbBaseDir = new File (dbHome);
 	    if (!dbBaseDir.exists())
 	        dbBaseDir.mkdirs();
@@ -82,7 +86,10 @@ public class DbWrapper {
     public void shutdown () throws DbException {
 	if (loaded) {
 	    db.close (0);
-	    dbenv.close (0);
+	    // closing the dbenv leads to segfault when app is restarted
+	    // dbenv.close (0);
+	    // dbenv.remove (dbHome, Db.DB_FORCE);
+	    Server.getLogger ().log ("Closed Berkeley DB");
 	}
     }
 
