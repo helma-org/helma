@@ -86,11 +86,9 @@ public class Relation {
 	this.ownType = ownType;
 	this.propName = propName;
 	otherType = null;
-	
-	update (desc, props);
     }
 
-    public void update (String desc, Properties props) {
+    public void update (String desc, Properties props, int version) {
 	
 	boolean mountpoint = false;
 	Vector cnst = null;
