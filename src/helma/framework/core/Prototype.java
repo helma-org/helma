@@ -122,7 +122,6 @@ public final class Prototype {
             repositories.add(repository);
             props.addResource(repository.getResource("type.properties"));
         }
-        return;
     }
 
     /**
