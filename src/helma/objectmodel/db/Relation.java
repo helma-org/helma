@@ -963,6 +963,13 @@ public final class Relation {
 
     /**
      * Check if the child node fullfills the constraints defined by this relation.
+     * FIXME: This always returns false if the relation has a filter value set,
+     * since we can't determine if the filter constraints are met without
+     * querying the database.
+     *
+     * @param parent the parent object - may be a virtual or group node
+     * @param child the child object
+     * @return true if all constraints are met
      */
     public boolean checkConstraints(Node parent, Node child) {
         // problem: if a filter property is defined for this relation,
@@ -971,16 +978,18 @@ public final class Relation {
         // is defined, we return false as soon as the modified-time is greater
         // than the create-time of the child, i.e. if the child node has been
         // modified since it was first fetched from the db.
-        if ((filter != null) && (child.lastModified() > child.created())) {
+        if (filter != null && child.lastModified() > child.created()) {
             return false;
         }
+
+        INode nonvirtual = parent.getNonVirtualParent();
 
         for (int i = 0; i < constraints.length; i++) {
             String propname = constraints[i].foreignProperty();
 
             if (propname != null) {
                 INode home = constraints[i].isGroupby ? parent
-                                                      : parent.getNonVirtualParent();
+                                                      : nonvirtual;
                 String value = null;
 
                 if (constraints[i].localKeyIsPrimary(home.getDbMapping())) {
