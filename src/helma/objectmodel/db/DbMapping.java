@@ -1113,7 +1113,13 @@ public final class DbMapping implements Updatable {
      * @return true if the dbsource is using an oracle JDBC driver
      */
     public boolean isOracle() {
-        return dbSource != null && dbSource.isOracle();
+        if (dbSource != null) {
+            return dbSource.isOracle();
+        }
+        if (parentMapping != null) {
+            return parentMapping.isOracle();
+        }
+        return false;
     }
 
     /**
