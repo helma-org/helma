@@ -1,16 +1,15 @@
 // DbKey.java
 // Copyright (c) Hannes Wallnöfer 1998-2000
- 
+
 package helma.objectmodel.db;
 
 import java.io.Serializable;
 
 
 /**
- * This is the internal representation of a database key. It is constructed 
- * out of the database URL, the table name, the user name and the database 
- * key of the node and unique within each Helma application. Currently only
- * single keys are supported.
+ *  This is the internal representation of a database key. It is constructed
+ *  from the logical table (type) name and the object's primary key
+ *  within the table. Currently only single keys are supported.
  */
 public final class DbKey implements Key, Serializable {
 
@@ -72,58 +71,5 @@ public final class DbKey implements Key, Serializable {
 
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
