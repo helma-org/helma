@@ -360,6 +360,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
     }
 
     public INode getNodeValue () {
+
 	if (type == NODE && nvalueID != null) {
 	    Relation rel = null;
 	    if (dbm == null && node.dbmap != null) {
@@ -373,16 +374,19 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	            else if (!rel.virtual && rel.direction == Relation.FORWARD)
 	                return node.nmgr.getNode (node, nvalueID, rel);
 	            // avoid setting dbm for virtual relation
-	            else if (!rel.virtual /* || node.getState() == INode.VIRTUAL*/ && rel.groupby == null)
+	            else if ((!rel.virtual || rel.prototype != null) && rel.groupby == null)
 	                dbm = rel.other;
 	        }
 	    }
+
+	    // we have what we need, now get the node from the node manager
 	    Node retval = node.nmgr.getNode (nvalueID, dbm);
 	    if (retval != null && retval.parentID == null) {
 	        retval.setParent (node);
 	        retval.setName (propname);
 	        retval.anonymous = false;
 	    }
+
 	    if (retval != null && retval.getDbMapping () == null && rel != null && rel.virtual && rel.prototype == null) {
 	        // a virtual node whose child nodes are not relational -
 	        // set up dbmapping that describes subnodes and properties
@@ -393,6 +397,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	        _dbm.setPropertyRelation (rel.getVirtualPropertyRelation());
 	        retval.setDbMapping (_dbm);
 	    }
+
 	    return retval;
 	}
 	return null;
