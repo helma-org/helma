@@ -367,6 +367,16 @@ public final class RequestEvaluator implements Runnable {
 	        // Just a human readable descriptor of this invocation
 	        String funcdesc = app.getName()+":internal/"+method;
 
+	        // if thisObject is an instance of NodeHandle, get the node object itself.
+	        if (thisObject != null && thisObject instanceof NodeHandle) {
+	            thisObject = ((NodeHandle) thisObject).getNode (app.nmgr.safe);
+	            // see if a valid node was returned 
+	            if (thisObject == null) {
+	                reqtype = NONE;
+	                break;
+	            }
+	        }
+
 	        // avoid going into transaction if called function doesn't exist
 	        boolean functionexists = true;
 	        functionexists = scriptingEngine.hasFunction (thisObject, method);

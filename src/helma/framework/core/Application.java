@@ -27,7 +27,9 @@ import java.rmi.server.*;
  * requests from the Web server or XML-RPC port and dispatches them to
  * the evaluators.
  */
-public final class Application extends UnicastRemoteObject implements IRemoteApp, IPathElement, IReplicatedApp, Runnable {
+public final class Application 
+		extends UnicastRemoteObject
+		implements IRemoteApp, IPathElement, IReplicatedApp, Runnable {
 
     private String name;
     SystemProperties props, dbProps;
@@ -1091,10 +1093,10 @@ public final class Application extends UnicastRemoteObject implements IRemoteApp
 	        for (Enumeration e = cloned.elements (); e.hasMoreElements (); ) {
 	            Session session = (Session) e.nextElement ();
 	            if (now - session.lastTouched () > sessionTimeout * 60000) {
-	                INode usernode = session.getUserNode ();
-	                if (usernode != null) {
+	                NodeHandle userhandle = session.userHandle;
+	                if (userhandle != null) {
 	                    try {
-	                        eval.invokeFunction (usernode, "onLogout", new Object[0]);
+	                        eval.invokeFunction (userhandle, "onLogout", new Object[0]);
 	                    } catch (Exception ignore) {}
 	                }
 	                destroySession(session);
