@@ -101,10 +101,11 @@ public class AcmeServletClient extends HttpServlet {
 	        // Params parsen
 	        String nextKey = (String)e.nextElement();
 	        String[] paramValues = request.getParameterValues(nextKey);
-	        if (paramValues != null && paramValues.length == 1)
+	        if (paramValues != null) {
 	            reqtrans.set (nextKey, paramValues[0]);    // set to single string value
-	        else if (paramValues != null)
-	            reqtrans.set (nextKey, paramValues);     // set to string array
+	            if (paramValues.length > 1)
+	                reqtrans.set (nextKey+"_array", paramValues);     // set string array
+	        }
 	    }			
 
 	    String contentType = request.getContentType();
