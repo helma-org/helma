@@ -154,12 +154,13 @@ public class AcmeServletClient extends HttpServlet {
 	    res.addCookie(c);				
 	} catch (Exception ign) {}
 
-	if (trans.redirect != null) {
+	if (trans.getRedirect () != null) {
 	    try { 
-	        res.sendRedirect(trans.redirect); 
+	        res.sendRedirect(trans.getRedirect ());
 	    } catch(Exception io_e) {}
 
 	} else {
+
                  if (!trans.cache || ! caching) {
 	        // Disable caching of response.
 	        if (protocol == null || !protocol.endsWith ("1.1"))
@@ -167,7 +168,8 @@ public class AcmeServletClient extends HttpServlet {
 	        else
 	            res.setHeader ("Cache-Control", "no-cache"); // for HTTP 1.1
 	    }
-	    res.setStatus( HttpServletResponse.SC_OK );
+	    if (trans.status > 0)
+	        res.setStatus (trans.status);
 	    res.setContentLength (trans.getContentLength ());			
 	    res.setContentType (trans.contentType);
 	    try {
