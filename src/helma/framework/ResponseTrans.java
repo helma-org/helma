@@ -54,7 +54,8 @@ public final class ResponseTrans implements Externalizable {
     private long lastModified = -1;
     // flag to signal that resource has not been modified
     private boolean notModified = false;
-
+    // Entity Tag for this response, used for conditional GETs
+    private String etag = null;
 
     // cookies
     String cookieKeys[];
@@ -85,20 +86,26 @@ public final class ResponseTrans implements Externalizable {
     
     static final int INITIAL_BUFFER_SIZE = 2048;
 
-    /**
-     *  JavaScript object to make the values Map accessible to
-     *  script code as res.data
-     */
-    public transient Object data;
-
     // the map of form and cookie data
     private transient Map values;
+
+    // the map of macro handlers
+    private transient Map handlers;
+    
+    // the request trans for this response
+    private transient RequestTrans reqtrans;
 
 
     public ResponseTrans () {
 	super ();
 	title = head = body = message = error = null;
 	values = new HashMap ();
+	handlers = new HashMap ();
+    }
+
+    public ResponseTrans (RequestTrans req) {
+	this();
+	reqtrans = req;
     }
 
 
@@ -320,6 +327,15 @@ public final class ResponseTrans implements Externalizable {
 	            error = true;
 	            response = buffer.toString ().getBytes ();
 	        }
+	        // if etag is not set, calc MD5 digest and check it
+	        if (etag == null && !notModified && redir == null) try {
+	            String digest = MD5Encoder.encode (response);
+	            etag = "\""+digest+"\"";
+	            if (reqtrans != null && reqtrans.hasETag (etag)) {
+	                response = new byte[0];
+	                notModified = true;
+	            }
+	        } catch (Exception ignore) {}
 	        buffer = null; // make sure this is done only once, even with more requsts attached
 	    } else {
 	        response = new byte[0];
@@ -359,17 +375,35 @@ public final class ResponseTrans implements Externalizable {
     }
 
     public void setLastModified (long modified) {
+	if (modified > -1 && reqtrans != null &&
+	    reqtrans.getIfModifiedSince() >= modified)
+	{
+	    notModified = true;
+	    throw new RedirectException (null);
+	}
 	lastModified = modified;
     }
-    
+
     public long getLastModified () {
 	return lastModified;
     }
-    
-    public void setNotModified (boolean notmod) throws RedirectException {
+
+    /* public void setNotModified (boolean notmod) throws RedirectException {
 	notModified = notmod;
 	if (notmod)
 	    throw new RedirectException (null);
+    } */
+
+    public void setETag (String value) {
+	etag = value == null ? null : "\""+value+"\"";
+	if (etag != null && reqtrans != null && reqtrans.hasETag (etag)) {
+	    notModified = true;
+	    throw new RedirectException (null);
+	}
+    }
+    
+    public String getETag () {
+	return etag;
     }
     
     public boolean getNotModified () {
@@ -460,6 +494,7 @@ public final class ResponseTrans implements Externalizable {
 	lastModified = s.readLong ();
 	notModified = s.readBoolean ();
 	charset = (String) s.readObject ();
+	etag = (String) s.readObject ();
     }
 
     public void writeExternal (ObjectOutput s) throws IOException {
@@ -476,6 +511,7 @@ public final class ResponseTrans implements Externalizable {
 	s.writeLong (lastModified);
 	s.writeBoolean (notModified);
 	s.writeObject (charset);
+	s.writeObject (etag);
     }
 
 }

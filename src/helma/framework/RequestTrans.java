@@ -26,10 +26,9 @@ public class RequestTrans implements Externalizable {
 
     // timestamp of client-cached version, if present in request
     private long ifModifiedSince = -1;
-    
+    // set of ETags the client sent with If-None-Match header
+    private Set etags;
 
-    // this is used to hold the EcmaScript form data object
-    public transient Object data;
     // when was execution started on this request?
     public transient long startTime;
 
@@ -130,6 +129,7 @@ public class RequestTrans implements Externalizable {
 	values = (Map) s.readObject ();
 	httpMethod = s.readByte ();
 	ifModifiedSince = s.readLong ();
+	etags = (Set) s.readObject ();
     }
 
     /**
@@ -141,50 +141,78 @@ public class RequestTrans implements Externalizable {
 	s.writeObject (values);
 	s.writeByte (httpMethod);
 	s.writeLong (ifModifiedSince);
+	s.writeObject (etags);
     }
 
     public void setIfModifiedSince (long since) {
 	ifModifiedSince = since;
     }
-    
+
     public long getIfModifiedSince () {
 	return ifModifiedSince;
     }
 
-	public String getUsername()	{
-		if ( httpUsername!=null )
-			return httpUsername;
-		String auth = (String)get("authorization");
-		if ( auth==null || "".equals(auth) )	{
-			return null;
-		}
-		decodeHttpAuth(auth);
-		return httpUsername;
+    public void setETags (String etagHeader) {
+	etags = new HashSet();
+	if (etagHeader.indexOf (",") > -1) {
+	StringTokenizer st = new StringTokenizer (etagHeader, ", \r\n");
+	while (st.hasMoreTokens())
+	    etags.add (st.nextToken ());
+	} else {
+	    etags.add (etagHeader);
 	}
+    }
 
-	public String getPassword()	{
-		if ( httpPassword!=null )
-			return httpPassword;
-		String auth = (String)get("authorization");
-		if ( auth==null || "".equals(auth) )	{
-			return null;
-		}
-		decodeHttpAuth(auth);
-		return httpPassword;
-	}
+    public Set getETags () {
+	return etags;
+    }
 
-	private void decodeHttpAuth(String auth)	{
-		if ( auth==null )
-			return;
-		StringTokenizer tok;
-		if( auth.startsWith("Basic ") )
-			tok = new StringTokenizer ( new String( Base64.decode((auth.substring(6)).toCharArray()) ), ":" );
-		else
-			tok = new StringTokenizer ( new String( Base64.decode(auth.toCharArray()) ), ":" );
-		try	{	httpUsername = tok.nextToken();	}
-		catch ( NoSuchElementException e )	{	httpUsername = null;	}
-		try	{	httpPassword = tok.nextToken();	}
-		catch ( NoSuchElementException e )	{	httpPassword = null;	}
+    public boolean hasETag (String etag) {
+	if (etags == null || etag == null)
+	    return false;
+	return etags.contains (etag);
+    }
+
+    public String getUsername() {
+	if ( httpUsername!=null )
+	    return httpUsername;
+	String auth = (String)get("authorization");
+	if ( auth==null || "".equals(auth) ) {
+	    return null;
 	}
+	decodeHttpAuth(auth);
+	return httpUsername;
+    }
+
+    public String getPassword()	{
+	if ( httpPassword!=null )
+	    return httpPassword;
+	String auth = (String)get("authorization");
+	if ( auth==null || "".equals(auth) ) {
+	    return null;
+	}
+	decodeHttpAuth(auth);
+	return httpPassword;
+    }
+
+    private void decodeHttpAuth(String auth)	{
+	if ( auth==null )
+	    return;
+	StringTokenizer tok;
+	if( auth.startsWith("Basic ") )
+	    tok = new StringTokenizer ( new String( Base64.decode((auth.substring(6)).toCharArray()) ), ":" );
+	else
+	    tok = new StringTokenizer ( new String( Base64.decode(auth.toCharArray()) ), ":" );
+	try {
+	    httpUsername = tok.nextToken();
+	} catch ( NoSuchElementException e ) {
+	    httpUsername = null;
+	}
+	try {
+	    httpPassword = tok.nextToken();
+	} catch ( NoSuchElementException e ) {
+	    httpPassword = null;
+	}
+    }
 
 }

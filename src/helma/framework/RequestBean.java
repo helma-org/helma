@@ -56,7 +56,7 @@ public class RequestBean implements Serializable {
 	return req.getUsername ();
 	}
 
-	public Date getLastModified () {
+	/* public Date getLastModified () {
 	long since = req.getIfModifiedSince ();
 	if (since < 0)
 	    return null;
@@ -67,7 +67,7 @@ public class RequestBean implements Serializable {
 	public void setLastModified () {
 	throw new RuntimeException ("The lastModified property of the Request object is read-only. "+
 		"Set lastModified on the Response object if you want to mark the last modification date of a resource.");
-	}
+	} */
 }
 
 

@@ -97,13 +97,6 @@ public class ResponseBean implements Serializable {
 	res.contentType = contentType;
     }
 
-    public void setLastModified (Date date) {
-	if (date == null)
-	    res.setLastModified (-1);
-	else
-	    res.setLastModified (date.getTime());
-    }
-
     public Map getdata () {
 	return res.getResponseData ();
     }
@@ -143,18 +136,33 @@ public class ResponseBean implements Serializable {
     public void setstatus (int status) {
 	res.status = status;
     }
-    
+
     public Date getLastModified () {
 	long modified = res.getLastModified ();
 	if (modified > -1)
 	    return new Date (modified);
-	else 
+	else
 	    return null;
     }
-    
-    public void notModified () throws RedirectException {
-	res.setNotModified (true);
+
+    public void setLastModified (Date date) {
+	if (date == null)
+	    res.setLastModified (-1);
+	else
+	    res.setLastModified (date.getTime());
     }
+
+    public String getETag () {
+	return res.getETag ();
+    }
+    
+    public void setETag (String etag) {
+	res.setETag (etag);
+    }
+
+    /* public void notModified () throws RedirectException {
+	res.setNotModified (true);
+    } */
 
 }
 
