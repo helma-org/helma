@@ -763,22 +763,24 @@ public class Node implements INode, Serializable {
 	return retval;
     }
 
-    public Node getGroupbySubnode (String sid, Relation rel) {
+    public Node getGroupbySubnode (String sid) {
 	loadNodes ();
-	if (subnodes.contains (sid)) {
+	if (subnodes.contains (sid)) try {
 	    Node node = new Node (this, sid, nmgr, null);
+	    Relation srel = dbmap.getSubnodeRelation ();
+	    Relation prel = dbmap.getPropertyRelation ();
 	    DbMapping dbm = new DbMapping ();
-	    dbm.setSubnodeMapping (rel.other);
-	    dbm.setSubnodeRelation (rel.getGroupbySubnodeRelation());
-	    dbm.setPropertyMapping (rel.other);
-	    dbm.setPropertyRelation (rel.getGroupbyPropertyRelation());
+	    dbm.setSubnodeMapping (srel.other);
+	    dbm.setSubnodeRelation (srel.getGroupbySubnodeRelation());
+	    dbm.setPropertyMapping (prel.other);
+	    dbm.setPropertyRelation (prel.getGroupbyPropertyRelation());
 	    node.setDbMapping (dbm);
-	    String snrel = "WHERE "+rel.groupby +"='"+sid+"'";
+	    String snrel = "WHERE "+srel.groupby +"='"+sid+"'";
 	    if (dbm.getSubnodeRelation().direction == Relation.BACKWARD)
 	        snrel += " AND "+dbm.getSubnodeRelation().remoteField+"='"+getNonVirtualHomeID()+"'";
 	    node.setSubnodeRelation (snrel);
 	    return node;
-	}
+	} catch (Exception noluck) {}
 	return null;
     }
 
