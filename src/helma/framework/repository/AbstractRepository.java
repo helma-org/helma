@@ -55,10 +55,14 @@ public abstract class AbstractRepository implements Repository {
     String shortName;
 
     /**
-     *
+     * Called to check the repository's content.
      */
     public abstract void update();
 
+    /**
+     * Called to create a child resource for this repository
+     */
+    protected abstract Resource createResource(String name);
 
     /**
      *
@@ -83,7 +87,13 @@ public abstract class AbstractRepository implements Repository {
     public Resource getResource(String name) {
         update();
 
-        return (Resource) resources.get(name);
+        Resource res = (Resource) resources.get(name);
+        // if resource does not exist, create it
+        if (res == null) {
+            res = createResource(name);
+            resources.put(name, res);
+        }
+        return res;
     }
 
     public Iterator getResources() {

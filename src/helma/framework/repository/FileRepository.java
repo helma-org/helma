@@ -165,6 +165,13 @@ public class FileRepository extends AbstractRepository {
         }
     }
 
+    /**
+     * Called to create a child resource for this repository
+     */
+    protected Resource createResource(String name) {
+        return new FileResource(new File(dir, name), this);
+    }
+
     public int hashCode() {
         return 17 + (37 * dir.hashCode());
     }
