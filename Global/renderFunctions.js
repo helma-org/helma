@@ -15,7 +15,7 @@ function renderLink (docEl, param) {
 			text += str.substring (0, str.length-6);
 		}			
 	} else if (docEl.getType () == docEl.FUNCTION) {
-		var text = docEl.getName () + "&nbsp;(";
+		var text = docEl.getName () + "(";
 		var arr = docEl.listParameters ();
 		for (var i=0; i<arr.length ;i++) {
 			text += arr[i];
