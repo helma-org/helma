@@ -17,12 +17,11 @@
 package helma.framework.core;
 
 import helma.objectmodel.db.DbMapping;
-import helma.scripting.*;
 import helma.util.SystemMap;
 import helma.util.SourceProperties;
-import helma.framework.repository.ZipResource;
 import helma.framework.repository.Resource;
 import helma.framework.repository.Repository;
+import helma.framework.repository.ResourceTracker;
 
 import java.io.*;
 import java.util.*;
@@ -34,30 +33,33 @@ import java.util.*;
  * relational database table.
  */
 public final class Prototype {
+    Application app;
+
     String name;
     String lowerCaseName;
-    Application app;
-    ArrayList resources;
+
+    Resource[] resources;
     long lastResourceListing;
-    long checksum;
-    HashMap code;
-    HashMap zippedCode;
-    HashMap skins;
-    HashMap zippedSkins;
-    HashMap updatables;
+
+    // lastCheck is the time the prototype's files were last checked
+    long lastChecksum;
+    long newChecksum;
+    // lastUpdate is the time at which any of the prototype's files were found updated the last time
+    long lastCodeUpdate;
+
+    TreeSet code;
+    TreeSet skins;
+
+    HashMap trackers;
+
     HashSet repositories;
 
     // a map of this prototype's skins as raw strings
     // used for exposing skins to application (script) code (via app.skinfiles).
-    SkinMap skinMap;
+    HashMap skinMap;
+
     DbMapping dbmap;
 
-    // lastCheck is the time the prototype's files were last checked
-    private long lastChecksum;
-
-    // lastUpdate is the time at which any of the prototype's files were
-    // found updated the last time
-    private long lastUpdate;
     private Prototype parent;
 
     // Tells us whether this prototype is used to script a generic Java object,
@@ -93,16 +95,15 @@ public final class Prototype {
         // dbmappings are checked separately in TypeManager.checkFiles() for
         // each request
 
-        code = new HashMap();
-        zippedCode = new HashMap();
-        skins = new HashMap();
-        zippedSkins = new HashMap();
-        updatables = new HashMap();
+        code = new TreeSet(app.getResourceComparator());
+        skins = new TreeSet(app.getResourceComparator());
 
-        skinMap = new SkinMap();
+        trackers = new HashMap();
+
+        skinMap = new HashMap();
 
         isJavaPrototype = app.isJavaPrototype(name);
-        lastUpdate = lastChecksum = 0;
+        lastCodeUpdate = lastChecksum = 0;
     }
 
     /**
@@ -129,21 +130,24 @@ public final class Prototype {
      */
     public Resource[] getResources() {
         long resourceListing = getChecksum();
+
         if (resources == null || resourceListing != lastResourceListing) {
             lastResourceListing = resourceListing;
-            resources = new ArrayList();
+            ArrayList list = new ArrayList();
             Iterator iterator = repositories.iterator();
 
             while (iterator.hasNext()) {
-                resources.addAll(Arrays.asList(((Repository) iterator.next()).getAllResources()));
+                try {
+                    list.addAll(((Repository) iterator.next()).getAllResources());
+                } catch (IOException iox) {
+                    iox.printStackTrace();
+                }
             }
 
-            if (resources == null) {
-                return new Resource[0];
-            }
+            resources = (Resource[]) list.toArray(new Resource[list.size()]);
         }
 
-        return (Resource[]) resources.toArray(new Resource[resources.size()]);
+        return resources;
     }
 
     /**
@@ -154,9 +158,14 @@ public final class Prototype {
         Iterator iterator = repositories.iterator();
 
         while (iterator.hasNext()) {
-            checksum += ((Repository) iterator.next()).getChecksum();
+            try {
+                checksum += ((Repository) iterator.next()).getChecksum();
+            } catch (IOException iox) {
+                iox.printStackTrace();
+            }
         }
 
+        newChecksum = checksum;
         return checksum;
     }
 
@@ -166,7 +175,8 @@ public final class Prototype {
      * @return ...
      */
     public boolean isUpToDate() {
-        return (checksum == 0 && lastChecksum == 0) ? false : checksum == lastChecksum;
+        return (newChecksum == 0 && lastChecksum == 0) ?
+                false : newChecksum == lastChecksum;
     }
 
     /**
@@ -175,7 +185,7 @@ public final class Prototype {
      */
     public void setParentPrototype(Prototype parent) {
         // this is not allowed for the hopobject and global prototypes
-        if ("HopObject".equals(name) || "global".equals(name)) {
+        if ("hopobject".equals(lowerCaseName) || "global".equals(lowerCaseName)) {
             return;
         }
 
@@ -194,11 +204,11 @@ public final class Prototype {
      * Check if the given prototype is within this prototype's parent chain.
      */
     public final boolean isInstanceOf(String pname) {
-        if (name.equals(pname) || lowerCaseName.equals(pname)) {
+        if (name.equalsIgnoreCase(pname)) {
             return true;
         }
 
-        if ((parent != null) && !"HopObject".equals(parent.getName())) {
+        if (parent != null) {
             return parent.isInstanceOf(pname);
         }
 
@@ -254,14 +264,8 @@ public final class Prototype {
      *  residing in the prototype directory, not for skin files in
      *  other locations or database stored skins.
      */
-    public SkinResource getSkinResource(String sname) {
-        SkinResource sr = (SkinResource) skins.get(sname);
-
-        if (sr == null) {
-            sr = (SkinResource) zippedSkins.get(sname);
-        }
-
-        return sr;
+    public Resource getSkinResource(String sname) {
+        return (Resource) skinMap.get(sname);
     }
 
     /**
@@ -269,11 +273,11 @@ public final class Prototype {
      *  residing in the prototype directory, not for skins files in
      *  other locations or database stored skins.
      */
-    public Skin getSkin(String sname) {
-        SkinResource sr = getSkinResource(sname);
+    public Skin getSkin(String sname) throws IOException {
+        Resource res = getSkinResource(sname);
 
-        if (sr != null) {
-            return sr.getSkin();
+        if (res != null) {
+            return Skin.getSkin(res, app);
         } else {
             return null;
         }
@@ -300,8 +304,8 @@ public final class Prototype {
     /**
      *  Get the last time any script has been re-read for this prototype.
      */
-    public long getLastUpdate() {
-        return lastUpdate;
+    public long lastCodeUpdate() {
+        return lastCodeUpdate;
     }
 
     /**
@@ -310,7 +314,7 @@ public final class Prototype {
      *  the evaluators.
      */
     public void markUpdated() {
-        lastUpdate = System.currentTimeMillis();
+        lastCodeUpdate = System.currentTimeMillis();
     }
 
     /**
@@ -319,7 +323,7 @@ public final class Prototype {
      */
     public void markChecked() {
         // lastCheck = System.currentTimeMillis ();
-        lastChecksum = checksum;
+        lastChecksum = newChecksum;
     }
 
     /**
@@ -327,86 +331,30 @@ public final class Prototype {
      *  to not return a map in a transient state where it is just being
      *  updated by the type manager.
      */
-    public synchronized Map getCode() {
-        return (Map) code.clone();
+    public synchronized Iterator getCodeResources() {
+        return code.iterator();
     }
 
     /**
-     *  Return a clone of this prototype's functions container. Synchronized
-     *  to not return a map in a transient state where it is just being
-     *  updated by the type manager.
+     * Add a code resource to this prototype
+     *
+     * @param res a code resource
      */
-    public synchronized Map getZippedCode() {
-        return (Map) zippedCode.clone();
+    public synchronized void addCodeResource(Resource res) {
+        code.add(res);
+        trackers.put(res.getName(), new ResourceTracker(res));
     }
 
-    public synchronized void addActionResource(ActionResource action) {
-        if (action.getResource() instanceof ZipResource && action.getResource().getRepository().getRootRepository().getClass().getName() != "helma.framework.repository.ZipRepository") {
-            zippedCode.put(action.getResourceName(), action);
-        } else {
-            code.put(action.getResourceName(), action);
-        }
-        updatables.put(action.getName(), action);
-        return;
-    }
 
-    public synchronized void addFunctionResource(FunctionResource function) {
-        if (function.getResource() instanceof ZipResource && function.getResource().getRepository().getRootRepository().getClass().getName() != "helma.framework.repository.ZipRepository") {
-            zippedCode.put(function.getResourceName(), function);
-        } else {
-            code.put(function.getResourceName(), function);
-        }
-        updatables.put(function.getName(), function);
-        return;
-    }
-
-    public synchronized void addSkinResource(SkinResource skin) {
-        String name = skin.getResource().getShortName();
-        if (skin.getResource() instanceof ZipResource && skin.getResource().getRepository().getRootRepository().getClass().getName() != "helma.framework.repository.ZipRepository") {
-            if (!zippedSkins.containsKey(name) || app.getResourceComparator().compare(zippedSkins.get(name), skin) == -1) {
-                SkinResource previous = (SkinResource) zippedSkins.put(name, skin);
-                if (previous != null && previous != skin) {
-                    updatables.remove(previous.getName());
-                }
-                updatables.put(skin.getName(), skin);
-            }
-        } else {
-            if (!skins.containsKey(name) || app.getResourceComparator().compare(skins.get(name), skin) == -1) {
-                SkinResource previous = (SkinResource) skins.put(name, skin);
-                if (previous != null && previous != skin) {
-                    updatables.remove(previous.getName());
-                }
-                updatables.put(skin.getName(), skin);
-            }
-        }
-        return;
-    }
-
-    public synchronized void removeActionResource(ActionResource action) {
-        if (action.getResource() instanceof ZipResource && action.getResource().getRepository().getRootRepository().getClass().getName() != "helma.framework.repository.ZipRepository") {
-            zippedCode.remove(action.getResourceName());
-        } else {
-            code.remove(action.getResourceName());
-        }
-        updatables.remove(action.getName());
-    }
-
-    public synchronized void removeFunctionResource(FunctionResource function) {
-        if (function.getResource() instanceof ZipResource && function.getResource().getRepository().getRootRepository().getClass().getName() != "helma.framework.repository.ZipRepository") {
-            zippedCode.remove(function.getResourceName());
-        } else {
-            code.remove(function.getResourceName());
-        }
-        updatables.remove(function.getName());
-    }
-
-    public synchronized void removeSkinResource(SkinResource skin) {
-        if (skin.getResource() instanceof ZipResource && skin.getResource().getRepository().getRootRepository().getClass().getName() != "helma.framework.repository.ZipRepository") {
-            zippedSkins.remove(skin.getResource().getShortName());
-        } else {
-            skins.remove(skin.getResource().getShortName());
-        }
-        updatables.remove(skin.getName());
+    /**
+     * Add a skin resource to this prototype
+     *
+     * @param res a skin resource
+     */
+    public synchronized void addSkinResource(Resource res) {
+        skins.add(res);
+        skinMap.put(res.getShortName(), res);
+        trackers.put(res.getName(), new ResourceTracker(res));
     }
 
     /**
@@ -422,7 +370,7 @@ public final class Prototype {
      * @return ...
      */
     public SkinMap getSkinMap() {
-        return skinMap;
+        return new SkinMap();
     }
 
     // not yet implemented
@@ -476,13 +424,17 @@ public final class Prototype {
 
             checkForUpdates();
 
-            SkinResource sr = (SkinResource) super.get(key);
+            Resource res = (Resource) super.get(key);
 
-            if (sr == null) {
+            if (res == null) {
                 return null;
             }
 
-            return sr.getSkin().getSource();
+            try {
+                return res.getContent();
+            } catch (IOException iox) {
+                return null;
+            }
         }
 
         public int hashCode() {
@@ -536,26 +488,20 @@ public final class Prototype {
                 app.typemgr.updatePrototype(Prototype.this);
             }
 
-            if (lastUpdate > lastSkinmapLoad) {
+            if (lastCodeUpdate > lastSkinmapLoad) {
                 load();
             }
         }
 
         private synchronized void load() {
-            if (lastUpdate == lastSkinmapLoad) {
+            if (lastCodeUpdate == lastSkinmapLoad) {
                 return;
             }
 
             super.clear();
 
-            // load Skins from zip files first, then from directories
-            for (Iterator i = zippedSkins.entrySet().iterator(); i.hasNext();) {
-                Map.Entry e = (Map.Entry) i.next();
-
-                super.put(e.getKey(), e.getValue());
-            }
-
-            for (Iterator i = skins.entrySet().iterator(); i.hasNext();) {
+            // load Skins
+            for (Iterator i = skins.iterator(); i.hasNext();) {
                 Map.Entry e = (Map.Entry) i.next();
 
                 super.put(e.getKey(), e.getValue());
@@ -575,7 +521,7 @@ public final class Prototype {
                 }
             }
 
-            lastSkinmapLoad = lastUpdate;
+            lastSkinmapLoad = lastCodeUpdate;
         }
 
         public String toString() {

@@ -25,7 +25,7 @@ public final class ZipResource implements Resource {
 
     private ZipEntry zipentry;
     private File zipfile;
-    private Repository repository;
+    private ZipRepository repository;
     private String name;
     private String shortName;
 
@@ -35,16 +35,21 @@ public final class ZipResource implements Resource {
         this.repository = repository;
 
         String entryname = zipentry.getName();
-        if (entryname.lastIndexOf(".") != -1 && entryname.lastIndexOf(".") > entryname.lastIndexOf("/")) {
-            shortName = entryname.substring(entryname.lastIndexOf("/") + 1, entryname.lastIndexOf("."));
+        int lastDot = entryname.lastIndexOf('.');
+        int lastSlash = entryname.lastIndexOf('/');
+
+        if (lastDot != -1 && lastDot > lastSlash) {
+            shortName = entryname.substring(lastSlash + 1, lastDot);
         } else {
-            shortName = entryname.substring(entryname.lastIndexOf("/") + 1);
+            shortName = entryname.substring(lastSlash + 1);
         }
 
-        if (entryname.lastIndexOf(".") != -1 && entryname.lastIndexOf(".") > entryname.lastIndexOf("/")) {
-            name = repository.getName() + "/" + shortName + entryname.substring(entryname.lastIndexOf("."));
+        StringBuffer buf = new StringBuffer(repository.getName())
+                .append('/').append(shortName);
+        if (lastDot != -1 && lastDot > lastSlash) {
+            name = buf.append(entryname.substring(lastDot)).toString();
         } else {
-            name = repository.getName() + "/" + shortName;
+            name = buf.toString();
         }
     }
 
@@ -52,49 +57,59 @@ public final class ZipResource implements Resource {
         return zipfile.lastModified();
     }
 
-    public InputStream getInputStream() {
-        return new StringBufferInputStream(getContent());
+    public InputStream getInputStream() throws IOException {
+        ZipFile zipfile = null;
+        try {
+            zipfile = repository.getZipFile();
+            int size = (int) zipentry.getSize();
+            byte[] buf = new byte[size];
+            InputStream in = zipfile.getInputStream(zipentry);
+            int read = 0;
+            while (read < size) {
+                int r = in.read(buf, read, size-read);
+                if (r == -1)
+                    break;
+                read += r;
+            }
+            in.close();
+            return new ByteArrayInputStream(buf);
+        } finally {
+            zipfile.close();
+        }
     }
 
     public boolean exists() {
-        ZipFile zip = null;
+        ZipFile zipfile = null;
         try {
-            zip = new ZipFile(zipfile);
-            if (zip.getEntry(zipentry.getName()) != null) {
-                return true;
-            } else {
-                return false;
-            }
-        } catch (IOException ex) {
+            zipfile = repository.getZipFile();
+            return (zipfile.getEntry(zipentry.getName()) != null);
+        } catch (Exception ex) {
             return false;
-        }
-        finally {
+        } finally {
             try {
-                zip.close();
-            } catch (Exception ex) {
-                return false;
-            }
+                zipfile.close();
+            } catch (Exception ex) {}
         }
     }
 
-    public String getContent() {
-        ZipFile zip = null;
+    public String getContent() throws IOException {
+        ZipFile zipfile = null;
         try {
-            zip = new ZipFile(zipfile);
-            InputStreamReader in = new InputStreamReader(zip.getInputStream(zipentry));
-            char[] characterBuffer = new char[(int) zipentry.getSize()];
-            in.read(characterBuffer);
-            in.close();
-            return new String(characterBuffer);
-        } catch (IOException ignore) {
-            return "";
-        }
-        finally {
-            try {
-                zip.close();
-            } catch (IOException ex) {
-                return "";
+            zipfile = repository.getZipFile();
+            InputStreamReader in = new InputStreamReader(zipfile.getInputStream(zipentry));
+            int size = (int) zipentry.getSize();
+            char[] buf = new char[size];
+            int read = 0;
+            while (read < size) {
+                int r = in.read(buf, read, size-read);
+                if (r == -1)
+                    break;
+                read += r;
             }
+            in.close();
+            return new String(buf);
+        } finally {
+            zipfile.close();
         }
     }
 
@@ -107,7 +122,7 @@ public final class ZipResource implements Resource {
     }
 
     public URL getUrl() {
-        throw new java.lang.UnsupportedOperationException("ZipPointer: getUrl() is not implemented!");
+        throw new UnsupportedOperationException("getUrl() not implemented for ZipResource");
     }
 
     public long getLength() {
@@ -118,4 +133,7 @@ public final class ZipResource implements Resource {
         return repository;
     }
 
+    public String toString() {
+        return getName();
+    }
 }

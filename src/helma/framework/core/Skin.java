@@ -17,6 +17,7 @@
 package helma.framework.core;
 
 import helma.framework.*;
+import helma.framework.repository.Resource;
 import helma.objectmodel.ConcurrencyException;
 import helma.util.HtmlEncoder;
 import helma.util.SystemMap;
@@ -24,6 +25,9 @@ import helma.util.WrappedMap;
 import helma.util.UrlEncoded;
 import java.util.*;
 import java.io.UnsupportedEncodingException;
+import java.io.Reader;
+import java.io.InputStreamReader;
+import java.io.IOException;
 
 /**
  * This represents a Helma skin, i.e. a template created from containing Macro tags
@@ -78,6 +82,22 @@ public final class Skin {
         source = content;
         sourceLength = length;
         parse();
+    }
+
+    public static Skin getSkin(Resource res, Application app) throws IOException {
+        String encoding = app.getProperty("skinCharset");
+        Reader reader;
+        if (encoding == null) {
+            reader = new InputStreamReader(res.getInputStream());
+        } else {
+            reader = new InputStreamReader(res.getInputStream(), encoding);
+        }
+
+        char[] characterBuffer = new char[(int) res.getLength()];
+        int length = reader.read(characterBuffer);
+
+        reader.close();
+        return new Skin(characterBuffer, length, app);
     }
 
     /**

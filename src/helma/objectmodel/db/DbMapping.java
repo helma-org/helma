@@ -19,7 +19,7 @@ package helma.objectmodel.db;
 import helma.framework.core.Application;
 import helma.framework.core.Prototype;
 import helma.util.SourceProperties;
-import helma.util.Updatable;
+// import helma.util.Updatable;
 
 import java.sql.*;
 import java.util.*;
@@ -29,7 +29,7 @@ import java.util.*;
  * relational database table. Basically it consists of a set of JavaScript property-to-
  * Database row bindings which are represented by instances of the Relation class.
  */
-public final class DbMapping implements Updatable {
+public final class DbMapping /* implements Updatable */ {
     // DbMappings belong to an application
     protected Application app;
 

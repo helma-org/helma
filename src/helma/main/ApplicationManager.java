@@ -317,36 +317,37 @@ public class ApplicationManager implements XmlRpcHandler {
             String dbDirName = props.getProperty(name + ".dbdir");
             dbDir = (dbDirName == null) ? null : new File(dbDirName);
 
+            // read and configure app repositories
             ArrayList repositoryList = new ArrayList();
             for (int i = 0; true; i++) {
-                Class[] parameters = new Class[1];
-                try {
-                    parameters[0] = Class.forName("java.lang.String");
-                } catch (Exception ignore) {}
+                Class[] parameters = { String.class };
 
-                String[] repositoryInitArgs = new String[1];
-                repositoryInitArgs[0] = props.getProperty(name + ".repository." + i, null);
+                String[] repositoryArgs = { props.getProperty(name + ".repository." + i) };
 
-                if (repositoryInitArgs[0] != null) {
+                if (repositoryArgs[0] != null) {
                     // lookup repository implementation
-                    String repositoryImplementation = props.getProperty(name + ".repository." + i + ".implementation", null);
-                    if (repositoryImplementation == null) {
+                    String repositoryImpl = props.getProperty(name + ".repository." + i +
+                                                              ".implementation");
+                    if (repositoryImpl == null) {
                         // implementation not set manually, have to guess it
-                        if (repositoryInitArgs[0].endsWith(".zip")) {
-                            repositoryImplementation = "helma.framework.repository.ZipRepository";
+                        if (repositoryArgs[0].endsWith(".zip")) {
+                            repositoryImpl = "helma.framework.repository.ZipRepository";
                         } else {
-                            repositoryImplementation = "helma.framework.repository.FileRepository";
+                            repositoryImpl = "helma.framework.repository.FileRepository";
                         }
                     }
 
                     Repository newRepository = null;
                     try {
-                        newRepository = (Repository) Class.forName(repositoryImplementation).getConstructor(parameters).newInstance(repositoryInitArgs);
+                        newRepository = (Repository) Class.forName(repositoryImpl)
+                                .getConstructor(parameters).newInstance(repositoryArgs);
                         repositoryList.add(newRepository);
                     } catch (Exception ex) {
-                        System.out.println("Adding repository " + repositoryInitArgs + " failde. Will not use that repository. Check your initArgs!");
+                        System.out.println("Adding repository " + repositoryArgs + " failed. " +
+                                           "Will not use that repository. Check your initArgs!");
                     }
                 } else {
+                    // no more repositories to add
                     break;
                 }
             }
@@ -361,8 +362,12 @@ public class ApplicationManager implements XmlRpcHandler {
                 } else {
                     repositories[0] = new FileRepository(new File(server.getAppsHome(), appName));
                 }
-                if (!repositories[0].exists()) {
-                    repositories[0].create();
+                try {
+                    if (!repositories[0].exists()) {
+                        repositories[0].create();
+                    }
+                } catch (Exception swallow) {
+                    // couldn't create repository
                 }
             }
         }

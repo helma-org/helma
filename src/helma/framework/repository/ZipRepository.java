@@ -16,7 +16,7 @@
 
 package helma.framework.repository;
 
-import helma.framework.repository.ZipResource;
+import helma.util.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,11 +27,10 @@ import java.util.zip.ZipFile;
 public final class ZipRepository extends AbstractRepository {
 
     // zip file serving sub-repositories and zip file resources
-    private File zipfile;
+    private File file;
 
-    /* zip entry within a zip file serving content if the repository is not the
-     top-level repository */
-    private ZipEntry zipentry;
+    // the nested directory depth of this repository
+    private int depth;
 
     private long lastModified = -1;
 
@@ -46,76 +45,79 @@ public final class ZipRepository extends AbstractRepository {
     /**
      * Constructs a ZipRepository using the given zip file as top-level
      * repository
-     * @param zipfile zip file
+     * @param file a zip file
      */
-    protected ZipRepository(File zipfile) {
-        this(zipfile, null, null);
+    protected ZipRepository(File file, Repository parent) {
+        this(file, parent, null);
     }
 
     /**
      * Constructs a ZipRepository using the zip entry belonging to the given
      * zip file and top-level repository
-     * @param zipfile zip file
+     * @param file a zip file
      * @param zipentry zip entry
      * @param parent repository
      */
-    private ZipRepository(File zipfile, ZipEntry zipentry, Repository parent) {
-        this.zipfile = zipfile;
+    private ZipRepository(File file, Repository parent, ZipEntry zipentry) {
+        this.file = file;
         this.parent = parent;
-        this.zipentry = zipentry;
-        if (parent == null) {
-            name = shortName = zipfile.getName();
+
+        if (zipentry == null) {
+            name = shortName = file.getName();
+            depth = 0;
         } else {
-            String entryname = zipentry.getName();
-            shortName = entryname.lastIndexOf("/") == entryname.indexOf("/") ?
-                    entryname.substring(0, entryname.length() - 1) :
-                    entryname.substring(0, entryname.length() - 1).substring(entryname.substring(0, entryname.length() - 1).lastIndexOf("/") + 1, entryname.substring(0, entryname.length() - 1).length());
-            name = parent.getRootRepository().getName() + "/" + entryname.substring(0, entryname.length() - 1);
+            String[] entrypath = StringUtils.split(zipentry.getName(), "/");
+            depth = entrypath.length;
+            shortName = entrypath[depth - 1];
+            name = new StringBuffer(parent.getName())
+                                   .append('/').append(shortName).toString();
         }
     }
 
-    public synchronized void update() {
-        if (needsUpdate()) {
-            lastModified = zipfile.lastModified();
-            ZipFile zip = null;
-            try {
-                zip = new ZipFile(zipfile);
-                Enumeration enum = zip.entries();
-                ArrayList newRepositories = new ArrayList(zip.size());
-                if (resources == null) {
-                    resources = new HashMap();
-                } else {
-                    resources.clear();
-                }
+    /**
+     * Returns a java.util.zip.ZipFile for this repository. It is the caller's
+     * responsability to call close() in it when it is no longer needed.
+     * @return a ZipFile for reading
+     * @throws IOException
+     */
+    protected ZipFile getZipFile() throws IOException {
+        return new ZipFile(file);
+    }
 
-                for (int i = 0; enum.hasMoreElements(); i++) {
+    public synchronized void update() {
+        if (file.lastModified() != lastModified) {
+            lastModified = file.lastModified();
+            ZipFile zipfile = null;
+
+            try {
+                zipfile = getZipFile();
+                Enumeration enum = zipfile.entries();
+                ArrayList newRepositories = new ArrayList();
+                HashMap newResources = new HashMap();
+
+                while (enum.hasMoreElements()) {
                     ZipEntry entry = (ZipEntry) enum.nextElement();
                     String entryname = entry.getName();
-                    /* ZipFile provide its entries in a matter that some checks
-                     are needed to find out if the given entry is a direct or
-                     indirect sub-repository */
-                    if (parent == null) {
-                        if (entry.isDirectory() && entryname.indexOf("/") == entryname.lastIndexOf("/")) {
-                            newRepositories.add(new ZipRepository(zipfile, entry, this));
-                        } else if (entryname.indexOf("/") == -1) {
-                            ZipResource resource = new ZipResource(zipfile, entry, this);
-                            resources.put(resource.getName(), resource);
-                        }
-                    } else {
-                        if (entry.isDirectory() && !entryname.equals(zipentry.getName()) && entryname.startsWith(zipentry.getName()) && entryname.substring(0, zipentry.getName().length()).indexOf("/") == entryname.substring(0, zipentry.getName().length()).lastIndexOf("/")) {
-                            newRepositories.add(new ZipRepository(zipfile, entry, this));
-                        } else if (!entry.isDirectory() && entryname.startsWith(zipentry.getName()) && entryname.substring(zipentry.getName().length(), entryname.length()).indexOf("/") ==  -1) {
-                            ZipResource resource = new ZipResource(zipfile, entry, this);
-                            resources.put(resource.getName(), resource);
+                    String[] entrypath = StringUtils.split(entryname, "/");
+
+                    // create new repositories and resources for all entries with a
+                    // path depth of this.depth + 1
+                    if (entrypath.length == depth + 1) {
+                        if (entry.isDirectory()) {
+                            newRepositories.add(new ZipRepository(file, this, entry));
+                        } else {
+                            ZipResource resource = new ZipResource(file, entry, this);
+                            newResources.put(resource.getName(), resource);
                         }
                     }
                 }
 
-                repositories = (Repository[]) newRepositories.toArray(new Repository[newRepositories.size()]);
-
-                return;
+                repositories = (Repository[])
+                        newRepositories.toArray(new Repository[newRepositories.size()]);
+                resources = newResources;
 
             } catch (IOException ex) {
+                ex.printStackTrace();
                 repositories = new Repository[0];
                 if (resources == null) {
                     resources = new HashMap();
@@ -126,31 +128,23 @@ public final class ZipRepository extends AbstractRepository {
             } finally {
                 try {
                     // unlocks the zip file in the underlying filesystem
-                    zip.close();
-                } catch (IOException ex) {}
+                    zipfile.close();
+                } catch (Exception ex) {}
             }
         }
     }
 
-    /**
-     * Checks wether the repository needs to be updated
-     * @return true if the repository needs to be updated
-     */
-    private boolean needsUpdate() {
-        return zipfile.lastModified() != lastModified;
-    }
-
     public long getChecksum() {
-        return zipfile.lastModified();
+        return file.lastModified();
     }
 
-   public boolean exists() {
-        ZipFile zip = null;
+    public boolean exists() {
+        ZipFile zipfile = null;
         try {
             /* a ZipFile needs to be created to see if the zip file actually
              exists; this is not cached to provide blocking the zip file in
              the underlying filesystem */
-            zip = new ZipFile(zipfile);
+            zipfile = getZipFile();
             return true;
         } catch (IOException ex) {
             return false;
@@ -158,7 +152,7 @@ public final class ZipRepository extends AbstractRepository {
         finally {
             try {
                 // unlocks the zip file in the underlying filesystem
-                zip.close();
+                zipfile.close();
             } catch (Exception ex) {
                 return false;
             }
@@ -167,15 +161,27 @@ public final class ZipRepository extends AbstractRepository {
 
     public void create() {
         // we do not create zip files as it makes no sense
-        throw new java.lang.UnsupportedOperationException("ZipSource: zip files can't be created!");
+        throw new UnsupportedOperationException("create() not implemented for ZipRepository");
+    }
+
+    /**
+     * Checks wether the repository is to be considered a top-level
+     * repository from a scripting point of view. For example, a zip
+     * file within a file repository is not a root repository from
+     * a physical point of view, but from the scripting point of view it is.
+     *
+     * @return true if the repository is to be considered a top-level script repository
+     */
+    public boolean isScriptRoot() {
+        return depth == 0;
     }
 
     public long lastModified() {
-        return zipfile.lastModified();
+        return file.lastModified();
     }
 
     public String toString() {
-        return "ZipRepository["+name+"]";
+        return new StringBuffer("ZipRepository[").append(name).append("]").toString();
     }
 
 }

@@ -16,9 +16,6 @@
 
 package helma.framework.repository;
 
-import helma.framework.repository.Resource;
-import helma.framework.repository.Repository;
-
 import java.net.*;
 import java.io.*;
 
@@ -103,4 +100,7 @@ public class FileResource implements Resource {
         return repository;
     }
 
+    public String toString() {
+        return getName();
+    }
 }

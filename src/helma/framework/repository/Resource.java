@@ -17,6 +17,7 @@
 package helma.framework.repository;
 
 import java.io.InputStream;
+import java.io.IOException;
 import java.net.URL;
 
 /**
@@ -38,10 +39,22 @@ public interface Resource {
     public boolean exists();
 
     /**
+     * Returns the lengh of the resource's content
+     * @return content length
+     */
+    public long getLength() throws IOException;
+
+    /**
+     * Returns an input stream to the content of the resource
+     * @return content input stream
+     */
+    public InputStream getInputStream() throws IOException;
+
+    /**
      * Returns the content of the resource
      * @return content
      */
-    public String getContent();
+    public String getContent() throws IOException;
 
     /**
      * Returns the name of the resource; does not include the name of the
@@ -65,21 +78,9 @@ public interface Resource {
     public URL getUrl() throws UnsupportedOperationException;
 
     /**
-     * Returns the lengh of the resource's content
-     * @return content length
-     */
-    public long getLength();
-
-    /**
      * Returns the repository the resource does belong to
      * @return upper repository
      */
     public Repository getRepository();
-
-    /**
-     * Returns an input stream to the content of the resource
-     * @return content input stream
-     */
-    public InputStream getInputStream();
 
 }

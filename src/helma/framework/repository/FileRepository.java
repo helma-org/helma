@@ -16,13 +16,9 @@
 
 package helma.framework.repository;
 
-import helma.framework.repository.ZipRepository;
-import helma.framework.repository.Repository;
-import helma.framework.repository.FileResource;
-
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 
 /**
@@ -40,7 +36,7 @@ public class FileRepository extends AbstractRepository {
     /**
      * Defines how long the checksum of the repository will be cached
      */
-    private final long cacheTime = 1500L;
+    private final long cacheTime = 1000L;
 
     /**
      * Constructs a FileRepository using the given argument
@@ -80,14 +76,6 @@ public class FileRepository extends AbstractRepository {
         }
     }
 
-    /**
-     * Checks wether the repository needs to be updated
-     * @return true if the repository needs to be updated
-     */
-    private boolean needsUpdate() {
-        return dir.lastModified() != lastModified;
-    }
-
     public boolean exists() {
         if (dir.exists() && dir.isDirectory()) {
             return true;
@@ -103,22 +91,28 @@ public class FileRepository extends AbstractRepository {
         return;
     }
 
+    /**
+     * Checks wether the repository is to be considered a top-level
+     * repository from a scripting point of view. For example, a zip
+     * file within a file repository is not a root repository from
+     * a physical point of view, but from the scripting point of view it is.
+     *
+     * @return true if the repository is to be considered a top-level script repository
+     */
+    public boolean isScriptRoot() {
+        return parent == null;
+    }
+
     public long lastModified() {
         return dir.lastModified();
     }
 
-    public long getChecksum() {
-
+    public long getChecksum() throws IOException {
         // delay checksum check if already checked recently
         if (System.currentTimeMillis() > lastChecksumTime + cacheTime) {
 
-            long checksum;
-            if (dir.lastModified() != lastModified) {
-                update();
-                checksum = lastModified;
-            } else {
-                checksum = lastChecksum;
-            }
+            update();
+            long checksum = lastModified;
 
             for (int i = 0; i < repositories.length; i++) {
                 checksum += repositories[i].getChecksum();
@@ -126,11 +120,9 @@ public class FileRepository extends AbstractRepository {
 
             lastChecksum = checksum;
             lastChecksumTime = System.currentTimeMillis();
-
-            return checksum;
-        } else {
-            return lastChecksum;
         }
+
+        return lastChecksum;
     }
 
     /**
@@ -139,40 +131,35 @@ public class FileRepository extends AbstractRepository {
      * resources
      */
     public synchronized void update() {
-        if (needsUpdate()) {
+        if (dir.lastModified() != lastModified) {
             lastModified = dir.lastModified();
-            String[] list = dir.list();
+
+            File[] list = dir.listFiles();
+
             ArrayList newRepositories = new ArrayList(list.length);
-            if (resources == null) {
-                resources = new HashMap();
-            } else {
-                resources.clear();
-            }
+            HashMap newResources = new HashMap(list.length);
 
             for (int i = 0; i < list.length; i++) {
-                File file = new File(dir, list[i]);
-                if (file.isDirectory()) {
-                    /* the content of a file repository either is another
-                     file repository or */
-                    newRepositories.add(new FileRepository(file, this));
-                } else if (list[i].endsWith(".zip")) {
-                    /* although zip files should / could be used as top-level
-                     repositories, backwards compatibility is provided here */
-                    newRepositories.add(new ZipRepository(file));
-                } else if (!list[i].equals(".") && !list[i].equals("..")) {
+                if (list[i].isDirectory()) {
+                    // a nested directory aka child file repository
+                    newRepositories.add(new FileRepository(list[i], this));
+                } else if (list[i].getName().endsWith(".zip")) {
+                    // a nested zip repository
+                    newRepositories.add(new ZipRepository(list[i], this));
+                } else if (list[i].isFile()) {
                     // a file resource
-                    FileResource resource = new FileResource(file, this);
-                    resources.put(resource.getName(), resource);
+                    FileResource resource = new FileResource(list[i], this);
+                    newResources.put(resource.getName(), resource);
                 }
             }
 
-            repositories = (Repository[]) newRepositories.toArray(new Repository[newRepositories.size()]);
+            repositories = (Repository[])
+                    newRepositories.toArray(new Repository[newRepositories.size()]);
+            resources = newResources;
         }
-
-        return;
     }
 
     public String toString() {
-        return "FileRepository["+name+"]";
+        return new StringBuffer("FileRepository[").append(name).append("]").toString();
     }
 }

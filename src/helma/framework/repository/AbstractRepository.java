@@ -16,12 +16,11 @@
 
 package helma.framework.repository;
 
-import helma.framework.repository.Resource;
-import helma.framework.repository.Repository;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Iterator;
+import java.io.IOException;
 
 /**
  * Provides common methods and fields for the default implementations of the
@@ -87,10 +86,10 @@ public abstract class AbstractRepository implements Repository {
         return (Resource) resources.get(getName() + "/" + name);
     }
 
-    public Resource[] getResources() {
+    public Iterator getResources() {
         update();
 
-        return (Resource[]) resources.values().toArray(new Resource[resources.size()]);
+        return resources.values().iterator();
     }
 
     public Repository[] getRepositories() {
@@ -99,25 +98,25 @@ public abstract class AbstractRepository implements Repository {
         return repositories;
     }
 
-    public boolean isRootRepository() {
-        return parent == null;
-    }
-
     public Repository getParentRepository() {
         return parent;
     }
 
-    public Resource[] getAllResources() {
+    public List getAllResources() throws IOException {
         update();
 
         ArrayList allResources = new ArrayList();
         allResources.addAll(resources.values());
 
         for (int i = 0; i < repositories.length; i++) {
-            allResources.addAll(Arrays.asList(repositories[i].getAllResources()));
+            allResources.addAll(repositories[i].getAllResources());
         }
 
-        return (Resource[]) allResources.toArray(new Resource[allResources.size()]);
+        return allResources;
+    }
+
+    public String toString() {
+        return getName();
     }
 
 }

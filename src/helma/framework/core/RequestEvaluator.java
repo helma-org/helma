@@ -315,10 +315,6 @@ public final class RequestEvaluator implements Runnable {
                                     // set the req.action property, cutting off the _action suffix
                                     req.action = action.substring(0, action.length() - 7);
 
-                                    // set the application checksum in response to make ETag
-                                    // generation sensitive to changes in the app
-                                    res.setApplicationChecksum(app.getChecksum());
-
                                     a = System.currentTimeMillis();
                                     pre = a - Long.parseLong(System.getProperty("request.start", "0"));
 
@@ -682,7 +678,7 @@ public final class RequestEvaluator implements Runnable {
         this.reqtype = HTTP;
         this.req = req;
         this.session = session;
-        this.res = new ResponseTrans(req);
+        this.res = new ResponseTrans(req, app);
 
         app.activeRequests.put(req, this);
 
@@ -736,7 +732,7 @@ public final class RequestEvaluator implements Runnable {
         this.session = null;
         this.method = method;
         this.args = args;
-        this.res = new ResponseTrans();
+        this.res = new ResponseTrans(app);
         result = null;
         exception = null;
 
@@ -775,7 +771,7 @@ public final class RequestEvaluator implements Runnable {
         this.session = null;
         this.method = method;
         this.args = args;
-        this.res = new ResponseTrans();
+        this.res = new ResponseTrans(app);
         result = null;
         exception = null;
 
@@ -850,7 +846,7 @@ public final class RequestEvaluator implements Runnable {
         thisObject = object;
         method = functionName;
         this.args = args;
-        this.res = new ResponseTrans();
+        this.res = new ResponseTrans(app);
         result = null;
         exception = null;
 

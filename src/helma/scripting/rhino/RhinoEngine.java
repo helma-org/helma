@@ -31,6 +31,7 @@ import org.mozilla.javascript.*;
 
 import java.util.*;
 import java.io.File;
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 
 /**
@@ -483,7 +484,7 @@ public class RhinoEngine implements ScriptingEngine {
      *  skinpath set in the current response object and does per-response skin
      *  caching.
      */
-    public Skin getSkin(String protoName, String skinName) {
+    public Skin getSkin(String protoName, String skinName) throws IOException {
         SkinKey key = new SkinKey(protoName, skinName);
 
         Skin skin = reval.res.getCachedSkin(key);

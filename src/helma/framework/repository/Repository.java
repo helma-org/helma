@@ -16,7 +16,9 @@
 
 package helma.framework.repository;
 
-import helma.framework.repository.Resource;
+import java.util.List;
+import java.util.Iterator;
+import java.io.IOException;
 
 /**
  * Repository represents an abstract container of resources (e.g. code, skins, ...).
@@ -30,50 +32,75 @@ public interface Repository {
      * should make sure
      *
      * @return checksum
+     * @throws IOException
      */
-    public long getChecksum();
+    public long getChecksum() throws IOException;
 
     /**
      * Returns the date the repository was last modified.
      *
      * @return last modified date
+     * @throws IOException
      */
-    public long lastModified();
+    public long lastModified() throws IOException;
+
+
+    /**
+     * Returns a specific direct resource of the repository
+     *
+     * @param resourceName name of the child resource to return
+     * @return specified child resource
+     */
+    public Resource getResource(String resourceName);
 
     /**
      * Returns all direct resources
      *
      * @return direct resources
+     * @throws IOException
      */
-    public Resource[] getResources();
+    public Iterator getResources() throws IOException;
 
     /**
      * Returns all direct and indirect resources
      *
      * @return resources recursive
+     * @throws IOException
      */
-    public Resource[] getAllResources();
+    public List getAllResources() throws IOException;
 
     /**
      * Returns this repository's direct child repositories
      *
      * @return direct repositories
+     * @throws IOException
      */
-    public Repository[] getRepositories();
+    public Repository[] getRepositories() throws IOException;
 
     /**
      * Checks wether the repository actually (or still) exists
      *
      * @return true if the repository exists
+     * @throws IOException
      */
-    public boolean exists();
+    public boolean exists() throws IOException;
 
     /**
-     * Checks wether the repository is the top-level repository
+     * Creates the repository if does not exist yet
      *
-     * @return true if the repository is the top-level repository
+     * @throws IOException
      */
-    public boolean isRootRepository();
+    public void create() throws IOException;
+
+    /**
+     * Checks wether the repository is to be considered a top-level
+     * repository from a scripting point of view. For example, a zip
+     * file within a file repository is not a root repository from
+     * a physical point of view, but from the scripting point of view it is.
+     *
+     * @return true if the repository is to be considered a top-level script repository
+     */
+    public boolean isScriptRoot();
 
     /**
      * Returns this repository's parent repository.
@@ -91,11 +118,6 @@ public interface Repository {
     public Repository getRootRepository();
 
     /**
-     * Creates the repository if does not exist yet
-     */
-    public void create();
-
-    /**
      * Returns the name of the repository; this is a full name including all
      * parent repositories.
      *
@@ -109,13 +131,5 @@ public interface Repository {
      * @return name of the repository
      */
     public String getShortName();
-
-    /**
-     * Returns a specific direct resource of the repository
-     *
-     * @param resourceName name of the child resource to return
-     * @return specified child resource
-     */
-    public Resource getResource(String resourceName);
 
 }

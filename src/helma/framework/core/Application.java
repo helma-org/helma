@@ -26,11 +26,9 @@ import helma.framework.repository.FileRepository;
 import helma.main.Server;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
-import helma.scripting.*;
 import helma.util.*;
 import java.io.*;
 import java.lang.reflect.*;
-import java.net.MalformedURLException;
 import java.rmi.*;
 import java.util.*;
 import org.apache.commons.logging.Log;
@@ -58,7 +56,7 @@ public final class Application implements IPathElement, Runnable {
     File home;
 
     // application sources
-    LinkedHashSet repositories;
+    ArrayList repositories;
 
     // embedded db directory
     File dbDir;
@@ -195,7 +193,7 @@ public final class Application implements IPathElement, Runnable {
 
         this.name = name;
         if (repositories.length > 0) {
-            this.repositories = new LinkedHashSet();
+            this.repositories = new ArrayList();
             this.repositories.addAll(Arrays.asList(repositories));
             resourceComparator = new ResourceComparator(this);
         } else {
@@ -270,9 +268,8 @@ public final class Application implements IPathElement, Runnable {
      * Get the application ready to run, initializing the evaluators and type manager.
      */
     public synchronized void init()
-            throws DatabaseException, MalformedURLException,
-                   IllegalAccessException, InstantiationException,
-                   ClassNotFoundException {
+            throws DatabaseException, IllegalAccessException,
+                   InstantiationException, ClassNotFoundException {
 
         // create and init type mananger
         typemgr = new TypeManager(this);
@@ -604,7 +601,7 @@ public final class Application implements IPathElement, Runnable {
             throw stopped;
         } catch (Exception x) {
             errorCount += 1;
-            res = new ResponseTrans();
+            res = new ResponseTrans(this);
             res.write("Error in application: <b>" + x.getMessage() + "</b>");
         } finally {
             if (primaryRequest) {
@@ -818,7 +815,7 @@ public final class Application implements IPathElement, Runnable {
      *  Return a skin for a given object. The skin is found by determining the prototype
      *  to use for the object, then looking up the skin for the prototype.
      */
-    public Skin getSkin(String protoname, String skinname, Object[] skinpath) {
+    public Skin getSkin(String protoname, String skinname, Object[] skinpath) throws IOException {
         Prototype proto = getPrototypeByName(protoname);
 
         if (proto == null) {
@@ -1626,8 +1623,20 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
+     * Searches for the index of the given repository for this app.
+     * The arguement must be a root argument, or -1 will be returned.
+     *
+     * @param   rep one of this app's root repositories.
+     * @return  the index of the first occurrence of the argument in this
+     *          list; returns <tt>-1</tt> if the object is not found.
+     */
+    public int getRepositoryIndex(Repository rep) {
+        return repositories.indexOf(rep);
+    }
+
+    /**
      * Returns the repositories of this application
-     * @return application's repositories
+     * @return iterator through application repositories
      */
     public Iterator getRepositories() {
         return repositories.iterator();
@@ -1732,7 +1741,7 @@ public final class Application implements IPathElement, Runnable {
      *  change, too.
      */
     public long getChecksum() {
-        return starttime + typemgr.getChecksum() + props.getChecksum();
+        return starttime + typemgr.lastCodeUpdate() + props.getChecksum();
     }
 
     /**

@@ -17,6 +17,7 @@
 package helma.framework;
 
 import helma.framework.core.Skin;
+import helma.framework.core.Application;
 import helma.util.*;
 import java.io.*;
 import java.security.*;
@@ -124,14 +125,15 @@ public final class ResponseTrans implements Externalizable {
     // the message digest used to generate composed digests for ETag headers
     private transient MessageDigest digest;
 
-    // the appliciation checksum to make ETag headers sensitive to app changes
-    long applicationChecksum;
+    // the application
+    Application app;
+
 
     /**
      * Creates a new ResponseTrans object.
      */
-    public ResponseTrans() {
-        super();
+    public ResponseTrans(Application app) {
+        this.app = app;
         message = error = null;
         values = new SystemMap();
         handlers = new SystemMap();
@@ -143,8 +145,8 @@ public final class ResponseTrans implements Externalizable {
      *
      * @param req ...
      */
-    public ResponseTrans(RequestTrans req) {
-        this();
+    public ResponseTrans(RequestTrans req, Application app) {
+        this(app);
         reqtrans = req;
     }
 
@@ -657,25 +659,11 @@ public final class ResponseTrans implements Externalizable {
             return;
         }
 
-        byte[] b = digest.digest(MD5Encoder.toBytes(applicationChecksum));
+        // add the application checksum as dependency to make ETag
+        // generation sensitive to changes in the app
+        byte[] b = digest.digest(MD5Encoder.toBytes(app.getChecksum()));
 
-        /* StringBuffer buf = new StringBuffer(b.length*2);
-           for ( int i=0; i<b.length; i++ ) {
-               int j = (b[i]<0) ? 256+b[i] : b[i];
-               if ( j<16 ) buf.append("0");
-               buf.append(Integer.toHexString(j));
-           }
-           setETag (buf.toString ()); */
         setETag(new String(Base64.encode(b)));
-    }
-
-    /**
-     *
-     *
-     * @param n ...
-     */
-    public void setApplicationChecksum(long n) {
-        applicationChecksum = n;
     }
 
     /**

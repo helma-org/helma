@@ -98,10 +98,10 @@ public final class SourceProperties extends Properties {
 
     /**
      * Sets the default properties and updates all properties
-     * @param defaultproperties default properties
+     * @param defaultProperties default properties
      */
-    public void setDefaultProperties(SourceProperties defaultproperties) {
-        defaultProperties = defaultProperties;
+    public void setDefaultProperties(SourceProperties defaultProperties) {
+        this.defaultProperties = defaultProperties;
         update();
     }
 
@@ -168,13 +168,14 @@ public final class SourceProperties extends Properties {
             if (app != null) {
                 Iterator iterator = app.getRepositories();
                 while (iterator.hasNext()) {
-                    Repository repository = (Repository) iterator.next();
-                    Resource resource = repository.getResource(resourceName);
-                    if (resource != null) {
-                        try {
+                    try {
+                        Repository repository = (Repository) iterator.next();
+                        Resource resource = repository.getResource(resourceName);
+                        if (resource != null) {
                             load(resource.getInputStream());
                         }
-                        catch (IOException ignore) {ignore.printStackTrace();}
+                    } catch (IOException iox) {
+                        iox.printStackTrace();
                     }
                 }
             }
@@ -265,9 +266,14 @@ public final class SourceProperties extends Properties {
         if (app != null) {
             Iterator iterator = app.getRepositories();
             while (iterator.hasNext()) {
-                Repository repository = (Repository) iterator.next();
-                Resource resource = repository.getResource(resourceName);
-                checksum += resource != null ? resource.lastModified() : repository.lastModified();
+                try {
+                    Repository repository = (Repository) iterator.next();
+                    Resource resource = repository.getResource(resourceName);
+                    checksum += resource != null ?
+                            resource.lastModified() : repository.lastModified();
+                } catch (IOException iox) {
+                    iox.printStackTrace();
+                }
             }
         }
 

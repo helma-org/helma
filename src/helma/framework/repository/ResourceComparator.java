@@ -17,8 +17,6 @@
 package helma.framework.repository;
 
 import java.util.Comparator;
-import java.util.Iterator;
-import helma.scripting.ScriptingResource;
 import helma.framework.core.Application;
 
 /**
@@ -39,70 +37,82 @@ public class ResourceComparator implements Comparator {
     }
 
     /**
-     * Compares two repositories, resources or ScriptingResources
-     * @param objA repository, resource or scripting resource
-     * @param objB repository, resource or scripting resource
-     * @return 0 if the two top-level repositories of the given objects are
-     * equally sorted, 1 if the top-level repository of the first object has
-     * a higher priority or -1 if the top-level repository of the second
-     * object has a higher priority
+     * Compares two Repositories, Resources or RepositoryTrackers
+     * @param obj1 Repository, Resource or RepositoryTrackers
+     * @param obj2 Repository, Resource or RepositoryTrackers
+     * @return a negative integer, zero, or a positive integer as the
+     * 	       first argument is less than, equal to, or greater than the
+     *	       second.
+     * @throws ClassCastException if the arguments' types prevent them from
+     * 	       being compared by this Comparator.
      */
-    public int compare(Object objA, Object objB) {
-        Repository repositoryA = null;
-        Repository repositoryB = null;
-
-        if (objA instanceof Resource && objB instanceof Resource) {
-            repositoryA = ((Resource) objA).getRepository().getRootRepository();
-            repositoryB = ((Resource) objB).getRepository().getRootRepository();
-        } else if (objA instanceof Repository && objB instanceof Repository) {
-            repositoryA = ((Repository) objA).getRootRepository();
-            repositoryB = ((Repository) objB).getRootRepository();
-        } else if (objA instanceof ScriptingResource && objB instanceof ScriptingResource) {
-            repositoryA = ((ScriptingResource) objA).getResource().getRepository().getRootRepository();
-            repositoryB = ((ScriptingResource) objB).getResource().getRepository().getRootRepository();
-        }
-
-        if (repositoryA == null || repositoryB == null) {
+    public int compare(Object obj1, Object obj2) {
+        if (obj1.equals(obj2))
             return 0;
+
+        Repository rep1 = getRootRepository(obj1);
+        Repository rep2 = getRootRepository(obj2);
+
+        int pos1 = app.getRepositoryIndex(rep1);
+        int pos2 = app.getRepositoryIndex(rep2);
+
+        if (rep1 == rep2 || (pos1 == -1 && pos2 == -1)) {
+            // Same root repository, but we must not return 0 unless objects are equal
+            // (see JavaDoc on java.util.TreeSet) so we compare full names
+            return getFullName(obj1).compareTo(getFullName(obj2));
         }
 
-        Iterator iterator = app.getRepositories();
-        int positionA = -1;
-        int positionB = -1;
-        int i = 0;
-
-        while (iterator.hasNext()) {
-            Repository repository = (Repository) iterator.next();
-            if (repository == repositoryA) {
-                positionA = i;
-            } else if (repository == repositoryB) {
-                positionB = i;
-            }
-            i++;
-        }
-
-        if (positionA == positionB) {
-            return 0;
-        } else if ((positionA != -1 && positionB != -1 && positionA < positionB) || (positionA > -1 && positionB == -1)) {
-            return 1;
-        } else {
-            return -1;
-        }
+        return pos1 - pos2;
     }
 
     /**
      * Checks if the comparator is equal to the given comparator
      * A ResourceComparator is equal to another ResourceComparator if the
      * applications they belong to are equal
+     *
      * @param obj comparator
      * @return true if the given comparator equals
      */
     public boolean equals(Object obj) {
-        if (this.app == (Application) obj) {
-            return true;
-        } else {
-            return false;
-        }
+        return (obj instanceof ResourceComparator) &&
+                app == ((ResourceComparator) obj).getApplication();
+    }
+
+    /**
+     * Return the application we're comparing resources for
+     *
+     * @return the application instance
+     */
+    public Application getApplication() {
+        return app;
+    }
+
+    private Repository getRootRepository(Object obj) {
+        if (obj instanceof Resource)
+            return ((Resource) obj).getRepository()
+                                   .getRootRepository();
+        if (obj instanceof ResourceTracker)
+            return ((ResourceTracker) obj).getResource()
+                                          .getRepository()
+                                          .getRootRepository();
+        if (obj instanceof Repository)
+            return ((Repository) obj).getRootRepository();
+
+        // something we can't compare
+        throw new IllegalArgumentException("Can't compare "+obj);
+    }
+
+    private String getFullName(Object obj) {
+        if (obj instanceof Resource)
+            return ((Resource) obj).getName();
+        if (obj instanceof ResourceTracker)
+            return ((ResourceTracker) obj).getResource()
+                                          .getName();
+        if (obj instanceof Repository)
+            return ((Repository) obj).getName();
+
+        // something we can't compare
+        throw new IllegalArgumentException("Can't compare "+obj);
     }
 
 }
