@@ -365,7 +365,7 @@ public final class DbMapping implements Updatable {
         }
 
         if (dbSource == null) {
-            throw new SQLException("Datasource is not defined: " + dbSourceName + ".");
+            throw new SQLException("Datasource not defined or unable to load driver: " + dbSourceName + ".");
         }
 
         return dbSource.getConnection();
