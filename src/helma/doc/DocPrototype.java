@@ -138,7 +138,7 @@ public class DocPrototype extends DocDirElement {
                 System.out.println("couldn't parse file " + f.getAbsolutePath() + ": " +
                                    ex.toString());
                 ex.printStackTrace();
-            } catch (FESI.Parser.TokenMgrError err) {
+            } catch (Throwable err) {
                 System.out.println("couldn't parse file " + f.getAbsolutePath() + ": " +
                                    err.toString());
             }
