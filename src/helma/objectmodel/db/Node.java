@@ -702,7 +702,7 @@ public final class Node implements INode, Serializable {
         // check what's specified in the type.properties for this node.
         ParentInfo[] parentInfo = null;
 
-        if (lastParentSet <= Math.max(dbmap.getLastTypeChange(), lastmodified)) {
+        if (dbmap != null && lastParentSet <= Math.max(dbmap.getLastTypeChange(), lastmodified)) {
             parentInfo = dbmap.getParentInfo();
         }
 
