@@ -61,7 +61,9 @@ public class ResponseTrans implements Externalizable {
     private transient Stack buffers;
 
     // the path used to resolve skin names
-    public transient Object skinpath = null;
+    private transient Object skinpath = null;
+    // the processed skinpath as array of Nodes or directory names
+    private transient Object[] translatedSkinpath = null;
 
     static final long serialVersionUID = -8627370766119740844L;
 
@@ -294,6 +296,23 @@ public class ResponseTrans implements Externalizable {
 	if (charset != null)
 	    return contentType+"; charset="+charset;
 	return contentType;
+    }
+
+    public void setSkinpath (Object obj) {
+	this.skinpath = obj;
+	this.translatedSkinpath = null;
+    }
+
+    public Object getSkinpath () {
+	return skinpath;
+    }
+
+    public void setTranslatedSkinpath (Object[] arr) {
+	this.translatedSkinpath = arr;
+    }
+
+    public Object[] getTranslatedSkinpath () {
+	return translatedSkinpath;
     }
 
     public synchronized void setCookie (String key, String value) {
