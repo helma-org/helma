@@ -400,9 +400,9 @@ public class ESNode extends ObjectPrototype {
 	}
 
 	// this is not very nice, but as a hack we return the id of a node as node.__id__
-	if ("__id__".equals (propertyName))
+	if ("__id__".equalsIgnoreCase (propertyName))
 	    return new ESString (node.getID ());
-	if ("__prototype__".equals (propertyName))
+	if ("__prototype__".equalsIgnoreCase (propertyName))
 	    return new ESString (node.getPrototype ());
 
              // this _may_ do a relational query if properties are mapped to a relational type.
