@@ -40,7 +40,7 @@ public class PathWrapper extends ScriptableObject {
 
         // initialize properties and functions
         int attributes = DONTENUM | READONLY | PERMANENT;
-        setParentScope(core.global);
+        setParentScope(core.getScope());
         setPrototype(null);
         defineProperty("length", PathWrapper.class, attributes);
         defineFunctionProperties(new String[] {"href"}, PathWrapper.class, attributes);
@@ -62,7 +62,7 @@ public class PathWrapper extends ScriptableObject {
         Object obj = path.getByPrototypeName(name);
 
         if (obj != null) {
-            return Context.toObject(obj, core.global);
+            return Context.toObject(obj, core.getScope());
         }
 
         return super.get(name, start);
@@ -75,7 +75,7 @@ public class PathWrapper extends ScriptableObject {
         Object obj = path.get(idx);
 
         if (obj != null) {
-            return Context.toObject(obj, core.global);
+            return Context.toObject(obj, core.getScope());
         }
 
         return null;
