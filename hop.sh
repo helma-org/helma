@@ -32,11 +32,11 @@ else
    JAVACMD=java
 fi
 
-# Check if java command is executable
-if [ ! -x "$JAVACMD" ] ; then
-   echo "Error: JAVA_HOME is not defined correctly."
-   echo "  We cannot execute $JAVACMD"
-   exit
+
+# If JAVA_HOME is set, check if java command is executable
+if [ $JAVA_HOME -a ! -x $JAVACMD ] ; then
+   echo "Warning: JAVA_HOME variable may be set incorrectly:"
+   echo "         No executable found at $JAVACMD"
 fi
 
 # Get the Helma installation directory
