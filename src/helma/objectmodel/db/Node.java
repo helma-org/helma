@@ -45,8 +45,6 @@ public final class Node implements INode, Serializable {
     // Named subnodes (properties) of this node
     private Hashtable propMap;
 
-    // Other nodes that link to this node. Used for reference counting/checking
-    private List links;
     protected long created;
     protected long lastmodified;
     private String id;
@@ -193,7 +191,8 @@ public final class Node implements INode, Serializable {
             lastmodified = in.readLong();
 
             subnodes = (ExternalizableVector) in.readObject();
-            links = (ExternalizableVector) in.readObject();
+            // left-over from links vector
+            in.readObject();
             propMap = (Hashtable) in.readObject();
             anonymous = in.readBoolean();
             prototype = (String) in.readObject();
@@ -223,7 +222,8 @@ public final class Node implements INode, Serializable {
             out.writeObject(subnodes);
         }
 
-        out.writeObject(links);
+        // left-over from links vector
+        out.writeObject(null);
         out.writeObject(propMap);
         out.writeBoolean(anonymous);
         out.writeObject(prototype);
@@ -907,7 +907,7 @@ public final class Node implements INode, Serializable {
                 }
             }
 
-            if (!"root".equalsIgnoreCase(node.getPrototype())) {
+            if (node != this && !"root".equalsIgnoreCase(node.getPrototype())) {
                 // avoid calling getParent() because it would return bogus results
                 // for the not-anymore transient node
                 Node nparent = (node.parentHandle == null) ? null
@@ -919,11 +919,6 @@ public final class Node implements INode, Serializable {
                         ((state != TRANSIENT) && (nparent.getState() == TRANSIENT))) {
                     node.setParent(this);
                     node.anonymous = true;
-                } else if ((nparent != null) && ((nparent != this) || !node.anonymous)) {
-                    // this makes the additional job of addLink, registering that we have
-                    // a link to a node in our subnodes that actually sits somewhere else.
-                    // This means that addLink and addNode are actually the same now.
-                    node.registerLinkFrom(this);
                 }
             }
         }
@@ -995,30 +990,6 @@ public final class Node implements INode, Serializable {
         return n;
     }
 
-    /**
-     * register a node that links to this node so we can notify it when we cease to exist.
-     * this is only necessary if we are a non-relational node, since for relational nodes
-     * the referring object will notice that we've gone at runtime.
-     */
-    protected void registerLinkFrom(Node from) {
-        if (isRelational()) {
-            return;
-        }
-
-        if (from.getState() == TRANSIENT) {
-            return;
-        }
-
-        if (links == null) {
-            links = new ExternalizableVector();
-        }
-
-        Object fromHandle = from.getHandle();
-
-        if (!links.contains(fromHandle)) {
-            links.add(fromHandle);
-        }
-    }
 
     /**
      * This implements the getChild() method of the IPathElement interface
@@ -1046,7 +1017,7 @@ public final class Node implements INode, Serializable {
             return getSubnode(name);
         } else {
             // no dbmapping - just try child collection first, then named property.
-            IPathElement child = getSubnode(name);
+            INode child = getSubnode(name);
 
             if (child == null) {
                 child = getNode(name);
@@ -1071,9 +1042,8 @@ public final class Node implements INode, Serializable {
      * @return ...
      */
     public INode getSubnode(String subid) {
-        // System.err.println ("GETSUBNODE : "+this+" > "+subid);
-        if ("".equals(subid)) {
-            return this;
+        if (subid == null || subid.length() == 0) {
+            return null;
         }
 
         Node retval = null;
@@ -1205,14 +1175,11 @@ public final class Node implements INode, Serializable {
      * @return ...
      */
     public boolean remove() {
-        checkWriteLock();
-
-        try {
-            getParent().removeNode(this);
-        } catch (Exception x) {
-            return false;
+        INode parent = getParent();
+        if (parent != null) {
+            parent.removeNode(this);
         }
-
+        deepRemoveNode();
         return true;
     }
 
@@ -1222,30 +1189,8 @@ public final class Node implements INode, Serializable {
      * @param node ...
      */
     public void removeNode(INode node) {
-        // nmgr.logEvent ("removing: "+ node);
         Node n = (Node) node;
-
-        checkWriteLock();
-        n.checkWriteLock();
-
-        // need to query parent before releaseNode is called, since this may change the parent
-        // to the next option described in the type.properties _parent info
-        INode parent = n.getParent();
-
         releaseNode(n);
-
-        if (parent == this) {
-            n.deepRemoveNode();
-        } else {
-            // removed just a link, not the main node.
-            if (n.links != null) {
-                n.links.remove(getHandle());
-
-                if (n.state == CLEAN) {
-                    n.markAs(MODIFIED);
-                }
-            }
-        }
     }
 
     /**
@@ -1253,11 +1198,19 @@ public final class Node implements INode, Serializable {
      *  The logical stuff necessary for keeping data consistent is done in removeNode().
      */
     protected void releaseNode(Node node) {
+        INode parent = node.getParent();
+
+        checkWriteLock();
+        node.checkWriteLock();
+
+        boolean removed = false;
+
         if (subnodes != null) {
-            subnodes.remove(node.getHandle());
+            removed = subnodes.remove(node.getHandle());
         }
 
-        registerSubnodeChange();
+        if (removed)
+            registerSubnodeChange();
 
         // check if subnodes are also accessed as properties. If so, also unset the property
         if ((dbmap != null) && (node.dbmap != null)) {
@@ -1274,6 +1227,11 @@ public final class Node implements INode, Serializable {
                     unset(prop);
                 }
             }
+        }
+
+        if (parent == this) {
+            // node.markAs(MODIFIED);
+            node.setParentHandle(null);
         }
 
         // If subnodes are relational no need to mark this node as modified
@@ -1295,25 +1253,17 @@ public final class Node implements INode, Serializable {
      * it can tell which nodes are actual children and which are just linked in.
      */
     protected void deepRemoveNode() {
-        // notify nodes that link to this node being deleted.
-        int l = (links == null) ? 0 : links.size();
-
-        for (int i = 0; i < l; i++) {
-            NodeHandle lhandle = (NodeHandle) links.get(i);
-            Node link = lhandle.getNode(nmgr);
-
-            if (link != null) {
-                link.releaseNode(this);
-            }
-        }
 
         // tell all nodes that are properties of n that they are no longer used as such
         if (propMap != null) {
-            for (Enumeration e2 = propMap.elements(); e2.hasMoreElements();) {
-                Property p = (Property) e2.nextElement();
+            for (Enumeration en = propMap.elements(); en.hasMoreElements();) {
+                Property p = (Property) en.nextElement();
 
                 if ((p != null) && (p.getType() == Property.NODE)) {
-                    p.unregisterNode();
+                    Node n = (Node) p.getNodeValue();
+                    if (n != null && !n.isRelational() && n.getParent() == this) {
+                        n.deepRemoveNode();
+                    }
                 }
             }
         }
@@ -1324,8 +1274,8 @@ public final class Node implements INode, Serializable {
             Vector v = new Vector();
 
             // remove modifies the Vector we are enumerating, so we are extra careful.
-            for (Enumeration e3 = getSubnodes(); e3.hasMoreElements();) {
-                v.add(e3.nextElement());
+            for (Enumeration en = getSubnodes(); en.hasMoreElements();) {
+                v.add(en.nextElement());
             }
 
             int m = v.size();
@@ -1335,8 +1285,8 @@ public final class Node implements INode, Serializable {
                 // a cascading delete on that criterium for relational nodes.
                 Node n = (Node) v.get(i);
 
-                if (!n.isRelational()) {
-                    removeNode(n);
+                if (!n.isRelational() && n.getParent() == this) {
+                    n.deepRemoveNode();
                 }
             }
         }
@@ -1668,7 +1618,7 @@ public final class Node implements INode, Serializable {
 
         // 3) try to get the property from the database via accessname, if defined
         //    (only do this if accessname or groupby is specified)
-        if (rel == null && dbmap != null && state != TRANSIENT) {
+        /* if (rel == null && dbmap != null && state != TRANSIENT) {
             rel = dbmap.getSubnodeRelation();
 
             if (rel != null && rel.createOnDemand()) {
@@ -1681,10 +1631,11 @@ public final class Node implements INode, Serializable {
                         n.name = propname;
                         n.anonymous = false;
                     }
+
                     return new Property(propname, this, n);
                 }
             }
-        }
+        } */
 
         // 4) nothing to be found - return null
         return null;
@@ -2181,10 +2132,20 @@ public final class Node implements INode, Serializable {
 
         // check if the main identity of this node is as a named property
         // or as an anonymous node in a collection
-        if ((n.parentHandle == null) && !"root".equalsIgnoreCase(n.getPrototype())) {
-            n.setParent(this);
-            n.name = propname;
-            n.anonymous = false;
+        if (n != this && !"root".equalsIgnoreCase(n.getPrototype())) {
+            // avoid calling getParent() because it would return bogus results
+            // for the not-anymore transient node
+            Node nparent = (n.parentHandle == null) ? null
+                                                    : n.parentHandle.getNode(nmgr);
+
+            // if the node doesn't have a parent yet, or it has one but it's
+            // transient while we are persistent, make this the nodes new parent.
+            if ((nparent == null) ||
+               ((state != TRANSIENT) && (nparent.getState() == TRANSIENT))) {
+                n.setParent(this);
+                n.name = propname;
+                n.anonymous = false;
+            }
         }
 
         propname = propname.trim();
@@ -2238,19 +2199,10 @@ public final class Node implements INode, Serializable {
             }
         }
 
-        /* if (rel != null && rel.reftype == Relation.REFERENCE && !rel.usesPrimaryKey ()) {
-           // if the relation for this property doesn't use the primary key of the value object, make a
-           // secondary key object with the proper db column
-           String kval = n.getString (rel.otherType.columnNameToProperty (rel.getRemoteField ()), false);
-           prop.nhandle = new NodeHandle (new DbKey (n.getDbMapping (), kval, rel.getRemoteField ()));
-           } */
-
         // don't check node in transactor cache if node is transient -
         // this is done anyway when the node becomes persistent.
         if (n.state != TRANSIENT) {
             // check node in with transactor cache
-            // String nID = n.getID();
-            // DbMapping dbm = n.getDbMapping ();
             Transactor tx = (Transactor) Thread.currentThread();
 
             // tx.visitCleanNode (new DbKey (dbm, nID), n);
@@ -2296,10 +2248,6 @@ public final class Node implements INode, Serializable {
 
             if (p != null) {
                 checkWriteLock();
-
-                if (p.getType() == Property.NODE) {
-                    p.unregisterNode();
-                }
 
                 if (relational) {
                     p.setStringValue(null);
@@ -2502,7 +2450,6 @@ public final class Node implements INode, Serializable {
     public void dump() {
         System.err.println("subnodes: " + subnodes);
         System.err.println("properties: " + propMap);
-        System.err.println("links: " + links);
     }
 
 }
