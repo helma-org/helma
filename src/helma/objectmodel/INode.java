@@ -14,8 +14,6 @@ import java.io.*;
  
 public interface INode {
 
-    public final static String webTypes = "image/jpeg, image/gif, image/png";
-
     public final static int TRANSIENT = -3;
     public final static int VIRTUAL = -2;
     public final static int INVALID = -1;
@@ -23,7 +21,6 @@ public interface INode {
     public final static int NEW = 1;
     public final static int MODIFIED = 2;
     public final static int DELETED = 3;
-
 
 
     /** 
