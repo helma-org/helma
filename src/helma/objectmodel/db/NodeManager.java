@@ -274,13 +274,16 @@ public final class NodeManager {
         if (rel.isComplexReference()) {
             // a key for a complex reference
             key = new MultiKey(rel.otherType, rel.getKeyParts(home));
-        } else if (rel.virtual || (rel.groupby != null) || !rel.usesPrimaryKey()) {
+        // } else if (rel.virtual || (rel.groupby != null) || !rel.usesPrimaryKey()) {
+        } else if (rel.createOnDemand()) {
             // a key for a virtually defined object that's never actually  stored in the db
-            // or a key for an object that represents subobjects grouped by some property, generated on the fly
+            // or a key for an object that represents subobjects grouped by some property,
+            // generated on the fly
             key = new SyntheticKey(home.getKey(), kstr);
         } else {
             // if a key for a node from within the DB
-            // FIXME: This should never apply, since for every relation-based loading Synthetic Keys are used. Right?
+            // FIXME: This should never apply, since for every relation-based loading
+            // Synthetic Keys are used. Right?
             key = new DbKey(rel.otherType, kstr);
         }
 
