@@ -203,8 +203,13 @@ public final class XmlReader extends DefaultHandler implements XmlConstants {
                     if (propName == null) {
                         propName = qName;
                     }
-
-                    currentNode.setNode(propName, n);
+                    
+                    if ("hop:parent".equals(qName)) {
+                        // FIXME: we ought to set parent here, but we're 
+                        // dealing with INodes, which don't have a setParent().
+                    } else {
+                        currentNode.setNode(propName, n);
+                    }
                 }
             }
         } else {
