@@ -6,7 +6,6 @@ package helma.objectmodel.db;
 import java.io.*;
 import java.util.Vector;
 import java.util.Properties;
-import Acme.LruHashtable;
 import helma.util.CacheMap;
 import helma.objectmodel.*;
 import helma.framework.core.Application;
