@@ -252,7 +252,9 @@ public abstract class AbstractServletClient extends HttpServlet {
 	        OutputStream out = res.getOutputStream ();
 	        out.write (trans.getContent ());
 	        out.close ();
-	    } catch(Exception io_e) {}
+	    } catch(Exception io_e) {
+	        System.err.println ("Exception in writeResponse: "+io_e);
+	    }
 	}
     }
 	
@@ -268,24 +270,17 @@ public abstract class AbstractServletClient extends HttpServlet {
     public FileUpload getUpload (HttpServletRequest request) throws Exception {
 	int contentLength = request.getContentLength ();
 	BufferedInputStream in = new BufferedInputStream (request.getInputStream ());
-	FileUpload upload = null;
-	try {
-	    if (contentLength > uploadLimit*1024) {
-	        // consume all input to make Apache happy
-	        byte b[] = new byte[1024];
-	        int read = 0;
-	        while (read > -1)
-	             read = in.read (b, 0, 1024);
-	        throw new RuntimeException ("Upload exceeds limit of "+uploadLimit+" kb.");
-	    }
-	    String contentType = request.getContentType ();
-	    upload = new FileUpload(uploadLimit);
-	    upload.load (in, contentType, contentLength);
-	} finally {
-	    try {
-	        in.close ();
-	    } catch (Exception ignore) {}
+	if (contentLength > uploadLimit*1024) {
+	    // consume all input to make Apache happy
+	    byte b[] = new byte[1024];
+	    int read = 0;
+	    while (read > -1)
+	         read = in.read (b, 0, 1024);
+	    throw new RuntimeException ("Upload exceeds limit of "+uploadLimit+" kb.");
 	}
+	String contentType = request.getContentType ();
+	FileUpload upload = new FileUpload(uploadLimit);
+	upload.load (in, contentType, contentLength);
 	return upload;
     }
 
