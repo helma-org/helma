@@ -8,23 +8,26 @@
     <!-- =================================================================== -->
     <!-- Initializes some variables                                          -->
     <!-- =================================================================== -->
-    <target name="init">    
+    <target name="init">
         <property name="Name" value="Hop"/>
         <property name="year" value="1998-2001"/>
         <property name="version" value="1.0.beta1"/>
         <property name="project" value="hop"/>
         <property name="build.compiler" value="classic"/>
-        <property name="build.dir" value="../bin"/>
+        <property name="build.dir" value="../work"/>
         <property name="build.src" value="${build.dir}/src"/>
         <property name="build.dest" value="${build.dir}/classes"/>
-        <property name="src.java.dir" value="../"/>
+        <property name="build.checkout" value="${build.dir}/checkout"/>
         <property name="javadoc.destdir" value="../docs/apidocs"/>
+        <property name="jar.name" value="helma"/>
         <property name="final.name" value="${project}-${version}"/>
         <property name="final.dir" value="../${final.name}/"/>
         <property name="debug" value="on"/>
         <property name="optimize" value="on"/>
         <property name="deprecation" value="off"/>
-        
+
+        <tstamp/>
+
         <filter token="year" value="${year}"/>
         <filter token="version" value="${version}"/>
         <filter token="date" value="${TODAY}"/>
@@ -37,9 +40,18 @@
         <mkdir dir="${build.dir}"/>
         <mkdir dir="${build.dest}"/>
         <mkdir dir="${build.src}"/>
+        <mkdir dir="${build.checkout}"/>
+
+        <cvs cvsRoot=":pserver:anonymous@coletta.helma.at:/opt/cvs"
+            package="hop"
+            dest="${build.checkout}"/>
+
+        <cvs cvsRoot=":pserver:anonymous@coletta.helma.at:/opt/cvs"
+            package="hopbuild/lib"
+            dest="${build.dir}"/>
 
         <copy todir="${build.src}">
-            <fileset dir="${src.java.dir}"
+            <fileset dir="${build.checkout}/hop"
                 includes="helma/**/*.java,FESI/**/*.java,Acme/**/*.java"/>
         </copy>
 
@@ -55,19 +67,24 @@
             deprecation="${deprecation}"
             optimize="${optimize}">
             <classpath>
-                <fileset dir="../lib">
+                <fileset dir="${build.dir}/hopbuild/lib">
                      <include name="**/*.jar" />
                 </fileset>
                 <pathelement path="${classpath}" />
             </classpath>
         </javac>
+
+        <rmic classname="helma.framework.core.Application" base="${build.dest}"/>
+        <rmic classname="helma.image.Server" base="${build.dest}"/>
+        <rmic classname="helma.image.RemoteImage" base="${build.dest}"/>
+
     </target>
 
     <!-- =================================================================== -->
-    <!-- Compiles the source directory and creates a .jar file               -->
+    <!-- Creates a .jar file               -->
     <!-- =================================================================== -->
     <target name="jar" depends="compile">
-        <jar jarfile="${build.dir}/${final.name}.jar"
+        <jar jarfile="${build.dir}/${jar.name}.jar"
             basedir="${build.dest}"
             excludes="**/package.html"/>
     </target>
@@ -121,4 +138,13 @@
     <!-- =================================================================== -->
     <target name="package-all" depends="package-zip, package-tgz">
     </target>
+
+    <!-- =================================================================== -->
+    <!-- Packages just the jar with ZIP                                  -->
+    <!-- =================================================================== -->
+    <target name="snapshot" depends="jar">
+        <copy file="${build.dir}/${jar.name}.jar" tofile="../helma${DSTAMP}.jar"/>
+    </target>
+
+
 </project>
