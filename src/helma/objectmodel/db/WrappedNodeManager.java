@@ -23,7 +23,7 @@ import java.util.Vector;
     }
 
     public Node getNode (String id, DbMapping dbmap) {
-	return getNode (new Key (dbmap, id));
+	return getNode (new DbKey (dbmap, id));
     }
 
     public Node getNode (Key key) {
