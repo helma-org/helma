@@ -388,7 +388,7 @@ public final class RhinoCore {
             for (int i=0; i<a.length; i++) {
                 a[i] = processXmlRpcArgument(a[i]);
             }
-            return Context.toObject(a, global);
+            return Context.getCurrentContext().newArray(global, a);
         }
         if (what instanceof Hashtable) {
             Hashtable t = (Hashtable) what;
