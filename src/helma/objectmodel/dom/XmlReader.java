@@ -153,8 +153,8 @@ public class XmlReader implements XmlConstants	{
 	public helma.objectmodel.db.Node convert (Element element)	{
 		// FIXME: this method should use Element.getAttributeNS():
 		// FIXME: do we need the name value or is it retrieved through mappings anyway?
-//		String name = element.getAttribute("hop:name");
-		String name = null;
+		String name = element.getAttribute("hop:name");
+// 		String name = null;
 		String id = element.getAttribute("hop:id");
 		String prototype = element.getAttribute("hop:prototype");
 		if ( "".equals(prototype) )
