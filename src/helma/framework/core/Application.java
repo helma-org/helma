@@ -23,8 +23,8 @@ import java.rmi.server.*;
 
 /**
  * The central class of a Helma application. This class keeps a pool of so-called
- * request evaluators (threads with JavaScript interpreters), waits for 
- * requests from the Web server or XML-RPC port and dispatches them to 
+ * request evaluators (threads with JavaScript interpreters), waits for
+ * requests from the Web server or XML-RPC port and dispatches them to
  * the evaluators.
  */
 public class Application extends UnicastRemoteObject implements IRemoteApp, IPathElement, IReplicatedApp, Runnable {
@@ -63,7 +63,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 
     boolean stopped = false;
     boolean debug;
-	public long starttime;
+    public long starttime;
 
     public Hashtable sessions;
     public Hashtable activeUsers;
@@ -107,12 +107,14 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 
     // Map of java class names to object prototypes
     Properties classMapping;
+    // Map of extensions allowed for public skins
+    Properties skinExtensions;
 
     // a cache for parsed skin objects
     public CacheMap skincache = new CacheMap (200, 0.80f);
 
-	// DocApplication used for introspection
-	public DocApplication docApp;
+    // DocApplication used for introspection
+    public DocApplication docApp;
 
     /**
      *  Zero argument constructor needed for RMI
@@ -189,7 +191,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 
 	// the properties that map java class names to prototype names
 	classMapping = new SystemProperties (new File (appDir, "class.properties").getAbsolutePath ());
-	
+	// the properties that map allowed public skin extensions to content types
+	skinExtensions = new SystemProperties (new File (appDir, "mime.properties").getAbsolutePath ());
+
 	// character encoding to be used for responses
 	charset = props.getProperty ("charset", "ISO-8859-1");
 
