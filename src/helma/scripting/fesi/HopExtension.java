@@ -18,28 +18,28 @@ import java.text.*;
 import org.xml.sax.InputSource;
 
 /** 
- * This is the basic Extension for FESI interpreters used in HOP. It sets up
- * varios constructors, global functions and properties etc.
+ * This is the basic Extension for FESI interpreters used in HOP. It sets up 
+ * varios constructors, global functions and properties etc. 
  */
-
+ 
 public class HopExtension {
 
     protected Application app;
-    protected FesiEvaluator fesi;
+    protected RequestEvaluator reval;
 
-    public HopExtension (Application app) {
-        this.app = app;
+    public HopExtension () {
+        super();
     }
 
 
     /**
      * Called by the evaluator after the extension is loaded.
      */
-    public void initializeExtension (FesiEvaluator fesi) throws EcmaScriptException {
+    public void initializeExtension (RequestEvaluator reval) throws EcmaScriptException {
 
-        this.fesi = fesi;
-        Evaluator evaluator = fesi.getEvaluator ();
-
+        this.reval = reval;
+        this.app = reval.app;
+        Evaluator evaluator = reval.evaluator;
         GlobalObject go = evaluator.getGlobalObject();
         FunctionPrototype fp = (FunctionPrototype) evaluator.getFunctionPrototype();
 
@@ -57,41 +57,41 @@ public class HopExtension {
         dp.putHiddenProperty ("format", new DatePrototypeFormat ("format", evaluator, fp));
 
         // generic (Java wrapper) object prototype
-        ObjectPrototype esObjectPrototype = new ObjectPrototype (op, evaluator);
+        reval.esObjectPrototype = new ObjectPrototype (op, evaluator);
         // the Node prototype
-        ObjectPrototype esNodePrototype = new ObjectPrototype(op, evaluator);
+        reval.esNodePrototype = new ObjectPrototype(op, evaluator);
         // the User prototype
-        ObjectPrototype esUserPrototype = new ObjectPrototype (esNodePrototype, evaluator);
+        reval.esUserPrototype = new ObjectPrototype (reval.esNodePrototype, evaluator);
         // the Node constructor
-        ESObject node = new NodeConstructor ("Node", fp, fesi);
+        ESObject node = new NodeConstructor ("Node", fp, reval);
 
         // register the default methods of Node objects in the Node prototype
-        esNodePrototype.putHiddenProperty ("add", new NodeAdd ("add", evaluator, fp));
-        esNodePrototype.putHiddenProperty ("addAt", new NodeAddAt ("addAt", evaluator, fp));
-        esNodePrototype.putHiddenProperty ("remove", new NodeRemove ("remove", evaluator, fp));
-        esNodePrototype.putHiddenProperty ("link", new NodeLink ("link", evaluator, fp));
-        esNodePrototype.putHiddenProperty ("list", new NodeList ("list", evaluator, fp));
-        esNodePrototype.putHiddenProperty ("set", new NodeSet ("set", evaluator, fp));
-        esNodePrototype.putHiddenProperty ("get", new NodeGet ("get", evaluator, fp));
-        esNodePrototype.putHiddenProperty ("count", new NodeCount ("count", evaluator, fp));
-        esNodePrototype.putHiddenProperty ("contains", new NodeContains ("contains", evaluator, fp));
-        esNodePrototype.putHiddenProperty ("size", new NodeCount ("size", evaluator, fp));
-        esNodePrototype.putHiddenProperty ("editor", new NodeEditor ("editor", evaluator, fp));
-        esNodePrototype.putHiddenProperty ("path", new NodeHref ("path", evaluator, fp));
-        esNodePrototype.putHiddenProperty ("href", new NodeHref ("href", evaluator, fp));
-        esNodePrototype.putHiddenProperty ("setParent", new NodeSetParent ("setParent", evaluator, fp));
-        esNodePrototype.putHiddenProperty ("invalidate", new NodeInvalidate ("invalidate", evaluator, fp));
-        esNodePrototype.putHiddenProperty ("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, false, false));
-        esNodePrototype.putHiddenProperty ("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, true));
-        esNodePrototype.putHiddenProperty ("clearCache", new NodeClearCache ("clearCache", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("add", new NodeAdd ("add", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("addAt", new NodeAddAt ("addAt", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("remove", new NodeRemove ("remove", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("link", new NodeLink ("link", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("list", new NodeList ("list", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("set", new NodeSet ("set", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("get", new NodeGet ("get", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("count", new NodeCount ("count", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("contains", new NodeContains ("contains", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("size", new NodeCount ("size", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("editor", new NodeEditor ("editor", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("path", new NodeHref ("path", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("href", new NodeHref ("href", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("setParent", new NodeSetParent ("setParent", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("invalidate", new NodeInvalidate ("invalidate", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, false, false));
+        reval.esNodePrototype.putHiddenProperty ("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, true));
+        reval.esNodePrototype.putHiddenProperty ("clearCache", new NodeClearCache ("clearCache", evaluator, fp));
 
-       // default methods for generic Java wrapper object prototype.
+        // default methods for generic Java wrapper object prototype.
         // This is a small subset of the methods in esNodePrototype.
-        esObjectPrototype.putHiddenProperty ("href", new NodeHref ("href", evaluator, fp));
-        esObjectPrototype.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, false, false));
-        esObjectPrototype.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, true));
+        reval.esObjectPrototype.putHiddenProperty ("href", new NodeHref ("href", evaluator, fp));
+        reval.esObjectPrototype.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, false, false));
+        reval.esObjectPrototype.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, true));
 
-       // methods that give access to properties and global user lists
+        // methods that give access to properties and global user lists
         go.putHiddenProperty("Node", node); // register the constructor for a plain Node object.
         go.putHiddenProperty("HopObject", node); // HopObject is the new name for node.
         go.putHiddenProperty("getProperty", new GlobalGetProperty ("getProperty", evaluator, fp));
@@ -117,22 +117,17 @@ public class HopExtension {
         go.putHiddenProperty("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, true, false));
         go.putHiddenProperty("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, true, true));
         go.putHiddenProperty("authenticate", new GlobalAuthenticate ("authenticate", evaluator, fp));
-        // don't allow script writers to shut down Helma... ;-)
         go.deleteProperty("exit", "exit".hashCode());
 
         // and some methods for session management from JS...
-        esUserPrototype.putHiddenProperty("logon", new UserLogin ("logon", evaluator, fp));
-        esUserPrototype.putHiddenProperty("login", new UserLogin ("login", evaluator, fp));
-        esUserPrototype.putHiddenProperty("register", new UserRegister ("register", evaluator, fp));
-        esUserPrototype.putHiddenProperty("logout", new UserLogout ("logout", evaluator, fp));
-        esUserPrototype.putHiddenProperty("onSince", new UserOnSince ("onSince", evaluator, fp));
-        esUserPrototype.putHiddenProperty("lastActive", new UserLastActive ("lastActive", evaluator, fp));
-        esUserPrototype.putHiddenProperty("touch", new UserTouch ("touch", evaluator, fp));
+        reval.esUserPrototype.putHiddenProperty("logon", new UserLogin ("logon", evaluator, fp));
+        reval.esUserPrototype.putHiddenProperty("login", new UserLogin ("login", evaluator, fp));
+        reval.esUserPrototype.putHiddenProperty("register", new UserRegister ("register", evaluator, fp));
+        reval.esUserPrototype.putHiddenProperty("logout", new UserLogout ("logout", evaluator, fp));
+        reval.esUserPrototype.putHiddenProperty("onSince", new UserOnSince ("onSince", evaluator, fp));
+        reval.esUserPrototype.putHiddenProperty("lastActive", new UserLastActive ("lastActive", evaluator, fp));
+        reval.esUserPrototype.putHiddenProperty("touch", new UserTouch ("touch", evaluator, fp));
 
-        // register object prototypes with FesiEvaluator
-        fesi.putPrototype ("global", go);
-        fesi.putPrototype ("hopobject", esNodePrototype);
-        fesi.putPrototype ("user", esUserPrototype);
     }
 
     class NodeAdd extends BuiltinFunctionObject {
@@ -432,7 +427,7 @@ public class HopExtension {
             if (unode == null)
                 return ESNull.theNull;
             else
-                return  fesi.getNodeWrapper (unode);
+                return  reval.getNodeWrapper (unode);
         }
     }
 
@@ -547,13 +542,12 @@ public class HopExtension {
         }
         public ESValue callFunction (ESObject thisObj, ESValue[] arguments) throws EcmaScriptException {
             if (arguments.length < 1 || arguments.length > 2 || arguments[0] ==null || arguments[0] == ESNull.theNull)
-                throw new EcmaScriptException ("renderSkin requires one argument containing the skin name and an optional parameter object argument");
+                throw new EcmaScriptException ("renderSkin must be called with one Skin argument and an optional parameter argument");
             try {
                 Skin skin = null;
                 ESObject thisObject = global ? null : thisObj;
                 HashMap params = null;
                 if (arguments.length > 1 && arguments[1] instanceof ESObject) {
-                    // create an parameter object to pass to the skin
                     ESObject paramObject = (ESObject) arguments[1];
                     params = new HashMap ();
                     for (Enumeration en=paramObject.getProperties(); en.hasMoreElements(); ) {
@@ -569,13 +563,13 @@ public class HopExtension {
                         skin = (Skin) obj;
                 }
 
-                Object javaObject = thisObject == null ? null : thisObject.toJavaObject ();
                 if (skin == null)
-                    skin = app.getSkin (javaObject, arguments[0].toString ());
+                    skin = reval.getSkin (thisObject, arguments[0].toString ());
                 if (asString)
                     reval.res.pushStringBuffer ();
+                Object javaObj = thisObject == null ? null : thisObject.toJavaObject ();
                 if (skin != null)
-                    skin.render (reval, javaObject, params);
+                    skin.render (reval, javaObj, params);
                 else
                     reval.res.write ("[Skin not found: "+arguments[0]+"]");
                 if (asString)
@@ -605,7 +599,7 @@ public class HopExtension {
 	}
         	if (user == null)
         	    return ESNull.theNull;
-        	return fesi.getNodeWrapper (user);
+        	return reval.getNodeWrapper (user);
         }
     }
 
@@ -622,7 +616,7 @@ public class HopExtension {
         	if (user == null || user.getUID() == null)
         	    return ESNull.theNull;
 	user.touch ();
-        	return fesi.getNodeWrapper (user.getNode ());
+        	return reval.getNodeWrapper (user.getNode ());
         }
     }
 
@@ -659,7 +653,7 @@ public class HopExtension {
                User u = (User) e.nextElement ();
                // Note: we previously sorted out duplicate users - now we simply enumerate all active sessions.
                // if (u.uid == null || !visited.containsKey (u.uid)) {
-               theArray.setElementAt (fesi.getNodeWrapper (u), i++);
+               theArray.setElementAt (reval.getNodeWrapper (u), i++);
                // if (u.uid != null) visited.put (u.uid, u);
                // }
            }
@@ -898,6 +892,17 @@ public class HopExtension {
     }
 
 
+    /* class NodePath extends BuiltinFunctionObject {
+        NodePath (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 1);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+            INode n = ((ESNode) thisObject).getNode ();
+            String tmpname = arguments[0].toString ();
+            return new ESString (app.getNodePath (n, tmpname));
+        }
+    } */
+
     class NodeSetParent extends BuiltinFunctionObject {
         NodeSetParent (String name, Evaluator evaluator, FunctionPrototype fp) {
             super (fp, evaluator, name, 2);
@@ -970,7 +975,7 @@ public class HopExtension {
         double d = from <= to ? 1.0 : -1.0;
         for (double i=from; i*d<=to*d; i+=step) {
             if (Math.abs (i%1) < l) {
-            	   int j = (int) i;
+            	   int j = (int) i; 
                 b.append ("<option value=\""+j);
                 if (i == value) b.append ("\" selected=\"true");
                 b.append ("\">"+j);
@@ -983,11 +988,78 @@ public class HopExtension {
         b.append ("</select>");
         return b.toString ();
     }
+ 
+    private String getNodeChooserDD (String name, INode collection, INode target, String teaser) {
+        StringBuffer buffer = new StringBuffer ("<select name=\"");
+        buffer.append (name);
+        buffer.append ("\">");
+        if (collection.contains (target) == -1) {
+            buffer.append ("<option value=>");
+            buffer.append (HtmlEncoder.encodeAll (teaser));
+        }
+        if (collection != null) {
+        	int l = collection.numberOfNodes ();
+        	for (int i=0; i<l; i++) {
+        	    INode next = collection.getSubnodeAt (i);
+        	    buffer.append ("<option value=\"");
+        	    buffer.append (next.getID ());
+        	    if (target == next)
+        	        buffer.append ("\" selected=\"true");
+        	    buffer.append ("\">");
+        	    String cname = next.getString ("name", false);
+        	    if (cname == null) cname = next.getName ();
+        	    buffer.append (HtmlEncoder.encodeAll (cname));
+        	}
+        }
+        buffer.append ("</select>");
+        return buffer.toString ();
+    }
+    
+    private String getNodeChooserRB (String name, INode collection, INode target) {
+        StringBuffer buffer = new StringBuffer ();
+        if (collection != null) {
+        	int l = collection.numberOfNodes ();
+        	for (int i=0; i<l; i++) {
+        	    INode next = collection.getSubnodeAt (i);
+        	    buffer.append ("<input type=radio name=\"");
+        	    buffer.append (name);
+        	    buffer.append ("\" value=\"");
+        	    buffer.append (next.getElementName ()+"\"");
+        	    if (target == next)
+        	        buffer.append (" checked");
+        	    buffer.append (">");
+                 String cname = next.getString ("name", false);
+        	    if (cname == null) cname = next.getName ();
+        	    buffer.append (HtmlEncoder.encodeAll (cname));
+        	    buffer.append ("<br>");
+        	}
+        }
+        return buffer.toString ();
+    }
 
-
+    private String getNodeChooserCB (String name, INode collection, INode target) {
+        StringBuffer buffer = new StringBuffer ();
+         if (collection != null) {
+        	int l = collection.numberOfNodes ();
+        	for (int i=0; i<l; i++) {
+        	    INode next = collection.getSubnodeAt (i);
+        	    buffer.append ("<input type=checkbox name=\"");
+        	    buffer.append (name);
+        	    buffer.append ("\" value=");
+        	    buffer.append (next.getElementName ());
+        	    if (target.contains (next) > -1)
+        	        buffer.append (" checked");
+        	    buffer.append (">");
+        	    buffer.append (HtmlEncoder.encodeAll (next.getName ()));
+        	    buffer.append ("<br>");
+        	}
+        }
+        return buffer.toString ();
+    }
+  
  }
-
-
+ 
+ 
 
 
 

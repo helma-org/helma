@@ -20,11 +20,11 @@ public class ESAppNode extends ESNode {
     private Application app;
     private DatePrototype createtime;
 
-    public ESAppNode (INode node, FesiEvaluator eval) throws EcmaScriptException {
-	super (eval.getPrototype("hopobject"), eval.getEvaluator(), node, eval);
-	app = eval.getApplication();
-	createtime = new DatePrototype (evaluator, node.created());
-	FunctionPrototype fp = (FunctionPrototype) evaluator.getFunctionPrototype();
+    public ESAppNode (INode node, RequestEvaluator eval) throws EcmaScriptException {
+	super (eval.esNodePrototype, eval.evaluator, node, eval);
+	app = eval.app;
+	createtime = new DatePrototype (eval.evaluator, node.created());
+	FunctionPrototype fp = (FunctionPrototype) eval.evaluator.getFunctionPrototype();
 	putHiddenProperty("getThreads", new AppCountThreads ("getThreads", evaluator, fp));
 	putHiddenProperty("getMaxThreads", new AppCountEvaluators ("getMaxThreads", evaluator, fp));
 	putHiddenProperty("getFreeThreads", new AppCountFreeEvaluators ("getFreeThreads", evaluator, fp));

@@ -35,23 +35,23 @@ public class ESNode extends ObjectPrototype {
     NodeHandle handle;
     DbMapping dbmap;
     Throwable lastError = null;
-    FesiEvaluator eval;
+    RequestEvaluator eval;
     
     /**
      * Constructor used to create transient cache nodes
      */
-    public ESNode (INode node, FesiEvaluator eval) {
-	super (eval.getPrototype("hopobject"), eval.getEvaluator());
+    public ESNode (INode node, RequestEvaluator eval) {
+	super (eval.esNodePrototype, eval.evaluator);
 	this.eval = eval;
 	this.node = node;
 	cache = null;
 	cacheWrapper = null;
-
+	
 	// this is a transient node, set node handle to null
 	handle = null;
     }
-
-    public ESNode (ESObject prototype, Evaluator evaluator, Object obj, FesiEvaluator eval) {
+    
+    public ESNode (ESObject prototype, Evaluator evaluator, Object obj, RequestEvaluator eval) {
 	super (prototype, evaluator);
 	// eval.app.logEvent ("in ESNode constructor: "+o.getClass ());
 	this.eval = eval;
