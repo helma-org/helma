@@ -470,8 +470,8 @@ public final class FesiEvaluator implements ScriptingEngine {
 
 	String prototypeName = app.getPrototypeName (obj);
 	if ("user".equalsIgnoreCase (prototypeName) &&
-		"password".equalsIgnoreCase (propname))
-	    return "[macro access to password property not allowed]";
+	    "password".equalsIgnoreCase (propname))
+	    throw new RuntimeException ("access to password property not allowed");
 
                   // if this is a HopObject, check if the property is defined
 	// in the type.properties db-mapping.
@@ -480,7 +480,7 @@ public final class FesiEvaluator implements ScriptingEngine {
 	    if (dbm != null) {
 	        Relation rel = dbm.propertyToRelation (propname);
 	        if (rel == null || !rel.isPrimitive ())
-	            return "[property \""+propname+"\" is not defined for "+prototypeName+"]";
+	            throw new RuntimeException ("\""+propname+"\" is not defined in "+prototypeName);
 	    }
 	}
 
