@@ -71,6 +71,15 @@ public abstract class ImageWrapper {
         return g;
     }
 
+    /**
+     * Returns the Image object represented by this ImageWrapper.
+     *
+     * @return the image object
+     */
+    public Image getImage() {
+        return img;
+    }
+
 
     /**
      *  Set the font used to write on this image.
