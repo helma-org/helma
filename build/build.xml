@@ -17,7 +17,7 @@
         <property name="build.dir" value=".."/>
         <property name="build.src" value="${build.dir}/src"/>
         <property name="build.dest" value="${build.dir}/classes"/>
-	<property name="build.work" value="${build.dir}/work"/>
+        <property name="build.work" value="${build.dir}/work"/>
         <property name="build.checkout" value="${build.work}/checkout"/>
         <property name="cvs.root" value=":pserver:anonymous@coletta.helma.at:/opt/cvs"/>
         <property name="javadoc.destdir" value="../docs/apidocs"/>
@@ -169,12 +169,16 @@
         <!-- mkdir dir="${final.dir}/static"/ -->
 
         <mkdir dir="${final.dir}/src"/>
-        <jar jarfile="${final.dir}/src/${Name}-src.jar"
-            basedir="${build.src}"/>
+        <!-- jar jarfile="${final.dir}/src/${Name}-src.jar"
+            basedir="${build.src}"/ -->
 
-        <!-- copy todir="${final.dir}/src">
-            <fileset dir="${build.dir}/src"/>
-        </copy -->
+        <copy todir="${final.dir}/src">
+            <fileset dir="${build.dir}/src" excludes="{Name}-src.jar"/>
+        </copy>
+
+        <copy todir="${final.dir}/build">
+            <fileset dir="${build.dir}/build"/>
+        </copy>
 
         <copy todir="${final.dir}/docs">
             <fileset dir="../docs"/>
