@@ -262,7 +262,7 @@ public final class RhinoCore {
         // If this prototype defines a postCompile() function, call it
         Context cx = Context.getCurrentContext();
         try {
-            Object fObj = op.get("onCodeUpdate",op);
+            Object fObj = ScriptableObject.getProperty(op, "onCodeUpdate");
             if (fObj instanceof Function) {
                 ((Function) fObj).call(cx, global, op, new Object[0]);
             }
