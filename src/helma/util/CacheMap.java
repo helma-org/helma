@@ -231,14 +231,15 @@ public class CacheMap  {
 	oldValue = oldTable.get (key);
 	if (oldValue != null)
 	    oldTable.remove( key );
-	else {
-	    if (newTable.size() >= threshold) {
-		// Rotate the tables.
-		if (logger != null)
-		    logger.log ("Rotating Cache tables at "+newTable.size()+"/"+oldTable.size()+" (new/old)");
-		oldTable = newTable;
-		newTable = new HashMap (eachCapacity, loadFactor);
-	    }
+	// we put a key into newtable that wasn't there before. check if it
+	// grew beyond the threshold
+	if (newTable.size() >= threshold) {
+	    // Rotate the tables.
+	    if (logger != null)
+	        logger.log ("Rotating Cache tables at "+newTable.size()+
+	                    "/"+oldTable.size()+" (new/old)");
+	    oldTable = newTable;
+	    newTable = new HashMap (eachCapacity, loadFactor);
 	}
 	return oldValue;
     }
