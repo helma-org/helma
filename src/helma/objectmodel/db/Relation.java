@@ -477,16 +477,18 @@ public class Relation {
 	    if (propname != null) {
 	        INode home = constraints[i].isGroupby ? parent : parent.getNonVirtualParent ();
 	        String localName = constraints[i].localName;
-	        String value = null;
-	        if (localName == null  || localName.equals (ownType.getIDField ()))
-	            value = home.getID ();
-	        else if (ownType.isRelational ())
-	            value = home.getString (ownType.columnNameToProperty (localName), false);
-	        else
-	            value = home.getString (localName, false);
-	        if (value != null) {
-	            System.err.println ("SETTING "+child+"."+propname+" TO "+value);
-	            child.setString (propname, value);
+	        if (localName == null  || localName.equals (ownType.getIDField ())) {
+	            child.setNode (propname, parent);
+	        } else {
+	            String value = null;
+	            if (ownType.isRelational ())
+	                value = home.getString (ownType.columnNameToProperty (localName), false);
+	            else
+	                value = home.getString (localName, false);
+	            if (value != null) {
+	                // System.err.println ("SETTING "+child+"."+propname+" TO "+value);
+	                child.setString (propname, value);
+	            }
 	        }
 	    }
 	}
