@@ -203,7 +203,12 @@ import org.mortbay.util.*;
 	dbSources = new Hashtable ();
 
 	try {
-	    checkRunning ();  // check if a server is already running with this db
+	     // check if servers are already running on the given ports
+	    if (websrvPort==0)
+	        checkRunning (rmiPort);
+	    else
+	        checkRunning (websrvPort);
+	    checkRunning (xmlrpcPort);
 	} catch (Exception running) {
 	    System.out.println (running.getMessage ());
 	    System.exit (1);
@@ -383,14 +388,14 @@ import org.mortbay.util.*;
     /**
      *  A primitive method to check whether a server is already running on our port.
      */
-    private void checkRunning () throws Exception {
+    private void checkRunning (int portNumber) throws Exception {
 	try {
-	    java.net.Socket socket = new java.net.Socket ("localhost", rmiPort);
+	    java.net.Socket socket = new java.net.Socket ("localhost", portNumber);
 	} catch (Exception x) {
 	    return;
 	}
 	// if we got so far, another server is already running on this port and db
-	throw new Exception ("Error: Server already running on this port");
+	throw new Exception ("Error: Server already running on this port: " + portNumber);
     }
 
 	public String getProperty( String key )	{
