@@ -4,6 +4,7 @@ package helma.main.launcher;
 
 import java.net.URLClassLoader;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.lang.reflect.Method;
@@ -64,8 +65,12 @@ public class Main {
 	    } catch (Exception x) {
 	        // unable to get Helma installation dir from launcher jar
 	        System.err.println ("Unable to get Helma installation directory: "+x);
+	        System.exit (2);
 	    }
 	}
+
+	// decode installDir in case it is URL-encoded
+	installDir = URLDecoder.decode (installDir);
 
 	// set up the class path
 	File libdir = new File (installDir, "lib");
@@ -83,13 +88,15 @@ public class Main {
 	    }
 	});
 	if (files != null)
-	    for (int i=0;i<files.length; i++)
+	    for (int i=0;i<files.length; i++) {
 	        // WORKAROUND: add the files in lib/ext before
 	        // lib/apache-dom.jar, since otherwise putting a full version
 	        // of Xerces in lib/ext would cause a version conflict with the
 	        // xerces classes in lib/apache-dom.jar. Generally, having some pieces
 	        // of Xerces in lib/apache-dom.jar is kind of problematic.
 	        jarlist.add (jars.length-3, new URL ("file:" + files[i].getAbsolutePath()));
+	        System.err.println ("Adding to classpath: "+files[i].getAbsolutePath());
+	    }
 	URL[] urls = new URL[jarlist.size()];
 	jarlist.toArray (urls);
 	FilteredClassLoader loader = new FilteredClassLoader (urls);
