@@ -646,7 +646,7 @@ public final class Node implements INode, Serializable {
 	    parentInfo = dbmap.getParentInfo ();
 
 	// check if current parent candidate matches presciption, if not, try to get it
-	if (parentInfo != null) {
+	if (parentInfo != null && state != TRANSIENT) {
 	    for (int i=0; i<parentInfo.length; i++) {
 	        ParentInfo pinfo = parentInfo[i];
 	        INode pn = getNode (pinfo.propname, false);
