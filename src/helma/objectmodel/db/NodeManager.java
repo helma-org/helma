@@ -6,7 +6,6 @@ package helma.objectmodel.db;
 import helma.util.CacheMap;
 import helma.objectmodel.*;
 import helma.framework.core.Application;
-import com.sleepycat.db.*;
 import java.sql.*;
 import java.io.*;
 import java.util.*;
@@ -26,7 +25,7 @@ public final class NodeManager {
 
     private Replicator replicator;
 
-    protected DbWrapper db;
+    protected IDatabase db;
 
     protected IDGenerator idgen;
 
@@ -42,7 +41,7 @@ public final class NodeManager {
     *  Create a new NodeManager for Application app. An embedded database will be
     * created in dbHome if one doesn't already exist.
     */
-    public NodeManager (Application app, String dbHome, Properties props) throws DbException {
+    public NodeManager (Application app, String dbHome, Properties props) throws DatabaseException {
 	this.app = app;
 	int cacheSize = Integer.parseInt (props.getProperty ("cachesize", "1000"));
 	// Make actual cache size bigger, since we use it only up to the threshold
@@ -68,7 +67,7 @@ public final class NodeManager {
 	    idBaseValue = Math.max (1l, idBaseValue); // 0 and 1 are reserved for root nodes
 	} catch (NumberFormatException ignore) {}
 
-	db = new DbWrapper (dbHome, helma.main.Server.dbFilename, this, helma.main.Server.useTransactions);
+	db = new XmlDatabase (dbHome, helma.main.Server.dbFilename, this);
 	initDb ();
 
 	logSql = "true".equalsIgnoreCase(props.getProperty ("logsql"));
@@ -77,44 +76,44 @@ public final class NodeManager {
    /**
     * Method used to create the root node and id-generator, if they don't exist already.
     */
-    public void initDb () throws DbException {
+    public void initDb () throws DatabaseException {
 
-	DbTxn txn = null;
+	ITransaction txn = null;
 	try {
 	    txn = db.beginTransaction ();
 
 	    try {
-	        idgen = db.getIDGenerator (txn, "idgen");
+	        idgen = db.getIDGenerator (txn);
 	        if (idgen.getValue() < idBaseValue) {
 	            idgen.setValue (idBaseValue);
-	            db.save (txn, "idgen", idgen);
+	            db.saveIDGenerator (txn, idgen);
 	        }
 	    } catch (ObjectNotFoundException notfound) {
 	        // will start with idBaseValue+1
 	        idgen = new IDGenerator (idBaseValue);
-	        db.save (txn, "idgen", idgen);
+	        db.saveIDGenerator (txn, idgen);
 	    }
 
 	    // check if we need to set the id generator to a base value
 	
 	    Node node = null;
 	    try {
-	        node = db.getNode (txn, "0");
+	        node = (Node)db.getNode (txn, "0");
 	        node.nmgr = safe;
 	    } catch (ObjectNotFoundException notfound) {
 	        node = new Node ("root", "0", "root", safe);
 	        node.setDbMapping (app.getDbMapping ("root"));
-	        db.save (txn, node.getID (), node);
+	        db.saveNode (txn, node.getID (), node);
 	        registerNode (node); // register node with nodemanager cache
 	    }
 
 	    try {
-	        node = db.getNode (txn, "1");
+	        node = (Node)db.getNode (txn, "1");
 	        node.nmgr = safe;
 	    } catch (ObjectNotFoundException notfound) {
 	        node = new Node ("users", "1", null, safe);
 	        node.setDbMapping (app.getDbMapping ("__userroot__"));
-	        db.save (txn, node.getID (), node);
+	        db.saveNode (txn, node.getID (), node);
 	        registerNode (node); // register node with nodemanager cache
 	    }
 
@@ -125,7 +124,7 @@ public final class NodeManager {
 	    try {
 	        db.abortTransaction (txn);
 	    } catch (Exception ignore) {}
-	    throw (new DbException ("Error initializing db"));
+	    throw (new DatabaseException ("Error initializing db"));
 	}
     }
 
@@ -134,7 +133,7 @@ public final class NodeManager {
     *  Shut down this node manager. This is called when the application using this
     *  node manager is stopped.
     */
-    public void shutdown () throws DbException {
+    public void shutdown () throws DatabaseException {
 	db.shutdown ();
 	if (cache != null) {
 	    synchronized (cache) {
@@ -360,7 +359,7 @@ public final class NodeManager {
     *  Insert a new node in the embedded database or a relational database table, depending
     * on its db mapping.
     */
-    public void insertNode (DbWrapper db, DbTxn txn, Node node) throws Exception {
+    public void insertNode (IDatabase db, ITransaction txn, Node node) throws Exception {
 
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("insertNode "+node);
@@ -368,7 +367,7 @@ public final class NodeManager {
 	DbMapping dbm = node.getDbMapping ();
 
 	if (dbm == null || !dbm.isRelational ()) {
-	    db.save (txn, node.getID (), node);
+	    db.saveNode (txn, node.getID (), node);
 	} else {
 	    app.logEvent ("inserting relational node: "+node.getID ());
 	    TableDataSet tds = null;
@@ -438,7 +437,7 @@ public final class NodeManager {
     *  Updates a modified node in the embedded db or an external relational database, depending
     * on its database mapping.
     */
-    public void updateNode (DbWrapper db, DbTxn txn, Node node) throws Exception {
+    public void updateNode (IDatabase db, ITransaction txn, Node node) throws Exception {
 
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("updateNode "+node);
@@ -446,7 +445,7 @@ public final class NodeManager {
 	DbMapping dbm = node.getDbMapping ();
 
 	if (dbm == null || !dbm.isRelational ()) {
-	    db.save (txn, node.getID (), node);
+	    db.saveNode (txn, node.getID (), node);
 	} else {
 
 	    TableDataSet tds = null;
@@ -537,7 +536,7 @@ public final class NodeManager {
     /**
     *  Performs the actual deletion of a node from either the embedded or an external SQL database.
     */
-    public void deleteNode (DbWrapper db, DbTxn txn, Node node) throws Exception {
+    public void deleteNode (IDatabase db, ITransaction txn, Node node) throws Exception {
 
 	Transactor tx = (Transactor) Thread.currentThread ();
 	// tx.timer.beginEvent ("deleteNode "+node);
@@ -545,7 +544,7 @@ public final class NodeManager {
 	DbMapping dbm = node.getDbMapping ();
 
 	if (dbm == null || !dbm.isRelational ()) {
-	    db.delete (txn, node.getID ());
+	    db.deleteNode (txn, node.getID ());
 	} else {
 	    Statement st = null;
 	    try {
@@ -865,14 +864,14 @@ public final class NodeManager {
     // private getNode methods
     ///////////////////////////////////////////////////////////////////////////////////////
 
-    private Node getNodeByKey (DbTxn txn, DbKey key) throws Exception {
+    private Node getNodeByKey (ITransaction txn, DbKey key) throws Exception {
 	// Note: Key must be a DbKey, otherwise will not work for relational objects
 	Node node = null;
 	DbMapping dbm = app.getDbMapping (key.getStorageName ());
 	String kstr = key.getID ();
 	
 	if (dbm == null || !dbm.isRelational ()) {
-	    node = db.getNode (txn, kstr);
+	    node = (Node)db.getNode (txn, kstr);
 	    node.nmgr = safe;
 	    if (node != null && dbm != null)
 	        node.setDbMapping (dbm);
@@ -905,7 +904,7 @@ public final class NodeManager {
 	return node;
     }
 
-    private Node getNodeByRelation (DbTxn txn, Node home, String kstr, Relation rel) throws Exception {
+    private Node getNodeByRelation (ITransaction txn, Node home, String kstr, Relation rel) throws Exception {
 	Node node = null;
 
 	if (rel.virtual) {
@@ -922,13 +921,13 @@ public final class NodeManager {
 	} else if (rel != null && rel.groupby != null) {
 	    node = home.getGroupbySubnode (kstr, false);
 	    if (node == null && (rel.otherType == null || !rel.otherType.isRelational ())) {
-	        node = db.getNode (txn, kstr);
+	        node = (Node)db.getNode (txn, kstr);
 	        node.nmgr = safe;
 	    }
 	    return node;
 
 	} else if (rel == null || rel.otherType == null || !rel.otherType.isRelational ()) {
-	    node = db.getNode (txn, kstr);
+	    node = (Node)db.getNode (txn, kstr);
 	    node.nmgr = safe;
 	    node.setDbMapping (rel.otherType);
 	    return node;

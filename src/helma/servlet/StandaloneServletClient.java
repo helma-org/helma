@@ -4,16 +4,15 @@
 package helma.servlet;
 
 import javax.servlet.*;
-import javax.servlet.http.*;
 import java.io.*;
 import java.util.*;
 import helma.framework.*;
 import helma.framework.core.Application;
-import helma.objectmodel.*;
 import helma.util.*;
 
 /**
- * This is a standalone Hop servlet client, running a Hop application by itself.
+ *  Standalone servlet client that runs a Helma application all by itself
+ *  in embedded mode without relying on helma.main.Server.
  */
 
 public final class StandaloneServletClient extends AbstractServletClient {
@@ -22,7 +21,7 @@ public final class StandaloneServletClient extends AbstractServletClient {
     private String appName;
     private String serverProps;
 
-    
+
     public void init (ServletConfig init) throws ServletException {
 	super.init (init);
 	appName = init.getInitParameter ("application");
@@ -105,12 +104,10 @@ public final class StandaloneServletClient extends AbstractServletClient {
     // for testing
       public static void main (String args[]) {
 	AbstractServletClient client = new ServletClient ();
-	String path = "///appname/do/it/for/me///";
+	String path = "///appname/some/random/path///";
 	System.out.println (client.getAppID (path));
 	System.out.println (client.getRequestPath (path));
       }
-
-
 
 }
 

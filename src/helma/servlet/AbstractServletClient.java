@@ -21,13 +21,22 @@ import helma.util.*;
  */
  
 public abstract class AbstractServletClient extends HttpServlet {
-	
+
+    // host on which Helma app is running
     String host = null;
+    // port of Helma RMI server
     int port = 0;
-    int uploadLimit;       // limit to HTTP uploads in kB
+    // limit to HTTP uploads in kB
+    int uploadLimit;
+    // RMI url of Helma app
     String hopUrl;
+    // cookie domain to use
     String cookieDomain;
+    // default encoding for requests
+    String  defaultEncoding;
+    // allow caching of responses
     boolean caching;
+    // enable debug output
     boolean debug;
 
     static final byte HTTP_GET = 0;
@@ -35,7 +44,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 
     public void init (ServletConfig init) throws ServletException {
 	super.init (init);
-    	
+
 	host =  init.getInitParameter ("host");
 	if (host == null) host = "localhost";
 
@@ -48,6 +57,8 @@ public abstract class AbstractServletClient extends HttpServlet {
 	cookieDomain = init.getInitParameter ("cookieDomain");
 
 	hopUrl = "//" + host + ":" + port + "/";
+
+	defaultEncoding = init.getInitParameter ("charset");
 
 	debug = ("true".equalsIgnoreCase (init.getInitParameter ("debug")));
 
@@ -88,13 +99,15 @@ public abstract class AbstractServletClient extends HttpServlet {
 	try {
 
 	    // read and set http parameters
-	    for (Enumeration e = request.getParameterNames(); e.hasMoreElements(); ) {
-	        String nextKey = (String)e.nextElement();
-	        String[] paramValues = request.getParameterValues(nextKey);
-	        if (paramValues != null) {
-	            reqtrans.set (nextKey, paramValues[0]);    // set to single string value
-	            if (paramValues.length > 1)
-	                reqtrans.set (nextKey+"_array", paramValues);     // set string array
+	    Map parameters = parseParameters (request);
+	    for (Iterator i=parameters.entrySet().iterator(); i.hasNext(); ) {
+	        Map.Entry entry = (Map.Entry) i.next ();
+	        String key = (String) entry.getKey ();
+	        String[] values = (String[]) entry.getValue ();
+	        if (values != null && values.length > 0) {
+	            reqtrans.set (key, values[0]);    // set to single string value
+	            if (values.length > 1)
+	                reqtrans.set (key+"_array", values);     // set string array
 	        }
 	    }
 
@@ -102,13 +115,13 @@ public abstract class AbstractServletClient extends HttpServlet {
 	    String contentType = request.getContentType();
 	    if (contentType != null && contentType.indexOf("multipart/form-data")==0) {
 	        // File Upload
-	        Uploader up;
 	        try {
-	            if ((up = getUpload (request)) != null) {
-	                Hashtable upload = up.getParts ();
-	                for (Enumeration e = upload.keys(); e.hasMoreElements(); ) {
+	            FileUpload upload = getUpload (request);
+	            if (upload != null) {
+	                Hashtable parts = upload.getParts ();
+	                for (Enumeration e = parts.keys(); e.hasMoreElements(); ) {
 	                    String nextKey = (String) e.nextElement ();
-	                    Object nextPart = upload.get (nextKey);
+	                    Object nextPart = parts.get (nextKey);
 	                    reqtrans.set (nextKey, nextPart);
 	                }
 	            }
@@ -226,6 +239,13 @@ public abstract class AbstractServletClient extends HttpServlet {
 	        res.setHeader( "WWW-Authenticate", "Basic realm=\"" + trans.realm + "\"" );
 	    if (trans.status > 0)
 	        res.setStatus (trans.status);
+	    // if we don't know which charset to use for parsing HTTP params,
+	    // take the one from the response. This usually works because
+	    // browsers send parrameters in the same encoding as the page
+	    // containing the form has. Problem is we can do this only per servlet,
+	    // not per session or even per page, which would produce too much overhead
+	    if (defaultEncoding == null)
+	        defaultEncoding = trans.charset;
 	    res.setContentLength (trans.getContentLength ());
 	    res.setContentType (trans.getContentType ());
 	    try {
@@ -245,10 +265,10 @@ public abstract class AbstractServletClient extends HttpServlet {
     }
 	
 
-    public Uploader getUpload (HttpServletRequest request) throws Exception {
+    public FileUpload getUpload (HttpServletRequest request) throws Exception {
 	int contentLength = request.getContentLength ();
 	BufferedInputStream in = new BufferedInputStream (request.getInputStream ());
-	Uploader up = null;
+	FileUpload upload = null;
 	try {
 	    if (contentLength > uploadLimit*1024) {
 	        // consume all input to make Apache happy
@@ -259,42 +279,165 @@ public abstract class AbstractServletClient extends HttpServlet {
 	        throw new RuntimeException ("Upload exceeds limit of "+uploadLimit+" kb.");
 	    }
 	    String contentType = request.getContentType ();
-	    up = new Uploader(uploadLimit);
-	    up.load (in, contentType, contentLength);
+	    upload = new FileUpload(uploadLimit);
+	    upload.load (in, contentType, contentLength);
 	} finally {
-	    try { in.close (); } catch (Exception ignore) {}
+	    try {
+	        in.close ();
+	    } catch (Exception ignore) {}
 	}
-	return up;
+	return upload;
     }
 
 
-    public Object getUploadPart(Uploader up, String name) {
-	return up.getParts().get(name);
+    public Object getUploadPart(FileUpload upload, String name) {
+	return upload.getParts().get(name);
     }
 
+
+    /**
+     * Put name value pair in map.
+     *
+     * @param b the character value byte
+     *
+     * Put name and value pair in map.  When name already exist, add value
+     * to array of values.
+     */
+    private static void putMapEntry( Map map, String name, String value) {
+        String[] newValues = null;
+        String[] oldValues = (String[]) map.get(name);
+        if (oldValues == null) {
+            newValues = new String[1];
+            newValues[0] = value;
+        } else {
+            newValues = new String[oldValues.length + 1];
+            System.arraycopy(oldValues, 0, newValues, 0, oldValues.length);
+            newValues[oldValues.length] = value;
+        }
+        map.put(name, newValues);
+    }
+
+
+
+    protected Map parseParameters (HttpServletRequest request) {
+
+        String encoding = request.getCharacterEncoding ();
+        if (encoding == null)
+            // no encoding from request, use standard one
+            encoding = defaultEncoding;
+        if (encoding == null)
+            encoding = "ISO-8859-1";
+
+        HashMap parameters = new HashMap ();
+        // Parse any query string parameters from the request
+        try {
+            parseParameters (parameters, request.getQueryString().getBytes(), encoding);
+        } catch (Exception e) {
+        }
+
+        // Parse any posted parameters in the input stream
+        if ("POST".equals(request.getMethod()) &&
+            "application/x-www-form-urlencoded".equals(request.getContentType())) {
+            try {
+                int max = request.getContentLength();
+                int len = 0;
+                byte buf[] = new byte[max];
+                ServletInputStream is = request.getInputStream();
+                while (len < max) {
+                    int next = is.read(buf, len, max - len);
+                    if (next < 0 ) {
+                        break;
+                    }
+                    len += next;
+                }
+                // is.close();
+                parseParameters(parameters, buf, encoding);
+            } catch (IllegalArgumentException e) {
+            } catch (IOException e) {
+            }
+        }
+
+	return parameters;
+    }
+
+    /**
+     * Append request parameters from the specified String to the specified
+     * Map.  It is presumed that the specified Map is not accessed from any
+     * other thread, so no synchronization is performed.
+     * <p>
+     * <strong>IMPLEMENTATION NOTE</strong>:  URL decoding is performed
+     * individually on the parsed name and value elements, rather than on
+     * the entire query string ahead of time, to properly deal with the case
+     * where the name or value includes an encoded "=" or "&" character
+     * that would otherwise be interpreted as a delimiter.
+     *
+     * NOTE: byte array data is modified by this method.  Caller beware.
+     *
+     * @param map Map that accumulates the resulting parameters
+     * @param data Input string containing request parameters
+     * @param encoding Encoding to use for converting hex
+     *
+     * @exception UnsupportedEncodingException if the data is malformed
+     */
+    public static void parseParameters (Map map, byte[] data, String encoding)
+        throws UnsupportedEncodingException {
+
+        if (data != null && data.length > 0) {
+            int    pos = 0;
+            int    ix = 0;
+            int    ox = 0;
+            String key = null;
+            String value = null;
+            while (ix < data.length) {
+                byte c = data[ix++];
+                switch ((char) c) {
+                case '&':
+                    value = new String(data, 0, ox, encoding);
+                    if (key != null) {
+                        putMapEntry(map, key, value);
+                        key = null;
+                    }
+                    ox = 0;
+                    break;
+                case '=':
+                    key = new String(data, 0, ox, encoding);
+                    ox = 0;
+                    break;
+                case '+':
+                    data[ox++] = (byte)' ';
+                    break;
+                case '%':
+                    data[ox++] = (byte)((convertHexDigit(data[ix++]) << 4)
+                                    + convertHexDigit(data[ix++]));
+                    break;
+                default:
+                    data[ox++] = c;
+                }
+            }
+            //The last value does not end in '&'.  So save it now.
+            if (key != null) {
+                value = new String(data, 0, ox, encoding);
+                putMapEntry(map, key, value);
+            }
+        }
+    }
+
+    /**
+     * Convert a byte character value to hexidecimal digit value.
+     *
+     * @param b the character value byte
+     */
+    private static byte convertHexDigit( byte b ) {
+        if ((b >= '0') && (b <= '9')) return (byte)(b - '0');
+        if ((b >= 'a') && (b <= 'f')) return (byte)(b - 'a' + 10);
+        if ((b >= 'A') && (b <= 'F')) return (byte)(b - 'A' + 10);
+        return 0;
+    }
 
     public String getServletInfo(){
-	return new String("Hop Servlet Client");
+	return new String("Helma Servlet Client");
     }
 
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -22,14 +22,14 @@ import Acme.LruHashtable;
  * This is the implementation of ScriptingEnvironment for the FESI EcmaScript interpreter.
  */
 
-public class FesiEvaluator {
+public final class FesiEvaluator {
 
     // the application we're running in
     public Application app;
 
     // The FESI evaluator
     Evaluator evaluator;
-
+   
     // the global object
     GlobalObject global;
 
@@ -50,7 +50,12 @@ public class FesiEvaluator {
 	"helma.scripting.fesi.extensions.ImageExtension",
 	"helma.scripting.fesi.extensions.FtpExtension",
 	"FESI.Extensions.JavaAccess",
+	"helma.scripting.fesi.extensions.DomExtension",
 	"FESI.Extensions.OptionalRegExp"};
+
+    // remember global variables from last invokation to be able to
+    // do lazy cleanup
+    Map lastGlobals = null;
 
     public FesiEvaluator (Application app, RequestEvaluator reval) {
 	this.app = app;
@@ -73,7 +78,7 @@ public class FesiEvaluator {
 	    // fake a cache member like the one found in ESNodes
 	    global.putHiddenProperty ("cache", new ESNode (new TransientNode ("cache"), this));
 	    global.putHiddenProperty ("undefined", ESUndefined.theUndefined);
-	    ESAppNode appnode = new ESAppNode (app.getAppNode (), this);
+	    ESBeanWrapper appnode = new ESBeanWrapper (new ApplicationBean (app), this);
 	    global.putHiddenProperty ("app", appnode);
 	    initialize();
 	} catch (Exception e) {
@@ -145,12 +150,13 @@ public class FesiEvaluator {
 	    else
 	        evaluateString (prototype, ff.getContent ());
 	}
-	/* for (Iterator it = prototype.templates.values().iterator(); it.hasNext(); ) {
+	for (Iterator it = prototype.templates.values().iterator(); it.hasNext(); ) {
 	    Template tmp = (Template) it.next ();
 	    try {
-	        tmp.updateRequestEvaluator (reval);
+	        FesiActionAdapter adp = new FesiActionAdapter (tmp);
+	        adp.updateEvaluator (this);
 	    } catch (EcmaScriptException ignore) {}
-	} */
+	}
 	for (Iterator it = prototype.actions.values().iterator(); it.hasNext(); ) {
 	    ActionFile act = (ActionFile) it.next ();
 	    try {
@@ -204,7 +210,7 @@ public class FesiEvaluator {
 	            esv[i] = ESLoader.normalizeValue (args[i], evaluator);
 	    }
 
-	    if (globals != null) {
+	    if (globals != null && globals != lastGlobals) {
 	        // remember all global variables before invocation
 	        Set tmpGlobal = new HashSet ();
 	        for (Enumeration en = global.getAllProperties(); en.hasMoreElements(); ) {
@@ -221,13 +227,10 @@ public class FesiEvaluator {
 	            // comfortable to EcmaScript coders, i.e. we use a lot of custom wrappers
 	            // that expose properties and functions in a special way instead of just going
 	            // with the standard java object wrappers.
-	            if (v instanceof RequestTrans)
-	                ((RequestTrans) v).data = new ESMapWrapper (this, ((RequestTrans) v).getRequestData ());
-	            else if (v instanceof ResponseTrans)
-	                ((ResponseTrans) v).data = new ESMapWrapper (this, ((ResponseTrans) v).getResponseData ());
-	            if (v instanceof Map)
+
+	            if (v instanceof Map) {
 	                sv = new ESMapWrapper (this, (Map) v);
-	            else if ("path".equals (k)) {
+	            } else if ("path".equals (k)) {
 	                ArrayPrototype parr = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
 	                List path = (List) v;
 	                // register path elements with their prototype
@@ -240,15 +243,21 @@ public class FesiEvaluator {
 	                        parr.putHiddenProperty (protoname, wrappedElement);
 	                }
 	                sv = parr;
-	            } else if ("user".equals (k)) {
-	                sv = getNodeWrapper ((User) v);
+	            } else if ("req".equals (k)) {
+	                sv = new ESBeanWrapper (new RequestBean ((RequestTrans) v), this);
+	            } else if ("res".equals (k)) {
+	                sv = new ESBeanWrapper (new ResponseBean ((ResponseTrans) v), this);
+	            } else if ("session".equals (k)) {
+	                sv = new ESBeanWrapper (new SessionBean ((Session)v), this);
 	            } else if ("app".equals (k)) {
-	                sv = new ESAppNode ((INode) v, this);
-	            }
-	            else
+	                sv = new ESBeanWrapper (new ApplicationBean ((Application)v), this);
+	            } else {
 	                sv = ESLoader.normalizeValue (v, evaluator);
+	            }
 	            global.putHiddenProperty (k, sv);
 	        }
+	        // remember the globals set on this evaluator
+	        // lastGlobals = globals;
 	    }
 	    evaluator.thread = Thread.currentThread ();
 	    ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
@@ -262,8 +271,10 @@ public class FesiEvaluator {
 	    String msg = x.getMessage ();
 	    if (msg == null || msg.length() < 10)
 	        msg = x.toString ();
-	    System.err.println ("INVOKE-ERROR: "+msg);
-	    x.printStackTrace ();
+	    if (app.debug ()) {
+	        System.err.println ("Error in Script: "+msg);
+	        x.printStackTrace ();
+	    }
 	    throw new ScriptingException (msg);
 	} finally {
 	    // remove global variables that have been added during invocation.
@@ -274,8 +285,10 @@ public class FesiEvaluator {
 	    if (globalVariables != null) {
 	        for (Enumeration en = global.getAllProperties(); en.hasMoreElements(); ) {
 	            String g = en.nextElement ().toString ();
-	            if (!globalVariables.contains (g)) try {
-	                global.deleteProperty (g, g.hashCode());
+	            try {
+	                if (!globalVariables.contains (g) &&
+				!(global.getProperty (g, g.hashCode()) instanceof BuiltinFunctionObject))
+	                    global.deleteProperty (g, g.hashCode());
 	            } catch (Exception x) {
 	                System.err.println ("Error resetting global property: "+g);
 	            }
@@ -420,7 +433,7 @@ public class FesiEvaluator {
      *  Get a script wrapper for an implemntation of helma.objectmodel.INode
      */
     public ESNode getNodeWrapper (INode n) {
-
+        // FIXME: should this return ESNull.theNull?
         if (n == null)
             return null;
 
@@ -443,12 +456,7 @@ public class FesiEvaluator {
             if (op == null)
                 op = getPrototype("hopobject");
 
-
-            DbMapping dbm = n.getDbMapping ();
-            if (dbm != null && dbm.isInstanceOf ("user"))
-                esn = new ESUser (n, this, null);
-            else
-                esn = new ESNode (op, evaluator, n, this);
+            esn = new ESNode (op, evaluator, n, this);
 
             wrappercache.put (n, esn);
             // app.logEvent ("Wrapper for "+n+" created");
@@ -464,28 +472,6 @@ public class FesiEvaluator {
      */
     public void putNodeWrapper (INode n, ESNode esn) {
 	wrappercache.put (n, esn);
-    }
-
-    /**
-     *  Get a scripting wrapper object for a user object. Active user objects are represented by
-     *  the special ESUser wrapper class.
-     */
-    public ESNode getNodeWrapper (User u) {
-        if (u == null)
-            return null;
-
-        ESUser esn = (ESUser) wrappercache.get (u);
-
-        if (esn == null) {
-            esn = new ESUser (u.getNode(), this, u);
-            wrappercache.put (u, esn);
-        } else {
-            // the user node may have changed (login/logout) while the ESUser was
-            // lingering in the cache.
-            esn.updateNodeFromUser ();
-        }
-
-        return esn;
     }
 
     /**
@@ -527,38 +513,12 @@ public class FesiEvaluator {
 
     public  synchronized void updateEvaluator (Prototype prototype, Reader reader, EvaluationSource source) {
 
-        // HashMap priorProps = null;
-        // HashSet newProps = null;
-
         try {
 
             ObjectPrototype op = getPrototype (prototype.getName());
 
-            // extract all properties from prototype _before_ evaluation, so we can compare afterwards
-            // but only do this is declaredProps is not up to date yet
-            /*if (declaredPropsTimestamp != lastmod) {
-                priorProps = new HashMap ();
-                // remember properties before evaluation, so we can tell what's new afterwards
-                try {
-                    for (Enumeration en=op.getAllProperties(); en.hasMoreElements(); ) {
-                        String prop = (String) en.nextElement ();
-                        priorProps.put (prop, op.getProperty (prop, prop.hashCode()));
-                    }
-                } catch (Exception ignore) {}
-            } */
-
             // do the update, evaluating the file
             evaluator.evaluate(reader, op, source, false);
-
-            // check what's new
-            /* if (declaredPropsTimestamp != lastmod) try {
-                newProps = new HashSet ();
-                for (Enumeration en=op.getAllProperties(); en.hasMoreElements(); ) {
-                    String prop = (String) en.nextElement ();
-                    if (priorProps.get (prop) == null || op.getProperty (prop, prop.hashCode()) != priorProps.get (prop))
-                        newProps.add (prop);
-                }
-            } catch (Exception ignore) {} */
 
         } catch (Throwable e) {
             app.logEvent ("Error parsing function file "+source+": "+e);
@@ -568,18 +528,6 @@ public class FesiEvaluator {
                     reader.close();
                 } catch (IOException ignore) {}
             }
-
-            // now remove the props that were not refreshed, and set declared props to new collection
-            /* if (declaredPropsTimestamp != lastmod) {
-                declaredPropsTimestamp = lastmod;
-                if (declaredProps != null) {
-                    declaredProps.removeAll (newProps);
-                    removeProperties (declaredProps);
-                }
-                declaredProps = newProps;
-                // System.err.println ("DECLAREDPROPS = "+declaredProps);
-            } */
-
         }
     }
 

@@ -258,16 +258,15 @@ public class Skin {
 	        Object handlerObject = null;
 
 	        Object[] arguments = new Object[1];
-	        arguments[0] = parameters;
+	        // pass a clone of the parameter map so if the script changes it,
+	        // we still keep the original version.
+	        arguments[0] = parameters.clone ();
 
 	        // flag to tell whether we found our invocation target object
 	        boolean objectFound = true;
 
 	        if (handler != null) {
-	            if ("currentuser".equalsIgnoreCase (handler)) {
-	                // as a special convention, we use "currentuser" to access macros in the current user object
-	                handlerObject = reval.user.getNode ();
-	            } else if (thisObject != null) {
+	            if (thisObject != null) {
 	                // not a global macro - need to find handler object
 	                // was called with this object - check it or its parents for matching prototype
 	                if (!handler.equalsIgnoreCase ("this") && !handler.equalsIgnoreCase (app.getPrototypeName (thisObject))) {
@@ -314,6 +313,8 @@ public class Skin {
 	            // if so, the macro evaluates to the function. Otherwise,
 	            // a property/field with the name is used, if defined.
 	            Object v = null;
+	            // remember length of response buffer before calling macro
+	            int oldLength = reval.res.getBufferLength ();
 	            if (app.scriptingEngine.hasFunction (handlerObject, name+"_macro", reval)) {
 	                // System.err.println ("Getting macro from function");
 	                v = app.scriptingEngine.invoke (handlerObject, name+"_macro", arguments, null, reval);
@@ -321,8 +322,19 @@ public class Skin {
 	                // System.err.println ("Getting macro from property");
 	                v = app.scriptingEngine.get (handlerObject, name, reval);
 	            }
-	            if (v != null)
+	            // check if macro wrote out to response buffer
+	            int newLength = reval.res.getBufferLength ();
+	            if (newLength > oldLength) {
+	               // insert prefix and append suffix
+	               String prefix = (String) parameters.get ("prefix");
+	               String suffix = (String) parameters.get ("suffix");
+	               reval.res.insert (oldLength, prefix);
+	               reval.res.write (suffix);
+	            }
+	            // if macro returned something append it to response
+	            if (v != null) {
 	                writeToResponse (v.toString (), reval.res);
+	            }
 	        } else {
 	            String msg = "[HopMacro unhandled: "+getFullName()+"]";
 	            reval.res.write (" "+msg+" ");

@@ -141,6 +141,12 @@ public final class SystemProperties extends Properties {
 	return props.keys();
     }
 
+    public Set keySet () {
+	if (System.currentTimeMillis () - lastcheck > cacheTime)
+	    checkFile ();
+	return props.keySet();
+    }
+
     public Enumeration elements () {
 	if (System.currentTimeMillis () - lastcheck > cacheTime)
 	    checkFile ();

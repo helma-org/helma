@@ -21,7 +21,7 @@ public class ResponseTrans implements Externalizable {
     public String contentType = "text/html";
 
     /**
-     * Set the charset of the response.
+     * Set the charset (encoding) to use for the response.
      */
     public String charset;
 
@@ -144,6 +144,15 @@ public class ResponseTrans implements Externalizable {
     }
 
     /**
+     * Returns the number of characters written to the response buffer so far.
+     */
+    public int getBufferLength() {
+	if (buffer == null)
+	    return 0;
+	return buffer.length ();
+    }
+
+    /**
      * Append a string to the response unchanged.
      */
     public void write (Object what) {
@@ -172,6 +181,16 @@ public class ResponseTrans implements Externalizable {
 	if (buffer == null)
 	    buffer = new StringBuffer (512);
 	buffer.append (c, start, length);
+    }
+
+    /**
+     *  Insert string somewhere in the response buffer. Caller has to make sure
+     *  that buffer exists and its length is larger than offset. str may be null, in which
+     *  case nothing happens.
+     */
+    public void insert (int offset, String str) {
+	if (str != null)
+	    buffer.insert (offset, str);
     }
 
     /**

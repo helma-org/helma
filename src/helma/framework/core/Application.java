@@ -8,12 +8,10 @@ import helma.doc.DocException;
 import helma.framework.*;
 import helma.main.Server;
 import helma.scripting.*;
-import helma.scripting.fesi.ESUser;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.xmlrpc.*;
 import helma.util.*;
-import com.sleepycat.db.DbException;
 import java.util.*;
 import java.io.*;
 import java.net.URLEncoder;
@@ -67,10 +65,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 
     boolean stopped = false;
     boolean debug;
-    public long starttime;
+    long starttime;
 
-    public Hashtable sessions;
-    public Hashtable activeUsers;
+    Hashtable sessions;
     Hashtable dbMappings;
     Hashtable dbSources;
 
@@ -87,7 +84,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     protected String templateExtension, scriptExtension, actionExtension, skinExtension;
 
     // A transient node that is shared among all evaluators
-    protected INode appnode;
+    protected INode cachenode;
     protected volatile long requestCount = 0;
     protected volatile long xmlrpcCount = 0;
     protected volatile long errorCount = 0;
@@ -219,11 +216,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	skinExtension = ".skin";
 	
 	sessions = new Hashtable ();
-	activeUsers = new Hashtable ();
 	dbMappings = new Hashtable ();
 	dbSources = new Hashtable ();
 
-	appnode = new TransientNode ("app");
+	cachenode = new TransientNode ("app");
 	xmlrpc = helma.main.Server.getXmlRpcServer ();
 	xmlrpcAccess = new XmlRpcAccess (this);
     }
@@ -231,7 +227,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     /**
      * Get the application ready to run, initializing the evaluators and type manager.
      */
-    public void init () throws DbException, ScriptingException {
+    public void init () throws DatabaseException, ScriptingException {
 	scriptingEngine = new helma.scripting.fesi.FesiScriptingEnvironment ();
 	scriptingEngine.init (this, props);
 
@@ -263,8 +259,11 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	String usernameField = userMapping.getNameField ();
 	if (usernameField == null)
 	    usernameField = "name";
-	p.put ("_properties", "user."+usernameField);
+	p.put ("_version","1.2");
+	p.put ("_children", "collection(user)");
+	p.put ("_children.accessname", usernameField);
 	userRootMapping = new DbMapping (this, "__userroot__", p);
+
 	rewireDbMappings ();
 
 	nmgr = new NodeManager (this, dbDir.getAbsolutePath (), props);
@@ -317,7 +316,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	// shut down node manager and embedded db
 	try {
 	    nmgr.shutdown ();
-	} catch (DbException dbx) {
+	} catch (DatabaseException dbx) {
 	    System.err.println ("Error shutting down embedded db: "+dbx);
 	}
 	
@@ -400,7 +399,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	requestCount += 1;
 	
 	// get user for this request's session
-	User u = getUser (req.session);
+	Session session = checkSession (req.session);
+	session.touch();
 
 	ResponseTrans res = null;
 	RequestEvaluator ev = null;
@@ -419,7 +419,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        // if attachRequest returns null this means we came too late
 	        // and the other request was finished in the meantime
 	        ev = getEvaluator ();
-	        res = ev.invoke (req, u);
+	        res = ev.invoke (req, session);
 	    }
 	} catch (ApplicationStoppedException stopped) {
 	    // let the servlet know that this application has gone to heaven
@@ -442,7 +442,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        res.waitForClose ();
 	    }
 	}
-	
+
 	return res;
     }
 
@@ -531,8 +531,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     /**
      *  Return a transient node that is shared by all evaluators of this application ("app node")
      */
-    public INode getAppNode () {
-	return appnode;
+    public INode getCacheNode () {
+	return cachenode;
     }
 
 
@@ -571,51 +571,127 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     }
 
     /**
-     *  Retrurn a skin for a given object. The skin is found by determining the prototype
+     *  Return a skin for a given object. The skin is found by determining the prototype
      *  to use for the object, then looking up the skin for the prototype.
      */
     public Skin getSkin (Object object, String skinname, Object[] skinpath) {
-	return skinmgr.getSkin (object, skinname, skinpath); 
+	return skinmgr.getSkin (object, skinname, skinpath);
     }
 
     /**
-     * Return the user currently associated with a given Hop session ID. This may be
-     * a registered or an anonymous user.
+     * Return the session currently associated with a given Hop session ID.
+     * Create a new session if necessary.
      */
-    public User getUser (String sessionID) {
-	if (sessionID == null)
-	    return null;
-
-	User u = (User) sessions.get (sessionID);
-	if (u != null) {
-	    u.touch ();
-	} else {
-	    u = new User (sessionID, this);
-	    sessions.put (sessionID, u);
+    public Session checkSession (String sessionID)	{
+	Session session = getSession(sessionID);
+	if ( session==null )	{
+	    session = new Session (sessionID, this);
+	    sessions.put (sessionID, session);
 	}
-	return u;
+	return session;
     }
 
+    /**
+     * Remove the session from the sessions-table and logout the user.
+     */
+    public void destroySession (String sessionID) {
+	logoutSession (getSession (sessionID));
+	sessions.remove (sessionID);
+    }
+
+    /**
+     * Remove the session from the sessions-table and logout the user.
+     */
+    public void destroySession (Session session) {
+	logoutSession (session);
+	sessions.remove (session.getSessionID ());
+    }
+
+    /**
+     *  Return the whole session map. We return a clone of the table to prevent
+     * actual changes from the table itself, which is managed by the application.
+     * It is safe and allowed to manipulate the session objects contained in the table, though.
+     */
+    public Map getSessions () {
+	return (Map) sessions.clone ();
+    }
+
+
+    /**
+     * Return a list of Helma nodes (HopObjects -  the database object representing the user,
+     *  not the session object) representing currently logged in users.
+     */
+    public List getActiveUsers () {
+	ArrayList list = new ArrayList();
+	// used to keep track of already added users - we only return
+	// one object per user, and users may have multiple sessions
+	HashSet usernames = new HashSet ();
+	for (Enumeration e=sessions.elements(); e.hasMoreElements(); ) {
+	    Session s = (Session) e.nextElement ();
+	    if(s==null) {
+	        continue;
+	    } else if (s.isLoggedIn() && !usernames.contains (s.getUID ()) ) {
+	        // returns a session if it is logged in and has not been
+	        // returned before (so for each logged-in user we get one
+	        // session object, even if this user is logged in several
+	        // times (used to retrieve the active users list).
+	        INode node = s.getUserNode ();
+	        // we check again because user may have been logged out between the first check
+	        if (node != null) {
+	            usernames.add (s.getUID ());
+	            list.add(node);
+	        }
+	    }
+	}
+	return list;
+    }
+
+    /**
+     * Return an array of <code>SessionBean</code> objects currently associated with a given
+     * Helma user.
+     */
+    public List getSessionsForUsername (String username)	{
+	ArrayList list = new ArrayList();
+	if (username == null)
+	    return list;
+	for (Enumeration e=sessions.elements(); e.hasMoreElements(); ) {
+	    Session s = (Session) e.nextElement ();
+	    if(s==null) {
+	        continue;
+	    } else if (username.equals (s.getUID ())) {
+	        // append to list if session is logged in and fits the given username
+	        list.add (new SessionBean (s));
+	    }
+	}
+	return list;
+    }
+
+
+    /**
+     * Return the session currently associated with a given Hop session ID.
+     */
+    public Session getSession (String sessionID) {
+	if (sessionID == null)
+	    return null;
+	return (Session) sessions.get (sessionID);
+	}
 
     /**
      * Register a user with the given user name and password.
      */
     public INode registerUser (String uname, String password) {
-	// Register a user who already has a user object
-	// (i.e. who has been surfing around)
 	if (uname == null)
 	    return null;
 	uname = uname.toLowerCase ().trim ();
 	if ("".equals (uname))
 	    return null;
-
 	INode unode = null;
 	try {
 	    INode users = getUserRoot ();
 	    unode = users.getNode (uname, false);
-	    if (unode != null) 
+	    if (unode != null)
 	        return null;
-	    
+
 	    unode = users.createNode (uname);
 	    unode.setPrototype ("user");
 	    unode.setDbMapping (userMapping);
@@ -628,8 +704,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	    unode.setName (uname);
 	    unode.setString (usernameProp, uname);
 	    unode.setString ("password", password);
-	    // users.setNode (uname, unode);
-	    // return users.getNode (uname, false);	
 	    return unode;
 	} catch (Exception x) {
 	    logEvent ("Error registering User: "+x);
@@ -640,26 +714,23 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     /**
      * Log in a user given his or her user name and password.
      */
-    public boolean loginUser (String uname, String password, ESUser u) {
-	// Check the name/password of a user who already has a user object
-	// (i.e. who has been surfing around)
+    public boolean loginSession (String uname, String password, Session session) {
+	// Check the name/password of a user and log it in to the current session
 	if (uname == null)
 	    return false;
 	uname = uname.toLowerCase ().trim ();
 	if ("".equals (uname))
 	    return false;
-
 	try {
 	    INode users = getUserRoot ();
-	    INode unode = users.getNode (uname, false);
+	    Node unode = (Node)users.getNode (uname, false);
 	    String pw = unode.getString ("password", false);
 	    if (pw != null && pw.equals (password)) {
-	        // give the user his/her persistant node
-	        u.setNode (unode);
-	        activeUsers.put (unode.getName (), u.user);
+	        // let the old user-object forget about this session
+	        logoutSession(session);
+	        session.login (unode);
 	        return true;
 	    }
-
 	} catch (Exception x) {
 	    return false;
 	}
@@ -667,18 +738,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     }
 
     /**
-     * Log out a user from this application.
+     * Log out a session from this application.
      */
-    public boolean logoutUser (ESUser u) {
-	if (u.user != null) {
-	    String uid = u.user.uid;
-                 if (uid != null)
-	        activeUsers.remove (uid);
-
-	    // switch back to the non-persistent user node as cache
-	    u.setNode (null);
-	}
-	return true;
+    public void logoutSession (Session session) {
+	session.logout();
     }
 
     /**
@@ -726,23 +789,11 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	    if (rootproto != null && rootproto.equals (getPrototypeName (p)))
 	        break;
 	    b.insert (0, divider);
-
-	    // users always have a canonical URL like /users/username
-	    if ("user".equals (getPrototypeName (p))) {
-	        b.insert (0, URLEncoder.encode (getElementName (p)));
-	        p = users;
-	        break;
-	    }
 	    b.insert (0, URLEncoder.encode (getElementName (p)));
 	    p = getParentElement (p);
 
 	    if (loopWatch++ > 20)
 	        break;
-	}
-
-	if (p == users) {
-	    b.insert (0, divider);
-	    b.insert (0, "users");
 	}
 
 	if (actionName != null)
@@ -958,29 +1009,25 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	    int sessionTimeout = 30;
 	    try {
 	        sessionTimeout = Math.max (0, Integer.parseInt (props.getProperty ("sessionTimeout", "30")));
-	    } catch (Exception ignore) {}
+	    } catch (Exception ignore) {
+	    	System.out.println(ignore.toString());
+	    	}
 
 	    long now = System.currentTimeMillis ();
 
 	    // check if we should clean up user sessions
 	    if (now - lastCleanup > cleanupSleep) try {
 	        lastCleanup = now;
-	        // logEvent ("Cleaning up "+name+": " + sessions.size () + " sessions active");
 	        Hashtable cloned = (Hashtable) sessions.clone ();
 	        for (Enumeration e = cloned.elements (); e.hasMoreElements (); ) {
-	            User u = (User) e.nextElement ();
-	            if (now - u.lastTouched () > sessionTimeout * 60000) {
-	                if (u.uid != null) {
-	                    try {
-	                        eval.invokeFunction (u, "onLogout", new Object[0]);
-	                    } catch (Exception ignore) {}
-	                    activeUsers.remove (u.uid);
-	                }
-	                sessions.remove (u.getSessionID ());
-	                u.setNode (null);
+	            Session session = (Session) e.nextElement ();
+	            if (now - session.lastTouched () > sessionTimeout * 60000) {
+//	                if (session.uid != null) {
+//	FIXME onlogout()!        try {eval.invokeFunction (u, "onLogout", new Object[0]);} catch (Exception ignore) {}
+//	                }
+	                destroySession(session);
 	            }
 	        }
-	        // logEvent ("Cleaned up "+name+": " + sessions.size () + " sessions remaining");
 	    } catch (Exception cx) {
 	        logEvent ("Error cleaning up sessions: "+cx);
 	        cx.printStackTrace ();
@@ -1127,9 +1174,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	return props.getProperty (propname, defvalue);
     }
 
-	public SystemProperties getProperties()	{
-		return props;
-	}
+    public SystemProperties getProperties()	{
+	return props;
+    }
 
     /**
      *
@@ -1187,6 +1234,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      */
     public long getErrorCount () {
 	return errorCount;
+    }
+
+    public long getStarttime () {
+	return starttime;
     }
 
     /**

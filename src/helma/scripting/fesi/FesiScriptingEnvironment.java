@@ -14,7 +14,7 @@ import FESI.Exceptions.*;
 /**
  * This is the implementation of ScriptingEnvironment for the FESI EcmaScript interpreter.
  */
-public class FesiScriptingEnvironment implements ScriptingEnvironment {
+public final class FesiScriptingEnvironment implements ScriptingEnvironment {
 
     Application app;
     Properties props;
@@ -74,7 +74,7 @@ public class FesiScriptingEnvironment implements ScriptingEnvironment {
 	return evaluators.values();
     }
 
-    FesiEvaluator getEvaluator (RequestEvaluator reval) {
+    private FesiEvaluator getEvaluator (RequestEvaluator reval) {
 	FesiEvaluator fesi = (FesiEvaluator) evaluators.get (reval);
 	if (fesi == null) {
 	    fesi = new FesiEvaluator (app, reval);

@@ -1,4 +1,4 @@
-// Uploader.java
+// FileUpload.java
 // Copyright (c) Hannes Wallnöfer 1996-2000
 
 package helma.util;
@@ -8,19 +8,19 @@ import java.io.*;
 import java.util.*;
 
 /**
- * Utility class for file uploads via HTTP POST.
+ * Utility class for MIME file uploads via HTTP POST.
  */
  
-public class Uploader {
+public class FileUpload {
 
     public Hashtable parts;
     int maxKbytes;
 
-    public Uploader () {
-	maxKbytes = 500;
+    public FileUpload () {
+	maxKbytes = 1024;
     }
 
-    public Uploader (int max) {
+    public FileUpload (int max) {
 	maxKbytes = max;
     }
 

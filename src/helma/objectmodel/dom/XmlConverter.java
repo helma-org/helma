@@ -108,6 +108,8 @@ public class XmlConverter implements XmlConstants	{
 				continue;
 			}
 
+			// FIXME: handle CDATA!
+
 			// it's some kind of element (property or child)
 			if ( childNode.getNodeType()==org.w3c.dom.Node.ELEMENT_NODE )	{
 

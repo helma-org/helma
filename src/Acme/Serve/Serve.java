@@ -32,8 +32,6 @@ import java.io.*;
 import java.util.*;
 import java.net.*;
 import java.text.*;
-// import Acme.Serve.servlet.*;
-// import Acme.Serve.servlet.http.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
@@ -257,7 +255,7 @@ public class Serve implements ServletContext, Runnable
 	    {
 	    servlet.init( new ServeConfig( (ServletContext) this ) );
 	    registry.put( urlPat, servlet );
-	    servlets.put( servlet.getClass().getName(), servlet );
+	    servlets.put( urlPat, servlet );
 	    }
 	catch ( ServletException e )
 	    {
@@ -268,12 +266,17 @@ public class Serve implements ServletContext, Runnable
     public void removeServlet( String urlPat )
 	{
 	registry.remove (urlPat);
+	servlets.remove (urlPat);
 	}
 
     public void setDefaultServlet (Servlet servlet) {
 	defaultServlet = servlet;
     }
-	
+
+    public void removeDefaultServlet () {
+	defaultServlet = null;
+    }
+
     /// Register a standard set of Servlets.  These will return
     // files or directory listings, and run CGI programs, much like a
     // standard HTTP server.
@@ -655,8 +658,10 @@ class ServeConnection implements Runnable, HttpServletRequest, HttpServletRespon
 
 	    // Decode %-sequences.
 	    reqUriPath = decode( reqUriPath );
-	    if (reqQuery != null)
-	    	reqQuery = decode (reqQuery);
+	    // do not decode query string, since we do that from
+	    // helma servlet where we know more about encoding!
+	    // if (reqQuery != null)
+	    // 	reqQuery = decode (reqQuery);
 	    Servlet servlet = (Servlet) serve.registry.get( reqUriPath );
 	    // maybe the application name without slash? try with slash appended
 	    if (servlet == null)
@@ -665,10 +670,10 @@ class ServeConnection implements Runnable, HttpServletRequest, HttpServletRespon
 	    	servlet = serve.defaultServlet;
 	    if ( servlet != null )
 		runServlet( (HttpServlet) servlet );
-	    else if ( "/".equals( reqUriPath ))
+	    /* else if ( "/".equals( reqUriPath ))
 		sendRedirect (serve.props.getProperty ("rootapp", "base"));
 	    else if ( !reqUriPath.endsWith ("/"))
-	 	sendRedirect (reqUriPath+"/");
+	 	sendRedirect (reqUriPath+"/"); */
 	    else // Not found
 	             sendError (404, "Not Found",
 		"<p>If you are looking for a specific app, try <tt>/appname</tt>.</p>"+
@@ -1092,7 +1097,7 @@ class ServeConnection implements Runnable, HttpServletRequest, HttpServletRespon
 	// In this server, the entire path is regexp-matched against the
 	// servlet pattern, so there's no good way to distinguish which
 	// part refers to the servlet.
-	return null;
+	return reqUriPath;
 	}
 
     /// Returns extra path information translated to a real path.  Returns
@@ -1292,8 +1297,21 @@ class ServeConnection implements Runnable, HttpServletRequest, HttpServletRespon
     // type has yet been assigned, it is implicitly set to text/plain.
     public String getCharacterEncoding()
 	{
-	// !!!
-	return null;
+	String contentType = getContentType ();
+	if (contentType == null)
+	    return (null);
+	int start = contentType.indexOf("charset=");
+	if (start < 0)
+	    return (null);
+	String encoding = contentType.substring(start + 8);
+	int end = encoding.indexOf(';');
+	if (end >= 0)
+	    encoding = encoding.substring(0, end);
+	encoding = encoding.trim();
+	if ((encoding.length() > 2) && (encoding.startsWith("\""))
+	    && (encoding.endsWith("\"")))
+	    encoding = encoding.substring(1, encoding.length() - 1);
+	return (encoding.trim());
 	}
 
 
