@@ -235,10 +235,7 @@ public class DbMapping implements Updatable {
 	            subnodesRel = new Relation (subnodeMapping, "_subnodes", this, props);
 	        else
 	            subnodesRel.update (subnodeMapping, props);
-	        // if (subnodesRel.isReference ())
-	            // subnodes = subnodesRel.other;
-	        // else
-	        //     subnodes = (DbMapping) app.getDbMapping (subnodeMapping);
+	
 	    } catch (Exception x) {
 	        app.logEvent ("Error reading _subnodes relation for "+typename+": "+x.getMessage ());
 	        // subnodesRel = null;
@@ -254,13 +251,12 @@ public class DbMapping implements Updatable {
 	            propertiesRel = new Relation (propertiesMapping, "_properties", this, props);
 	        else
 	            propertiesRel.update (propertiesMapping, props);
-	        // if (propertiesRel.isReference ())
-	        //     properties = propertiesRel.other;
-	        // else
-	        //     properties = (DbMapping) app.getDbMapping (propertiesMapping);
 	        // take over groupby flag from subnodes, if properties are subnodes
-	        if (propertiesRel.subnodesAreProperties && subnodesRel != null)
+	        if (propertiesRel.subnodesAreProperties && subnodesRel != null) {
 	            propertiesRel.groupby = subnodesRel.groupby;
+	            propertiesRel.constraints = subnodesRel.constraints;
+	        }
+	
 	    } catch (Exception x) {
 	        app.logEvent ("Error reading _properties relation for "+typename+": "+x.getMessage ());
 	        // propertiesRel = null;
