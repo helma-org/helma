@@ -43,8 +43,6 @@ public class DiffusionFilterOp implements BufferedImageOp {
     private boolean serpentine = true;
     private int[] colorMap;
 
-    static private int ERROR_SHIFT = 10; // fixed point error precision
-
     /**
      * Construct a DiffusionFilter
      */
@@ -143,10 +141,10 @@ public class DiffusionFilterOp implements BufferedImageOp {
                 int g2 = (rgb2 >> 8) & 0xff;
                 int b2 = rgb2 & 0xff;
 
-                int er = (r1 - r2) << ERROR_SHIFT;
-                int eg = (g1 - g2) << ERROR_SHIFT;
-                int eb = (b1 - b2) << ERROR_SHIFT;
-                int ea = (a1 - a2) << ERROR_SHIFT;
+                int er = r1 - r2;
+                int eg = g1 - g2;
+                int eb = b1 - b2;
+                int ea = a1 - a2;
 
                 for (int i = -1; i <= 1; i++) {
                     int iy = i + y;
@@ -194,7 +192,7 @@ public class DiffusionFilterOp implements BufferedImageOp {
         int idx = 0;
         long dist = Long.MAX_VALUE;
         for (int i = 0; i < colorMap.length; i++) {
-            int rgb2 = colorMap[idx];
+            int rgb2 = colorMap[i];
             int a2 = (rgb2 >> 24) & 0xff;
             int r2 = (rgb2 >> 16) & 0xff;
             int g2 = (rgb2 >> 8) & 0xff;
