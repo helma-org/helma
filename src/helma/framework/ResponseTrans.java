@@ -444,6 +444,22 @@ public final class ResponseTrans implements Serializable {
     }
 
     /**
+     * Write a vanilla error report. Callers should make sure the ResponeTrans is
+     * new or has been reset.
+     *
+     * @param appName the application name
+     * @param message the error message
+     */
+    public void writeErrorReport(String appName, String message) {
+        write("<html><body><h3>");
+        write("Error in application ");
+        write(appName);
+        write("</h3>");
+        write(message);
+        write("</body></html>");
+    }
+
+    /**
      * This has to be called after writing to this response has finished and before it is shipped back to the
      * web server. Transforms the string buffer into a char array to minimize size.
      */
