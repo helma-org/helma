@@ -161,6 +161,8 @@ public class Relation {
 	    groupbyprototype = props.getProperty (propname+".groupby.prototype");
 	    if (groupbyprototype != null && groupbyprototype.trim().length() == 0)
 	        groupbyprototype = null;
+	    // aggressive loading and caching is not supported for groupby-nodes
+	    aggressiveLoading = aggressiveCaching = false;
 	}
 	// check if subnode condition should be applied for property relations
 	if ("_properties".equalsIgnoreCase (propname) || virtual) {
@@ -258,6 +260,8 @@ public class Relation {
 	vr.groupbyprototype = groupbyprototype;
 	vr.order = order;
 	vr.subnoderelation = subnoderelation;
+	vr.aggressiveLoading = aggressiveLoading;
+	vr.aggressiveCaching = aggressiveCaching;
 	return vr;
     }
 
