@@ -26,6 +26,7 @@ import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Relation;
 import helma.scripting.*;
+import helma.scripting.rhino.debug.Tracer;
 import helma.util.CacheMap;
 import helma.util.Updatable;
 import org.mozilla.javascript.*;
@@ -145,6 +146,12 @@ public class RhinoEngine implements ScriptingEngine {
         context = Context.enter();
         context.setCompileFunctionsWithDynamicScope(true);
         context.setWrapFactory(core.wrapper);
+
+        boolean trace = "true".equals(app.getProperty("rhino.trace"));
+
+        if (trace) {
+            context.setDebugger(new Tracer(getResponse()), null);
+        }
 
         int optLevel = 0;
 
