@@ -13,6 +13,7 @@ import FESI.Extensions.*;
 import FESI.Data.*;
 
 import java.io.*;
+import java.awt.image.*;
 import java.util.*;
 import java.rmi.Naming;
 
@@ -78,7 +79,12 @@ public class ImageExtension extends Extension {
                                  (Object) imggen.createPaintableImage (imgurl);
                    }
                } else if (arguments.length == 2) {
-                   if (arguments[0].isNumberValue () && arguments[1].isNumberValue ()) {
+                   if (arguments[0] instanceof ESWrapper && arguments[1] instanceof ESWrapper) {
+                       // create a new image from an existing one and an image filter
+                       Object image = arguments[0].toJavaObject ();
+                       Object filter = arguments[1].toJavaObject ();
+                       img = imggen.createPaintableImage ((ImageWrapper) image, (ImageFilter) filter);
+                   } else if (arguments[0].isNumberValue () && arguments[1].isNumberValue ()) {
                        img = remote ?
                                 (Object) rgen.createPaintableImage (arguments[0].toInt32(), arguments[1].toInt32()) :
                                 (Object) imggen.createPaintableImage (arguments[0].toInt32(), arguments[1].toInt32());
