@@ -701,11 +701,12 @@ public final class NodeManager {
         }
 
         // update may cause changes in the node's parent subnode array
-        if (node.isAnonymous()) {
+        // TODO: is this really needed anymore?
+        if (markMappingAsUpdated && node.isAnonymous()) {
             Node parent = node.getCachedParent();
 
             if (parent != null) {
-                parent.lastSubnodeChange = System.currentTimeMillis();
+                parent.setLastSubnodeChange(System.currentTimeMillis());
             }
         }
 
