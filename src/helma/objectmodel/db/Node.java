@@ -512,7 +512,7 @@ public final class Node implements INode, Serializable {
 	            } else {
 	                anonymous = true;
 	            }
-	        } else if (p.contains (this) > -1) {
+	        } else if (!anonymous && p.contains (this) > -1) {
 	           anonymous = true;
 	        }
 	    } catch (Exception ignore) {
@@ -892,13 +892,13 @@ public final class Node implements INode, Serializable {
 
     public INode createNode (String nm, int where) {
 	checkWriteLock ();
-    	boolean anon = false;
-	if (nm == null || "".equals (nm.trim ())) 
+	boolean anon = false;
+	if (nm == null || "".equals (nm.trim ()))
 	    anon = true;
 	Node n = new Node (nm, null, nmgr);
 	if (anon)
 	    addNode (n, where);
-	else 
+	else
 	    setNode (nm, n);
 	return n;
     }
@@ -936,7 +936,7 @@ public final class Node implements INode, Serializable {
 	        if (rel.otherType != null && rel.otherType.isRelational ())
 	            return (IPathElement) nmgr.getNode (this, name, rel);
 	        else
-	           return (IPathElement) getNode (name);
+	            return (IPathElement) getNode (name);
 	    }
 	    return (IPathElement) getSubnode (name);
 	} else {
