@@ -146,12 +146,13 @@ public class FesiEvaluator {
 	    else
 	        evaluateString (prototype, ff.getContent ());
 	}
-	/* for (Iterator it = prototype.templates.values().iterator(); it.hasNext(); ) {
+	for (Iterator it = prototype.templates.values().iterator(); it.hasNext(); ) {
 	    Template tmp = (Template) it.next ();
 	    try {
-	        tmp.updateRequestEvaluator (reval);
+	        FesiActionAdapter adp = new FesiActionAdapter (tmp);
+	        adp.updateEvaluator (this);
 	    } catch (EcmaScriptException ignore) {}
-	} */
+	}
 	for (Iterator it = prototype.actions.values().iterator(); it.hasNext(); ) {
 	    ActionFile act = (ActionFile) it.next ();
 	    try {
@@ -275,8 +276,10 @@ public class FesiEvaluator {
 	    if (globalVariables != null) {
 	        for (Enumeration en = global.getAllProperties(); en.hasMoreElements(); ) {
 	            String g = en.nextElement ().toString ();
-	            if (!globalVariables.contains (g)) try {
-	                global.deleteProperty (g, g.hashCode());
+	            try {
+	                if (!globalVariables.contains (g) &&
+				!(global.getProperty (g, g.hashCode()) instanceof BuiltinFunctionObject))
+	                    global.deleteProperty (g, g.hashCode());
 	            } catch (Exception x) {
 	                System.err.println ("Error resetting global property: "+g);
 	            }
