@@ -210,11 +210,11 @@ public class FesiEvaluator {
 	                    parr.putHiddenProperty (app.getPrototypeName(pathElem), wrappedElement);
 	                }
 	                sv = parr;
-				} else if ("user".equals (k)) {
-				    sv = getNodeWrapper ((User) v);
+	            } else if ("user".equals (k)) {
+	                sv = getNodeWrapper ((User) v);
 	            } else if ("app".equals (k)) {
-				    sv = new ESAppNode ((INode) v, this);
-				}
+	                sv = new ESAppNode ((INode) v, this);
+	            }
 	            else
 	                sv = ESLoader.normalizeValue (v, evaluator);
 	            evaluator.getGlobalObject ().putHiddenProperty (k, sv);
@@ -223,9 +223,12 @@ public class FesiEvaluator {
 	    evaluator.thread = Thread.currentThread ();
 	    ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
 	    return retval == null ? null : retval.toJavaObject ();
-	} catch (RedirectException redir) {
-	    throw redir;
 	} catch (Exception x) {
+	    // check if this is a redirect exception, which has been converted by fesi
+	    // into an EcmaScript exception, which is why we can't explicitly catch it
+	    if (reval.res.getRedirect() != null)
+	        throw new RedirectException (reval.res.getRedirect ());
+	    // create and throw a ScriptingException with the right message
 	    String msg = x.getMessage ();
 	    if (msg == null || msg.length() < 10)
 	        msg = x.toString ();
