@@ -77,7 +77,7 @@ public class RequestEvaluator implements Runnable {
     static final int XMLRPC = 2;      // via XML-RPC
     static final int INTERNAL = 3;     // generic function call, e.g. by scheduler
 
-    INode root, userroot, currentNode;
+    // INode root, currentNode;
     INode[] skinmanagers;
 
     /**
@@ -99,6 +99,7 @@ public class RequestEvaluator implements Runnable {
     private void initEvaluator () {
 	try {
 	    evaluator = new Evaluator();
+	    evaluator.reval = this;
 	    global = evaluator.getGlobalObject();
 	    for (int i=0; i<extensions.length; i++)
 	        evaluator.addExtension (extensions[i]);
@@ -140,7 +141,7 @@ public class RequestEvaluator implements Runnable {
         try {
 	do {
 
-	    // app.logEvent ("got request "+reqtype);
+	    IPathElement root, currentElement;
 	    // reset skinManager
 	    skinmanagers = null;
 
@@ -152,7 +153,7 @@ public class RequestEvaluator implements Runnable {
 	        while (!done) {
 
 	            current = null;
-	            currentNode = null;
+	            currentElement = null;
 	            reqPath.setSize (0);
 	            // delete path objects-via-prototype
 	            for (Enumeration en=reqPath.getAllProperties(); en.hasMoreElements(); ) {
@@ -176,7 +177,7 @@ public class RequestEvaluator implements Runnable {
 
 	                ESUser esu = (ESUser) getNodeWrapper (user);
 	                // esu.setUser (user);
-	                global.putHiddenProperty ("root", getNodeWrapper (root));
+	                global.putHiddenProperty ("root", getElementWrapper (root));
 	                global.putHiddenProperty("user", esu);
 	                global.putHiddenProperty ("req", new ESWrapper (req, evaluator));
 	                global.putHiddenProperty ("res", new ESWrapper (res, evaluator));
@@ -197,8 +198,8 @@ public class RequestEvaluator implements Runnable {
 
 	                    if (error != null) {
 	                        // there was an error in the previous loop, call error handler
-	                        currentNode = root;
-	                        current = getNodeWrapper (root);
+	                        currentElement = root;
+	                        current = getElementWrapper (root);
 	                        reqPath.putProperty (0, current);
 	                        reqPath.putHiddenProperty ("root", current);
 	                        Prototype p = app.getPrototype (root);
@@ -208,8 +209,8 @@ public class RequestEvaluator implements Runnable {
 	                            throw new RuntimeException (error);
 	
 	                    } else if (req.path == null || "".equals (req.path.trim ())) {
-	                        currentNode = root;
-	                        current = getNodeWrapper (root);
+	                        currentElement = root;
+	                        current = getElementWrapper (root);
 	                        reqPath.putProperty (0, current);
 	                        reqPath.putHiddenProperty ("root", current);
 	                        Prototype p = app.getPrototype (root);
@@ -233,38 +234,38 @@ public class RequestEvaluator implements Runnable {
 	                        for (int i=0; i<ntokens; i++)
 	                              pathItems[i] = st.nextToken ();
 	
-	                        currentNode = root;
-	                        current = getNodeWrapper (root);
+	                        currentElement = root;
+	                        current = getElementWrapper (root);
 	                        reqPath.putProperty (0, current);
 	                        reqPath.putHiddenProperty ("root", current);
 
 	                        for (int i=0; i<ntokens; i++) {
 	
-	                            if (currentNode == null)
+	                            if (currentElement == null)
 	                                throw new FrameworkException ("Object not found.");
 	
 	                            // the first token in the path needs to be treated seprerately,
 	                            // because "/user" is a shortcut to the current user session, while "/users"
 	                            // is the mounting point for all users.
 	                            if (i == 0 && "user".equalsIgnoreCase (pathItems[i])) {
-	                                currentNode = user.getNode ();
-	                                if (currentNode != null) {
-	                                    current = getNodeWrapper (currentNode);
+	                                // currentElement = user.getNode ();
+	                                if (currentElement != null) {
+	                                    current = getElementWrapper (currentElement);
 	                                    reqPath.putProperty (1, current);
 	                                    reqPath.putHiddenProperty ("user", current);
 	                                }
 	
 	                            } else if (i == 0 && "users".equalsIgnoreCase (pathItems[i])) {
-	                                currentNode = app.getUserRoot ();
-	                                isProperty = true;
-	                                if (currentNode != null) {
-	                                    current = getNodeWrapper (currentNode);
+	                                // currentElement = app.getUserRoot ();
+	                                // isProperty = true;
+	                                if (currentElement != null) {
+	                                    current = getElementWrapper (currentElement);
 	                                    reqPath.putProperty (1, current);
 	                                }
 	
 	                            } else {
 	                                if (i == ntokens-1) {
-	                                    Prototype p = app.getPrototype (currentNode);
+	                                    Prototype p = app.getPrototype (currentElement);
 	                                    if (p != null)
 	                                        action = p.getActionOrTemplate (pathItems[i]);
 	                                }
@@ -273,23 +274,25 @@ public class RequestEvaluator implements Runnable {
 	
 	                                    if (pathItems[i].length () == 0)
 	                                        continue;
-	                                    if (isProperty)  // get next element as property
-	                                        currentNode = currentNode.getNode (pathItems[i], false);
+	
+	                                    currentElement = currentElement.getChildElement (pathItems[i]);
+	                                    /* if (isProperty)  // get next element as property
+	                                        currentElement = currentElement.getNode (pathItems[i], false);
 	                                    else {
 	                                        // try to get next element as subnode first, then fall back to property
-	                                        INode nextNode = currentNode.getSubnode (pathItems[i]);
+	                                        INode nextNode = currentElement.getSubnode (pathItems[i]);
 	                                        if (nextNode == null)
-	                                            nextNode = currentNode.getNode (pathItems[i], false);
-	                                        currentNode = nextNode;
+	                                            nextNode = currentElement.getNode (pathItems[i], false);
+	                                        currentElement = nextNode;
 	                                    }
-	                                    isProperty = false;
+	                                    isProperty = false; */
 
 	                                    // add object to request path if suitable
-	                                    if (currentNode != null) {
+	                                    if (currentElement != null) {
 	                                        // add to reqPath array
-	                                        current = getNodeWrapper (currentNode);
+	                                        current = getElementWrapper (currentElement);
 	                                        reqPath.putProperty (reqPath.size(), current);
-	                                        String pt = currentNode.getPrototype ();
+	                                        String pt = currentElement.getPrototype ();
 	                                        if (pt != null) {
 	                                            // if a prototype exists, add also by prototype name
 	                                            reqPath.putHiddenProperty (pt, current);
@@ -300,13 +303,13 @@ public class RequestEvaluator implements Runnable {
 	                            }
 	                        }
 
-	                        if (currentNode == null)
+	                        if (currentElement == null)
 	                            throw new FrameworkException ("Object not found.");
 	                        else
-	                            current = getNodeWrapper (currentNode);
+	                            current = getElementWrapper (currentElement);
 
 	                        if (action == null) {
-	                            Prototype p = app.getPrototype (currentNode);
+	                            Prototype p = app.getPrototype (currentElement);
 	                            if (p != null)
 	                                action = p.getActionOrTemplate (null);
 	                        }
@@ -328,7 +331,7 @@ public class RequestEvaluator implements Runnable {
 	                    action = p.getActionOrTemplate (notFoundAction);
 	                    if (action == null)
 	                        throw new FrameworkException (notfound.getMessage ());
-	                    current = getNodeWrapper (root);
+	                    current = getElementWrapper (root);
 	                }
 
 	                localrtx.timer.endEvent (requestPath+" init");
@@ -430,7 +433,7 @@ public class RequestEvaluator implements Runnable {
 
 	            root = app.getDataRoot ();
 
-	            global.putHiddenProperty ("root", getNodeWrapper (root));
+	            global.putHiddenProperty ("root", getElementWrapper (root));
 	            global.deleteProperty("user", "user".hashCode());
 	            global.deleteProperty ("req", "req".hashCode());
 	            global.putHiddenProperty ("res", ESLoader.normalizeValue(res, evaluator));
@@ -439,7 +442,7 @@ public class RequestEvaluator implements Runnable {
 
 	            // convert arguments
 	            int l = args.size ();
-	            current = getNodeWrapper (root);
+	            current = getElementWrapper (root);
 	            if (method.indexOf (".") > -1) {
 	                StringTokenizer st = new StringTokenizer (method, ".");
 	                int cnt = st.countTokens ();
@@ -491,7 +494,7 @@ public class RequestEvaluator implements Runnable {
 
 	            root = app.getDataRoot ();
 
-	            global.putHiddenProperty ("root", getNodeWrapper (root));
+	            global.putHiddenProperty ("root", getElementWrapper (root));
 	            global.deleteProperty("user", "user".hashCode());
 	            global.deleteProperty ("req", "req".hashCode());
 	            global.putHiddenProperty ("res", ESLoader.normalizeValue(res, evaluator));
@@ -642,13 +645,13 @@ public class RequestEvaluator implements Runnable {
 	return result;
     }
 
-    public synchronized ESValue invokeFunction (INode node, String functionName, ESValue[] args)
+    public synchronized ESValue invokeFunction (IPathElement node, String functionName, ESValue[] args)
 		throws Exception {
 	ESObject obj = null;
 	if  (node == null)
 	    obj = global;
 	else
-	    obj = getNodeWrapper (node);
+	    obj = getElementWrapper (node);
 	return invokeFunction (obj, functionName, args);
     }
 
@@ -741,8 +744,14 @@ public class RequestEvaluator implements Runnable {
 	Prototype proto = null;
 	if (thisObject == null)
 	    proto = app.typemgr.getPrototype ("global");
-	else
-	    proto = app.getPrototype (((ESNode) thisObject).getNode ());
+	else {
+	    try {
+	        IPathElement elem = (IPathElement) thisObject.toJavaObject ();
+	        proto = app.getPrototype (elem);
+	    } catch (ClassCastException wrongClass) {
+	        throw new RuntimeException ("Can't render a skin on something that is not a path element: "+wrongClass);
+	    }
+	}
 	return getSkin (proto, skinname);
     }
 	
@@ -829,6 +838,21 @@ public class RequestEvaluator implements Runnable {
 	return (ESNode) objectcache.get (n);
     }
 
+
+    public ESObject getElementWrapper (IPathElement e) {
+	if (e instanceof INode)
+	    return getNodeWrapper ((INode) e);
+
+	String protoname = e.getPrototype ();
+
+	ObjectPrototype op = (ObjectPrototype) prototypes.get (protoname);
+
+	return new ESGenericObject (op, evaluator, e);
+    }
+
+    /**
+     *  Get a script wrapper for an implemntation of helma.objectmodel.INode
+     */
     public ESNode getNodeWrapper (INode n) {
 
         if (n == null)

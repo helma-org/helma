@@ -75,6 +75,11 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
     private DbMapping rootMapping, userRootMapping, userMapping;
 
+    // the root of the website, if a custom root object is defined.
+    // otherwise this is managed by the NodeManager and not cached here.
+    IPathElement rootObject = null;
+    String rootObjectClass;
+
     boolean checkSubnodes;
 
     String charset;
@@ -130,6 +135,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 
 	debug = "true".equalsIgnoreCase (props.getProperty ("debug"));
 	checkSubnodes = !"false".equalsIgnoreCase (props.getProperty ("subnodeChecking"));
+	
+	// get class name of root object if defined. Otherwise native Helma objectmodel will be used.
+	rootObjectClass = props.getProperty ("rootObject");
 	
 	try {
 	    requestTimeout = Long.parseLong (props.getProperty ("requestTimeout", "60"))*1000l;
@@ -333,7 +341,20 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	// do nothing
     }
 
-    public INode getDataRoot () {
+    public IPathElement getDataRoot () {
+	if (rootObjectClass != null) {
+	    // create custom root element.
+	    // NOTE: This is but a very rough first sketch of an implementation
+	    // and needs much more care.
+	    if (rootObject == null) try {
+	        Class c = Class.forName (rootObjectClass);
+	        rootObject = (IPathElement) c.newInstance ();
+	    } catch (Throwable x) {
+	        System.err.println ("ERROR CREATING ROOT OBJECT: "+x);
+	    }
+	    return rootObject;
+	}
+	// no custom root object is defined - use standard helma objectmodel
 	INode root = nmgr.safe.getNode ("0", rootMapping);
 	root.setDbMapping (rootMapping);
 	return root;
@@ -365,7 +386,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
      * Return a prototype for a given node. If the node doesn't specify a prototype,
      * return the generic hopobject prototype.
      */
-    public Prototype getPrototype (INode n) {
+    public Prototype getPrototype (IPathElement n) {
     	String protoname = n.getPrototype ();
 	if (protoname == null)
 	    return typemgr.getPrototype ("hopobject");
@@ -444,7 +465,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	    if (pw != null && pw.equals (password)) {
 	        // give the user her piece of persistence
 	        u.setNode (unode);
-	        activeUsers.put (unode.getNameOrID (), u.user);
+	        activeUsers.put (unode.getName (), u.user);
 	        return true;
 	    }
 	        
@@ -477,29 +498,69 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	return pwfile.authenticate (uname, password);
     }
 
-    public String getNodePath (INode n, String tmpname) {
-	INode root = getDataRoot ();
+    /* public String getNodePath (INode n, String tmpname) {
+	// FIXME: will fail for non-node roots
+	INode root = (INode) getDataRoot ();
 	INode users = getUserRoot ();
 	String siteroot = props.getProperty ("rootPrototype");
 	String href = n.getUrl (root, users, tmpname, siteroot);
 	return href;
-    }
+    } */
 
-    public String getNodeHref (INode n, String tmpname) {
-	INode root = getDataRoot ();
+    /**
+     * Return a path to be used in a URL pointing to the given element  and action
+     */
+    public String getNodeHref (IPathElement elem, String actionName) {
+	// FIXME: will fail for non-node roots
+	IPathElement root = getDataRoot ();
 	INode users = getUserRoot ();
 	
 	// check base uri and optional root prototype from app.properties
 	String base = props.getProperty ("baseURI");
-	String siteroot = props.getProperty ("rootPrototype");
+	String rootproto = props.getProperty ("rootPrototype");
 	
 	if (base != null || baseURI == null)
 	    setBaseURI (base);
-	String href = n.getUrl (root, users, tmpname, siteroot);
+	
+	// String href = n.getUrl (root, users, tmpname, siteroot);
+
+	String divider = "/";
+	StringBuffer b = new StringBuffer ();
+	IPathElement p = elem;
+	int loopWatch = 0;
+	
+	while  (p != null && p.getParentElement () != null && p != root) {
+	
+	    if (rootproto != null && rootproto.equals (p.getPrototype ()))
+	        break;
+	
+	    b.insert (0, divider);
+	
+	    // users always have a canonical URL like /users/username
+	    if ("user".equals (p.getPrototype ())) {
+	        b.insert (0, UrlEncoder.encode (p.getElementName ()));
+	        p = users;
+	        break;
+	    }
+	
+	    b.insert (0, UrlEncoder.encode (p.getElementName ()));
+	    	
+	    p = p.getParentElement ();
+
+	    if (loopWatch++ > 20)
+	        break;
+	}
+	
+	if (p == users) {
+	    b.insert (0, divider);
+	    b.insert (0, "users");
+	}
+	String href =  b.toString()+UrlEncoder.encode (actionName);
 	
 	return baseURI + href;
     }
-    
+
+
     public void setBaseURI (String uri) {
 	if (uri == null)
 	    this.baseURI = "/";

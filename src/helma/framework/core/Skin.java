@@ -72,12 +72,24 @@ public class Skin {
 	return source;
     }
 
-    public void render (RequestEvaluator reval, ESNode thisNode, ESObject paramObject) throws RedirectException {
+    public void render (RequestEvaluator reval, ESObject thisObject, ESObject paramObject) throws RedirectException {
+	
 	if (parts == null)
 	    return;
+	
+	IPathElement elem = null;
+	
+	if (thisObject != null) {
+	    try {
+	        elem = (IPathElement) thisObject.toJavaObject ();
+	    } catch (ClassCastException wrongClass) {
+	        throw new RuntimeException ("Can't render a skin on something that is not a path element: "+wrongClass);
+	    }
+	}
+	
 	for (int i=0; i<parts.length; i++) {
 	    if (parts[i] instanceof Macro)
-	        ((Macro) parts[i]).render (reval, thisNode, paramObject);
+	        ((Macro) parts[i]).render (reval, thisObject, elem, paramObject);
 	    else
 	        reval.res.write (parts[i]);
 	}
@@ -193,7 +205,7 @@ public class Skin {
 	}
 
 
-	public void render (RequestEvaluator reval, ESNode thisNode, ESObject paramObject) throws RedirectException {
+	public void render (RequestEvaluator reval, ESObject thisObject, IPathElement elem, ESObject paramObject) throws RedirectException {
 
 	    if (notallowed) {
 	        String h = handler == null ? "global" : handler;
@@ -223,32 +235,33 @@ public class Skin {
 	            if ("currentuser".equalsIgnoreCase (handler)) {
 	                // as a special convention, we use "currentuser" to access macros in the current user object
 	                handlerObject = reval.getNodeWrapper (reval.user.getNode ());
-	            } else if (thisNode != null) {
+	            } else if (elem != null) {
 	                // not a global macro - need to find handler object
 	                // was called with this object - check it or its parents for matching prototype
-	                if (!handler.equalsIgnoreCase ("this") && !handler.equalsIgnoreCase (thisNode.getPrototypeName ())) {
+	                if (!handler.equalsIgnoreCase ("this") && !handler.equalsIgnoreCase (elem.getPrototype ())) {
 	                    // the handler object is not what we want
-	                    INode n = thisNode.getNode();
+	                    IPathElement n = elem;
 	                    // walk down parent chain to find handler object
 	                    while (n != null) {
 	                        if (handler.equalsIgnoreCase (n.getPrototype())) {
-	                            handlerObject = reval.getNodeWrapper (n);
+	                            handlerObject = reval.getElementWrapper (n);
 	                            break;
 	                        }
-	                        n = n.getParent ();
+	                        n = n.getParentElement ();
 	                    }
 	                } else {
 	                    // we already have the right handler object
-	                    handlerObject = thisNode;
+	                    handlerObject = thisObject;
 	                }
 	            }
 
 	            if (handlerObject == null) {
-	                // eiter because thisNode == null or the right object wasn't found in the targetNode path
+	                // eiter because thisObject == null or the right object wasn't found in the object's parent path
 	                // go check request path for an object with matching prototype
 	                int l = reval.reqPath.size();
 	                for (int i=l-1; i>=0; i--) {
-	                    if (handler.equalsIgnoreCase (((ESNode) reval.reqPath.getProperty(i)).getPrototypeName())) {
+	                    IPathElement pathelem = (IPathElement) reval.reqPath.getProperty (i).toJavaObject ();
+	                    if (handler.equalsIgnoreCase (pathelem.getPrototype ())) {
 	                         handlerObject = (ESNode) reval.reqPath.getProperty(i);
 	                         break;
 	                    }

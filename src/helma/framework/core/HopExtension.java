@@ -5,6 +5,7 @@ package helma.framework.core;
 
 import helma.objectmodel.*;
 import helma.util.*;
+import helma.framework.IPathElement;
 import FESI.Interpreter.*;
 import FESI.Exceptions.*;
 import FESI.Extensions.*;
@@ -76,7 +77,7 @@ public class HopExtension {
         reval.esNodePrototype.putHiddenProperty ("editor", new NodeEditor ("editor", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("chooser", new NodeChooser ("chooser", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("multiChooser", new MultiNodeChooser ("multiChooser", evaluator, fp));
-        reval.esNodePrototype.putHiddenProperty ("path", new NodePath ("path", evaluator, fp));
+        reval.esNodePrototype.putHiddenProperty ("path", new NodeHref ("path", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("href", new NodeHref ("href", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("setParent", new NodeSetParent ("setParent", evaluator, fp));
         reval.esNodePrototype.putHiddenProperty ("invalidate", new NodeInvalidate ("invalidate", evaluator, fp));
@@ -574,12 +575,12 @@ public class HopExtension {
             this.global = global;
             this.asString = asString;
         }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+        public ESValue callFunction (ESObject thisObj, ESValue[] arguments) throws EcmaScriptException {
             if (arguments.length < 1 || arguments.length > 2 || arguments[0] ==null || arguments[0] == ESNull.theNull)
                 throw new EcmaScriptException ("renderSkin must be called with one Skin argument and an optional parameter argument");
             try {
-	   Skin skin = null;
-                ESNode handlerNode = global ? null : (ESNode) thisObject;
+                Skin skin = null;
+                ESObject thisObject = global ? null : thisObj;
                 ESObject paramObject = null;
                 if (arguments.length > 1 && arguments[1] instanceof ESObject)
                     paramObject = (ESObject) arguments[1];
@@ -592,11 +593,11 @@ public class HopExtension {
                 }
 
                 if (skin == null)
-                    skin = reval.getSkin (handlerNode, arguments[0].toString ());
+                    skin = reval.getSkin (thisObject, arguments[0].toString ());
                 if (asString)
                     reval.res.pushStringBuffer ();
                 if (skin != null)
-                    skin.render (reval, handlerNode, paramObject);
+                    skin.render (reval, thisObject, paramObject);
                 else
                     reval.res.write ("[Skin not found: "+arguments[0]+"]");
                 if (asString)
@@ -916,7 +917,7 @@ public class HopExtension {
     }
 
 
-    class NodePath extends BuiltinFunctionObject {
+    /* class NodePath extends BuiltinFunctionObject {
         NodePath (String name, Evaluator evaluator, FunctionPrototype fp) {
             super (fp, evaluator, name, 1);
         }
@@ -925,7 +926,7 @@ public class HopExtension {
             String tmpname = arguments[0].toString ();
             return new ESString (app.getNodePath (n, tmpname));
         }
-    }
+    } */
 
     class NodeSetParent extends BuiltinFunctionObject {
         NodeSetParent (String name, Evaluator evaluator, FunctionPrototype fp) {
@@ -943,33 +944,33 @@ public class HopExtension {
             super (fp, evaluator, name, 1);
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            INode n = ((ESNode) thisObject).getNode ();
+            IPathElement elem = (IPathElement) thisObject.toJavaObject ();
             String tmpname = arguments.length == 0 ? "" : arguments[0].toString ();
-            String basicHref =app.getNodeHref (n, tmpname);
+            String basicHref =app.getNodeHref (elem, tmpname);
             String hrefSkin = app.props.getProperty ("hrefSkin");
             // FIXME: we should actually walk down the path from the object we called href() on
             // instead we move down the URL path.
             if (hrefSkin != null) {
                 // we need to post-process the href with a skin for this application
                 // first, look in the object href was called on.
-                INode sn = n;
+                IPathElement skinElem = elem;
                 Skin skin = null;
-                while (skin == null && sn != null) {
-                    Prototype proto = app.getPrototype (sn);
+                while (skin == null && skinElem != null) {
+                    Prototype proto = app.getPrototype (skinElem);
                     if (proto != null)
                         skin = proto.getSkin (hrefSkin);
                     if (skin == null)
-                        sn = sn.getParent ();
+                        skinElem = skinElem.getParentElement ();
                 }
 
                 if (skin != null) {
-                    ESNode esn = reval.getNodeWrapper (sn);
-                    return renderSkin (skin, basicHref, esn);
+                    ESObject eso = reval.getElementWrapper (skinElem);
+                    return renderSkin (skin, basicHref, eso);
                 }
             }
             return new ESString (basicHref);
         }
-        private ESString renderSkin (Skin skin, String path, ESNode obj) throws EcmaScriptException {
+        private ESString renderSkin (Skin skin, String path, ESObject obj) throws EcmaScriptException {
             reval.res.pushStringBuffer ();
             ESObject param = new ObjectPrototype (null, reval.evaluator);
             param.putProperty ("path", new ESString (path), "path".hashCode ());
@@ -1040,7 +1041,7 @@ public class HopExtension {
         	    buffer.append ("<input type=radio name=\"");
         	    buffer.append (name);
         	    buffer.append ("\" value=\"");
-        	    buffer.append (next.getNameOrID ()+"\"");
+        	    buffer.append (next.getElementName ()+"\"");
         	    if (target == next)
         	        buffer.append (" checked");
         	    buffer.append (">");
@@ -1062,7 +1063,7 @@ public class HopExtension {
         	    buffer.append ("<input type=checkbox name=\"");
         	    buffer.append (name);
         	    buffer.append ("\" value=");
-        	    buffer.append (next.getNameOrID ());
+        	    buffer.append (next.getElementName ());
         	    if (target.contains (next) > -1)
         	        buffer.append (" checked");
         	    buffer.append (">");

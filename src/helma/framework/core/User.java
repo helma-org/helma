@@ -52,7 +52,7 @@ public class User implements Serializable {
 	    nhandle = null;
 	    uid = null;
 	} else {
-	    uid = n.getNameOrID ();
+	    uid = n.getElementName ();
 	    nhandle = ((helma.objectmodel.db.Node) n).getHandle ();
 	}
     }

@@ -130,7 +130,7 @@ public class ESAppNode extends ESNode {
 
 
     public String toString () {
-	return ("AppNode "+node.getNameOrID ());
+	return ("AppNode "+node.getElementName ());
     }
 
 }

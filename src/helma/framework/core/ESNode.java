@@ -412,7 +412,11 @@ public class ESNode extends ObjectPrototype {
     public void clearError() {
         lastError = null;
     }
-   
+
+    public Object toJavaObject () {
+        return getNode ();
+    }
+
     /** 
      * An ESNode equals another object if it is an ESNode that wraps the same INode 
      * or the wrapped INode itself. FIXME: doesen't check dbmapping/type!
