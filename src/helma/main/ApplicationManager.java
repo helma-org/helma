@@ -134,9 +134,12 @@ public class ApplicationManager {
 	Server.getLogger().log ("Stopping application "+appName);
 	try {
 	    Application app = (Application) applications.get (appName);
-	    if (server.http == null) {
+	    // unbind from RMI server
+	    if (port > 0) {
 	        Naming.unbind ("//:"+port+"/"+appName);
-	    } else {
+	    }
+	    // unbind from Jetty HTTP server
+	    if (server.http != null) {
 	        String mountpoint = mountpoints.getProperty (appName);
 	        HttpContext context = server.http.getContext (null, mountpoint);
 	        if (context != null) {
@@ -156,9 +159,12 @@ public class ApplicationManager {
 	try {
 	    Server.getLogger().log ("Binding application "+appName);
 	    Application app = (Application) applications.get (appName);
-	    if (server.http == null) {
-	        Naming.rebind ("//:"+port+"/"+appName, app);
-	    } else {
+	    // bind to RMI server
+	    if (port > 0) {
+	        Naming.rebind ("//:"+port+"/"+appName, new RemoteApplication (app));
+	    }
+	    // bind to Jetty HTTP server
+	    if (server.http != null) {
 	        String mountpoint = getMountpoint (appName);
 	        // if using embedded webserver (not AJP) set application URL prefix
 	        if (server.ajp13Port == 0)

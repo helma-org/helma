@@ -44,8 +44,8 @@ import org.mortbay.http.ajp.*;
     static SystemProperties sysProps;
 
     // server ports
-    int rmiPort = 5055;
-    int xmlrpcPort = 5056;
+    int rmiPort = 0;
+    int xmlrpcPort = 0;
     int websrvPort = 0;
     int ajp13Port = 0;
 
@@ -222,13 +222,24 @@ import org.mortbay.http.ajp.*;
 
 	dbSources = new Hashtable ();
 
+	// check server ports. If no port is set, 
+	// use 5055 for RMI and 5056 for XML-RPC.
+	if ((websrvPort | ajp13Port | rmiPort) == 0) {
+	    rmiPort = 5055;
+	    if (xmlrpcPort == 0)
+	        xmlrpcPort = 5056;
+	}
+
+	// check if servers are already running on the given ports
 	try {
-	     // check if servers are already running on the given ports
-	    if (websrvPort==0)
-	        checkRunning (rmiPort);
-	    else
+	    if (websrvPort > 0)
 	        checkRunning (websrvPort);
-	    checkRunning (xmlrpcPort);
+	    if (rmiPort > 0)
+	        checkRunning (rmiPort);
+	    if (xmlrpcPort > 0)
+	        checkRunning (xmlrpcPort);
+	    if (ajp13Port > 0)
+	        checkRunning (ajp13Port);
 	} catch (Exception running) {
 	    System.out.println (running.getMessage ());
 	    System.exit (1);
@@ -258,7 +269,7 @@ import org.mortbay.http.ajp.*;
 	mainThread = new Thread (this);
 	mainThread.start ();
     }
-    
+
 
     /**
      *  The main method of the Server. Basically, we set up Applications and than
@@ -315,7 +326,7 @@ import org.mortbay.http.ajp.*;
 	    String xmlparser = sysProps.getProperty ("xmlparser");
 	    if (xmlparser != null)
 	        XmlRpc.setDriver (xmlparser);
-	    // XmlRpc.setDebug (true);
+
 	    xmlrpc = new WebServer (xmlrpcPort);
 	    if (paranoid) {
 	        xmlrpc.setParanoid (true);
@@ -341,7 +352,7 @@ import org.mortbay.http.ajp.*;
 	        RMISocketFactory.setSocketFactory (factory);
 	    }
 
-	    if (http == null) {
+	    if (rmiPort > 0) {
 	        getLogger().log ("Starting RMI server on port "+rmiPort);
 	        LocateRegistry.createRegistry (rmiPort);
 	    }
@@ -361,10 +372,6 @@ import org.mortbay.http.ajp.*;
 	appManager.startAll ();
 
 	// start embedded web server
-	/* if (websrv != null) {
-	    Thread webthread = new Thread (websrv, "WebServer");
-	    webthread.start ();
-	} */
 	if (http != null) try {
 	    http.start ();
 	} catch (MultiException m) {
