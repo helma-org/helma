@@ -373,7 +373,8 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	                return node.nmgr.getNode (node, propname, rel);
 	            else if (!rel.virtual && rel.direction == Relation.FORWARD)
 	                return node.nmgr.getNode (node, nvalueID, rel);
-	            // avoid setting dbm for virtual relation
+	            // avoid setting dbm for virtual and groupby relations, except for
+	            // [mountpoint] kind of prototyped virtual nodes
 	            else if ((!rel.virtual || rel.prototype != null) && rel.groupby == null)
 	                dbm = rel.other;
 	        }
