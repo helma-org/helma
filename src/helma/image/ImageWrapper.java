@@ -292,7 +292,7 @@ public class ImageWrapper {
      * resizes the image using the Graphics2D approach
      */
     protected BufferedImage resize(int w, int h, boolean smooth) {
-        BufferedImage buffered = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage buffered = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = buffered.createGraphics();
 
         g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, 
