@@ -290,17 +290,18 @@ public final class RequestEvaluator implements Runnable {
 
 	            } catch (Exception x) {
 
+	                abortTransaction (false);
+
 	                // If the transactor thread has been killed by the invoker thread we don't have to
 	                // bother for the error message, just quit.
 	                if (localrtx != rtx) {
-	                    abortTransaction (false);
 	                    break;
 	                }
 
 	                res.reset ();
+
 	                // check if we tried to process the error already
 	                if (error == null) {
-	                    abortTransaction (false);
 	                    app.errorCount += 1;
 	                    app.logEvent ("Exception in "+Thread.currentThread()+": "+x);
 	                    // Dump the profiling data to System.err
