@@ -71,7 +71,7 @@ public final class RequestEvaluator implements Runnable {
     protected void initScriptingEngine () {
 	if (scriptingEngine == null) {
 	    String engineClassName = app.getProperty (
-	            "scripting.engine.factory",
+	            "scriptingEngine",
 	            "helma.scripting.fesi.FesiEngine");
 	    try {
 	        Class clazz = app.typemgr.loader.loadClass (engineClassName);
@@ -333,10 +333,6 @@ public final class RequestEvaluator implements Runnable {
 	                if (error == null) {
 	                    app.errorCount += 1;
 	                    app.logEvent ("Exception in "+Thread.currentThread()+": "+x);
-	                    // Dump the profiling data to System.err
-	                    if (app.debug) {
-	                        x.printStackTrace ();
-	                    }
 	                    // set done to false so that the error will be processed
 	                    done = false;
 	                    error = x.getMessage ();
