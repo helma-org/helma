@@ -3,7 +3,7 @@
 
 package helma.util;
 
-import helma.mime.*;
+import helma.util.mime.*;
 import java.io.*;
 import java.util.*;
 
