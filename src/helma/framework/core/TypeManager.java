@@ -149,7 +149,7 @@ public final class TypeManager {
      * Run through application's prototype directories and check if
      * there are any prototypes to be created.
      */
-    public void checkFiles() {
+    private void checkFiles() {
         // check if any files have been created/removed since last time we
         // checked...
         if (appDir.lastModified() > appDirMod) {
