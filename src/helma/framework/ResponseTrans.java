@@ -17,7 +17,7 @@ public class ResponseTrans implements Serializable {
 
     public String contentType = "text/html";
     // the actual response
-    private char[] response = null;
+    private byte[] response = null;
     // contains the redirect URL
     public String redirect = null;
 
@@ -147,10 +147,10 @@ public class ResponseTrans implements Serializable {
      */
     public synchronized void close () {
 	if (buffer != null) {
-	    response = new String (buffer).toCharArray();
+	    response = buffer.toString ().getBytes ();
 	    buffer = null; // make sure this is done only once, even with more requsts attached
 	} else {
-	    response = new char[0];
+	    response = new byte[0];
 	}
 	notifyAll ();
     }
@@ -166,8 +166,8 @@ public class ResponseTrans implements Serializable {
 	} catch (InterruptedException ix) {}
     }
 
-    public String getContentString () {
-	return response == null ? "" : new String (response);
+    public byte[] getContent () {
+	return response == null ? new byte[0] : response;
     }
 
     public int getContentLength () {
