@@ -2400,6 +2400,7 @@ public final class Node implements INode, Serializable {
                 if (dbmap != null) {
                     Relation rel = dbmap.getExactPropertyRelation(next.getName());
                     if (rel != null && rel.isVirtual() && !rel.needsPersistence()) {
+                        n.makeChildrenPersistable();
                         // make this a virtual node. what we do is basically to
                         // replay the things done in the constructor for virtual nodes.
                         // NOTE: setting the primaryKey may not be necessary since this
@@ -2408,7 +2409,6 @@ public final class Node implements INode, Serializable {
                         n.setState(VIRTUAL);
                         n.primaryKey = new SyntheticKey(getKey(), propname);
                         n.id = propname;
-                        n.makeChildrenPersistable();
                         continue;
                     }
                 }
