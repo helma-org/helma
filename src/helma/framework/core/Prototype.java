@@ -353,7 +353,7 @@ public final class Prototype {
      */
     public synchronized void addSkinResource(Resource res) {
         skins.add(res);
-        skinMap.put(res.getShortName(), res);
+        skinMap.put(res.getBaseName(), res);
         trackers.put(res.getName(), new ResourceTracker(res));
     }
 
@@ -504,7 +504,7 @@ public final class Prototype {
             for (Iterator i = skins.iterator(); i.hasNext();) {
                 Resource res = (Resource) i.next();
 
-                super.put(res.getShortName(), res);
+                super.put(res.getBaseName(), res);
             }
 
             // if skinpath is not null, overload/add skins from there

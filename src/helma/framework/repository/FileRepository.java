@@ -72,7 +72,7 @@ public class FileRepository extends AbstractRepository {
         } else {
             this.parent = parent;
             shortName = dir.getName();
-            name = parent.getName() + "/" + shortName;
+            name = dir.getAbsolutePath();
         }
     }
 
@@ -155,7 +155,7 @@ public class FileRepository extends AbstractRepository {
                 } else if (list[i].isFile()) {
                     // a file resource
                     FileResource resource = new FileResource(list[i], this);
-                    newResources.put(resource.getName(), resource);
+                    newResources.put(resource.getShortName(), resource);
                 }
             }
 

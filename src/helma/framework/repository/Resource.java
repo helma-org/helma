@@ -71,6 +71,13 @@ public interface Resource {
     public String getShortName();
 
     /**
+     * Returns the short name of the resource with the file extension
+     * (everything following the last dot character) cut off.
+     * @return
+     */
+    public String getBaseName();
+
+    /**
      * Returns an url to the resource if the repository of this resource is
      * able to provide urls
      * @return url to the resource

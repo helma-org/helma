@@ -107,7 +107,7 @@ public final class ZipRepository extends AbstractRepository {
                             newRepositories.add(new ZipRepository(file, this, entry));
                         } else {
                             ZipResource resource = new ZipResource(file, entry, this);
-                            newResources.put(resource.getName(), resource);
+                            newResources.put(resource.getShortName(), resource);
                         }
                     }
                 }

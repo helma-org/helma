@@ -28,6 +28,7 @@ public final class ZipResource implements Resource {
     private ZipRepository repository;
     private String name;
     private String shortName;
+    private String baseName;
 
     protected ZipResource(File zipfile, ZipEntry zipentry, ZipRepository repository) {
         this.zipentry = zipentry;
@@ -41,10 +42,9 @@ public final class ZipResource implements Resource {
         name = new StringBuffer(repository.getName()).append('/')
                 .append(shortName).toString();
 
-        // cut off extension from short name
-        if (shortName.lastIndexOf(".") > -1) {
-            shortName = shortName.substring(0, shortName.lastIndexOf("."));
-        }
+        // base name is short name with extension cut off
+        int lastDot = shortName.lastIndexOf(".");
+        baseName = (lastDot == -1) ? shortName : shortName.substring(0, lastDot);
     }
 
     public long lastModified() {
@@ -113,6 +113,10 @@ public final class ZipResource implements Resource {
 
     public String getShortName() {
         return shortName;
+    }
+
+    public String getBaseName() {
+        return baseName;
     }
 
     public URL getUrl() {

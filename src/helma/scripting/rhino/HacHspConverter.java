@@ -29,12 +29,12 @@ import java.util.StringTokenizer;
 public class HacHspConverter {
 
     public static String convertHac(Resource action) throws IOException {
-        String functionName = action.getShortName().replace('.', '_') + "_action";
+        String functionName = action.getBaseName().replace('.', '_') + "_action";
         return composeFunction(functionName, null, action.getContent());
     }
 
     public static String convertHsp(Resource template) throws IOException {
-        String functionName = template.getShortName().replace('.', '_');
+        String functionName = template.getBaseName().replace('.', '_');
         String body = processHspBody(template.getContent());
         return composeFunction(functionName,
                                "arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10",
@@ -42,7 +42,7 @@ public class HacHspConverter {
     }
 
     public static String convertHspAsString(Resource template) throws IOException {
-        String functionName = template.getShortName().replace('.', '_') + "_as_string";
+        String functionName = template.getBaseName().replace('.', '_') + "_as_string";
         String body = processHspBody(template.getContent());
         return composeFunction(functionName,
                                "arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10",

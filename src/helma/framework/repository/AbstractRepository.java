@@ -83,7 +83,7 @@ public abstract class AbstractRepository implements Repository {
     public Resource getResource(String name) {
         update();
 
-        return (Resource) resources.get(getName() + "/" + name);
+        return (Resource) resources.get(name);
     }
 
     public Iterator getResources() {

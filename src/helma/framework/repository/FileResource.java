@@ -25,6 +25,7 @@ public class FileResource implements Resource {
     Repository repository;
     String name;
     String shortName;
+    String baseName;
 
     public FileResource(File file) {
         this(file, null);
@@ -36,10 +37,9 @@ public class FileResource implements Resource {
         this.repository = repository;
         name = file.getAbsolutePath();
         shortName = file.getName();
-        // cut off extension from short name
-        if (shortName.lastIndexOf(".") > -1) {
-            shortName = shortName.substring(0, shortName.lastIndexOf("."));
-        }
+        // base name is short name with extension cut off
+        int lastDot = shortName.lastIndexOf(".");
+        baseName = (lastDot == -1) ? shortName : shortName.substring(0, lastDot);
     }
 
     public String getName() {
@@ -48,6 +48,10 @@ public class FileResource implements Resource {
 
     public String getShortName() {
         return shortName;
+    }
+
+    public String getBaseName() {
+        return baseName;
     }
 
     public InputStream getInputStream() {
