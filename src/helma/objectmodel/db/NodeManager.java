@@ -601,7 +601,8 @@ public final class NodeManager {
 	    Connection con = rel.otherType.getConnection ();
 	    String table = rel.otherType.getTableName ();
 
-	    QueryDataSet qds = null;
+	    Statement stmt = null;
+	    // QueryDataSet qds = null;
 	    try {
 	
 	        String q = null;
@@ -617,15 +618,22 @@ public final class NodeManager {
 	        if (logSql)
 	           app.logEvent ("### getNodeIDs: "+q);
 
-	        qds = new QueryDataSet (con, q);
+	        // qds = new QueryDataSet (con, q);
+	        stmt = con.createStatement ();
+	        if (rel.maxSize > 0)
+	            stmt.setMaxRows (rel.maxSize);
+	        ResultSet result = stmt.executeQuery (q);
 	
-	        qds.fetchRecords ();
+	        // qds.fetchRecords ();
 	
 	        // problem: how do we derive a SyntheticKey from a not-yet-persistent Node?
 	        Key k = rel.groupby != null ?  home.getKey (): null;
-	        for (int i=0; i<qds.size (); i++) {
-	            Record rec = qds.getRecord (i);
-	            String kstr = rec.getValue (1).asString ();
+	        while (result.next ()) {
+	            String kstr = result.getString (1);
+	            // jump over null values - this can happen especially when the selected
+	            // column is a group-by column.
+	            if (kstr == null)
+	                continue;
 	            // make the proper key for the object, either a generic DB key or a groupby key
 	            Key key = rel.groupby == null ?
 	            		(Key) new DbKey (rel.otherType, kstr) :
@@ -641,9 +649,12 @@ public final class NodeManager {
 
 	    } finally {
 	        // tx.timer.endEvent ("getNodeIDs "+home);
-	        if (qds != null) {
-	            qds.close ();
-	        }
+	        // if (qds != null) {
+	        //     qds.close ();
+	        // }
+	        if (stmt != null) try {
+	            stmt.close ();
+	        } catch (Exception ignore) {}
 	    }
 	    return retval;
 	}
