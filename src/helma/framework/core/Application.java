@@ -973,9 +973,8 @@ public final class Application implements IPathElement, Runnable {
                 return null;
             }
 
-            unode = users.createNode(uname);
-            unode.setPrototype("user");
-            unode.setDbMapping(userMapping);
+            unode = new Node(uname, "user", nmgr.safe);
+            users.setNode(uname, unode);
 
             String usernameField = userMapping.getNameField();
             String usernameProp = null;
