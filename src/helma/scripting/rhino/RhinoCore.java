@@ -51,7 +51,7 @@ public final class RhinoCore implements ScopeProvider {
     Hashtable prototypes;
 
     // timestamp of last type update
-    long lastUpdate = 0;
+    volatile long lastUpdate = 0;
 
     // the wrap factory
     WrapFactory wrapper;
@@ -310,49 +310,55 @@ public final class RhinoCore implements ScopeProvider {
      *  here is to check for update those prototypes which already have been compiled
      *  before. Others will be updated/compiled on demand.
      */
-    public synchronized void updatePrototypes() throws IOException {
+    public void updatePrototypes() throws IOException {
         if ((System.currentTimeMillis() - lastUpdate) < 1000L) {
             return;
         }
 
-        // init prototypes and/or update prototype checksums
-        app.typemgr.checkPrototypes();
-
-        // get a collection of all prototypes (code directories)
-        Collection protos = app.getPrototypes();
-
-        // in order to respect inter-prototype dependencies, we try to update
-        // the global prototype before all other prototypes, and parent
-        // prototypes before their descendants.
-
-        HashSet checked = new HashSet(protos.size()*2);
-
-        TypeInfo type = (TypeInfo) prototypes.get("global");
-
-        if (type != null) {
-            updatePrototype(type, checked);
-        }
-
-        for (Iterator i = protos.iterator(); i.hasNext();) {
-            Prototype proto = (Prototype) i.next();
-
-            if (checked.contains(proto)) {
-                continue;
+        synchronized(this) {
+            if ((System.currentTimeMillis() - lastUpdate) < 1000L) {
+                return;
             }
 
-            type = (TypeInfo) prototypes.get(proto.getLowerCaseName());
+            // init prototypes and/or update prototype checksums
+            app.typemgr.checkPrototypes();
 
-            if (type == null) {
-                // a prototype we don't know anything about yet. Init local update info.
-                initPrototype(proto);
-            } else if (type.lastUpdate > -1) {
-                // only need to update prototype if it has already been initialized.
-                // otherwise, this will be done on demand.
+            // get a collection of all prototypes (code directories)
+            Collection protos = app.getPrototypes();
+
+            // in order to respect inter-prototype dependencies, we try to update
+            // the global prototype before all other prototypes, and parent
+            // prototypes before their descendants.
+
+            HashSet checked = new HashSet(protos.size() * 2);
+
+            TypeInfo type = (TypeInfo) prototypes.get("global");
+
+            if (type != null) {
                 updatePrototype(type, checked);
             }
-        }
 
-        lastUpdate = System.currentTimeMillis();
+            for (Iterator i = protos.iterator(); i.hasNext();) {
+                Prototype proto = (Prototype) i.next();
+
+                if (checked.contains(proto)) {
+                    continue;
+                }
+
+                type = (TypeInfo) prototypes.get(proto.getLowerCaseName());
+
+                if (type == null) {
+                    // a prototype we don't know anything about yet. Init local update info.
+                    initPrototype(proto);
+                } else if (type.lastUpdate > -1) {
+                    // only need to update prototype if it has already been initialized.
+                    // otherwise, this will be done on demand.
+                    updatePrototype(type, checked);
+                }
+            }
+
+            lastUpdate = System.currentTimeMillis();
+        }
     }
 
     /**
