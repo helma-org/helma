@@ -1748,11 +1748,20 @@ public final class Node implements INode, Serializable {
 	if (propMap == null)
 	    return;
 	try {
-	    Property p = (Property) propMap.remove (propname.toLowerCase ());
+	    // if node is relational, leave a null property so that it is 
+	    // updated in the DB. Otherwise, remove the property.
+	    Property p;
+	    boolean relational = dbmap != null && dbmap.isRelational();
+	    if (relational)
+	        p = (Property) propMap.get (propname.toLowerCase ());
+	    else
+	        p = (Property) propMap.remove (propname.toLowerCase ());
 	    if (p != null) {
 	        checkWriteLock ();
 	        if (p.getType() == Property.NODE)
 	            p.unregisterNode ();
+	        if (relational)
+	            p.setStringValue (null);
 	        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
 	        lastmodified = System.currentTimeMillis ();
 	        if (state == CLEAN)

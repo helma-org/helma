@@ -8,6 +8,7 @@ import java.util.*;
 import java.io.*;
 import java.text.*;
 import helma.objectmodel.*;
+import java.sql.Timestamp;
 
 /**
  * A property implementation for Nodes stored inside a database. Basically
@@ -19,13 +20,7 @@ public final class Property implements IProperty, Serializable, Cloneable {
     private String propname;
     private Node node;
 
-    private String svalue;
-    private boolean bvalue;
-    private long lvalue;
-    private double dvalue;
-    // protected String nvalueID;
-    private NodeHandle nhandle;
-    private Object jvalue;
+    private Object value;
 
     private int type;
 
@@ -42,29 +37,29 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	    case STRING:
 	        // try to convert from old format
 	        if (node.version < 7)
-	            svalue = in.readUTF ();
+	            value = in.readUTF ();
 	        else
-	            svalue = (String) in.readObject ();
+	            value = in.readObject ();
 	        break;
 	    case BOOLEAN:
-	        bvalue = in.readBoolean ();
+	        value = in.readBoolean () ? Boolean.TRUE : Boolean.FALSE;
 	        break;
 	    case INTEGER:
 	    case DATE:
-	        lvalue = in.readLong ();
+	        value = new Long (in.readLong ());
 	        break;
 	    case FLOAT:
-	        dvalue = in.readDouble ();
+	        value = new Double (in.readDouble ());
 	        break;
 	    case NODE:
 	        // try to convert from old format
 	        if (node.version > 4)
-	            nhandle = (NodeHandle) in.readObject ();
+	            value = (NodeHandle) in.readObject ();
 	        else
-	            nhandle = new NodeHandle (new DbKey (null, in.readUTF ()));
+	            value = new NodeHandle (new DbKey (null, in.readUTF ()));
 	        break;
 	    case JAVAOBJECT:
-	        jvalue = in.readObject ();
+	        value = in.readObject ();
 	        break;
 	    }
 	} catch (ClassNotFoundException x) {
@@ -78,26 +73,26 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	out.writeInt (type);
 	switch (type) {
 	case STRING:
-	    out.writeObject (svalue);
+	    out.writeObject (value);
 	    break;
 	case BOOLEAN:
-	    out.writeBoolean (bvalue);
+	    out.writeBoolean (((Boolean) value).booleanValue());
 	    break;
 	case INTEGER:
 	case DATE:
-	    out.writeLong (lvalue);
+	    out.writeLong (((Long) value).longValue());
 	    break;
 	case FLOAT:
-	    out.writeDouble (dvalue);
+	    out.writeDouble (((Double) value).doubleValue());
 	    break;
 	case NODE:
-	    out.writeObject (nhandle);
+	    out.writeObject (value);
 	    break;
 	case JAVAOBJECT:
-	    if (jvalue != null && !(jvalue instanceof Serializable))
+	    if (value != null && !(value instanceof Serializable))
 	        out.writeObject (null);
 	    else
-	        out.writeObject (jvalue);
+	        out.writeObject (value);
 	    break;
 	}
     }
@@ -114,10 +109,10 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	dirty = true;
     }
 
-    public Property (String propname, Node node, Node value) {
+    public Property (String propname, Node node, Node valueNode) {
 	this (propname, node);
 	type = NODE;
-	nhandle = value == null ? null : value.getHandle ();
+	value = valueNode == null ? null : valueNode.getHandle ();
 	dirty = true;
     }
 
@@ -126,141 +121,115 @@ public final class Property implements IProperty, Serializable, Cloneable {
     }
 
     public Object getValue () {
-	switch (type) {
-	case STRING:
-	    return svalue;
-	case BOOLEAN:
-	    return new Boolean (bvalue);
-	case INTEGER:
-	    return new Long (lvalue);
-	case FLOAT:
-	    return new Double (dvalue);
-	case DATE:
-	    return new Date (lvalue);
-	case NODE:
-	    return null;
-	case JAVAOBJECT:
-	    return jvalue;
-	}
-	return null;
+	return value;
     }
 
-    public void setStringValue (String value) {
+    public int getType () {
+	return type;
+    }
+
+    public void setStringValue (String str) {
 	if (type == NODE)
 	    unregisterNode ();
-	if (type == JAVAOBJECT)
-	    this.jvalue = null;
 	type = STRING;
-	this.svalue = value;
+	value = str;
 	dirty = true;
     }
 
 
-    public void setIntegerValue (long value) {
+    public void setIntegerValue (long l) {
 	if (type == NODE)
 	    unregisterNode ();
-	if (type == JAVAOBJECT)
-	    this.jvalue = null;
 	type = INTEGER;
-	this.lvalue = value;
+	value = new Long(l);
 	dirty = true;
     }
 
-    public void setFloatValue (double value) {
+    public void setFloatValue (double d) {
 	if (type == NODE)
 	    unregisterNode ();
-	if (type == JAVAOBJECT)
-	    this.jvalue = null;
 	type = FLOAT;
-	this.dvalue = value;
+	value = new Double(d);
 	dirty = true;
     }
 
-    public void setDateValue (Date value) {
+    public void setDateValue (Date date) {
 	if (type == NODE)
 	    unregisterNode ();
-	if (type == JAVAOBJECT)
-	    this.jvalue = null;
 	type = DATE;
-	this.lvalue = value == null ? 0 : value.getTime();
+	value = date;
 	dirty = true;
     }
 
-    public void setBooleanValue (boolean value) {
+    public void setBooleanValue (boolean bool) {
 	if (type == NODE)
 	    unregisterNode ();
-	if (type == JAVAOBJECT)
-	    this.jvalue = null;
 	type = BOOLEAN;
-	this.bvalue = value;
+	value = bool ? Boolean.TRUE : Boolean.FALSE;
 	dirty = true;
     }
 
-    public void setNodeValue (Node value) {
+    public void setNodeValue (Node node) {
 	// value.checkWriteLock ();
 	if (type == NODE)
 	    unregisterNode ();
-	if (type == JAVAOBJECT)
-	    this.jvalue = null;
 
 	// registerNode (value);
 	type = NODE;
 
-	nhandle = value.getHandle ();
+	value = node == null ? null : node.getHandle ();
 	dirty = true;
     }
 
-    public void setNodeHandle (NodeHandle value) {
+    public void setNodeHandle (NodeHandle handle) {
 	if (type == NODE)
 	    unregisterNode ();
-	if (type == JAVAOBJECT)
-	    this.jvalue = null;
 	// registerNode (value);
 	type = NODE;
-	nhandle = value;
+	value = handle;
 	dirty = true;
     }
 
     public NodeHandle getNodeHandle () {
-	return nhandle;
+	if (type == NODE)
+	    return (NodeHandle) value;
+	return null;
     }
-    
+
     public void convertToNodeReference (DbMapping dbm) {
-	String id = getStringValue ();
-	if (id == null)
-	    nhandle = null;
-	else 
-	    nhandle = new NodeHandle (new DbKey (dbm, id));
+	if (value != null && !(value instanceof NodeHandle))
+	    value = new NodeHandle (new DbKey (dbm, value.toString ()));
 	type = NODE;
     }
 
-    public void setJavaObjectValue (Object value) {
+    public void setJavaObjectValue (Object obj) {
 	if (type == NODE)
 	    unregisterNode ();
 	type = JAVAOBJECT;
-	this.jvalue = value;
+	value = obj;
     }
 
 
     /**
-     * tell a the value node that it is no longer used as a property. 
+     * tell a the value node that it is no longer used as a property.
      * If this was the "main" property for the node, also remove all other references.
      */
     protected void unregisterNode () {
-	Node nvalue = null;
-	if (nhandle != null)
-	    nvalue = nhandle.getNode (node.nmgr);
-	
+	if (value == null || !(value instanceof NodeHandle))
+	    return;
+	NodeHandle nhandle = (NodeHandle) value;
+	Node nvalue = nhandle.getNode (node.nmgr);
+
 	DbMapping nvmap = null;
 	Relation nvrel = null;
 	if (node.dbmap != null) {
 	    nvmap = node.dbmap.getPropertyMapping (propname);
 	    nvrel = node.dbmap.getPropertyRelation (propname);
 	}
-	
+
 	if (nvalue == null)
 	    return;
-	
+
 	nvalue.checkWriteLock ();
 	// check if the property node is also a subnode
 	// BUG: this doesn't work because properties for subnode/properties are never stored and therefore
@@ -281,22 +250,20 @@ public final class Property implements IProperty, Serializable, Cloneable {
 
 
     public String getStringValue () {
+	if (value == null)
+	    return null;
 	switch (type) {
 	case STRING:
-	    return svalue;
 	case BOOLEAN:
-	    return bvalue ? "true" : "false";
-	case DATE:
-	    SimpleDateFormat format = new SimpleDateFormat ("dd.MM.yy HH:mm");
-	    return format.format (new Date (lvalue));
 	case INTEGER:
-	    return Long.toString (lvalue);
 	case FLOAT:
-	    return Double.toString (dvalue);
-	case NODE:
-	    return nhandle == null ? null : nhandle.getID ();
 	case JAVAOBJECT:
-	    return jvalue == null ? null : jvalue.toString ();
+	    return value.toString ();
+	case DATE:
+	    SimpleDateFormat format = new SimpleDateFormat ("dd.MM.yy hh:mm:ss");
+	    return format.format ((Date) value);
+	case NODE:
+	    return ((NodeHandle) value).getID ();
 	}
 	return "";
     }
@@ -306,51 +273,64 @@ public final class Property implements IProperty, Serializable, Cloneable {
     }
 
     public long getIntegerValue () {
-	if (type == INTEGER) 	
-	    return lvalue;
-	return 0;
+	if (type == INTEGER)
+	    return ((Long) value).longValue ();
+	if (type == FLOAT)
+	    return ((Double) value).longValue ();
+	try {
+	    return Long.parseLong (getStringValue());
+	} catch (Exception x) {
+	    return 0;
+	}
     }
 
     public double getFloatValue () {
-	if (type == FLOAT) 	
-	    return dvalue;
-	return 0.0;
+	if (type == FLOAT)
+	    return ((Double) value).doubleValue();
+	if (type == INTEGER)
+	    return ((Long) value).doubleValue ();
+	try {
+	    return Double.parseDouble (getStringValue());
+	} catch (Exception x) {
+	    return 0.0;
+	}
     }
 
 
     public Date getDateValue () {
-	if (type == DATE) 	
-	    return new Date (lvalue);
+	if (type == DATE)
+	    return (Date) value;
+	return null;
+    }
+
+    public Timestamp getTimestampValue () {
+	if (type == DATE && value != null)
+	    return new Timestamp (((Date) value).getTime());
 	return null;
     }
 
     public boolean getBooleanValue () {
-	if (type == BOOLEAN) 
-	    return bvalue;
+	if (type == BOOLEAN)
+	    return ((Boolean) value).booleanValue();
+	if (type == INTEGER)
+	    return !(0 == getIntegerValue());
 	return false;
     }
 
     public INode getNodeValue () {
-	
-	if (nhandle != null) {
-	    Node n = nhandle.getNode (node.nmgr);
-	    if (n != null) return n;
+	if (type == NODE && value != null) {
+	    NodeHandle nhandle = (NodeHandle) value;
+	    return nhandle.getNode (node.nmgr);
 	}
 	return null;
     }
 
     public Object getJavaObjectValue () {
 	if (type == JAVAOBJECT)
-	    return jvalue;
+	    return value;
 	return null;
     }
 
-
-    public int getType () {
-	return type;
-    }
-
 }
-
 
 

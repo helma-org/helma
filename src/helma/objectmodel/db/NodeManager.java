@@ -9,7 +9,6 @@ import helma.framework.core.Application;
 import java.sql.*;
 import java.io.*;
 import java.util.*;
-import com.workingdogs.village.*;
 
 /**
  * The NodeManager is responsible for fetching Nodes from the internal or 
@@ -410,62 +409,117 @@ public final class NodeManager {
 	    db.saveNode (txn, node.getID (), node);
 	} else {
 	    // app.logEvent ("inserting relational node: "+node.getID ());
-	    TableDataSet tds = null;
+
+	    DbColumn[] columns = dbm.getColumns ();
+
+	    StringBuffer b1 = dbm.getInsert ();
+	    StringBuffer b2 = new StringBuffer (" ) VALUES ( ?");
+
+	    String nameField = dbm.getNameField ();
+	    String prototypeField = dbm.getPrototypeField ();
+
+	    for (int i=0; i<columns.length; i++) {
+	        Relation rel = columns[i].getRelation();
+	        String name = columns[i].getName();
+	        if ((rel != null && (rel.isPrimitive() || rel.isReference())) ||
+	             name.equals (nameField) || name.equals (prototypeField))
+	        {
+	            b1.append (", "+columns[i].getName());
+	            b2.append (", ?");
+	            System.err.println ("ADDING COLUMN: "+columns[i].getName());
+	        }
+	    }
+
+	    b1.append (b2);
+	    b1.append (" )");
+
+	    Connection con = dbm.getConnection ();
+	    PreparedStatement stmt = con.prepareStatement (b1.toString ());
 	    try {
-	        tds = new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
-	        Record rec = tds.addRecord ();
-	        rec.setValue (dbm.getIDField (), node.getID ());
 
-	        String nameField = dbm.getNameField ();
-	        if (nameField != null)
-	            rec.setValue (nameField, node.getName ());
+	        int stmtNumber = 1;
+	        stmt.setString (stmtNumber, node.getID());
 
-	        for (Iterator i=dbm.getProp2DB().entrySet().iterator(); i.hasNext(); ) {
-	            Map.Entry e = (Map.Entry) i.next ();
-	            String propname = (String) e.getKey ();
-	            Relation rel = (Relation) e.getValue ();
-	            Property p = node.getProperty (propname);
+	        Hashtable propMap = node.getPropMap ();
+	        for (int i=0; i<columns.length; i++) {
+	            Relation rel = columns[i].getRelation();
+	            Property p = null;
+	            if (rel != null && (rel.isPrimitive() || rel.isReference()))
+	                p = (Property) propMap.get (rel.getPropName ());
+	            String name = columns[i].getName ();
+	            if (!(rel != null && (rel.isPrimitive() || rel.isReference())) && !name.equals (nameField) && !name.equals (prototypeField))
+	                continue;
 
-	            if (p != null && rel != null) {
-	                switch (p.getType ()) {
-	                    case IProperty.STRING:
-	                        rec.setValue (rel.getDbField(), p.getStringValue ());
-	                        break;
-	                    case IProperty.BOOLEAN:
-	                        rec.setValue (rel.getDbField(), p.getBooleanValue ());
-	                        break;
-	                    case IProperty.DATE:
-	                        Timestamp t = new Timestamp (p.getDateValue ().getTime ());
-	                        rec.setValue (rel.getDbField(), t);
-	                        break;
-	                    case IProperty.INTEGER:
-	                        rec.setValue (rel.getDbField(), p.getIntegerValue ());
-	                        break;
-	                    case IProperty.FLOAT:
-	                        rec.setValue (rel.getDbField(), p.getFloatValue ());
-	                        break;
-	                    case IProperty.NODE:
-	                        if (rel.reftype == Relation.REFERENCE) {
-	                            // INode n = p.getNodeValue ();
-	                            // String foreignID = n == null ? null : n.getID ();
-	                            rec.setValue (rel.getDbField(), p.getStringValue ());
-	                        }
-	                        break;
+	            stmtNumber++;
+	            if (p != null) {
+	                if (p.getValue() == null) {
+	                    stmt.setNull (stmtNumber, columns[i].getType ());
+	                } else {
+	                    switch (columns[i].getType ()) {
+
+	                        case Types.BIT:
+	                        case Types.TINYINT:
+	                        case Types.BIGINT:
+	                        case Types.SMALLINT:
+	                        case Types.INTEGER:
+	                            stmt.setLong (stmtNumber, p.getIntegerValue());
+	                            break;
+
+	                        case Types.REAL:
+	                        case Types.FLOAT:
+	                        case Types.DOUBLE:
+	                        case Types.NUMERIC:
+	                        case Types.DECIMAL:
+	                            stmt.setDouble (stmtNumber, p.getFloatValue());
+	                            break;
+
+	                        case Types.LONGVARBINARY:
+	                        case Types.VARBINARY:
+	                        case Types.BINARY:
+	                        case Types.BLOB:
+	                            stmt.setString (stmtNumber, p.getStringValue());
+	                            break;
+
+	                        case Types.LONGVARCHAR:
+	                        case Types.CHAR:
+	                        case Types.VARCHAR:
+	                        case Types.OTHER:
+	                            stmt.setString (stmtNumber, p.getStringValue());
+	                            break;
+
+	                        case Types.DATE:
+	                        case Types.TIME:
+	                        case Types.TIMESTAMP:
+	                            stmt.setTimestamp (stmtNumber, p.getTimestampValue());
+	                            break;
+
+	                        case Types.NULL:
+	                            stmt.setNull (stmtNumber, 0);
+	                            break;
+
+	                        default:
+	                            stmt.setString (stmtNumber, p.getStringValue());
+	                            break;
+	                    }
 	                }
-	                p.dirty = false;
-	            } else if (rel != null && rel.getDbField() != null) {
-	                rec.setValueNull (rel.getDbField());
+	            } else {
+	                if (name.equals (nameField))
+	                    stmt.setString (stmtNumber, node.getName());
+	                else if (name.equals (prototypeField))
+	                    stmt.setString (stmtNumber, node.getPrototype ());
+	                else
+	                    stmt.setNull (stmtNumber, columns[i].getType());
 	            }
 	        }
-	
-	        if (dbm.getPrototypeField () != null) {
-	            rec.setValue (dbm.getPrototypeField (), node.getPrototype ());
-	        }
-	        rec.markForInsert ();
-	        tds.save ();
+	        stmt.executeUpdate ();
+
+
+	    } catch (Exception x) {
+	        x.printStackTrace ();
+	        throw x;
 	    } finally {
-	        if (tds != null) try {
-	            tds.close ();
+	        if (stmt != null) try {
+	            stmt.close ();
 	        } catch (Exception ignore) {}
 	    }
 	    dbm.notifyDataChange ();
@@ -489,82 +543,134 @@ public final class NodeManager {
 	    db.saveNode (txn, node.getID (), node);
 	} else {
 
-	    TableDataSet tds = null;
+	    Hashtable propMap = node.getPropMap ();
+	    Property[] props = new Property[propMap.size()];
+	    propMap.values().toArray (props);
+
+	    // make sure table meta info is loaded by dbmapping
+	    dbm.getColumns ();
+
+	    StringBuffer b = dbm.getUpdate ();
+
+	    boolean comma = false;
+	    for (int i=0; i<props.length; i++) {
+	        // skip clean properties
+	        if (props[i] == null || !props[i].dirty) {
+	            // null out clean property so we don't consider it later
+	            props[i] = null;
+	            continue;
+	        }
+	        Relation rel = dbm.propertyToRelation (props[i].getName());
+	        // skip readonly, virtual and collection relations
+	        if (rel == null || rel.readonly || rel.virtual ||
+	            (rel.reftype != Relation.REFERENCE && rel.reftype != Relation.PRIMITIVE))
+	        {
+	            // null out property so we don't consider it later
+	            props[i] = null;
+	            continue;
+	        }
+	        if (comma)
+	            b.append (", ");
+	        else
+	            comma = true;
+	        b.append (rel.getDbField());
+	        b.append (" = ?");
+
+	    }
+	    // if no columns were updated, return
+	    if (!comma)
+	        return;
+
+	    b.append (" WHERE ");
+	    b.append (dbm.getIDField ());
+	    b.append (" = ");
+	    if (dbm.needsQuotes (dbm.getIDField ())) {
+	        b.append ("'");
+	        b.append (escape(node.getID()));
+	        b.append ("'");
+	    } else {
+	        b.append (node.getID());
+	    }
+
+	    Connection con = dbm.getConnection ();
+	    PreparedStatement stmt = con.prepareStatement (b.toString ());
+	    System.err.println (b.toString());
+	    int stmtNumber = 0;
 	    try {
-	        tds = new TableDataSet (dbm.getConnection (), dbm.getSchema (), dbm.getKeyDef ());
-	        Record rec = tds.addRecord ();
-	        rec.setValue (dbm.getIDField (), node.getID ());
-
-	        int updated = 0;
-
-	        for (Iterator i=dbm.getProp2DB().entrySet().iterator(); i.hasNext(); ) {
-	            Map.Entry e = (Map.Entry) i.next ();
-	            String propname = (String) e.getKey ();
-	            Relation rel = (Relation) e.getValue ();
-
-	            // skip properties that don't need to be updated before fetching them
-	            if (rel != null && (rel.readonly || rel.virtual ||
-	            		(rel.reftype != Relation.REFERENCE && rel.reftype != Relation.PRIMITIVE)))
+	        for (int i=0; i<props.length; i++) {
+	            Property p = props[i];
+	            if (p == null)
 	                continue;
+	            Relation rel = dbm.propertyToRelation (p.getName());
 
-	            Property p = node.getProperty (propname);
+	            stmtNumber++;
 
-	            if (p != null && rel != null) {
+	            if (p.getValue() == null) {
+	                stmt.setNull (stmtNumber, rel.getColumnType ());
+	            } else {
+	                switch (rel.getColumnType ()) {
+	                    case Types.BIT:
+	                    case Types.TINYINT:
+	                    case Types.BIGINT:
+	                    case Types.SMALLINT:
+	                    case Types.INTEGER:
+	                        stmt.setLong (stmtNumber, p.getIntegerValue());
+	                        break;
 
-	                if (p.dirty) {
-	                    switch (p.getType ()) {
-	                        case IProperty.STRING:
-	                            updated++;
-	                            rec.setValue (rel.getDbField(), p.getStringValue ());
-	                            break;
-	                        case IProperty.BOOLEAN:
-	                            updated++;
-	                            rec.setValue (rel.getDbField(), p.getBooleanValue ());
-	                            break;
-	                        case IProperty.DATE:
-	                            updated++;
-	                            Timestamp t = new Timestamp (p.getDateValue ().getTime ());
-	                            rec.setValue (rel.getDbField(), t);
-	                            break;
-	                        case IProperty.INTEGER:
-	                            updated++;
-	                            rec.setValue (rel.getDbField(), p.getIntegerValue ());
-	                            break;
-	                        case IProperty.FLOAT:
-	                            updated++;
-	                            rec.setValue (rel.getDbField(), p.getFloatValue ());
-	                            break;
-	                        case IProperty.NODE:
-	                            if (!rel.virtual && rel.reftype == Relation.REFERENCE) {
-	                                // INode n = p.getNodeValue ();
-	                                // String foreignID = n == null ? null : n.getID ();
-	                                updated++;
-	                                rec.setValue (rel.getDbField(), p.getStringValue ());
-	                            }
-	                            break;
-	                    }
-	                    p.dirty = false;
-	                    if (!rel.isPrivate())
-	                        markMappingAsUpdated = true;
+	                    case Types.REAL:
+	                    case Types.FLOAT:
+	                    case Types.DOUBLE:
+	                    case Types.NUMERIC:
+	                    case Types.DECIMAL:
+	                        stmt.setDouble (stmtNumber, p.getFloatValue());
+	                        break;
+
+	                    case Types.LONGVARBINARY:
+	                    case Types.VARBINARY:
+	                    case Types.BINARY:
+	                    case Types.BLOB:
+	                        stmt.setString (stmtNumber, p.getStringValue());
+	                        break;
+
+	                    case Types.LONGVARCHAR:
+	                    case Types.CHAR:
+	                    case Types.VARCHAR:
+	                    case Types.OTHER:
+	                        stmt.setString (stmtNumber, p.getStringValue());
+	                        break;
+
+	                    case Types.DATE:
+	                    case Types.TIME:
+	                    case Types.TIMESTAMP:
+	                        stmt.setTimestamp (stmtNumber, p.getTimestampValue());
+	                        break;
+
+	                    case Types.NULL:
+	                        stmt.setNull (stmtNumber, 0);
+	                        break;
+
+	                    default:
+	                        stmt.setString (stmtNumber, p.getStringValue());
+	                        break;
 	                }
-
-	            } else if (rel != null && rel.getDbField() != null) {
-
-	                updated++;
-	                rec.setValueNull (rel.getDbField());
 	            }
+	            p.dirty = false;
+	            if (!rel.isPrivate())
+	                markMappingAsUpdated = true;
+
 	        }
-	        if (updated > 0) {
-	            // mark the key value as clean so no try is made to update it
-	            rec.markValueClean (dbm.getIDField ());
-	            rec.markForUpdate ();
-	            tds.save ();
-	        }
+
+	        stmt.executeUpdate ();
+
+	    } catch (Exception x) {
+	        x.printStackTrace ();
+	        throw x;
 	    } finally {
-	        if (tds != null) try {
-	            tds.close ();
+	        if (stmt != null) try {
+	            stmt.close ();
 	        } catch (Exception ignore) {}
 	    }
+
 	    if (markMappingAsUpdated)
 	        dbm.notifyDataChange ();
 	}

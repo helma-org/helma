@@ -58,8 +58,11 @@ public final class DbMapping implements Updatable {
     DbColumn[] columns = null;
     // Map of db columns by name
     HashMap columnMap;
+
     // pre-rendered select statement
-    String select = null;
+    String selectString = null;
+    String insertString = null;
+    String updateString = null;
 
     // db field used as primary key
     private String idField;
@@ -194,7 +197,7 @@ public final class DbMapping implements Updatable {
 	// same with columns and select string
 	columns = null;
 	columnMap.clear();
-	select = null;
+	selectString = insertString = updateString = null;
 
 
 	if (extendsProto != null) {
@@ -634,14 +637,40 @@ public final class DbMapping implements Updatable {
     }
 
     public StringBuffer getSelect () throws SQLException, ClassNotFoundException {
-	String sel = select;
+	String sel = selectString;
 	if (sel != null)
 	    return new StringBuffer (sel);
 	StringBuffer s = new StringBuffer ("SELECT * FROM ");
 	s.append (getTableName ());
 	s.append (" ");
 	// cache rendered string for later calls.
-	select = s.toString();
+	selectString = s.toString();
+	return s;
+    }
+
+
+    public StringBuffer getInsert () {
+	String ins = insertString;
+	if (ins != null)
+	    return new StringBuffer (ins);
+	StringBuffer s = new StringBuffer ("INSERT INTO ");
+	s.append (getTableName ());
+	s.append (" ( ");
+	s.append (getIDField());
+	// cache rendered string for later calls.
+	insertString = s.toString();
+	return s;
+    }
+
+    public StringBuffer getUpdate () {
+	String upd = updateString;
+	if (upd != null)
+	    return new StringBuffer (upd);
+	StringBuffer s = new StringBuffer ("UPDATE ");
+	s.append (getTableName ());
+	s.append (" SET ");
+	// cache rendered string for later calls.
+	updateString = s.toString();
 	return s;
     }
 
