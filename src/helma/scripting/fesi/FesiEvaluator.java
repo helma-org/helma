@@ -249,8 +249,6 @@ public final class FesiEvaluator {
 	                sv = new ESBeanWrapper (new ResponseBean ((ResponseTrans) v), this);
 	            } else if ("session".equals (k)) {
 	                sv = new ESBeanWrapper (new SessionBean ((Session)v), this);
-	            } else if ("user".equals (k)) {
-	                sv = getNodeWrapper ((User) v);
 	            } else if ("app".equals (k)) {
 	                sv = new ESBeanWrapper (new ApplicationBean ((Application)v), this);
 	            } else {
