@@ -638,7 +638,12 @@ public class Server implements IPathElement, Runnable {
     private void checkRunning(InetAddrPort addrPort) throws Exception {
         InetAddress addr = addrPort.getInetAddress();
         if (addr == null) {
-            addr = InetAddress.getLocalHost();
+            try {
+                addr = InetAddress.getLocalHost();
+            } catch (UnknownHostException unknown) {
+                System.err.println("Error checking running server: localhost is unknown.");
+                return;
+            }
         }
         try {
             new Socket(addr, addrPort.getPort());
