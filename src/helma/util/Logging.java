@@ -52,7 +52,7 @@ public class Logging extends LogFactory {
      *  helma.logdir system property.
      */
     public Logging() {
-        logdir = System.getProperty("helma.logdir");
+        logdir = System.getProperty("helma.logdir", "log");
     }
 
     /**
