@@ -86,7 +86,7 @@ public class ImageWrapper {
             BufferedImage buffered = new BufferedImage(width, height,
                 BufferedImage.TYPE_INT_ARGB);
             buffered.createGraphics().drawImage(image, 0, 0, null);
-            image = buffered;
+            setImage(buffered);
         }
         return (BufferedImage)image;
     }
@@ -104,6 +104,16 @@ public class ImageWrapper {
             graphics = img.createGraphics();
         }
         return graphics;
+    }
+    
+    /**
+     * Sets the internal image and clears the stored graphics object.
+     * Any code that is changing the internal image should do it through this function
+     * to make sure getGraphcis() returns a valid graphics object the next time it is called.
+     */
+    protected void setImage(Image image) {
+        this.image = image;
+        graphics = null;
     }
 
     /**
@@ -183,6 +193,14 @@ public class ImageWrapper {
         getGraphics().setColor(color);
     }
 
+    /**
+     * Sets the color used to write/paint to this image.
+     * 
+     * @param color ...
+     */
+    public void setColor(String color) {
+        getGraphics().setColor(Color.decode(color));
+    }
     /**
      * Draws a string to this image at the given coordinates.
      * 
@@ -286,7 +304,7 @@ public class ImageWrapper {
         // do not use the CropFilter any longer:
         if (image instanceof BufferedImage) {
             // BufferedImages define their own function for cropping:
-            image = ((BufferedImage)image).getSubimage(x, y, w, h);
+            setImage(((BufferedImage)image).getSubimage(x, y, w, h));
         } else {
             // The internal image will be a BufferedImage after this.
             // Simply create it with the cropped dimensions and draw the image into it:
@@ -294,7 +312,7 @@ public class ImageWrapper {
             Graphics2D g2d = buffered.createGraphics();
             g2d.drawImage(image, -x, -y, null);
             g2d.dispose();
-            image = buffered;
+            setImage(buffered);
         }
     }
     
@@ -339,16 +357,18 @@ public class ImageWrapper {
         // if the image is scaled, used the Graphcis2D method, otherwise use AWT:
         if (factor > 1f) {
             // scalie it with the Graphics2D approach for supperiour quality.
-            image = resize(w, h, true);
+            setImage(resize(w, h, true));
         } else {
             // Area averaging has the best results for shrinking of images:
-            /*
+
             // as getScaledInstance is asynchronous, the ImageWaiter is needed here too:
-            Image scaled = ImageWaiter.waitForImage(image.getScaledInstance(w, h, Image.SCALE_AREA_AVERAGING));
-            if (scaled == null)
-                throw new RuntimeException("Image cannot be resized.");
-            */
-            image = new ImageFilterOp(new AreaAveragingScaleFilter(w, h)).filter(getBufferedImage(), null);
+            // Image scaled = ImageWaiter.waitForImage(image.getScaledInstance(w, h, Image.SCALE_AREA_AVERAGING));
+            // if (scaled == null)
+            //     throw new RuntimeException("Image cannot be resized.");
+            
+            // this version is up to 4 times faster than getScaledInstance:
+            ImageFilterOp filter = new ImageFilterOp(new AreaAveragingScaleFilter(w, h));
+            setImage(filter.filter(getBufferedImage(), null));
         }
         width = w;
         height = h;
@@ -395,8 +415,8 @@ public class ImageWrapper {
      */
 
     public void reduceColors(int colors, boolean dither, boolean alphaToBitmask) {
-        image = Quantize.process(getBufferedImage(), colors, dither,
-            alphaToBitmask);
+        setImage(Quantize.process(getBufferedImage(), colors, dither,
+            alphaToBitmask));
     }
 
     /**
@@ -436,6 +456,45 @@ public class ImageWrapper {
     }
     
     /**
+     * Saves the image. Image format is deduced from mimeType.
+     * 
+     * @param out ...
+     * @param mimeType ...
+     * @throws IOException
+     */
+    public void saveAs(OutputStream out, String mimeType)
+        throws IOException {
+        generator.write(this, out, mimeType, -1f, false); // -1 means default quality
+    }
+    
+    /**
+     * Saves the image. Image format is deduced from mimeType.
+     * 
+     * @param out ...
+     * @param mimeType ...
+     * @param quality ...
+     * @throws IOException
+     */
+    public void saveAs(OutputStream out, String mimeType, float quality)
+        throws IOException {
+        generator.write(this, out, mimeType, quality, false);
+    }
+
+    /**
+     * Saves the image. Image format is deduced from mimeType.
+     * 
+     * @param out ...
+     * @param mimeType ...
+     * @param quality ...
+     * @param alpha ...
+     * @throws IOException
+     */
+    public void saveAs(OutputStream out, String mimeType, float quality, boolean alpha)
+        throws IOException {
+        generator.write(this, out, mimeType, quality, alpha);
+    }
+    
+    /**
      * Sets the palette index of the transparent color for Images with an
      * IndexColorModel. This can be used together with
      * {@link helma.image.ImageWrapper#getPixel}.
@@ -458,7 +517,7 @@ public class ImageWrapper {
             blues, trans);
         // create a new BufferedImage with the new IndexColorModel and the old
         // raster:
-        image = new BufferedImage(icm, bi.getRaster(), false, null);
+        setImage(new BufferedImage(icm, bi.getRaster(), false, null));
     }
 
     /**
