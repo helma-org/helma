@@ -1187,7 +1187,7 @@ public final class NodeManager {
                     String idfield = (rel.groupby != null) ? rel.groupby : dbm.getIDField();
                     boolean needsQuotes = dbm.needsQuotes(idfield);
 
-                    q.append("WHERE ");
+                    q.append(" WHERE ");
                     q.append(dbm.getTableName());
                     q.append(".");
                     q.append(idfield);
@@ -1596,7 +1596,7 @@ public final class NodeManager {
 
                 if (home.getSubnodeRelation() != null && !rel.isComplexReference()) {
                     // combine our key with the constraints in the manually set subnode relation
-                    q.append("WHERE ");
+                    q.append(" WHERE ");
                     q.append(dbm.getTableName());
                     q.append(".");
                     q.append(rel.accessName);
@@ -1610,7 +1610,7 @@ public final class NodeManager {
                     q.append(rel.buildQuery(home,
                                             home.getNonVirtualParent(),
                                             kstr,
-                                            "WHERE ",
+                                            " WHERE ",
                                             false));
                 }
 
