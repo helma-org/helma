@@ -181,7 +181,7 @@
         </antcall>
 
         <!-- clean up -->
-        <!-- delete dir="${build.work}"/ -->
+        <delete dir="${build.work}"/>
     </target>
 
 
