@@ -556,11 +556,12 @@ public class RequestEvaluator implements Runnable {
      * wait for it to complete. Otherwise return null, so the application knows it has to run the request.
      */
     public synchronized ResponseTrans attachRequest (RequestTrans req) throws InterruptedException {
-	if (this.req == null || !this.req.equals (req) || reqtype == NONE)
+	if (this.req == null || res == null || !this.req.equals (req))
 	    return null;
 	// we already know our response object
 	ResponseTrans r = res;
-	wait (app.requestTimeout);
+	if (reqtype != NONE)
+	    wait (app.requestTimeout);
 	return r;
     }
 
