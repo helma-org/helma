@@ -184,8 +184,13 @@ public final class Node implements INode, Serializable {
 
             String rawParentID = null;
 
-            id = in.readUTF();
-            name = in.readUTF();
+            if (version < 8) {
+                id = in.readUTF();
+                name = in.readUTF();
+            } else {
+                id = (String) in.readObject();
+                name = (String) in.readObject();
+            }
 
             if (version < 5) {
                 rawParentID = (String) in.readObject();
@@ -250,9 +255,9 @@ public final class Node implements INode, Serializable {
      * Write out this instance to a stream
      */
     private void writeObject(ObjectOutputStream out) throws IOException {
-        out.writeShort(7); // serialization version
-        out.writeUTF(id);
-        out.writeUTF(name);
+        out.writeShort(8); // serialization version
+        out.writeObject(id);
+        out.writeObject(name);
         out.writeObject(parentHandle);
         out.writeLong(created);
         out.writeLong(lastmodified);
