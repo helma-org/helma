@@ -688,7 +688,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IRep
 	    if (home != null && !helper.isAbsolute ())
                       helper = new File (home, logDir);
 	    logDir = helper.getAbsolutePath ();
-	    log = new Logger (logDir, fullLogname);
+	    log = Logger.getLogger (logDir, fullLogname);
 	} catch (IOException iox) {
 	    System.err.println ("Could not create log "+logname+" for application "+name+": "+iox);
 	    // fallback to System.out
