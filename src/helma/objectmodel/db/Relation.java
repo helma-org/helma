@@ -149,7 +149,7 @@ public final class Relation {
 
                 if (otherType == null) {
                     throw new RuntimeException("DbMapping for " + proto +
-                                               " not found from " + ownType.typename);
+                                               " not found from " + ownType.getTypeName());
                 }
 
                 // make sure the type we're referring to is up to date!
