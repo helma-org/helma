@@ -757,7 +757,7 @@ public final class NodeManager {
 	            q.append (" where ");
 	            q.append (rel.buildQuery (home, home.getNonVirtualParent (), null, "", false));
 	            if (rel.getOrder () != null)
-	                q.append (" "+rel.getOrder ());
+	                q.append (" order by "+rel.getOrder ());
 	        }
 
 	        if (logSql)
