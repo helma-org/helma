@@ -1594,14 +1594,12 @@ public final class Node implements INode, Serializable {
 	    n.anonymous = false;
 	}
 
-	if (propMap == null)
-	    propMap = new Hashtable ();
 	propname = propname.trim ();
 	String p2 = propname.toLowerCase ();
 
-	Property prop = (Property) propMap.get (p2);
+	Property prop = propMap == null ? null : (Property) propMap.get (p2);
 	if (prop != null) {
-	    if (prop.type == IProperty.NODE && n.equals (prop.getNodeValue ())) {
+	    if (prop.type == IProperty.NODE && n.getHandle ().equals (prop.nhandle)) {
 	        // nothing to do, just clean up locks and return
 	        if (state == CLEAN) clearWriteLock ();
 	        if (n.state == CLEAN) n.clearWriteLock ();
@@ -1617,7 +1615,10 @@ public final class Node implements INode, Serializable {
 	if (rel == null || rel.direction == Relation.FORWARD || rel.virtual ||
 			rel.other == null || !rel.other.isRelational()) {
 	    // the node must be stored as explicit property
+	    if (propMap == null)
+	        propMap = new Hashtable ();
 	    propMap.put (p2, prop);
+	    if (state == CLEAN) markAs (MODIFIED);
 	}
 	
 	if (rel != null && rel.direction == Relation.FORWARD && !rel.usesPrimaryKey ()) {
@@ -1640,7 +1641,6 @@ public final class Node implements INode, Serializable {
 	}
 
 	lastmodified = System.currentTimeMillis ();
-	if (state == CLEAN) markAs (MODIFIED);
 	if (n.state == DELETED) n.markAs (MODIFIED);
     }
 
