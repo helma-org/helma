@@ -14,7 +14,7 @@ import FESI.Data.ESWrapper;
 import FESI.Data.GlobalObject;
 import FESI.Exceptions.EcmaScriptException;
 import FESI.Interpreter.Evaluator;
-import helma.scripting.fesi.FesiEvaluator;
+import helma.scripting.fesi.FesiEngine;
 
 
 /**
@@ -44,11 +44,11 @@ public class DemoExtension extends HelmaExtension {
 	}
 
 	public HashMap initScripting (Application app, ScriptingEngine engine) throws ConfigurationException {
-	if (!(engine instanceof FesiEvaluator))
+	if (!(engine instanceof FesiEngine))
 	    throw new ConfigurationException ("scripting engine " + engine.toString () + " not supported in DemoExtension");
 	app.logEvent("initScripting DemoExtension with " + app.getName () + " and " + engine.toString() );
 	// fesi-specific code:
-	Evaluator evaluator = ((FesiEvaluator)engine).getEvaluator ();
+	Evaluator evaluator = ((FesiEngine)engine).getEvaluator ();
 	// initialize prototypes and global vars here, but don't add them to fesi's global object
 	ESWrapper demo = new ESWrapper(Server.getServer (), evaluator);
 	HashMap globals = new HashMap ();
