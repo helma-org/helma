@@ -1319,6 +1319,10 @@ public final class Application
 	return starttime;
     }
 
+    public String getCharset () {
+    return props.getProperty ("charset", "ISO-8859-1");
+    }
+
     /**
      * Periodically called to log thread stats for this application
      */

@@ -21,6 +21,7 @@ public class XmlDatabase implements IDatabase {
 	// character encoding to use when writing files.
 	// use standard encoding by default.
 	private String encoding = null;
+	
 
 	public XmlDatabase (String dbHome, String dbFilename, NodeManager nmgr) throws DatabaseException {
 		this.dbHome = dbHome;
@@ -28,6 +29,7 @@ public class XmlDatabase implements IDatabase {
 		dbBaseDir = new File (dbHome);
 		if (!dbBaseDir.exists() && !dbBaseDir.mkdirs() )
 			throw new RuntimeException("Couldn't create DB-directory");
+		this.encoding = nmgr.app.getCharset ();
 	}
 
 	public void shutdown ()	 {   }
