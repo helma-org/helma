@@ -44,8 +44,6 @@ public class TransientNode implements INode, Serializable {
 
     transient DbMapping dbmap;
 
-    transient boolean adoptName = true;  // little helper to know if this node is being converted
-
     private static long idgen = 0;
 
     public static String generateID () {
@@ -139,6 +137,9 @@ public class TransientNode implements INode, Serializable {
     }
 
     public String getPrototype () {
+	// if prototype is null, it's a vanilla HopObject.
+	if (prototype == null)
+	    return "hopobject";
 	return prototype;
     }
 
@@ -549,7 +550,7 @@ public class TransientNode implements INode, Serializable {
 	// or as an anonymous node in a collection
 	if (value instanceof TransientNode) {
 	    TransientNode n = (TransientNode) value;
-	    if (n.parent == null && n.adoptName) { 
+	    if (n.parent == null) { 
 	        n.name = propname;
 	        n.parent = this;
 	        n.anonymous = false;

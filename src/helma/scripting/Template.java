@@ -9,8 +9,6 @@ import java.util.Iterator;
 import java.util.StringTokenizer;
 import helma.framework.*;
 import helma.framework.core.*;
-// import FESI.Data.*;
-// import FESI.Exceptions.*;
 
 
 /**
@@ -26,28 +24,31 @@ import helma.framework.core.*;
 
 public class Template extends ActionFile {
 
-    // this is the *_as_string function, which is in addition to the normal one
-    // TypeUpdater psfunc;
-
 
     public Template (File file, String name, Prototype proto) {
 	super (file, name, proto);
-	functionName = name;
     }
 
-    public Template (String content, String name, Prototype proto) {
-	super (content, name, proto);
-	functionName = name;
+    public Template (String content, String name, String sourceName, Prototype proto) {
+	super (content, name, sourceName, proto);
     }
 
+    public String getFunctionName () {
+	return name;
+    }
+
+    public Reader getReader () {
+	return new StringReader(getContent());
+    }
 
     public String getContent () {
-	// IServer.getLogger().log ("Reading text template " + name);
 
 	Vector partBuffer = new Vector ();
-	int l = content.length ();
-	char cnt[] = new char[l];
-	content.getChars (0, l, cnt, 0);
+	String cstring = super.getContent();
+	char[] cnt = cstring.toCharArray ();
+	int l = cnt.length;
+	if (l == 0)
+	    return "";
 
 	// if last charackter is whitespace, swallow it. this is necessary for some inner templates to look ok.
 	if (Character.isWhitespace (cnt[l-1]))
@@ -144,68 +145,13 @@ public class Template extends ActionFile {
 	// templateBody.append ("\r\nreturn null;\r\n");
 
 	return templateBody.toString ();
-
-	/*
-	String fname = name+"_as_string";
-	String body = templateBody.toString ();
-
-             try {
-	    pfunc = parseFunction (name,
-		"arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10",
-		body+"\r\nreturn null;\r\n");
-             } catch (Throwable x) {
-                 String message = x.getMessage ();
-                 pfunc =  new ErrorFeedback (name, message);
-             }
-             try {
-	    psfunc = parseFunction (fname,
-		"arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10",
-		"res.pushStringBuffer(); "+body+"\r\nreturn res.popStringBuffer();\r\n");
-             } catch (Throwable x) {
-                 String message = x.getMessage ();
-                 psfunc =  new ErrorFeedback (fname, message);
-             }
-
-	Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
-	while (evals.hasNext ()) {
-	    try {
-	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
-	        updateRequestEvaluator (reval);
-	    } catch (Exception ignore) {}
-	} */
     }
 
-    protected void remove () {
-	prototype.templates.remove (name);
-	if (file != null)
-	    prototype.updatables.remove (file.getName());
-
-	/* Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
-	while (evals.hasNext ()) {
-	    try {
-	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
-	        ObjectPrototype op = reval.getPrototype (prototype.getName());
-	        functionName = name;
-	        ESValue esv = (ESValue) op.getProperty (functionName, functionName.hashCode());
-	        if (esv instanceof ConstructedFunctionObject || esv instanceof ThrowException) {
-	            op.deleteProperty (functionName, functionName.hashCode());
-	        }
-	        String fname = name+"_as_string";
-	        esv = (ESValue) op.getProperty (fname, fname.hashCode());
-	        if (esv instanceof ConstructedFunctionObject || esv instanceof ThrowException) {
-	            op.deleteProperty (fname, fname.hashCode());
-	        }
-	    } catch (Exception ignore) {}
-	} */
+    public void remove () {
+	prototype.removeTemplate (this);
     }
 
 
-    /* public synchronized void updateRequestEvaluator (RequestEvaluator reval) throws EcmaScriptException {
-        if (pfunc != null)
-            pfunc.updateRequestEvaluator (reval);
-        if (psfunc != null)
-            psfunc.updateRequestEvaluator (reval);
-    } */
 
     class Part {
 

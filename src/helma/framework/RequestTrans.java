@@ -6,7 +6,7 @@ package helma.framework;
 import java.io.*;
 import java.util.*;
 import helma.objectmodel.*;
-import helma.xmlrpc.Base64;
+import helma.util.Base64;
 
 /**
  * A Transmitter for a request from the servlet client. Objects of this 
@@ -24,16 +24,19 @@ public class RequestTrans implements Externalizable {
     // the request method - 0 for GET, 1 for POST
     private byte httpMethod = 0;
 
-    // this is used to hold the EcmaScript form data object
-    public transient Object data;
+    // timestamp of client-cached version, if present in request
+    private long ifModifiedSince = -1;
+    // set of ETags the client sent with If-None-Match header
+    private Set etags;
+
     // when was execution started on this request?
     public transient long startTime;
 
     // the name of the action being invoked
     public transient String action;
 
-	private transient String httpUsername;
-	private transient String httpPassword;
+    private transient String httpUsername;
+    private transient String httpPassword;
 
     static final long serialVersionUID = 5398880083482000580L;
 
@@ -125,6 +128,8 @@ public class RequestTrans implements Externalizable {
 	session = s.readUTF ();
 	values = (Map) s.readObject ();
 	httpMethod = s.readByte ();
+	ifModifiedSince = s.readLong ();
+	etags = (Set) s.readObject ();
     }
 
     /**
@@ -135,42 +140,79 @@ public class RequestTrans implements Externalizable {
 	s.writeUTF (session);
 	s.writeObject (values);
 	s.writeByte (httpMethod);
+	s.writeLong (ifModifiedSince);
+	s.writeObject (etags);
     }
 
-	public String getUsername()	{
-		if ( httpUsername!=null )
-			return httpUsername;
-		String auth = (String)get("authorization");
-		if ( auth==null || "".equals(auth) )	{
-			return null;
-		}
-		decodeHttpAuth(auth);
-		return httpUsername;
-	}
+    public void setIfModifiedSince (long since) {
+	ifModifiedSince = since;
+    }
 
-	public String getPassword()	{
-		if ( httpPassword!=null )
-			return httpPassword;
-		String auth = (String)get("authorization");
-		if ( auth==null || "".equals(auth) )	{
-			return null;
-		}
-		decodeHttpAuth(auth);
-		return httpPassword;
-	}
+    public long getIfModifiedSince () {
+	return ifModifiedSince;
+    }
 
-	private void decodeHttpAuth(String auth)	{
-		if ( auth==null )
-			return;
-		StringTokenizer tok;
-		if( auth.startsWith("Basic ") )
-			tok = new StringTokenizer ( new String( Base64.decode((auth.substring(6)).toCharArray()) ), ":" );
-		else
-			tok = new StringTokenizer ( new String( Base64.decode(auth.toCharArray()) ), ":" );
-		try	{	httpUsername = tok.nextToken();	}
-		catch ( NoSuchElementException e )	{	httpUsername = null;	}
-		try	{	httpPassword = tok.nextToken();	}
-		catch ( NoSuchElementException e )	{	httpPassword = null;	}
+    public void setETags (String etagHeader) {
+	etags = new HashSet();
+	if (etagHeader.indexOf (",") > -1) {
+	StringTokenizer st = new StringTokenizer (etagHeader, ", \r\n");
+	while (st.hasMoreTokens())
+	    etags.add (st.nextToken ());
+	} else {
+	    etags.add (etagHeader);
 	}
+    }
+
+    public Set getETags () {
+	return etags;
+    }
+
+    public boolean hasETag (String etag) {
+	if (etags == null || etag == null)
+	    return false;
+	return etags.contains (etag);
+    }
+
+    public String getUsername() {
+	if ( httpUsername!=null )
+	    return httpUsername;
+	String auth = (String)get("authorization");
+	if ( auth==null || "".equals(auth) ) {
+	    return null;
+	}
+	decodeHttpAuth(auth);
+	return httpUsername;
+    }
+
+    public String getPassword()	{
+	if ( httpPassword!=null )
+	    return httpPassword;
+	String auth = (String)get("authorization");
+	if ( auth==null || "".equals(auth) ) {
+	    return null;
+	}
+	decodeHttpAuth(auth);
+	return httpPassword;
+    }
+
+    private void decodeHttpAuth(String auth)	{
+	if ( auth==null )
+	    return;
+	StringTokenizer tok;
+	if( auth.startsWith("Basic ") )
+	    tok = new StringTokenizer ( new String( Base64.decode((auth.substring(6)).toCharArray()) ), ":" );
+	else
+	    tok = new StringTokenizer ( new String( Base64.decode(auth.toCharArray()) ), ":" );
+	try {
+	    httpUsername = tok.nextToken();
+	} catch ( NoSuchElementException e ) {
+	    httpUsername = null;
+	}
+	try {
+	    httpPassword = tok.nextToken();
+	} catch ( NoSuchElementException e ) {
+	    httpPassword = null;
+	}
+    }
 
 }

@@ -132,7 +132,7 @@ public final class Property implements IProperty, Serializable {
 	case BOOLEAN:
 	    return "" + bvalue;
 	case DATE:
-	    SimpleDateFormat format = new SimpleDateFormat ("dd.MM.yy hh:mm");
+	    SimpleDateFormat format = new SimpleDateFormat ("dd.MM.yy HH:mm");
 	    return format.format (new Date (lvalue));
 	case INTEGER:
 	    return Long.toString (lvalue);

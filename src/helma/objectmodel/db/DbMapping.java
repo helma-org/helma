@@ -18,15 +18,15 @@ import com.workingdogs.village.*;
   * relational database table. Basically it consists of a set of JavaScript property-to-
   * Database row bindings which are represented by instances of the Relation class.
   */
-  
-public class DbMapping implements Updatable {
+
+public final class DbMapping implements Updatable {
 
     // DbMappings belong to an application
     Application app;
     // prototype name of this mapping
     String typename;
 
-    int version;
+    // int version;
 
     // properties from where the mapping is read
     SystemProperties props;
@@ -52,6 +52,10 @@ public class DbMapping implements Updatable {
     HashMap prop2db;
      // Map of db columns to Relations objects
     HashMap db2prop;
+    // prerendered list of columns to fetch from db
+    String columns = null;
+    // pre-rendered select statement
+    String select = null;
 
     // db field used as primary key
     private String idField;
@@ -89,6 +93,7 @@ public class DbMapping implements Updatable {
     public DbMapping (Application app) {
 
 	this.app = app;
+	this.typename = null;
 
 	prop2db = new HashMap ();
 	db2prop = new HashMap ();
@@ -105,6 +110,10 @@ public class DbMapping implements Updatable {
 
 	this.app = app;
 	this.typename = typename;
+	// create a unique instance of the string. This is useful so 
+	// we can compare types just by using == instead of equals.
+	if (typename != null)
+	    typename = typename.intern ();
 
 	prop2db = new HashMap ();
 	db2prop = new HashMap ();
@@ -114,9 +123,6 @@ public class DbMapping implements Updatable {
 	idField = null;
 
 	this.props = props;
-	update ();
-
-	app.putDbMapping (typename, this);
     }
 
     /**
@@ -133,28 +139,28 @@ public class DbMapping implements Updatable {
      * for rewire to work, all other db mappings must have been initialized and registered.
      */
     public synchronized void update () {
-
-	// determin file format version of type.properties file
-	String versionInfo = props.getProperty ("_version");
-	if ("1.2".equals (versionInfo))
-	    version = 1;
-	else
-	    version = 0;
-
-	table = props.getProperty (version == 0 ? "_tablename" : "_table");
+	// reset columns
+	columns = select = null;
+	// read in properties
+	table = props.getProperty ("_table");
 	idgen = props.getProperty ("_idgen");
 	// see if there is a field which specifies the prototype of objects, if different prototypes
 	// can be stored in this table
 	prototypeField = props.getProperty ("_prototypefield");
 	// see if this prototype extends (inherits from) any other prototype
 	extendsProto = props.getProperty ("_extends");
-	
-	sourceName = props.getProperty (version == 0 ? "_datasource" : "_db");
+
+	sourceName = props.getProperty ("_db");
 	if (sourceName != null) {
 	    source = app.getDbSource (sourceName);
 	    if (source == null) {
 	        app.logEvent ("*** Data Source for prototype "+typename+" does not exist: "+sourceName);
 	        app.logEvent ("*** accessing or storing a "+typename+" object will cause an error.");
+	    } else if (table == null) {
+	        app.logEvent ("*** No table name specified for prototype "+typename);
+	        app.logEvent ("*** accessing or storing a "+typename+" object will cause an error.");
+	        // mark mapping as invalid by nulling the source field
+	        source = null;
 	    }
 	}
 
@@ -165,32 +171,27 @@ public class DbMapping implements Updatable {
 	nameField = props.getProperty ("_name");
 
 	protoField = props.getProperty ("_prototype");
-	
-	String parentMapping = props.getProperty ("_parent");
-	if (parentMapping != null) {
+
+	String parentSpec = props.getProperty ("_parent");
+	if (parentSpec != null) {
 	    // comma-separated list of properties to be used as parent
-	    StringTokenizer st = new StringTokenizer (parentMapping, ",;");
+	    StringTokenizer st = new StringTokenizer (parentSpec, ",;");
 	    parent = new ParentInfo[st.countTokens()];
 	    for (int i=0; i<parent.length; i++)
 	        parent[i] = new ParentInfo (st.nextToken().trim());
-	} else
+	} else {
 	    parent = null;
-	
+	}
+
 	lastTypeChange = props.lastModified ();
 	// set the cached schema & keydef to null so it's rebuilt the next time around
 	schema = null;
 	keydef = null;
-    }
 
-    /**
-     * This is the second part of the property reading process, called after the first part has been
-     * completed on all other mappings in this application
-     */
-    public synchronized void rewire () {
 	if (extendsProto != null) {
 	    parentMapping = app.getDbMapping (extendsProto);
 	}
-	
+
 	// if (table != null && source != null) {
 	// app.logEvent ("set data source for "+typename+" to "+source);
 	HashMap p2d = new HashMap ();
@@ -207,7 +208,7 @@ public class DbMapping implements Updatable {
 	            Relation rel = propertyToRelation (propName);
 	            if (rel == null)
 	                rel = new Relation (dbField, propName, this, props);
-	            rel.update (dbField, props, version);
+	            rel.update (dbField, props);
 	            p2d.put (propName, rel);
 	            if (rel.columnName != null &&
 	            		(rel.reftype == Relation.PRIMITIVE ||
@@ -223,60 +224,21 @@ public class DbMapping implements Updatable {
 	prop2db = p2d;
 	db2prop = d2p;
 
-	if (version == 1) {
-	    String subnodeMapping = props.getProperty ("_children");
-	    if (subnodeMapping != null) {
-	        try {
-	            // check if subnode relation already exists. If so, reuse it
-	            if (subnodesRel == null)
-	                subnodesRel = new Relation (subnodeMapping, "_children", this, props);
-	            subnodesRel.update (subnodeMapping, props, version);
-	            if (subnodesRel.accessor != null)
-	                propertiesRel = subnodesRel;
-
-	        } catch (Exception x) {
-	            app.logEvent ("Error reading _subnodes relation for "+typename+": "+x.getMessage ());
-	            // subnodesRel = null;
-	        }
-	    } else
-	        subnodesRel = null;
+	String subnodeMapping = props.getProperty ("_children");
+	if (subnodeMapping != null) {
+	    try {
+	        // check if subnode relation already exists. If so, reuse it
+	        if (subnodesRel == null)
+	            subnodesRel = new Relation (subnodeMapping, "_children", this, props);
+	        subnodesRel.update (subnodeMapping, props);
+	        if (subnodesRel.accessor != null)
+	            propertiesRel = subnodesRel;
+	    } catch (Exception x) {
+	        app.logEvent ("Error reading _subnodes relation for "+typename+": "+x.getMessage ());
+	        // subnodesRel = null;
+	    }
 	} else {
-	    String subnodeMapping = props.getProperty ("_subnodes");
-	    if (subnodeMapping != null) {
-	        try {
-	            // check if subnode relation already exists. If so, reuse it
-	            if (subnodesRel == null)
-	                subnodesRel = new Relation (subnodeMapping, "_subnodes", this, props);
-	            subnodesRel.update (subnodeMapping, props, version);
-
-	        } catch (Exception x) {
-	            app.logEvent ("Error reading _subnodes relation for "+typename+": "+x.getMessage ());
-	            // subnodesRel = null;
-	        }
-	    } else
-	        subnodesRel = null;
-
-	    String propertiesMapping = props.getProperty ("_properties");
-	    if (propertiesMapping != null) {
-	        try {
-	            // check if property relation already exists. If so, reuse it
-	            if (propertiesRel == null)
-	                propertiesRel = new Relation (propertiesMapping, "_properties", this, props);
-	            propertiesRel.update (propertiesMapping, props, version);
-
-	            // take over groupby flag from subnodes, if properties are subnodes
-	            if (propertiesRel.subnodesAreProperties && subnodesRel != null) {
-	                propertiesRel.groupby = subnodesRel.groupby;
-	                propertiesRel.constraints = subnodesRel.constraints;
-	                propertiesRel.filter = subnodesRel.filter;
-	            }
-
-	        } catch (Exception x) {
-	            app.logEvent ("Error reading _properties relation for "+typename+": "+x.getMessage ());
-	            // propertiesRel = null;
-	        }
-	    } else
-	        propertiesRel = null;
+	    subnodesRel = propertiesRel = null;
 	}
 
 	if (groupbyMapping != null) {
@@ -285,6 +247,13 @@ public class DbMapping implements Updatable {
 	}
     }
 
+
+    /** 
+     * Method in interface Updatable.
+     */
+    public void remove () {
+	// do nothing, removing of type properties is not implemented.
+    }
 
     /**
      * Get a JDBC connection for this DbMapping.
@@ -589,31 +558,96 @@ public class DbMapping implements Updatable {
      * Return a Village Schema object for this DbMapping.
      */
     public synchronized Schema getSchema () throws ClassNotFoundException, SQLException, DataSetException {
+        if (!isRelational ())
+            throw new SQLException ("Can't get Schema for non-relational data mapping");
+        if (source == null && parentMapping != null)
+            return parentMapping.getSchema ();
+        // Use local variable s to avoid synchronization (schema may be nulled elsewhere)
+        Schema s = schema;
+        if (s != null)
+            return s;
+        schema = new Schema ().schema (getConnection (), table, "*");
+        return schema;
+    }
+
+
+    /**
+     * Return a Village Schema object for this DbMapping.
+     */
+    public synchronized String getColumns() throws ClassNotFoundException, SQLException {
 	if (!isRelational ())
 	    throw new SQLException ("Can't get Schema for non-relational data mapping");
 	if (source == null && parentMapping != null)
-	    return parentMapping.getSchema ();
+	    return parentMapping.getColumns ();
 	// Use local variable s to avoid synchronization (schema may be nulled elsewhere)
-	Schema s = schema;
-	if (s != null)
-	    return s;
-	schema = new Schema ().schema (getConnection (), table, "*");
-	return schema;
+	if (columns == null) {
+	    // we do two things here: set the SQL type on the Relation mappings
+	    // and build a string of column names.
+	    Connection con = getConnection ();
+	    Statement stmt = con.createStatement ();
+	    ResultSet rs = stmt.executeQuery ("select * from "+getTableName()+" where 1 = 0");
+	    if (rs == null)
+	        throw new SQLException ("Error retrieving DB scheme for "+this);
+	    ResultSetMetaData meta = rs.getMetaData ();
+	    // ok, we have the meta data, now loop through mapping...
+	    // StringBuffer cbuffer = new StringBuffer (getIDField ());
+	    for (Iterator i=getDBPropertyIterator(); i.hasNext(); ) {
+	        Relation rel = (Relation) i.next ();
+	        if (rel.reftype != Relation.PRIMITIVE && rel.reftype != Relation.REFERENCE)
+	            continue;
+	        // cbuffer.append (",");
+	        // cbuffer.append (rel.getDbField());
+	        int idx = rs.findColumn (rel.getDbField());
+	        rel.setColumnType (meta.getColumnType (idx));
+	    }
+	    // columns = cbuffer.toString();
+	    columns = "*";
+	}
+	return columns;
+    }
+
+    public StringBuffer getSelect () throws SQLException, ClassNotFoundException {
+	String sel = select;
+	if (sel != null)
+	    return new StringBuffer (sel);
+	StringBuffer s = new StringBuffer ("select ");
+	s.append (getColumns ());
+	s.append (" from ");
+	s.append (getTableName ());
+	s.append (" ");
+	// cache rendered string for later calls.
+	select = s.toString();
+	return s;
     }
 
     /**
-     *  Return true if the column identified by the parameter is a string type. This is
-     *  used in query building to determine if a value needs to be quoted.
+     *  Return true if values for the column identified by the parameter need
+     *  to be quoted in SQL queries.
      */
-    public boolean isStringColumn (String columnName) throws SQLException {
+    public boolean needsQuotes (String columnName) throws SQLException {
+	if (table == null && parentMapping != null)
+	    return parentMapping.needsQuotes (columnName);
 	try {
-	    Schema s = getSchema ();
-	    if (s == null)
+	    Relation rel = (Relation) db2prop.get (columnName.toUpperCase());
+	    if (rel == null)
 	        throw new SQLException ("Error retrieving relational schema for "+this);
-	    Column c = s.getColumn (columnName);
-	    if (c == null)
-	        throw new SQLException ("Column "+columnName+" not found in "+this);
-	    return c.isString () || c.isVarBinary () || c.isLongVarBinary ();
+	    // make sure columns are initialized and up to date
+	    if (columns == null)
+	        getColumns();
+	    switch (rel.getColumnType()) {
+	        case Types.CHAR:
+	        case Types.VARCHAR:
+	        case Types.LONGVARCHAR:
+	        case Types.BINARY:
+	        case Types.VARBINARY:
+	        case Types.LONGVARBINARY:
+	        case Types.DATE:
+	        case Types.TIME:
+	        case Types.TIMESTAMP:
+	            return true;
+	        default:
+	            return false;
+	    }
 	} catch (Exception x) {
 	    throw new SQLException (x.getMessage ());
 	}
@@ -719,6 +753,10 @@ public class DbMapping implements Updatable {
 
     public DbMapping getParentMapping () {
 	return parentMapping;
+    }
+    
+    public SystemProperties getProperties () {
+	return props;
     }
 
 }

@@ -13,21 +13,21 @@ import helma.util.Updatable;
  */
 
 
-public class SkinFile implements Updatable {
+public final class SkinFile implements Updatable {
 
     String name;
     Prototype prototype;
     Application app;
     File file;
     Skin skin;
-    long lastmod;
+    long lastmod = 0;
 
     public SkinFile (File file, String name, Prototype proto) {
 	this.prototype = proto;
-	this.app = proto.app;
-	this.name = name;
 	this.file = file;
-	this.skin = null;
+	this.name = name;
+	this.app = proto.app;
+	skin = null;
     }
 
     /**
@@ -40,19 +40,19 @@ public class SkinFile implements Updatable {
 	this.app = proto.app;
 	this.name = name;
 	this.file = null;
-	this.skin = new Skin (body, app);
+	skin = new Skin (body, app);
     }
 
     /**
-     * Create a skinfile without that doesn't belong to a prototype, or at
+     * Create a skinfile that doesn't belong to a prototype, or at
      * least it doesn't know about its prototype and isn't managed by the prototype.
      */
     public SkinFile (File file, String name, Application app) {
-	this.prototype = null;
 	this.app = app;
-	this.name = name;
 	this.file = file;
-	this.skin = null;
+	this.name = name;
+	this.prototype = null;
+	skin = null;
     }
 
 
@@ -61,18 +61,17 @@ public class SkinFile implements Updatable {
      * the file has been modified or deleted.
      */
     public boolean needsUpdate () {
-	return (skin != null && lastmod != file.lastModified ()) || !file.exists ();
+	// if skin object is null we only need to call update if the file doesn't 
+	// exist anymore, while if the skin is initialized, we'll catch both 
+	// cases (file deleted and file changed) by just calling lastModified().
+	return skin != null ? lastmod != file.lastModified () : !file.exists ();
     }
 
 
     public void update () {
-
 	if (!file.exists ()) {
 	    // remove skin from  prototype
-	    if (prototype != null) {
-	        prototype.skins.remove (name);
-	        prototype.updatables.remove (file.getName());
-	    }
+	    remove ();
 	} else {
 	    // we only need to update if the skin has already been initialized
 	    if (skin != null)
@@ -90,8 +89,18 @@ public class SkinFile implements Updatable {
 	} catch (IOException x) {
 	    app.logEvent ("Error reading Skin "+file+": "+x);
 	}
-	
 	lastmod = file.lastModified ();
+    }
+
+    public void remove () {
+	if (prototype != null) {
+	    prototype.removeSkinFile (this);
+	}
+    }
+
+
+    public File getFile () {
+	return file;
     }
 
     public Skin getSkin () {
@@ -103,7 +112,7 @@ public class SkinFile implements Updatable {
     public String getName () {
 	return name;
     }
-	
+
     public String toString () {
 	return prototype.getName()+"/"+file.getName();
     }

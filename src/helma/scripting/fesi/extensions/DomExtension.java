@@ -1,6 +1,7 @@
 package helma.scripting.fesi.extensions;
 
 import java.io.ByteArrayOutputStream;
+import java.io.StringReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.FileNotFoundException;
@@ -33,9 +34,10 @@ public class DomExtension extends Extension  {
 
         ESObject globalXml = new GlobalObjectXml("Xml", evaluator, fp);
         globalXml.putHiddenProperty ("length",new ESNumber(1));
-        globalXml.putHiddenProperty ("load", new XmlLoad ("load", evaluator, fp));
-        globalXml.putHiddenProperty ("save", new XmlSave ("save", evaluator, fp));
-        globalXml.putHiddenProperty ("create", new XmlCreate ("create", evaluator, fp));
+        globalXml.putHiddenProperty ("read", new XmlRead ("read", evaluator, fp, false));
+        globalXml.putHiddenProperty ("readFromString", new XmlRead ("readFromString", evaluator, fp, true));
+        globalXml.putHiddenProperty ("write", new XmlWrite ("write", evaluator, fp));
+        globalXml.putHiddenProperty ("writeToString", new XmlWriteToString ("writeToString", evaluator, fp));
         globalXml.putHiddenProperty ("get", new XmlGet ("get", evaluator, fp));
         go.putHiddenProperty ("Xml", globalXml);
 	}
@@ -52,26 +54,27 @@ public class DomExtension extends Extension  {
 		}
 	}
 
-    class XmlSave extends BuiltinFunctionObject {
-		XmlSave(String name, Evaluator evaluator, FunctionPrototype fp) {
+	class XmlWrite extends BuiltinFunctionObject {
+		XmlWrite(String name, Evaluator evaluator, FunctionPrototype fp) {
 			super(fp, evaluator, name, 1);
 		}
 		public ESValue callFunction(ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-			if ( arguments==null || arguments.length<2 )
-				throw new EcmaScriptException("not enough arguments");
+			if ( arguments==null || arguments.length != 2 )
+				throw new EcmaScriptException("Wrong number of arguments in Xml.write()");
 			INode node = null;
 			try	{
-				node = ((ESNode)arguments[1]).getNode();
+				node = ((ESNode)arguments[0]).getNode();
 			}	catch ( Exception e )	{
 				// we definitly need a node
-				throw new EcmaScriptException("argument is not an hopobject");
+				throw new EcmaScriptException("First argument in Xml.write() is not an hopobject");
 			}
 			try	{
-				File tmpFile = new File(arguments[0].toString()+".tmp."+XmlWriter.generateID());
-				XmlWriter writer = new XmlWriter (tmpFile);
+				File tmpFile = new File(arguments[1].toString()+".tmp."+XmlWriter.generateID());
+				XmlWriter writer = new XmlWriter (tmpFile, "UTF-8");
+				writer.setDatabaseMode(false);
 				boolean result = writer.write(node);
 				writer.close();
-				File finalFile = new File(arguments[0].toString());
+				File finalFile = new File(arguments[1].toString());
 				tmpFile.renameTo (finalFile);
 				this.evaluator.reval.app.logEvent("wrote xml to " + finalFile.getAbsolutePath() );
 			}	catch (IOException io)	{
@@ -81,13 +84,17 @@ public class DomExtension extends Extension  {
         }
     }
 
-    class XmlCreate extends BuiltinFunctionObject {
-		XmlCreate(String name, Evaluator evaluator, FunctionPrototype fp) {
+	/**
+	  * Xml.create() is used to get a string containing the xml-content.
+	  * Useful if Xml-content should be made public through the web.
+	  */
+    class XmlWriteToString extends BuiltinFunctionObject {
+		XmlWriteToString(String name, Evaluator evaluator, FunctionPrototype fp) {
 			super(fp, evaluator, name, 1);
 		}
 		public ESValue callFunction(ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
 			if ( arguments==null || arguments.length==0 )
-				throw new EcmaScriptException("not enough arguments");
+				throw new EcmaScriptException("Not enough arguments in Xml.writeToString()");
 			INode node = null;
 			try	{
 				node = ((ESNode)arguments[0]).getNode();
@@ -97,23 +104,29 @@ public class DomExtension extends Extension  {
 			}
 			try	{
 				ByteArrayOutputStream out = new ByteArrayOutputStream();
-				XmlWriter writer = new XmlWriter (out);
+				XmlWriter writer = new XmlWriter (out, "UTF-8");
+				//  in case we ever want to limit serialization depth...
+				// if (arguments.length > 1 && arguments[1] instanceof ESNumber)
+				// 	writer.setMaxLevels(arguments[1].toInt32());
+				writer.setDatabaseMode(false);
 				boolean result = writer.write(node);
 				writer.flush();
-				return new ESString (out.toString());
+				return new ESString (out.toString("UTF-8"));
 			}	catch (IOException io)	{
 				throw new EcmaScriptException (io.toString());
 			}
         }
     }
 
-    class XmlLoad extends BuiltinFunctionObject {
-        XmlLoad(String name, Evaluator evaluator, FunctionPrototype fp) {
+    class XmlRead extends BuiltinFunctionObject {
+        boolean fromstring;
+        XmlRead(String name, Evaluator evaluator, FunctionPrototype fp, boolean fromstring) {
             super(fp, evaluator, name, 1);
+	    this.fromstring = fromstring;
         }
         public ESValue callFunction(ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
 			if ( arguments==null || arguments.length==0 )
-				throw new EcmaScriptException("no arguments for Xml.load()");
+				throw new EcmaScriptException("Missing arguments in Xml.read()");
 			INode node = null;
 			try	{
 				node = ((ESNode)arguments[1]).getNode();
@@ -123,11 +136,15 @@ public class DomExtension extends Extension  {
 			}
 			try	{
 				XmlReader reader = new XmlReader ();
-				INode result = reader.read (arguments[0].toString(),node);
+				INode result = null;
+				if (fromstring)
+					result = reader.read (new StringReader (arguments[0].toString()),node);
+				else
+					result = reader.read (new File(arguments[0].toString()),node);
 				return this.evaluator.reval.getNodeWrapper (result);
 			}	catch ( NoClassDefFoundError e )	{
-				throw new EcmaScriptException ("Can't load dom-capable xml parser.");
-			}	catch ( RuntimeException f )	{
+				throw new EcmaScriptException ("Can't load XML parser:"+e);
+			}	catch ( Exception f )	{
 				throw new EcmaScriptException (f.toString());
 			}
         }

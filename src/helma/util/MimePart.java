@@ -4,6 +4,7 @@
 package helma.util;
 
 import java.io.*;
+import java.util.Date;
 
 /**
  * This represents a MIME part of a HTTP file upload
@@ -15,6 +16,9 @@ public class MimePart implements Serializable {
     public int contentLength;
     public String contentType;
     private byte[] content;
+
+    public Date lastModified;
+    public String eTag;
 
 
     public MimePart (String name, byte[] content, String contentType) {
@@ -30,7 +34,7 @@ public class MimePart implements Serializable {
 
     public String getText () {
 	if (contentType == null || contentType.startsWith ("text/")) {
-	    // todo: check for encoding
+	    // FIXME: check for encoding
 	    return new String (content);
 	} else {
 	    return null;

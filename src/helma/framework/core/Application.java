@@ -5,15 +5,15 @@ package helma.framework.core;
 
 import helma.doc.DocApplication;
 import helma.doc.DocException;
+import helma.extensions.HelmaExtension;
+import helma.extensions.ConfigurationException;
 import helma.framework.*;
 import helma.main.Server;
 import helma.scripting.*;
-import helma.scripting.fesi.ESUser;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
-import helma.xmlrpc.*;
 import helma.util.*;
-import com.sleepycat.db.DbException;
+import org.apache.xmlrpc.*;
 import java.util.*;
 import java.io.*;
 import java.net.URLEncoder;
@@ -27,15 +27,17 @@ import java.rmi.server.*;
  * requests from the Web server or XML-RPC port and dispatches them to
  * the evaluators.
  */
-public class Application extends UnicastRemoteObject implements IRemoteApp, IPathElement, IReplicatedApp, Runnable {
+public final class Application implements IPathElement, Runnable {
 
+    // the name of this application
     private String name;
+    
+    // properties and db-properties
     SystemProperties props, dbProps;
+    // home, app and data directories
     File home, appDir, dbDir;
+    // this application's node manager
     protected NodeManager nmgr;
-
-    // the class name of the scripting environment implementation
-    ScriptingEnvironment scriptingEngine;
 
     // the root of the website, if a custom root object is defined.
     // otherwise this is managed by the NodeManager and not cached here.
@@ -67,13 +69,12 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 
     boolean stopped = false;
     boolean debug;
-    public long starttime;
+    long starttime;
 
-    public Hashtable sessions;
-    public Hashtable activeUsers;
-    Hashtable dbMappings;
+    Hashtable sessions;
     Hashtable dbSources;
 
+    // internal worker thread for scheduler, session cleanup etc.
     Thread worker;
     long requestTimeout = 60000; // 60 seconds for request timeout.
     ThreadGroup threadgroup;
@@ -84,26 +85,21 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     // Two logs for each application: events and accesses
     Logger eventLog, accessLog;
 
-    protected String templateExtension, scriptExtension, actionExtension, skinExtension;
-
     // A transient node that is shared among all evaluators
-    protected INode appnode;
+    protected INode cachenode;
+    
+    // some fields for statistics
     protected volatile long requestCount = 0;
     protected volatile long xmlrpcCount = 0;
     protected volatile long errorCount = 0;
 
-    protected static WebServer xmlrpc;
-    protected XmlRpcAccess xmlrpcAccess;
-    private String xmlrpcHandlerName;
 
     // the URL-prefix to use for links into this application
     private String baseURI;
 
     private DbMapping rootMapping, userRootMapping, userMapping;
 
-    // boolean checkSubnodes;
-
-    // name of respone encoding
+    // name of response encoding
     String charset;
 
     // password file to use for authenticate() function
@@ -114,70 +110,87 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     // Map of extensions allowed for public skins
     Properties skinExtensions;
 
-    // a cache for parsed skin objects
-    public CacheMap skincache = new CacheMap (200, 0.80f);
-
     // DocApplication used for introspection
     public DocApplication docApp;
+    
+    private long lastPropertyRead = 0l;
+    
+    // the set of prototype/function pairs which are allowed to be called via XML-RPC
+    private HashSet xmlrpcAccess;
+
+    // the name under which this app serves XML-RPC requests. Defaults to the app name
+    private String xmlrpcHandlerName;
+
 
     /**
      *  Zero argument constructor needed for RMI
      */
-    public Application () throws RemoteException {
+    /* public Application () throws RemoteException {
 	super ();
-    }
+    } */
 
     /**
-     * Build an application with the given name in the home directory. Server-wide properties will
-     * be created if the files are present, but they don't have to.
+     * Build an application with the given name in the app directory. No Server-wide
+     * properties are created or used.
      */
-    public Application (String name, File home) throws RemoteException, IllegalArgumentException {
-	this (name, home,
-		new SystemProperties (new File (home, "server.properties").getAbsolutePath ()),
-		new SystemProperties (new File (home, "db.properties").getAbsolutePath ()));
+    public Application (String name, File appDir, File dbDir)
+		throws RemoteException, IllegalArgumentException {
+	this (name, null, appDir, dbDir);
     }
 
     /**
-     * Build an application with the given name, app and db properties and app base directory. The
+     * Build an application with the given name and server instance. The
      * app directories will be created if they don't exist already.
      */
-    public Application (String name, File home, SystemProperties sysProps, SystemProperties sysDbProps)
-		    throws RemoteException, IllegalArgumentException {
+    public Application (String name, Server server)
+		throws RemoteException, IllegalArgumentException {
+
+	this (name, server, null, null);
+    }
+
+    /**
+     * Build an application with the given name, server instance, app and
+     * db directories.
+     */
+    public Application (String name, Server server, File customAppDir, File customDbDir)
+		throws RemoteException, IllegalArgumentException {
 
 	if (name == null || name.trim().length() == 0)
 	    throw new IllegalArgumentException ("Invalid application name: "+name);
 
 	this.name = name;
-	this.home = home;
+	appDir = customAppDir;
+	dbDir = customDbDir;
+
+	// system-wide properties, default to null
+	SystemProperties sysProps, sysDbProps;
+	sysProps = sysDbProps = null;
+	home = null;
+
+	if (server != null) {
+	     home = server.getHopHome ();
+	    // if appDir and dbDir weren't explicitely passed, use the
+	    // standard subdirectories of the Hop home directory
+	    if (appDir == null) {
+	        appDir = new File (home, "apps");
+	        appDir = new File (appDir, name);
+	    }
+	    if (dbDir == null) {
+	        dbDir = new File (home, "db");
+	        dbDir = new File (dbDir, name);
+	    }
+	    // get system-wide properties
+	    sysProps = server.getProperties ();
+	    sysDbProps = server.getDbProperties ();
+	}
+	// create the directories if they do not exist already
+	if (!appDir.exists())
+	    appDir.mkdirs ();
+	if (!dbDir.exists())
+	    dbDir.mkdirs ();
 
 	// give the Helma Thread group a name so the threads can be recognized
 	threadgroup = new ThreadGroup ("TX-"+name);
-
-	// check the system props to see if custom app directory is set.
-	// otherwise use <home>/apps/<appname>
-	String appHome = null;
-	if (sysProps != null)
-	    appHome = sysProps.getProperty ("appHome");
-	if (appHome != null && !"".equals (appHome.trim()))
-	    appDir = new File (appHome);
-	else
-	    appDir = new File (home, "apps");
-	appDir = new File (appDir, name);
-	if (!appDir.exists())	
-	    appDir.mkdirs ();
-
-	// check the system props to see if custom embedded db directory is set.
-	// otherwise use <home>/db/<appname>
-	String dbHome = null;
-	if (sysProps != null)
-	    dbHome = sysProps.getProperty ("dbHome");
-	if (dbHome != null && !"".equals (dbHome.trim()))
-	    dbDir = new File (dbHome);
-	else
-	    dbDir = new File (home, "db");
-	dbDir = new File (dbDir, name);
-	if (!dbDir.exists())	
-	    dbDir.mkdirs ();
 
 	// create app-level properties
 	File propfile = new File (appDir, "app.properties");
@@ -188,72 +201,65 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	dbProps = new SystemProperties (dbpropfile.getAbsolutePath (), sysDbProps);
 
 	// the passwd file, to be used with the authenticate() function
-	File pwf = new File (home, "passwd");
-	CryptFile parentpwfile = new CryptFile (pwf, null);
-	pwf = new File (appDir, "passwd");
-	pwfile = new CryptFile (pwf, parentpwfile);
+	CryptFile parentpwfile = null;
+	if (home != null)
+	    parentpwfile = new CryptFile (new File (home, "passwd"), null);
+	pwfile = new CryptFile (new File (appDir, "passwd"), parentpwfile);
 
 	// the properties that map java class names to prototype names
-	classMapping = new SystemProperties (new File (appDir, "class.properties").getAbsolutePath ());
+	File classMappingFile = new File (appDir, "class.properties");
+	classMapping = new SystemProperties (classMappingFile.getAbsolutePath ());
 
 	// get class name of root object if defined. Otherwise native Helma objectmodel will be used.
 	rootObjectClass = classMapping.getProperty ("root");
 
-	// the properties that map allowed public skin extensions to content types
-	skinExtensions = new SystemProperties (new File (appDir, "mime.properties").getAbsolutePath ());
+	updateProperties ();
 
-	// character encoding to be used for responses
-	charset = props.getProperty ("charset", "ISO-8859-1");
-
-	debug = "true".equalsIgnoreCase (props.getProperty ("debug"));
-	// checkSubnodes = !"false".equalsIgnoreCase (props.getProperty ("subnodeChecking"));
-	
-
-	try {
-	    requestTimeout = Long.parseLong (props.getProperty ("requestTimeout", "60"))*1000l;
-	} catch (Exception ignore) {	}
-	
-	templateExtension = props.getProperty ("templateExtension", ".hsp");
-	scriptExtension = props.getProperty ("scriptExtension", ".js");
-	actionExtension = props.getProperty ("actionExtension", ".hac");
-	skinExtension = ".skin";
-	
 	sessions = new Hashtable ();
-	activeUsers = new Hashtable ();
-	dbMappings = new Hashtable ();
 	dbSources = new Hashtable ();
 
-	appnode = new TransientNode ("app");
-	xmlrpc = helma.main.Server.getXmlRpcServer ();
-	xmlrpcAccess = new XmlRpcAccess (this);
+	cachenode = new TransientNode ("app");
     }
 
     /**
      * Get the application ready to run, initializing the evaluators and type manager.
      */
-    public void init () throws DbException, ScriptingException {
-	scriptingEngine = new helma.scripting.fesi.FesiScriptingEnvironment ();
-	scriptingEngine.init (this, props);
+    public void init () throws DatabaseException, ScriptingException {
+	// scriptingEngine = new helma.scripting.fesi.FesiScriptingEnvironment ();
+	// scriptingEngine.init (this, props);
 
-	eval = new RequestEvaluator (this);
-	logEvent ("Starting evaluators for "+name);
-	int maxThreads = 12;
-	try {
-	    maxThreads = Integer.parseInt (props.getProperty ("maxThreads"));
-	} catch (Exception ignore) {}
-	freeThreads = new Stack ();
-	allThreads = new Vector ();
-	allThreads.addElement (eval);
-	for (int i=0; i<maxThreads; i++) {
-	    RequestEvaluator ev = new RequestEvaluator (this);
-	    freeThreads.push (ev);
-	    allThreads.addElement (ev);
+	Vector extensions = Server.getServer ().getExtensions ();
+	for (int i=0; i<extensions.size(); i++) {
+	    HelmaExtension ext = (HelmaExtension)extensions.get(i);
+	    try {
+	        ext.applicationStarted (this);
+	    } catch (ConfigurationException e) {
+	        logEvent ("couldn't init extension " + ext.getName () + ": " + e.toString ());
+	    }
 	}
-	activeRequests = new Hashtable ();
 
 	typemgr = new TypeManager (this);
 	typemgr.createPrototypes ();
 	// logEvent ("Started type manager for "+name);
+
+	// eval = new RequestEvaluator (this);
+	logEvent ("Starting evaluators for "+name);
+	freeThreads = new Stack ();
+	allThreads = new Vector ();
+	// allThreads.addElement (eval);
+	
+	// preallocate minThreads request evaluators
+	int minThreads = 0;
+	try {
+	    minThreads = Integer.parseInt (props.getProperty ("minThreads"));
+	} catch (Exception ignore) {}
+	for (int i=0; i<minThreads; i++) {
+	    RequestEvaluator ev = new RequestEvaluator (this);
+	    ev.initScriptingEngine ();
+	    freeThreads.push (ev);
+	    allThreads.addElement (ev);
+	}
+	activeRequests = new Hashtable ();
 
 	skinmgr = new SkinManager (this);
 
@@ -263,21 +269,16 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	String usernameField = userMapping.getNameField ();
 	if (usernameField == null)
 	    usernameField = "name";
-	p.put ("_properties", "user."+usernameField);
+	p.put ("_children", "collection(user)");
+	p.put ("_children.accessname", usernameField);
 	userRootMapping = new DbMapping (this, "__userroot__", p);
-	rewireDbMappings ();
+	userRootMapping.update ();
 
 	nmgr = new NodeManager (this, dbDir.getAbsolutePath (), props);
-	
-	xmlrpcHandlerName = props.getProperty ("xmlrpcHandlerName", this.name);
-	if (xmlrpc != null)
-	    xmlrpc.addHandler (xmlrpcHandlerName, new XmlRpcInvoker (this));
-
-	// typemgr.start ();
     }
 
     /**
-     *  Create request evaluators and start scheduler and cleanup thread
+     *  Create and start scheduler and cleanup thread
      */
     public void start () {
 	starttime = System.currentTimeMillis();
@@ -299,9 +300,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	    worker.interrupt ();
 	worker = null;
 
-	if (xmlrpc != null && xmlrpcHandlerName != null)
-	    xmlrpc.removeHandler (xmlrpcHandlerName);
-
 	// stop evaluators
 	if (allThreads != null) {
 	    for (Enumeration e=allThreads.elements (); e.hasMoreElements (); ) {
@@ -309,18 +307,28 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        ev.stopThread ();
 	    }
 	}
-	
+
 	// remove evaluators
 	allThreads.removeAllElements ();
 	freeThreads = null;
-	
+
 	// shut down node manager and embedded db
 	try {
 	    nmgr.shutdown ();
-	} catch (DbException dbx) {
+	} catch (DatabaseException dbx) {
 	    System.err.println ("Error shutting down embedded db: "+dbx);
 	}
-	
+
+	// null out type manager
+	typemgr = null;
+
+	// tell the extensions that we're stopped.
+	Vector extensions = Server.getServer ().getExtensions ();
+	for (int i=0; i<extensions.size(); i++) {
+	    HelmaExtension ext = (HelmaExtension)extensions.get(i);
+	    ext.applicationStopped (this);
+	}
+
 	// stop logs if they exist
 	if (eventLog != null) {
 	    eventLog.close ();
@@ -337,19 +345,50 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     protected RequestEvaluator getEvaluator () {
 	if (stopped)
 	    throw new ApplicationStoppedException ();
+	// first try
 	try {
 	    return (RequestEvaluator) freeThreads.pop ();
 	} catch (EmptyStackException nothreads) {
-	    throw new RuntimeException ("Maximum Thread count reached.");
+	    int maxThreads = 12;
+	    try {
+	        maxThreads = Integer.parseInt (props.getProperty ("maxThreads"));
+	    } catch (Exception ignore) {
+	        // property not set, use default value
+	    }
+	    synchronized (this) {
+	        // allocate a new evaluator
+	        if (allThreads.size() < maxThreads) {
+	            logEvent ("Starting evaluator "+(allThreads.size()+1) +" for application "+name);
+	            RequestEvaluator ev = new RequestEvaluator (this);
+	            allThreads.addElement (ev);
+	            return (ev);
+	        }
+	    }
 	}
+	// we can't create a new evaluator, so we wait if one becomes available.
+	// give it 3 more tries, waiting 3 seconds each time.
+	for (int i=0; i<4; i++) {
+	    try {
+	        Thread.currentThread().sleep(3000);
+	        return (RequestEvaluator) freeThreads.pop ();
+	    } catch (EmptyStackException nothreads) {
+	        // do nothing
+	    } catch (InterruptedException inter) {
+	        throw new RuntimeException ("Thread interrupted.");
+	    }
+	}
+	// no luck, give up.
+	throw new RuntimeException ("Maximum Thread count reached.");
     }
 
     /**
      * Returns an evaluator back to the pool when the work is done.
      */
     protected void releaseEvaluator (RequestEvaluator ev) {
-	if (ev != null)
-	    freeThreads.push (ev);
+        if (ev != null) {
+            ev.recycle ();
+            freeThreads.push (ev);
+        }
     }
 
     /**
@@ -393,14 +432,15 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     }
 
     /**
-    *  Execute a request coming in from a web client.
-    */
+     *  Execute a request coming in from a web client.
+     */
     public ResponseTrans execute (RequestTrans req) {
 
 	requestCount += 1;
-	
+
 	// get user for this request's session
-	User u = getUser (req.session);
+	Session session = checkSession (req.session);
+	session.touch();
 
 	ResponseTrans res = null;
 	RequestEvaluator ev = null;
@@ -418,8 +458,12 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        primaryRequest = true;
 	        // if attachRequest returns null this means we came too late
 	        // and the other request was finished in the meantime
+
+	        // check if the properties file has been updated
+	        updateProperties ();
+	        // get evaluator and invoke
 	        ev = getEvaluator ();
-	        res = ev.invoke (req, u);
+	        res = ev.invoke (req, session);
 	    }
 	} catch (ApplicationStoppedException stopped) {
 	    // let the servlet know that this application has gone to heaven
@@ -442,23 +486,28 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        res.waitForClose ();
 	    }
 	}
-	
 	return res;
     }
 
 
     /**
-     * Update HopObjects in this application's cache. This is used to replicate
-     * application caches in a distributed app environment
+     *  Called to execute a method via XML-RPC, usally by helma.main.ApplicationManager
+     *  which acts as default handler/request dispatcher.
      */
-    public void replicateCache (Vector add, Vector delete) {
-	if (!"true".equalsIgnoreCase (props.getProperty ("allowReplication")))
-	    return;
-	nmgr.replicateCache (add, delete);
-    }
-
-    public void ping () {
-	// do nothing
+    public Object executeXmlRpc (String method, Vector args) throws Exception {
+	xmlrpcCount += 1;
+	Object retval = null;
+	RequestEvaluator ev = null;
+	try {
+	    // check if the properties file has been updated
+	    updateProperties ();
+	    // get evaluator and invoke
+	    ev = getEvaluator ();
+	    retval = ev.invokeXmlRpc (method, args.toArray());
+	}  finally {
+	    releaseEvaluator (ev);
+	}
+	return retval;
     }
 
     /**
@@ -531,8 +580,8 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     /**
      *  Return a transient node that is shared by all evaluators of this application ("app node")
      */
-    public INode getAppNode () {
-	return appnode;
+    public INode getCacheNode () {
+	return cachenode;
     }
 
 
@@ -571,51 +620,152 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     }
 
     /**
-     *  Retrurn a skin for a given object. The skin is found by determining the prototype
+     *  Return a skin for a given object. The skin is found by determining the prototype
      *  to use for the object, then looking up the skin for the prototype.
      */
     public Skin getSkin (Object object, String skinname, Object[] skinpath) {
-	return skinmgr.getSkin (object, skinname, skinpath); 
+	Prototype proto = getPrototype (object);
+	if (proto == null)
+	    return null;
+	return skinmgr.getSkin (proto, skinname, skinpath);
     }
 
     /**
-     * Return the user currently associated with a given Hop session ID. This may be
-     * a registered or an anonymous user.
+     * Return the session currently associated with a given Hop session ID.
+     * Create a new session if necessary.
      */
-    public User getUser (String sessionID) {
-	if (sessionID == null)
-	    return null;
-
-	User u = (User) sessions.get (sessionID);
-	if (u != null) {
-	    u.touch ();
-	} else {
-	    u = new User (sessionID, this);
-	    sessions.put (sessionID, u);
+    public Session checkSession (String sessionID) {
+	Session session = getSession(sessionID);
+	if ( session==null )	{
+	    session = new Session (sessionID, this);
+	    sessions.put (sessionID, session);
 	}
-	return u;
+	return session;
     }
 
+    /**
+     * Remove the session from the sessions-table and logout the user.
+     */
+    public void destroySession (String sessionID) {
+	logoutSession (getSession (sessionID));
+	sessions.remove (sessionID);
+    }
+
+    /**
+     * Remove the session from the sessions-table and logout the user.
+     */
+    public void destroySession (Session session) {
+	logoutSession (session);
+	sessions.remove (session.getSessionID ());
+    }
+
+    /**
+     *  Return the whole session map. We return a clone of the table to prevent
+     * actual changes from the table itself, which is managed by the application.
+     * It is safe and allowed to manipulate the session objects contained in the table, though.
+     */
+    public Map getSessions () {
+	return (Map) sessions.clone ();
+    }
+
+
+    /**
+     * Return a list of Helma nodes (HopObjects -  the database object representing the user,
+     *  not the session object) representing currently logged in users.
+     */
+    public List getActiveUsers () {
+	ArrayList list = new ArrayList();
+	// used to keep track of already added users - we only return
+	// one object per user, and users may have multiple sessions
+	HashSet usernames = new HashSet ();
+	for (Enumeration e=sessions.elements(); e.hasMoreElements(); ) {
+	    Session s = (Session) e.nextElement ();
+	    if(s==null) {
+	        continue;
+	    } else if (s.isLoggedIn() && !usernames.contains (s.getUID ()) ) {
+	        // returns a session if it is logged in and has not been
+	        // returned before (so for each logged-in user we get one
+	        // session object, even if this user is logged in several
+	        // times (used to retrieve the active users list).
+	        INode node = s.getUserNode ();
+	        // we check again because user may have been logged out between the first check
+	        if (node != null) {
+	            usernames.add (s.getUID ());
+	            list.add(node);
+	        }
+	    }
+	}
+	return list;
+    }
+
+
+    /**
+     * Return a list of Helma nodes (HopObjects -  the database object representing the user,
+     *  not the session object) representing registered users of this application.
+     */
+	public List getRegisteredUsers () {
+	ArrayList list = new ArrayList ();
+	INode users = getUserRoot ();
+	// first try to get them from subnodes (db)
+	for (Enumeration e=users.getSubnodes(); e.hasMoreElements(); ) {
+	    list.add ((INode)e.nextElement ());
+	}
+	// if none, try to get them from properties (internal db)
+	if (list.size()==0) {
+	    for (Enumeration e=users.properties(); e.hasMoreElements(); ) {
+	        list.add (users.getNode ((String)e.nextElement (),false));
+	    }
+	}
+	return list;
+	}
+
+
+    /**
+     * Return an array of <code>SessionBean</code> objects currently associated with a given
+     * Helma user.
+     */
+    public List getSessionsForUsername (String username)	{
+	ArrayList list = new ArrayList();
+	if (username == null)
+	    return list;
+	for (Enumeration e=sessions.elements(); e.hasMoreElements(); ) {
+	    Session s = (Session) e.nextElement ();
+	    if(s==null) {
+	        continue;
+	    } else if (username.equals (s.getUID ())) {
+	        // append to list if session is logged in and fits the given username
+	        list.add (new SessionBean (s));
+	    }
+	}
+	return list;
+    }
+
+
+    /**
+     * Return the session currently associated with a given Hop session ID.
+     */
+    public Session getSession (String sessionID) {
+	if (sessionID == null)
+	    return null;
+	return (Session) sessions.get (sessionID);
+	}
 
     /**
      * Register a user with the given user name and password.
      */
     public INode registerUser (String uname, String password) {
-	// Register a user who already has a user object
-	// (i.e. who has been surfing around)
 	if (uname == null)
 	    return null;
 	uname = uname.toLowerCase ().trim ();
 	if ("".equals (uname))
 	    return null;
-
 	INode unode = null;
 	try {
 	    INode users = getUserRoot ();
 	    unode = users.getNode (uname, false);
-	    if (unode != null) 
+	    if (unode != null)
 	        return null;
-	    
+
 	    unode = users.createNode (uname);
 	    unode.setPrototype ("user");
 	    unode.setDbMapping (userMapping);
@@ -628,8 +778,6 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	    unode.setName (uname);
 	    unode.setString (usernameProp, uname);
 	    unode.setString ("password", password);
-	    // users.setNode (uname, unode);
-	    // return users.getNode (uname, false);	
 	    return unode;
 	} catch (Exception x) {
 	    logEvent ("Error registering User: "+x);
@@ -640,26 +788,23 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     /**
      * Log in a user given his or her user name and password.
      */
-    public boolean loginUser (String uname, String password, ESUser u) {
-	// Check the name/password of a user who already has a user object
-	// (i.e. who has been surfing around)
+    public boolean loginSession (String uname, String password, Session session) {
+	// Check the name/password of a user and log it in to the current session
 	if (uname == null)
 	    return false;
 	uname = uname.toLowerCase ().trim ();
 	if ("".equals (uname))
 	    return false;
-
 	try {
 	    INode users = getUserRoot ();
-	    INode unode = users.getNode (uname, false);
+	    Node unode = (Node)users.getNode (uname, false);
 	    String pw = unode.getString ("password", false);
 	    if (pw != null && pw.equals (password)) {
-	        // give the user his/her persistant node
-	        u.setNode (unode);
-	        activeUsers.put (unode.getName (), u.user);
+	        // let the old user-object forget about this session
+	        logoutSession(session);
+	        session.login (unode);
 	        return true;
 	    }
-
 	} catch (Exception x) {
 	    return false;
 	}
@@ -667,18 +812,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     }
 
     /**
-     * Log out a user from this application.
+     * Log out a session from this application.
      */
-    public boolean logoutUser (ESUser u) {
-	if (u.user != null) {
-	    String uid = u.user.uid;
-                 if (uid != null)
-	        activeUsers.remove (uid);
-
-	    // switch back to the non-persistent user node as cache
-	    u.setNode (null);
-	}
-	return true;
+    public void logoutSession (Session session) {
+	session.logout();
     }
 
     /**
@@ -703,18 +840,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Return a path to be used in a URL pointing to the given element  and action
      */
     public String getNodeHref (Object elem, String actionName) {
-	// FIXME: will fail for non-node roots
 	Object root = getDataRoot ();
-	INode users = getUserRoot ();
 
-	// check base uri and optional root prototype from app.properties
-	String base = props.getProperty ("baseURI");
+	// check optional root prototype from app.properties
 	String rootproto = props.getProperty ("rootPrototype");
-
-	if (base != null || baseURI == null)
-	    setBaseURI (base);
-
-	// String href = n.getUrl (root, users, tmpname, siteroot);
 
 	String divider = "/";
 	StringBuffer b = new StringBuffer ();
@@ -726,27 +855,15 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	    if (rootproto != null && rootproto.equals (getPrototypeName (p)))
 	        break;
 	    b.insert (0, divider);
-
-	    // users always have a canonical URL like /users/username
-	    if ("user".equals (getPrototypeName (p))) {
-	        b.insert (0, URLEncoder.encode (getElementName (p)));
-	        p = users;
-	        break;
-	    }
-	    b.insert (0, URLEncoder.encode (getElementName (p)));
+	    b.insert (0, UrlEncoded.encode (getElementName (p)));
 	    p = getParentElement (p);
 
 	    if (loopWatch++ > 20)
 	        break;
 	}
 
-	if (p == users) {
-	    b.insert (0, divider);
-	    b.insert (0, "users");
-	}
-
 	if (actionName != null)
-	    b.append (URLEncoder.encode (actionName));
+	    b.append (UrlEncoded.encode (actionName));
 
 	return baseURI + b.toString ();
     }
@@ -766,12 +883,35 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     }
 
     /**
+     *  Return true if the baseURI property is defined in the application 
+     *  properties, false otherwise.
+     */
+    public boolean hasExplicitBaseURI () {
+	return props.containsKey ("baseuri");
+    }
+
+    /**
      * Tell other classes whether they should output logging information for this application.
      */
      public boolean debug () {
 	return debug;
     }
 
+    public RequestEvaluator getCurrentRequestEvaluator () {
+	Thread thread = Thread.currentThread ();
+	int l = allThreads.size();
+	for (int i=0; i<l; i++) {
+	    RequestEvaluator r = (RequestEvaluator) allThreads.get (i);
+	    if (r != null && r.rtx == thread)
+	        return r;
+	}
+	return null;
+    }
+
+    /**
+     *  Utility function invoker for the methods below. This *must* be called
+     *  by an active RequestEvaluator thread.
+     */
     private Object invokeFunction (Object obj, String func, Object[] args) {
 	Thread thread = Thread.currentThread ();
 	RequestEvaluator reval = null;
@@ -785,13 +925,13 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	    return reval.invokeDirectFunction (obj, func, args);
 	} catch (Exception x) {
 	    if (debug)
-	        System.err.println ("ERROR invoking function "+func+": "+x);
+	        System.err.println ("Error in Application.invokeFunction ("+func+"): "+x);
 	}
 	return null;
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ///   The following methods mimic the IPathElement interface. This allows as
+    ///   The following methods mimic the IPathElement interface. This allows us
     ///   to script any Java object: If the object implements IPathElement (as does
     ///   the Node class in Helma's internal objectmodel) then the corresponding
     ///   method is called in the object itself. Otherwise, a corresponding script function
@@ -909,9 +1049,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      */
     public Logger getLogger (String logname) {
 	Logger log = null;
-	String logDir = props.getProperty ("logdir");
-	if (logDir == null)
-	    logDir = "log";
+	String logDir = props.getProperty ("logdir", "log");
 	// allow log to be redirected to System.out by setting logdir to "console"
 	if ("console".equalsIgnoreCase (logDir))
 	    return new Logger (System.out);
@@ -927,30 +1065,29 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 
 
     /**
-     *  Get scripting environment for this application
-     */
-    public ScriptingEnvironment getScriptingEnvironment () {
-	return scriptingEngine;
-    }
-
-
-    /**
      * The run method performs periodic tasks like executing the scheduler method and
      * kicking out expired user sessions.
      */
     public void run () {
 	long cleanupSleep = 60000;    // thread sleep interval (fixed)
 	long scheduleSleep = 60000;  // interval for scheduler invocation
-	long lastScheduler = 0;
+	long lastScheduler = 0;    // run scheduler immediately
 	long lastCleanup = System.currentTimeMillis ();
 
 	// logEvent ("Starting scheduler for "+name);
 	// as first thing, invoke function onStart in the root object
 
+	eval = new RequestEvaluator (this);
+	allThreads.addElement (eval);
+
+	// read in standard prototypes to make first request go faster
+	typemgr.updatePrototype ("root");
+	typemgr.updatePrototype ("global");
+
 	try {
 	    eval.invokeFunction ((INode) null, "onStart", new Object[0]);
 	} catch (Exception ignore) {
-	    System.err.println ("Error in "+name+"/onStart(): "+ignore);
+	    logEvent ("Error in "+name+"/onStart(): "+ignore);
 	}
 
 	while (Thread.currentThread () == worker) {
@@ -958,29 +1095,28 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	    int sessionTimeout = 30;
 	    try {
 	        sessionTimeout = Math.max (0, Integer.parseInt (props.getProperty ("sessionTimeout", "30")));
-	    } catch (Exception ignore) {}
+	    } catch (Exception ignore) {
+	        System.out.println(ignore.toString());
+	    }
 
 	    long now = System.currentTimeMillis ();
 
 	    // check if we should clean up user sessions
 	    if (now - lastCleanup > cleanupSleep) try {
 	        lastCleanup = now;
-	        // logEvent ("Cleaning up "+name+": " + sessions.size () + " sessions active");
 	        Hashtable cloned = (Hashtable) sessions.clone ();
 	        for (Enumeration e = cloned.elements (); e.hasMoreElements (); ) {
-	            User u = (User) e.nextElement ();
-	            if (now - u.lastTouched () > sessionTimeout * 60000) {
-	                if (u.uid != null) {
+	            Session session = (Session) e.nextElement ();
+	            if (now - session.lastTouched () > sessionTimeout * 60000) {
+	                NodeHandle userhandle = session.userHandle;
+	                if (userhandle != null) {
 	                    try {
-	                        eval.invokeFunction (u, "onLogout", new Object[0]);
+	                        eval.invokeFunction (userhandle, "onLogout", new Object[0]);
 	                    } catch (Exception ignore) {}
-	                    activeUsers.remove (u.uid);
 	                }
-	                sessions.remove (u.getSessionID ());
-	                u.setNode (null);
+	                destroySession(session);
 	            }
 	        }
-	        // logEvent ("Cleaned up "+name+": " + sessions.size () + " sessions remaining");
 	    } catch (Exception cx) {
 	        logEvent ("Error cleaning up sessions: "+cx);
 	        cx.printStackTrace ();
@@ -1011,46 +1147,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	        worker = null;
 	        break;
 	    }
-
-
 	}
-
 	logEvent ("Scheduler for "+name+" exiting");
     }
 
-    /**
-     *  This method is called after the type.properties files are read on all prototypes, or after one
-     * or more of the type properties have been re-read after an update, to let the DbMappings reestablish
-     * the relations among them according to their mappings.
-     */
-    public void rewireDbMappings () {
-	for (Enumeration e=dbMappings.elements(); e.hasMoreElements(); ) {
-	    try {
-	        DbMapping m = (DbMapping) e.nextElement ();
-	        m.rewire ();
-	        String typename = m.getTypeName ();
-	        // set prototype hierarchy
-	        if (!"hopobject".equalsIgnoreCase (typename) && !"global".equalsIgnoreCase (typename)) {
-	            Prototype proto = (Prototype) typemgr.prototypes.get (typename);
-	            if (proto != null) {
-	                String protoname = m.getExtends ();
-	                // only use hopobject prototype if we're scripting HopObjects, not
-	                // java objects.
-	                boolean isjava = isJavaPrototype (typename);
-	                if (protoname == null && !isjava)
-	                    protoname = "hopobject";
-	                Prototype parentProto = (Prototype) typemgr.prototypes.get (protoname);
-	                if (parentProto == null && !isjava)
-	                    parentProto = (Prototype) typemgr.prototypes.get ("hopobject");
-	                if (parentProto != null)
-	                    proto.setParentPrototype (parentProto);
-	            }
-	        }
-	    } catch (Exception x) {
-	        logEvent ("Error rewiring DbMappings: "+x);
-	    }
-	}
-    }
 
     /**
      * Check whether a prototype is for scripting a java class, i.e. if there's an entry
@@ -1104,15 +1204,62 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
      * Get the DbMapping associated with a prototype name in this application
      */
     public DbMapping getDbMapping (String typename) {
-	return typename == null ? null : (DbMapping) dbMappings.get (typename);
+	Prototype proto = typemgr.getPrototype (typename);
+	if (proto == null)
+	    return null;
+	return proto.getDbMapping ();
     }
 
-    /**
-     * Associate a DbMapping object with a prototype name for this application.
-     */
-    public void putDbMapping (String typename, DbMapping dbmap) {
-	dbMappings.put (typename, dbmap);
+
+    private synchronized void updateProperties () {
+	// if so property file has been updated, re-read props.
+	if (props.lastModified () > lastPropertyRead) {
+	    // character encoding to be used for responses
+	    charset = props.getProperty ("charset", "ISO-8859-1");
+	    // debug flag
+	    debug = "true".equalsIgnoreCase (props.getProperty ("debug"));
+	     try {
+	        requestTimeout = Long.parseLong (props.getProperty ("requestTimeout", "60"))*1000l;
+	    } catch (Exception ignore) {
+	        // go with default value
+	        requestTimeout = 60000l;
+	    }
+	    // set base URI
+	    String base = props.getProperty ("baseuri");
+	    if (base != null)
+	        setBaseURI (base);
+	    else if (baseURI == null)
+	        baseURI = "/";
+	    // update the XML-RPC access list, containting prototype.method
+	    // entries of functions that may be called via XML-RPC
+	    String xmlrpcAccessProp = props.getProperty ("xmlrpcaccess");
+	    HashSet xra = new HashSet ();
+	    if (xmlrpcAccessProp != null) {
+	        StringTokenizer st = new StringTokenizer (xmlrpcAccessProp, ",; ");
+	        while (st.hasMoreTokens ()) {
+	            String token = st.nextToken ().trim ();
+	            xra.add (token.toLowerCase());
+	        }
+	    }
+	    xmlrpcAccess = xra;
+	    // if node manager exists, update it
+	    if (nmgr != null)
+	        nmgr.updateProperties (props);
+	    // set prop read timestamp
+	    lastPropertyRead = props.lastModified ();
+	}
     }
+
+
+    /**
+     *  Get a checksum that mirrors the state of this application in the sense 
+     *  that if anything in the applciation changes, the checksum hopefully will 
+     *  change, too.
+     */
+    public long getChecksum () {
+	return starttime + typemgr.getChecksum() + props.getChecksum();
+    }
+
     /**
      * Proxy method to get a property from the applications properties.
      */
@@ -1127,9 +1274,20 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	return props.getProperty (propname, defvalue);
     }
 
-	public SystemProperties getProperties()	{
-		return props;
-	}
+    public SystemProperties getProperties()	{
+	return props;
+    }
+
+    /**
+     * Return the XML-RPC handler name for this app. The contract is to 
+     * always return the same string, even if it has been changed in the properties file
+     * during runtime, so the app gets unregistered correctly.
+     */
+    public String getXmlRpcHandlerName () {
+	if (xmlrpcHandlerName == null)
+	    xmlrpcHandlerName = props.getProperty ("xmlrpcHandlerName", this.name);
+	return xmlrpcHandlerName;
+    }
 
     /**
      *
@@ -1189,6 +1347,14 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
 	return errorCount;
     }
 
+    public long getStarttime () {
+	return starttime;
+    }
+
+    public String getCharset () {
+    return props.getProperty ("charset", "ISO-8859-1");
+    }
+
     /**
      * Periodically called to log thread stats for this application
      */
@@ -1202,102 +1368,14 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, IPat
     }
 
     /**
-     * Check if a method may be invoked via XML-RPC on a prototype
+     * Check if a method may be invoked via XML-RPC on a prototype.
      */
     protected void checkXmlRpcAccess (String proto, String method) throws Exception {
-	xmlrpcAccess.checkAccess (proto, method);
+	String key = proto+"."+method;
+	// XML-RPC access items are case insensitive and stored in lower case
+	if (!xmlrpcAccess.contains (key.toLowerCase()))
+	    throw new Exception ("Method "+key+" is not callable via XML-RPC");
     }
 
 }
-
-
-/**
- * XML-RPC handler class for this application.
- */
-class XmlRpcInvoker implements XmlRpcHandler {
-
-    Application app;
-
-    public XmlRpcInvoker (Application app) {
-	this.app = app;
-    }
-
-    public Object execute (String method, Vector argvec) throws Exception {
-
-	app.xmlrpcCount += 1;
-
-	Object retval = null;
-	RequestEvaluator ev = null;
-	try {
-	    ev = app.getEvaluator ();
-	    retval = ev.invokeXmlRpc (method, argvec.toArray());
-	}  finally {
-	    app.releaseEvaluator (ev);
-	}
-	return retval;
-    }
-}
-
-
-/**
- * XML-RPC access permission checker
- */
-class XmlRpcAccess {
-    	
-    Application app;
-    Hashtable prototypes;
-    long lastmod;
-
-    public XmlRpcAccess (Application app) {
-    	this.app = app;
-	init ();
-    }
-    	
-    public void checkAccess (String proto, String method) throws Exception {
-	if (app.props.lastModified () != lastmod)
-	    init ();
-	Hashtable protoAccess = (Hashtable) prototypes.get (proto.toLowerCase ());
-	if (protoAccess == null)
-	    throw new Exception ("Method "+method+" is not callable via XML-RPC");
-	if (protoAccess.get (method.toLowerCase ()) == null)
-	    throw new Exception ("Method "+method+" is not callable via XML-RPC");
-    }
-
-    /*
-     * create internal representation of  XML-RPC-Permissions. They're encoded in the app property
-    *  file like this:
-    *
-    *    xmlrpcAccess = root.sayHello, story.countMessages, user.login
-    *
-    *  i.e. a prototype.method entry for each function callable via XML-RPC.
-    */
-    private void init () {
-	String newAccessprop = app.props.getProperty ("xmlrpcaccess");
-	Hashtable newPrototypes = new Hashtable ();
-	if (newAccessprop != null) {
-	    StringTokenizer st = new StringTokenizer (newAccessprop, ",; ");
-	    while (st.hasMoreTokens ()) {
-	        String token = st.nextToken ().trim ();
-	        int dot = token.indexOf (".");
-	        if (dot > -1) {
-	            String proto = token.substring (0, dot).toLowerCase ();
-	            String method = token.substring (dot+1).toLowerCase ();
-	            Hashtable protoAccess = (Hashtable) newPrototypes.get (proto);
-	            if (protoAccess == null) {
-	                protoAccess = new Hashtable ();
-	                newPrototypes.put (proto, protoAccess);
-	            }
-	            protoAccess.put (method, method);
-	        }
-	    }
-	}
-	this.prototypes = newPrototypes;
-	this.lastmod = app.props.lastModified ();
-    }
-
-}
-
-
-
-
 

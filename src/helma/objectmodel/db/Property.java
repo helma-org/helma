@@ -10,24 +10,24 @@ import java.text.*;
 import helma.objectmodel.*;
 
 /**
- * A property implementation for Nodes stored inside a database. Basically 
+ * A property implementation for Nodes stored inside a database. Basically
  * the same as for transient nodes, with a few hooks added.
  */
 public final class Property implements IProperty, Serializable, Cloneable {
 
 
-    protected String propname;
-    protected Node node;
+    private String propname;
+    private Node node;
 
-    protected String svalue;
-    protected boolean bvalue;
-    protected long lvalue;
-    protected double dvalue;
+    private String svalue;
+    private boolean bvalue;
+    private long lvalue;
+    private double dvalue;
     // protected String nvalueID;
-    protected NodeHandle nhandle;
-    protected Object jvalue;
+    private NodeHandle nhandle;
+    private Object jvalue;
 
-    protected int type;
+    private int type;
 
     transient boolean dirty;
 
@@ -202,12 +202,36 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	    unregisterNode ();
 	if (type == JAVAOBJECT)
 	    this.jvalue = null;
-	
-	// registerNode (value);	
+
+	// registerNode (value);
 	type = NODE;
-	
+
 	nhandle = value.getHandle ();
 	dirty = true;
+    }
+
+    public void setNodeHandle (NodeHandle value) {
+	if (type == NODE)
+	    unregisterNode ();
+	if (type == JAVAOBJECT)
+	    this.jvalue = null;
+	// registerNode (value);
+	type = NODE;
+	nhandle = value;
+	dirty = true;
+    }
+
+    public NodeHandle getNodeHandle () {
+	return nhandle;
+    }
+    
+    public void convertToNodeReference (DbMapping dbm) {
+	String id = getStringValue ();
+	if (id == null)
+	    nhandle = null;
+	else 
+	    nhandle = new NodeHandle (new DbKey (dbm, id));
+	type = NODE;
     }
 
     public void setJavaObjectValue (Object value) {
@@ -261,16 +285,16 @@ public final class Property implements IProperty, Serializable, Cloneable {
 	case STRING:
 	    return svalue;
 	case BOOLEAN:
-	    return "" + bvalue;
+	    return bvalue ? "true" : "false";
 	case DATE:
-	    SimpleDateFormat format = new SimpleDateFormat ("dd.MM.yy hh:mm");
+	    SimpleDateFormat format = new SimpleDateFormat ("dd.MM.yy HH:mm");
 	    return format.format (new Date (lvalue));
 	case INTEGER:
 	    return Long.toString (lvalue);
 	case FLOAT:
 	    return Double.toString (dvalue);
 	case NODE:
-	    return nhandle.getID ();
+	    return nhandle == null ? null : nhandle.getID ();
 	case JAVAOBJECT:
 	    return jvalue == null ? null : jvalue.toString ();
 	}
@@ -327,71 +351,6 @@ public final class Property implements IProperty, Serializable, Cloneable {
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

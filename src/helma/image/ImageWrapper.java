@@ -1,6 +1,6 @@
 // ImageWrapper.java
 // Copyright (c) Hannes Wallnöfer 1999-2000
-  
+
 package helma.image;
 
 import java.awt.*;
@@ -42,9 +42,9 @@ public abstract class ImageWrapper {
      */ 
 
     public void setFont (String name, int style, int size) {
-    	this.fontname = name;
-    	this.fontstyle = style;
-    	this.fontsize = size;
+	this.fontname = name;
+	this.fontstyle = style;
+	this.fontsize = size;
 	g.setFont (new Font (name, style, size));
     }
     
@@ -94,8 +94,11 @@ public abstract class ImageWrapper {
     }
 
     public void resize (int w, int h) {
-	ImageFilter filter = new AreaAveragingScaleFilter (w, h);
-	img = Toolkit.getDefaultToolkit ().createImage(new FilteredImageSource(img.getSource(), filter));
+	// ImageFilter filter = new ReplicateScaleFilter (w, h);
+	// img = Toolkit.getDefaultToolkit ().createImage(new FilteredImageSource(img.getSource(), filter));
+	img = img.getScaledInstance (w, h, Image.SCALE_SMOOTH);
+	width = w;
+	height = h;
     }
 
     public abstract void reduceColors (int colors);
@@ -221,7 +224,7 @@ public abstract class ImageWrapper {
     }
 
     public void paint (Graphics g, int xadd, int yadd) {
-            g.drawString (text, xoff+xadd, yoff+ascent+yadd);
+	g.drawString (text, xoff+xadd, yoff+ascent+yadd);
     }
 
 
@@ -229,7 +232,7 @@ public abstract class ImageWrapper {
 	return (y < yoff+fm.getHeight()) ? true : false;
     }
 
- 
+
     }
 
 }

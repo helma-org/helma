@@ -1,0 +1,3 @@
+Main-Class: helma.main.launcher.Main
+
+

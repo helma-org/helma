@@ -1,157 +1,226 @@
 package helma.objectmodel.dom;
 
-import java.io.*;
-import java.net.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Stack;
 
 import javax.xml.parsers.*;
-import org.w3c.dom.*;
 
-import helma.objectmodel.*;
+import org.xml.sax.*;
+import org.xml.sax.helpers.DefaultHandler;
 
-public class XmlReader implements XmlConstants	{
+import helma.objectmodel.INode;
 
-	private int offset = 0;
-	private HashMap convertedNodes;
+public final class XmlReader extends DefaultHandler implements XmlConstants {
 
-	public XmlReader()	{
+    private INode rootNode, currentNode;
+    private Stack nodeStack;
+    private HashMap convertedNodes;
+
+    private String elementType = null;
+    private String elementName = null;
+    private StringBuffer charBuffer = null;
+
+    static SAXParserFactory factory = SAXParserFactory.newInstance ();
+
+    boolean parsingHopObject;
+
+    public XmlReader () {
+    }
+
+
+    /**
+     * main entry to read an xml-file.
+     */
+    public INode read (File file, INode helmaNode)
+	throws ParserConfigurationException, SAXException, IOException {
+	try {
+	    return read (new FileInputStream(file), helmaNode);
+	} catch (FileNotFoundException notfound) {
+	    System.err.println ("couldn't find xml-file: " + file.getAbsolutePath ());
+	    return helmaNode;
+	}
+    }
+
+    /**
+     * read an InputStream with xml-content.
+     */
+    public INode read (InputStream in, INode helmaNode)
+	throws ParserConfigurationException, SAXException, IOException {
+	return read (new InputSource (in), helmaNode);
+    }
+
+    /**
+     * read an character reader with xml-content.
+     */
+    public INode read (Reader in, INode helmaNode)
+	throws ParserConfigurationException, SAXException, IOException {
+	return read (new InputSource (in), helmaNode);
+    }
+
+    /**
+     * read an InputSource with xml-content.
+     */
+    public INode read (InputSource in, INode helmaNode)
+	throws ParserConfigurationException, SAXException, IOException {
+	if (helmaNode==null)
+	    throw new RuntimeException ("Can't create a new Node without a root Node");
+
+	SAXParser parser = factory.newSAXParser ();
+
+	rootNode = helmaNode;
+	currentNode = null;
+	convertedNodes = new HashMap ();
+	nodeStack = new Stack ();
+	parsingHopObject = true;
+
+	parser.parse (in, this);
+	return rootNode;
+    }
+
+
+    public void startElement(String namespaceURI, String localName, String qName, Attributes atts)
+                        throws SAXException {
+	// System.err.println ("XML-READ: startElement "+namespaceURI+", "+localName+", "+qName+", "+atts.getValue("id"));
+	// discard the first element called xmlroot
+	if ("xmlroot".equals (qName) && currentNode == null)
+	    return;
+	// if currentNode is null, this must be the hopobject node
+	String id = atts.getValue ("id");
+	if (id != null) {
+	    // check if there is a current node.
+	    if (currentNode == null) {
+	        // If currentNode is null, this is the root node we're parsing.
+	        currentNode = rootNode;
+	    } else if ("hop:child".equals (qName)) {
+	        // it's an anonymous child node
+	        nodeStack.push (currentNode);
+	        currentNode = currentNode.createNode (null);
+	    } else {
+	        // it's a named node property
+	        nodeStack.push (currentNode);
+	        // property name may be encoded as "propertyname" attribute,
+	        // otherwise it is the element name
+	        String propName = atts.getValue ("propertyname");
+	        if (propName == null)
+	            propName = qName;
+	        currentNode = currentNode.createNode (propName);
+	    }
+	    // set the prototype on the current node and
+	    // add it to the map of parsed nodes.
+	    String prototype = atts.getValue ("prototype");
+	    if ( !"".equals(prototype) && !"hopobject".equals(prototype) )
+	        currentNode.setPrototype (prototype);
+	    String key = id + "-" + prototype;
+	    convertedNodes.put( key, currentNode );
+	    return;
 	}
 
-	public INode read( String desc )	{
-		return read(desc, new TransientNode() );
+	// check if we have a currentNode to set properties on,
+	// otherwise throw exception.
+	if (currentNode == null)
+	    throw new SAXException ("Invalid XML: No valid root HopObject found");
+	// check if we are inside a HopObject - otherwise throw an exception
+	if (!parsingHopObject)
+	    throw new SAXException ("Invalid XML: Found nested non-HobObject elements");
+
+	// if we got so far, the element is not a hopobject. Set flag to prevent
+	// the hopobject stack to be popped when the element
+	// is closed.
+	parsingHopObject = false;
+
+	// Is it a reference to an already parsed node?
+	String idref = atts.getValue ("idref");
+	if (idref != null) {
+	    // a reference to a node that should have been parsed
+	    // and lying in our cache of parsed nodes.
+	    String prototyperef = atts.getValue ("prototyperef");
+	    String key = idref + "-" + prototyperef;
+	    INode n = (INode) convertedNodes.get (key);
+	    if (n != null) {
+	        if ("hop:child".equals (qName)) {
+	            // add an already parsed node as child to current node
+	            currentNode.addNode (n);
+	        } else {
+	            // set an already parsed node as node property to current node
+	            // property name may be encoded as "propertyname" attribute,
+	            // otherwise it is the element name
+	            String propName = atts.getValue ("propertyname");
+	            if (propName == null)
+	                propName = qName;
+	           currentNode.setNode (propName, n);
+	        }
+	    }
+	} else {
+	    // It's a primitive property. Remember the property name and type
+	    // so we can properly parse/interpret the character data when we
+	    // get it later on.
+	    elementType = atts.getValue ("type");
+	    if (elementType == null)
+	        elementType = "string";
+	    // property name may be encoded as "propertyname" attribute,
+	    // otherwise it is the element name
+	    elementName = atts.getValue ("propertyname");
+	    if (elementName == null)
+	        elementName = qName;
+	    if (charBuffer == null)
+	        charBuffer = new StringBuffer();
+	    else
+	        charBuffer.setLength (0);
 	}
+    }
 
-	public INode read( String desc, INode helmaNode ) throws RuntimeException	{
-		try	{
-			return read( new File(desc), helmaNode );
-		}	catch ( FileNotFoundException notfound )	{
-			throw new RuntimeException( "couldn't find xml-file: " + desc );
-		}	catch ( IOException ioerror )	{
-			throw new RuntimeException( "couldn't read xml: " + desc );
-		}
+    public void characters (char[] ch, int start, int length) throws SAXException {
+	// System.err.println ("CHARACTERS: "+new String (ch, start, length));
+	// append chars to char buffer
+	if (elementType != null)
+	    charBuffer.append (ch, start, length);
+    }
+
+    public void endElement(String namespaceURI, String localName, String qName)
+                        throws SAXException {
+	if (elementType != null) {
+	    String charValue = charBuffer.toString ();
+	    charBuffer.setLength (0);
+	    if ( "boolean".equals (elementType) ) {
+	        if ( "true".equals(charValue) ) {
+	            currentNode.setBoolean(elementName, true);
+	        } else {
+	            currentNode.setBoolean(elementName, false);
+	        }
+	    } else if ( "date".equals(elementType) ) {
+	        SimpleDateFormat format = new SimpleDateFormat ( DATEFORMAT );
+	        try {
+	            Date date = format.parse(charValue);
+	            currentNode.setDate (elementName, date);
+	        } catch ( ParseException e ) {
+	            currentNode.setString (elementName, charValue);
+	        }
+	    } else if ( "float".equals(elementType) ) {
+	        currentNode.setFloat (elementName, (new Double(charValue)).doubleValue());
+	    } else if ( "integer".equals(elementType) ) {
+	        currentNode.setInteger (elementName, (new Long(charValue)).longValue());
+	    } else {
+	        currentNode.setString (elementName, charValue);
+	    }
+	    elementName = null;
+	    elementType = null;
+	    charValue = null;
 	}
-
-	public INode read( File file, INode helmaNode ) throws RuntimeException, FileNotFoundException	{
-		return read( new FileInputStream(file), helmaNode );
-	}
-
-	public INode read( InputStream in, INode helmaNode ) throws RuntimeException	{
-		Document document = XmlUtil.parse(in);
-		if ( document!=null && document.getDocumentElement()!=null )	{
-			Node tmp = document.getDocumentElement().getFirstChild();
-			Element workelement = null;
-			while( tmp!=null )	{
-				tmp = tmp.getNextSibling();
-				if ( tmp.getNodeType()==Node.ELEMENT_NODE )	{
-					workelement = (Element) tmp;
-					break;
-				}
-			}
-			return startConversion( helmaNode, workelement );
-		}	else	{
-			return helmaNode;
-		}
-	}
-
-	public INode startConversion( INode helmaNode, Element element )	{
-		convertedNodes = new HashMap();
-		INode convertedNode = convert(helmaNode, element );
-		convertedNodes = null;
-		return convertedNode;
-	}
-
-	public INode convert( INode helmaNode, Element element )	{
-		offset++;
-		String idref = element.getAttributeNS(NAMESPACE, "idref");
-		String key = idref + "-" + element.getAttributeNS(NAMESPACE, "prototyperef");
-		if( idref!=null && !idref.equals("") )	{
-			if( convertedNodes.containsKey(key) )	{
-				offset--;
-				return (INode)convertedNodes.get(key);
-			}
-		}
-		key = element.getAttributeNS(NAMESPACE, "id") + "-" + element.getAttributeNS(NAMESPACE, "prototype");
-		convertedNodes.put( key, helmaNode );
-
-		// FIXME: import id on persistent nodes
-		String prototype = element.getAttributeNS(NAMESPACE, "prototype");
-		if( !prototype.equals("") && !prototype.equals("hopobject") )	{
-			helmaNode.setPrototype( prototype );
-		}
-		children(helmaNode, element);
-		offset--;
-		return helmaNode;
-	}
-
-
-	private INode children( INode helmaNode, Element element )	{
-		NodeList list = element.getChildNodes();
-		int len = list.getLength();
-		Element childElement;
-		for ( int i=0; i<len; i++ )	{
-			try	{
-				childElement = (Element)list.item(i);
-			}	catch( ClassCastException e )	{
-				continue;
-			}
-			INode workNode = null;
-			if ( childElement.getTagName().equals("hop:child") )	{
-				convert( helmaNode.createNode(null), childElement );
-			}	else if ( !"".equals(childElement.getAttributeNS(NAMESPACE,"id")) || !"".equals(childElement.getAttributeNS(NAMESPACE,"idref")) )	{
-				// we've got an object!
-				helmaNode.setNode( childElement.getTagName(), convert( helmaNode.createNode(childElement.getTagName()), childElement ) );
-			}	else	{
-				String type = childElement.getAttribute("hop:type");
-				String key  = childElement.getTagName();
-				String content = XmlUtil.getTextContent(childElement);
-				if ( type.equals("boolean") )	{
-					if ( content.equals("true") )	{
-						helmaNode.setBoolean(key,true);
-					}	else	{
-						helmaNode.setBoolean(key,false);
-					}
-				}	else if ( type.equals("date") )	{
-					SimpleDateFormat format = new SimpleDateFormat ( DATEFORMAT );
-					try	{
-						Date date = format.parse(content);
-						helmaNode.setDate(key, date);
-					}	catch ( ParseException e )	{
-						helmaNode.setString(key,content);
-					}
-				}	else if ( type.equals("float") )	{
-					helmaNode.setFloat(key, (new Double(content)).doubleValue() );
-				}	else if ( type.equals("integer") )	{
-					helmaNode.setInteger(key, (new Long(content)).longValue() );
-				}	else {
-					helmaNode.setString(key,content);
-				}
-			}
-		}
-		return helmaNode;
-	}
-
-	/** for testing */
-	public static void main ( String args[] ) throws Exception	{
-		try	{
-			XmlReader x = new XmlReader ();
-			INode node = x.read("test.xml");
-		}	catch ( Exception e )	{
-				System.out.println("exception " + e.toString() );
-			throw new RuntimeException(e.toString());
-		}
-	}
-
-
-	/** for testing */
-	void debug(Object msg)	{
-		for ( int i=0; i<offset; i++ )	{
-			System.out.print("   ");
-		}
-		System.out.println(msg.toString());
-	}
-
+	if (parsingHopObject && !nodeStack.isEmpty ())
+	    currentNode = (INode) nodeStack.pop ();
+	else
+	    parsingHopObject = true;  // the next element end tag closes a hopobject again
+    }
 
 }
 

@@ -5,57 +5,71 @@ package helma.scripting.fesi;
 
 import helma.scripting.*;
 import helma.scripting.fesi.extensions.*;
+import helma.extensions.HelmaExtension;
+import helma.extensions.ConfigurationException;
 import helma.framework.*;
 import helma.framework.core.*;
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Relation;
+import helma.main.Server;
 import helma.util.Updatable;
+import helma.util.CacheMap;
 import java.util.*;
 import java.io.*;
 import FESI.Data.*;
 import FESI.Interpreter.*;
 import FESI.Exceptions.*;
-import Acme.LruHashtable;
 
 /**
  * This is the implementation of ScriptingEnvironment for the FESI EcmaScript interpreter.
  */
-
-public class FesiEvaluator {
+public final class FesiEvaluator implements ScriptingEngine {
 
     // the application we're running in
-    public Application app;
+    public final Application app;
 
     // The FESI evaluator
-    Evaluator evaluator;
+    final Evaluator evaluator;
 
     // the global object
-    GlobalObject global;
+    final GlobalObject global;
 
     // caching table for JavaScript object wrappers
-    LruHashtable wrappercache;
+    CacheMap wrappercache;
 
     // table containing JavaScript prototypes
     Hashtable prototypes;
 
     // the request evaluator instance owning this fesi evaluator
-    RequestEvaluator reval;
+    final RequestEvaluator reval;
 
     // extensions loaded by this evaluator
     static String[] extensions = new String[] {
 	"FESI.Extensions.BasicIO",
 	"FESI.Extensions.FileIO",
-	"helma.xmlrpc.fesi.FesiRpcExtension",
+	"helma.scripting.fesi.extensions.XmlRpcExtension",
 	"helma.scripting.fesi.extensions.ImageExtension",
 	"helma.scripting.fesi.extensions.FtpExtension",
 	"FESI.Extensions.JavaAccess",
+	"helma.scripting.fesi.extensions.DomExtension",
 	"FESI.Extensions.OptionalRegExp"};
 
+    // remember global variables from last invokation to be able to
+    // do lazy cleanup
+    Map lastGlobals = null;
+
+    // the global vars set by extensions
+    HashMap extensionGlobals;
+    
+
+    /**
+     *  Create a FESI evaluator for the given application and request evaluator.
+     */
     public FesiEvaluator (Application app, RequestEvaluator reval) {
 	this.app = app;
 	this.reval = reval;
-	wrappercache = new LruHashtable (100, .80f);
+	wrappercache = new CacheMap (200, .75f);
 	prototypes = new Hashtable ();
 	try {
 	    evaluator = new Evaluator();
@@ -69,11 +83,24 @@ public class FesiEvaluator {
 	    mailx.setProperties (app.getProperties ());
 	    Database dbx = (Database) evaluator.addExtension ("helma.scripting.fesi.extensions.Database");
 	    dbx.setApplication (app);
+	    // load extensions defined in server.properties:
+	    extensionGlobals = new HashMap ();
+	    Vector extVec = Server.getServer ().getExtensions ();
+	    for (int i=0; i<extVec.size(); i++ ) {
+	        HelmaExtension ext = (HelmaExtension)extVec.get(i);
+	        try {
+	            HashMap tmpGlobals = ext.initScripting (app,this);
+	            if (tmpGlobals!=null)
+	                extensionGlobals.putAll(tmpGlobals);
+	        } catch (ConfigurationException e) {
+	            app.logEvent ("Couldn't initialize extension " + ext.getName () + ": " + e.getMessage ());
+	        }
+	    }
 
 	    // fake a cache member like the one found in ESNodes
 	    global.putHiddenProperty ("cache", new ESNode (new TransientNode ("cache"), this));
 	    global.putHiddenProperty ("undefined", ESUndefined.theUndefined);
-	    ESAppNode appnode = new ESAppNode (app.getAppNode (), this);
+	    ESBeanWrapper appnode = new ESBeanWrapper (new ApplicationBean (app), this);
 	    global.putHiddenProperty ("app", appnode);
 	    initialize();
 	} catch (Exception e) {
@@ -84,16 +111,82 @@ public class FesiEvaluator {
 	}
     }
 
+    /**
+     *  Initialize the evaluator, making sure the minimum type information
+     *  necessary to bootstrap the rest is parsed.
+     */
     private void initialize () {
-	Collection prototypes = app.getPrototypes();
-	for (Iterator i=prototypes.iterator(); i.hasNext(); ) {
+	Collection protos = app.getPrototypes();
+	for (Iterator i=protos.iterator(); i.hasNext(); ) {
 	    Prototype proto = (Prototype) i.next ();
-	    evaluatePrototype (proto);
+	    initPrototype (proto);
 	}
+	// always fully initialize global prototype, because
+	// we always need it and there's no chance to trigger
+	// creation on demand.
+	getPrototype ("global");
     }
 
-    void evaluatePrototype (Prototype prototype) {
+    /**
+     *   Initialize a prototype without fully parsing its script files.
+     */
+    void initPrototype (Prototype prototype) {
+        // System.err.println ("FESI INIT PROTO "+prototype);
+	ObjectPrototype op = null;
 
+	// get the prototype's prototype if possible and necessary
+	ObjectPrototype opp = null;
+	Prototype parent = prototype.getParentPrototype ();
+	if (parent != null) {
+	    // see if parent prototype is already registered. if not, register it
+	    opp = getRawPrototype (parent.getName ());
+	    if (opp == null) {
+	        initPrototype (parent);
+	        opp = getRawPrototype (parent.getName ());
+	    }
+	}
+	String name = prototype.getName ();
+	if (!"global".equalsIgnoreCase (name) &&
+	    !"hopobject".equalsIgnoreCase (name) &&
+	    opp == null)
+	{
+	    if (app.isJavaPrototype (name))
+	        opp = getRawPrototype ("__javaobject__");
+	    else
+	        opp = getRawPrototype ("hopobject");
+	}
+
+	// if prototype doesn't exist (i.e. is a standard prototype built by HopExtension), create it.
+	op = getRawPrototype (name);
+	if (op == null) {
+	    op = new ObjectPrototype (opp, evaluator);
+	    try {
+	        op.putProperty ("prototypename", new ESString (name), "prototypename".hashCode ());
+	    } catch (EcmaScriptException ignore) {}
+	    putPrototype (name, op);
+	} else {
+	    // set parent prototype just in case it has been changed
+	    op.setPrototype (opp);
+	}
+
+	// Register a constructor for all types except global.
+	// This will first create a new prototyped hopobject and then calls
+	// the actual (scripted) constructor on it.
+	if (!"global".equalsIgnoreCase (name) && !"root".equalsIgnoreCase (name)) {
+             try {
+	        FunctionPrototype fp = (FunctionPrototype) evaluator.getFunctionPrototype();
+	        global.putHiddenProperty (name, new NodeConstructor (name, fp, this));
+	    } catch (EcmaScriptException ignore) {}
+	}
+	// app.typemgr.updatePrototype (prototype.getName());
+	// evaluatePrototype (prototype);
+    }
+
+    /**
+     *   Set up a prototype, parsing and compiling all its script files.
+     */
+    void evaluatePrototype (Prototype prototype) {
+        // System.err.println ("FESI EVALUATE PROTO "+prototype+" FOR "+this);
 	ObjectPrototype op = null;
 
 	// get the prototype's prototype if possible and necessary
@@ -114,7 +207,6 @@ public class FesiEvaluator {
 	    else
 	        opp = getPrototype ("hopobject");
 	}
-
 	// if prototype doesn't exist (i.e. is a standard prototype built by HopExtension), create it.
 	op = getPrototype (name);
 	if (op == null) {
@@ -124,39 +216,28 @@ public class FesiEvaluator {
 	    } catch (EcmaScriptException ignore) {}
 	    putPrototype (name, op);
 	} else {
+	    // reset prototype to original state
+	    resetPrototype (op);
 	    // set parent prototype just in case it has been changed
 	    op.setPrototype (opp);
 	}
 
-	resetPrototype (op);
-
 	// Register a constructor for all types except global.
-	// This will first create a node and then call the actual (scripted) constructor on it.
-	if (!"global".equalsIgnoreCase (name)) {
+	// This will first create a new prototyped hopobject and then calls 
+                  // the actual (scripted) constructor on it.
+	if (!"global".equalsIgnoreCase (name) && !"root".equalsIgnoreCase (name)) {
 	    try {
 	        FunctionPrototype fp = (FunctionPrototype) evaluator.getFunctionPrototype();
-	        evaluator.getGlobalObject().putHiddenProperty (name, new NodeConstructor (name, fp, this));
+	        global.putHiddenProperty (name, new NodeConstructor (name, fp, this));
 	    } catch (EcmaScriptException ignore) {}
 	}
-	for (Iterator it = prototype.functions.values().iterator(); it.hasNext(); ) {
-	    FunctionFile ff = (FunctionFile) it.next ();
-	    if (ff.hasFile ())
-	        evaluateFile (prototype, ff.getFile ());
-	    else
-	        evaluateString (prototype, ff.getContent ());
+	for (Iterator it = prototype.getZippedCode().values().iterator(); it.hasNext(); ) {
+	    Object code = it.next();
+	    evaluate (prototype, code);
 	}
-	/* for (Iterator it = prototype.templates.values().iterator(); it.hasNext(); ) {
-	    Template tmp = (Template) it.next ();
-	    try {
-	        tmp.updateRequestEvaluator (reval);
-	    } catch (EcmaScriptException ignore) {}
-	} */
-	for (Iterator it = prototype.actions.values().iterator(); it.hasNext(); ) {
-	    ActionFile act = (ActionFile) it.next ();
-	    try {
-	        FesiActionAdapter adp = new FesiActionAdapter (act);
-	        adp.updateEvaluator (this);
-	    } catch (EcmaScriptException ignore) {}
+	for (Iterator it = prototype.getCode().values().iterator(); it.hasNext(); ) {
+	    Object code = it.next();
+	    evaluate (prototype, code);
 	}
     }
 
@@ -169,65 +250,67 @@ public class FesiEvaluator {
 	    String prop = en.nextElement ().toString ();
 	    try {
 	        ESValue esv = op.getProperty (prop, prop.hashCode ());
-	        // System.err.println (protoname+"."+obj+"   ->   "+esv.getClass());
 	        if (esv instanceof ConstructedFunctionObject || esv instanceof FesiActionAdapter.ThrowException)
 	            op.deleteProperty (prop, prop.hashCode());
 	    } catch (Exception x) {}
 	}
     }
 
-
+    /** 
+     *  This method is called before an execution context is entered to let the 
+     *  engine know it should update its prototype information.
+     */
+    public void updatePrototypes () {
+	Collection protos = app.getPrototypes();
+	for (Iterator i=protos.iterator(); i.hasNext(); ) {
+	    Prototype proto = (Prototype) i.next ();
+	    TypeInfo info = (TypeInfo) prototypes.get (proto.getName());
+	    if (info == null) {
+	        // a prototype we don't know anything about yet. Init local update info.
+	        initPrototype (proto);
+	        info = (TypeInfo) prototypes.get (proto.getName());
+	    }
+	    // only update prototype if it has already been initialized.
+	    // otherwise, this will be done on demand
+	    // System.err.println ("CHECKING PROTO: "+info);
+	    if (info.lastUpdate > 0) {
+	        Prototype p = app.typemgr.getPrototype (info.protoName);
+	        if (p != null) {
+	            // System.err.println ("UPDATING PROTO: "+p);
+	            app.typemgr.updatePrototype(p);
+	            if (p.getLastUpdate () > info.lastUpdate) {
+	                evaluatePrototype(p);
+	                info.lastUpdate = p.getLastUpdate ();
+	            }
+	        }
+	    }
+	}
+    }
 
     /**
-     * Invoke a function on some object, using the given arguments and global vars.
+     *  This method is called when an execution context for a request
+     *  evaluation is entered. The globals parameter contains the global values
+     *  to be applied during this execution context.
      */
-    public Object invoke (Object thisObject, String functionName, Object[] args, HashMap globals) throws ScriptingException {
-	ESObject eso = null;
-	if (thisObject == null)
-	    eso = global;
-	else
-	    eso = getElementWrapper (thisObject);
-
-	GlobalObject global = evaluator.getGlobalObject ();
-
-	// if we are provided with global variables to set for this invocation,
-	// remember the global variables before invocation to be able to reset them afterwards.
-	Set globalVariables = null;
-	try {
-	    ESValue[] esv = args == null ? new ESValue[0] : new ESValue[args.length];
-	    for (int i=0; i<esv.length; i++) {
-	        // for java.util.Map objects, we use the special "tight" wrapper
-	        // that makes the Map look like a native object
-	        if (args[i] instanceof Map)
-	            esv[i] = new ESMapWrapper (this, (Map) args[i]);
-	        else
-	            esv[i] = ESLoader.normalizeValue (args[i], evaluator);
-	    }
-
-	    if (globals != null) {
-	        // remember all global variables before invocation
-	        Set tmpGlobal = new HashSet ();
-	        for (Enumeration en = global.getAllProperties(); en.hasMoreElements(); ) {
-	            tmpGlobal.add (en.nextElement ().toString ());
-	        }
-	        globalVariables = tmpGlobal;
-
-	        // loop through global vars and set them
-	        for (Iterator i=globals.keySet().iterator(); i.hasNext(); ) {
-	            String k = (String) i.next();
-	            Object v = globals.get (k);
-	            ESValue sv = null;
+    public void enterContext (HashMap globals) throws ScriptingException {
+	// set the thread filed in the FESI evaluator
+	evaluator.thread = Thread.currentThread ();
+	// set globals on the global object
+	globals.putAll(extensionGlobals);
+	if (globals != null && globals != lastGlobals) {
+	    // loop through global vars and set them
+	    for (Iterator i=globals.keySet().iterator(); i.hasNext(); ) {
+	        String k = (String) i.next();
+	        Object v = globals.get (k);
+	        ESValue sv = null;
+	        try {
 	            // we do a lot of extra work to make access to global variables
 	            // comfortable to EcmaScript coders, i.e. we use a lot of custom wrappers
 	            // that expose properties and functions in a special way instead of just going
 	            // with the standard java object wrappers.
-	            if (v instanceof RequestTrans)
-	                ((RequestTrans) v).data = new ESMapWrapper (this, ((RequestTrans) v).getRequestData ());
-	            else if (v instanceof ResponseTrans)
-	                ((ResponseTrans) v).data = new ESMapWrapper (this, ((ResponseTrans) v).getResponseData ());
-	            if (v instanceof Map)
+	            if (v instanceof Map) {
 	                sv = new ESMapWrapper (this, (Map) v);
-	            else if ("path".equals (k)) {
+	            } else if ("path".equals (k)) {
 	                ArrayPrototype parr = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
 	                List path = (List) v;
 	                // register path elements with their prototype
@@ -240,48 +323,117 @@ public class FesiEvaluator {
 	                        parr.putHiddenProperty (protoname, wrappedElement);
 	                }
 	                sv = parr;
-	            } else if ("user".equals (k)) {
-	                sv = getNodeWrapper ((User) v);
+	            } else if ("req".equals (k)) {
+	                sv = new ESBeanWrapper (v, this);
+	            } else if ("res".equals (k)) {
+	                sv = new ESBeanWrapper (v, this);
+	            } else if ("session".equals (k)) {
+	                sv = new ESBeanWrapper (v, this);
 	            } else if ("app".equals (k)) {
-	                sv = new ESAppNode ((INode) v, this);
-	            }
-	            else
+	                sv = new ESBeanWrapper (v, this);
+	            } else if (v instanceof ESValue) {
+	                sv = (ESValue)v;
+	            } else {
 	                sv = ESLoader.normalizeValue (v, evaluator);
+	            }
 	            global.putHiddenProperty (k, sv);
+	        } catch (Exception x) {
+	            app.logEvent ("Error setting global variable "+k+": "+x);
 	        }
 	    }
-	    evaluator.thread = Thread.currentThread ();
+	}
+	// remember the globals set on this evaluator
+	lastGlobals = globals;
+    }
+
+    /**
+     *   This method is called to let the scripting engine know that the current
+     *   execution context has terminated.
+     */
+    public void exitContext () {
+	// unset the thread filed in the FESI evaluator
+	evaluator.thread = null;
+	// loop through previous globals and unset them, if necessary.
+	if (lastGlobals != null) {
+	    for (Iterator i=lastGlobals.keySet().iterator(); i.hasNext(); ) {
+	        String g = (String) i.next ();
+	        try {
+	            global.deleteProperty (g, g.hashCode());
+	        } catch (Exception x) {
+	            System.err.println ("Error resetting global property: "+g);
+	        }
+	    }
+	    lastGlobals = null;
+	}
+    }
+
+
+    /**
+     * Invoke a function on some object, using the given arguments and global vars.
+     */
+    public Object invoke (Object thisObject, String functionName, Object[] args, boolean xmlrpc) throws ScriptingException {
+	ESObject eso = null;
+	if (thisObject == null)
+	    eso = global;
+	else
+	    eso = getElementWrapper (thisObject);
+	try {
+	    ESValue[] esv = args == null ? new ESValue[0] : new ESValue[args.length];
+	    for (int i=0; i<esv.length; i++) {
+	        // XML-RPC requires special argument conversion
+	        if (xmlrpc)
+	            esv[i] = processXmlRpcArgument (args[i], evaluator);
+	        // for java.util.Map objects, we use the special "tight" wrapper
+	        // that makes the Map look like a native object
+	        else if (args[i] instanceof Map)
+	            esv[i] = new ESMapWrapper (this, (Map) args[i]);
+	        else
+	            esv[i] = ESLoader.normalizeValue (args[i], evaluator);
+	    }
 	    ESValue retval =  eso.doIndirectCall (evaluator, eso, functionName, esv);
-	    return retval == null ? null : retval.toJavaObject ();
+	    if (xmlrpc)
+	        return processXmlRpcResponse (retval);
+	    else if (retval == null)
+	        return null;
+	    else
+	         return retval.toJavaObject ();
+	} catch (RedirectException redirect) {
+	    throw redirect;
+	} catch (TimeoutException timeout) {
+	    throw timeout;
+	} catch (ConcurrencyException concur) {
+	    throw concur;
 	} catch (Exception x) {
 	    // check if this is a redirect exception, which has been converted by fesi
 	    // into an EcmaScript exception, which is why we can't explicitly catch it
 	    if (reval.res.getRedirect() != null)
 	        throw new RedirectException (reval.res.getRedirect ());
+	    // do the same for not-modified responses
+	    if (reval.res.getNotModified())
+	        throw new RedirectException (null);
+	    // has the request timed out? If so, throw TimeoutException
+	    if (evaluator.thread != Thread.currentThread())
+	        throw new TimeoutException ();
 	    // create and throw a ScriptingException with the right message
 	    String msg = x.getMessage ();
 	    if (msg == null || msg.length() < 10)
 	        msg = x.toString ();
-	    System.err.println ("INVOKE-ERROR: "+msg);
-	    x.printStackTrace ();
-	    throw new ScriptingException (msg);
-	} finally {
-	    // remove global variables that have been added during invocation.
-	    // this are typically undeclared variables, and we don't want them to
-	    // endure from one request to the next since this leads to buggy code that
-	    // relies on requests being served by the same evaluator, which is typically the
-	    // case under development conditions but not in deployment.
-	    if (globalVariables != null) {
-	        for (Enumeration en = global.getAllProperties(); en.hasMoreElements(); ) {
-	            String g = en.nextElement ().toString ();
-	            if (!globalVariables.contains (g)) try {
-	                global.deleteProperty (g, g.hashCode());
-	            } catch (Exception x) {
-	                System.err.println ("Error resetting global property: "+g);
-	            }
-	        }
+	    if (app.debug ()) {
+	        System.err.println ("Error in Script: "+msg);
+	        x.printStackTrace ();
 	    }
+	    throw new ScriptingException (msg);
 	}
+    }
+
+    /**
+     *  Let the evaluator know that the current evaluation has been
+     *  aborted. This is done by setting the thread ref in the evaluator
+     * object to null.
+     */
+    public void abort () {
+	// unset the thread filed in the FESI evaluator
+	evaluator.thread = null;
     }
 
 
@@ -290,13 +442,14 @@ public class FesiEvaluator {
      * is a java object) with that name.
      */
     public boolean hasFunction (Object obj, String fname) {
-	ESObject eso = null;
-	if (obj == null)
-	    eso = evaluator.getGlobalObject ();
-	else
-	    eso = getElementWrapper (obj);
+	// System.err.println ("HAS_FUNC: "+fname);
+	String protoname = app.getPrototypeName (obj);
 	try {
-	    ESValue func = eso.getProperty (fname, fname.hashCode());
+	    ObjectPrototype op = getPrototype (protoname);
+	    // if this is an untyped object return false
+	    if (op == null)
+	        return false;
+	    ESValue func = op.getProperty (fname, fname.hashCode());
 	    if (func != null && func instanceof FunctionPrototype)
 	        return true;
 	} catch (EcmaScriptException esx) {
@@ -311,23 +464,23 @@ public class FesiEvaluator {
      * Check if an object has a defined property (public field if it
      * is a java object) with that name.
      */
-    public Object getProperty (Object obj, String propname) {
+    public Object get (Object obj, String propname) {
 	if (obj == null || propname == null)
 	    return null;
 
 	String prototypeName = app.getPrototypeName (obj);
 	if ("user".equalsIgnoreCase (prototypeName) &&
-		"password".equalsIgnoreCase (propname))
-	    return "[macro access to password property not allowed]";
+	    "password".equalsIgnoreCase (propname))
+	    throw new RuntimeException ("access to password property not allowed");
 
-	// if this is a HopObject, check if the property is defined
+                  // if this is a HopObject, check if the property is defined
 	// in the type.properties db-mapping.
 	if (obj instanceof INode) {
 	    DbMapping dbm = app.getDbMapping (prototypeName);
 	    if (dbm != null) {
 	        Relation rel = dbm.propertyToRelation (propname);
 	        if (rel == null || !rel.isPrimitive ())
-	            return "[property \""+propname+"\" is not defined for "+prototypeName+"]";
+	            throw new RuntimeException ("\""+propname+"\" is not defined in "+prototypeName);
 	    }
 	}
 
@@ -342,6 +495,93 @@ public class FesiEvaluator {
 	    return null;
 	}
 	return null;
+    }
+
+    /**
+     *  Convert an input argument from Java to the scripting runtime
+     *  representation.
+     */
+    public static ESValue processXmlRpcArgument (Object what, Evaluator evaluator) throws Exception {
+	if (what == null)
+	   return ESNull.theNull;
+	if (what instanceof Vector) {
+	    Vector v = (Vector) what;
+	    ArrayPrototype retval = new ArrayPrototype (evaluator.getArrayPrototype (), evaluator);
+	    int l = v.size ();
+	    for (int i=0; i<l; i++)
+	        retval.putProperty (i, processXmlRpcArgument (v.elementAt (i), evaluator));
+	    return retval;
+	}
+	if (what instanceof Hashtable) {
+	    Hashtable t = (Hashtable) what;
+	    ESObject retval = new ObjectPrototype (evaluator.getObjectPrototype (), evaluator);
+	    for (Enumeration e=t.keys(); e.hasMoreElements(); ) {
+	        String next = (String) e.nextElement ();
+	        retval.putProperty (next, processXmlRpcArgument (t.get (next), evaluator), next.hashCode ());
+	    }
+	    return retval;
+	}
+	if (what instanceof String)
+	   return new ESString (what.toString ());
+	if (what instanceof Number)
+	   return new ESNumber (new Double (what.toString ()).doubleValue ());
+	if (what instanceof Boolean)
+	   return ESBoolean.makeBoolean (((Boolean) what).booleanValue ());
+	if (what instanceof Date)
+	   return new DatePrototype (evaluator, (Date) what);
+	return ESLoader.normalizeValue (what, evaluator);
+    }
+
+
+    /**
+     * convert a JavaScript Object object to a generic Java object stucture.
+     */
+    public static Object processXmlRpcResponse (ESValue what) throws EcmaScriptException {
+	if (what == null || what instanceof ESNull)
+	    return null;
+	if (what instanceof ArrayPrototype) {
+	    ArrayPrototype a = (ArrayPrototype) what;
+	    int l = a.size ();
+	    Vector v = new Vector ();
+	    for (int i=0; i<l; i++) {
+	        Object nj = processXmlRpcResponse (a.getProperty (i));
+	        v.addElement (nj);
+	    }
+	    return v;
+	}
+	if (what instanceof ObjectPrototype) {
+	    ObjectPrototype o = (ObjectPrototype) what;
+	    Hashtable t = new Hashtable ();
+	    for (Enumeration e=o.getProperties (); e.hasMoreElements (); ) {
+	        String next = (String) e.nextElement ();
+	        // We don't do deep serialization of HopObjects to avoid
+	        // that the whole web site structure is sucked out with one
+	        // object. Instead we return some kind of "proxy" objects
+	        // that only contain the prototype and id of the HopObject property.
+	        Object nj = null;
+	        ESValue esv = o.getProperty (next, next.hashCode ());
+	        if (esv instanceof ESNode) {
+	            INode node = ((ESNode) esv).getNode ();
+	            if (node != null) {
+	                Hashtable nt = new Hashtable ();
+	                nt.put ("id", node.getID());
+	                if (node.getPrototype() != null)
+	                    nt.put ("prototype", node.getPrototype ());
+	                nj = nt;
+	            }
+	        } else
+	            nj = processXmlRpcResponse (esv);
+	        if (nj != null)  // can't put null as value in hashtable
+	            t.put (next, nj);
+	    }
+	    return t;
+	}
+	if (what instanceof ESUndefined || what instanceof ESNull)
+	    return null;
+	Object jval = what.toJavaObject ();
+	if (jval instanceof Byte || jval instanceof Short)
+	    jval = new Integer (jval.toString ());
+	return jval;
     }
 
 
@@ -359,13 +599,42 @@ public class FesiEvaluator {
 	return app;
     }
 
+
     /**
-     *  Get the object prototype for a prototype name
+     * Get a raw prototype, i.e. in potentially unfinished state
+     * without checking if it needs to be updated.
+    */
+    private ObjectPrototype getRawPrototype (String protoName) {
+        if (protoName == null)
+            return null;
+        TypeInfo info = (TypeInfo) prototypes.get (protoName);
+        return info == null? null : info.objectPrototype;
+    }
+
+    /**
+     *  Get the object prototype for a prototype name and initialize/update it
+     *  if necessary.
      */
     public ObjectPrototype getPrototype (String protoName) {
         if (protoName == null)
             return null;
-        return (ObjectPrototype) prototypes.get (protoName);
+        TypeInfo info = (TypeInfo) prototypes.get (protoName);
+        if (info != null && info.lastUpdate == 0) {
+            Prototype p = app.typemgr.getPrototype (protoName);
+            if (p != null) {
+                app.typemgr.updatePrototype(p);
+                if (p.getLastUpdate () > info.lastUpdate) {
+                    info.lastUpdate = p.getLastUpdate ();
+                    evaluatePrototype(p);
+                }
+	        // set info.lastUpdate to 1 if it is 0 so we know we 
+	        // have initialized this prototype already, even if 
+	        // it is empty (i.e. doesn't contain any scripts/skins/actoins
+	        if (info.lastUpdate == 0)
+	            info.lastUpdate = 1;
+            }
+        }
+        return info == null? null : info.objectPrototype;
     }
 
     /**
@@ -373,7 +642,7 @@ public class FesiEvaluator {
      */
     public void putPrototype (String protoName, ObjectPrototype op) {
         if (protoName != null && op != null)
-            prototypes.put (protoName, op);
+            prototypes.put (protoName, new TypeInfo (op, protoName));
     }
 
 
@@ -386,6 +655,8 @@ public class FesiEvaluator {
     public ESValue getObjectWrapper (Object e) {
 	if (app.getPrototypeName (e) != null)
 	    return getElementWrapper (e);
+	/* else if (e instanceof Map)
+	    return new ESMapWrapper (this, (Map) e); */
 	/* else if (e instanceof INode)
 	    return new ESNode ((INode) e, this); */
 	else
@@ -405,7 +676,7 @@ public class FesiEvaluator {
 
 	// Gotta find out the prototype name to use for this object...
 	String prototypeName = app.getPrototypeName (e);
-
+        
 	ObjectPrototype op = getPrototype (prototypeName);
 
 	if (op == null)
@@ -417,16 +688,17 @@ public class FesiEvaluator {
 
 
     /**
-     *  Get a script wrapper for an implemntation of helma.objectmodel.INode
+     *  Get a script wrapper for an instance of helma.objectmodel.INode
      */
     public ESNode getNodeWrapper (INode n) {
-
+        // FIXME: should this return ESNull.theNull?
         if (n == null)
             return null;
 
         ESNode esn = (ESNode) wrappercache.get (n);
         if (esn == null || esn.getNode() != n) {
             String protoname = n.getPrototype ();
+
             ObjectPrototype op = null;
 
             // set the DbMapping of the node according to its prototype.
@@ -443,12 +715,7 @@ public class FesiEvaluator {
             if (op == null)
                 op = getPrototype("hopobject");
 
-
-            DbMapping dbm = n.getDbMapping ();
-            if (dbm != null && dbm.isInstanceOf ("user"))
-                esn = new ESUser (n, this, null);
-            else
-                esn = new ESNode (op, evaluator, n, this);
+            esn = new ESNode (op, evaluator, n, this);
 
             wrappercache.put (n, esn);
             // app.logEvent ("Wrapper for "+n+" created");
@@ -464,28 +731,6 @@ public class FesiEvaluator {
      */
     public void putNodeWrapper (INode n, ESNode esn) {
 	wrappercache.put (n, esn);
-    }
-
-    /**
-     *  Get a scripting wrapper object for a user object. Active user objects are represented by
-     *  the special ESUser wrapper class.
-     */
-    public ESNode getNodeWrapper (User u) {
-        if (u == null)
-            return null;
-
-        ESUser esn = (ESUser) wrappercache.get (u);
-
-        if (esn == null) {
-            esn = new ESUser (u.getNode(), this, u);
-            wrappercache.put (u, esn);
-        } else {
-            // the user node may have changed (login/logout) while the ESUser was
-            // lingering in the cache.
-            esn.updateNodeFromUser ();
-        }
-
-        return esn;
     }
 
     /**
@@ -509,57 +754,40 @@ public class FesiEvaluator {
 	return reval.req;
     }
 
-    public  synchronized void evaluateFile (Prototype prototype, File file) {
-	try {
-	    FileReader fr = new FileReader (file);
-	    EvaluationSource es = new FileEvaluationSource (file.getPath (), null);
-	    updateEvaluator (prototype, fr, es);
-	} catch (IOException iox) {
-	    app.logEvent ("Error updating function file: "+iox);
+    private synchronized void evaluate (Prototype prototype, Object code) {
+	if (code instanceof FunctionFile) {
+	    FunctionFile funcfile = (FunctionFile) code;
+	    File file = funcfile.getFile ();
+	    if (file != null) {
+	        try {
+	            FileReader fr = new FileReader (file);
+	            EvaluationSource es = new FileEvaluationSource (funcfile.getSourceName(), null);
+	            updateEvaluator (prototype, fr, es);
+	        } catch (IOException iox) {
+	            app.logEvent ("Error updating function file: "+iox);
+	        }
+	    } else {
+	        StringReader reader = new StringReader (funcfile.getContent());
+	        EvaluationSource es = new FileEvaluationSource (funcfile.getSourceName(), null);
+	        updateEvaluator (prototype, reader, es);
+	    }
+	} else if (code instanceof ActionFile) {
+	    ActionFile action = (ActionFile) code;
+	    FesiActionAdapter fa = new FesiActionAdapter (action);
+	    try {
+	        fa.updateEvaluator (this);
+	    } catch (EcmaScriptException esx) {
+	        app.logEvent ("Error parsing "+action+": "+esx);
+	    }
 	}
     }
 
-    public synchronized void evaluateString (Prototype prototype, String code) {
-	StringReader reader = new StringReader (code);
-	StringEvaluationSource es = new StringEvaluationSource (code, null);
-	updateEvaluator (prototype, reader, es);
-    }
 
-    public  synchronized void updateEvaluator (Prototype prototype, Reader reader, EvaluationSource source) {
-
-        // HashMap priorProps = null;
-        // HashSet newProps = null;
-
+    private  synchronized void updateEvaluator (Prototype prototype, Reader reader, EvaluationSource source) {
         try {
-
             ObjectPrototype op = getPrototype (prototype.getName());
-
-            // extract all properties from prototype _before_ evaluation, so we can compare afterwards
-            // but only do this is declaredProps is not up to date yet
-            /*if (declaredPropsTimestamp != lastmod) {
-                priorProps = new HashMap ();
-                // remember properties before evaluation, so we can tell what's new afterwards
-                try {
-                    for (Enumeration en=op.getAllProperties(); en.hasMoreElements(); ) {
-                        String prop = (String) en.nextElement ();
-                        priorProps.put (prop, op.getProperty (prop, prop.hashCode()));
-                    }
-                } catch (Exception ignore) {}
-            } */
-
             // do the update, evaluating the file
             evaluator.evaluate(reader, op, source, false);
-
-            // check what's new
-            /* if (declaredPropsTimestamp != lastmod) try {
-                newProps = new HashSet ();
-                for (Enumeration en=op.getAllProperties(); en.hasMoreElements(); ) {
-                    String prop = (String) en.nextElement ();
-                    if (priorProps.get (prop) == null || op.getProperty (prop, prop.hashCode()) != priorProps.get (prop))
-                        newProps.add (prop);
-                }
-            } catch (Exception ignore) {} */
-
         } catch (Throwable e) {
             app.logEvent ("Error parsing function file "+source+": "+e);
         } finally {
@@ -568,20 +796,25 @@ public class FesiEvaluator {
                     reader.close();
                 } catch (IOException ignore) {}
             }
-
-            // now remove the props that were not refreshed, and set declared props to new collection
-            /* if (declaredPropsTimestamp != lastmod) {
-                declaredPropsTimestamp = lastmod;
-                if (declaredProps != null) {
-                    declaredProps.removeAll (newProps);
-                    removeProperties (declaredProps);
-                }
-                declaredProps = newProps;
-                // System.err.println ("DECLAREDPROPS = "+declaredProps);
-            } */
-
         }
     }
 
+
+    class TypeInfo {
+
+        ObjectPrototype objectPrototype;
+        long lastUpdate = 0;
+        String protoName;
+
+        public TypeInfo (ObjectPrototype op, String name) {
+            objectPrototype = op;
+            protoName = name;
+        }
+
+        public String toString () {
+            return ("TypeInfo["+protoName+","+new Date(lastUpdate)+"]");
+        }
+
+    }
 
 }

@@ -22,15 +22,42 @@ public class MD5Encoder {
     }
 
     public static String encode(String str) throws NoSuchAlgorithmException {
+        return encode (str.getBytes());
+    }
+
+    public static String encode(byte[] message) throws NoSuchAlgorithmException {
         md = MessageDigest.getInstance("MD5");
-        byte[] b = md.digest(str.getBytes());
-        StringBuffer buf = new StringBuffer();
+        byte[] b = md.digest(message);
+        StringBuffer buf = new StringBuffer(b.length*2);
         for ( int i=0; i<b.length; i++ )    {
             int j = (b[i]<0) ? 256+b[i] : b[i];
-            if ( j<10 ) buf.append("0");
+            if ( j<16 ) buf.append("0");
             buf.append(Integer.toHexString(j));
         }
         return buf.toString();
+    }
+
+    /**
+     *  Convert a long to a byte array.
+     */
+    public static byte[] toBytes (long n) {
+        byte[] b = new byte[8];
+        b[0] = (byte) (n);
+        n >>>= 8;
+        b[1] = (byte) (n);
+        n >>>= 8;
+        b[2] = (byte) (n);
+        n >>>= 8;
+        b[3] = (byte) (n);
+        n >>>= 8;
+        b[4] = (byte) (n);
+        n >>>= 8;
+        b[5] = (byte) (n);
+        n >>>= 8;
+        b[6] = (byte) (n);
+        n >>>= 8;
+        b[7] = (byte) (n);
+        return b;
     }
 
 }

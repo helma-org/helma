@@ -1,16 +1,15 @@
 // DbKey.java
 // Copyright (c) Hannes Wallnöfer 1998-2000
- 
+
 package helma.objectmodel.db;
 
 import java.io.Serializable;
 
 
 /**
- * This is the internal representation of a database key. It is constructed 
- * out of the database URL, the table name, the user name and the database 
- * key of the node and unique within each Helma application. Currently only
- * single keys are supported.
+ *  This is the internal representation of a database key. It is constructed
+ *  from the logical table (type) name and the object's primary key
+ *  within the table. Currently only single keys are supported.
  */
 public final class DbKey implements Key, Serializable {
 
@@ -37,13 +36,12 @@ public final class DbKey implements Key, Serializable {
     public boolean equals (Object what) {
 	if (what == this)
 	    return true;
-	try {
-	    DbKey k = (DbKey) what;
-	    return (storageName == k.storageName || storageName.equals (k.storageName)) &&
-	    	(id == k.id || id.equals (k.id));
-	} catch (Exception x) {
+	if (!(what instanceof DbKey))
 	    return false;
-	}
+	DbKey k = (DbKey) what;
+	// storageName is an interned string (by DbMapping, from where we got it)
+	// so we can compare by using == instead of the equals method.
+	return storageName == k.storageName && (id == k.id || id.equals (k.id));
     }
 
     public int hashCode () {
@@ -73,58 +71,5 @@ public final class DbKey implements Key, Serializable {
 
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

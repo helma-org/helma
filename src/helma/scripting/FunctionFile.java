@@ -20,22 +20,18 @@ import helma.util.Updatable;
 
 public class FunctionFile implements Updatable {
 
-    String name;
     Prototype prototype;
     Application app;
     File file;
+    String sourceName;
     String content;
     long lastmod;
 
-    // a set of funcion names defined by this file. We keep this to be able to
-    // remove them once the file should get removed
-    HashSet declaredProps;
-    long declaredPropsTimestamp;
 
-    public FunctionFile (File file, String name, Prototype proto) {
+    public FunctionFile (File file, Prototype proto) {
 	this.prototype = proto;
 	this.app = proto.getApplication ();
-	this.name = name;
+	this.sourceName = file.getParentFile().getName()+"/"+file.getName();
 	this.file = file;
 	update ();
     }
@@ -45,13 +41,12 @@ public class FunctionFile implements Updatable {
      *  files contained in zipped applications. The whole update mechanism is bypassed
      *  by immediately parsing the code.
      */
-    public FunctionFile (String body, String name, Prototype proto) {
+    public FunctionFile (String body, String sourceName, Prototype proto) {
 	this.prototype = proto;
 	this.app = proto.getApplication ();
-	this.name = name;
+	this.sourceName = sourceName;
 	this.file = null;
 	this.content = body;
-	update ();
     }
 
     /**
@@ -64,28 +59,13 @@ public class FunctionFile implements Updatable {
 
 
     public void update () {
-
 	if (file != null) {
 	    if (!file.exists ()) {
 	        remove ();
 	    } else {
 	        lastmod = file.lastModified ();
-	        // app.typemgr.readFunctionFile (file, prototype.getName ());
-	        // app.getScriptingEnvironment().evaluateFile (prototype, file);
 	    }
-	} else {
-	    // app.getScriptingEnvironment().evaluateString (prototype, content);
 	}
-    }
-
-    /* public void evaluate (ScriptingEnvironment env) {
-	if (file != null)
-	    env.evaluateFile (prototype, file);
-	else
-	    env.evaluateString (prototype, content);
-    }*/
-    public boolean hasFile () {
-	return file != null;
     }
 
     public File getFile () {
@@ -96,55 +76,17 @@ public class FunctionFile implements Updatable {
 	return content;
     }
 
-
-    void remove () {
-	prototype.functions.remove (name);
-	prototype.updatables.remove (file.getName());
-
-	// if we did not add anything to any evaluator, we're done
-	/* if (declaredProps == null || declaredProps.size() == 0)
-	    return;
-
-	removeProperties (declaredProps); */
+    public String getSourceName () {
+	return sourceName;
     }
 
-    /**
-     * Remove the properties in the HashMap iff they're still the same as declared by this file.
-     * This method is called by remove() with the latest props, and by update with the prior props
-     * after the file has been reevaluated.
-     */
-    void removeProperties (HashSet props) {
-	// first loop through other function files in this prototype to make a set of properties
-	// owned by other files.
-/*	HashSet otherFiles = new HashSet ();
-	for (Iterator it=prototype.functions.values ().iterator (); it.hasNext (); ) {
-	    FunctionFile other = (FunctionFile) it.next ();
-	    if (other != this && other.declaredProps != null)
-	        otherFiles.addAll (other.declaredProps);
-	}
-
-	Iterator evals = app.typemgr.getRegisteredRequestEvaluators ();
-	while (evals.hasNext ()) {
-	    try {
-	        RequestEvaluator reval = (RequestEvaluator) evals.next ();
-	        ObjectPrototype op = reval.getPrototype (prototype.getName());
-	        for (Iterator it = props.iterator ();  it.hasNext (); ) {
-	            String fname = (String) it.next ();
-	            // check if this property has been declared by some other function file in the meantime
-	            if (otherFiles.contains (fname))
-	                continue;
-	            op.deleteProperty (fname, fname.hashCode());
-	            // System.err.println ("REMOVING PROP: "+fname);
-	        }
-	    } catch (Exception ignore) {}
-	} */
+    public void remove () {
+	prototype.removeFunctionFile (this);
     }
+
 
     public String toString () {
-	if (file == null)
-	    return "[Zipped script file]";
-	else
-	    return prototype.getName()+"/"+file.getName();
+	return sourceName;
     }
 
 

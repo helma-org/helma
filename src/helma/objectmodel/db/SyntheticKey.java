@@ -32,13 +32,11 @@ public final class SyntheticKey implements Key, Serializable {
     public boolean equals (Object what) {
 	if (what == this)
 	    return true;
-	try {
-	    SyntheticKey k = (SyntheticKey) what;
-	    return parentKey.equals (k.parentKey) &&
-	    	(name == k.name || name.equals (k.name));
-	} catch (Exception x) {
+	if (!(what instanceof SyntheticKey))
 	    return false;
-	}
+	SyntheticKey k = (SyntheticKey) what;
+	return parentKey.equals (k.parentKey) &&
+		(name == k.name || name.equals (k.name));
     }
 
     public int hashCode () {
@@ -66,58 +64,4 @@ public final class SyntheticKey implements Key, Serializable {
 
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

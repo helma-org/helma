@@ -22,6 +22,7 @@ public class ZippedAppFile implements Updatable {
     Application app;
     File file;
     long lastmod;
+    Set updatables;
 
 
     public ZippedAppFile (File file, Application app) {
@@ -36,7 +37,7 @@ public class ZippedAppFile implements Updatable {
      * the file has been modified or deleted.
      */
     public boolean needsUpdate () {
-	return lastmod != file.lastModified ();
+	return !file.exists () || lastmod != file.lastModified ();
     }
 
 
@@ -55,6 +56,7 @@ public class ZippedAppFile implements Updatable {
 	        lastmod = file.lastModified ();
 	        // System.err.println ("UPDATING ZIP FILE "+this);
 	        zip = new ZipFile (file);
+	        updatables = new HashSet ();
 	        for (Enumeration en = zip.entries (); en.hasMoreElements (); ) {
 	            ZipEntry entry = (ZipEntry) en.nextElement ();
 	            String ename = entry.getName ();
@@ -70,47 +72,51 @@ public class ZippedAppFile implements Updatable {
 	                }
 	                if (fname.endsWith (".hac")) {
 	                    String name = fname.substring (0, fname.lastIndexOf ("."));
+	                    String sourceName = file.getName()+"/"+ename;
 	                    String content = getZipEntryContent (zip, entry);
 	                    // System.err.println ("["+content+"]");
-	                    ActionFile act = new ActionFile (content, name, proto);
-	                    proto.actions.put (name, act);
+	                    ActionFile act = new ActionFile (content, name, sourceName, proto);
+	                    proto.addActionFile (act);
+	                    updatables.add (act);
+	                    // mark prototype as updated
+	                    proto.markUpdated ();
 	                }
 	                else if (fname.endsWith (".hsp")) {
 	                    String name = fname.substring (0, fname.lastIndexOf ("."));
+	                    String sourceName = file.getName()+"/"+ename;
 	                    String content = getZipEntryContent (zip, entry);
 	                    // System.err.println ("["+content+"]");
-	                    Template tmp = new Template (content, name, proto);
-	                    proto.templates.put (name, tmp);
+	                    Template tmp = new Template (content, name, sourceName, proto);
+	                    proto.addTemplate (tmp);
+	                    updatables.add (tmp);
+	                    // mark prototype as updated
+	                    proto.markUpdated ();
 	                }
 	                else if (fname.endsWith (".skin")) {
 	                    String name = fname.substring (0, fname.lastIndexOf ("."));
 	                    String content = getZipEntryContent (zip, entry);
 	                    // System.err.println ("["+content+"]");
 	                    SkinFile skin = new SkinFile (content, name, proto);
-	                    proto.skins.put (name, skin);
+	                    proto.addSkinFile (skin);
+	                    updatables.add (skin);
 	                }
 	                else if (fname.endsWith (".js")) {
-	                    String name = fname.substring (0, fname.lastIndexOf ("."));
+	                    String sourceName = file.getName()+"/"+ename;
 	                    String content = getZipEntryContent (zip, entry);
 	                    // System.err.println ("["+content+"]");
-	                    FunctionFile ff = new FunctionFile (content, name, proto);
-	                    proto.functions.put (name, ff);
+	                    FunctionFile ff = new FunctionFile (content, sourceName, proto);
+	                    proto.addFunctionFile (ff);
+	                    updatables.add (ff);
+	                    // mark prototype as updated
+	                    proto.markUpdated ();
 	                }
 	                else if ("type.properties".equalsIgnoreCase (fname)) {
-	                    String name = fname.substring (0, fname.lastIndexOf ("."));
-	                    SystemProperties props = new SystemProperties (zip.getInputStream (entry));
-	                    // DbMapping does its own registering, just construct it.
-	                    new DbMapping (app, proto.getName (), props);
+	                    DbMapping dbmap = proto.getDbMapping ();
+	                    SystemProperties props = dbmap.getProperties ();
+	                    props.addProps (file.getName(), zip.getInputStream (entry));
+	                    // mark prototype as updated
+	                    proto.markUpdated ();
 	                }
-	            }
-	        }
-	        for  (Iterator it = newPrototypes.iterator (); it.hasNext (); ) {
-	            Prototype proto = (Prototype) it.next ();
-	            if (app.getDbMapping (proto.getName ()) == null) {
-	                // DbMapping doesn't exist, we still need to create one
-	                SystemProperties props = new SystemProperties ();
-	                // DbMapping does its own registering, just construct it.
-	                new DbMapping (app, proto.getName (), props);
 	            }
 	        }
 	    } catch (Throwable x) {
@@ -124,8 +130,12 @@ public class ZippedAppFile implements Updatable {
 
     }
 
-    void remove () {
-	app.typemgr.zipfiles.remove (file.getName());
+    public void remove () {
+	if (updatables != null) {
+	    for (Iterator it = updatables.iterator(); it.hasNext(); ) 
+	        ((Updatable) it.next()).remove ();
+	}
+	app.typemgr.removeZipFile (file.getName());
 	// System.err.println ("REMOVING ZIP FILE "+this);
     }
 
@@ -145,42 +155,6 @@ public class ZippedAppFile implements Updatable {
 
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

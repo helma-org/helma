@@ -2,7 +2,6 @@
 // Copyright (c) Hannes Wallnöfer 1999-2000
 
 package helma.util;
-
 import java.io.*;
 import java.util.*;
 import java.text.*;
@@ -82,7 +81,13 @@ public final class Logger {
 	    logdir.mkdirs ();
 
 	try {
-	    rotateLogFile ();
+	    if (logfile.exists () && logfile.lastModified () < lastMidnight ()) {
+	         // rotate if a log file exists and is NOT from today
+	        rotateLogFile ();
+	    } else {
+	        // create a new log file, append to an existing file
+	        writer = new PrintWriter (new FileWriter (logfile.getAbsolutePath(), true), false);
+	    }
 	} catch (IOException iox) {
 	    System.err.println ("Error creating log "+canonicalName+": "+iox);
 	}
@@ -122,8 +127,8 @@ public final class Logger {
 	// if we are closed, drop message without further notice
 	if (closed)
 	    return;
-	// it's enough to render the date every 15 seconds
-	if (System.currentTimeMillis () - 15000 > dateLastRendered)
+	// it's enough to render the date every 5 seconds
+	if (System.currentTimeMillis () - 5000 > dateLastRendered)
 	    renderDate ();
 	entries.add (dateCache + msg);
     }
@@ -156,12 +161,6 @@ public final class Logger {
 	if (entries.isEmpty ())
 	    return;
 	try {
-	    if (logfile != null &&
-			(logfile.length() > 10000000 || writer == null ||
-			!logfile.exists() || !logfile.canWrite())) {
-	        // rotate log files each 10 megs of if we can't write to it
-	        rotateLogFile ();
-	    }
 
 	    int l = entries.size();
 
@@ -173,6 +172,10 @@ public final class Logger {
 	            out.println (entry);
 	        }
 	    } else {
+	        if (writer == null || !logfile.exists() || !logfile.canWrite()) {
+	            // rotate the log file if we can't write to it
+	            rotateLogFile ();
+	        }
 	        for (int i=0; i<l; i++) {
 	            String entry = (String) entries.get (0);
 	            entries.remove (0);
@@ -199,17 +202,24 @@ public final class Logger {
      *  start a new one.
      */
     private void rotateLogFile () throws IOException {
+	// if the logger is not file based do nothing.
+	if (logfile == null)
+	    return;
 	if (writer != null) try {
 	    writer.close();
 	} catch (Exception ignore) {}
-	if (logfile.exists()) {
+	// only backup/rotate if the log file is not empty,
+	if (logfile.exists() && logfile.length() > 0) {
 	    String today = aformat.format(new Date());
 	    int ct=0;
 	    File archive = null;
+	    // first append just the date
+	    String archname = filename+"-"+today+".log.gz";
 	    while (archive==null || archive.exists()) {
-	        String archidx = ct>999 ? Integer.toString(ct) : nformat.format (++ct);
-	        String archname = filename+"-"+today+"-"+ archidx +".log.gz";
 	        archive = new File (logdir, archname);
+	        // for the next try we append a counter
+	        String archidx = ct>999 ? Integer.toString(ct) : nformat.format (++ct);
+	        archname = filename+"-"+today+"-"+ archidx +".log.gz";
 	    }
 	    if (logfile.renameTo (archive))
 	        (new GZipper(archive)).start();
@@ -270,7 +280,6 @@ public final class Logger {
 	}
     }
 
-
     /**
      *  Return a list of all active Loggers
      */
@@ -280,13 +289,38 @@ public final class Logger {
 	return (List) loggers.clone ();
     }
 
+    /** 
+     *  Notify the runner thread that it should wake up and run.
+     */
+    public static void wakeup () {
+	if (runner != null)
+	    runner.wakeup ();
+    }
+
+    private static void rotateAllLogs () {
+	int nloggers = loggers.size();
+	for (int i=nloggers-1; i>=0; i--) {
+	    Logger log = (Logger) loggers.get (i);
+	    try {
+	        log.rotateLogFile ();
+	    } catch (IOException io) {
+	        System.err.println ("Error rotating log " + log.getCanonicalName() + ": " + io.toString ());
+	    }
+	}
+    }
+
     /**
      *  The static runner class that loops through all loggers.
      */
     static class Runner extends Thread {
 
-	public void run () {
+	public synchronized void run () {
+	    long nextMidnight = nextMidnight ();
 	    while (runner == this  && !isInterrupted ()) {
+	        if (nextMidnight < System.currentTimeMillis ()) {
+	            rotateAllLogs ();
+	            nextMidnight = nextMidnight ();
+	        }
 	        int nloggers = loggers.size();
 	        for (int i=nloggers-1; i>=0; i--) {
 	            try {
@@ -300,46 +334,66 @@ public final class Logger {
 	                System.err.println ("Error in Logger main loop: "+x);
 	            }
 	        }
+	        // if there are no active logs, exit logger thread
+	        if (loggers.size() == 0)
+	            return;
 	        try {
-	            sleep (500);
+	            wait (250);
 	        } catch (InterruptedException ix) {}
 	    }
+	}
+	
+	public synchronized void wakeup () {
+	    notifyAll ();
 	}
 
     }
 
-	/**
-	  * a Thread class that zips up a file, filename will stay the same.
-	  */
-	class GZipper extends Thread	{
-	    File file, temp;
-	    public GZipper (File file)	{
-	        this.file = file;
-	        this.temp = new File (file.getAbsolutePath()+".tmp");
-	    }
-
-	    public void run() {
-	        long start = System.currentTimeMillis();
-	        try {
-	            GZIPOutputStream zip = new GZIPOutputStream( new FileOutputStream(temp));
-	            BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
-	            byte[] b = new byte[1024];
-	            int len = 0;
-	            while( (len=in.read(b,0,1024))!=-1 ) {
-	                zip.write(b,0,len);
-	            }
-	            zip.close();
-	            in.close();
-	            file.delete();
-	            temp.renameTo(file);
-	        } catch ( Exception e )	{
-	            System.err.println (e.toString());
-	        }
-	    }
+    /**
+     * a Thread class that zips up a file, filename will stay the same.
+     */
+    class GZipper extends Thread	{
+	File file, temp;
+	public GZipper (File file)	{
+	    this.file = file;
+	    this.temp = new File (file.getAbsolutePath()+".tmp");
 	}
 
+	public void run() {
+	    long start = System.currentTimeMillis();
+	    try {
+	        GZIPOutputStream zip = new GZIPOutputStream( new FileOutputStream(temp));
+	        BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
+	        byte[] b = new byte[1024];
+	        int len = 0;
+	        while( (len=in.read(b,0,1024))!=-1 ) {
+	            zip.write(b,0,len);
+	        }
+	        zip.close();
+	        in.close();
+	        file.delete();
+	        temp.renameTo(file);
+	    } catch ( Exception e )	{
+	        System.err.println (e.toString());
+	    }
+	}
+    }
 
 
+    public static long nextMidnight () {
+	Calendar cal = Calendar.getInstance ();
+	cal.set (Calendar.DATE, 1 + cal.get(Calendar.DATE));
+	cal.set (Calendar.HOUR_OF_DAY, 0);
+	cal.set (Calendar.MINUTE, 0);
+	cal.set (Calendar.SECOND, 1);
+	// for testing, rotate the logs every minute:
+	// cal.set (Calendar.MINUTE, 1 + cal.get(Calendar.MINUTE));
+	return cal.getTime().getTime ();
+    }
+
+    public static long lastMidnight () {
+	return nextMidnight () - 86400000;
+    }
 
     /**
      *  test main method
@@ -347,8 +401,12 @@ public final class Logger {
     public static void main (String[] args) throws IOException {
 	Logger log = new Logger (".", "testlog");
 	long start = System.currentTimeMillis ();
-	for (int i=0; i<50000; i++)
+	for (int i=0; i<1000; i++) {
 	    log.log ("test log entry "+i);
+	    try {
+	        Thread.sleep(100);
+	     } catch (InterruptedException ie) {    }
+	}
 	log.log ("done: "+(System.currentTimeMillis () - start));
 	System.err.println (System.currentTimeMillis () - start);
 	log.close ();

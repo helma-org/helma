@@ -9,6 +9,7 @@ import helma.framework.*;
 import helma.scripting.*;
 import helma.util.*;
 import java.util.*;
+import java.lang.reflect.*;
 
 /**
  * This class does the work for incoming requests. It holds a transactor thread
@@ -18,11 +19,12 @@ import java.util.*;
  * is killed and an error message is returned.
  */
 
-public class RequestEvaluator implements Runnable {
+public final class RequestEvaluator implements Runnable {
 
 
-    public Application app;
-    protected boolean initialized;
+    public final Application app;
+
+    protected ScriptingEngine scriptingEngine;
 
     public RequestTrans req;
     public ResponseTrans res;
@@ -35,8 +37,8 @@ public class RequestEvaluator implements Runnable {
     // the method to be executed
     String method;
 
-    // the user object associated with the current request
-    User user;
+    // the session object associated with the current request
+    Session session;
 
     // arguments passed to the function
     Object[] args;
@@ -44,7 +46,7 @@ public class RequestEvaluator implements Runnable {
     // the object path of the request we're evaluating
     List requestPath;
 
-    // the result of the
+    // the result of the operation
     Object result;
 
     // the exception thrown by the evaluator, if any.
@@ -57,15 +59,37 @@ public class RequestEvaluator implements Runnable {
     static final int XMLRPC = 2;      // via XML-RPC
     static final int INTERNAL = 3;     // generic function call, e.g. by scheduler
 
+    protected int skinDepth;
 
     /**
      *  Create a new RequestEvaluator for this application.
      */
     public RequestEvaluator (Application app) {
 	this.app = app;
-	initialized = false;
     }
 
+    protected void initScriptingEngine () {
+	if (scriptingEngine == null) {
+	    String engineClassName = app.getProperty (
+	            "scripting.engine.factory",
+	            "helma.scripting.fesi.FesiEngineFactory");
+	    try {
+	        Class clazz = Class.forName (engineClassName);
+	        Class[] argClasses = {app.getClass(), getClass()};
+	        Method method = clazz.getMethod ("getEngine", argClasses);
+	        Object[] args = {app, this};
+	        scriptingEngine = (ScriptingEngine) method.invoke (null, args);
+	    } catch (Exception x) {
+	        Throwable t = x;
+	        if (x instanceof InvocationTargetException)
+	            t = ((InvocationTargetException) x).getTargetException ();
+	        app.logEvent ("******************************************");
+	        app.logEvent ("*** Error creating scripting engine: ");
+	        app.logEvent ("*** "+t.toString());
+	        app.logEvent ("******************************************");
+	    }
+	}
+    }
 
     public void run () {
 
@@ -79,9 +103,8 @@ public class RequestEvaluator implements Runnable {
 
 	    // long startCheck = System.currentTimeMillis ();
 	    app.typemgr.checkPrototypes ();
-	    // evaluators are only initialized as needed, so we need to check that here
-	    // if (!initialized)
-	    //     app.typemgr.initRequestEvaluator (this);
+	    initScriptingEngine ();
+	    scriptingEngine.updatePrototypes ();
 	    // System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
 
 	    // object refs to ressolve request path
@@ -94,6 +117,7 @@ public class RequestEvaluator implements Runnable {
 	        int tries = 0;
 	        boolean done = false;
 	        String error = null;
+
 	        while (!done) {
 
 	            currentElement = null;
@@ -101,11 +125,11 @@ public class RequestEvaluator implements Runnable {
 	            try {
 
 	                // used for logging
-	                String txname = app.getName()+"/"+req.path;
-	                // set Timer to get some profiling data
-	                localrtx.timer.reset ();
-	                localrtx.timer.beginEvent (requestPath+" init");
-	                localrtx.begin (txname);
+	                StringBuffer txname = new StringBuffer(app.getName());
+	                txname.append ("/");
+	                txname.append (error == null ? req.path : "error");
+	                // begin transaction
+	                localrtx.begin (txname.toString());
 
 	                String action = null;
 
@@ -113,25 +137,28 @@ public class RequestEvaluator implements Runnable {
 
 	                HashMap globals = new HashMap ();
 	                globals.put ("root", root);
-	                globals.put ("user", user);
-	                globals.put ("req", req);
-	                globals.put ("res", res);
+	                globals.put ("session", new SessionBean (session));
+	                globals.put ("req", new RequestBean (req));
+	                globals.put ("res", new ResponseBean (res));
+	                globals.put ("app", new ApplicationBean (app));
 	                globals.put ("path", requestPath);
-	                globals.put ("app", app.getAppNode());
+	                req.startTime = System.currentTimeMillis ();
 	                if (error != null)
 	                    res.error = error;
-	                if (user.message != null) {
+	                if (session.message != null) {
 	                    // bring over the message from a redirect
-	                    res.message = user.message;
-	                    user.message = null;
+	                    res.message = session.message;
+	                    session.message = null;
 	                }
+	                Map macroHandlers = res.getMacroHandlers ();
 
 	                try {
 
 	                    if (error != null) {
 	                        // there was an error in the previous loop, call error handler
 	                        currentElement = root;
-	                        requestPath.add (currentElement);
+	                        // do not reset the requestPath so error handler can use the original one
+	                        // get error handler action
 	                        String errorAction = app.props.getProperty ("error", "error");
 	                        action = getAction (currentElement, errorAction);
 	                        if (action == null)
@@ -140,6 +167,7 @@ public class RequestEvaluator implements Runnable {
 	                    } else if (req.path == null || "".equals (req.path.trim ())) {
 	                        currentElement = root;
 	                        requestPath.add (currentElement);
+	                        macroHandlers.put ("root", root);
 	                        action = getAction (currentElement, null);
 	                        if (action == null)
 	                            throw new FrameworkException ("Action not found");
@@ -158,11 +186,15 @@ public class RequestEvaluator implements Runnable {
 
 	                        currentElement = root;
 	                        requestPath.add (currentElement);
+	                        macroHandlers.put ("root", root);
 
 	                        for (int i=0; i<ntokens; i++) {
 
 	                            if (currentElement == null)
 	                                throw new FrameworkException ("Object not found.");
+
+	                            if (pathItems[i].length () == 0)
+	                                continue;
 
 	                            // we used to do special processing for /user and /users
 	                            // here but with the framework cleanup, this stuff has to be
@@ -176,16 +208,15 @@ public class RequestEvaluator implements Runnable {
 
 	                            if (action == null) {
 
-	                                if (pathItems[i].length () == 0)
-	                                    continue;
-
 	                                currentElement = app.getChildElement (currentElement, pathItems[i]);
 
 	                                // add object to request path if suitable
 	                                if (currentElement != null) {
 	                                    // add to requestPath array
 	                                    requestPath.add (currentElement);
-	                                    String pt = app.getPrototypeName (currentElement);
+	                                    String protoName = app.getPrototypeName (currentElement);
+	                                    if (protoName != null)
+	                                        macroHandlers.put (protoName, currentElement);
 	                                }
 	                            }
 	                        }
@@ -215,76 +246,46 @@ public class RequestEvaluator implements Runnable {
 	                        throw new FrameworkException (notfound.getMessage ());
 	                }
 
-	                localrtx.timer.endEvent (txname+" init");
 	                /////////////////////////////////////////////////////////////////////////////
 	                // end of path resolution section
 
 	                /////////////////////////////////////////////////////////////////////////////
 	                // beginning of execution section
 	                try {
-	                    localrtx.timer.beginEvent (txname+" execute");
+	                    // enter execution context
+	                    scriptingEngine.enterContext (globals);
 
-	                    int actionDot = action.lastIndexOf (".");
-	                    boolean isAction =  actionDot == -1;
 	                    // set the req.action property, cutting off the _action suffix
-	                    if (isAction)
-	                        req.action = action.substring (0, action.length()-7);
-	                    else
-	                        req.action = action;
+	                    req.action = action.substring (0, action.length()-7);
+	                    // set the application checksum in response to make ETag 
+	                    // generation sensitive to changes in the app
+	                    res.setApplicationChecksum (app.getChecksum ());
+
+	                    // reset skin recursion detection counter
+	                    skinDepth = 0;
 
 	                    // try calling onRequest() function on object before
 	                    // calling the actual action
 	                    try {
-	                        app.scriptingEngine.invoke (currentElement, "onRequest", new Object[0], globals, this);
+	                        if (scriptingEngine.hasFunction (currentElement, "onRequest"))
+	                            scriptingEngine.invoke (currentElement, "onRequest", new Object[0], false);
 	                    } catch (RedirectException redir) {
 	                        throw redir;
 	                    } catch (Exception ignore) {
 	                        // function is not defined or caused an exception, ignore
 	                    }
 
+	                    // reset skin recursion detection counter
+	                    skinDepth = 0;
+
 	                    // do the actual action invocation
-	                    if (isAction) {
-	                        app.scriptingEngine.invoke (currentElement, action, new Object[0], globals, this);
-	                    } else {
-	                        Skin skin = app.skinmgr.getSkinInternal (app.appDir, app.getPrototype(currentElement).getName(),
-	                                         action.substring (0, actionDot), action.substring (actionDot+1));
-	                        if (skin != null)
-	                            skin.render (this, currentElement, null);
-	                        else
-	                            throw new RuntimeException ("Skin "+action+" not found in "+req.path);
-	                    }
+	                    scriptingEngine.invoke (currentElement, action, new Object[0], false);
 
-	                    // check if the script set the name of a skin to render in res.skin
-	                    if (res.skin != null) {
-	                        int dot = res.skin.indexOf (".");
-	                        Object skinObject = null;
-	                        String skinName = res.skin;
-	                        if (dot > -1) {
-	                            String soname = res.skin.substring (0, dot);
-	                            int l = requestPath.size();
-	                            for (int i=l-1; i>=0; i--) {
-	                                Object pathelem = requestPath.get (i);
-	                                if (soname.equalsIgnoreCase (app.getPrototypeName (pathelem))) {
-	                                    skinObject = pathelem;
-	                                    break;
-	                                }
-	                            }
-
-	                            if (skinObject == null)
-	                                throw new RuntimeException ("Skin "+res.skin+" not found in path.");
-	                            skinName = res.skin.substring (dot+1);
-	                        }
-	                        Object[] skinNameArg = new Object[1];
-	                        skinNameArg[0] = skinName;
-	                        app.scriptingEngine.invoke (skinObject, "renderSkin", skinNameArg, globals, this);
-	                    }
-
-	                    localrtx.timer.endEvent (txname+" execute");
 	                } catch (RedirectException redirect) {
 	                    // res.redirect = redirect.getMessage ();
 	                    // if there is a message set, save it on the user object for the next request
 	                    if (res.message != null)
-	                        user.message = res.message;
+	                        session.message = res.message;
 	                    done = true;
 	                }
 
@@ -322,26 +323,29 @@ public class RequestEvaluator implements Runnable {
 
 	                abortTransaction (false);
 
-	                app.logEvent ("### Exception in "+app.getName()+"/"+req.path+": "+x);
-	                // Dump the profiling data to System.err
-	                if (app.debug) {
-	                    ((Transactor) Thread.currentThread ()).timer.dump (System.err);
-	                    x.printStackTrace ();
-	                }
-
 	                // If the transactor thread has been killed by the invoker thread we don't have to
 	                // bother for the error message, just quit.
-	                if (localrtx != rtx)
+	                if (localrtx != rtx) {
 	                    break;
+	                }
 
 	                res.reset ();
+
+	                // check if we tried to process the error already
 	                if (error == null) {
 	                    app.errorCount += 1;
+	                    app.logEvent ("Exception in "+Thread.currentThread()+": "+x);
+	                    // Dump the profiling data to System.err
+	                    if (app.debug) {
+	                        x.printStackTrace ();
+	                    }
 	                    // set done to false so that the error will be processed
 	                    done = false;
 	                    error = x.getMessage ();
 	                    if (error == null || error.length() == 0)
 	                        error = x.toString ();
+	                    if (error == null)
+	                        error = "Unspecified error";
 	                } else {
 	                    // error in error action. use traditional minimal error message
 	                    res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>"+error+"</pre>");
@@ -359,8 +363,10 @@ public class RequestEvaluator implements Runnable {
 
 	            HashMap globals = new HashMap ();
 	            globals.put ("root", root);
-	            globals.put ("res", res);
-	            globals.put ("app", app.getAppNode());
+	            globals.put ("res", new ResponseBean (res));
+	            globals.put ("app", new ApplicationBean (app));
+
+	            scriptingEngine.enterContext (globals);
 
 	            currentElement = root;
 
@@ -380,8 +386,10 @@ public class RequestEvaluator implements Runnable {
 	            // check XML-RPC access permissions
 	            String proto = app.getPrototypeName (currentElement);
 	            app.checkXmlRpcAccess (proto, method);
+	            // reset skin recursion detection counter
+	            skinDepth = 0;
 
-	            result = app.scriptingEngine.invoke (currentElement, method, args, globals, this);
+	            result = scriptingEngine.invoke (currentElement, method, args, true);
 	            commitTransaction ();
 
 	        } catch (Exception wrong) {
@@ -402,26 +410,38 @@ public class RequestEvaluator implements Runnable {
 	        // Just a human readable descriptor of this invocation
 	        String funcdesc = app.getName()+":internal/"+method;
 
+	        // if thisObject is an instance of NodeHandle, get the node object itself.
+	        if (thisObject != null && thisObject instanceof NodeHandle) {
+	            thisObject = ((NodeHandle) thisObject).getNode (app.nmgr.safe);
+	            // see if a valid node was returned
+	            if (thisObject == null) {
+	                reqtype = NONE;
+	                break;
+	            }
+	        }
+
 	        // avoid going into transaction if called function doesn't exist
 	        boolean functionexists = true;
-	        if (thisObject == null) try {
-	            functionexists = app.scriptingEngine.hasFunction (null, method, this);
-			} catch (ScriptingException ignore) {}
+	        functionexists = scriptingEngine.hasFunction (thisObject, method);
 
-	        if (!functionexists)
-	            // global function doesn't exist, nothing to do here.
+	        if (!functionexists) {
+	            // function doesn't exist, nothing to do here.
 	            reqtype = NONE;
-	        else try {
+	        } else try {
 	            localrtx.begin (funcdesc);
 
 	            root = app.getDataRoot ();
 
 	            HashMap globals = new HashMap ();
 	            globals.put ("root", root);
-	            globals.put ("res", res);
-	            globals.put ("app", app.getAppNode());
+	            globals.put ("res", new ResponseBean (res));
+	            globals.put ("app", new ApplicationBean (app));
 
-	            app.scriptingEngine.invoke (thisObject, method, args, globals, this);
+	            scriptingEngine.enterContext (globals);
+	            // reset skin recursion detection counter
+	            skinDepth = 0;
+
+	            result = scriptingEngine.invoke (thisObject, method, args, false);
 	            commitTransaction ();
 
 	        } catch (Exception wrong) {
@@ -440,6 +460,9 @@ public class RequestEvaluator implements Runnable {
 	        break;
 
 	    }
+
+	    // exit execution context
+	    scriptingEngine.exitContext ();
 
 	    // make sure there is only one thread running per instance of this class
 	    // if localrtx != rtx, the current thread has been aborted and there's no need to notify
@@ -492,28 +515,34 @@ public class RequestEvaluator implements Runnable {
 	    // wait for request, max 10 min
 	    wait (1000*60*10);
 	    //  if no request arrived, release ressources and thread
-	    if (reqtype == NONE && rtx == localrtx)
+	    if (reqtype == NONE && rtx == localrtx) {
+	        // comment this in to release not just the thread, but also the scripting engine.
+	        // currently we don't do this because of the risk of memory leaks (objects from
+	        // framework referencing into the scripting engine)
+	        // scriptingEngine = null;
 	        rtx = null;
+	    }
 	} catch (InterruptedException ir) {}
     }
 
-    public synchronized ResponseTrans invoke (RequestTrans req, User user)  throws Exception {
+    public synchronized ResponseTrans invoke (RequestTrans req, Session session)  throws Exception {
 	this.reqtype = HTTP;
 	this.req = req;
-	this.user = user;
-	this.res = new ResponseTrans ();
+	this.session = session;
+	this.res = new ResponseTrans (req);
 
 	app.activeRequests.put (req, this);
 
 	checkThread ();
 	wait (app.requestTimeout);
- 	if (reqtype != NONE) {
+	if (reqtype != NONE) {
 	    app.logEvent ("Stopping Thread for Request "+app.getName()+"/"+req.path);
 	    stopThread ();
 	    res.reset ();
-	    res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>Request timed out.</pre>");
+	    res.write ("<b>Error in application '" +
+	               app.getName() +
+	               "':</b> <br><br><pre>Request timed out.</pre>");
 	}
-
 	return res;
     }
 
@@ -534,7 +563,7 @@ public class RequestEvaluator implements Runnable {
 
     public synchronized Object invokeXmlRpc (String method, Object[] args) throws Exception {
 	this.reqtype = XMLRPC;
-	this.user = null;
+	this.session = null;
 	this.method = method;
 	this.args = args;
 	this.res = new ResponseTrans ();
@@ -543,23 +572,25 @@ public class RequestEvaluator implements Runnable {
 
 	checkThread ();
 	wait (app.requestTimeout);
- 	if (reqtype != NONE) {
+	if (reqtype != NONE) {
 	    stopThread ();
 	}
 
+	// reset res for garbage collection (res.data may hold reference to evaluator)
+	res = null;
 	if (exception != null)
 	    throw (exception);
 	return result;
     }
 
-    protected Object invokeDirectFunction (Object obj, String functionName, Object[] args) throws Exception {
-	return app.scriptingEngine.invoke (obj, functionName, args, null, this);
-    } 
+    public Object invokeDirectFunction (Object obj, String functionName, Object[] args) throws Exception {
+	return scriptingEngine.invoke (obj, functionName, args, false);
+    }
 
     public synchronized Object invokeFunction (Object object, String functionName, Object[] args)
 		throws Exception {
 	reqtype = INTERNAL;
-	user = null;
+	session = null;
 	thisObject = object;
 	method = functionName;
 	this.args =args;
@@ -570,19 +601,21 @@ public class RequestEvaluator implements Runnable {
 	checkThread ();
 	wait (60000l*15); // give internal call more time (15 minutes) to complete
 
- 	if (reqtype != NONE) {
+	if (reqtype != NONE) {
 	    stopThread ();
 	}
 
+	// reset res for garbage collection (res.data may hold reference to evaluator)
+	res = null;
 	if (exception != null)
 	    throw (exception);
 	return result;
     }
 
-    public synchronized Object invokeFunction (User user, String functionName, Object[] args)
+    public synchronized Object invokeFunction (Session session, String functionName, Object[] args)
 		throws Exception {
 	reqtype = INTERNAL;
-	this.user = user;
+	this.session = session;
 	thisObject = null;
 	method = functionName;
 	this.args = args;
@@ -593,10 +626,12 @@ public class RequestEvaluator implements Runnable {
 	checkThread ();
 	wait (app.requestTimeout);
 
- 	if (reqtype != NONE) {
+	if (reqtype != NONE) {
 	    stopThread ();
 	}
 
+	// reset res for garbage collection (res.data may hold reference to evaluator)
+	res = null;
 	if (exception != null)
 	    throw (exception);
 	return result;
@@ -610,7 +645,10 @@ public class RequestEvaluator implements Runnable {
     public synchronized void stopThread () {
 	app.logEvent ("Stopping Thread "+rtx);
 	Transactor t = rtx;
-	// evaluator.thread = null;
+	// let the scripting engine know that the
+	// current transaction is being aborted.
+	if (scriptingEngine != null)
+	    scriptingEngine.abort ();
 	rtx = null;
 	if (t != null) {
 	    if (reqtype != NONE) {
@@ -620,7 +658,7 @@ public class RequestEvaluator implements Runnable {
 	            t.abort ();
 	        } catch (Exception ignore) {}
 	    } else {
-                     notifyAll ();
+	        notifyAll ();
 	    }
 	    t.closeConnections ();
 	}
@@ -634,14 +672,24 @@ public class RequestEvaluator implements Runnable {
 	if (rtx == null || !rtx.isAlive()) {
 	    // app.logEvent ("Starting Thread");
 	    rtx = new Transactor (this, app.threadgroup, app.nmgr);
-	    // evaluator.thread = rtx;
 	    rtx.start ();
 	} else {
 	    notifyAll ();
 	}
     }
 
-
+    /**
+     *  Null out some fields, mostly for the sake of garbage collection.
+     */
+    public void recycle () {
+        res = null;
+        req = null;
+        session = null;
+        args = null;
+        requestPath = null;
+        result = null;
+        exception = null;
+    }
 
     /**
      * Check if an action with a given name is defined for a scripted object. If it is,
@@ -650,30 +698,11 @@ public class RequestEvaluator implements Runnable {
     public String getAction (Object obj, String action) {
 	if (obj == null)
 	    return null;
-	// check if this is a public skin, i.e. something with an extension
-	// like "home.html"
-	if (action != null && action.indexOf (".") > -1) {
-	    int dot = action.lastIndexOf (".");
-	    String extension = action.substring (dot+1);
-	    String contentType = app.skinExtensions.getProperty (extension);
-	    if (contentType != null) {
-	        res.contentType = contentType;
-	        return action;
-	    } else
-	        return null;
-	} else {
-	    String act = action == null ? "main_action" : action+"_action";
-	    try {
-	        if (app.scriptingEngine.hasFunction (obj, act, this))
-	            return act;
-	    } catch (ScriptingException x) {
-	        return null;
-	    }
-	}
+	String act = action == null ? "main_action" : action+"_action";
+	if (scriptingEngine.hasFunction (obj, act))
+	    return act;
 	return null;
     }
-
-
 
 }
 

@@ -9,8 +9,8 @@ import javax.servlet.http.*;
 import java.io.*;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
-import java.util.HashMap;
-import helma.framework.IRemoteApp;
+import java.util.Hashtable;
+import helma.framework.*;
 
 /**
  * This is the HOP servlet adapter. This class communicates with any
@@ -19,100 +19,64 @@ import helma.framework.IRemoteApp;
  */
  
 public class MultiServletClient extends AbstractServletClient {
-	
-    private HashMap apps = null;
+
+    private Hashtable apps;
 
     public void init (ServletConfig init) throws ServletException {
 	super.init (init);
-	apps = new HashMap ();
-	super.init (init);
+	apps = new Hashtable ();
+	host =  init.getInitParameter ("host");
+	if (host == null)
+	    host = "localhost";
+	String portstr = init.getInitParameter ("port");
+	port =  portstr == null ? 5055 : Integer.parseInt (portstr);
+	hopUrl = "//" + host + ":" + port + "/";
     }
 
-    IRemoteApp getApp (String appID) throws Exception {
-	IRemoteApp retval = (IRemoteApp) apps.get (appID);
-	if (retval != null) {
-	    return retval;
+    public void destroy () {
+	if (apps != null) {
+	    apps.clear ();
+	    apps = null;
 	}
-	retval = (IRemoteApp) Naming.lookup (hopUrl + appID);
-	apps.put (appID, retval);
-	return retval;
     }
 
-    void invalidateApp (String appID) {
-	apps.remove (appID);
+    ResponseTrans execute (RequestTrans req) throws Exception {
+	// the app-id is the first element in the request path
+	// so we have to first get than and than rewrite req.path.
+	int slash = req.path.indexOf ("/");
+	String appId = null;
+	if (slash == -1) {
+	    // no slash found, path equals app-id
+	    appId = req.path;
+	    req.path = "";
+	} else {
+	    // cut path into app id and rewritten path
+	    appId = req.path.substring (0, slash);
+	    req.path = req.path.substring (slash+1);
+	}
+	IRemoteApp app = getApp (appId);
+	try {
+	    return app.execute (req);
+	} catch (Exception x) {
+	    invalidateApp (appId);
+	    app = getApp (appId);
+	    return app.execute (req);
+	}
     }
 
-    String getAppID (String path) {
-	if (path == null)
-	    throw new RuntimeException ("Invalid request path: "+path);
-
-	char[] val = path.toCharArray ();
-	int len = val.length;
-	int st = 0;
-
-	// advance to start of path
-	while ((st < len) && (val[st] <= ' ' || val[st] == '/'))
-	    st++;
-
-	// eat characters of first path element
-	int end = st;
-	while (end < len && val[end] != '/' && val[end] > 20)
-	    end++;
-
-	return new String (val, st, end -st);
+    IRemoteApp getApp (String appId) throws Exception {
+	IRemoteApp app = (IRemoteApp) apps.get (appId);
+	if (app != null)
+	    return app;
+	app = (IRemoteApp) Naming.lookup (hopUrl + appId);
+	apps.put (appId, app);
+	return app;
     }
 
-    String getRequestPath (String path) {
-	if (path == null)
-	    return "";
-
-	char[] val = path.toCharArray ();
-	int len = val.length;
-	int st = 0;
-
-	// advance to start of path
-	while ((st < len) && (val[st] <= ' ' || val[st] == '/'))
-	    st++;
-
-	// eat characters of first path element
-	while (st < len && val[st] != '/')
-	    st++;
-	if (st < len && val[st] == '/')
-	    st++;
-
-	// eat away noise at end of path
-	while ((st < len) && (val[len - 1] <= ' ' || val[len - 1] == '/'))
-	    len--;
-
-	return ((st > 0) || (len < val.length)) ? new String (val, st, len-st) : path;
+    void invalidateApp (String appId) {
+	apps.remove (appId);
     }
 
-    // for testing
-      public static void main (String args[]) {
-	AbstractServletClient client = new MultiServletClient ();
-	// String path = "///appname/do/it/for/me///";
-	String path = "appname";
-	System.out.println (client.getAppID (path));
-	System.out.println (client.getRequestPath (path));
-      }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

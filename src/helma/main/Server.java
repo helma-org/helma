@@ -9,113 +9,172 @@ import java.rmi.server.*;
 import java.rmi.registry.*;
 import java.net.*;
 import java.util.*;
-// import helma.objectmodel.*;
+import helma.extensions.HelmaExtension;
 import helma.objectmodel.db.DbSource;
 import helma.framework.*;
 import helma.framework.core.*;
-import helma.xmlrpc.*;
 import helma.util.*;
-import com.sleepycat.db.*;
-
+import org.mortbay.http.*;
+import org.mortbay.util.*;
+import org.mortbay.http.ajp.*;
+import org.apache.xmlrpc.*;
 
 /**
  * Helma server main class.
  */
- 
+
  public class Server implements IPathElement, Runnable {
 
-    public static final String version = "1.2pre3 2002/05/15";
-    public static final long starttime = System.currentTimeMillis();
+    public static final String version = "1.2pre3+ 2002/10/24";
+    public long starttime;
 
-    public static boolean useTransactions = true;
-    public static boolean paranoid;
-    public static String dbFilename = "hop.db";
+    // if true we only accept RMI and XML-RPC connections from 
+    // explicitly listed hosts.
+    public boolean paranoid;
 
     private ApplicationManager appManager;
 
-    private  Thread mainThread;
+    private Vector extensions;
 
-    static String propfile;
-    static String dbPropfile = "db.properties";
-    static String appsPropfile;
+    private Thread mainThread;
+
+    // server-wide properties
     static SystemProperties appsProps;
     static SystemProperties dbProps;
     static SystemProperties sysProps;
-    static int port = 5055;
-    static int webport = 0;
 
-    Acme.Serve.Serve websrv;
+    // server ports
+    int rmiPort = 0;
+    int xmlrpcPort = 0;
+    int websrvPort = 0;
+    int ajp13Port = 0;
 
-    static Hashtable dbSources;
+    // map of server-wide database sources
+    Hashtable dbSources;
 
+    // static server instance
     private static Server server;
 
     protected static File hopHome = null;
 
+    // our logger
     private static Logger logger;
 
-    protected static WebServer xmlrpc;
+    // the embedded web server
+    // protected Serve websrv;
+    protected HttpServer http;
+
+    // the AJP13 Listener, used for connecting from external webserver to servlet via JK
+    protected AJP13Listener ajp13;
+
+    // the XML-RPC server
+    protected WebServer xmlrpc;
 
 
+
+    /**
+     *  static main entry point.
+     */
     public static void main (String args[]) throws IOException {
 
 	// check if we are running on a Java 2 VM - otherwise exit with an error message
-	String jversion = System.getProperty ("java.version");
-	if (jversion == null || jversion.startsWith ("1.1") || jversion.startsWith ("1.0")) {
+	String javaVersion = System.getProperty ("java.version");
+	if (javaVersion == null || javaVersion.startsWith ("1.1") || javaVersion.startsWith ("1.0")) {
 	    System.err.println ("This version of Helma requires Java 1.2 or greater.");
-	    if (jversion == null) // don't think this will ever happen, but you never know
+	    if (javaVersion == null) // don't think this will ever happen, but you never know
 	        System.err.println ("Your Java Runtime did not provide a version number. Please update to a more recent version.");
 	    else
-	        System.err.println ("Your Java Runtime is version "+jversion+". Please update to a more recent version.");
-	    System.exit (1);	
+	        System.err.println ("Your Java Runtime is version "+javaVersion+". Please update to a more recent version.");
+	    System.exit (1);
 	}
-	
+
+	// create new server instance
+	server = new Server (args);
+    }
+
+    /**
+     * Constructs a new Server instance with an array of command line options.
+     */
+    public Server (String[] args) {
+
+	starttime = System.currentTimeMillis();
 	String homeDir = null;
 
 	boolean usageError = false;
 
-	useTransactions = true;
+	// file names of various property files
+	String propfile = null;
+	String dbPropfile = "db.properties";
+	String appsPropfile = null;
 
+	// parse arguments
 	for (int i=0; i<args.length; i++) {
 	    if (args[i].equals ("-h") && i+1<args.length)
 	        homeDir = args[++i];
 	    else if (args[i].equals ("-f") && i+1<args.length)
 	        propfile = args[++i];
-	    else if (args[i].equals ("-t"))
-	        useTransactions = false;
 	    else if (args[i].equals ("-p") && i+1<args.length) {
 	        try {
-	            port = Integer.parseInt (args[++i]);
+	            rmiPort = Integer.parseInt (args[++i]);
 	        } catch (Exception portx) {
-	             usageError = true;
+	            usageError = true;
+	        }
+	    } else if (args[i].equals ("-x") && i+1<args.length) {
+	        try {
+	            xmlrpcPort = Integer.parseInt (args[++i]);
+	        } catch (Exception portx) {
+	            usageError = true;
 	        }
 	    } else if (args[i].equals ("-w") && i+1<args.length) {
 	        try {
-	            webport = Integer.parseInt (args[++i]);
+	            websrvPort = Integer.parseInt (args[++i]);
 	        } catch (Exception portx) {
-	             usageError = true;
+	            usageError = true;
+	        }
+	    } else if (args[i].equals ("-jk") && i+1<args.length) {
+	        try {
+	            ajp13Port = Integer.parseInt (args[++i]);
+	        } catch (Exception portx) {
+	            usageError = true;
 	        }
 	    } else
 	        usageError = true;
 	}
 
+	// check server ports. If no port is set, issue a warning and exit.
+	if (!usageError && (websrvPort | ajp13Port | rmiPort | xmlrpcPort) == 0) {
+	    System.out.println ("  Error: No server port specified.");
+	    usageError = true;
+	}
+
+
 	if (usageError ) {
-	    System.out.println ("usage: java helma.objectmodel.db.Server [-h dir] [-f file] [-p port] [-w port] [-t]");
+	    System.out.println ("usage: java helma.main.Server [-h dir] [-f file] [-p port] [-w port] [-x port]");
 	    System.out.println ("  -h dir     Specify hop home directory");
 	    System.out.println ("  -f file    Specify server.properties file");
-	    System.out.println ("  -p port    Specify TCP port number");
-	    System.out.println ("  -w port    Start embedded Web server on that port");
-	    System.out.println ("  -t         Disable Berkeley DB Transactions");
-	    getLogger().log ("Usage Error - exiting");
+	    System.out.println ("  -p port    Specify RMI port number");
+	    System.out.println ("  -w port    Specify port number for embedded Web server");
+	    System.out.println ("  -x port    Specify XML-RPC port number");
+	    System.out.println ("  -jk port   Specify AJP13 port number");
+	    System.err.println ("Usage Error - exiting");
 	    System.exit (0);
 	}
 
-	server = new Server (homeDir);
-    }
+	// check if servers are already running on the given ports
+	try {
+	    if (websrvPort > 0)
+	        checkRunning (websrvPort);
+	    if (rmiPort > 0)
+	        checkRunning (rmiPort);
+	    if (xmlrpcPort > 0)
+	        checkRunning (xmlrpcPort);
+	    if (ajp13Port > 0)
+	        checkRunning (ajp13Port);
+	} catch (Exception running) {
+	    System.out.println (running.getMessage ());
+	    System.exit (1);
+	}
 
-    public Server (String home) {
-
-	String homeDir = home;
 
 	// get main property file from home dir or vice versa, depending on what we have.
 	// get property file from hopHome
@@ -125,8 +184,9 @@ import com.sleepycat.db.*;
 	    else
 	        propfile = new File ("server.properties").getAbsolutePath ();
 	}
-
+	// create system properties
 	sysProps = new SystemProperties (propfile);
+
 	// get hopHome from property file
 	if (homeDir == null)
 	    homeDir = sysProps.getProperty ("hophome");
@@ -135,10 +195,20 @@ import com.sleepycat.db.*;
 
 	// create hopHome File object
 	hopHome = new File (homeDir);
+	// try to transform hopHome directory to its cononical representation
+	try {
+	    hopHome = hopHome.getCanonicalFile ();
+	} catch (IOException iox) {
+	    System.err.println ("Error calling getCanonicalFile() on hopHome: "+iox);
+	}
 
 	// from now on it's safe to call getLogger()
 
-	getLogger().log ("Starting Helma "+version);
+	String startMessage = "Starting Helma "+version+
+		" on Java "+System.getProperty ("java.version");
+	getLogger().log (startMessage);
+	// also print a msg to System.out
+	System.out.println (startMessage);
 
 	getLogger().log ("propfile = "+propfile);
 	getLogger().log ("hopHome = "+hopHome);
@@ -156,6 +226,7 @@ import com.sleepycat.db.*;
 	else
 	    helper = new File (hopHome, "apps.properties");
 	appsPropfile = helper.getAbsolutePath ();
+	appsProps = new SystemProperties (appsPropfile);
 	getLogger().log ("appsPropfile = "+appsPropfile);
 
 	paranoid = "true".equalsIgnoreCase (sysProps.getProperty ("paranoid"));
@@ -174,20 +245,30 @@ import com.sleepycat.db.*;
 
 	dbSources = new Hashtable ();
 
-	try {
-	    checkRunning ();  // check if a server is already running with this db
-	} catch (Exception running) {
-	    System.out.println (running.getMessage ());
-	    System.exit (1);
+	// try to load the extensions
+	extensions = new Vector ();
+	if (sysProps.getProperty ("extensions")!=null) {
+	    StringTokenizer tok=new StringTokenizer (sysProps.getProperty ("extensions"),",");
+	    while(tok.hasMoreTokens ()) {
+	        String extClassName = tok.nextToken ().trim ();
+	        try {
+	            Class extClass = Class.forName (extClassName);
+	            HelmaExtension ext = (HelmaExtension) extClass.newInstance ();
+	            ext.init (this);
+	            extensions.add (ext);
+	            getLogger ().log ("loaded: " + extClassName);
+	        } catch (Exception e) {
+	            getLogger ().log ("error:  " + extClassName + " (" + e.toString () + ")");
+	        }
+	    }
 	}
-
-	// nmgr = new NodeManager (this, sysProps);
 
 	// Start running, finishing setup and then entering a loop to check changes
 	// in the apps.properties file.
 	mainThread = new Thread (this);
 	mainThread.start ();
     }
+
 
     /**
      *  The main method of the Server. Basically, we set up Applications and than
@@ -198,50 +279,90 @@ import com.sleepycat.db.*;
 
 	try {
 
+	    if (websrvPort > 0 || ajp13Port > 0) {
+	        http = new HttpServer ();
+	        // disable Jetty logging  FIXME: seems to be a jetty bug; as soon
+	        // as the logging is disabled, the more is logged
+	        Log.instance().disableLog ();
+	        Log.instance().add (new LogSink ()
+	            {
+	                public String getOptions () { return null; }
+	                public void log (String formattedLog) {}
+	                public void log (String tag, Object msg, Frame frame, long time) {}
+	                public void setOptions (String options) {}
+	                public boolean isStarted () { return true; }
+	                public void start () {}
+	                public void stop () {}
+	            }
+	        );
+	    }
+
 	    // start embedded web server if port is specified
-	    if (webport > 0) {
-	        websrv = new Acme.Serve.Serve (webport, sysProps);
+	    if (websrvPort > 0) {
+	        http.addListener (new InetAddrPort (websrvPort));
 	    }
 
-                 String xmlparser = sysProps.getProperty ("xmlparser");
-	    if (xmlparser != null)
-	        XmlRpc.setDriver (xmlparser);
-	    // XmlRpc.setDebug (true);
-	    xmlrpc = new WebServer (port+1);
-	    if (paranoid) {
-	        xmlrpc.setParanoid (true);
-	        String xallow = sysProps.getProperty ("allowXmlRpc");
-	        if (xallow != null) {
-	            StringTokenizer st = new StringTokenizer (xallow, " ,;");
-	            while (st.hasMoreTokens ())
-	                xmlrpc.acceptClient (st.nextToken ());
+	    // activate the ajp13-listener
+	    if (ajp13Port > 0) {
+	        // create AJP13Listener
+	        ajp13 = new AJP13Listener(new InetAddrPort (ajp13Port));
+	        ajp13.setHttpServer(http);
+	        String jkallow = sysProps.getProperty ("allowAJP13");
+	        // by default the AJP13-connection just accepts requests from 127.0.0.1
+	        if (jkallow == null)
+	            jkallow = "127.0.0.1";
+	        StringTokenizer st = new StringTokenizer (jkallow, " ,;");
+	        String[] jkallowarr  = new String [st.countTokens()];
+	        int cnt = 0;
+	        while (st.hasMoreTokens ()) {
+	            jkallowarr[cnt] = st.nextToken();
+	            cnt++;
 	        }
+	        ajp13.setRemoteServers(jkallowarr);
+	        getLogger().log ("Starting AJP13-Listener on port "+(ajp13Port));
 	    }
-	    getLogger().log ("Starting XML-RPC server on port "+(port+1));
 
-	    // the following seems not to be necessary after all ...
-	    // System.setSecurityManager(new RMISecurityManager());
-	    if (paranoid) {
-	        HopSocketFactory factory = new HopSocketFactory ();
-	        String rallow = sysProps.getProperty ("allowWeb");
-	        if (rallow != null) {
-	            StringTokenizer st = new StringTokenizer (rallow, " ,;");
-	            while (st.hasMoreTokens ())
-	                factory.addAddress (st.nextToken ());
+	    if (xmlrpcPort > 0) {
+	        String xmlparser = sysProps.getProperty ("xmlparser");
+	        if (xmlparser != null)
+	            XmlRpc.setDriver (xmlparser);
+
+	        xmlrpc = new WebServer (xmlrpcPort);
+	        if (paranoid) {
+	            xmlrpc.setParanoid (true);
+	            String xallow = sysProps.getProperty ("allowXmlRpc");
+	            if (xallow != null) {
+	                StringTokenizer st = new StringTokenizer (xallow, " ,;");
+	                while (st.hasMoreTokens ())
+	                    xmlrpc.acceptClient (st.nextToken ());
+	            }
 	        }
-	        RMISocketFactory.setSocketFactory (factory);
-	    }
-
-	    if (websrv == null) {
-	        getLogger().log ("Starting server on port "+port);
-	        LocateRegistry.createRegistry (port);
+	        getLogger().log ("Starting XML-RPC server on port "+(xmlrpcPort));
 	    }
 
 
-	    // start application framework
-	    appsProps = new SystemProperties (appsPropfile);
-	    appManager = new ApplicationManager (port, hopHome, appsProps, this);
+	    if (rmiPort > 0) {
+	        if (paranoid) {
+	            HopSocketFactory factory = new HopSocketFactory ();
+	            String rallow = sysProps.getProperty ("allowWeb");
+	            if (rallow != null) {
+	                StringTokenizer st = new StringTokenizer (rallow, " ,;");
+	                while (st.hasMoreTokens ())
+	                    factory.addAddress (st.nextToken ());
+	            }
+	            RMISocketFactory.setSocketFactory (factory);
+	        }
+	        getLogger().log ("Starting RMI server on port "+rmiPort);
+	        LocateRegistry.createRegistry (rmiPort);
+	    }
 
+	    // create application manager
+	    appManager = new ApplicationManager (rmiPort, hopHome, appsProps, this);
+	    if (xmlrpc != null)
+	        xmlrpc.addHandler ("$default", appManager);
+
+	    // add shutdown hook to close running apps and servers on exit
+	    Runtime.getRuntime().addShutdownHook (new HelmaShutdownHook(appManager));
 
 	} catch (Exception gx) {
 	    getLogger().log ("Error initializing embedded database: "+gx);
@@ -253,9 +374,16 @@ import com.sleepycat.db.*;
 	appManager.startAll ();
 
 	// start embedded web server
-	if (websrv != null) {
-	    Thread webthread = new Thread (websrv, "WebServer");
-	    webthread.start ();
+	if (http != null) try {
+	    http.start ();
+	} catch (MultiException m) {
+	    getLogger().log ("Error starting embedded web server: "+m);
+	}
+
+	if (ajp13 != null) try {
+	    ajp13.start ();
+	} catch (Exception m) {
+	    getLogger().log ("Error starting AJP13 listener: "+m);
 	}
 
 	int count = 0;
@@ -269,33 +397,32 @@ import com.sleepycat.db.*;
 	        getLogger().log ("Caught in app manager loop: "+x);
 	    }
 	}
-
     }
 
     /**
      *  Get an Iterator over the applications currently running on this Server.
      */
     public Object[] getApplications () {
-		return appManager.getApplications ();
+	return appManager.getApplications ();
     }
-    
+
     /**
      * Get an Application by name
      */
     public Application getApplication(String name)	{
-    	return appManager.getApplication(name);
+	return appManager.getApplication(name);
     }
 
     /**
      *  Get a logger to use for output in this server.
      */
-    protected static Logger getLogger () {
+    public static Logger getLogger () {
 	if (logger == null) {
-	    String logDir = sysProps.getProperty ("logdir");
-	    if (logDir == null || "console".equalsIgnoreCase (logDir)) {
+	    String logDir = sysProps.getProperty ("logdir", "log");
+	    if ("console".equalsIgnoreCase (logDir)) {
 	        logger = new Logger (System.out);
 	    } else {
-	       File helper = new File (logDir);
+	        File helper = new File (logDir);
 	        if (hopHome != null && !helper.isAbsolute ())
 	            helper = new File (hopHome, logDir);
 	        logDir = helper.getAbsolutePath ();
@@ -308,46 +435,50 @@ import com.sleepycat.db.*;
     /**
      *  Get the Home directory of this server.
      */
-    public static File getHopHome () {
+    public File getHopHome () {
 	return hopHome;
     }
 
-	/**
-     * Get the main Server
+    /**
+     * Get the main Server instance.
      */
-	public static Server getServer()	{
-		return server;
-	}
+    public static Server getServer()	{
+	return server;
+    }
 
     /**
     *  Get the Server's  XML-RPC web server.
     */
     public static WebServer getXmlRpcServer() {
-	return xmlrpc;
+	return server.xmlrpc;
     }
 
     /**
      *  A primitive method to check whether a server is already running on our port.
      */
-    private void checkRunning () throws Exception {
+    private void checkRunning (int portNumber) throws Exception {
 	try {
-	    java.net.Socket socket = new java.net.Socket ("localhost", port);
+	    java.net.Socket socket = new java.net.Socket ("localhost", portNumber);
 	} catch (Exception x) {
 	    return;
 	}
 	// if we got so far, another server is already running on this port and db
-	throw new Exception ("Error: Server already running on this port");
+	throw new Exception ("Error: Server already running on this port: " + portNumber);
     }
 
-	public static String getProperty( String key )	{
-		return (String)sysProps.get(key);		
-	}
-	
-	public static SystemProperties getProperties()	{
-		return sysProps;
+	public String getProperty( String key )	{
+		return (String)sysProps.get(key);
 	}
 
-	public static File getAppsHome()	{
+	public SystemProperties getProperties()	{
+		return sysProps;
+	}
+	
+	public SystemProperties getDbProperties() {
+		return dbProps;
+	}
+
+	public File getAppsHome()	{
 		String appHome = sysProps.getProperty ("appHome");
 		if (appHome != null && !"".equals (appHome.trim()))
 		    return new File (appHome);
@@ -355,11 +486,15 @@ import com.sleepycat.db.*;
 	    	return new File (hopHome, "apps");
 	}
 
+	public Vector getExtensions () {
+	    return extensions;
+	}
+
 	public void startApplication(String name)	{
 		appManager.start (name);
 		appManager.register (name);
 	}
-	
+
 	public void stopApplication(String name)	{
 		appManager.stop (name);
 	}
@@ -392,4 +527,6 @@ import com.sleepycat.db.*;
 	public String getPrototype()	{
 		return "root";
 	}
+	
 }
+

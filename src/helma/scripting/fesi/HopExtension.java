@@ -15,15 +15,19 @@ import FESI.Data.*;
 import java.io.*;
 import java.util.*;
 import java.text.*;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.HttpURLConnection;
+import java.text.SimpleDateFormat;
 import org.xml.sax.InputSource;
 
 /**
  * This is the basic Extension for FESI interpreters used in Helma. It sets up
  * varios constructors, global functions and properties on the HopObject prototype
- * (Node objects), the user prototype, the global prototype  etc.
+ * (Node objects), the global prototype, the session object etc.
  */
 
-public class HopExtension {
+public final class HopExtension {
 
     protected Application app;
     protected FesiEvaluator fesi;
@@ -61,8 +65,8 @@ public class HopExtension {
         ObjectPrototype esObjectPrototype = new ObjectPrototype (op, evaluator);
         // the Node prototype
         ObjectPrototype esNodePrototype = new ObjectPrototype(op, evaluator);
-        // the User prototype
-        ObjectPrototype esUserPrototype = new ObjectPrototype (esNodePrototype, evaluator);
+        // the Session prototype
+        ObjectPrototype esSessionPrototype = new ObjectPrototype (esNodePrototype, evaluator);
         // the Node constructor
         ESObject node = new NodeConstructor ("Node", fp, fesi);
 
@@ -82,6 +86,7 @@ public class HopExtension {
         esNodePrototype.putHiddenProperty ("href", new NodeHref ("href", evaluator, fp));
         esNodePrototype.putHiddenProperty ("setParent", new NodeSetParent ("setParent", evaluator, fp));
         esNodePrototype.putHiddenProperty ("invalidate", new NodeInvalidate ("invalidate", evaluator, fp));
+        esNodePrototype.putHiddenProperty ("prefetchChildren", new NodePrefetch ("prefetchChildren", evaluator, fp));
         esNodePrototype.putHiddenProperty ("renderSkin", new RenderSkin ("renderSkin", evaluator, fp, false, false));
         esNodePrototype.putHiddenProperty ("renderSkinAsString", new RenderSkin ("renderSkinAsString", evaluator, fp, false, true));
         esNodePrototype.putHiddenProperty ("clearCache", new NodeClearCache ("clearCache", evaluator, fp));
@@ -97,12 +102,6 @@ public class HopExtension {
         go.putHiddenProperty("HopObject", node); // HopObject is the new name for node.
         go.putHiddenProperty("getProperty", new GlobalGetProperty ("getProperty", evaluator, fp));
         go.putHiddenProperty("token", new GlobalGetProperty ("token", evaluator, fp));
-        go.putHiddenProperty("getUser", new GlobalGetUser ("getUser", evaluator, fp));
-        go.putHiddenProperty("getUserBySession", new GlobalGetUserBySession ("getUserBySession", evaluator, fp));
-        go.putHiddenProperty("getAllUsers", new GlobalGetAllUsers ("getAllUsers", evaluator, fp));
-        go.putHiddenProperty("getActiveUsers", new GlobalGetActiveUsers ("getActiveUsers", evaluator, fp));
-        go.putHiddenProperty("countActiveUsers", new GlobalCountActiveUsers ("countActiveUsers", evaluator, fp));
-        go.putHiddenProperty("isActive", new GlobalIsActive ("isActive", evaluator, fp));
         go.putHiddenProperty("getAge", new GlobalGetAge ("getAge", evaluator, fp));
         go.putHiddenProperty("getURL", new GlobalGetURL ("getURL", evaluator, fp));
         go.putHiddenProperty("encode", new GlobalEncode ("encode", evaluator, fp));
@@ -120,20 +119,11 @@ public class HopExtension {
         go.putHiddenProperty("authenticate", new GlobalAuthenticate ("authenticate", evaluator, fp));
         go.deleteProperty("exit", "exit".hashCode());
 
-        // and some methods for session management from JS...
-        esUserPrototype.putHiddenProperty("logon", new UserLogin ("logon", evaluator, fp));
-        esUserPrototype.putHiddenProperty("login", new UserLogin ("login", evaluator, fp));
-        esUserPrototype.putHiddenProperty("register", new UserRegister ("register", evaluator, fp));
-        esUserPrototype.putHiddenProperty("logout", new UserLogout ("logout", evaluator, fp));
-        esUserPrototype.putHiddenProperty("onSince", new UserOnSince ("onSince", evaluator, fp));
-        esUserPrototype.putHiddenProperty("lastActive", new UserLastActive ("lastActive", evaluator, fp));
-        esUserPrototype.putHiddenProperty("touch", new UserTouch ("touch", evaluator, fp));
-
         // register object prototypes with FesiEvaluator
         fesi.putPrototype ("global", go);
         fesi.putPrototype ("hopobject", esNodePrototype);
         fesi.putPrototype ("__javaobject__", esObjectPrototype);
-        fesi.putPrototype ("user", esUserPrototype);
+//        fesi.putPrototype ("session", esSessionPrototype);
     }
 
     class NodeAdd extends BuiltinFunctionObject {
@@ -250,12 +240,25 @@ public class HopExtension {
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
             ESNode esn = (ESNode) thisObject;
-            INode node = esn.getNode ();
-            if (node instanceof helma.objectmodel.db.Node) {
-                ((helma.objectmodel.db.Node) node).invalidate ();
-                esn.checkNode ();
+            return ESBoolean.makeBoolean (esn.invalidate (arguments));
+        }
+    }
+
+    
+    class NodePrefetch extends BuiltinFunctionObject {
+        NodePrefetch (String name, Evaluator evaluator, FunctionPrototype fp) {
+            super (fp, evaluator, name, 0);
+        }
+        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
+            try {
+                ESNode esn = (ESNode) thisObject;
+                esn.prefetchChildren (arguments);
+            } catch (IllegalArgumentException illarg) {
+                throw illarg;
+            } catch (Exception x) {
+                // swallow exceptions in prefetchChildren
             }
-            return ESBoolean.makeBoolean (true);
+            return ESNull.theNull;
         }
     }
 
@@ -415,92 +418,6 @@ public class HopExtension {
 		}
 	}
 
-    class UserLogin extends BuiltinFunctionObject {
-        UserLogin (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            if (arguments.length < 2)
-                return ESBoolean.makeBoolean(false);
-            ESUser u = (ESUser) thisObject;
-            if (u.user == null)
-                throw new EcmaScriptException ("login() can only be called for user objects that are online at the moment!");
-            boolean success = app.loginUser (arguments[0].toString (), arguments[1].toString (), u);
-            try {
-                u.doIndirectCall (this.evaluator, u, "onLogin", new ESValue[0]);
-            } catch (Exception nosuch) {}
-            return ESBoolean.makeBoolean (success);
-        }
-    }
-
-    class UserRegister extends BuiltinFunctionObject {
-        UserRegister (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 2);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            if (arguments.length < 2) 
-                return ESBoolean.makeBoolean(false);
-            INode unode = app.registerUser (arguments[0].toString (), arguments[1].toString ());
-            if (unode == null)
-                return ESNull.theNull;
-            else
-                return  fesi.getNodeWrapper (unode);
-        }
-    }
-
-    class UserLogout extends BuiltinFunctionObject {
-        UserLogout (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            ESUser u = (ESUser) thisObject;
-            if (u.user == null)
-                return ESBoolean.makeBoolean (true);
-            try {
-                u.doIndirectCall (this.evaluator, u, "onLogout", new ESValue[0]);
-            } catch (Exception nosuch) {}
-            return ESBoolean.makeBoolean (app.logoutUser (u));
-        }
-    }
-    
-    class UserOnSince extends BuiltinFunctionObject {
-        UserOnSince (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            ESUser u = (ESUser) thisObject;
-            if (u.user == null)
-                throw new EcmaScriptException ("onSince() can only be called for users that are online at the moment!");
-            DatePrototype date =  new DatePrototype(this.evaluator, new Date (u.user.onSince ()));
-            return  date;
-        }
-    }
-
-    class UserLastActive extends BuiltinFunctionObject {
-        UserLastActive (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            ESUser u = (ESUser) thisObject;
-            if (u.user == null)
-                throw new EcmaScriptException ("lastActive() can only be called for users that are online at the moment!");
-            DatePrototype date =  new DatePrototype(this.evaluator, new Date (u.user.lastTouched ()));
-            return  date;
-        }
-    }
-
-    class UserTouch extends BuiltinFunctionObject {
-        UserTouch (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            ESUser u = (ESUser) thisObject;
-            if (u.user != null)
-                u.user.touch ();
-            return  ESNull.theNull;
-        }
-    }
-
     class GlobalGetProperty extends BuiltinFunctionObject {
         GlobalGetProperty (String name, Evaluator evaluator, FunctionPrototype fp) {
             super (fp, evaluator, name, 1);
@@ -537,11 +454,7 @@ public class HopExtension {
             if (arguments.length != 1 || ESNull.theNull.equals (arguments[0]))
                 throw new EcmaScriptException ("createSkin must be called with one String argument");
             String str = arguments[0].toString ();
-	    Skin skin = (Skin) app.skincache.get (str);
-	    if (skin == null) {
-	        skin = new Skin (str, app);
-	        app.skincache.put (str, skin);
-	    }
+            Skin skin = new Skin (str, app);
             return new ESWrapper (skin, evaluator);
         }
     }
@@ -581,30 +494,21 @@ public class HopExtension {
                         skin = (Skin) obj;
                 }
 
-                // if res.skinpath is set, transform it into an array of java objects
+                // retrieve res.skinpath, an array of objects that tell us where to look for skins
                 // (strings for directory names and INodes for internal, db-stored skinsets)
                 ResponseTrans res = fesi.getResponse();
-                Object[] skinpath = res.getTranslatedSkinpath ();
-                if (skinpath == null) {
-                    skinpath =  new Object[0];
-                    Object rawSkinpath = res.getSkinpath ();
-                    if (rawSkinpath != null && rawSkinpath instanceof JSWrapper) {
-                        JSWrapper jsw = (JSWrapper) rawSkinpath;
-                        ESObject eso = jsw.getESObject ();
-                        if (eso instanceof ArrayPrototype) {
-                            ArrayPrototype array = (ArrayPrototype) eso;
-                            skinpath = new Object[array.size()];
-                            for (int i=0; i<skinpath.length; i++)
-                               skinpath[i] = array.getProperty(i).toJavaObject ();
-                        }
-                    }
-                    res.setTranslatedSkinpath (skinpath);
-                }
+                Object[] skinpath = res.getSkinpath ();
 
                 // ready... retrieve the skin and render it.
                 Object javaObject = thisObject == null ? null : thisObject.toJavaObject ();
-                if (skin == null)
-                    skin = app.getSkin (javaObject, arguments[0].toString (), skinpath);
+                if (skin == null) {
+                    String skinid = app.getPrototypeName(javaObject)+"/"+arguments[0].toString ();
+                    skin = res.getCachedSkin (skinid);
+                    if (skin == null) {
+                        skin = app.getSkin (javaObject, arguments[0].toString (), skinpath);
+                        res.cacheSkin (skinid, skin);
+                    }
+                }
                 if (asString)
                     res.pushStringBuffer ();
                 if (skin != null)
@@ -624,109 +528,6 @@ public class HopExtension {
         }
     }
 
-
-
-    class GlobalGetUser extends BuiltinFunctionObject {
-        GlobalGetUser (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            INode user = null;
-            if (arguments.length > 0) {
-                String uname = arguments[0].toString ().trim ();
-                user = app.getUserNode (uname);
-            }
-            if (user == null)
-                return ESNull.theNull;
-            return fesi.getNodeWrapper (user);
-        }
-    }
-
-    class GlobalGetUserBySession extends BuiltinFunctionObject {
-        GlobalGetUserBySession (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            User user = null;
-            if (arguments.length > 0) {
-                String sid = arguments[0].toString ().trim ();
-                user = app.getUser (sid);
-            }
-            if (user == null || user.getUID() == null)
-                return ESNull.theNull;
-            user.touch ();
-            return fesi.getNodeWrapper (user.getNode ());
-        }
-    }
-
-
-    class GlobalGetAllUsers extends BuiltinFunctionObject {
-        GlobalGetAllUsers (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-        	INode users = app.getUserRoot ();
-             ESObject ap = this.evaluator.getArrayPrototype();
-             ArrayPrototype theArray = new ArrayPrototype(ap, this.evaluator);
-             int i=0;
-        	for (Enumeration e=users.properties (); e.hasMoreElements (); ) {
-        	    String propname = (String) e.nextElement ();
-                 theArray.putProperty (i++, new ESString (propname));
-             }
-             return theArray;
-        }
-    }
-
-    class GlobalGetActiveUsers extends BuiltinFunctionObject {
-        GlobalGetActiveUsers (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-           Hashtable sessions = (Hashtable) app.sessions.clone ();
-           ESObject ap = this.evaluator.getArrayPrototype();
-           ArrayPrototype theArray = new ArrayPrototype (ap, this.evaluator);
-           theArray.setSize (sessions.size ());
-           int i=0;
-           // Hashtable visited = new Hashtable ();
-           for (Enumeration e=sessions.elements(); e.hasMoreElements(); ) {
-               User u = (User) e.nextElement ();
-               // Note: we previously sorted out duplicate users - now we simply enumerate all active sessions.
-               // if (u.uid == null || !visited.containsKey (u.uid)) {
-               theArray.setElementAt (fesi.getNodeWrapper (u), i++);
-               // if (u.uid != null) visited.put (u.uid, u);
-               // }
-           }
-           return theArray;
-        }
-    }
-
-    class GlobalCountActiveUsers extends BuiltinFunctionObject {
-        GlobalCountActiveUsers (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-           return new ESNumber (app.sessions.size ());
-        }
-    }
-
-    class GlobalIsActive extends BuiltinFunctionObject {
-        GlobalIsActive (String name, Evaluator evaluator, FunctionPrototype fp) {
-            super (fp, evaluator, name, 1);
-        }
-        public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
-            if (arguments.length < 1) 
-                return ESBoolean.makeBoolean (false);
-            String username = null;
-            boolean active = false;
-            if (arguments[0] instanceof ESUser) {
-                ESUser esu = (ESUser) arguments[0];
-                active = (esu.user != null);
-            } else {
-                active = app.activeUsers.contains (arguments[0].toString ());
-            }
-            return ESBoolean.makeBoolean (active);
-        }
-    }
 
     class GlobalGetAge extends BuiltinFunctionObject {
         GlobalGetAge (String name, Evaluator evaluator, FunctionPrototype fp) {
@@ -774,15 +575,43 @@ public class HopExtension {
             if (arguments.length < 1)
                 return  ESNull.theNull;
             try {
-                StringBuffer urltext = new StringBuffer ();
-                java.net.URL url = new java.net.URL (arguments[0].toString ());
-                BufferedReader in = new BufferedReader (new InputStreamReader (url.openConnection ().getInputStream ()));
-                char[] c = new char[1024];
-                int read = -1;
-                while ((read = in.read (c)) > -1)
-                    urltext.append (c, 0, read);
-                in.close ();
-                return new ESString (urltext.toString ());
+                URL url = new URL (arguments[0].toString ());
+                URLConnection con = url.openConnection ();
+                // do we have if-modified-since or etag headers to set?
+                if (arguments.length > 1) {
+                    if (arguments[1] instanceof DatePrototype) {
+                        Date date = (Date) arguments[1].toJavaObject();
+                        con.setIfModifiedSince(date.getTime());
+                        SimpleDateFormat format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.UK);
+                        format.setTimeZone(TimeZone.getTimeZone("GMT"));
+                        con.setRequestProperty("If-Modified-Since", format.format(date));
+                    } else if (arguments[1] != null) {
+                        con.setRequestProperty ("If-None-Match", arguments[1].toString());
+                    }
+                }
+                con.setAllowUserInteraction(false);
+                String filename = url.getFile ();
+                String contentType = con.getContentType ();
+                long lastmod = con.getLastModified ();
+                String etag = con.getHeaderField ("ETag");
+                int length = con.getContentLength();
+                int resCode = 0;
+                if (con instanceof HttpURLConnection)
+                    resCode = ((HttpURLConnection) con).getResponseCode();
+                ByteArrayOutputStream body = new ByteArrayOutputStream ();
+                if (length != 0 && resCode != 304) {
+                    InputStream in = new BufferedInputStream(con.getInputStream ());
+                    byte[] b = new byte[1024];
+                    int read;
+                    while ((read = in.read (b)) > -1)
+                        body.write (b, 0, read);
+                    in.close ();
+                }
+                MimePart mime = new MimePart (filename, body.toByteArray(), contentType);
+                if (lastmod > 0)
+                    mime.lastModified = new Date(lastmod);
+                mime.eTag = etag;
+                return ESLoader.normalizeObject (mime, evaluator);
             } catch (Exception ignore) {}
             return  ESNull.theNull;
         }
@@ -858,24 +687,9 @@ public class HopExtension {
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
             try {
-                // Class.forName ("org.apache.xerces.parsers.DOMParser");
-                // org.apache.xerces.parsers.DOMParser parser = new org.apache.xerces.parsers.DOMParser();
-                Class.forName ("org.openxml.parser.XMLParser");
-                org.openxml.parser.XMLParser parser = new org.openxml.parser.XMLParser();
                 Object p = arguments[0].toJavaObject ();
-                if (p instanceof String) try {
-                   // first try to interpret string as URL
-                   java.net.URL u = new java.net.URL (p.toString ());
-                   parser.parse (p.toString());
-                } catch (java.net.MalformedURLException nourl) {
-                   // if not a URL, maybe it is the XML itself
-                   parser.parse (new InputSource (new StringReader (p.toString())));
-                }
-                else if (p instanceof InputStream)
-                   parser.parse (new InputSource ((InputStream) p));
-                else if (p instanceof Reader)
-                   parser.parse (new InputSource ((Reader) p));
-                return ESLoader.normalizeObject (parser.getDocument(), evaluator);
+                Object doc = helma.util.XmlUtils.parseXml (p);
+                return ESLoader.normalizeObject (doc, evaluator);
             } catch (Exception noluck) {
                 app.logEvent ("Error creating XML document: "+noluck);
             }
@@ -889,22 +703,9 @@ public class HopExtension {
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
             try {
-                Class.forName ("org.openxml.parser.HTMLParser");
-                org.openxml.parser.HTMLParser parser = new org.openxml.parser.HTMLParser();
                 Object p = arguments[0].toJavaObject ();
-                if (p instanceof String) try {
-                   // first try to interpret string as URL
-                   java.net.URL u = new java.net.URL (p.toString ());
-                   parser.parse (p.toString());
-                } catch (java.net.MalformedURLException nourl) {
-                   // if not a URL, maybe it is the HTML itself
-                   parser.parse (new InputSource (new StringReader (p.toString())));
-                }
-                else if (p instanceof InputStream)
-                   parser.parse (new InputSource ((InputStream) p));
-                else if (p instanceof Reader)
-                   parser.parse (new InputSource ((Reader) p));
-                return ESLoader.normalizeObject (parser.getDocument(), evaluator);
+                Object doc = helma.util.XmlUtils.parseHtml (p);
+                return ESLoader.normalizeObject (doc, evaluator);
             } catch (Exception noluck) {
                 app.logEvent ("Error creating HTML document: "+noluck);
             }
@@ -918,13 +719,13 @@ public class HopExtension {
         }
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
             try {
-	   Class.forName ("org.w3c.dom.Document");
+                Class.forName ("org.w3c.dom.Document");
                 org.w3c.dom.Document doc = (org.w3c.dom.Document) arguments[0].toJavaObject ();
                 Class.forName ("org.jdom.input.DOMBuilder");
-	   org.jdom.input.DOMBuilder builder = new org.jdom.input.DOMBuilder ();
+                org.jdom.input.DOMBuilder builder = new org.jdom.input.DOMBuilder ();
                 return ESLoader.normalizeObject (builder.build (doc), evaluator);
             } catch (Exception noluck) {
-                app.logEvent ("Error wrapping JDOM document: "+noluck);
+                app.logEvent ("Error building JDOM document: "+noluck);
             }
             return ESNull.theNull;
         }
@@ -959,6 +760,7 @@ public class HopExtension {
             String tmpname = arguments.length == 0 ? "" : arguments[0].toString ();
             String basicHref =app.getNodeHref (elem, tmpname);
             String hrefSkin = app.getProperty ("hrefSkin", null);
+                
             // FIXME: we should actually walk down the path from the object we called href() on
             // instead we move down the URL path.
             if (hrefSkin != null) {
@@ -966,10 +768,19 @@ public class HopExtension {
                 // first, look in the object href was called on.
                 Object skinElem = elem;
                 Skin skin = null;
+                // ResponseTrans res = fesi.getResponse();
+                // Object[] skinpath = res.getSkinpath ();
                 while (skin == null && skinElem != null) {
                     Prototype proto = app.getPrototype (skinElem);
-                    if (proto != null)
+                    if (proto != null) {
                         skin = proto.getSkin (hrefSkin);
+                        /* String skinid = proto.getName()+"/"+hrefSkin;
+                        skin = res.getCachedSkin (skinid);
+                         if (skin == null) {
+                            skin = app.getSkin (skinElem, hrefSkin, skinpath);
+                            res.cacheSkin (skinid, skin);
+                        } */
+                    }
                     if (skin == null)
                         skinElem = app.getParentElement (skinElem);
                 }

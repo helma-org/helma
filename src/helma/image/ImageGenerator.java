@@ -29,8 +29,8 @@ public class ImageGenerator extends Window {
                 }
 	}
 	);
-	this.setBounds (0, 0, 0, 0);
-	this.setVisible (true);
+	setBounds (0, 0, 1, 1);
+	setVisible (true);
     }
     
     public ImageWrapper createPaintableImage (int w, int h) {

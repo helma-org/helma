@@ -14,7 +14,7 @@ import java.sql.SQLException;
  *  relational database table. This can be either a scalar property (string, date, number etc.)
  *  or a reference to one or more other objects.
  */
-public class Relation {
+public final class Relation {
 
     // these constants define different type of property-to-db-mappings
 
@@ -35,11 +35,11 @@ public class Relation {
     // the DbMapping of the prototype we link to, unless this is a "primitive" (non-object) relation
     DbMapping otherType;
 
+    // the column type, as defined in java.sql.Types
+    int columnType;
+
     //  if this relation defines a virtual node, we need to provide a DbMapping for these virtual nodes
     DbMapping virtualMapping;
-
-    Relation virtualRelation;
-    Relation groupRelation;
 
     String propName;
     String columnName;
@@ -53,6 +53,8 @@ public class Relation {
     boolean aggressiveLoading;
     boolean aggressiveCaching;
     boolean subnodesAreProperties;
+    boolean isPrivate;
+
     String accessor; // db column used to access objects through this relation
     String order;
     String groupbyorder;
@@ -89,213 +91,12 @@ public class Relation {
 	otherType = null;
     }
 
-    public void update (String desc, Properties props, int version) {
-	if (version == 0)
-	    update_v0 (desc, props);
-	else if (version == 1)
-	    update_v1 (desc, props);
-    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////
-    // parse methods for file format v0
+    // parse methods for new file format
     ////////////////////////////////////////////////////////////////////////////////////////////
 
-    private void update_v0 (String desc, Properties props) {
-	boolean mountpoint = false;
-	Vector cnst = null;
-
-	if (desc == null || "".equals (desc.trim ())) {
-	    if (propName != null) {
-	        reftype = PRIMITIVE;
-	        columnName = propName;
-	    } else {
-	        reftype = INVALID;
-	        columnName = propName;
-	    }
-	} else {
-	    desc = desc.trim ();
-	    String descLower = desc.toLowerCase ();
-	    if (descLower.startsWith ("[virtual]")) {
-	        desc = desc.substring (9).trim ();
-	        virtual = true;
-	    } else if (descLower.startsWith ("[collection]")) {
-	        desc = desc.substring (12).trim ();
-	        virtual = true;
-	    } else if (descLower.startsWith ("[mountpoint]")) {
-	        desc = desc.substring (12).trim ();
-	        virtual = true;
-	        mountpoint = true;
-	    } else {
-	        virtual = false;
-	    }
-	    if (descLower.startsWith ("[readonly]")) {
-	        desc = desc.substring (10).trim ();
-	        readonly = true;
-	    } else {
-	        readonly = false;
-	    }
-	}
-
-	// parse the basic properties of this mapping
-	parseMapping_v0 (desc, mountpoint);
-
-	// the following options only apply to object relations
-	if (reftype != PRIMITIVE && reftype != INVALID) {
-
-	    cnst = new Vector ();
-
-	    Constraint c = parseConstraint_v0 (desc);
-
-	    if (c != null)
-	        cnst.add (c);
-
-	    parseOptions_v0 (cnst, props);
-
-	    constraints = new Constraint[cnst.size()];
-	    cnst.copyInto (constraints);
-	}
-    }
-
-    /**
-     * Parse a line describing a mapping of a property field. If the mapping is a
-     * object reference of a collection of objects, put any constraints in the Vector.
-     */
-    protected void parseMapping_v0 (String desc, boolean mountpoint) {
-
-	Application app = ownType.getApplication ();
-
-	if (desc.indexOf ("<") > -1) {
-	    reftype = COLLECTION;
-	    int lt = desc.indexOf ("<");
-	    int dot = desc.indexOf (".");
-	    String other = dot < 0 ? desc.substring (lt+1).trim () : desc.substring (lt+1, dot).trim ();
-	    otherType = app.getDbMapping (other);
-	    if (otherType == null)
-	        throw new RuntimeException ("DbMapping for "+other+" not found from "+ownType.typename);
-	    columnName = null;
-	    if (mountpoint)
-	        prototype = other;
-	} else if (desc.indexOf (">") > -1) {
-	    reftype = REFERENCE;
-	    int bt = desc.indexOf (">");
-	    int dot = desc.indexOf (".");
-	    String other = dot > -1 ? desc.substring (bt+1, dot).trim () : desc.substring (bt+1).trim ();
-	    otherType = app.getDbMapping (other);
-	    if (otherType == null)
-	        throw new RuntimeException ("DbMapping for "+other+" not found from "+ownType.typename);
-	    columnName = desc.substring (0, bt).trim ();
-	    if (mountpoint)
-	        prototype = other;
-	} else if (desc.indexOf (".") > -1) {
-	    reftype = COLLECTION;
-	    int dot = desc.indexOf (".");
-	    String other = desc.substring (0, dot).trim ();
-	    otherType = app.getDbMapping (other);
-	    if (otherType == null)
-	        throw new RuntimeException ("DbMapping for "+other+" not found from "+ownType.typename);
-	    columnName = null;
-	    // set accessor
-	    accessor = desc.substring (dot+1).trim ();
-	    if (mountpoint)
-	        prototype = other;
-	} else {
-	    if (virtual) {
-	        reftype = COLLECTION;
-	        otherType = app.getDbMapping (desc);
-	        if (otherType == null)
-	            throw new RuntimeException ("DbMapping for "+desc+" not found from "+ownType.typename);
-	        if (mountpoint)
-	            prototype = desc;
-	    } else {
-	        reftype = PRIMITIVE;
-	        columnName = desc.trim ();
-	    }
-	}
-    }
-
-
-    /**
-     * Parse a line describing a mapping of a property field. If the mapping is a
-     * object reference of a collection of objects, put any constraints in the Vector.
-     */
-    protected Constraint parseConstraint_v0 (String desc) {
-	if (desc.indexOf ("<") > -1) {
-	    int lt = desc.indexOf ("<");
-	    int dot = desc.indexOf (".");
-	    String remoteField = dot < 0 ? null : desc.substring (dot+1).trim ();
-	    String localField = lt <= 0 ? null : desc.substring (0, lt).trim ();
-	    return new Constraint (localField, otherType.getTableName (), remoteField, false);
-	} else if (desc.indexOf (">") > -1) {
-	    int bt = desc.indexOf (">");
-	    int dot = desc.indexOf (".");
-	    String localField = desc.substring (0, bt).trim ();
-	    String remoteField = dot < 0 ? null : desc.substring (dot+1).trim ();
-	    return new Constraint (localField, otherType.getTableName (), remoteField, false);
-	}
-	return null;
-    }
-
-    protected void parseOptions_v0 (Vector cnst, Properties props) {
-	String loading = props.getProperty (propName+".loadmode");
-	aggressiveLoading = loading != null && "aggressive".equalsIgnoreCase (loading.trim());
-	String caching = props.getProperty (propName+".cachemode");
-	aggressiveCaching = caching != null && "aggressive".equalsIgnoreCase (caching.trim());
-	// get order property
-	order = props.getProperty (propName+".order");
-	if (order != null && order.trim().length() == 0)
-	    order = null;
-	// get additional filter property
-	filter = props.getProperty (propName+".filter");
-	if (filter != null && filter.trim().length() == 0)
-	    filter = null;
-	// get max size of collection
-	String max = props.getProperty (propName+".maxSize");
-	if (max != null) try {
-	    maxSize = Integer.parseInt (max);
-	} catch (NumberFormatException nfe) {
-	    maxSize = 0;
-	}
-	// get group by property
-	groupby = props.getProperty (propName+".groupby");
-	if (groupby != null && groupby.trim().length() == 0)
-	    groupby = null;
-	if (groupby != null) {
-	    groupbyorder = props.getProperty (propName+".groupby.order");
-	    if (groupbyorder != null && groupbyorder.trim().length() == 0)
-	        groupbyorder = null;
-	    groupbyprototype = props.getProperty (propName+".groupby.prototype");
-	    if (groupbyprototype != null && groupbyprototype.trim().length() == 0)
-	        groupbyprototype = null;
-	    // aggressive loading and caching is not supported for groupby-nodes
-	    aggressiveLoading = aggressiveCaching = false;
-	}
-	// check if subnode condition should be applied for property relations
-	if ("_properties".equalsIgnoreCase (propName) || virtual) {
-	    String subnodes2props = props.getProperty (propName+".aresubnodes");
-	    subnodesAreProperties = "true".equalsIgnoreCase (subnodes2props);
-	    if (virtual) {
-	        String subnodefilter = props.getProperty (propName+".subnoderelation");
-	        if (subnodefilter != null) {
-	            Constraint c = parseConstraint_v0 (subnodefilter);
-	            if (c != null) {
-	                cnst.add (c);
-	            }
-	        }
-	    }
-	    // update virtual mapping, if it already exists
-	    if (virtualMapping != null) {
-	        virtualMapping.subnodesRel = getVirtualSubnodeRelation ();
-	        virtualMapping.propertiesRel = getVirtualPropertyRelation ();
-	        virtualMapping.lastTypeChange = ownType.lastTypeChange;
-	    }
-	}
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////
-    // parse methods for file format v1
-    ////////////////////////////////////////////////////////////////////////////////////////////
-
-    private void update_v1 (String desc, Properties props) {
+    public void update (String desc, Properties props) {
 	Application app = ownType.getApplication ();
 	if (desc == null || "".equals (desc.trim ())) {
 	    if (propName != null) {
@@ -333,26 +134,36 @@ public class Relation {
 	        columnName = desc;
 	        reftype = PRIMITIVE;
 	    }
-	    String rdonly = props.getProperty (desc+".readonly");
-	    if (rdonly != null && "true".equalsIgnoreCase (rdonly)) {
-	        readonly = true;
-	    } else {
-	        readonly = false;
-	    }
 	}
+	String rdonly = props.getProperty (propName+".readonly");
+	if (rdonly != null && "true".equalsIgnoreCase (rdonly)) {
+	    readonly = true;
+	} else {
+	    readonly = false;
+	}
+	isPrivate = "true".equalsIgnoreCase (props.getProperty (propName+".private"));
+
 	// the following options only apply to object and collection relations
 	if (reftype != PRIMITIVE && reftype != INVALID) {
 
 	    Vector newConstraints = new Vector ();
-	    parseOptions_v1 (newConstraints, props);
+	    parseOptions (newConstraints, props);
 
 	    constraints = new Constraint[newConstraints.size()];
 	    newConstraints.copyInto (constraints);
+	    // if DbMapping for virtual nodes has already been created,
+	    // update its subnode relation.
+	    // FIXME: needs to be synchronized?
+	     if (virtualMapping != null) {
+	        virtualMapping.lastTypeChange = ownType.lastTypeChange;
+	        virtualMapping.subnodesRel = getVirtualSubnodeRelation ();
+	        virtualMapping.propertiesRel = getVirtualPropertyRelation ();
+	    }
 	}
     }
 
 
-    protected void parseOptions_v1 (Vector cnst, Properties props) {
+    protected void parseOptions (Vector cnst, Properties props) {
 	String loading = props.getProperty (propName+".loadmode");
 	aggressiveLoading = loading != null && "aggressive".equalsIgnoreCase (loading.trim());
 	String caching = props.getProperty (propName+".cachemode");
@@ -370,6 +181,8 @@ public class Relation {
 	if (max != null) try {
 	    maxSize = Integer.parseInt (max);
 	} catch (NumberFormatException nfe) {
+	    maxSize = 0;
+	} else {
 	    maxSize = 0;
 	}
 	// get group by property
@@ -428,6 +241,14 @@ public class Relation {
      */
     public String getPropName () {
 	return propName;
+    }
+
+    public void setColumnType (int ct) {
+	columnType = ct;
+    }
+
+    public int getColumnType () {
+	return columnType;
     }
 
 
@@ -499,6 +320,7 @@ public class Relation {
 	vr.groupbyprototype = groupbyprototype;
 	vr.order = order;
 	vr.filter = filter;
+	vr.maxSize = maxSize;
 	vr.constraints = constraints;
 	vr.aggressiveLoading = aggressiveLoading;
 	vr.aggressiveCaching = aggressiveCaching;
@@ -517,6 +339,7 @@ public class Relation {
 	vr.groupbyprototype = groupbyprototype;
 	vr.order = order;
 	vr.filter = filter;
+	vr.maxSize = maxSize;
 	vr.constraints = constraints;
 	return vr;
     }
@@ -533,6 +356,8 @@ public class Relation {
 	vr.filter = filter;
 	vr.constraints = constraints;
 	vr.addConstraint (new Constraint (null, null, groupby, true));
+	vr.aggressiveLoading = aggressiveLoading;
+	vr.aggressiveCaching = aggressiveCaching;
 	return vr;
     }
 
@@ -565,7 +390,7 @@ public class Relation {
 	    q.append (accessColumn);
 	    q.append (" = ");
 	    // check if column is string type and value needs to be quoted
-	    if (otherType.isStringColumn (accessColumn)) {
+	    if (otherType.needsQuotes (accessColumn)) {
 	        q.append ("'");
 	        q.append (escape (kstr));
 	        q.append ("'");
@@ -592,6 +417,21 @@ public class Relation {
 	return q.toString ();
     }
 
+    public String renderConstraints (INode home, INode nonvirtual) throws SQLException {
+	StringBuffer q = new StringBuffer ();
+	String suffix = " AND ";
+	for (int i=0; i<constraints.length; i++) {
+	    constraints[i].addToQuery (q, home, nonvirtual);
+	    q.append (suffix);
+	}
+	if (filter != null) {
+	    q.append (filter);
+	    q.append (suffix);
+	}
+	return q.toString ();
+    }
+
+
     /**
      * Get the order section to use for this relation
      */
@@ -608,6 +448,15 @@ public class Relation {
     public boolean isReadonly () {
 	return readonly;
     }
+
+    /**
+     *  Tell wether the property described by this relation is to be handled as private, i.e.
+     *  a change on it should not result in any changed object/collection relations.
+     */
+    public boolean isPrivate () {
+	return isPrivate;
+    }
+
 
     /**
      * Check if the child node fullfills the constraints defined by this relation.
@@ -699,7 +548,7 @@ public class Relation {
 	for (int i=0; i<l; i++) {
 	    char c = str.charAt (i);
 	    if (c == '\'')
-	        sbuf.append ("\\");
+	        sbuf.append ('\'');
 	    sbuf.append (c);
 	}
 	return sbuf.toString ();
@@ -743,7 +592,7 @@ public class Relation {
     	    }
     	    q.append (foreignName);
     	    q.append (" = ");
-    	    if (otherType.isStringColumn (foreignName)) {
+    	    if (otherType.needsQuotes (foreignName)) {
     	        q.append ("'");
     	        q.append (escape (local));
     	        q.append ("'");

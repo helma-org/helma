@@ -1,4 +1,4 @@
-// RemoteApp.java
+// IRemoteApp.java
 // Copyright (c) Hannes Wallnöfer 1998-2000
 
 package helma.framework;

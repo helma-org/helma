@@ -5,15 +5,17 @@ package helma.framework;
 
 import java.io.*;
 import java.util.*;
+import helma.framework.core.Skin;
 import helma.objectmodel.*;
 import helma.util.*;
+import java.security.*;
 
 /**
  * A Transmitter for a response to the servlet client. Objects of this 
  * class are directly exposed to JavaScript as global property res. 
  */
  
-public class ResponseTrans implements Externalizable {
+public final class ResponseTrans implements Externalizable {
 
     /**
      * Set the MIME content type of the response.
@@ -21,7 +23,7 @@ public class ResponseTrans implements Externalizable {
     public String contentType = "text/html";
 
     /**
-     * Set the charset of the response.
+     * Set the charset (encoding) to use for the response.
      */
     public String charset;
 
@@ -48,6 +50,13 @@ public class ResponseTrans implements Externalizable {
 
     // contains the redirect URL
     private String redir = null;
+    
+    // the last-modified date, if it should be set in the response
+    private long lastModified = -1;
+    // flag to signal that resource has not been modified
+    private boolean notModified = false;
+    // Entity Tag for this response, used for conditional GETs
+    private String etag = null;
 
     // cookies
     String cookieKeys[];
@@ -60,33 +69,54 @@ public class ResponseTrans implements Externalizable {
     // these are used to implement the _as_string variants for Hop templates.
     private transient Stack buffers;
 
-    // the path used to resolve skin names
-    private transient Object skinpath = null;
-    // the processed skinpath as array of Nodes or directory names
-    private transient Object[] translatedSkinpath = null;
+    // the path used to tell where to look for skins
+    private transient Object[] skinpath = null;
+    // hashmap for skin caching
+    private transient HashMap skincache;
+    
+    // buffer for debug messages - will be automatically appended to response
+    private transient StringBuffer debugBuffer;
 
     static final long serialVersionUID = -8627370766119740844L;
 
     /**
-     * the buffers used to build the single body parts -
-     * transient, response must be constructed before this is serialized
+     * string fields that hold a user message
      */
-    public transient String title, head, body, message, error;
+    public transient String message;
 
     /**
-     *  JavaScript object to make the values Map accessible to
-     *  script code as res.data
+     * string fields that hold an error message
      */
-    public transient Object data;
+    public transient String error;
+    
+    static final int INITIAL_BUFFER_SIZE = 2048;
 
     // the map of form and cookie data
     private transient Map values;
 
+    // the map of macro handlers
+    private transient Map handlers;
+    
+    // the request trans for this response
+    private transient RequestTrans reqtrans;
+
+    // the message digest used to generate composed digests for ETag headers
+    private transient MessageDigest digest;
+    
+    // the appliciation checksum to make ETag headers sensitive to app changes
+    long applicationChecksum;
+
 
     public ResponseTrans () {
 	super ();
-	title = head = body = message = error = null;
+	message = error = null;
 	values = new HashMap ();
+	handlers = new HashMap ();
+    }
+
+    public ResponseTrans (RequestTrans req) {
+	this();
+	reqtrans = req;
     }
 
 
@@ -109,21 +139,35 @@ public class ResponseTrans implements Externalizable {
     }
 
     /**
+     *  Get the macro handlers map for this response transmitter.
+     */
+    public Map getMacroHandlers () {
+	return handlers;
+    }
+
+
+    /**
      * Reset the response object to its initial empty state.
      */
     public void reset () {
 	if (buffer != null)
 	    buffer.setLength (0);
+	buffers = null;
 	response = null;
 	redir = null;
 	skin = null;
-	title = head = body = message = error = null;
+	message = error = null;
 	values.clear ();
+	lastModified = -1;
+	notModified = false;
+	etag = null;
+	if (digest != null)
+	    digest.reset();
     }
 
 
     /**
-     * This is called before a template is rendered as string (xxx_as_string) to redirect the output
+     * This is called before a skin is rendered as string (renderSkinAsString) to redirect the output
      * to a new string buffer.
      */
     public void pushStringBuffer () {
@@ -131,7 +175,7 @@ public class ResponseTrans implements Externalizable {
 	    buffers = new Stack();
 	if (buffer != null)
 	    buffers.push (buffer);
-	buffer = new StringBuffer (128);
+	buffer = new StringBuffer (64);
     }
 
     /**
@@ -144,22 +188,39 @@ public class ResponseTrans implements Externalizable {
     }
 
     /**
-     * Append a string to the response unchanged.
+     * Returns the number of characters written to the response buffer so far.
+     */
+    public int getBufferLength() {
+	if (buffer == null)
+	    return 0;
+	return buffer.length ();
+    }
+    
+    public void setBufferLength(int l) {
+	if (buffer != null)
+	    buffer.setLength (l);
+    }
+
+    /**
+     * Append a string to the response unchanged. This is often called 
+     * at the end of a request to write out the whole page, so if buffer
+     * is uninitialized we just set it to the string argument.
      */
     public void write (Object what) {
 	if (what != null) {
+	    String str = what.toString ();
 	    if (buffer == null)
-	        buffer = new StringBuffer (512);
+	        buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
 	    buffer.append (what.toString ());
 	}
     }
 
     /**
-     * Utility function that appends a <br> to whatever is written
+     * Utility function that appends a <br> to whatever is written.
      */
     public void writeln (Object what) {
 	if (buffer == null)
-	    buffer = new StringBuffer (512);
+	    buffer = new StringBuffer (INITIAL_BUFFER_SIZE);
 	if (what != null)
 	    buffer.append (what.toString ());
 	buffer.append ("<br />\r\n");
@@ -170,8 +231,19 @@ public class ResponseTrans implements Externalizable {
      */
     public void writeCharArray (char[] c, int start, int length) {
 	if (buffer == null)
-	    buffer = new StringBuffer (512);
+	    buffer = new StringBuffer (Math.max (length, INITIAL_BUFFER_SIZE));
 	buffer.append (c, start, length);
+    }
+
+    /**
+     *  Insert string somewhere in the response buffer. Caller has to make sure
+     *  that buffer exists and its length is larger than offset. str may be null, in which
+     *  case nothing happens.
+     */
+    public void debug (String str) {
+	if (debugBuffer == null)
+	    debugBuffer = new StringBuffer ();
+	debugBuffer.append ("<p><span style=\"background: yellow; color: black\">"+str+"</span></p>");
     }
 
     /**
@@ -180,9 +252,10 @@ public class ResponseTrans implements Externalizable {
      */
     public void encode (Object what) {
 	if (what != null) {
+	    String str = what.toString ();
 	    if (buffer == null)
-	        buffer = new StringBuffer (512);
-	    HtmlEncoder.encodeAll (what.toString (), buffer);
+	        buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
+	    HtmlEncoder.encodeAll (str, buffer);
 	}
     }
 
@@ -192,9 +265,10 @@ public class ResponseTrans implements Externalizable {
      */
     public void format (Object what) {
 	if (what != null) {
+	    String str = what.toString ();
 	    if (buffer == null)
-	        buffer = new StringBuffer (512);
-	    HtmlEncoder.encode (what.toString (), buffer);
+	        buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
+	    HtmlEncoder.encode (str, buffer);
 	}
     }
 
@@ -205,9 +279,10 @@ public class ResponseTrans implements Externalizable {
      */
     public void encodeXml (Object what) {
 	if (what != null) {
+	    String str = what.toString ();
 	    if (buffer == null)
-	        buffer = new StringBuffer (512);
-	    HtmlEncoder.encodeXml (what.toString (), buffer);
+	        buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
+	    HtmlEncoder.encodeXml (str, buffer);
 	}
     }
 
@@ -217,18 +292,19 @@ public class ResponseTrans implements Externalizable {
      */
     public void encodeForm (Object what) {
 	if (what != null) {
+	    String str = what.toString ();
 	    if (buffer == null)
-	        buffer = new StringBuffer (512);
-	    HtmlEncoder.encodeAll (what.toString (), buffer, false);
+	        buffer = new StringBuffer (Math.max (str.length()+100, INITIAL_BUFFER_SIZE));
+	    HtmlEncoder.encodeAll (str, buffer, false);
 	}
     }
 
 
-    public void append (String what) {
-	if (what != null) {
+    public void append (String str) {
+	if (str != null) {
 	    if (buffer == null)
-	        buffer = new StringBuffer (512);
-	    buffer.append (what);
+	        buffer = new StringBuffer (Math.max (str.length(), INITIAL_BUFFER_SIZE));
+	    buffer.append (str);
 	}
     }
 
@@ -259,15 +335,32 @@ public class ResponseTrans implements Externalizable {
 	// only use default charset if not explicitly set for this response.
 	if (charset == null)
 	    charset = cset;
-
-	boolean error = false;
+	// if charset is not set, use western encoding
+	if (charset == null)
+	    charset = "ISO-8859-1";
+	boolean encodingError = false;
 	if (response == null) {
 	    if (buffer != null) {
+	        if (debugBuffer != null)
+	            buffer.append (debugBuffer);
 	        try {
 	            response = buffer.toString ().getBytes (charset);
 	        } catch (UnsupportedEncodingException uee) {
-	            error = true;
+	            encodingError = true;
 	            response = buffer.toString ().getBytes ();
+	        }
+	        // if etag is not set, calc MD5 digest and check it
+	        if (etag == null && lastModified == -1 &&
+	            redir == null && error == null) try {
+	            digest = MessageDigest.getInstance("MD5");
+	            byte[] b = digest.digest(response);
+	            etag = "\""+new String (Base64.encode(b))+"\"";
+	            if (reqtrans != null && reqtrans.hasETag (etag)) {
+	                response = new byte[0];
+	                notModified = true;
+	            }
+	        } catch (Exception ignore) {
+	            // Etag creation failed for some reason. Ignore.
 	        }
 	        buffer = null; // make sure this is done only once, even with more requsts attached
 	    } else {
@@ -276,7 +369,7 @@ public class ResponseTrans implements Externalizable {
 	}
 	notifyAll ();
 	// if there was a problem with the encoding, let the app know
-	if (error)
+	if (encodingError)
 	    throw new UnsupportedEncodingException (charset);
     }
 
@@ -307,21 +400,96 @@ public class ResponseTrans implements Externalizable {
 	return contentType;
     }
 
-    public void setSkinpath (Object obj) {
-	this.skinpath = obj;
-	this.translatedSkinpath = null;
+    public void setLastModified (long modified) {
+	if (modified > -1 && reqtrans != null &&
+	    reqtrans.getIfModifiedSince() >= modified)
+	{
+	    notModified = true;
+	    throw new RedirectException (null);
+	}
+	lastModified = modified;
     }
 
-    public Object getSkinpath () {
+    public long getLastModified () {
+	return lastModified;
+    }
+
+    public void setETag (String value) {
+	etag = value == null ? null : "\""+value+"\"";
+	if (etag != null && reqtrans != null && reqtrans.hasETag (etag)) {
+	    notModified = true;
+	    throw new RedirectException (null);
+	}
+    }
+    
+    public String getETag () {
+	return etag;
+    }
+    
+    public boolean getNotModified () {
+	return notModified; 
+    }
+
+    public void dependsOn (Object what) {
+	if (digest == null) try {
+	    digest = MessageDigest.getInstance ("MD5");
+	} catch (NoSuchAlgorithmException nsa) {
+	    // MD5 should always be available
+	}
+	if (what == null) {
+	    digest.update (new byte[0]);
+	} else if (what instanceof Date) {
+	    digest.update (MD5Encoder.toBytes(((Date) what).getTime()));
+	} else if (what instanceof byte[]) {
+	    digest.update ((byte[]) what);
+	} else {
+	    String str = what.toString();
+	    if (str != null)
+	        digest.update (str.getBytes ());
+	    else
+	        digest.update (new byte[0]);
+	}
+    }
+
+    public void digestDependencies () {
+	if (digest == null)
+	    return;
+	byte[] b = digest.digest(MD5Encoder.toBytes (applicationChecksum));
+	/* StringBuffer buf = new StringBuffer(b.length*2);
+	for ( int i=0; i<b.length; i++ ) {
+	    int j = (b[i]<0) ? 256+b[i] : b[i];
+	    if ( j<16 ) buf.append("0");
+	    buf.append(Integer.toHexString(j));
+	}
+	setETag (buf.toString ()); */
+	setETag (new String (Base64.encode(b)));
+    }
+
+    public void setApplicationChecksum (long n) {
+	applicationChecksum = n;
+    }
+
+    public void setSkinpath (Object[] arr) {
+	this.skinpath = arr;
+	skincache = null;
+    }
+
+    public Object[] getSkinpath () {
+	if (skinpath == null)
+	    skinpath = new Object[0];
 	return skinpath;
     }
 
-    public void setTranslatedSkinpath (Object[] arr) {
-	this.translatedSkinpath = arr;
+    public Skin getCachedSkin (String id) {
+	if (skincache == null)
+	    return null;
+	return (Skin) skincache.get (id);
     }
 
-    public Object[] getTranslatedSkinpath () {
-	return translatedSkinpath;
+    public void cacheSkin (String id, Skin skin) {
+	if (skincache == null)
+	    skincache = new HashMap ();
+	skincache.put (id, skin);
     }
 
     public synchronized void setCookie (String key, String value) {
@@ -382,6 +550,10 @@ public class ResponseTrans implements Externalizable {
 	cache = s.readBoolean ();
 	status = s.readInt ();
 	realm = (String) s.readObject ();
+	lastModified = s.readLong ();
+	notModified = s.readBoolean ();
+	charset = (String) s.readObject ();
+	etag = (String) s.readObject ();
     }
 
     public void writeExternal (ObjectOutput s) throws IOException {
@@ -395,6 +567,10 @@ public class ResponseTrans implements Externalizable {
 	s.writeBoolean (cache);
 	s.writeInt (status);
 	s.writeObject (realm);
+	s.writeLong (lastModified);
+	s.writeBoolean (notModified);
+	s.writeObject (charset);
+	s.writeObject (etag);
     }
 
 }

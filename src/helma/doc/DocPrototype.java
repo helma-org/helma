@@ -58,7 +58,7 @@ public class DocPrototype extends DocElement implements IPathElement	{
 				funcVec.addElement(functions[i]);
 			}
 		}
-		return (DocFunction[])funcVec.toArray(new DocFunction[funcVec.size()]);;
+		return (DocFunction[])funcVec.toArray(new DocFunction[funcVec.size()]);
 	}
 
 
