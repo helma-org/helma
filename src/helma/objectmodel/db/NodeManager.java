@@ -171,7 +171,7 @@ public final class NodeManager {
 	        deleteNode (db, tx.txn, node);
 	    }
 	}
-    }	
+    }
 
 
     /**
@@ -1197,7 +1197,8 @@ public final class NodeManager {
     */
     public void replicateCache (Vector add, Vector delete) {
 	if (logReplication)
-	    app.logEvent ("Received cache replication event: "+add.size()+" added, "+delete.size()+" deleted");
+	    app.logEvent ("Received cache replication event: "+add.size()+
+	                  " added, "+delete.size()+" deleted");
 	synchronized (cache) {
 	    for (Enumeration en=add.elements(); en.hasMoreElements(); ) {
 	        Node n = (Node) en.nextElement ();
@@ -1210,14 +1211,17 @@ public final class NodeManager {
 	        cache.put (n.getKey(), n);
 	    }
 	    for (Enumeration en=delete.elements(); en.hasMoreElements(); ) {
+	        // NOTE: it would be more efficient to transfer just the keys
+	        // of nodes that are to be deleted.
 	        Node n = (Node) en.nextElement ();
 	        DbMapping dbm = app.getDbMapping (n.getPrototype ());
 	        if (dbm != null)
 	            dbm.notifyDataChange ();
 	        n.setDbMapping (dbm);
 	        n.nmgr = safe;
-	        cache.put (n.getKey(), n);
-	        evictNode (n);
+	        Node oldNode = (Node) cache.get (n.getKey());
+	        if (oldNode != null)
+	            evictNode (oldNode);
 	    }
 	}
     }
