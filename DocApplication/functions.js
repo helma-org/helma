@@ -55,12 +55,13 @@ function getPage (obj, action, backPath) {
 	var str = res.popStringBuffer ();
 	// get the baseURI out of the url and replace
 	// it with the given relative prefix
-	var reg = new RegExp ("href=\"" + this.href ("") + "([^\"]+)\"");
+	// (keep anchors in regex!)
+	var reg = new RegExp ("href=\"" + this.href ("") + "([^\"#]+)([^\"]*)\"");
 	reg.global = true;
-	str = str.replace (reg, "href=\"" + backPath + "$1.html\"");
-	var reg = new RegExp ("src=\"" + this.href ("") + "([^\"]+)\"");
+	str = str.replace (reg, "href=\"" + backPath + "$1.html$2\"");
+	var reg = new RegExp ("src=\"" + this.href ("") + "([^\"#]+)([^\"]*)\"");
 	reg.global = true;
-	str = str.replace (reg, "src=\"" + backPath + "$1.html\"");
+	str = str.replace (reg, "src=\"" + backPath + "$1.html$2\"");
 	// shorten links, so that function files can move up one directory
 	// in the hierarchy
 	var reg = new RegExp ("(prototype_[^/]+/[^/]+)/main.html");
