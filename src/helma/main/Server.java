@@ -15,108 +15,130 @@ import helma.framework.*;
 import helma.framework.core.*;
 import helma.xmlrpc.*;
 import helma.util.*;
+import Acme.Serve.Serve;
 
 
 /**
  * Helma server main class.
  */
- 
+
  public class Server implements IPathElement, Runnable {
 
-    public static final String version = "1.2pre3 2002/06/27";
-    public static final long starttime = System.currentTimeMillis();
+    public static final String version = "1.2pre4 2002/07/12";
+    public long starttime;
 
-    public static boolean useTransactions = true;
-    public static boolean paranoid;
-    public static String dbFilename = "hop.db";
+    // if true we only accept RMI and XML-RPC connections from 
+    // explicitly listed hosts.
+    public boolean paranoid;
 
     private ApplicationManager appManager;
-	
+
     private Vector extensions;
 
-    private  Thread mainThread;
+    private Thread mainThread;
 
-    static String propfile;
-    static String dbPropfile = "db.properties";
-    static String appsPropfile;
+    // server-wide properties
     static SystemProperties appsProps;
     static SystemProperties dbProps;
     static SystemProperties sysProps;
-    static int port = 5055;
-    static int webport = 0;
 
-    Acme.Serve.Serve websrv;
+    // server ports
+    int rmiPort = 5055;
+    int xmlrpcPort = 5056;
+    int websrvPort = 0;
 
-    static Hashtable dbSources;
+    // map of server-wide database sources
+    Hashtable dbSources;
 
+    // static server instance
     private static Server server;
 
     protected static File hopHome = null;
 
+    // our logger
     private static Logger logger;
 
-    protected static WebServer xmlrpc;
+    // the embedded web server
+    protected Serve websrv;
+
+    // the XML-RPC server
+    protected WebServer xmlrpc;
 
 
+
+    /**
+     *  static main entry point.
+     */
     public static void main (String args[]) throws IOException {
 
 	// check if we are running on a Java 2 VM - otherwise exit with an error message
-	String jversion = System.getProperty ("java.version");
-	if (jversion == null || jversion.startsWith ("1.1") || jversion.startsWith ("1.0")) {
+	String javaVersion = System.getProperty ("java.version");
+	if (javaVersion == null || javaVersion.startsWith ("1.1") || javaVersion.startsWith ("1.0")) {
 	    System.err.println ("This version of Helma requires Java 1.2 or greater.");
-	    if (jversion == null) // don't think this will ever happen, but you never know
+	    if (javaVersion == null) // don't think this will ever happen, but you never know
 	        System.err.println ("Your Java Runtime did not provide a version number. Please update to a more recent version.");
 	    else
-	        System.err.println ("Your Java Runtime is version "+jversion+". Please update to a more recent version.");
-	    System.exit (1);	
+	        System.err.println ("Your Java Runtime is version "+javaVersion+". Please update to a more recent version.");
+	    System.exit (1);
 	}
-	
+
+	// create new server instance
+	server = new Server (args);
+    }
+
+    /**
+     * Constructs a new Server instance with an array of command line options.
+     */
+    public Server (String[] args) {
+
+	starttime = System.currentTimeMillis();
 	String homeDir = null;
 
 	boolean usageError = false;
 
-	useTransactions = true;
+	// file names of various property files
+	String propfile = null;
+	String dbPropfile = "db.properties";
+	String appsPropfile = null;
 
+	// parse arguments
 	for (int i=0; i<args.length; i++) {
 	    if (args[i].equals ("-h") && i+1<args.length)
 	        homeDir = args[++i];
 	    else if (args[i].equals ("-f") && i+1<args.length)
 	        propfile = args[++i];
-	    else if (args[i].equals ("-t"))
-	        useTransactions = false;
 	    else if (args[i].equals ("-p") && i+1<args.length) {
 	        try {
-	            port = Integer.parseInt (args[++i]);
+	            rmiPort = Integer.parseInt (args[++i]);
 	        } catch (Exception portx) {
-	             usageError = true;
+	            usageError = true;
+	        }
+	    } else if (args[i].equals ("-x") && i+1<args.length) {
+	        try {
+	            xmlrpcPort = Integer.parseInt (args[++i]);
+	        } catch (Exception portx) {
+	            usageError = true;
 	        }
 	    } else if (args[i].equals ("-w") && i+1<args.length) {
 	        try {
-	            webport = Integer.parseInt (args[++i]);
+	            websrvPort = Integer.parseInt (args[++i]);
 	        } catch (Exception portx) {
-	             usageError = true;
+	            usageError = true;
 	        }
 	    } else
 	        usageError = true;
 	}
 
 	if (usageError ) {
-	    System.out.println ("usage: java helma.objectmodel.db.Server [-h dir] [-f file] [-p port] [-w port] [-t]");
+	    System.out.println ("usage: java helma.objectmodel.db.Server [-h dir] [-f file] [-p port] [-w port] [-x port]");
 	    System.out.println ("  -h dir     Specify hop home directory");
 	    System.out.println ("  -f file    Specify server.properties file");
-	    System.out.println ("  -p port    Specify TCP port number");
-	    System.out.println ("  -w port    Start embedded Web server on that port");
-	    System.out.println ("  -t         Disable Berkeley DB Transactions");
+	    System.out.println ("  -p port    Specify RMI port number");
+	    System.out.println ("  -w port    Specify port number for embedded Web server");
+	    System.out.println ("  -x port    Specify XML-RPC port number");
 	    getLogger().log ("Usage Error - exiting");
 	    System.exit (0);
 	}
-
-	server = new Server (homeDir);
-    }
-
-    public Server (String home) {
-
-	String homeDir = home;
 
 	// get main property file from home dir or vice versa, depending on what we have.
 	// get property file from hopHome
@@ -126,8 +148,9 @@ import helma.util.*;
 	    else
 	        propfile = new File ("server.properties").getAbsolutePath ();
 	}
-
+	// create system properties
 	sysProps = new SystemProperties (propfile);
+
 	// get hopHome from property file
 	if (homeDir == null)
 	    homeDir = sysProps.getProperty ("hophome");
@@ -157,6 +180,7 @@ import helma.util.*;
 	else
 	    helper = new File (hopHome, "apps.properties");
 	appsPropfile = helper.getAbsolutePath ();
+	appsProps = new SystemProperties (appsPropfile);
 	getLogger().log ("appsPropfile = "+appsPropfile);
 
 	paranoid = "true".equalsIgnoreCase (sysProps.getProperty ("paranoid"));
@@ -217,15 +241,15 @@ import helma.util.*;
 	try {
 
 	    // start embedded web server if port is specified
-	    if (webport > 0) {
-	        websrv = new Acme.Serve.Serve (webport, sysProps);
+	    if (websrvPort > 0) {
+	        websrv = new Acme.Serve.Serve (websrvPort, sysProps);
 	    }
 
-                 String xmlparser = sysProps.getProperty ("xmlparser");
+	    String xmlparser = sysProps.getProperty ("xmlparser");
 	    if (xmlparser != null)
 	        XmlRpc.setDriver (xmlparser);
 	    // XmlRpc.setDebug (true);
-	    xmlrpc = new WebServer (port+1);
+	    xmlrpc = new WebServer (xmlrpcPort);
 	    if (paranoid) {
 	        xmlrpc.setParanoid (true);
 	        String xallow = sysProps.getProperty ("allowXmlRpc");
@@ -235,7 +259,7 @@ import helma.util.*;
 	                xmlrpc.acceptClient (st.nextToken ());
 	        }
 	    }
-	    getLogger().log ("Starting XML-RPC server on port "+(port+1));
+	    getLogger().log ("Starting XML-RPC server on port "+(xmlrpcPort));
 
 	    // the following seems not to be necessary after all ...
 	    // System.setSecurityManager(new RMISecurityManager());
@@ -251,14 +275,13 @@ import helma.util.*;
 	    }
 
 	    if (websrv == null) {
-	        getLogger().log ("Starting server on port "+port);
-	        LocateRegistry.createRegistry (port);
+	        getLogger().log ("Starting RMI server on port "+rmiPort);
+	        LocateRegistry.createRegistry (rmiPort);
 	    }
 
 
-	    // start application framework
-	    appsProps = new SystemProperties (appsPropfile);
-	    appManager = new ApplicationManager (port, hopHome, appsProps, this);
+	    // create application manager
+	    appManager = new ApplicationManager (rmiPort, hopHome, appsProps, this);
 
 
 	} catch (Exception gx) {
@@ -296,7 +319,7 @@ import helma.util.*;
     public Object[] getApplications () {
 		return appManager.getApplications ();
     }
-    
+
     /**
      * Get an Application by name
      */
@@ -326,22 +349,22 @@ import helma.util.*;
     /**
      *  Get the Home directory of this server.
      */
-    public static File getHopHome () {
+    public File getHopHome () {
 	return hopHome;
     }
 
-	/**
-     * Get the main Server
+    /**
+     * Get the main Server instance.
      */
-	public static Server getServer()	{
-		return server;
-	}
+    public static Server getServer()	{
+	return server;
+    }
 
     /**
     *  Get the Server's  XML-RPC web server.
     */
     public static WebServer getXmlRpcServer() {
-	return xmlrpc;
+	return server.xmlrpc;
     }
 
     /**
@@ -349,7 +372,7 @@ import helma.util.*;
      */
     private void checkRunning () throws Exception {
 	try {
-	    java.net.Socket socket = new java.net.Socket ("localhost", port);
+	    java.net.Socket socket = new java.net.Socket ("localhost", rmiPort);
 	} catch (Exception x) {
 	    return;
 	}
@@ -357,15 +380,15 @@ import helma.util.*;
 	throw new Exception ("Error: Server already running on this port");
     }
 
-	public static String getProperty( String key )	{
-		return (String)sysProps.get(key);		
+	public String getProperty( String key )	{
+		return (String)sysProps.get(key);
 	}
-	
-	public static SystemProperties getProperties()	{
+
+	public SystemProperties getProperties()	{
 		return sysProps;
 	}
 
-	public static File getAppsHome()	{
+	public File getAppsHome()	{
 		String appHome = sysProps.getProperty ("appHome");
 		if (appHome != null && !"".equals (appHome.trim()))
 		    return new File (appHome);
@@ -381,7 +404,7 @@ import helma.util.*;
 		appManager.start (name);
 		appManager.register (name);
 	}
-	
+
 	public void stopApplication(String name)	{
 		appManager.stop (name);
 	}
