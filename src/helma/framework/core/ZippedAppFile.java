@@ -36,7 +36,7 @@ public class ZippedAppFile implements Updatable {
      * the file has been modified or deleted.
      */
     public boolean needsUpdate () {
-	return lastmod != file.lastModified ();
+	return !file.exists () || lastmod != file.lastModified ();
     }
 
 
