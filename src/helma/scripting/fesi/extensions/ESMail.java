@@ -50,7 +50,7 @@ public class ESMail extends ESObject implements Serializable {
 
 
     public ESMail (MailExtension mailx) {
-	super (mailx.esMailPrototype, mailx.evaluator);
+	super (mailx.esMailPrototype, mailx.eval);
 	this.status = OK;
 	this.mailx = mailx;
 	this.mprops = mailx.mprops;

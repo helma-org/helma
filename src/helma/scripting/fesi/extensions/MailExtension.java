@@ -21,7 +21,7 @@ import java.util.*;
 public class MailExtension extends Extension {
 
 
-    protected Evaluator evaluator = null;
+    protected Evaluator eval = null;
     protected ObjectPrototype esMailPrototype = null;
     protected Properties mprops;
 
@@ -39,7 +39,7 @@ public class MailExtension extends Extension {
      */
     public void initializeExtension(Evaluator evaluator) throws EcmaScriptException {
 
-        this.evaluator = evaluator;
+        this.eval = evaluator;
         GlobalObject go = evaluator.getGlobalObject();
         FunctionPrototype fp = (FunctionPrototype) evaluator.getFunctionPrototype();
 
