@@ -64,9 +64,9 @@ public class FunctionFile {
             ObjectPrototype op = reval.getPrototype (prototype.getName());
             reval.evaluator.evaluate(fr, op, es, false);
         } catch (IOException e) {
-            IServer.getLogger().log ("Error parsing function file "+app.getName()+":"+prototype.getName()+"/"+file.getName()+": "+e);
+            app.logEvent ("Error parsing function file "+app.getName()+":"+prototype.getName()+"/"+file.getName()+": "+e);
         } catch (EcmaScriptException e) {
-            IServer.getLogger().log ("Error parsing function file "+app.getName()+":"+prototype.getName()+"/"+file.getName()+": "+e);
+            app.logEvent ("Error parsing function file "+app.getName()+":"+prototype.getName()+"/"+file.getName()+": "+e);
         } finally {
             if (fr!=null) {
                 try {

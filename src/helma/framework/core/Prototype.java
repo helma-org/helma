@@ -35,7 +35,7 @@ public class Prototype {
 
      public Prototype (File codeDir, Application app) {
 
-	IServer.getLogger().log ("Constructing Prototype "+app.getName()+"/"+codeDir.getName ());
+	app.logEvent ("Constructing Prototype "+app.getName()+"/"+codeDir.getName ());
 
 	this.codeDir = codeDir;
 	this.app = app;
@@ -117,7 +117,7 @@ public class Prototype {
 	                app.typemgr.updatePrototype (this.name, codeDir,  this);
 	                // TypeManager.broadcaster.broadcast ("Finished update for prototype "+name+" @ "+new Date ()+"<br><hr>");
 	            } catch (Exception x) {
-	                IServer.getLogger().log ("Error building function protos in prototype: "+x);
+	                app.logEvent ("Error building function protos in prototype: "+x);
 	                // TypeManager.broadcaster.broadcast ("Error updating prototype "+name+" in application "+app.getName()+":<br>"+x.getMessage ()+"<br><hr>");
 	            }
 	            retval = true;

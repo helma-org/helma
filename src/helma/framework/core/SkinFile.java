@@ -49,9 +49,9 @@ public class SkinFile {
 	    char c[] = new char[(int) file.length()];
 	    reader.read (c);
 	    reader.close();
-	    skin = new Skin (new String (c));
+	    skin = new Skin (new String (c), app);
 	} catch (IOException x) {
-	    IServer.getLogger().log ("Error reading Skin "+file+": "+x);
+	    app.logEvent ("Error reading Skin "+file+": "+x);
 	}
 	
 	lastmod = file.lastModified ();

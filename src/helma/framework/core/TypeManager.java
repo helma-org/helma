@@ -5,8 +5,6 @@ package helma.framework.core;
 
 import helma.objectmodel.*;
 import helma.util.*;
-import FESI.Exceptions.*;
-import FESI.Data.*;
 import java.util.*;
 import java.io.*;
 
@@ -52,6 +50,9 @@ public class TypeManager implements Runnable {
 	f = new File (appDir, "global");
 	if (!f.exists())	
 	    f.mkdir ();
+	f = new File (appDir, "hopobject");
+	if (!f.exists())	
+	    f.mkdir ();
 	prototypes = new Hashtable ();
 	registeredEvaluators = Collections.synchronizedList (new ArrayList (30));
 	nodeProto = null;
@@ -70,7 +71,7 @@ public class TypeManager implements Runnable {
 	            Prototype proto = getPrototype (list[i]);
 	            if (proto != null) {
 	                // check if existing prototype needs update
-	                // IServer.getLogger().log (protoDir.lastModified ());
+	                // app.logEvent (protoDir.lastModified ());
 	                updatePrototype (list[i], protoDir, proto);
 	            } else {
 	                // create new prototype
@@ -86,7 +87,7 @@ public class TypeManager implements Runnable {
 	    }
 
 	} catch (Exception ignore) {
-	    IServer.getLogger().log (this+": "+ignore);
+	    app.logEvent (this+": "+ignore);
 	}
 
 	if (rewire) {
@@ -94,7 +95,7 @@ public class TypeManager implements Runnable {
 	    app.rewireDbMappings ();
 	    rewire = false;
 	}
-	// IServer.getLogger().log (" ...done @ "+ (System.currentTimeMillis () - now)+ "--- "+idleSeconds);
+	// app.logEvent (" ...done @ "+ (System.currentTimeMillis () - now)+ "--- "+idleSeconds);
     }
 
 
@@ -139,7 +140,7 @@ public class TypeManager implements Runnable {
 	        long sleeptime = 1500 + Math.min (idleSeconds*30, 3500);
 	        typechecker.sleep (sleeptime);
 	    } catch (InterruptedException x) {
-	        // IServer.getLogger().log ("Typechecker interrupted");
+	        // app.logEvent ("Typechecker interrupted");
 	        break;
 	    }
 	    check ();
@@ -148,7 +149,7 @@ public class TypeManager implements Runnable {
 
 
     public void registerPrototype (String name, File dir, Prototype proto) {
-        // IServer.getLogger().log ("registering prototype "+name);
+        // app.logEvent ("registering prototype "+name);
 
         // show the type checker thread that there has been type activity
         idleSeconds = 0;
@@ -173,7 +174,7 @@ public class TypeManager implements Runnable {
                     Template t = new Template (tmpfile, tmpname, proto);
                     ntemp.put (tmpname, t);
                 } catch (Throwable x) {
-                    IServer.getLogger().log ("Error creating prototype: "+x);
+                    app.logEvent ("Error creating prototype: "+x);
                 }
 
             } else if (list[i].endsWith (app.scriptExtension) && tmpfile.length () > 0) {
@@ -181,7 +182,7 @@ public class TypeManager implements Runnable {
                     FunctionFile ff = new FunctionFile (tmpfile, tmpname, proto);
                     nfunc.put (tmpname, ff);
                 } catch (Throwable x) {
-                    IServer.getLogger().log ("Error creating prototype: "+x);
+                    app.logEvent ("Error creating prototype: "+x);
                 }
 
             } else if (list[i].endsWith (app.actionExtension) && tmpfile.length () > 0) {
@@ -189,14 +190,14 @@ public class TypeManager implements Runnable {
                     Action af = new Action (tmpfile, tmpname, proto);
                     nact.put (tmpname, af);
                 } catch (Throwable x) {
-                    IServer.getLogger().log ("Error creating prototype: "+x);
+                    app.logEvent ("Error creating prototype: "+x);
                 }
            }  else if (list[i].endsWith (app.skinExtension)) {
                 try {
                     SkinFile sf = new SkinFile (tmpfile, tmpname, proto);
                     nskins.put (tmpname, sf);
                 } catch (Throwable x) {
-                    IServer.getLogger().log ("Error creating prototype: "+x);
+                    app.logEvent ("Error creating prototype: "+x);
                 }
            }
         }
@@ -216,7 +217,7 @@ public class TypeManager implements Runnable {
 
 
     public void updatePrototype (String name, File dir, Prototype proto) {
-        // IServer.getLogger().log ("updating prototype "+name);
+        // app.logEvent ("updating prototype "+name);
 
         String list[] = dir.list();
         Hashtable ntemp = new Hashtable ();
@@ -243,7 +244,7 @@ public class TypeManager implements Runnable {
                         idleSeconds = 0;
                     }
                 } catch (Throwable x) {
-                    IServer.getLogger().log ("Error updating prototype: "+x);
+                    app.logEvent ("Error updating prototype: "+x);
                 }
                 ntemp.put (tmpname, t);
 
@@ -258,7 +259,7 @@ public class TypeManager implements Runnable {
 	           idleSeconds = 0;
                     }
                 } catch (Throwable x) {
-                    IServer.getLogger().log ("Error updating prototype: "+x);
+                    app.logEvent ("Error updating prototype: "+x);
                 }
                 nfunc.put (tmpname, ff);
 
@@ -273,7 +274,7 @@ public class TypeManager implements Runnable {
 	           idleSeconds = 0;
                     }
                 } catch (Throwable x) {
-                    IServer.getLogger().log ("Error updating prototype: "+x);
+                    app.logEvent ("Error updating prototype: "+x);
                 }
                 nact.put (tmpname, af);
 
@@ -288,7 +289,7 @@ public class TypeManager implements Runnable {
 	           idleSeconds = 0;
                     }
                 } catch (Throwable x) {
-                    IServer.getLogger().log ("Error updating prototype: "+x);
+                    app.logEvent ("Error updating prototype: "+x);
                 }
                 nskins.put (tmpname, sf);
 
@@ -299,7 +300,7 @@ public class TypeManager implements Runnable {
 	            rewire = true;
 	        }
 	    } catch (Exception ignore) {
-	        IServer.getLogger().log ("Error updating db mapping for type "+name+": "+ignore);
+	        app.logEvent ("Error updating db mapping for type "+name+": "+ignore);
 	    }
 	}
         }

@@ -135,7 +135,7 @@ public class RequestEvaluator implements Runnable {
         try {
 	do {
 
-	    // IServer.getLogger().log ("got request "+reqtype);
+	    // app.logEvent ("got request "+reqtype);
 
 	    switch (reqtype) {
 	    case HTTP:
@@ -339,7 +339,7 @@ public class RequestEvaluator implements Runnable {
 
 	                abortTransaction (false);
 
-	                IServer.getLogger().log ("### Exception in "+app.getName()+"/"+req.path+": "+x);
+	                app.logEvent ("### Exception in "+app.getName()+"/"+req.path+": "+x);
 	                // Dump the profiling data to System.err
 	                if (app.debug) {
 	                    ((Transactor) Thread.currentThread ()).timer.dump (System.err);
@@ -465,7 +465,7 @@ public class RequestEvaluator implements Runnable {
 	            String msg = wrong.getMessage ();
 	            if (msg == null || msg.length () == 0)
 	                msg = wrong.toString ();
-	            IServer.getLogger().log ("Error executing "+funcdesc+": "+msg);
+	            app.logEvent ("Error executing "+funcdesc+": "+msg);
 	            this.exception = new Exception (msg);
 	        }
 	        break;
@@ -538,7 +538,7 @@ public class RequestEvaluator implements Runnable {
 	checkThread ();
 	wait (app.requestTimeout);
  	if (reqtype != NONE) {
-	    IServer.getLogger().log ("Stopping Thread for Request "+app.getName()+"/"+req.path);
+	    app.logEvent ("Stopping Thread for Request "+app.getName()+"/"+req.path);
 	    stopThread ();
 	    res.reset ();
 	    res.write ("<b>Error in application '"+app.getName()+"':</b> <br><br><pre>Request timed out.</pre>");
@@ -641,7 +641,7 @@ public class RequestEvaluator implements Runnable {
      *  notify.
      */
     public synchronized void stopThread () {
-	IServer.getLogger().log ("Stopping Thread "+rtx);
+	app.logEvent ("Stopping Thread "+rtx);
 	Transactor t = rtx;
 	evaluator.thread = null;
 	rtx = null;
@@ -665,7 +665,7 @@ public class RequestEvaluator implements Runnable {
 	    throw new ApplicationStoppedException ();
 
 	if (rtx == null || !rtx.isAlive()) {
-	    // IServer.getLogger().log ("Starting Thread");
+	    // app.logEvent ("Starting Thread");
 	    rtx = new Transactor (this, app.threadgroup, app.nmgr);
 	    evaluator.thread = rtx;
 	    rtx.start ();
@@ -737,7 +737,7 @@ public class RequestEvaluator implements Runnable {
                 esn = new ESNode (op, evaluator, n, this);
 
             objectcache.put (n, esn);
-            // IServer.getLogger().log ("Wrapper for "+n+" created");
+            // app.logEvent ("Wrapper for "+n+" created");
         }
 
         return esn;

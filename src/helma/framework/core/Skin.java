@@ -20,8 +20,10 @@ import helma.objectmodel.IServer;
 public class Skin {
 
     Object[] parts;
+    Application app;
 
-    public Skin (String content) {
+    public Skin (String content, Application app) {
+	this.app = app;
 	parse (content);
     }
 
@@ -232,12 +234,12 @@ public class Skin {
 	        } else {
 	            String msg = "[HopMacro unhandled: "+handler+"."+name+"]";
 	            reval.res.write (" "+msg+" ");
-	            IServer.getLogger().log (msg);
+	            app.logEvent (msg);
 	        }
 	    } catch (Exception x) {
 	        String msg = "[HopMacro error: "+x+"]";
 	        reval.res.write (" "+msg+" ");
-	        IServer.getLogger().log (msg);
+	        app.logEvent (msg);
 	    }
 	}
 

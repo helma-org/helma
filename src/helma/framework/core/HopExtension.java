@@ -567,7 +567,7 @@ public class HopExtension {
             String str = arguments[0].toString ();
             Skin skin = (Skin) app.skincache.get (str);
             if (skin == null) {
-               skin = new Skin (str);
+               skin = new Skin (str, app);
                app.skincache.put (str, skin);
             }
             return new ESWrapper (skin, evaluator);
@@ -584,7 +584,7 @@ public class HopExtension {
         public ESValue callFunction (ESObject thisObject, ESValue[] arguments) throws EcmaScriptException {
             if (arguments.length != 1 || ESNull.theNull.equals (arguments[0]))
                 throw new EcmaScriptException ("createSkin must be called with one String argument!");
-            return new ESWrapper (new Skin (arguments[0].toString()), evaluator);
+            return new ESWrapper (new Skin (arguments[0].toString(), app), evaluator);
         }
     }
 
@@ -782,7 +782,7 @@ public class HopExtension {
                 return new ESString (age.toString ());
 	     
             } catch (Exception e) {
-                IServer.getLogger().log ("Error formatting date: "+e);
+                app.logEvent ("Error formatting date: "+e);
                 e.printStackTrace ();
                 return new ESString (""); 
             }
@@ -889,7 +889,7 @@ public class HopExtension {
                    parser.parse (new InputSource ((Reader) p));
                 return ESLoader.normalizeObject (parser.getDocument(), evaluator);
             } catch (Exception noluck) {
-                IServer.getLogger().log ("Error creating XML document: "+noluck);
+                app.logEvent ("Error creating XML document: "+noluck);
             }
             return ESNull.theNull;
         }
@@ -918,7 +918,7 @@ public class HopExtension {
                    parser.parse (new InputSource ((Reader) p));
                 return ESLoader.normalizeObject (parser.getDocument(), evaluator);
             } catch (Exception noluck) {
-                IServer.getLogger().log ("Error creating HTML document: "+noluck);
+                app.logEvent ("Error creating HTML document: "+noluck);
             }
             return ESNull.theNull;
         }
@@ -936,7 +936,7 @@ public class HopExtension {
 	   org.jdom.input.DOMBuilder builder = new org.jdom.input.DOMBuilder ();
                 return ESLoader.normalizeObject (builder.build (doc), evaluator);
             } catch (Exception noluck) {
-                IServer.getLogger().log ("Error wrapping JDOM document: "+noluck);
+                app.logEvent ("Error wrapping JDOM document: "+noluck);
             }
             return ESNull.theNull;
         }

@@ -61,7 +61,7 @@ public class Action {
 	    String content = new String (cbuf);
 	    update (content);
 	} catch (Exception filex) {
-	    IServer.getLogger().log ("*** Error reading action file "+file+": "+filex);
+	    app.logEvent ("*** Error reading action file "+file+": "+filex);
 	}
 	lastmod = fmod;
     }
@@ -69,7 +69,7 @@ public class Action {
     
 
     public void update (String content) throws Exception {
-	// IServer.getLogger().log ("Reading text template " + name);
+	// app.logEvent ("Reading text template " + name);
 
 	functionName = name+"_hop_action";
 
@@ -145,10 +145,10 @@ public class Action {
             sl = (ASTStatementList) parser.StatementList();
             is.close();
         } catch (ParseException x) {
-            IServer.getLogger().log ("Error parsing file "+app.getName()+":"+prototype.getName()+"/"+file.getName()+": "+x);
+            app.logEvent ("Error parsing file "+app.getName()+":"+prototype.getName()+"/"+file.getName()+": "+x);
             throw new EcmaScriptParseException (x, new StringEvaluationSource(fulltext, null));
         } catch (Exception x) {
-            IServer.getLogger().log ("Error parsing file "+app.getName()+":"+prototype.getName()+"/"+file.getName()+": "+x);
+            app.logEvent ("Error parsing file "+app.getName()+":"+prototype.getName()+"/"+file.getName()+": "+x);
             throw new RuntimeException (x.getMessage ());
         }
 

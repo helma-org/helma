@@ -13,7 +13,7 @@ import helma.objectmodel.*;
 import helma.objectmodel.db.NodeManager;
 import helma.objectmodel.db.WrappedNodeManager;
 import helma.xmlrpc.*;
-import helma.util.CacheMap;
+import helma.util.*;
 import FESI.Data.*;
 import FESI.Interpreter.*;
 import com.sleepycat.db.DbException;
@@ -28,7 +28,7 @@ import com.sleepycat.db.DbException;
 public class Application extends UnicastRemoteObject implements IRemoteApp, Runnable {
 
     SystemProperties props;
-    File appDir, dbDir;
+    File home, appDir, dbDir;
     private String name;
     protected NodeManager nmgr;
     protected static WebServer xmlrpc;
@@ -56,6 +56,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 
     // Map of requesttrans -> active requestevaluators
     Hashtable activeRequests;
+
+    // Two logs for each application: events and accesses
+    Logger eventLog, accessLog;
     
     protected String templateExtension, scriptExtension, actionExtension, skinExtension;
 
@@ -74,21 +77,27 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	super ();
     }
 
-    public Application (String name, File dbHome, File appHome) throws RemoteException, DbException {
+    public Application (String name, SystemProperties sysProps, File home) throws RemoteException, DbException, IllegalArgumentException {
+	
+	if (name == null || name.trim().length() == 0)
+	    throw new IllegalArgumentException ("Invalid application name: "+name);
 
 	this.name = name;
+	this.home = home;
 
 	threadgroup = new ThreadGroup ("TX-"+name);
 
-	appDir = new File (appHome, name);
+	appDir = new File (home, "apps");
+	appDir = new File (appDir, name);
 	if (!appDir.exists())	
 	    appDir.mkdirs ();
-	dbDir = new File (dbHome, name);
+	dbDir = new File (home, "db");
+	dbDir = new File (dbDir, name);
 	if (!dbDir.exists())	
 	    dbDir.mkdirs ();
 
 	File propfile = new File (appDir, "app.properties");
-	props = new SystemProperties (propfile.getAbsolutePath (), IServer.sysProps);
+	props = new SystemProperties (propfile.getAbsolutePath (), sysProps);
 
 	nmgr = new NodeManager (this, dbDir.getAbsolutePath (), props);
 
@@ -114,7 +123,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
     public void start () {
 
 	eval = new RequestEvaluator (this);
-	IServer.getLogger().log ("Starting evaluators for "+name);
+	logEvent ("Starting evaluators for "+name);
 	int maxThreads = 12;
 	try {
 	    maxThreads = Integer.parseInt (props.getProperty ("maxThreads"));
@@ -131,7 +140,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 
 	typemgr = new TypeManager (this);
 	typemgr.check ();
-	IServer.getLogger().log ("Started type manager for "+name);
+	logEvent ("Started type manager for "+name);
 
 	rootMapping = getDbMapping ("root");
 	userMapping = getDbMapping ("user");
@@ -146,7 +155,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	worker = new Thread (this, "Worker-"+name);
 	worker.setPriority (Thread.NORM_PRIORITY+2);
 	worker.start ();
-	IServer.getLogger().log ("session cleanup and scheduler thread started");
+	logEvent ("session cleanup and scheduler thread started");
 	
 	xmlrpc.addHandler (this.name, new XmlRpcInvoker (this));
 
@@ -364,7 +373,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	    users.setNode (uname, unode);
 	    return users.getNode (uname, false);	
 	} catch (Exception x) {
-	    IServer.getLogger().log ("Error registering User: "+x);
+	    logEvent ("Error registering User: "+x);
 	    return null;
 	}
     }
@@ -438,11 +447,42 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	    this.baseURI = uri;
     }
 
+    public void logEvent (String msg) {
+	if (eventLog == null)
+	    eventLog = getLogger (name+"_event");
+	eventLog.log (msg);
+    }
+
+    public void logAccess (String msg) {
+	if (accessLog == null)
+	    accessLog = getLogger (name+"_access");
+	accessLog.log (msg);
+    }
+
+    public Logger getLogger (String logname) {
+	Logger log = null;
+	String logDir = props.getProperty ("logdir");
+	if (logDir == null)
+	    logDir = "log";
+	try {
+	   File helper = new File (logDir);
+	    if (home != null && !helper.isAbsolute ())
+                      helper = new File (home, logDir);
+	    logDir = helper.getAbsolutePath ();
+	    log = new Logger (logDir, logname);
+	} catch (IOException iox) {
+	    System.err.println ("Could not create log "+logname+" for application "+name+": "+iox);
+	    // fallback to System.out
+	    log = new Logger (System.out);
+	}
+	return log;
+    }
+
     public void run () {
 	long cleanupSleep = 60000;    // thread sleep interval (fixed)
 	long scheduleSleep = 60000;  // interval for scheduler invocation
 	long lastScheduler = 0;
-	IServer.getLogger().log ("Starting scheduler for "+name);
+	logEvent ("Starting scheduler for "+name);
 	// as first thing, invoke function onStart in the root object
 	try {
 	    eval.invokeFunction ((INode) null, "onStart", new ESValue[0]);
@@ -458,12 +498,12 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
  	    try {
 	        worker.sleep (cleanupSleep);
 	    } catch (InterruptedException x) {
-	        IServer.getLogger().log ("Scheduler for "+name+" interrupted");
+	        logEvent ("Scheduler for "+name+" interrupted");
 	        worker = null;
 	        break;
 	    }
 	    try {
-	        IServer.getLogger().log ("Cleaning up "+name+": " + sessions.size () + " sessions active");
+	        logEvent ("Cleaning up "+name+": " + sessions.size () + " sessions active");
 	        long now = System.currentTimeMillis ();
 	        Hashtable cloned = (Hashtable) sessions.clone ();
 	        for (Enumeration e = cloned.elements (); e.hasMoreElements (); ) {
@@ -482,9 +522,9 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	            }
 	        }
 
-	        IServer.getLogger().log ("Cleaned up "+name+": " + sessions.size () + " sessions remaining");
+	        logEvent ("Cleaned up "+name+": " + sessions.size () + " sessions remaining");
 	    } catch (Exception cx) {
-	        IServer.getLogger().log ("Error cleaning up sessions: "+cx);
+	        logEvent ("Error cleaning up sessions: "+cx);
 	        cx.printStackTrace ();
 	    }
 
@@ -502,10 +542,10 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	            else
 	                scheduleSleep = ret;
 	        } catch (Exception ignore) {}
-	        IServer.getLogger().log ("Called scheduler for "+name+", will sleep for "+scheduleSleep+" millis");
+	        logEvent ("Called scheduler for "+name+", will sleep for "+scheduleSleep+" millis");
 	    }
 	}
-	IServer.getLogger().log ("Scheduler for "+name+" exiting");
+	logEvent ("Scheduler for "+name+" exiting");
     }
 
     public void rewireDbMappings () {
@@ -514,7 +554,7 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
 	        DbMapping m = (DbMapping) e.nextElement ();
 	        m.rewire ();
 	    } catch (Exception x) {
-	        IServer.getLogger().log ("Error rewiring DbMappings: "+x);
+	        logEvent ("Error rewiring DbMappings: "+x);
 	    }
 	}
     }
@@ -535,12 +575,12 @@ public class Application extends UnicastRemoteObject implements IRemoteApp, Runn
      * Periodically called to log thread stats for this application
      */
     public void printThreadStats () {
-	IServer.getLogger().log ("Thread Stats for "+name+": "+threadgroup.activeCount()+" active");
+	logEvent ("Thread Stats for "+name+": "+threadgroup.activeCount()+" active");
     	Runtime rt = Runtime.getRuntime ();
 	long free = rt.freeMemory ();
 	long total = rt.totalMemory ();
-	IServer.getLogger().log ("Free memory: "+(free/1024)+" kB");
-	IServer.getLogger().log ("Total memory: "+(total/1024)+" kB");
+	logEvent ("Free memory: "+(free/1024)+" kB");
+	logEvent ("Total memory: "+(total/1024)+" kB");
     }
 
     /**
