@@ -113,8 +113,6 @@ public class ZippedAppFile implements Updatable {
                             proto.addActionFile(act);
                             updatables.add(act);
 
-                            // mark prototype as updated
-                            proto.markUpdated();
                         } else if (fname.endsWith(".hsp")) {
                             String name = fname.substring(0, fname.lastIndexOf("."));
                             String sourceName = file.getName() + "/" + ename;
@@ -126,8 +124,6 @@ public class ZippedAppFile implements Updatable {
                             proto.addTemplate(tmp);
                             updatables.add(tmp);
 
-                            // mark prototype as updated
-                            proto.markUpdated();
                         } else if (fname.endsWith(".skin")) {
                             String name = fname.substring(0, fname.lastIndexOf("."));
                             String content = getZipEntryContent(zip, entry);
@@ -137,6 +133,7 @@ public class ZippedAppFile implements Updatable {
 
                             proto.addSkinFile(skin);
                             updatables.add(skin);
+
                         } else if (fname.endsWith(".js")) {
                             String sourceName = file.getName() + "/" + ename;
                             String content = getZipEntryContent(zip, entry);
@@ -147,17 +144,15 @@ public class ZippedAppFile implements Updatable {
                             proto.addFunctionFile(ff);
                             updatables.add(ff);
 
-                            // mark prototype as updated
-                            proto.markUpdated();
                         } else if ("type.properties".equalsIgnoreCase(fname)) {
                             DbMapping dbmap = proto.getDbMapping();
                             SystemProperties props = dbmap.getProperties();
 
                             props.addProps(file.getName(), zip.getInputStream(entry));
-
-                            // mark prototype as updated
-                            proto.markUpdated();
                         }
+
+                        // mark prototype as updated
+                        proto.markUpdated();
                     }
                 }
             } catch (Throwable x) {
