@@ -496,7 +496,13 @@ public class DbMapping implements Updatable {
 	if (subnodesRel == null || subnodesRel.groupby == null)
 	    return null;
 	if (groupbyMapping == null) {
-	    groupbyMapping = new DbMapping ();
+	    // if a prototype is defined for groupby nodes, use that
+	    // DbMapping instead of creating a new one
+	    if (subnodesRel.groupbyprototype != null)
+	        groupbyMapping = app.getDbMapping (subnodesRel.groupbyprototype);
+	    // if mapping doesn' exist or isn't defined, create a new (anonymous internal) one
+	    if (groupbyMapping == null)
+	        groupbyMapping = new DbMapping ();
 	    groupbyMapping.subnodesRel = subnodesRel.getGroupbySubnodeRelation ();
 	    if (propertiesRel != null)
 	        groupbyMapping.propertiesRel = propertiesRel.getGroupbyPropertyRelation ();
