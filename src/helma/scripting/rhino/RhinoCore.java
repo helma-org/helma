@@ -693,6 +693,11 @@ public final class RhinoCore {
             try {
                 updateEvaluator(prototype, info, new StringReader(fa.function),
                                 action.getSourceName(), 0);
+                if (fa.functionAsString != null) {
+                    // templates have an _as_string variant that needs to be compiled
+                    updateEvaluator(prototype, info, new StringReader(fa.functionAsString),
+                                action.getSourceName(), 0);
+                }
             } catch (Exception esx) {
                 app.logEvent("Error parsing " + action + ": " + esx);
             }
