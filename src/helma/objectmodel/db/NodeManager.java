@@ -487,7 +487,7 @@ public final class NodeManager {
 	String retval = null;
 	try {
 	    Connection con = map.getConnection ();
-	    String q = "SELECT "+map.getIDField()+" FROM "+map.getTableName()+" ORDER BY "+map.getIDField()+" DESC LIMIT 1";
+	    String q = "SELECT MAX("+map.getIDField()+") FROM "+map.getTableName();
 	    qds = new QueryDataSet (con, q);
 	    qds.fetchRecords ();
 	    long currMax = qds.getRecord (0).getValue (1).asLong ();
