@@ -646,8 +646,9 @@ public class Node implements INode, Serializable {
 	}
 
 	// fall back to heuristic parent (the node that fetched this one from db)
-	if (parentID == null)
+	if (parentID == null) {
 	    return null;
+	}
 	return nmgr.getNode (parentID, parentmap);
     }
 
@@ -724,10 +725,10 @@ public class Node implements INode, Serializable {
 
 	if (where < 0 || where > numberOfNodes ())
 	    where = numberOfNodes ();
-	if (node.getParent () != null) {
+	if (node.parentID != null) {
 	    // this makes the job of addLink, which means that addLink and addNode
 	    // are functionally equivalent now.
-	    if (node.getParent () != this || !node.anonymous) {
+	    if (!node.parentID.equals (id) || !node.anonymous) {
 	        node.registerLink (this);
 	    }
 	}
@@ -1530,7 +1531,7 @@ public class Node implements INode, Serializable {
 
 	// check if the main identity of this node is as a named property
 	// or as an anonymous node in a collection
-	if (n.getParent () == null && n.adoptName && !"root".equalsIgnoreCase (n.getPrototype ())) {
+	if (n.parentID == null && n.adoptName && !"root".equalsIgnoreCase (n.getPrototype ())) {
 	    n.setParent (this);
 	    n.name = propname;
 	    n.anonymous = false;
