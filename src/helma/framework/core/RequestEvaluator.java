@@ -314,12 +314,12 @@ public class RequestEvaluator implements Runnable {
 	            } catch (ConcurrencyException x) {
 
 	                res.reset ();
-	                if (++tries < 10) {
+	                if (++tries < 5) {
 	                    // try again after waiting some period
 	                    abortTransaction (true);
 	                    try {
 	                        // wait a bit longer with each try
-	                        int base = 200 * tries;
+	                        int base = 500 * tries;
 	                        Thread.currentThread ().sleep ((long) (base + Math.random ()*base*2));
 	                    } catch (Exception ignore) {}
 	                    continue;
