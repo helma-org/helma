@@ -653,133 +653,19 @@ public class DbMapping implements Updatable {
 	return sourceName == null ? null : typename;
     }
 
+    /**
+     *  Tell if another DbMapping is storage-compatible to this one, i.e. it is stored in the same table or
+     *  embedded database.
+     */
+    public boolean isStorageCompatible (DbMapping other) {
+	if (other == null)
+	    return !isRelational ();
+	if (isRelational ())
+	    return getTableName().equals (other.getTableName ()) &&
+	    		getDbSource().equals (other.getDbSource ());
+	return !other.isRelational ();
+    }
+
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
