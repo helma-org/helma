@@ -181,7 +181,11 @@ public class HopObject extends ScriptableObject {
         if (skin instanceof Skin) {
             s = (Skin) skin;
         } else {
-            s = core.app.getSkin(node, skin.toString(), null);
+            // retrieve res.skinpath, an array of objects that tell us where to look for skins
+            // (strings for directory names and INodes for internal, db-stored skinsets)
+            Object[] skinpath = reval.res.getSkinpath();
+            RhinoCore.unwrapSkinpath(skinpath);
+            s = core.app.getSkin(node, skin.toString(), skinpath);
         }
 
         Map p = null;
@@ -228,7 +232,11 @@ public class HopObject extends ScriptableObject {
         if (skin instanceof Skin) {
             s = (Skin) skin;
         } else {
-            s = core.app.getSkin(node, skin.toString(), null);
+            // retrieve res.skinpath, an array of objects that tell us where to look for skins
+            // (strings for directory names and INodes for internal, db-stored skinsets)
+            Object[] skinpath = reval.res.getSkinpath();
+            RhinoCore.unwrapSkinpath(skinpath);
+            s = core.app.getSkin(node, skin.toString(), skinpath);
         }
 
         Map p = null;

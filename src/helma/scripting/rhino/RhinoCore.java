@@ -674,6 +674,19 @@ public final class RhinoCore {
         }
     }
 
+    protected static Object[] unwrapSkinpath(Object[] skinpath) {
+        if (skinpath != null) {
+            for (int i=0; i<skinpath.length; i++) {
+                if (skinpath[i] instanceof HopObject) {
+                    skinpath[i] = ((HopObject) skinpath[i]).getNode();
+                } else if (skinpath[i] instanceof NativeJavaObject) {
+                    skinpath[i] = ((NativeJavaObject) skinpath[i]).unwrap();
+                }
+            }
+        }
+        return skinpath;
+    }
+
     private synchronized void updateEvaluator(Prototype prototype, Reader reader,
                                               String sourceName, int firstline) {
         // context = Context.enter(context);
