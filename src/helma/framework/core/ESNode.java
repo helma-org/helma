@@ -399,9 +399,11 @@ public class ESNode extends ObjectPrototype {
 	    return rel == null ?  (ESValue) ESNull.theNull :  new ESString (rel);
 	}
 
-	// this is not very nice, but as a hack we expose the id of a node as node.__id__
+	// this is not very nice, but as a hack we return the id of a node as node.__id__
 	if ("__id__".equals (propertyName))
 	    return new ESString (node.getID ());
+	if ("__prototype__".equals (propertyName))
+	    return new ESString (node.getPrototype ());
 
              // this _may_ do a relational query if properties are mapped to a relational type.
 	IProperty p = (IProperty) node.get (propertyName, false);
@@ -446,8 +448,6 @@ public class ESNode extends ObjectPrototype {
 	    return new ESString (node.getFullName ());
 	if ("__hash__".equals (propertyName))
 	    return new ESString (""+node.hashCode ());
-	if ("__prototype__".equals (propertyName))
-	    return new ESString (node.getPrototype ());
 	if ("__node__".equals (propertyName))
 	    return ESLoader.normalizeObject (node, evaluator);
 
