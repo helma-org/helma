@@ -111,7 +111,9 @@ public final class RequestEvaluator implements Runnable {
             do {
                 // long startCheck = System.currentTimeMillis ();
                 app.typemgr.checkPrototypes();
+                // initialize scripting engine
                 initScriptingEngine();
+                // update scripting prototypes
                 scriptingEngine.updatePrototypes();
 
                 // System.err.println ("Type check overhead: "+(System.currentTimeMillis ()-startCheck)+" millis");
