@@ -671,9 +671,8 @@ public class HopExtension {
              ArrayPrototype theArray = new ArrayPrototype(ap, this.evaluator);
              int i=0;
         	for (Enumeration e=users.properties (); e.hasMoreElements (); ) {
-        	    IProperty prop = (IProperty) e.nextElement ();
-        	    if (!"prototype".equals (prop.getName ()) && prop.getType () == IProperty.NODE)
-                     theArray.putProperty (i++, reval.getNodeWrapper (prop.getNodeValue ()));
+        	    String propname = (String) e.nextElement ();
+                 theArray.putProperty (i++, new ESString (propname));
              }
              return theArray;
         }
