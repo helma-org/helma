@@ -4,6 +4,7 @@
 package helma.framework.core;
 
 import helma.objectmodel.*;
+import helma.objectmodel.db.DbMapping;
 import helma.util.*;
 import java.util.*;
 import java.io.*;
