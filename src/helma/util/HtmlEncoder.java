@@ -560,17 +560,20 @@ public final class HtmlEncoder {
 
                 if (entering != INTERNAL && exiting != INTERNAL) {
                     int swallowBreaks = 0;
-                    if (paragraphs && (entering != BLOCK || exiting != BLOCK) &&
+                    if (paragraphs && 
+                          (entering != BLOCK || exiting != BLOCK) &&
                           (exiting < BLOCK) &&
-                          (entering >= SEMIBLOCK || linebreaks > 1) &&
+                          (linebreaks > 1) &&
                           paragraphStart < ret.length()) {
                         ret.insert(paragraphStart, "<p>");
                         ret.append("</p>");
                         swallowBreaks = 2;
                     }
 
+                    // treat entering a SEMIBLOCK as entering a TEXT 
+                    int _entering = entering == SEMIBLOCK ? TEXT : entering;
                     for (int k = linebreaks-1; k>=0; k--) {
-                        if (k >= swallowBreaks && k >= entering && k >= exiting) {
+                        if (k >= swallowBreaks && k >= _entering && k >= exiting) {
                             ret.append("<br />");
                         }
                         ret.append(newLine);
@@ -786,7 +789,7 @@ public final class HtmlEncoder {
 
         // add remaining newlines we may have collected
         int swallowBreaks = 0;
-        if (paragraphs && exiting < BLOCK) {
+        if (paragraphs && entering < BLOCK) {
             ret.insert(paragraphStart, "<p>");
             ret.append("</p>");
             swallowBreaks = 2;
