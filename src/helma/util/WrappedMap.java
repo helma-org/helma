@@ -22,7 +22,12 @@ import java.util.Collection;
 import java.util.HashMap;
 
 /**
- *  A Map that wraps another map and can be set to read-only.
+ *  A Map that wraps another map. We use this class to be able to
+ *  wrap maps as native objects within a scripting engine rather
+ *  than exposing them through Java reflection.
+ *  Additionally, instances of this class can be set to readonly
+ *  and copy-on-write so that the original map is left unchanged
+ *  if the map contents are modified.
  */
 public class WrappedMap implements Map {
 
