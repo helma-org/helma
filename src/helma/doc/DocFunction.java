@@ -160,10 +160,10 @@ public class DocFunction extends DocFileElement {
         int line = 0;
 
         // FIXME for some reason this doesn't compile with winxp/j2sdk141_03
-        // return new TokenStream (reader, null, name, line);
+        return new TokenStream (reader, null, null, name, line);
 
         // so we have to use reflection:
-        try {
+        /* try {
             Class c = Class.forName ("org.mozilla.javascript.TokenStream");
             Constructor[] constr = c.getDeclaredConstructors();
             Object[] params = new Object[4];
@@ -175,7 +175,7 @@ public class DocFunction extends DocFileElement {
         } catch (Exception anything) {
             anything.printStackTrace();
             throw new DocException (anything.toString());
-        }
+        } */
     }
 
 
