@@ -9,7 +9,7 @@ import javax.mail.internet.*;
 import javax.activation.*;
 import java.io.*;
 import java.util.*;
-import helma.objectmodel.IServer;
+import helma.main.Server;
 import helma.framework.core.*;
 import helma.util.*;
 import FESI.Data.*;
@@ -57,7 +57,7 @@ public class ESMail extends ESObject implements Serializable {
 	    Session session = Session.getDefaultInstance(props, null);
 	    message = new MimeMessage (session); 
 	} catch (Throwable t) {
-	    IServer.getLogger().log ("caught in mail constructor: "+t);
+	    Server.getLogger().log ("caught in mail constructor: "+t);
 	}
     }
 
@@ -95,20 +95,15 @@ public class ESMail extends ESObject implements Serializable {
     	}
     	for (int i=0; i<val.length; i++) {
     	    // FIXME: addPart is broken.
-	    /* MimePart mp = null;
-	    if (mp != null) {
-	        BodyPart part = new MimeBodyPart ();
-	        IServer.getLogger().log ("Adding MimePart: "+mp.getContentType ());
-	        MimePartDataSource ds = new MimePartDataSource (mp);
-	        part.setDataHandler (new DataHandler(ds));
-	        // part.setFileName(filename);
-	        // part.setDataHandler (new javax.activation.DataHandler (mp.getContent(), mp.getContentType ()));
-	        multipart.addBodyPart (part);
-	    } else if (val[i] != null) {
-	        BodyPart part = new MimeBodyPart ();
-	        part.setContent (val[i].toString (), "text/plain");
-	        multipart.addBodyPart (part);
-	    } */
+	    MimeBodyPart part = new MimeBodyPart ();
+	    Object obj = val[i].toJavaObject ();
+	    if (obj instanceof String) {
+	        part.setContent (obj.toString (), "text/plain");
+	    } else if (obj instanceof File) {
+	        FileDataSource source = new FileDataSource ((File) obj);
+	        part.setDataHandler (new DataHandler (source));
+	    }
+	    multipart.addBodyPart (part);
 	}
     }
     
