@@ -4,7 +4,11 @@
 package helma.objectmodel.db;
 
 
-import java.util.*;
+import java.util.Vector;
+import java.util.Hashtable;
+import java.util.Enumeration;
+import java.util.Date;
+import java.util.StringTokenizer;
 import java.io.*;
 import java.sql.Types;
 import helma.objectmodel.*;

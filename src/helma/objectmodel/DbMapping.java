@@ -6,7 +6,9 @@ package helma.objectmodel;
 import helma.framework.core.Application;
 import helma.objectmodel.db.WrappedNodeManager;
 import helma.util.Updatable;
-import java.util.*;
+import java.util.Hashtable;
+import java.util.Enumeration;
+import java.util.StringTokenizer;
 import java.sql.*;
 import com.workingdogs.village.*;
 
