@@ -207,7 +207,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 
 	} else {
 
-                 if (!trans.cache || ! caching) {
+	    if (!trans.cache || ! caching) {
 	        // Disable caching of response.
 	        if (protocol == null || !protocol.endsWith ("1.1"))
 	            res.setHeader ("Pragma", "no-cache"); // for HTTP 1.0
