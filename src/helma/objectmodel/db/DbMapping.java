@@ -611,13 +611,6 @@ public final class DbMapping implements Updatable {
 	if (sel != null)
 	    return new StringBuffer (sel);
 	StringBuffer s = new StringBuffer ("SELECT * FROM ");
-	/* String[] cols = getColumns ();
-	for (int i=0; i<cols.length; i++) {
-	    if (i>0)
-	        s.append (",");
-	    s.append (cols[i]);
-	}
-	s.append (" FROM "); */
 	s.append (getTableName ());
 	s.append (" ");
 	// cache rendered string for later calls.
@@ -664,7 +657,7 @@ public final class DbMapping implements Updatable {
     public synchronized KeyDef getKeyDef () {
 	if (!isRelational ())
 	    throw new RuntimeException ("Can't get KeyDef for non-relational data mapping");
-    	if (source == null && parentMapping != null)
+	if (source == null && parentMapping != null)
 	    return parentMapping.getKeyDef ();
 	// Use local variable s to avoid synchronization (keydef may be nulled elsewhere)
 	KeyDef k = keydef;
