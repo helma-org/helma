@@ -545,85 +545,14 @@ public final class NodeManager {
                 }
 
                 stmtNumber++;
-
-                if (p != null) {
-                    if (p.getValue() == null) {
-                        stmt.setNull(stmtNumber, columns[i].getType());
-                    } else {
-                        switch (columns[i].getType()) {
-                            case Types.BIT:
-                            case Types.TINYINT:
-                            case Types.BIGINT:
-                            case Types.SMALLINT:
-                            case Types.INTEGER:
-                                stmt.setLong(stmtNumber, p.getIntegerValue());
-
-                                break;
-
-                            case Types.REAL:
-                            case Types.FLOAT:
-                            case Types.DOUBLE:
-                            case Types.NUMERIC:
-                            case Types.DECIMAL:
-                                stmt.setDouble(stmtNumber, p.getFloatValue());
-
-                                break;
-
-                            case Types.VARBINARY:
-                            case Types.BINARY:
-                            case Types.BLOB:
-                                stmt.setString(stmtNumber, p.getStringValue());
-
-                                break;
-
-                            case Types.LONGVARBINARY:
-                            case Types.LONGVARCHAR:
-
-                                try {
-                                    stmt.setString(stmtNumber, p.getStringValue());
-                                } catch (SQLException x) {
-                                    String str = p.getStringValue();
-                                    Reader r = new StringReader(str);
-
-                                    stmt.setCharacterStream(stmtNumber, r,
-                                                            str.length());
-                                }
-
-                                break;
-
-                            case Types.CHAR:
-                            case Types.VARCHAR:
-                            case Types.OTHER:
-                                stmt.setString(stmtNumber, p.getStringValue());
-
-                                break;
-
-                            case Types.DATE:
-                            case Types.TIME:
-                            case Types.TIMESTAMP:
-                                stmt.setTimestamp(stmtNumber, p.getTimestampValue());
-
-                                break;
-
-                            case Types.NULL:
-                                stmt.setNull(stmtNumber, 0);
-
-                                break;
-
-                            default:
-                                stmt.setString(stmtNumber, p.getStringValue());
-
-                                break;
-                        }
-                    }
+                if (p!=null) {
+                    this.setStatementValues (stmt, stmtNumber, p, columns[i].getType());
+                } else if (name.equalsIgnoreCase(nameField)) {
+                    stmt.setString(stmtNumber, node.getName());
+                } else if (name.equalsIgnoreCase(prototypeField)) {
+                    stmt.setString(stmtNumber, node.getPrototype());
                 } else {
-                    if (name.equalsIgnoreCase(nameField)) {
-                        stmt.setString(stmtNumber, node.getName());
-                    } else if (name.equalsIgnoreCase(prototypeField)) {
-                        stmt.setString(stmtNumber, node.getPrototype());
-                    } else {
-                        stmt.setNull(stmtNumber, columns[i].getType());
-                    }
+                    stmt.setNull(stmtNumber, columns[i].getType());
                 }
             }
 
@@ -742,75 +671,7 @@ public final class NodeManager {
                     Relation rel = dbm.propertyToRelation(p.getName());
 
                     stmtNumber++;
-
-                    if (p.getValue() == null) {
-                        stmt.setNull(stmtNumber, rel.getColumnType());
-                    } else {
-                        switch (rel.getColumnType()) {
-                            case Types.BIT:
-                            case Types.TINYINT:
-                            case Types.BIGINT:
-                            case Types.SMALLINT:
-                            case Types.INTEGER:
-                                stmt.setLong(stmtNumber, p.getIntegerValue());
-
-                                break;
-
-                            case Types.REAL:
-                            case Types.FLOAT:
-                            case Types.DOUBLE:
-                            case Types.NUMERIC:
-                            case Types.DECIMAL:
-                                stmt.setDouble(stmtNumber, p.getFloatValue());
-
-                                break;
-
-                            case Types.VARBINARY:
-                            case Types.BINARY:
-                            case Types.BLOB:
-                                stmt.setString(stmtNumber, p.getStringValue());
-
-                                break;
-
-                            case Types.LONGVARBINARY:
-                            case Types.LONGVARCHAR:
-
-                                try {
-                                    stmt.setString(stmtNumber, p.getStringValue());
-                                } catch (SQLException x) {
-                                    String str = p.getStringValue();
-                                    Reader r = new StringReader(str);
-
-                                    stmt.setCharacterStream(stmtNumber, r, str.length());
-                                }
-
-                                break;
-
-                            case Types.CHAR:
-                            case Types.VARCHAR:
-                            case Types.OTHER:
-                                stmt.setString(stmtNumber, p.getStringValue());
-
-                                break;
-
-                            case Types.DATE:
-                            case Types.TIME:
-                            case Types.TIMESTAMP:
-                                stmt.setTimestamp(stmtNumber, p.getTimestampValue());
-
-                                break;
-
-                            case Types.NULL:
-                                stmt.setNull(stmtNumber, 0);
-
-                                break;
-
-                            default:
-                                stmt.setString(stmtNumber, p.getStringValue());
-
-                                break;
-                        }
-                    }
+                    this.setStatementValues (stmt, stmtNumber, p, rel.getColumnType());
 
                     p.dirty = false;
 
@@ -1803,6 +1664,17 @@ public final class NodeManager {
 
                     break;
 
+                case Types.CLOB:
+                    Clob cl = rs.getClob(i+1+offset);
+                    if (cl==null) {
+                        newprop.setStringValue(null);
+                        break;
+                    }
+                    char[] c = new char[(int) cl.length()];
+                    Reader isr = cl.getCharacterStream();
+                    isr.read(c);
+                    newprop.setStringValue(String.copyValueOf(c));
+                    break;
                 // continue;
                 default:
                     newprop.setStringValue(rs.getString(i+1+offset));
@@ -2000,6 +1872,78 @@ public final class NodeManager {
                 if (oldNode != null) {
                     evictNode(oldNode);
                 }
+            }
+        }
+    }
+
+    private void setStatementValues (PreparedStatement stmt, int stmtNumber, Property p, int columnType) throws SQLException {
+        if (p.getValue() == null) {
+            stmt.setNull(stmtNumber, columnType);
+        } else {
+            switch (columnType) {
+                case Types.BIT:
+                case Types.TINYINT:
+                case Types.BIGINT:
+                case Types.SMALLINT:
+                case Types.INTEGER:
+                    stmt.setLong(stmtNumber, p.getIntegerValue());
+
+                    break;
+
+                case Types.REAL:
+                case Types.FLOAT:
+                case Types.DOUBLE:
+                case Types.NUMERIC:
+                case Types.DECIMAL:
+                    stmt.setDouble(stmtNumber, p.getFloatValue());
+
+                    break;
+
+                case Types.VARBINARY:
+                case Types.BINARY:
+                case Types.BLOB:
+                    stmt.setString(stmtNumber, p.getStringValue());
+
+                    break;
+
+                case Types.LONGVARBINARY:
+                case Types.LONGVARCHAR:
+                case Types.CLOB:
+                    try {
+                        stmt.setString(stmtNumber, p.getStringValue());
+                    } catch (SQLException x) {
+                        String str = p.getStringValue();
+                        Reader r = new StringReader(str);
+
+                        stmt.setCharacterStream(stmtNumber, r,
+                                                str.length());
+                    }
+
+                    break;
+
+                case Types.CHAR:
+                case Types.VARCHAR:
+                case Types.OTHER:
+                    stmt.setString(stmtNumber, p.getStringValue());
+
+                    break;
+
+                case Types.DATE:
+                case Types.TIME:
+                case Types.TIMESTAMP:
+                    stmt.setTimestamp(stmtNumber, p.getTimestampValue());
+
+                    break;
+
+                case Types.NULL:
+                    stmt.setNull(stmtNumber, 0);
+
+                    break;
+
+                default:
+                    stmt.setString(stmtNumber, p.getStringValue());
+
+                    break;
             }
         }
     }
