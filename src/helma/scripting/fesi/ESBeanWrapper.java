@@ -16,7 +16,7 @@ public class ESBeanWrapper extends ESWrapper {
 	FesiEvaluator eval;
 
 	public ESBeanWrapper (Object object, FesiEvaluator eval) {
-		super (object, eval.getEvaluator());
+		super (object, eval.getEvaluator(),true);
 		this.eval = eval;
 	}
 
