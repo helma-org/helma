@@ -178,6 +178,7 @@ public class Logging extends LogFactory {
 
         loggers.clear();
         loggerMap.clear();
+        consoleLog = null;
     }
 
     /**
