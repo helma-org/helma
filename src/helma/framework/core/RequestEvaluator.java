@@ -344,8 +344,8 @@ public class RequestEvaluator implements Runnable {
 	                try {
 	                    localrtx.timer.beginEvent (requestPath+" execute");
 
-	                    // set the req.action property
-	                    req.action = action;
+	                    // set the req.action property, cutting off the _action suffix
+	                    req.action = action.substring (0, action.length()-7);
 	                    // try calling onRequest() function on object before
 	                    // calling the actual action
 	                    try {
@@ -407,6 +407,8 @@ public class RequestEvaluator implements Runnable {
 	                    abortTransaction (false);
 	                    if (error == null) {
 	                        app.errorCount += 1;
+	                        // set done to false so that the error will be processed
+	                        done = false;
 	                        error = "Couldn't complete transaction due to heavy object traffic (tried "+tries+" times)";
 	                    } else {
 	                        // error in error action. use traditional minimal error message
@@ -434,6 +436,8 @@ public class RequestEvaluator implements Runnable {
 	                res.reset ();
 	                if (error == null) {
 	                    app.errorCount += 1;
+	                    // set done to false so that the error will be processed
+	                    done = false;
 	                    error = x.getMessage ();
 	                    if (error == null || error.length() == 0)
 	                        error = x.toString ();
