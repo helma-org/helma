@@ -4,6 +4,7 @@
 package helma.objectmodel.db;
 
 import helma.objectmodel.*;
+import java.io.Serializable;
 
 
 /**
@@ -17,7 +18,7 @@ import helma.objectmodel.*;
  * instance of its node.
  */
  
-public class NodeHandle implements INodeState {
+public class NodeHandle implements INodeState, Serializable {
 
     // direct reference to the node
     private Node node;
@@ -25,8 +26,10 @@ public class NodeHandle implements INodeState {
     // the node's key
     private Key key;
 
-    // the node manager used to fetch the node from cache or persistent storage
-    private WrappedNodeManager nodemgr;
+    // cached DbMapping
+    private transient DbMapping dbmap;
+
+    static final long serialVersionUID = 3067763116576910931L;
 
     /**
      *  Builds a handle for a node
@@ -36,11 +39,9 @@ public class NodeHandle implements INodeState {
 	if (state == TRANSIENT) {
 	    this.node = node;
 	    key = null;
-	    nodemgr = null;
 	} else {
 	    this.node = null;
 	    key = node.getKey ();
-	    nodemgr = node.nmgr;
 	}
     }
 
@@ -49,16 +50,15 @@ public class NodeHandle implements INodeState {
      * the node is ususally not yet created. It will be fetched on demand when accessed by
      * application code.
      */
-    public NodeHandle (Key key, WrappedNodeManager nodemgr) {
+    public NodeHandle (Key key) {
 	this.node = null;
 	this.key = key;
-	this.nodemgr = nodemgr;
     }
 
     /**
      *  Get the node described by this node handle
      */
-    public Node getNode () {
+    public Node getNode (WrappedNodeManager nodemgr) {
 	if (node != null) {
 	    int state = node.getState ();
 	    if (state == TRANSIENT)
@@ -68,7 +68,6 @@ public class NodeHandle implements INodeState {
 	        // It's time to say goodby to the direct reference, from now on
 	        // we'll have to fetch let the node manager fetch it.
 	        key = node.getKey ();
-	        nodemgr = node.nmgr;
 	        node = null;
 	    }
 	}
@@ -76,10 +75,58 @@ public class NodeHandle implements INodeState {
     }
 
     /**
-     *  Get the key for the node described by this handle
+     *  Get the key for the node described by this handle. This may only be called on persistent Nodes.
      */
     public Key getKey () {
+	if (key == null)
+	    throw new RuntimeException ("getKey called on transient Node");
 	return key;
+    }
+
+    /**
+     *  Get the ID for the node described by this handle. This may only be called on persistent Nodes.
+     */
+    public String getID () {
+	if (key == null)
+	    throw new RuntimeException ("getID called on transient Node");
+	return key.getID ();
+    }
+
+    public DbMapping getDbMapping (WrappedNodeManager nmgr) {
+	if (dbmap == null) {
+	    if (node != null)
+	        dbmap = node.getDbMapping ();
+	    else
+	        dbmap = nmgr.getDbMapping (key.getStorageName ());
+	}
+	return dbmap;
+    }
+
+    private Object getObject () {
+	if (node != null) {
+	    if (node.getState () != TRANSIENT)
+	        return node.getKey ();
+	    return node;
+	}
+	return key;
+    }
+
+    public boolean equals (Object other) {
+	try {
+	    return getObject ().equals (((NodeHandle) other).getObject ());
+	} catch (Exception x) {
+	    return false;
+	}
+    }
+
+    public String toString () {
+	if (node != null) {
+	    if (node.getState () == TRANSIENT)
+	        return "NodeHandle[transient:"+node+"]";
+	    else
+	        key = node.getKey ();
+	}
+	return "NodeHandle["+key+"]";
     }
 
 }
