@@ -145,8 +145,14 @@
         
         <!-- create the main part of helma -->
         <antcall target="package-raw">
-            <param name="buildvariation" value="main" />
+            <param name="distribution" value="main" />
         </antcall>
+
+        <chmod perm="755">
+            <fileset dir="${build.work}">
+                <include name="hop.sh"/>
+            </fileset>
+        </chmod>
 
         <!-- checkout the demo apps (and zip manage-app) -->
         <antcall target="package-apps" />
@@ -172,7 +178,7 @@
 
         <!-- copy the framework (apps.props, server.props, hop/db, hop/static) -->
         <copy todir="${build.work}">
-            <fileset dir="${build.dir}/${buildvariation}" excludes="**/CVS**"/>
+            <fileset dir="${build.dir}/${distribution}" excludes="**/CVS**"/>
         </copy>
 
         <!-- copy the whole docs-directory -->
@@ -288,7 +294,7 @@ manage
         
         <!-- create the main part of helma -->
         <antcall target="package-raw">
-            <param name="buildvariation" value="antclick" />
+            <param name="distribution" value="antclick" />
         </antcall>
 
 		<!-- get antville -->
