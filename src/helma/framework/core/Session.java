@@ -23,9 +23,6 @@ public class Session implements Serializable {
     // the unique id (login name) for the user, if logged in
     String uid;
 	
-	// the user object that holds references to other sessions.
-	User user;
-
     // the handle to this user's persistent db node, if logged in
     NodeHandle userHandle;
 

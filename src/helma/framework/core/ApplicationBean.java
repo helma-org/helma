@@ -1,6 +1,7 @@
 package helma.framework.core;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
@@ -87,36 +88,37 @@ public class ApplicationBean implements Serializable {
 	}
 
 	public INode[] getActiveUsers () {
-	INode[] theArray = new INode[app.activeUsers.size()];
-	int i=0;
-	for (Enumeration e=app.activeUsers.elements(); e.hasMoreElements(); ) {
-	    User user = (User) e.nextElement ();
-	    INode usernode = user.getUserNodeHandle().getNode(app.getWrappedNodeManager());
-	    if (usernode==null)
-	        theArray[i++] = null;
-	    else
-	        theArray[i++] = usernode;
-	}
-	return theArray;
+	Enumeration loggedInSessions = app.getActiveUsers ();
+	if (loggedInSessions.hasMoreElements ()==false)
+	    return new INode[0];
+	ArrayList theArray = new ArrayList();
+	while (loggedInSessions.hasMoreElements ()) {
+	    INode usernode = ((Session) loggedInSessions.nextElement ()).getUserNode ();
+	    if (usernode!=null)
+	        theArray.add (usernode);
+    }
+    return (INode[]) theArray.toArray (new INode[0]);
 	}
 
 	public SessionBean[] getSessionsForUser (INode usernode)	{
-	return getSessionsForUser(usernode.getName());
+    if (usernode==null)
+        return new SessionBean[0];
+    else
+    	return getSessionsForUser(usernode.getName());
 	}
 
 	public SessionBean[] getSessionsForUser (String username) {
 	if (username==null || "".equals (username.trim ()) )
 	    return new SessionBean[0];
-	Hashtable userSessions = app.getSessionsForUsername(username);
-	if (userSessions==null)
+    Enumeration userSessions = app.getSessionsForUsername (username);
+    if (userSessions.hasMoreElements()==false )
 	    return new SessionBean[0];
-	SessionBean[] theArray = new SessionBean[userSessions.size()];
-	int i=0;
-	for (Enumeration e=userSessions.elements(); e.hasMoreElements(); ) {
-	    SessionBean sb = new SessionBean ((Session) e.nextElement ());
-	        theArray[i++] = sb;
-	}
-	return theArray;
+	ArrayList theArray = new ArrayList();
+    while (userSessions.hasMoreElements() ) {
+	    SessionBean sb = new SessionBean ((Session) userSessions.nextElement ());
+	    theArray.add(sb);
+    }
+    return (SessionBean[]) theArray.toArray (new SessionBean[0]);
 	}
 
 	// property related methods:
