@@ -228,14 +228,9 @@ public final class FesiEvaluator {
 	            // that expose properties and functions in a special way instead of just going
 	            // with the standard java object wrappers.
 
-	
-	            if (v instanceof RequestTrans)
-	            	sv = new ESBeanWrapper (new RequestBean ((RequestTrans) v), this);
-	            else if (v instanceof ResponseTrans)
-	            	sv = new ESBeanWrapper (new ResponseBean ((ResponseTrans) v), this);
-	            else if (v instanceof Map)
+	            if (v instanceof Map) {
 	                sv = new ESMapWrapper (this, (Map) v);
-	            else if ("path".equals (k)) {
+	            } else if ("path".equals (k)) {
 	                ArrayPrototype parr = new ArrayPrototype (evaluator.getArrayPrototype(), evaluator);
 	                List path = (List) v;
 	                // register path elements with their prototype
@@ -248,13 +243,19 @@ public final class FesiEvaluator {
 	                        parr.putHiddenProperty (protoname, wrappedElement);
 	                }
 	                sv = parr;
+	            } else if ("req".equals (k)) {
+	                sv = new ESBeanWrapper (new RequestBean ((RequestTrans) v), this);
+	            } else if ("res".equals (k)) {
+	                sv = new ESBeanWrapper (new ResponseBean ((ResponseTrans) v), this);
 	            } else if ("session".equals (k)) {
-					sv = new ESBeanWrapper (new SessionBean ((Session)v), this);
+	                sv = new ESBeanWrapper (new SessionBean ((Session)v), this);
+	            } else if ("user".equals (k)) {
+	                sv = getNodeWrapper ((User) v);
 	            } else if ("app".equals (k)) {
-					sv = new ESBeanWrapper (new ApplicationBean ((Application)v), this);
-	            }
-	            else
+	                sv = new ESBeanWrapper (new ApplicationBean ((Application)v), this);
+	            } else {
 	                sv = ESLoader.normalizeValue (v, evaluator);
+	            }
 	            global.putHiddenProperty (k, sv);
 	        }
 	        // remember the globals set on this evaluator
@@ -434,7 +435,7 @@ public final class FesiEvaluator {
      *  Get a script wrapper for an implemntation of helma.objectmodel.INode
      */
     public ESNode getNodeWrapper (INode n) {
-		// FIXME: should this return ESNull.theNull?
+        // FIXME: should this return ESNull.theNull?
         if (n == null)
             return null;
 
