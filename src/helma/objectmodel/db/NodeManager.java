@@ -218,6 +218,13 @@ public final class NodeManager {
 	// try to get the node from the shared cache
 	node = (Node) cache.get (key);
 
+	// check if we can use the cached node without further checks.
+	// we need further checks for subnodes fetched by name if the subnodes were changed.
+	if (rel.subnodesAreProperties && node != null && node.getState() != Node.INVALID) {
+	    if (home.contains (node) < 0)
+	        node = null;
+	}
+
 	if (node == null || node.getState() == Node.INVALID) {
 
 	    // The requested node isn't in the shared cache. Synchronize with key to make sure only one
@@ -235,8 +242,9 @@ public final class NodeManager {
 	            // no need to check for oldnode != node because we fetched a new node from db
 	            if (oldnode != null && oldnode != nullNode && oldnode.getState () != Node.INVALID) {
 	                cache.put (primKey, oldnode);
-	                if (!keyIsPrimary)
+	                if (!keyIsPrimary) {
 	                    cache.put (key, oldnode);
+	                }
 	                node = oldnode;
 	            } else if (!keyIsPrimary) {
 	                // cache node with secondary key
@@ -252,8 +260,9 @@ public final class NodeManager {
 	                Key primKey = oldnode.getKey ();
 	                boolean keyIsPrimary = primKey.equals (key);
 	                cache.put (oldnode.getKey (), oldnode);
-	                if (!keyIsPrimary)
+	                if (!keyIsPrimary) {
 	                    cache.put (key, oldnode);
+	                }
 	                node = oldnode;
 	            } else {
 	                return null;
