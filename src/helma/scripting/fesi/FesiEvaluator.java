@@ -60,6 +60,8 @@ public final class FesiEvaluator implements ScriptingEngine {
     // do lazy cleanup
     Map lastGlobals = null;
 
+	// the global vars set by extensions
+	HashMap extensionGlobals;
 
     public FesiEvaluator (Application app, RequestEvaluator reval) {
 	this.app = app;
@@ -78,13 +80,15 @@ public final class FesiEvaluator implements ScriptingEngine {
 	    mailx.setProperties (app.getProperties ());
 	    Database dbx = (Database) evaluator.addExtension ("helma.scripting.fesi.extensions.Database");
 	    dbx.setApplication (app);
-
-	    // load extensions defined in server.properties
+	    // load extensions defined in server.properties:
+		extensionGlobals = new HashMap ();
 	    Vector extVec = Server.getServer ().getExtensions ();
 	    for (int i=0; i<extVec.size(); i++ ) {
 	        HelmaExtension ext = (HelmaExtension)extVec.get(i);
 	        try {
-	            ext.initScripting (app,this);
+	            HashMap tmpGlobals = ext.initScripting (app,this);
+	            if (tmpGlobals!=null)
+	                extensionGlobals.putAll(tmpGlobals);
 	        } catch (ConfigurationException e) {
 	            app.logEvent ("Couldn't initialize extension " + ext.getName () + ": " + e.getMessage ());
 	        }
@@ -279,6 +283,7 @@ public final class FesiEvaluator implements ScriptingEngine {
      */
     public void enterContext (HashMap globals) throws ScriptingException {
 	// set globals on the global object
+	globals.putAll(extensionGlobals);
 	if (globals != null && globals != lastGlobals) {
 	    // loop through global vars and set them
 	    for (Iterator i=globals.keySet().iterator(); i.hasNext(); ) {
@@ -313,6 +318,8 @@ public final class FesiEvaluator implements ScriptingEngine {
 	                sv = new ESBeanWrapper (new SessionBean ((Session)v), this);
 	            } else if ("app".equals (k)) {
 	                sv = new ESBeanWrapper (new ApplicationBean ((Application)v), this);
+	            } else if (v instanceof ESValue) {
+	                sv = (ESValue)v;
 	            } else {
 	                sv = ESLoader.normalizeValue (v, evaluator);
 	            }

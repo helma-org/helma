@@ -1,5 +1,7 @@
 package helma.extensions.demo;
 
+import java.util.HashMap;
+
 import helma.extensions.HelmaExtension;
 import helma.extensions.ConfigurationException;
 import helma.framework.core.Application;
@@ -41,28 +43,21 @@ public class DemoExtension extends HelmaExtension {
 	app.logEvent ("DemoExtension stopped on app " + app.getName () );
 	}
 
-	public void initScripting (Application app, ScriptingEngine engine) throws ConfigurationException {
-	if (engine instanceof FesiEvaluator) {
-	    try {
-	        initFesi (app, engine);
-	        app.logEvent("initScripting DemoExtension with " + app.getName () + " and " + engine.toString() );
-	    } catch (EcmaScriptException ecma) {
-	        throw new ConfigurationException (ecma.getMessage());
-	    }
-	} else {
+	public HashMap initScripting (Application app, ScriptingEngine engine) throws ConfigurationException {
+	if (!(engine instanceof FesiEvaluator))
 	    throw new ConfigurationException ("scripting engine " + engine.toString () + " not supported in DemoExtension");
-	}
+	app.logEvent("initScripting DemoExtension with " + app.getName () + " and " + engine.toString() );
+	// fesi-specific code:
+	Evaluator evaluator = ((FesiEvaluator)engine).getEvaluator ();
+	// initialize prototypes and global vars here, but don't add them to fesi's global object
+	ESWrapper demo = new ESWrapper(Server.getServer (), evaluator);
+	HashMap globals = new HashMap ();
+	globals.put ("demo",demo);
+	return globals;
 	}
 
 	public String getName () {
 	return "DemoExtension";
-	}
-
-	private void initFesi (Application app, ScriptingEngine engine) throws EcmaScriptException {
-	Evaluator evaluator = ((FesiEvaluator)engine).getEvaluator ();
-    ESObject demo = new ESWrapper(Server.getServer (), evaluator);
-    GlobalObject go = evaluator.getGlobalObject();
-	go.putHiddenProperty ("demo", demo);
 	}
 
 }

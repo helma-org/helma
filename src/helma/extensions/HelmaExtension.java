@@ -1,5 +1,7 @@
 package helma.extensions;
 
+import java.util.HashMap;
+
 import helma.framework.core.Application;
 import helma.main.Server;
 import helma.scripting.ScriptingEngine;
@@ -19,26 +21,25 @@ public abstract class HelmaExtension {
 	public abstract void init (Server server) throws ConfigurationException;
 
 	/**
-	  * called when an Application is started.
-	  * This should be synchronized. Every application starting calls this method. Otherwise this could
-	  * lead to problems when more than one application starts at the same time.
+	  * called when an Application is started. This should be <b>synchronized</b> when
+	  * any self-initialization is performed.
 	  */
 	public abstract void applicationStarted (Application app) throws ConfigurationException;
 
 	/**
 	  * called when an Application is stopped.
-	  * This should be synchronized. Otherwise this could lead to problems when more than one
-	  * application gets stopped.
+	  * This should be <b>synchronized</b> when any self-destruction is performed.
 	  */
 	public abstract void applicationStopped (Application app);
 
 	/**
-	  * called by the ScriptingEngine when it is initizalized. throws a ConfigurationException
-	  * when this type of ScriptingEngine is not supported.
-	  * This should be synchronized. Every application starting calls this method. Otherwise this could
-	  * lead to problems when more than one application starts at the same time.
+	  * called by the ScriptingEngine when it is initizalized. Throws a ConfigurationException
+	  * when this type of ScriptingEngine is not supported. New methods and prototypes can be
+	  * added to the scripting environment. New global vars should be returned in a HashMap
+	  * with pairs of varname and ESObjects. This method should be <b>synchronized</b>, if it
+	  * performs any other self-initialization outside the scripting environment.
 	  */
-	public abstract void initScripting (Application app, ScriptingEngine engine) throws ConfigurationException;
+	public abstract HashMap initScripting (Application app, ScriptingEngine engine) throws ConfigurationException;
 
 	public abstract String getName ();
 
