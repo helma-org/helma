@@ -75,7 +75,7 @@ public final class FesiEvaluator implements ScriptingEngine {
 	    evaluator.reval = this;
 	    global = evaluator.getGlobalObject();
 	    for (int i=0; i<extensions.length; i++)
-             evaluator.addExtension (extensions[i]);
+	        evaluator.addExtension (extensions[i]);
 	    HopExtension hopx = new HopExtension (app);
 	    hopx.initializeExtension (this);
 	    MailExtension mailx = (MailExtension) evaluator.addExtension ("helma.scripting.fesi.extensions.MailExtension");
@@ -405,6 +405,15 @@ public final class FesiEvaluator implements ScriptingEngine {
 	    }
 	    throw new ScriptingException (msg);
 	}
+    }
+
+    /**
+     *  Let the evaluator know that the current evaluation has been
+     *  aborted. This is done by setting the thread ref in the evaluator
+     * object to null.
+     */
+    public void abort () {
+	evaluator.thread = null;
     }
 
 

@@ -43,6 +43,11 @@ public interface ScriptingEngine {
 		throws ScriptingException;
 
     /**
+     *  Let the evaluator know that the current evaluation has been aborted.
+     */
+    public void abort ();
+
+    /**
      *  Get a property on an object
      */
     public Object get (Object thisObject, String key);
