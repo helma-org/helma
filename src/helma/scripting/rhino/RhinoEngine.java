@@ -403,6 +403,17 @@ public class RhinoEngine implements ScriptingEngine {
             } else if (prop == Undefined.instance || prop == ScriptableObject.NOT_FOUND) {
                 return null;
             } else {
+                // not all Rhino types convert to a string as expected
+                // when calling toString() - try to do better by using
+                // Rhino's ScriptRuntime.toString(). Note that this
+                // assumes that people always use this method to get
+                // a string representation of the object - which is
+                // currently the case since it's only used in Skin rendering.
+                try {
+                    return ScriptRuntime.toString(prop);
+                } catch (Exception x) {
+                    // just return original property object
+                }
                 return prop;
             }
         } catch (Exception esx) {
