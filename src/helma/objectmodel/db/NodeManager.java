@@ -675,6 +675,53 @@ public final class NodeManager {
 	}
     }
 
+    /**
+     *  Similar to getNodeIDs, but returns a Vector that return's the nodes property names instead of IDs
+     */
+    public Vector getPropertyNames (Node home, Relation rel) throws Exception {
+
+	Transactor tx = (Transactor) Thread.currentThread ();
+	// tx.timer.beginEvent ("getNodeIDs "+home);
+
+	if (rel == null || rel.other == null || !rel.other.isRelational ()) {
+	    // this should never be called for embedded nodes
+	    throw new RuntimeException ("NodeMgr.countNodes called for non-relational node "+home);
+	} else {
+	    Vector retval = new Vector ();
+	    // if we do a groupby query (creating an intermediate layer of groupby nodes),
+	    // retrieve the value of that field instead of the primary key
+	    String namefield = rel.getRemoteField ();
+	    Connection con = rel.other.getConnection ();
+	    String table = rel.other.getTableName ();
+
+	    QueryDataSet qds = null;
+
+	    try {
+	        String q = "SELECT "+namefield+" FROM "+table+" ORDER BY "+namefield;
+	        qds = new QueryDataSet (con, q);
+
+	        if (logSql)
+	           IServer.getLogger().log ("### getPropertyNames: "+qds.getSelectString());
+
+	        qds.fetchRecords ();
+	        for (int i=0; i<qds.size (); i++) {
+	            Record rec = qds.getRecord (i);
+	            String n = rec.getValue (1).asString ();
+	            if (n != null)
+	                retval.addElement (n);
+	        }
+
+	    } finally {
+	        // tx.timer.endEvent ("getNodeIDs "+home);
+	        if (qds != null) {
+	            qds.close ();
+	        }
+	    }
+	    return retval;
+	}
+    }
+
+
     ///////////////////////////////////////////////////////////////////////////////////////
     // private getNode methods
     ///////////////////////////////////////////////////////////////////////////////////////
