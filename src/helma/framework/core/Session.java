@@ -22,7 +22,7 @@ public class Session implements Serializable {
 
     // the unique id (login name) for the user, if logged in
     String uid;
-	
+
     // the handle to this user's persistent db node, if logged in
     NodeHandle userHandle;
 
@@ -45,11 +45,11 @@ public class Session implements Serializable {
 	onSince = System.currentTimeMillis ();
 	lastTouched = onSince;
     }
-    
+
     /**
      * attach the given user node to this session.
      */
- 	public void login (INode usernode) {
+    public void login (INode usernode) {
 	if (usernode==null)	{
 	    userHandle = null;
 	    uid = null;
@@ -57,49 +57,49 @@ public class Session implements Serializable {
 	    userHandle = ((Node)usernode).getHandle();
 	    uid = usernode.getElementName();
 	}
-	}
+    }
 
     /**
      * remove this sessions's user node.
      */
-	public void logout() {
+    public void logout() {
 	userHandle = null;
 	uid = null;
-	}
+    }
 
-	public boolean isLoggedIn() {
+    public boolean isLoggedIn() {
 	if (userHandle!=null && uid!=null) {
 	    return true;
 	} else {
 	    return false;
 	}
-	}
+    }
 
     /**
      * Gets the user Node from this Application's NodeManager.
      */
-	public INode getUserNode() {
+    public INode getUserNode() {
 	if (userHandle!=null)
 	    return userHandle.getNode (app.getWrappedNodeManager());
 	else
 	    return null;
-	}
+    }
 
     /**
      * Gets the transient cache node.
      */
     public INode getCacheNode () {
-    return cacheNode;
+	return cacheNode;
     }
 
-	public Application getApp () {
+    public Application getApp () {
 	return app;
-	}
+    }
 
     public String getSessionID () {
 	return sessionID;
     }
-    
+
     public void touch () {
 	lastTouched = System.currentTimeMillis ();
     }
@@ -112,12 +112,12 @@ public class Session implements Serializable {
 	return onSince;
     }
 
-	public String toString () {
+    public String toString () {
 	if ( uid!=null )
-		return "[Session " + sessionID + ":" + uid + "]";
+	    return "[Session for user " + uid + "]";
 	else
-		return "[Session " + sessionID + "]";
-	}
+	    return "[Anonymous Session]";
+    }
 
     /**
      * Get the persistent user id of a registered user. This is usually the user name, or
