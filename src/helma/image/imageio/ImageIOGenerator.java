@@ -44,10 +44,10 @@ public class ImageIOGenerator extends ImageGenerator {
      * @return the newly created image
      * @throws IOException
      */
-    public Image read(String filename)
+    /* public Image read(String filename)
     throws IOException {
         return ImageIO.read(new File(filename));
-    }
+    } */
     
     /**
      * @param url the URL the filename of the image to create
@@ -55,10 +55,10 @@ public class ImageIOGenerator extends ImageGenerator {
      * @return the newly created image
      * @throws IOException
      */
-    public Image read(URL url)
+    /* public Image read(URL url)
     throws IOException {
         return ImageIO.read(url);
-    }
+    } */
     
     /**
      * @param src the data of the image to create
@@ -66,10 +66,10 @@ public class ImageIOGenerator extends ImageGenerator {
      * @return the newly created image
      * @throws IOException
      */
-    public Image read(byte[] src)
+    /* public Image read(byte[] src)
     throws IOException {
         return ImageIO.read(new ByteArrayInputStream(src));
-    }
+    } */
 
     /**
      * Saves the image. Image format is deduced from filename.
