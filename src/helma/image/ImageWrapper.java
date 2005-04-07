@@ -85,7 +85,9 @@ public class ImageWrapper {
         if (!(image instanceof BufferedImage)) {
             BufferedImage buffered = new BufferedImage(width, height,
                 BufferedImage.TYPE_INT_ARGB);
-            buffered.createGraphics().drawImage(image, 0, 0, null);
+            Graphics2D g2d = buffered.createGraphics();
+            g2d.drawImage(image, 0, 0, null);
+            g2d.dispose();
             setImage(buffered);
         }
         return (BufferedImage)image;
@@ -111,9 +113,16 @@ public class ImageWrapper {
      * Any code that is changing the internal image should do it through this function
      * to make sure getGraphcis() returns a valid graphics object the next time it is called.
      */
-    protected void setImage(Image image) {
-        this.image = image;
-        graphics = null;
+    protected void setImage(Image img) {
+        // flush image and dispose graphics before updating them
+        if (graphics != null) {
+            graphics.dispose();
+            graphics = null;
+        }
+        if (image != null) {
+            image.flush();
+        }
+        image = img;
     }
 
     /**
@@ -150,7 +159,10 @@ public class ImageWrapper {
      * Dispose the Graphics context and null out the image.
      */
     public void dispose() {
-        image = null;
+        if (image != null) {
+            image.flush();
+            image = null;
+        }
         if (graphics != null) {
             graphics.dispose();
             graphics = null;
@@ -253,7 +265,7 @@ public class ImageWrapper {
     /**
      * Draws another image to this image.
      * 
-     * @param filename ...
+     * @param image ...
      * @param x ...
      * @param y ...
      */
@@ -319,7 +331,7 @@ public class ImageWrapper {
     /**
      * resizes the image using the Graphics2D approach
      */
-    protected BufferedImage resize(int w, int h, boolean smooth) {
+    protected void resize(int w, int h, boolean smooth) {
         BufferedImage buffered = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = buffered.createGraphics();
 
@@ -339,7 +351,10 @@ public class ImageWrapper {
         );
         g2d.drawImage(image, at, null);
         g2d.dispose();
-        return buffered;
+        setImage(buffered);
+        // set new width/height
+        width = w;
+        height = h;
     }
 
     /**
@@ -356,8 +371,8 @@ public class ImageWrapper {
         );
         // if the image is scaled, used the Graphcis2D method, otherwise use AWT:
         if (factor > 1f) {
-            // scalie it with the Graphics2D approach for supperiour quality.
-            setImage(resize(w, h, true));
+            // scale it with the Graphics2D approach for supperiour quality.
+            resize(w, h, true);
         } else {
             // Area averaging has the best results for shrinking of images:
 
@@ -369,9 +384,9 @@ public class ImageWrapper {
             // this version is up to 4 times faster than getScaledInstance:
             ImageFilterOp filter = new ImageFilterOp(new AreaAveragingScaleFilter(w, h));
             setImage(filter.filter(getBufferedImage(), null));
+            width = w;
+            height = h;
         }
-        width = w;
-        height = h;
     }
 
     /**
@@ -381,10 +396,8 @@ public class ImageWrapper {
      * @param h ...
      */
     public void resizeFast(int w, int h) {
-        image = resize(w, h, false);
-        width = w;
-        height = h;
-   }
+        resize(w, h, false);
+    }
 
     /**
      * Reduces the colors used in the image. Necessary before saving as GIF.
