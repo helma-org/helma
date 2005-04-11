@@ -125,11 +125,6 @@ public class Server implements IPathElement, Runnable {
             System.exit(1);
         }
 
-        if (!config.hasPortSetting()) {
-            printUsageError("no server ports set");
-            System.exit(1);
-        }
-
         checkRunning(config);
 
         // create new server instance

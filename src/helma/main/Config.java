@@ -32,10 +32,6 @@ public class Config {
     File         propFile   = null;
     File         homeDir    = null;
 
-    public boolean hasPortSetting() {
-        return (websrvPort != null || ajp13Port != null  || rmiPort != null || xmlrpcPort != null);
-    }
-
     public boolean hasPropFile() {
         return (propFile != null);
     }
