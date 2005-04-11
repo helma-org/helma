@@ -350,8 +350,10 @@ public class ApplicationManager implements XmlRpcHandler {
                                            "Will not use that repository. Check your initArgs!");
                     }
                 } else {
-                    // no more repositories to add
-                    break;
+                    // we always scan repositories 0-9, beyond that only if defined
+                    if (i > 9) {
+                        break;
+                    }
                 }
             }
 
