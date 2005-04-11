@@ -113,7 +113,7 @@ public final class ZipRepository extends AbstractRepository {
                     // path depth of this.depth + 1
                     if (entrypath.length == depth + 1 && !entry.isDirectory()) {
                         // create a new child resource
-                        ZipResource resource = new ZipResource(file, entry, this);
+                        ZipResource resource = new ZipResource(entry.getName(), this);
                         newResources.put(resource.getShortName(), resource);
                     } else if (entrypath.length > depth) {
                         // create a new child repository
@@ -161,7 +161,7 @@ public final class ZipRepository extends AbstractRepository {
      * Called to create a child resource for this repository
      */
     protected Resource createResource(String name) {
-        return new ZipResource(file, new ZipEntry(entryPath + "/" + name), this);
+        return new ZipResource(entryPath + "/" + name, this);
     }
 
     public long getChecksum() {

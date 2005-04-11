@@ -23,22 +23,19 @@ import java.util.zip.ZipFile;
 
 public final class ZipResource implements Resource {
 
-    private ZipEntry zipentry;
-    private File zipfile;
+    private String entryName;
     private ZipRepository repository;
     private String name;
     private String shortName;
     private String baseName;
 
-    protected ZipResource(File zipfile, ZipEntry zipentry, ZipRepository repository) {
-        this.zipentry = zipentry;
-        this.zipfile = zipfile;
+    protected ZipResource(String zipentryName, ZipRepository repository) {
+        this.entryName = zipentryName;
         this.repository = repository;
 
-        String entryname = zipentry.getName();
-        int lastSlash = entryname.lastIndexOf('/');
+        int lastSlash = entryName.lastIndexOf('/');
 
-        shortName = entryname.substring(lastSlash + 1);
+        shortName = entryName.substring(lastSlash + 1);
         name = new StringBuffer(repository.getName()).append('/')
                 .append(shortName).toString();
 
@@ -48,16 +45,20 @@ public final class ZipResource implements Resource {
     }
 
     public long lastModified() {
-        return zipfile.lastModified();
+        return repository.lastModified();
     }
 
     public InputStream getInputStream() throws IOException {
         ZipFile zipfile = null;
         try {
             zipfile = repository.getZipFile();
-            int size = (int) zipentry.getSize();
+            ZipEntry entry = zipfile.getEntry(entryName);
+            if (entry == null) {
+                throw new IOException("Zip resource " + this + " does not exist");
+            }
+            int size = (int) entry.getSize();
             byte[] buf = new byte[size];
-            InputStream in = zipfile.getInputStream(zipentry);
+            InputStream in = zipfile.getInputStream(entry);
             int read = 0;
             while (read < size) {
                 int r = in.read(buf, read, size-read);
@@ -76,7 +77,7 @@ public final class ZipResource implements Resource {
         ZipFile zipfile = null;
         try {
             zipfile = repository.getZipFile();
-            return (zipfile.getEntry(zipentry.getName()) != null);
+            return (zipfile.getEntry(entryName) != null);
         } catch (Exception ex) {
             return false;
         } finally {
@@ -90,8 +91,12 @@ public final class ZipResource implements Resource {
         ZipFile zipfile = null;
         try {
             zipfile = repository.getZipFile();
-            InputStreamReader in = new InputStreamReader(zipfile.getInputStream(zipentry));
-            int size = (int) zipentry.getSize();
+            ZipEntry entry = zipfile.getEntry(entryName);
+            if (entry == null) {
+                throw new IOException("Zip resource " + this + " does not exist");
+            }
+            InputStreamReader in = new InputStreamReader(zipfile.getInputStream(entry));
+            int size = (int) entry.getSize();
             char[] buf = new char[size];
             int read = 0;
             while (read < size) {
@@ -126,7 +131,17 @@ public final class ZipResource implements Resource {
     }
 
     public long getLength() {
-        return zipentry.getSize();
+        ZipFile zipfile = null;
+        try {
+            zipfile = repository.getZipFile();
+            return zipfile.getEntry(entryName).getSize();            
+        } catch (Exception ex) {
+            return 0;
+        } finally {
+            try {
+                zipfile.close();
+            } catch (Exception ex) {}
+        }
     }
 
     public Repository getRepository() {
