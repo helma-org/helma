@@ -192,6 +192,9 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * @return the wrapped INode instance
      */
     public INode getNode() {
+        if (node != null) {
+            checkNode();
+        }
         return node;
     }
 
@@ -269,6 +272,8 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
 
         Map param = RhinoCore.getSkinParam(paramobj);
 
+        checkNode();
+
         if (skin != null) {
             skin.render(reval, node, param);
         }
@@ -302,6 +307,8 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         }
 
         Map param = RhinoCore.getSkinParam(paramobj);
+
+        checkNode();
 
         if (skin != null) {
             reval.res.pushStringBuffer();
@@ -357,6 +364,8 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
 
         Object n = null;
 
+        checkNode();
+
         if (id instanceof Number) {
             n = node.getSubnodeAt(((Number) id).intValue());
         } else if (id != null) {
@@ -411,13 +420,13 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
             return false;
         }
 
-        checkNode();
-
         if (id instanceof Number) {
 
             if (!(value instanceof HopObject)) {
                 throw new EvaluatorException("Can only set HopObjects as child objects in HopObject.set()");
             }
+
+            checkNode();
 
             int idx = (((Number) id).intValue());
             INode n = ((HopObject) value).getNode();
@@ -650,6 +659,9 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * @return the ID of the newly persisted HopObject or null if operation failed
      */
     public Object jsFunction_persist() {
+
+        checkNode();
+
         if (node instanceof helma.objectmodel.db.Node) {
             ((helma.objectmodel.db.Node) node).persist();
             return node.getID();
@@ -684,6 +696,9 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      *  Check if node is contained in subnodes
      */
     public int jsFunction_contains(Object obj) {
+
+        checkNode();
+
         if ((node != null) && obj instanceof HopObject) {
             checkNode();
 
