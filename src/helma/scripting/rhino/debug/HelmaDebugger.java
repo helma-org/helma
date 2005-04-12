@@ -17,15 +17,11 @@
 package helma.scripting.rhino.debug;
 
 import org.mozilla.javascript.Context;
-import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.debug.DebuggableScript;
-import org.mozilla.javascript.debug.DebugFrame;
 
 import javax.swing.*;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.event.TreeSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-import javax.swing.event.ListSelectionEvent;
 import javax.swing.tree.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
@@ -43,7 +39,7 @@ public class HelmaDebugger extends Main implements TreeSelectionListener {
     DebuggerTreeNode treeRoot;
     DefaultTreeModel treeModel;
     HashMap treeNodes = new HashMap();
-    HashMap scripts = new HashMap();
+    HashMap scriptNames = new HashMap();
 
     public HelmaDebugger(String name) {
         super(name);
@@ -113,10 +109,20 @@ public class HelmaDebugger extends Main implements TreeSelectionListener {
     public void handleCompilationDone(Context cx, DebuggableScript fnOrScript,
                                       String source) {
         String sourceName = fnOrScript.getSourceName();
+        FileWindow w = (FileWindow) fileWindows.get(sourceName);
+        super.handleCompilationDone(cx, fnOrScript, source);
         if (!treeNodes.containsKey(sourceName)) {
             createTreeNode(sourceName);
         }
-        super.handleCompilationDone(cx, fnOrScript, source);
+        if (w != null) {
+            // renew existing file window
+            int position = w.textArea.getCaretPosition();
+            // System.err.println("         VISIBLE: " + point);
+            // w.sourceInfo.removeAllBreakpoints();
+            w.sourceInfo = (SourceInfo) sourceNames.get(sourceName);
+            w.updateText();
+            w.textArea.setCaretPosition(position);
+        }
     }
 
     void createTreeNode(String sourceName) {
@@ -133,7 +139,7 @@ public class HelmaDebugger extends Main implements TreeSelectionListener {
             node = n;
         }
         treeNodes.put(sourceName, node);
-        scripts.put(node, sourceName);
+        scriptNames.put(node, sourceName);
         if (newNode != null) {
             SwingUtilities.invokeLater(new NodeInserter(newNode));
         }
@@ -145,10 +151,10 @@ public class HelmaDebugger extends Main implements TreeSelectionListener {
         Object node = path.getLastPathComponent();
         if (node == null)
             return;
-        String script = (String) scripts.get(node);
-        if (script == null)
+        String scriptName = (String) scriptNames.get(node);
+        if (scriptName == null)
             return;
-        JInternalFrame w = (JInternalFrame) fileWindows.get(script);
+        JInternalFrame w = (JInternalFrame) fileWindows.get(scriptName);
         if (w != null) {
             try {
                 if (w.isIcon())
@@ -158,9 +164,9 @@ public class HelmaDebugger extends Main implements TreeSelectionListener {
             } catch (Exception exc) {
             }
         } else {
-            SourceInfo si = (SourceInfo) sourceNames.get(script);
+            SourceInfo si = (SourceInfo) sourceNames.get(scriptName);
             if (si == null) {
-                System.out.println("debugger error: Couldn't find source: " + script);
+                System.out.println("debugger error: Couldn't find source: " + scriptName);
             }
             swingInvoke(CreateFileWindow.action(this, si, -1));
         }
@@ -170,7 +176,7 @@ public class HelmaDebugger extends Main implements TreeSelectionListener {
         while (it.hasNext()) {
             Map.Entry entry = (Map.Entry) it.next();
             ScriptItem si = (ScriptItem) entry.getValue();
-            if (script.equals(si.getSourceInfo().getUrl())) {
+            if (scriptName.equals(si.getSourceInfo().getUrl())) {
                 functions.add(entry.getKey());
             }
         }
@@ -215,7 +221,7 @@ public class HelmaDebugger extends Main implements TreeSelectionListener {
 
         if (node == null) return;
 
-        Object script = scripts.get(node);
+        Object script = scriptNames.get(node);
         if (script != null) {
             // openScript(script);
         }
