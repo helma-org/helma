@@ -93,10 +93,19 @@ public final class Skin {
             reader = new InputStreamReader(res.getInputStream(), encoding);
         }
 
-        char[] characterBuffer = new char[(int) res.getLength()];
-        int length = reader.read(characterBuffer);
-
-        reader.close();
+        int length = (int) res.getLength();
+        char[] characterBuffer = new char[length];
+        int read = 0;
+        try {
+            while (read < length) {
+                int r = reader.read(characterBuffer, read, length - read);
+                if (r == -1)
+                    break;
+                read += r;
+            }
+        } finally {
+            reader.close();
+        }
         return new Skin(characterBuffer, length, app);
     }
 
