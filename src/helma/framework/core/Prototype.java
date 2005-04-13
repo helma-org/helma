@@ -88,7 +88,7 @@ public final class Prototype {
         lowerCaseName = name.toLowerCase();
 
         // Create and register type properties file
-        props = new ResourceProperties();
+        props = new ResourceProperties(app);
         if (repository != null) {
             props.addResource(repository.getResource("type.properties"));
         }

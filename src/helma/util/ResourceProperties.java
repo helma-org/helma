@@ -66,6 +66,14 @@ public final class ResourceProperties extends Properties {
     }
 
     /**
+     * Constructs an empty ResourceProperties
+     * Resources must be added manually afterwards
+     */
+    public ResourceProperties(Application app) {
+        resources = new TreeSet(app.getResourceComparator());
+    }
+
+    /**
      * Constructs a ResourceProperties retrieving resources from the given
      * application using the given name to fetch resources
      * @param app application to fetch resources from
@@ -159,7 +167,7 @@ public final class ResourceProperties extends Properties {
 
             /* next we try to load properties from the application's
              repositories, if we blong to any application */
-            if (app != null) {
+            if (resourceName != null) {
                 Iterator iterator = app.getRepositories().iterator();
                 while (iterator.hasNext()) {
                     try {
@@ -266,7 +274,7 @@ public final class ResourceProperties extends Properties {
     public long getChecksum() {
         long checksum = 0;
 
-        if (app != null) {
+        if (resourceName != null) {
             Iterator iterator = app.getRepositories().iterator();
             while (iterator.hasNext()) {
                 try {
