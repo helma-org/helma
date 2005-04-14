@@ -520,8 +520,8 @@ public final class ResponseTrans implements Serializable {
             }
         }
 
-        // if etag is not set, calc MD5 digest and check it
-        if ((etag == null) && (lastModified == -1) && (redir == null)) {
+        // if etag is not set, calc MD5 digest and check it, but only if not a redirect
+        if (etag == null && lastModified == -1 && redir == null) {
             try {
                 digest = MessageDigest.getInstance("MD5");
 
@@ -531,7 +531,8 @@ public final class ResponseTrans implements Serializable {
 
                 etag = "\"" + new String(Base64.encode(b)) + "\"";
 
-                if ((reqtrans != null) && reqtrans.hasETag(etag)) {
+                // only set response to 304 not modified if no cookies were set
+                if (reqtrans != null && reqtrans.hasETag(etag) && countCookies() == 0) {
                     response = new byte[0];
                     notModified = true;
                 }
