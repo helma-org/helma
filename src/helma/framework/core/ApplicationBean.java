@@ -160,8 +160,15 @@ public class ApplicationBean implements Serializable {
      */
     public SessionBean[] getSessions() {
         Map sessions = app.getSessions();
-        Object[] array = new SessionBean[sessions.size()];
-        return (SessionBean[]) sessions.values().toArray(array);
+        SessionBean[] array = new SessionBean[sessions.size()];
+        int i = 0;
+
+        Iterator it = sessions.values().iterator();
+        while (it.hasNext()) {
+            array[i++] = new SessionBean((Session) it.next());    
+        }
+
+        return array;
     }
 
     /**
