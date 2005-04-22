@@ -51,6 +51,10 @@ public abstract class AbstractServletClient extends HttpServlet {
     // cookie name for session cookies
     String sessionCookieName = "HopSession";
 
+    // this tells us whether to bind session cookies to client ip subnets
+    // so they can't be easily used from other ip addresses when hijacked
+    boolean protectedSessionCookie = true;
+
     // allow caching of responses
     boolean caching;
 
@@ -69,23 +73,32 @@ public abstract class AbstractServletClient extends HttpServlet {
 
         // get max size for file uploads
         String upstr = init.getInitParameter("uploadLimit");
-
-        uploadLimit = (upstr == null) ? 1024 : Integer.parseInt(upstr);
+        try {
+            uploadLimit = (upstr == null) ? 1024 : Integer.parseInt(upstr);
+        } catch (NumberFormatException x) {
+            System.err.println("Bad format for uploadLimit: " + upstr);
+            uploadLimit = 1024;
+        }
 
         // get cookie domain
         cookieDomain = init.getInitParameter("cookieDomain");
-
         if (cookieDomain != null) {
             cookieDomain = cookieDomain.toLowerCase();
         }
 
+        // get session cookie name
         sessionCookieName = init.getInitParameter("sessionCookieName");
-
         if (sessionCookieName == null) {
             sessionCookieName = "HopSession";
         }
 
+        // disable binding session cookie to ip address?
+        protectedSessionCookie = !("false".equalsIgnoreCase(init.getInitParameter("protectedSessionCookie")));
+
+        // debug mode for printing out detailed error messages
         debug = ("true".equalsIgnoreCase(init.getInitParameter("debug")));
+
+        // generally disable response caching for clients?
         caching = !("false".equalsIgnoreCase(init.getInitParameter("caching")));
     }
 
@@ -498,29 +511,49 @@ public abstract class AbstractServletClient extends HttpServlet {
      *  Check if the session cookie is set and valid for this request.
      *  If not, create a new one.
      */
-    private void checkSessionCookie(HttpServletRequest request, HttpServletResponse response,
-                        RequestTrans reqtrans, String resCookieDomain) {
-        // check if we need to create a session id. also handle the
-        // case that the session id doesn't match the remote host address
-        StringBuffer b = new StringBuffer();
-        addIPAddress(b, request.getRemoteAddr());
-        addIPAddress(b, request.getHeader("X-Forwarded-For"));
-        addIPAddress(b, request.getHeader("Client-ip"));
-        if ((reqtrans.session == null) || !reqtrans.session.startsWith(b.toString())) {
-            b.append (Long.toString(Math.round(Math.random() * Long.MAX_VALUE) -
-                        System.currentTimeMillis(), 36));
-
-            reqtrans.session = b.toString();
-            Cookie c = new Cookie(sessionCookieName, reqtrans.session);
-
-            c.setPath("/");
-
-            if (resCookieDomain != null) {
-                c.setDomain(resCookieDomain);
+    private void checkSessionCookie(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    RequestTrans reqtrans,
+                                    String domain) {
+        // check if we need to create a session id.
+        if (protectedSessionCookie) {
+            // If protected session cookies are enabled we also force a new session
+            // if the existing session id doesn't match the client's ip address
+            StringBuffer b = new StringBuffer();
+            addIPAddress(b, request.getRemoteAddr());
+            addIPAddress(b, request.getHeader("X-Forwarded-For"));
+            addIPAddress(b, request.getHeader("Client-ip"));
+            if (reqtrans.session == null || !reqtrans.session.startsWith(b.toString())) {
+                response.addCookie(createSessionCookie(b, reqtrans, domain));
             }
-
-            response.addCookie(c);
+        } else if (reqtrans.session == null) {
+            response.addCookie(createSessionCookie(new StringBuffer(), reqtrans, domain));
         }
+    }
+
+    /**
+     * Create a new session cookie.
+     *
+     * @param b
+     * @param reqtrans
+     * @param domain
+     * @return the session cookie
+     */
+    private Cookie createSessionCookie(StringBuffer b,
+                                       RequestTrans reqtrans,
+                                       String domain) {
+        b.append (Long.toString(Math.round(Math.random() * Long.MAX_VALUE) -
+                    System.currentTimeMillis(), 36));
+
+        reqtrans.session = b.toString();
+        Cookie cookie = new Cookie(sessionCookieName, reqtrans.session);
+
+        cookie.setPath("/");
+
+        if (domain != null) {
+            cookie.setDomain(domain);
+        }
+        return cookie;
     }
 
     /**
