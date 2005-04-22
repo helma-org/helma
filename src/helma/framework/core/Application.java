@@ -374,6 +374,7 @@ public final class Application implements IPathElement, Runnable {
         String sessionMgrImpl = props.getProperty("sessionManagerImpl",
                                                   "helma.framework.core.SessionManager");
         sessionMgr = (SessionManager) Class.forName(sessionMgrImpl).newInstance();
+        logEvent("Using session manager class " + sessionMgrImpl);
         sessionMgr.init(this);
 
         // read the sessions if wanted
