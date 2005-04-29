@@ -104,10 +104,14 @@ public final class ZipRepository extends AbstractRepository {
                     String eName = entry.getName();
 
                     if (!eName.regionMatches(0, entryPath, 0, entryPath.length())) {
-                        // not a child of ours
+                        // names don't match - not a child of ours
                         continue;
                     }
                     String[] entrypath = StringUtils.split(eName, "/");
+                    if (depth > 0 && !shortName.equals(entrypath[depth-1])) {
+                        // catch case where our name is Foo and other's is FooBar
+                        continue;
+                    }
 
                     // create new repositories and resources for all entries with a
                     // path depth of this.depth + 1
