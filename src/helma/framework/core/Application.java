@@ -755,9 +755,14 @@ public final class Application implements IPathElement, Runnable {
         // no custom root object is defined - use standard helma objectmodel
         else {
             String rootId = props.getProperty("rootid", "0");
-            rootObject = nmgr.safe.getNode(rootId, rootMapping);
-
-            return rootObject;
+            Node rootNode = nmgr.safe.getNode(rootId, rootMapping);
+            // set the root node's prototype, if requested by rootPrototype property
+            String rootProto = props.getProperty("rootprototype");
+            if (rootProto != null && !rootProto.equals(rootNode.getPrototype())) {
+                rootNode.setPrototype(rootProto);
+                rootNode.setDbMapping(getDbMapping(rootProto));
+            }
+            return rootNode;
         }
     }
 
