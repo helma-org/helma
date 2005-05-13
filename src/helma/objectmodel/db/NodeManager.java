@@ -108,12 +108,6 @@ public final class NodeManager {
     }
 
     /**
-     * Method used to create the root node and id-generator, if they don't exist already.
-     */
-    public void initDb() throws DatabaseException {
-    }
-
-    /**
      *  Shut down this node manager. This is called when the application 
      *  using this node manager is stopped.
      */
