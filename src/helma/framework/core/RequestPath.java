@@ -112,10 +112,10 @@ public class RequestPath {
         StringBuffer buffer = new StringBuffer(app.getBaseURI());
 
         int start = 1;
-        String rootPrototype = app.getRootPrototype();
+        String hrefRootPrototype = app.getHrefRootPrototype();
 
-        if (rootPrototype != null) {
-            Object rootObject = getByPrototypeName(rootPrototype);
+        if (hrefRootPrototype != null) {
+            Object rootObject = getByPrototypeName(hrefRootPrototype);
 
             if (rootObject != null) {
                 start = objects.indexOf(rootObject) + 1;

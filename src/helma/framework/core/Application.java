@@ -126,8 +126,15 @@ public final class Application implements IPathElement, Runnable {
 
     // the URL-prefix to use for links into this application
     private String baseURI;
+    // the name of the root prototype as far as href() is concerned
+    private String hrefRootPrototype;
+
+    // the id of the object to use as root object
+    String rootId = "0";
     // the name of the root prototype
     private String rootPrototype;
+    // the name of the user prototype
+    private String userPrototype;
 
     // Db mappings for some standard prototypes
     private DbMapping rootMapping;
@@ -349,8 +356,8 @@ public final class Application implements IPathElement, Runnable {
         // create the skin manager
         skinmgr = new SkinManager(this);
 
-        rootMapping = getDbMapping("root");
-        userMapping = getDbMapping("user");
+        rootMapping = getDbMapping(rootPrototype);
+        userMapping = getDbMapping(userPrototype);
 
         // The whole user/userroot handling is basically old
         // ugly obsolete crap. Don't bother.
@@ -361,7 +368,7 @@ public final class Application implements IPathElement, Runnable {
             usernameField = "name";
         }
 
-        p.put("_children", "collection(user)");
+        p.put("_children", "collection(" + userPrototype + ")");
         p.put("_children.accessname", usernameField);
         userRootMapping = new DbMapping(this, "__userroot__", p);
         userRootMapping.update();
@@ -754,16 +761,22 @@ public final class Application implements IPathElement, Runnable {
         }
         // no custom root object is defined - use standard helma objectmodel
         else {
-            String rootId = props.getProperty("rootid", "0");
-            Node rootNode = nmgr.safe.getNode(rootId, rootMapping);
-            // set the root node's prototype, if requested by rootPrototype property
-            String rootProto = props.getProperty("rootprototype");
-            if (rootProto != null && !rootProto.equals(rootNode.getPrototype())) {
-                rootNode.setPrototype(rootProto);
-                rootNode.setDbMapping(getDbMapping(rootProto));
-            }
-            return rootNode;
+            return nmgr.safe.getNode(rootId, rootMapping);
         }
+    }
+
+    /**
+     *  Return the prototype of the object to be used as this application's root object
+     */
+    public String getRootPrototype() {
+        return rootPrototype;
+    }
+
+    /**
+     *  Return the id of the object to be used as this application's root object
+     */
+    public String getRootId() {
+        return rootId;
     }
 
     /**
@@ -959,7 +972,7 @@ public final class Application implements IPathElement, Runnable {
             unode = new Node(uname, "user", nmgr.safe);
             users.setNode(uname, unode);
 
-            String usernameField = userMapping.getNameField();
+            String usernameField = (userMapping != null) ? userMapping.getNameField() : null;
             String usernameProp = null;
 
             if (usernameField != null) {
@@ -1068,7 +1081,8 @@ public final class Application implements IPathElement, Runnable {
             return;
         }
 
-        if ((rootPrototype != null) && rootPrototype.equals(getPrototypeName(elem))) {
+        if ((hrefRootPrototype != null) &&
+             hrefRootPrototype.equals(getPrototypeName(elem))) {
             return;
         }
 
@@ -1122,8 +1136,8 @@ public final class Application implements IPathElement, Runnable {
     /**
      *  Returns the prototype name that Hrefs in this application should start with.
      */
-    public String getRootPrototype() {
-        return rootPrototype;
+    public String getHrefRootPrototype() {
+        return hrefRootPrototype;
     }
 
     /**
@@ -1699,7 +1713,12 @@ public final class Application implements IPathElement, Runnable {
                 baseURI = "/";
             }
 
-            rootPrototype = props.getProperty("rootprototype");
+            // read in root id, root prototype, user prototype
+            rootId = props.getProperty("rootid", "0");
+            rootPrototype = props.getProperty("rootprototype", "root");
+            userPrototype = props.getProperty("userprototype", "user");
+
+            hrefRootPrototype = props.getProperty("hrefrootprototype");
 
             // update the XML-RPC access list, containting prototype.method
             // entries of functions that may be called via XML-RPC
