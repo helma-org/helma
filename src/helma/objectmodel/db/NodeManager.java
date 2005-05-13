@@ -101,8 +101,7 @@ public final class NodeManager {
      * Gets the application's root node.
      */
     public Node getRootNode() throws Exception {
-        DbMapping dbmap = getDbMapping(app.getRootPrototype());
-        DbKey key = new DbKey(dbmap, app.getRootId());
+        DbKey key = new DbKey(app.getRootMapping(), app.getRootId());
         return getNode(key);
     }
     /**
@@ -110,7 +109,7 @@ public final class NodeManager {
      */
     public boolean isRootNode(Node node) {
         return app.getRootId().equals(node.getID()) &&
-               app.getRootPrototype().equals(node.getPrototype());
+               DbMapping.areStorageCompatible(app.getRootMapping(), node.getDbMapping());
     }
 
     /**

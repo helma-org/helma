@@ -1296,8 +1296,20 @@ public final class DbMapping {
     }
 
     /**
-     *  Tell if another DbMapping is storage-compatible to this one, i.e. it is stored in the same table or
-     *  embedded database.
+     * Static utility method to check whether two DbMappings use the same storage.
+     *
+     * @return true if both use the embedded database or the same relational table.
+     */
+    public static boolean areStorageCompatible(DbMapping dbm1, DbMapping dbm2) {
+        if (dbm1 == null)
+            return dbm2 == null || !dbm2.isRelational();
+        return dbm1.isStorageCompatible(dbm2);        
+    }
+
+    /**
+     * Tell if this DbMapping uses the same storage as the given DbMapping.
+     *
+     * @return true if both use the embedded database or the same relational table.
      */
     public boolean isStorageCompatible(DbMapping other) {
         if (other == null) {
