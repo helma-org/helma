@@ -1314,9 +1314,9 @@ public final class DbMapping {
     public boolean isStorageCompatible(DbMapping other) {
         if (other == null) {
             return !isRelational();
-        }
-
-        if (isRelational()) {
+        } else if (other == this) {
+            return true;
+        } else if (isRelational()) {
             return getTableName().equals(other.getTableName()) &&
                    getDbSource().equals(other.getDbSource());
         }
