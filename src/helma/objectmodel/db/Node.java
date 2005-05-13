@@ -740,8 +740,7 @@ public final class Node implements INode, Serializable {
 
                 // the parent of this node is the app's root node...
                 if ((pn == null) && pinfo.isroot) {
-                    pn = nmgr.getNode(nmgr.nmgr.app.getProperty("rootid", "0"), 
-                                      nmgr.getDbMapping("root"));
+                    pn = nmgr.getRootNode();
                 }
 
                 // if we found a parent node, check if we ought to use a virtual or groupby node as parent
@@ -943,7 +942,7 @@ public final class Node implements INode, Serializable {
                 }
             }
 
-            if (node != this && !"root".equalsIgnoreCase(node.getPrototype())) {
+            if (node != this && !nmgr.isRootNode(node)) {
                 // avoid calling getParent() because it would return bogus results
                 // for the not-anymore transient node
                 Node nparent = (node.parentHandle == null) ? null
@@ -1146,7 +1145,7 @@ public final class Node implements INode, Serializable {
             //    if (dbmap != null && dbmap.getSubnodeRelation () != null)
             //         retval = nmgr.getNode (this, subid, dbmap.getSubnodeRelation ());
             if ((retval != null) && (retval.parentHandle == null) &&
-                    !"root".equalsIgnoreCase(retval.getPrototype())) {
+                    !nmgr.isRootNode(retval)) {
                 retval.setParent(this);
                 retval.anonymous = true;
             }
@@ -1176,7 +1175,7 @@ public final class Node implements INode, Serializable {
             retval = ((NodeHandle) subnodes.get(index)).getNode(nmgr);
 
             if ((retval != null) && (retval.parentHandle == null) &&
-                    !"root".equalsIgnoreCase(retval.getPrototype())) {
+                    !nmgr.isRootNode(retval)) {
                 retval.setParent(this);
                 retval.anonymous = true;
             }
@@ -1731,7 +1730,7 @@ public final class Node implements INode, Serializable {
 
                 if (n != null) {
                     if ((n.parentHandle == null) &&
-                            !"root".equalsIgnoreCase(n.getPrototype())) {
+                            !nmgr.isRootNode(n)) {
                         n.setParent(this);
                         n.name = propname;
                         n.anonymous = false;
@@ -2235,7 +2234,7 @@ public final class Node implements INode, Serializable {
 
         // check if the main identity of this node is as a named property
         // or as an anonymous node in a collection
-        if (n != this && !"root".equalsIgnoreCase(n.getPrototype())) {
+        if (n != this && !nmgr.isRootNode(n)) {
             // avoid calling getParent() because it would return bogus results
             // for the not-anymore transient node
             Node nparent = (n.parentHandle == null) ? null

@@ -256,6 +256,27 @@ public final class WrappedNodeManager {
     }
 
     /**
+     * Gets the application's root node.
+     */
+    public Node getRootNode() {
+        try {
+            return nmgr.getRootNode();
+        } catch (Exception x) {
+            if (nmgr.app.debug()) {
+                x.printStackTrace();
+            }
+            throw new RuntimeException(x.toString());
+        }
+    }
+
+    /**
+     * Checks if the given node is the application's root node.
+     */
+    public boolean isRootNode(Node node) {
+        return nmgr.isRootNode(node);
+    }
+
+    /**
      * Get an array of all objects in the object cache
      */
     public Object[] getCacheEntries() {

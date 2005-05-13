@@ -98,6 +98,22 @@ public final class NodeManager {
     }
 
     /**
+     * Gets the application's root node.
+     */
+    public Node getRootNode() throws Exception {
+        DbMapping dbmap = getDbMapping(app.getRootPrototype());
+        DbKey key = new DbKey(dbmap, app.getRootId());
+        return getNode(key);
+    }
+    /**
+     * Checks if the given node is the application's root node.
+     */
+    public boolean isRootNode(Node node) {
+        return app.getRootId().equals(node.getID()) &&
+               app.getRootPrototype().equals(node.getPrototype());
+    }
+
+    /**
      *  app.properties file has been updated. Reread some settings.
      */
     public void updateProperties(Properties props) {
