@@ -360,9 +360,13 @@ public final class Application implements IPathElement, Runnable {
         rootId = props.getProperty("rootid", "0");
         rootPrototype = props.getProperty("rootprototype", "root");
         userPrototype = props.getProperty("userprototype", "user");
-        
+
         rootMapping = getDbMapping(rootPrototype);
+        if (rootMapping == null)
+            throw new RuntimeException("rootPrototype does not exist: " + rootPrototype);
         userMapping = getDbMapping(userPrototype);
+        if (userMapping == null)
+            throw new RuntimeException("userPrototype does not exist: " + userPrototype);
 
         // The whole user/userroot handling is basically old
         // ugly obsolete crap. Don't bother.
