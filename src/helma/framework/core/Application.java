@@ -356,6 +356,14 @@ public final class Application implements IPathElement, Runnable {
         // create the skin manager
         skinmgr = new SkinManager(this);
 
+        // read in root id, root prototype, user prototype
+        rootId = props.getProperty("rootid", "0");
+        rootPrototype = props.getProperty("rootprototype", "root");
+        userPrototype = props.getProperty("userprototype", "user");
+        
+        rootMapping = getDbMapping(rootPrototype);
+        userMapping = getDbMapping(userPrototype);
+
         // The whole user/userroot handling is basically old
         // ugly obsolete crap. Don't bother.
         ResourceProperties p = new ResourceProperties();
@@ -1709,13 +1717,6 @@ public final class Application implements IPathElement, Runnable {
             } else if (baseURI == null) {
                 baseURI = "/";
             }
-
-            // read in root id, root prototype, user prototype
-            rootId = props.getProperty("rootid", "0");
-            rootPrototype = props.getProperty("rootprototype", "root");
-            userPrototype = props.getProperty("userprototype", "user");
-            rootMapping = getDbMapping(rootPrototype);
-            userMapping = getDbMapping(userPrototype);
 
             hrefRootPrototype = props.getProperty("hrefrootprototype");
 
