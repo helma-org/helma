@@ -770,7 +770,7 @@ public final class Application implements IPathElement, Runnable {
         }
         // no custom root object is defined - use standard helma objectmodel
         else {
-            return nmgr.safe.getNode(rootId, rootMapping);
+            return nmgr.safe.getRootNode();
         }
     }
 
