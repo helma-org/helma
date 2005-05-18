@@ -101,8 +101,14 @@ public final class NodeManager {
      * Gets the application's root node.
      */
     public Node getRootNode() throws Exception {
-        DbKey key = new DbKey(app.getRootMapping(), app.getRootId());
-        return getNode(key);
+        DbMapping rootMapping = app.getRootMapping();
+        DbKey key = new DbKey(rootMapping, app.getRootId());
+        Node node = getNode(key);
+        if (node != null && rootMapping != null) {
+            node.setDbMapping(rootMapping);
+            node.setPrototype(rootMapping.getTypeName());
+        }
+        return node;
     }
     /**
      * Checks if the given node is the application's root node.
