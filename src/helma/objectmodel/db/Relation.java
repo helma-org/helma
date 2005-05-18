@@ -838,19 +838,20 @@ public final class Relation {
                     Object value = null;
                     if (columnName != null) {
                         DbMapping dbmap = nonvirtual.getDbMapping();
-                        if (columnName.equals(dbmap.getIDField())) {
-                            value = nonvirtual.getID();
-                        } else if (columnName.equals(dbmap.getNameField())) {
-                            value = nonvirtual.getName();
-                        } else if (columnName.equals(dbmap.getPrototypeField())) {
-                            value = nonvirtual.getPrototype();
-                        } else {
-                            String propertyName = dbmap.columnNameToProperty(columnName);
-                            if (propertyName != null) {
-                                IProperty property = nonvirtual.get(propertyName);
-                                if (property != null) {
-                                    value = property.getValue();
-                                }
+                        String propertyName = dbmap.columnNameToProperty(columnName);
+                        if (propertyName != null) {
+                            IProperty property = nonvirtual.get(propertyName);
+                            if (property != null) {
+                                value = property.getValue();
+                            }
+                        }
+                        if (value == null) {
+                            if (columnName.equals(dbmap.getIDField())) {
+                                value = nonvirtual.getID();
+                            } else if (columnName.equals(dbmap.getNameField())) {
+                                value = nonvirtual.getName();
+                            } else if (columnName.equals(dbmap.getPrototypeField())) {
+                                value = nonvirtual.getPrototype();
                             }
                         }
                     }
