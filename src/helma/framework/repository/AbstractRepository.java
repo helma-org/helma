@@ -65,25 +65,38 @@ public abstract class AbstractRepository implements Repository {
     protected abstract Resource createResource(String name);
 
     /**
-     *
-     * @return
+     * Get the full name that identifies this repository globally
      */
     public String getName() {
         return name;
     }
 
+    /**
+     * Get the local name that identifies this repository locally within its
+     * parent repository
+     */
     public String getShortName() {
         return shortName;
     }
 
+    /**
+     * Get this repository's logical script root repository.
+     *
+     *@see {isScriptRoot()}
+     */
     public Repository getRootRepository() {
-        if (parent == null) {
+        if (parent == null || isScriptRoot()) {
             return this;
         } else {
             return parent.getRootRepository();
         }
     }
 
+    /**
+     * Get a resource contained in this repository identified by the given local name.
+     * If the name can't be resolved to a resource, a resource object is returned
+     * for which {@link Resource exists()} returns <code>false<code>.
+     */
     public Resource getResource(String name) {
         update();
 
@@ -96,22 +109,35 @@ public abstract class AbstractRepository implements Repository {
         return res;
     }
 
+    /**
+     * Get an iterator over the resources contained in this repository.
+     */
     public Iterator getResources() {
         update();
 
         return resources.values().iterator();
     }
 
+    /**
+     * Get an iterator over the sub-repositories contained in this repository.
+     */
     public Repository[] getRepositories() {
         update();
 
         return repositories;
     }
 
+    /**
+     * Get this repository's parent repository.
+     */
     public Repository getParentRepository() {
         return parent;
     }
 
+    /**
+     * Get a deep list of this repository's resources, including all resources
+     * contained in sub-reposotories.
+     */
     public List getAllResources() throws IOException {
         update();
 
@@ -125,6 +151,10 @@ public abstract class AbstractRepository implements Repository {
         return allResources;
     }
 
+    /**
+     * Returns the repositories full name as string representation.
+     * @see {getName()}
+     */
     public String toString() {
         return getName();
     }
