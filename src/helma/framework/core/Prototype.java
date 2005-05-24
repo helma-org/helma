@@ -418,7 +418,7 @@ public final class Prototype {
 
     // a map that dynamically expands to all skins in this prototype
     final class SkinMap extends SystemMap {
-        long lastSkinmapLoad = 0;
+        long lastSkinmapLoad = -1;
         Object[] skinpath;
 
         SkinMap() {
@@ -523,6 +523,10 @@ public final class Prototype {
 
         private void checkForUpdates() {
             if (lastCodeUpdate > lastSkinmapLoad) {
+                if (lastCodeUpdate == 0) {
+                    // if prototype resources haven't been checked yet, check them now
+                    Prototype.this.checkForUpdates();
+                }
                 load();
             }
         }
