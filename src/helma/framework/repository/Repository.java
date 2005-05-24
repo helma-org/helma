@@ -111,8 +111,9 @@ public interface Repository {
     public Repository getParentRepository();
 
     /**
-     * Returns the top-level repository this repository is contained in
+     * Get this repository's logical script root repository.
      *
+     * @see {isScriptRoot()}
      * @return top-level repository
      */
     public Repository getRootRepository();
