@@ -325,6 +325,30 @@ public final class Node implements INode, Serializable {
     }
 
     /**
+     * Notify the node's parent that its child collection needs to be reloaded
+     * in case the changed property has an affect on collection order or content.
+     *
+     * @param propname the name of the property being changed
+     */
+    void notifyPropertyChange(String propname) {
+        Node parent = (parentHandle == null) ? null : (Node) getParent();
+
+        if ((parent != null) && (parent.getDbMapping() != null)) {
+            // check if this node is already registered with the old name; if so, remove it.
+            // then set parent's property to this node for the new name value
+            DbMapping parentmap = parent.getDbMapping();
+            Relation subrel = parentmap.getSubnodeRelation();
+            String dbcolumn = dbmap.propertyToColumnName(propname);
+            if (subrel == null || dbcolumn == null)
+                return;
+
+            if (subrel.order != null && subrel.order.indexOf(dbcolumn) > -1) {
+                parent.registerSubnodeChange();
+            }
+        }
+    }
+
+    /**
      * Called by the transactor on registered parent nodes to mark the
      * child index as changed
      */
@@ -1947,47 +1971,56 @@ public final class Node implements INode, Serializable {
             propMap.put(p2, prop);
         }
 
-        // check if this may have an effect on the node's URL when using accessname
-        // but only do this if we already have a parent set, i.e. if we are already stored in the db
-        Node parent = (parentHandle == null) ? null : (Node) getParent();
+        if (dbmap != null) {
 
-        if ((dbmap != null) && (parent != null) && (parent.getDbMapping() != null)) {
-            // check if this node is already registered with the old name; if so, remove it.
-            // then set parent's property to this node for the new name value
-            DbMapping parentmap = parent.getDbMapping();
-            Relation propRel = parentmap.getSubnodeRelation();
-            String dbcolumn = dbmap.propertyToColumnName(propname);
+            // check if this may have an effect on the node's parerent's child collection
+            // in combination with the accessname or order field.
+            Node parent = (parentHandle == null) ? null : (Node) getParent();
 
-            if ((propRel != null) && (propRel.accessName != null) &&
-                    propRel.accessName.equals(dbcolumn)) {
-                INode n = (INode) parent.getChildElement(value);
+            if ((parent != null) && (parent.getDbMapping() != null)) {
+                DbMapping parentmap = parent.getDbMapping();
+                Relation subrel = parentmap.getSubnodeRelation();
+                String dbcolumn = dbmap.propertyToColumnName(propname);
 
-                if ((n != null) && (n != this)) {
-                    parent.unset(value);
-                    parent.removeNode(n);
-                }
+                if (subrel != null && dbcolumn != null) {
+                    // inlined version of notifyPropertyChange();
+                    if (subrel.order != null && subrel.order.indexOf(dbcolumn) > -1) {
+                        parent.registerSubnodeChange();
+                    }
 
-                if (oldvalue != null) {
-                    n = (INode) parent.getChildElement(oldvalue);
+                    // check if accessname has changed
+                    if (subrel.accessName != null &&
+                            subrel.accessName.equals(dbcolumn)) {
+                        // if any other node is contained with the new value, remove it
+                        INode n = (INode) parent.getChildElement(value);
 
-                    if (n == this) {
-                        parent.unset(oldvalue);
-                        parent.addNode(this);
+                        if ((n != null) && (n != this)) {
+                            parent.unset(value);
+                            parent.removeNode(n);
+                        }
 
-                        // let the node cache know this key's not for this node anymore.
-                        nmgr.evictKey(new SyntheticKey(parent.getKey(), oldvalue));
+                        // check if this node is already registered with the old name;
+                        // if so, remove it, then add again with the new acessname
+                        if (oldvalue != null) {
+                            n = (INode) parent.getChildElement(oldvalue);
+
+                            if (n == this) {
+                                parent.unset(oldvalue);
+                                parent.addNode(this);
+
+                                // let the node cache know this key's not for this node anymore.
+                                nmgr.evictKey(new SyntheticKey(parent.getKey(), oldvalue));
+                            }
+                        }
+
+                        setName(value);
                     }
                 }
-
-                setName(value);
             }
-        }
 
-        // check if the property we're setting specifies the prototype of this object.
-        if ((dbmap != null) && (dbmap.getPrototypeField() != null)) {
-            String pn = dbmap.columnNameToProperty(dbmap.getPrototypeField());
-
-            if (propname.equals(pn)) {
+            // check if the property we're setting specifies the prototype of this object.
+            if (dbmap.getPrototypeField() != null &&
+                    propname.equals(dbmap.columnNameToProperty(dbmap.getPrototypeField()))) {
                 DbMapping newmap = nmgr.getDbMapping(value);
 
                 if (newmap != null) {
@@ -2042,6 +2075,8 @@ public final class Node implements INode, Serializable {
             propMap.put(p2, prop);
         }
 
+        notifyPropertyChange(propname);
+
         lastmodified = System.currentTimeMillis();
 
         if (state == CLEAN) {
@@ -2076,6 +2111,8 @@ public final class Node implements INode, Serializable {
             prop.setFloatValue(value);
             propMap.put(p2, prop);
         }
+
+        notifyPropertyChange(propname);
 
         lastmodified = System.currentTimeMillis();
 
@@ -2112,6 +2149,8 @@ public final class Node implements INode, Serializable {
             propMap.put(p2, prop);
         }
 
+        notifyPropertyChange(propname);
+
         lastmodified = System.currentTimeMillis();
 
         if (state == CLEAN) {
@@ -2147,6 +2186,8 @@ public final class Node implements INode, Serializable {
             propMap.put(p2, prop);
         }
 
+        notifyPropertyChange(propname);
+
         lastmodified = System.currentTimeMillis();
 
         if (state == CLEAN) {
@@ -2181,6 +2222,8 @@ public final class Node implements INode, Serializable {
             prop.setJavaObjectValue(value);
             propMap.put(p2, prop);
         }
+
+        notifyPropertyChange(propname);
 
         lastmodified = System.currentTimeMillis();
 
@@ -2355,6 +2398,7 @@ public final class Node implements INode, Serializable {
 
                 if (relational) {
                     p.setStringValue(null);
+                    notifyPropertyChange(propname);                    
                 }
 
                 lastmodified = System.currentTimeMillis();
