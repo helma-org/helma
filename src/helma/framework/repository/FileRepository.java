@@ -27,7 +27,7 @@ import java.util.HashMap;
 public class FileRepository extends AbstractRepository {
 
     // Directory serving sub-repositories and file resources
-    private File dir;
+    private File directory;
 
     private long lastModified = -1;
     private long lastChecksum = 0;
@@ -51,7 +51,7 @@ public class FileRepository extends AbstractRepository {
      * repository
      * @param dir directory
      */
-    public FileRepository(File dir) {
+    protected FileRepository(File dir) {
         this(dir, null);
     }
 
@@ -61,23 +61,31 @@ public class FileRepository extends AbstractRepository {
      * @param dir directory
      * @param parent top-level repository
      */
-    public FileRepository(File dir, FileRepository parent) {
-        this.dir = dir;
-        if (!dir.exists()) {
+    protected FileRepository(File dir, FileRepository parent) {
+        // make sure our directory has an absolute path,
+        // see http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4117557
+        if (dir.isAbsolute()) {
+            directory = dir;
+        } else {
+            directory = dir.getAbsoluteFile();
+        }
+        if (!directory.exists()) {
             create();
+        } else if (!directory.isDirectory()) {
+            throw new IllegalArgumentException("File " + directory + " is not a directory");
         }
 
         if (parent == null) {
-            name = shortName = dir.getAbsolutePath();
+            name = shortName = directory.getAbsolutePath();
         } else {
             this.parent = parent;
-            shortName = dir.getName();
-            name = dir.getAbsolutePath();
+            shortName = directory.getName();
+            name = directory.getAbsolutePath();
         }
     }
 
     public boolean exists() {
-        if (dir.exists() && dir.isDirectory()) {
+        if (directory.exists() && directory.isDirectory()) {
             return true;
         } else {
             return false;
@@ -85,8 +93,8 @@ public class FileRepository extends AbstractRepository {
     }
 
     public void create() {
-        if (!dir.exists() || !dir.isDirectory()) {
-            dir.mkdirs();
+        if (!directory.exists() || !directory.isDirectory()) {
+            directory.mkdirs();
         }
         return;
     }
@@ -104,7 +112,7 @@ public class FileRepository extends AbstractRepository {
     }
 
     public long lastModified() {
-        return dir.lastModified();
+        return directory.lastModified();
     }
 
     public long getChecksum() throws IOException {
@@ -131,17 +139,18 @@ public class FileRepository extends AbstractRepository {
      * resources
      */
     public synchronized void update() {
-        if (!dir.exists()) {
+        if (!directory.exists()) {
             repositories = new Repository[0];
-            resources.clear();
+            if (resources != null)
+                resources.clear();
             lastModified = 0;
             return;
         }
 
-        if (dir.lastModified() != lastModified) {
-            lastModified = dir.lastModified();
+        if (directory.lastModified() != lastModified) {
+            lastModified = directory.lastModified();
 
-            File[] list = dir.listFiles();
+            File[] list = directory.listFiles();
 
             ArrayList newRepositories = new ArrayList(list.length);
             HashMap newResources = new HashMap(list.length);
@@ -170,16 +179,16 @@ public class FileRepository extends AbstractRepository {
      * Called to create a child resource for this repository
      */
     protected Resource createResource(String name) {
-        return new FileResource(new File(dir, name), this);
+        return new FileResource(new File(directory, name), this);
     }
 
     public int hashCode() {
-        return 17 + (37 * dir.hashCode());
+        return 17 + (37 * directory.hashCode());
     }
 
     public boolean equals(Object obj) {
         return obj instanceof FileRepository &&
-               dir.equals(((FileRepository) obj).dir);
+               directory.equals(((FileRepository) obj).directory);
     }
 
     public String toString() {
