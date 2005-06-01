@@ -61,7 +61,13 @@ public final class ZipRepository extends AbstractRepository {
      * @param parent repository
      */
     private ZipRepository(File file, Repository parent, ZipEntry zipentry) {
-        this.file = file;
+        // make sure our file has an absolute path,
+        // see http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4117557
+        if (file.isAbsolute()) {
+            this.file = file;
+        } else {
+            this.file = file.getAbsoluteFile();
+        }
         this.parent = parent;
 
         if (zipentry == null) {
