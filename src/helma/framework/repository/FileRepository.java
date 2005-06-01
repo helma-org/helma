@@ -61,7 +61,7 @@ public class FileRepository extends AbstractRepository {
      * @param dir directory
      * @param parent top-level repository
      */
-    private FileRepository(File dir, FileRepository parent) {
+    public FileRepository(File dir, FileRepository parent) {
         this.dir = dir;
         if (!dir.exists()) {
             create();
