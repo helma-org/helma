@@ -51,7 +51,7 @@ public class FileRepository extends AbstractRepository {
      * repository
      * @param dir directory
      */
-    protected FileRepository(File dir) {
+    public FileRepository(File dir) {
         this(dir, null);
     }
 
