@@ -55,7 +55,7 @@ public final class SkinManager implements FilenameFilter {
         do {
             if (skinpath != null) {
                 for (int i = 0; i < skinpath.length; i++) {
-                    skin = getSkinInternal(skinpath[i], proto.getName(), skinname);
+                    skin = getSkinInPath(skinpath[i], proto.getName(), skinname);
 
                     if (skin != null) {
                         return skin;
@@ -79,7 +79,7 @@ public final class SkinManager implements FilenameFilter {
         return null;
     }
 
-    protected Skin getSkinInternal(Object skinset, String prototype, String skinname) throws IOException {
+    protected Skin getSkinInPath(Object skinset, String prototype, String skinname) throws IOException {
         if ((prototype == null) || (skinset == null)) {
             return null;
         }
