@@ -313,8 +313,8 @@ public final class Prototype {
      *  residing in the prototype directory, not for skins files in
      *  other locations or database stored skins.
      */
-    public Skin getSkin(String sname) throws IOException {
-        return skinMap.getSkin(name);
+    public Skin getSkin(String skinName) throws IOException {
+        return skinMap.getSkin(skinName);
     }
 
     /**
@@ -448,7 +448,7 @@ public final class Prototype {
         }
 
         public Skin getSkin(Object key) throws IOException {
-            Resource res = (Resource) super.get(key);
+            Resource res = (Resource) get(key);
 
             if (res != null) {
                 return Skin.getSkin(res, app);
