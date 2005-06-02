@@ -20,7 +20,6 @@ import helma.objectmodel.INode;
 import helma.framework.repository.FileResource;
 
 import java.io.*;
-import java.util.*;
 
 /**
  * Manages skins for a Helma application
@@ -119,34 +118,6 @@ public final class SkinManager implements FilenameFilter {
         // Inheritance is taken care of in the above getSkin method.
         // the sequence is prototype.skin-from-db, prototype.skin-from-file, parent.from-db, parent.from-file etc.
         return null;
-    }
-
-    protected Map getSkinFiles(String skinDir, Prototype proto) {
-        File dir = new File(skinDir.toString(), proto.getName());
-        // if directory does not exist use lower case property name
-        if (!dir.isDirectory()) {
-            dir = new File(skinDir.toString(), proto.getLowerCaseName());
-            if (!dir.isDirectory()) {
-                return null;
-            }
-        }
-
-        String[] skinNames = dir.list(this);
-
-        if ((skinNames == null) || (skinNames.length == 0)) {
-            return null;
-        }
-
-        HashMap map = new HashMap();
-
-        for (int i = 0; i < skinNames.length; i++) {
-            String name = skinNames[i].substring(0, skinNames[i].length() - 5);
-            File file = new File(dir, skinNames[i]);
-
-            map.put(name, (new FileResource(file)));
-        }
-
-        return map;
     }
 
     /**

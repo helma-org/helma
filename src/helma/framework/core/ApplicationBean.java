@@ -23,7 +23,6 @@ import helma.util.WrappedMap;
 import java.io.File;
 import java.io.Serializable;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -443,7 +442,7 @@ public class ApplicationBean implements Serializable {
         for (Iterator it = app.getPrototypes().iterator(); it.hasNext();) {
             Prototype p = (Prototype) it.next();
 
-            Object skinmap = p.getSkinMap();
+            Object skinmap = p.getScriptableSkinMap();
             skinz.put(p.getName(), skinmap);
             skinz.put(p.getLowerCaseName(), skinmap);
         }
@@ -464,7 +463,7 @@ public class ApplicationBean implements Serializable {
         for (Iterator it = app.getPrototypes().iterator(); it.hasNext();) {
             Prototype p = (Prototype) it.next();
 
-            Object skinmap = p.getSkinMap(skinpath);
+            Object skinmap = p.getScriptableSkinMap(skinpath);
             skinz.put(p.getName(), skinmap);
             skinz.put(p.getLowerCaseName(), skinmap);
         }

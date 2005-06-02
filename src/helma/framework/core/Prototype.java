@@ -17,11 +17,12 @@
 package helma.framework.core;
 
 import helma.objectmodel.db.DbMapping;
-import helma.util.SystemMap;
 import helma.util.ResourceProperties;
+import helma.util.WrappedMap;
 import helma.framework.repository.Resource;
 import helma.framework.repository.Repository;
 import helma.framework.repository.ResourceTracker;
+import helma.framework.repository.FileResource;
 
 import java.io.*;
 import java.util.*;
@@ -47,18 +48,18 @@ public final class Prototype {
     long lastChecksum = -1;
 
     // the time at which any of the prototype's files were found updated the last time
-    long lastCodeUpdate = 0;
+    volatile long lastCodeUpdate = 0;
 
     TreeSet code;
     TreeSet skins;
 
     HashMap trackers;
 
-    HashSet repositories;
+    TreeSet repositories;
 
     // a map of this prototype's skins as raw strings
     // used for exposing skins to application (script) code (via app.skinfiles).
-    HashMap skinMap;
+    SkinMap skinMap;
 
     DbMapping dbmap;
 
@@ -81,7 +82,7 @@ public final class Prototype {
         // app.logEvent ("Constructing Prototype "+app.getName()+"/"+name);
         this.app = app;
         this.name = name;
-        repositories = new HashSet();
+        repositories = new TreeSet(app.getResourceComparator());
         if (repository != null) {
             repositories.add(repository);
         }
@@ -102,7 +103,7 @@ public final class Prototype {
 
         trackers = new HashMap();
 
-        skinMap = new HashMap();
+        skinMap = new SkinMap();
 
         isJavaPrototype = app.isJavaPrototype(name);
     }
@@ -170,10 +171,11 @@ public final class Prototype {
                         name.endsWith(TypeManager.skinExtension)) {
                     updatedResources = true;
                     if (name.endsWith(TypeManager.skinExtension)) {
-                        addSkinResource(resources[i]);
+                        skins.add(resources[i]);
                     } else {
-                        addCodeResource(resources[i]);
+                        code.add(resources[i]);
                     }
+                    trackers.put(resources[i].getName(), new ResourceTracker(resources[i]));
                 }
             }
         }
@@ -307,27 +309,12 @@ public final class Prototype {
     }
 
     /**
-     *  Get a Skinfile for this prototype. This only works for skins
-     *  residing in the prototype directory, not for skin files in
-     *  other locations or database stored skins.
-     */
-    public Resource getSkinResource(String sname) {
-        return (Resource) skinMap.get(sname);
-    }
-
-    /**
      *  Get a skin for this prototype. This only works for skins
      *  residing in the prototype directory, not for skins files in
      *  other locations or database stored skins.
      */
     public Skin getSkin(String sname) throws IOException {
-        Resource res = getSkinResource(sname);
-
-        if (res != null) {
-            return Skin.getSkin(res, app);
-        } else {
-            return null;
-        }
+        return skinMap.getSkin(name);
     }
 
     /**
@@ -374,28 +361,6 @@ public final class Prototype {
     }
 
     /**
-     * Add a code resource to this prototype
-     *
-     * @param res a code resource
-     */
-    public synchronized void addCodeResource(Resource res) {
-        code.add(res);
-        trackers.put(res.getName(), new ResourceTracker(res));
-    }
-
-
-    /**
-     * Add a skin resource to this prototype
-     *
-     * @param res a skin resource
-     */
-    public synchronized void addSkinResource(Resource res) {
-        skins.add(res);
-        skinMap.put(res.getBaseName(), res);
-        trackers.put(res.getName(), new ResourceTracker(res));
-    }
-
-    /**
      *  Return a string representing this prototype.
      */
     public String toString() {
@@ -403,68 +368,39 @@ public final class Prototype {
     }
 
     /**
+     * Get a map containing this prototype's skins as strings
      *
-     *
-     * @return ...
+     * @return
      */
-    public SkinMap getSkinMap() {
-        return new SkinMap();
+    public Map getScriptableSkinMap() {
+        return new ScriptableSkinMap(new SkinMap());
     }
 
-    // not yet implemented
-    public SkinMap getSkinMap(Object[] skinpath) {
-        return new SkinMap(skinpath);
+    /**
+     * Get a map containing this prototype's skins as strings, overloaded by the
+     * skins found in the given skinpath.
+     *
+     * @return
+     */
+    public Map getScriptableSkinMap(Object[] skinpath) {
+        return new ScriptableSkinMap(new SkinMap(skinpath));
     }
 
-    // a map that dynamically expands to all skins in this prototype
-    final class SkinMap extends SystemMap {
-        long lastSkinmapLoad = -1;
-        Object[] skinpath;
+    /**
+     * A map of this prototype's skins that acts as a native JavaScript object in
+     * rhino and returns the skins as strings. This is used to expose the skins
+     * to JavaScript in app.skinfiles[prototypeName][skinName].
+     */
+    class ScriptableSkinMap extends WrappedMap {
 
-        SkinMap() {
-            super();
-            skinpath = null;
-        }
-
-        SkinMap(Object[] path) {
-            super();
-            skinpath = path;
-        }
-
-        public boolean containsKey(Object key) {
-            checkForUpdates();
-
-            return super.containsKey(key);
-        }
-
-        public boolean containsValue(Object value) {
-            checkForUpdates();
-
-            return super.containsValue(value);
-        }
-
-        public Set entrySet() {
-            checkForUpdates();
-
-            return super.entrySet();
-        }
-
-        public boolean equals(Object obj) {
-            checkForUpdates();
-
-            return super.equals(obj);
+        public ScriptableSkinMap(Map wrapped) {
+            super(wrapped);
         }
 
         public Object get(Object key) {
-            if (key == null) {
-                return null;
-            }
-
-            checkForUpdates();
-
             Resource res = (Resource) super.get(key);
 
-            if (res == null) {
+            if (res == null || !res.exists()) {
                 return null;
             }
 
@@ -474,22 +410,70 @@ public final class Prototype {
                 return null;
             }
         }
+    }
+
+    /**
+     * A Map that dynamically expands to all skins in this prototype.
+     */
+    class SkinMap extends HashMap {
+        volatile long lastSkinmapLoad = -1;
+        Object[] skinpath;
+
+        SkinMap() {
+            skinpath = null;
+        }
+
+        SkinMap(Object[] path) {
+            skinpath = path;
+        }
+
+        public boolean containsKey(Object key) {
+            checkForUpdates();
+            return super.containsKey(key);
+        }
+
+        public boolean containsValue(Object value) {
+            checkForUpdates();
+            return super.containsValue(value);
+        }
+
+        public Set entrySet() {
+            checkForUpdates();
+            return super.entrySet();
+        }
+
+        public boolean equals(Object obj) {
+            checkForUpdates();
+            return super.equals(obj);
+        }
+
+        public Skin getSkin(Object key) throws IOException {
+            Resource res = (Resource) super.get(key);
+
+            if (res != null) {
+                return Skin.getSkin(res, app);
+            } else {
+                return null;
+            }
+        }
+
+        public Object get(Object key) {
+            checkForUpdates();
+            return super.get(key);
+        }
 
         public int hashCode() {
             checkForUpdates();
-
             return super.hashCode();
         }
 
         public boolean isEmpty() {
             checkForUpdates();
-
             return super.isEmpty();
         }
 
         public Set keySet() {
             checkForUpdates();
-
             return super.keySet();
         }
 
@@ -505,19 +489,16 @@ public final class Prototype {
 
         public Object remove(Object key) {
             checkForUpdates();
-
             return super.remove(key);
         }
 
         public int size() {
             checkForUpdates();
-
             return super.size();
         }
 
         public Collection values() {
             checkForUpdates();
-
             return super.values();
         }
 
@@ -527,11 +508,11 @@ public final class Prototype {
                     // if prototype resources haven't been checked yet, check them now
                     Prototype.this.checkForUpdates();
                 }
-                load();
+                loadSkins();
             }
         }
 
-        private synchronized void load() {
+        private synchronized void loadSkins() {
             if (lastCodeUpdate == lastSkinmapLoad) {
                 return;
             }
@@ -541,7 +522,6 @@ public final class Prototype {
             // load Skins
             for (Iterator i = skins.iterator(); i.hasNext();) {
                 Resource res = (Resource) i.next();
-
                 super.put(res.getBaseName(), res);
             }
 
@@ -549,17 +529,37 @@ public final class Prototype {
             if (skinpath != null) {
                 for (int i = skinpath.length - 1; i >= 0; i--) {
                     if ((skinpath[i] != null) && skinpath[i] instanceof String) {
-                        Map m = app.skinmgr.getSkinFiles((String) skinpath[i],
-                                                         Prototype.this);
-
-                        if (m != null) {
-                            super.putAll(m);
-                        }
+                        loadSkinFiles((String) skinpath[i]);
                     }
                 }
             }
 
             lastSkinmapLoad = lastCodeUpdate;
+        }
+
+        private void loadSkinFiles(String skinDir) {
+            File dir = new File(skinDir.toString(), Prototype.this.getName());
+            // if directory does not exist use lower case property name
+            if (!dir.isDirectory()) {
+                dir = new File(skinDir.toString(), Prototype.this.getLowerCaseName());
+                if (!dir.isDirectory()) {
+                    return;
+                }
+            }
+
+            String[] skinNames = dir.list(app.skinmgr);
+
+            if ((skinNames == null) || (skinNames.length == 0)) {
+                return;
+            }
+
+            for (int i = 0; i < skinNames.length; i++) {
+                String name = skinNames[i].substring(0, skinNames[i].length() - 5);
+                File file = new File(dir, skinNames[i]);
+
+                super.put(name, (new FileResource(file)));
+            }
+
         }
 
         public String toString() {
