@@ -32,7 +32,7 @@ import java.util.*;
 public class Logging extends LogFactory {
 
     // we use one static thread for all Loggers
-    static Runner runner;
+    static volatile Runner runner;
 
     // the list of active loggers
     static ArrayList loggers = new ArrayList();
