@@ -18,7 +18,6 @@ package helma.util;
 
 import org.apache.commons.logging.*;
 import java.io.*;
-import java.text.*;
 import java.util.*;
 
 /**
@@ -33,7 +32,7 @@ import java.util.*;
 public class Logging extends LogFactory {
 
     // we use one static thread for all Loggers
-    public static Runner runner;
+    static Runner runner;
 
     // the list of active loggers
     static ArrayList loggers = new ArrayList();
@@ -78,11 +77,7 @@ public class Logging extends LogFactory {
             }
         }
 
-        if ((runner == null) || !runner.isAlive()) {
-            runner = new Runner();
-            runner.setDaemon(true);
-            runner.start();
-        }
+        ensureRunning();
 
         return log;
     }
@@ -91,11 +86,7 @@ public class Logging extends LogFactory {
      * Get a logger to System.out.
      */
     public static Log getConsoleLog() {
-        if ((runner == null) || !runner.isAlive()) {
-            runner = new Runner();
-            runner.setDaemon(true);
-            runner.start();
-        }
+        ensureRunning();
 
         return consoleLog;
     }
@@ -154,16 +145,32 @@ public class Logging extends LogFactory {
         shutdown();
     }
 
-    public static void shutdown() {
+    /**
+     * Make sure logger thread is active.
+     */
+    public synchronized static void ensureRunning() {
+        if ((runner == null) || !runner.isAlive()) {
+            runner = new Runner();
+            runner.setDaemon(true);
+            runner.start();
+        }
+    }
+
+    /**
+     * Shut down logging, stopping the logger thread and closing all logs.
+     */
+    public synchronized static void shutdown() {
         if (runner != null && runner.isAlive()) {
             runner.interrupt();
-            runner = null;
-            Thread.yield();
         }
-
+        runner = null;
+        Thread.yield();
         closeAll();
     }
 
+    /**
+     * Close all open logs.
+     */
     static void closeAll() {
 
         consoleLog.write();
