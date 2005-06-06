@@ -150,10 +150,11 @@ public class Logger implements Log {
         }
     }
 
-    // Pre-render the date to use for log messages. Called every 2 seconds or so.
+    // Pre-render the date to use for log messages. Called about once a second.
     static synchronized void renderDate() {
-        dateLastRendered = System.currentTimeMillis();
-        dateCache = dformat.format(new Date());
+        Date date = new Date();
+        dateCache = dformat.format(date);
+        dateLastRendered = date.getTime();
     }
 
     // methods to implement org.apache.commons.logging.Log interface
