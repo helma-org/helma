@@ -63,18 +63,13 @@ public class Logging extends LogFactory {
         if (logname == null) {
             throw new LogConfigurationException("No logname specified!");
         }
-        if ("event".equals(logname))
-            Thread.dumpStack();
+
         Logger log = null;
 
         if ("console".equals(logdir)) {
             log = consoleLog;
         } else {
-            log = (Logger) loggerMap.get(logname);
-
-            if (log == null) {
-                log = newLog(logname);
-            }
+            log = getFileLogger(logname);
         }
 
         ensureRunning();
@@ -93,22 +88,16 @@ public class Logging extends LogFactory {
 
 
     /**
-     *  Add a log to the list of logs and
-     *  create and start the runner thread if necessary.
+     *  Get a file logger, creating it if it doesn't exist yet.
      */
-    private synchronized Logger newLog(String logname) {
-        // check loggerMap again because only now we are synchronized,
-        // so another thread may have created a log in the meantime.
+    private synchronized Logger getFileLogger(String logname) {
         Logger log = (Logger) loggerMap.get(logname);
 
-        if (log != null) {
-            return log;
+        if (log == null) {
+            log = new FileLogger(logdir, logname);
+            loggerMap.put(logname, log);
+            loggers.add(log);
         }
-
-        log = new FileLogger(logdir, logname);
-
-        loggerMap.put(logname, log);
-        loggers.add(log);
 
         return log;
     }
