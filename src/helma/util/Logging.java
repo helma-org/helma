@@ -233,7 +233,7 @@ public class Logging extends LogFactory {
      */
     static class Runner extends Thread {
 
-        public void run() {
+        public synchronized void run() {
             long nextMidnight = nextMidnight();
 
             while ((runner == this) && !isInterrupted()) {
