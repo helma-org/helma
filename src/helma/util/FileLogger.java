@@ -266,6 +266,7 @@ public class FileLogger extends Logger implements Log {
         public GZipper(File file) {
             this.file = file;
             this.temp = new File(file.getAbsolutePath() + ".tmp");
+            setPriority(MIN_PRIORITY);
         }
 
         public void run() {
