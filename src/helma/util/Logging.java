@@ -64,17 +64,11 @@ public class Logging extends LogFactory {
             throw new LogConfigurationException("No logname specified!");
         }
 
-        Logger log = null;
-
         if ("console".equals(logdir)) {
-            log = consoleLog;
+            return getConsoleLog();
         } else {
-            log = getFileLogger(logname);
+            return getFileLog(logname);
         }
-
-        ensureRunning();
-
-        return log;
     }
 
     /**
@@ -82,7 +76,6 @@ public class Logging extends LogFactory {
      */
     public static Log getConsoleLog() {
         ensureRunning();
-
         return consoleLog;
     }
 
@@ -90,7 +83,7 @@ public class Logging extends LogFactory {
     /**
      *  Get a file logger, creating it if it doesn't exist yet.
      */
-    private synchronized Logger getFileLogger(String logname) {
+    public synchronized Logger getFileLog(String logname) {
         Logger log = (Logger) loggerMap.get(logname);
 
         if (log == null) {
@@ -99,6 +92,7 @@ public class Logging extends LogFactory {
             loggers.add(log);
         }
 
+        ensureRunning();
         return log;
     }
 
