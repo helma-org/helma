@@ -56,6 +56,9 @@ public class FileLogger extends Logger implements Log {
     protected FileLogger(String directory, String name) {
         this.name = name;
         logdir = new File(directory);
+        // make logdir have an absolute path in case it doesn't already
+        if (!logdir.isAbsolute())
+            logdir = logdir.getAbsoluteFile();
         logfile = new File(logdir, name + ".log");
 
         if (!logdir.exists()) {
@@ -75,7 +78,7 @@ public class FileLogger extends Logger implements Log {
      * Open the file and get a writer to it. This will either rotate the log files
      * or it will return a writer that appends to an existing file.
      */
-    private void openFile() {
+    private synchronized void openFile() {
         try {
             if (logfile.exists() && (logfile.lastModified() < lastMidnight())) {
                 // rotate if a log file exists and is NOT from today
@@ -93,7 +96,7 @@ public class FileLogger extends Logger implements Log {
     /**
      * Actually closes the file writer of a log.
      */
-    void closeFile() {
+    synchronized void closeFile() {
         if (writer != null) {
             try {
                 writer.close();
@@ -107,14 +110,14 @@ public class FileLogger extends Logger implements Log {
     /**
      *  Return true if we have a file writer open
      */
-    boolean isOpen() {
+    synchronized boolean isOpen() {
         return writer != null;
     }
 
     /**
      * This is called by the runner thread to perform actual output.
      */
-    void write() {
+    synchronized void write() {
         if (entries.isEmpty()) {
             return;
         }
@@ -152,7 +155,7 @@ public class FileLogger extends Logger implements Log {
      *  Rotate log files, closing, renaming and gzipping the old file and
      *  start a new one.
      */
-    protected void rotateLogFile() throws IOException {
+    protected synchronized void rotateLogFile() throws IOException {
         // if the logger is not file based do nothing.
         if (logfile == null) {
             return;
@@ -263,6 +266,7 @@ public class FileLogger extends Logger implements Log {
     class GZipper extends Thread {
         File file;
         File temp;
+        final static int BUFFER_SIZE = 8192;
 
         public GZipper(File file) {
             this.file = file;
@@ -273,10 +277,10 @@ public class FileLogger extends Logger implements Log {
             try {
                 GZIPOutputStream zip = new GZIPOutputStream(new FileOutputStream(temp));
                 BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
-                byte[] b = new byte[1024];
+                byte[] b = new byte[BUFFER_SIZE];
                 int len = 0;
 
-                while ((len = in.read(b, 0, 1024)) != -1) {
+                while ((len = in.read(b, 0, BUFFER_SIZE)) != -1) {
                     zip.write(b, 0, len);
                 }
 
