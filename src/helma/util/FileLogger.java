@@ -26,11 +26,6 @@ import java.util.zip.GZIPOutputStream;
 /**
  * An extended Logger that writes to a file and rotates files each midnight.
  *
- * Note that the methods in this class that operate on the file writer
- * (write(), openFile(), closeFile()) are expected to be called by just one
- * thread (the static runner thread in helma.util.Logging) which is why they
- * are not synchronized, although they're not threadsafe.
- *
  * @author Stefan Pollach
  * @author Daniel Ruthardt
  * @author Hannes Wallnoefer
