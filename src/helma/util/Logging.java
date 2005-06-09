@@ -32,7 +32,7 @@ import java.util.*;
 public class Logging extends LogFactory {
 
     // we use one static thread for all Loggers
-    static volatile Runner runner;
+    static Runner runner;
 
     // the list of active loggers
     static ArrayList loggers = new ArrayList();
@@ -233,7 +233,7 @@ public class Logging extends LogFactory {
      */
     static class Runner extends Thread {
 
-        public synchronized void run() {
+        public void run() {
             long nextMidnight = nextMidnight();
 
             while ((runner == this) && !isInterrupted()) {
@@ -272,12 +272,8 @@ public class Logging extends LogFactory {
                     break;
                 }
             }
-            runner = null;
         }
 
-        public synchronized void wakeup() {
-            notifyAll();
-        }
     }
 
 }
