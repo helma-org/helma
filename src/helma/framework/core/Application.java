@@ -291,11 +291,22 @@ public final class Application implements IPathElement, Runnable {
     public synchronized void init()
             throws DatabaseException, IllegalAccessException,
                    InstantiationException, ClassNotFoundException {
+        init(null);
+    }
+
+    /**
+     * Get the application ready to run, initializing the evaluators and type manager.
+     *
+     * @param ignoreDirs comma separated list of directory names to ignore
+     */
+    public synchronized void init(String ignoreDirs)
+            throws DatabaseException, IllegalAccessException,
+                   InstantiationException, ClassNotFoundException {
 
         running = true;
 
         // create and init type mananger
-        typemgr = new TypeManager(this);
+        typemgr = new TypeManager(this, ignoreDirs);
         try {
             typemgr.createPrototypes();
         } catch (Exception x) {

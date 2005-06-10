@@ -19,6 +19,7 @@ package helma.framework.core;
 import helma.objectmodel.db.DbMapping;
 import helma.framework.repository.Resource;
 import helma.framework.repository.Repository;
+import helma.util.StringUtils;
 
 import java.io.*;
 import java.net.URL;
@@ -43,6 +44,9 @@ public final class TypeManager {
     // set of Java archives
     private HashSet jarfiles;
 
+    // set of directory names to ignore
+    private HashSet ignoreDirs;
+
     private long lastCheck = 0;
     private long lastCodeUpdate;
     private long[] lastRepoScan;
@@ -57,10 +61,17 @@ public final class TypeManager {
      *
      * @throws RuntimeException ...
      */
-    public TypeManager(Application app) {
+    public TypeManager(Application app, String ignore) {
         this.app = app;
         prototypes = new HashMap();
         jarfiles = new HashSet();
+        ignoreDirs = new HashSet();
+        // split ignore dirs list and add to hash set
+        if (ignore != null) {
+            String[] arr = StringUtils.split(ignore, ",");
+            for (int i=0; i<arr.length; i++)
+                ignoreDirs.add(arr[i].trim());
+        }
 
         URL helmajar = TypeManager.class.getResource("/");
 
@@ -116,6 +127,16 @@ public final class TypeManager {
     private void checkRepository(Repository repository) throws IOException {
         Repository[] list = repository.getRepositories();
         for (int i = 0; i < list.length; i++) {
+ 
+            // ignore dir name found - compare to shortname (= Prototype name)
+            if (ignoreDirs.contains(list[i].getShortName())) {
+                // jump this repository
+                if (app.debug) {
+                    app.logEvent("Repository " + list[i].getName() + " ignored");
+                }
+                continue;
+            }
+
             if (list[i].isScriptRoot()) {
                 // this is an embedded top-level script repository 
                 if (app.addRepository(list[i])) {

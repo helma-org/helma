@@ -289,6 +289,11 @@ public class ApplicationManager implements XmlRpcHandler {
         Repository[] repositories;
 
         /**
+         * extend apps.properties, add [appname].ignore
+         */
+        String ignoreDirs;
+
+        /**
          *  Creates an AppDescriptor from the properties.
          */
         AppDescriptor(String name) {
@@ -321,6 +326,9 @@ public class ApplicationManager implements XmlRpcHandler {
             String dbDirName = props.getProperty(name + ".dbdir");
             dbDir = (dbDirName == null) ? null : new File(dbDirName);
 
+            // got ignore dirs
+            ignoreDirs = props.getProperty(name + ".ignore");
+
             // read and configure app repositories
             ArrayList repositoryList = new ArrayList();
             for (int i = 0; true; i++) {
@@ -348,7 +356,7 @@ public class ApplicationManager implements XmlRpcHandler {
                                 .newInstance((Object[]) repositoryArgs);
                         repositoryList.add(newRepository);
                     } catch (Exception ex) {
-                        System.out.println("Adding repository " + repositoryArgs + " failed. " +
+                        System.out.println("Adding repository " + repositoryArgs[0] + " failed. " +
                                            "Will not use that repository. Check your initArgs!");
                     }
                 } else {
@@ -392,7 +400,7 @@ public class ApplicationManager implements XmlRpcHandler {
                 applications.put(appName, app);
 
                 // the application is started later in the register method, when it's bound
-                app.init();
+                app.init(ignoreDirs);
 
                 // set application URL prefix if it isn't set in app.properties
                 if (!app.hasExplicitBaseURI()) {
