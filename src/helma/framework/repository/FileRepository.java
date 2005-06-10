@@ -27,16 +27,16 @@ import java.util.HashMap;
 public class FileRepository extends AbstractRepository {
 
     // Directory serving sub-repositories and file resources
-    private File directory;
+    protected File directory;
 
-    private long lastModified = -1;
-    private long lastChecksum = 0;
-    private long lastChecksumTime = 0;
+    protected long lastModified = -1;
+    protected long lastChecksum = 0;
+    protected long lastChecksumTime = 0;
 
     /**
      * Defines how long the checksum of the repository will be cached
      */
-    private final long cacheTime = 1000L;
+    final long cacheTime = 1000L;
 
     /**
      * Constructs a FileRepository using the given argument
