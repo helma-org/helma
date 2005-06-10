@@ -91,10 +91,6 @@ public class ResourceComparator implements Comparator {
         if (obj instanceof Resource)
             return ((Resource) obj).getRepository()
                                    .getRootRepository();
-        if (obj instanceof ResourceTracker)
-            return ((ResourceTracker) obj).getResource()
-                                          .getRepository()
-                                          .getRootRepository();
         if (obj instanceof Repository)
             return ((Repository) obj).getRootRepository();
 
@@ -105,9 +101,6 @@ public class ResourceComparator implements Comparator {
     private String getFullName(Object obj) {
         if (obj instanceof Resource)
             return ((Resource) obj).getName();
-        if (obj instanceof ResourceTracker)
-            return ((ResourceTracker) obj).getResource()
-                                          .getName();
         if (obj instanceof Repository)
             return ((Repository) obj).getName();
 
