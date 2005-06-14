@@ -72,6 +72,9 @@ public class XmlObject {
 
         File finalFile = new File(file);
 
+        if (finalFile.exists()) {
+            finalFile.delete();
+        }
         tmpFile.renameTo(finalFile);
         core.getApplication().logEvent("wrote xml to " + finalFile.getAbsolutePath());
 
