@@ -90,9 +90,7 @@ public final class Node implements INode, Serializable {
         this.id = id;
         this.name = ((name == null) || "".equals(name)) ? id : name;
 
-        if (prototype != null) {
-            setPrototype(prototype);
-        }
+        setPrototype(prototype);
 
         created = lastmodified = System.currentTimeMillis();
         markAs(CLEAN);
@@ -121,8 +119,15 @@ public final class Node implements INode, Serializable {
         this.id = primaryKey.getID();
         this.name = propname;
         this.anonymous = false;
+
         setPrototype(prototype);
-        this.state = VIRTUAL;
+
+        // set the collection's state according to the home node's state
+        if (home.state == NEW || home.state == TRANSIENT) {
+            this.state = TRANSIENT;
+        } else {
+            this.state = VIRTUAL;
+        }
     }
 
     /**
@@ -130,8 +135,8 @@ public final class Node implements INode, Serializable {
      */
     public Node(String name, String prototype, WrappedNodeManager nmgr) {
         this.nmgr = nmgr;
-        this.prototype = prototype;
-        dbmap = nmgr.getDbMapping(prototype);
+
+        setPrototype(prototype);
 
         // the id is only generated when the node is actually checked into db,
         // or when it's explicitly requested.
@@ -144,17 +149,12 @@ public final class Node implements INode, Serializable {
     /**
      * Initializer used for nodes being stored in a relational database table.
      */
-    public void init(DbMapping dbm, String id, String name, String protoName,
+    public void init(DbMapping dbm, String id, String name, String prototype,
                 Hashtable propMap, WrappedNodeManager nmgr) {
         this.nmgr = nmgr;
-
-        // see what prototype/DbMapping this object should use
         this.dbmap = dbm;
-        // set the prototype name
-        this.prototype = protoName;
-
+        this.prototype = prototype;
         this.id = id;
-
         this.name = name;
         // If name was not set from resultset, create a synthetical name now.
         if ((name == null) || (name.length() == 0)) {
@@ -550,6 +550,10 @@ public final class Node implements INode, Serializable {
      */
     public void setPrototype(String proto) {
         this.prototype = proto;
+        // set DbMapping matching the prototype name
+        if (nmgr != null) {
+            dbmap = nmgr.getDbMapping(proto);
+        }
     }
 
     /**
@@ -585,7 +589,7 @@ public final class Node implements INode, Serializable {
      * @return ...
      */
     public Key getKey() {
-        if (state == TRANSIENT) {
+        if (primaryKey == null && state == TRANSIENT) {
             throw new RuntimeException("getKey called on transient Node: " + this);
         }
 
@@ -2519,6 +2523,8 @@ public final class Node implements INode, Serializable {
                 if (dbmap != null) {
                     Relation rel = dbmap.getExactPropertyRelation(next.getName());
                     if (rel != null && rel.isVirtual() && !rel.needsPersistence()) {
+                        // temporarilly set state to TRANSIENT to avoid loading anything from db
+                        n.setState(TRANSIENT);
                         n.makeChildrenPersistable();
                         // make this a virtual node. what we do is basically to
                         // replay the things done in the constructor for virtual nodes.
