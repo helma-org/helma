@@ -73,7 +73,7 @@ public class MultiFileRepository extends FileRepository {
                 // while resources (files) are ignored.
                 if (list[i].isDirectory()) {
                     // a nested directory aka child file repository
-                    newRepositories.add(new FileRepository(list[i], null));
+                    newRepositories.add(new FileRepository(list[i], this));
                 } else if (list[i].getName().endsWith(".zip")) {
                     // a nested zip repository
                     newRepositories.add(new ZipRepository(list[i], this));

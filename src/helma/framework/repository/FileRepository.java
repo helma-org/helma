@@ -108,7 +108,7 @@ public class FileRepository extends AbstractRepository {
      * @return true if the repository is to be considered a top-level script repository
      */
     public boolean isScriptRoot() {
-        return parent == null;
+        return parent == null || parent instanceof MultiFileRepository;
     }
 
     public long lastModified() {
