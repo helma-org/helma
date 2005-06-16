@@ -89,8 +89,7 @@ public final class Node implements INode, Serializable {
         this.nmgr = nmgr;
         this.id = id;
         this.name = ((name == null) || "".equals(name)) ? id : name;
-
-        setPrototype(prototype);
+        this.prototype = prototype;
 
         created = lastmodified = System.currentTimeMillis();
         markAs(CLEAN);
@@ -135,8 +134,8 @@ public final class Node implements INode, Serializable {
      */
     public Node(String name, String prototype, WrappedNodeManager nmgr) {
         this.nmgr = nmgr;
-
-        setPrototype(prototype);
+        this.prototype = prototype;
+        dbmap = nmgr.getDbMapping(prototype);
 
         // the id is only generated when the node is actually checked into db,
         // or when it's explicitly requested.
@@ -550,10 +549,9 @@ public final class Node implements INode, Serializable {
      */
     public void setPrototype(String proto) {
         this.prototype = proto;
-        // set DbMapping matching the prototype name
-        if (nmgr != null) {
-            dbmap = nmgr.getDbMapping(proto);
-        }
+        // Note: we mustn't set the DbMapping according to the prototype,
+        // because some nodes have custom dbmappings, e.g. the groupby
+        // dbmappings created in DbMapping.initGroupbyMapping().
     }
 
     /**
