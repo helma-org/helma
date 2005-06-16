@@ -111,15 +111,12 @@ public final class Node implements INode, Serializable {
     public Node(Node home, String propname, WrappedNodeManager nmgr, String prototype) {
         this.nmgr = nmgr;
         setParent(home);
-
-        // this.dbmap = null;
         // generate a key for the virtual node that can't be mistaken for a Database Key
         primaryKey = new SyntheticKey(home.getKey(), propname);
         this.id = primaryKey.getID();
         this.name = propname;
+        this.prototype = prototype;
         this.anonymous = false;
-
-        setPrototype(prototype);
 
         // set the collection's state according to the home node's state
         if (home.state == NEW || home.state == TRANSIENT) {
