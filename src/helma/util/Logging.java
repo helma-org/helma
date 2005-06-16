@@ -19,6 +19,7 @@ package helma.util;
 import org.apache.commons.logging.*;
 import java.io.*;
 import java.util.*;
+import java.util.zip.GZIPOutputStream;
 
 /**
  *  Implementation of Jakarta Commons LogFactory that supports both
@@ -172,21 +173,26 @@ public class Logging extends LogFactory {
         consoleLog = null;
     }
 
-    /**
-     * Rotate log files on all registered logs
-     */
-    static void rotateLogs() {
-        int nloggers = loggers.size();
+    static void gzip(File file) {
+        final int BUFFER_SIZE = 8192;
 
-        for (int i = nloggers - 1; i >= 0; i--) {
-            FileLogger log = (FileLogger) loggers.get(i);
+        try {
+            File zipped = new File(file.getAbsolutePath() + ".gz");
+            GZIPOutputStream zip = new GZIPOutputStream(new FileOutputStream(zipped));
+            BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
+            byte[] b = new byte[BUFFER_SIZE];
+            int len = 0;
 
-            try {
-                log.rotateLogFile();
-            } catch (IOException io) {
-                System.err.println("Error rotating log " + log.getName() + ": " +
-                                    io.toString());
+            while ((len = in.read(b, 0, BUFFER_SIZE)) != -1) {
+                zip.write(b, 0, len);
             }
+
+            zip.close();
+            in.close();
+            file.delete();
+        } catch (Exception e) {
+            System.err.println("Error gzipping " + file);
+            System.err.println(e.toString());
         }
     }
 
@@ -224,7 +230,7 @@ public class Logging extends LogFactory {
                 long now = System.currentTimeMillis();
 
                 if (nextMidnight < now) {
-                    rotateLogs();
+                    new LogRotator().start();
                     nextMidnight = nextMidnight();
                 }
 
@@ -257,6 +263,58 @@ public class Logging extends LogFactory {
             }
         }
 
+    }
+
+    /**
+     * Log rotator thread calls rotateLogFiles on all
+     */
+    static class LogRotator extends Thread {
+
+        public void run() {
+
+            FileLogger[] logs = (FileLogger[]) loggers.toArray(new FileLogger[0]);
+
+            ArrayList archives = new ArrayList();
+
+            for (int i = 0; i < logs.length; i++) {
+                try {
+                    File archive = logs[i].rotateLogFile();
+                    if (archive != null) {
+                        archives.add(archive);
+                    }
+                } catch (IOException io) {
+                    System.err.println("Error rotating log " + logs[i].getName() + ": " +
+                                        io.toString());
+                }
+            }
+
+            // reduce thread priority for zipping
+            setPriority(MIN_PRIORITY);
+            Iterator it = archives.iterator();
+            while (it.hasNext()) {
+                gzip((File) it.next());
+            }
+
+        }
+
+    }
+
+    /**
+     * Utility thread class to gzip a file in a separate thread
+     */
+    static class FileGZipper extends Thread {
+
+        File file;
+
+        FileGZipper(File file) {
+            this.file = file;
+        }
+
+        public void run() {
+            // reduce thread priority for zipping
+            setPriority(MIN_PRIORITY);
+            gzip(file);
+        }
     }
 
 }

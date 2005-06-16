@@ -21,7 +21,6 @@ import org.apache.commons.logging.Log;
 import java.io.*;
 import java.text.*;
 import java.util.*;
-import java.util.zip.GZIPOutputStream;
 
 /**
  * An extended Logger that writes to a file and rotates files each midnight.
@@ -77,12 +76,15 @@ public class FileLogger extends Logger implements Log {
         try {
             if (logfile.exists() && (logfile.lastModified() < lastMidnight())) {
                 // rotate if a log file exists and is NOT from today
-                rotateLogFile();
-            } else {
-                // create a new log file, appending to an existing file
-                writer = new PrintWriter(new FileWriter(logfile.getAbsolutePath(), true),
-                                         false);
+                File archive = rotateLogFile();
+                // gzip rotated log file in a separate thread
+                if (archive != null) {
+                    new Logging.FileGZipper(archive).start();
+                }
             }
+            // create a new log file, appending to an existing file
+            writer = new PrintWriter(new FileWriter(logfile.getAbsolutePath(), true),
+                                     false);
         } catch (IOException iox) {
             System.err.println("Error creating log " + name + ": " + iox);
         }
@@ -100,13 +102,6 @@ public class FileLogger extends Logger implements Log {
                 writer = null;
             }
         }
-    }
-
-    /**
-     *  Return true if we have a file writer open
-     */
-    synchronized boolean isOpen() {
-        return writer != null;
     }
 
     /**
@@ -147,49 +142,51 @@ public class FileLogger extends Logger implements Log {
 
 
     /**
-     *  Rotate log files, closing, renaming and gzipping the old file and
-     *  start a new one.
+     *  Rotate log files, closing the file writer and renaming the old
+     *  log file. Returns the renamed log file for zipping, or null if
+     *  the log file couldn't be rotated.
+     *
+     *  @return the old renamed log file, or null
      */
-    protected synchronized void rotateLogFile() throws IOException {
+    protected synchronized File rotateLogFile() throws IOException {
         // if the logger is not file based do nothing.
         if (logfile == null) {
-            return;
+            return null;
         }
 
-        if (writer != null) {
-            try {
-                writer.close();
-            } catch (Exception ignore) {
-            }
-        }
+        closeFile();
 
         // only backup/rotate if the log file is not empty,
         if (logfile.exists() && (logfile.length() > 0)) {
             String today = aformat.format(new Date());
             int ct = 0;
-            File archive = null;
 
             // first append just the date
-            String archname = name + "-" + today + ".log.gz";
+            String archname = name + "-" + today + ".log";
+            File archive = new File(logdir, archname);
+            File zipped = new File(logdir, archname + ".gz");
 
-            while ((archive == null) || archive.exists()) {
-                archive = new File(logdir, archname);
-
+            // increase counter until we find an unused log archive name, checking
+            // both unzipped and zipped file names
+            while (archive.exists() || zipped.exists()) {
                 // for the next try we append a counter
                 String archidx = (ct > 999) ? Integer.toString(ct) : nformat.format(++ct);
 
-                archname = name + "-" + today + "-" + archidx + ".log.gz";
+                archname = name + "-" + today + "-" + archidx + ".log";
+                archive = new File(logdir, archname);
+                zipped = new File(logdir, archname + ".gz");
             }
 
             if (logfile.renameTo(archive)) {
-                (new GZipper(archive)).start();
+                return archive;
             } else {
                 System.err.println("Error rotating log file " + canonicalName +
-                        ". Old file will possibly be overwritten!");
+                        ". Will append to old file.");
             }
         }
 
-        writer = new PrintWriter(new FileWriter(logfile), false);
+        // no log file rotated
+        return null;
     }
 
     /**
@@ -253,41 +250,6 @@ public class FileLogger extends Logger implements Log {
         System.err.println("Fatal: "+parm1);
         System.err.println("See "+logfile+" for stack trace");
         super.fatal(parm1, parm2);
-    }
-
-    /**
-     * a Thread class that zips up a file, filename will stay the same.
-     */
-    class GZipper extends Thread {
-        File file;
-        File temp;
-        final static int BUFFER_SIZE = 8192;
-
-        public GZipper(File file) {
-            this.file = file;
-            this.temp = new File(file.getAbsolutePath() + ".tmp");
-            setPriority(MIN_PRIORITY);
-        }
-
-        public void run() {
-            try {
-                GZIPOutputStream zip = new GZIPOutputStream(new FileOutputStream(temp));
-                BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
-                byte[] b = new byte[BUFFER_SIZE];
-                int len = 0;
-
-                while ((len = in.read(b, 0, BUFFER_SIZE)) != -1) {
-                    zip.write(b, 0, len);
-                }
-
-                zip.close();
-                in.close();
-                file.delete();
-                temp.renameTo(file);
-            } catch (Exception e) {
-                System.err.println(e.toString());
-            }
-        }
     }
 
 }
