@@ -1034,4 +1034,41 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     public void clearChangeSet() {
         changedProperties = null;
     }
+    
+    /**
+     * This method represents the Java-Script-exposed function for updating Subnode-Collections.
+     * The following conditions must be met to make a subnodecollection updateable.
+     * .) the collection must be specified with collection.updateable=true
+     * .) the id's of this collection must be in ascending order, meaning, that new records
+     *    do have a higher id than the last record loaded by this collection
+     */
+    public int jsFunction_updateSubnodes() {
+        if (!(node instanceof helma.objectmodel.db.Node))
+            throw new RuntimeException ("updateSubnodes only callabel on persistent HopObjects");
+        checkNode();
+        helma.objectmodel.db.Node n = (helma.objectmodel.db.Node) node;
+        return n.updateSubnodes();
+    }
+
+    /**
+     * Retrieve a view having a different order from this Node's subnodelist.
+     * The underlying OrderedSubnodeList will keep those views and updates them
+     * if the original collection has been updated.
+     * @param expr the order (like sql-order using the properties instead)
+     * @return ListViewWrapper holding the information of the ordered view
+     */
+    public Object jsFunction_getOrderedSubnodeView(String expr) {
+        if (!(node instanceof helma.objectmodel.db.Node))
+            throw new RuntimeException ("getOrderedSubnodeView only callable on persistent HopObjects");
+        helma.objectmodel.db.Node n = (helma.objectmodel.db.Node) node;
+        List sNodes = n.getSubnodeList();
+        if (sNodes == null)
+            throw new RuntimeException ("getOrderedSubnodeView only callable on already existing subnode-collections");
+        if (sNodes instanceof UpdateableSubnodeList)
+            sNodes = ((UpdateableSubnodeList) sNodes).getWrappedList();
+        if (sNodes instanceof OrderedSubnodeList) {
+            return new ListViewWrapper ((((OrderedSubnodeList) sNodes).getOrderedView(expr)), core, n.getDbMapping().getWrappedNodeManager(), this);
+        }
+        throw new RuntimeException ("getOrderedSubnodeView only callable on OrderedSubnodeList");
+    }
 }

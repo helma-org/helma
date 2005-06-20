@@ -31,7 +31,7 @@ import java.util.Date;
  * A property implementation for Nodes stored inside a database. Basically
  * the same as for transient nodes, with a few hooks added.
  */
-public final class Property implements IProperty, Serializable, Cloneable {
+public final class Property implements IProperty, Serializable, Cloneable, Comparable {
     static final long serialVersionUID = -1022221688349192379L;
     private String propname;
     private Node node;
@@ -482,5 +482,82 @@ public final class Property implements IProperty, Serializable, Cloneable {
         }
 
         return null;
+    }
+
+    /**
+     * @see java.lang.Comparable#compareTo(java.lang.Object)
+     * FIXME: throw a ClassCastException instead?
+     * The following cases throw a RuntimeException
+     * - Properties of a different type
+     * - Properties of boolean type
+     */
+    public int compareTo(Object obj) {
+        Property p = (Property) obj;
+        int pt = p.getType();
+        
+        if (type==NODE || pt==NODE)
+            throw new RuntimeException ("unable to compare nodes " + this + " : " + p);
+        if (value==null && p.getStringValue() == null)
+            return 0;
+        if (value==null)
+            return -1;
+        if (p.getStringValue()==null)
+            return 1;
+        if (pt != type)
+            throw new RuntimeException ("uncomparable values " + this + "(" + type + ") : " + p + "(" + pt + ")");
+        switch (pt) {
+            case Property.STRING:
+                return (this.getStringValue().compareTo(p.getStringValue()));
+            case Property.INTEGER:
+                long l = this.getIntegerValue() - p.getIntegerValue();
+                // don't know what happens if the result of the subtraction
+                // has a higher value than the value which may be stored inside
+                // of an integer.
+                if (l < 0)
+                    return -1;
+                if (l > 0)
+                    return 1;
+                return 0;
+            case Property.DATE:
+                return this.getDateValue().compareTo(p.getDateValue());
+            case Property.FLOAT:
+                double d = this.getFloatValue() - p.getFloatValue();
+                if (d < 0)
+                    return -1;
+                if (d > 0)
+                    return 1;
+                return 0;
+            case Property.BOOLEAN:
+                throw new RuntimeException ("unable to compare boolean " + this + " : " + p);
+            case Property.JAVAOBJECT:
+        }
+        throw new RuntimeException ("uncomparable values " + this + " : " + p);
+    }
+
+    public boolean equals(Object o) {
+        if (o == this)
+            return true;
+        if (o == null)
+            return false;
+        if (!(o instanceof Property))
+            return false;
+        Property p = (Property) o;
+        switch (p.getType()) {
+            case Property.STRING:
+                return (this.getStringValue().equals(p.getStringValue()));
+            case Property.INTEGER:
+                return this.getIntegerValue() == p.getIntegerValue();
+            case Property.DATE:
+                return this.getDateValue().equals(p.getDateValue());
+            case Property.FLOAT:
+                return this.getFloatValue() == p.getFloatValue();
+            case Property.BOOLEAN:
+                return this.getBooleanValue() == p.getBooleanValue();
+            case Property.NODE:
+                return this.node.equals(p.node);
+            case Property.JAVAOBJECT:
+                return this.value.equals(p.value);
+        }
+        return false;
     }
 }

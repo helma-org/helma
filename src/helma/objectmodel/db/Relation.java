@@ -85,6 +85,7 @@ public final class Relation {
     boolean aggressiveCaching;
     boolean isPrivate = false;
     boolean referencesPrimaryKey = false;
+    String updateCriteria;
     String accessName; // db column used to access objects through this relation
     String order;
     String groupbyOrder;
@@ -123,6 +124,7 @@ public final class Relation {
         this.logicalOperator =     rel.logicalOperator;
         this.aggressiveLoading =   rel.aggressiveLoading;
         this.aggressiveCaching =   rel.aggressiveCaching;
+        this.updateCriteria =      rel.updateCriteria;
     }
 
     /**
@@ -263,6 +265,9 @@ public final class Relation {
         if ((order != null) && (order.trim().length() == 0)) {
             order = null;
         }
+
+        // get the creteria(s) for updating this collection
+        updateCriteria = props.getProperty(propName + ".updatecriteria");
 
         // get additional filter property
         filter = props.getProperty(propName + ".filter");

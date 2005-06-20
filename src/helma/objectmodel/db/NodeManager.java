@@ -872,7 +872,7 @@ public final class NodeManager {
             throw new RuntimeException("NodeMgr.getNodeIDs called for non-relational node " +
                                        home);
         } else {
-            List retval = new ArrayList();
+            List retval = home.getEmptySubnodeList();
 
             // if we do a groupby query (creating an intermediate layer of groupby nodes),
             // retrieve the value of that field instead of the primary key
@@ -988,7 +988,7 @@ public final class NodeManager {
             throw new RuntimeException("NodeMgr.getNodes called for non-relational node " +
                                        home);
         } else {
-            List retval = new ArrayList();
+            List retval = home.getEmptySubnodeList();
             DbMapping dbm = rel.otherType;
 
             Connection con = dbm.getConnection();
@@ -1056,6 +1056,165 @@ public final class NodeManager {
             }
 
             return retval;
+        }
+    }
+    
+    /**
+     * Update a UpdateableSubnodeList retrieving all values having
+     * higher Values according to the updateCriteria's set for this Collection's Relation
+     * The returned Map-Object has two Properties:
+     * addedNodes = an Integer representing the number of Nodes added to this collection
+     * newNodes = an Integer representing the number of Records returned by the Select-Statement
+     * These two values may be different if a max-size is defined for this Collection and a new
+     * node would be outside of this Border because of the ordering of this collection.
+     * @param home the home of this subnode-list
+     * @param rel the relation the home-node has to the nodes contained inside the subnodelist
+     * @return A map having two properties of type String (newNodes (number of nodes retreived by the select-statment), addedNodes (nodes added to the collection))
+     * @throws Exception
+     */
+    public int updateSubnodeList(Node home, Relation rel) throws Exception {
+        // Transactor tx = (Transactor) Thread.currentThread ();
+        // tx.timer.beginEvent ("getNodeIDs "+home);
+
+        if ((rel == null) || (rel.otherType == null) || !rel.otherType.isRelational()) {
+            // this should never be called for embedded nodes
+            throw new RuntimeException("NodeMgr.updateSubnodeList called for non-relational node " +
+                                       home);
+        } else {
+            List sList = home.getSubnodeList();
+            if (sList == null)
+                sList = home.getEmptySubnodeList();
+            
+            if (!(sList instanceof UpdateableSubnodeList))
+                throw new RuntimeException ("unable to update SubnodeList not marked as updateable (" + rel.propName + ")");
+            
+            UpdateableSubnodeList retval = (UpdateableSubnodeList) sList;
+            
+            // FIXME: grouped subnodes aren't supported yet
+            if (rel.groupby!=null)
+                throw new RuntimeException ("update not yet supported on grouped collections");
+
+            String idfield = rel.otherType.getIDField();
+            Connection con = rel.otherType.getConnection();
+            String table = rel.otherType.getTableName();
+
+            Statement stmt = null;
+
+            try {
+                String q = null;
+
+                StringBuffer b = new StringBuffer();
+                if (rel.loadAggressively()) {
+                    b.append (rel.otherType.getSelect(rel));
+                } else {
+                    b.append ("SELECT ");
+                    if (rel.queryHints != null) {
+                        b.append(rel.queryHints).append(" ");
+                    }
+                    b.append(table).append('.')
+                                   .append(idfield).append(" FROM ")
+                                   .append(table);
+                
+                    if (rel.additionalTables != null) {
+                         b.append(',').append(rel.additionalTables);
+                    }
+                }
+                String updateCriteria = retval.getUpdateCriteria();
+                if (home.getSubnodeRelation() != null) {
+                    if (updateCriteria != null) {
+                        b.append (" WHERE ");
+                        b.append (retval.getUpdateCriteria());
+                        b.append (" AND ");
+                        b.append (home.getSubnodeRelation());
+                    } else {
+                        b.append (" WHERE ");
+                        b.append (home.getSubnodeRelation());
+                    }
+                } else {
+                    if (updateCriteria != null) {
+                        b.append (" WHERE ");
+                        b.append (updateCriteria);
+                        b.append (rel.buildQuery(home,
+                                home.getNonVirtualParent(),
+                                null,
+                                " AND ",
+                                true));
+                    } else {
+                        b.append (rel.buildQuery(home,
+                                home.getNonVirtualParent(),
+                                null,
+                                " WHERE ",
+                                true));
+                    }
+                    q = b.toString();
+                }
+
+                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+
+                stmt = con.createStatement();
+
+                if (rel.maxSize > 0) {
+                    stmt.setMaxRows(rel.maxSize);
+                }
+
+                ResultSet result = stmt.executeQuery(q);
+
+                if (logSql) {
+                    long logTimeStop = System.currentTimeMillis();
+                    logSqlStatement("SQL SELECT_UPDATE_SUBNODE_LIST", table,
+                                    logTimeStart, logTimeStop, q);
+                }
+
+                // problem: how do we derive a SyntheticKey from a not-yet-persistent Node?
+                // Key k = (rel.groupby != null) ? home.getKey() : null;
+                // int cntr = 0;
+                
+                DbColumn[] columns = rel.loadAggressively() ? rel.otherType.getColumns() : null;
+                List newNodes = new ArrayList(rel.maxSize);
+                while (result.next()) {
+                    String kstr = result.getString(1);
+
+                    // jump over null values - this can happen especially when the selected
+                    // column is a group-by column.
+                    if (kstr == null) {
+                        continue;
+                    }
+
+                    // make the proper key for the object, either a generic DB key or a groupby key
+                    Key key;
+                    if (rel.loadAggressively()) {
+                        Node node = createNode(rel.otherType, result, columns, 0);
+                        if (node == null) {
+                            continue;
+                        }
+                        key = node.getKey();
+                    } else {
+                        key = (Key) new DbKey(rel.otherType, kstr);
+                    }
+                    newNodes.add(new NodeHandle(key));
+
+                    // if these are groupby nodes, evict nullNode keys
+                    if (rel.groupby != null) {
+                        Node n = (Node) cache.get(key);
+
+                        if ((n != null) && n.isNullNode()) {
+                            evictKey(key);
+                        }
+                    }
+                }
+                System.err.println("GOT NEW NODES: " + newNodes);
+                if (!newNodes.isEmpty())
+                    retval.addAll(newNodes);
+                return newNodes.size();
+            } finally {
+                // tx.timer.endEvent ("getNodeIDs "+home);
+                if (stmt != null) {
+                    try {
+                        stmt.close();
+                    } catch (Exception ignore) {
+                    }
+                }
+            }
         }
     }
 

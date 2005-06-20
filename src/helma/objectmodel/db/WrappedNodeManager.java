@@ -137,6 +137,21 @@ public final class WrappedNodeManager {
     }
 
     /**
+     * @see helma.objectmodel.db.NodeManager#updateSubnodeList(Node, Relation)
+     */
+    public int updateSubnodeList (Node home, Relation rel) {
+        try {
+            return nmgr.updateSubnodeList(home, rel);
+        } catch (Exception x) {
+            if (nmgr.app.debug()) {
+                x.printStackTrace();
+            }
+
+            throw new RuntimeException("Error retrieving NodeIDs: ", x);
+        }
+    }
+
+    /**
      * Count the nodes contained in the given Node's collection
      * specified by the given Relation.
      *

@@ -830,12 +830,13 @@ public final class Node implements INode, Serializable {
     }
 
     /**
+     * Add a node to this Node's subnodes, making the added node persistent if it
+     * hasn't been before and this Node is already persistent.
      *
+     * @param elem the node to add to this Nodes subnode-list
+     * @param where the index-position where this node has to be added
      *
-     * @param elem ...
-     * @param where ...
-     *
-     * @return ...
+     * @return the added node itselve
      */
     public INode addNode(INode elem, int where) {
         Node node = null;
@@ -917,7 +918,7 @@ public final class Node implements INode, Serializable {
         } else {
             // create subnode list if necessary
             if (subnodes == null) {
-                subnodes = new ExternalizableVector();
+                subnodes = getEmptySubnodeList();
             }
 
             // check if subnode accessname is set. If so, check if another node
@@ -1521,6 +1522,7 @@ public final class Node implements INode, Serializable {
      * Make sure the subnode index is loaded for subnodes stored in a relational data source.
      *  Depending on the subnode.loadmode specified in the type.properties, we'll load just the
      *  ID index or the actual nodes.
+     * @return true if this subnodelist has been loaded, false if not (this Node is TRANSIENT or no subnodemapping is available or no Data-/Mapping-change occured inside Helma)
      */
     protected void loadNodes() {
         // Don't do this for transient nodes which don't have an explicit subnode relation set
@@ -1542,16 +1544,35 @@ public final class Node implements INode, Serializable {
                 lastChange = Math.max(lastChange, dbmap.getLastTypeChange());
 
                 if ((lastChange >= lastSubnodeFetch) || (subnodes == null)) {
-                    if (subRel.aggressiveLoading) {
-                        subnodes = nmgr.getNodes(this, dbmap.getSubnodeRelation());
+                    if (subRel.updateCriteria!=null) {
+                        // updateSubnodeList is setting the subnodes directly returning an integer
+                        nmgr.updateSubnodeList(this, subRel);
+                    } else if (subRel.aggressiveLoading) {
+                        subnodes = nmgr.getNodes(this, subRel);
                     } else {
-                        subnodes = nmgr.getNodeIDs(this, dbmap.getSubnodeRelation());
+                        subnodes = nmgr.getNodeIDs(this, subRel);
                     }
 
                     lastSubnodeFetch = System.currentTimeMillis();
                 }
             }
         }
+    }
+
+    /**
+     * Retrieve an empty subnodelist. This empty List is an instance of the Class
+     * used for this Nodes subnode-list
+     * @return List an empty List of the type used by this Node
+     */
+    public List getEmptySubnodeList() {
+        Relation rel = this.dbmap.getSubnodeRelation();
+        OrderedSubnodeList osl = new OrderedSubnodeList(rel); 
+        if (rel != null && rel.updateCriteria!=null) {
+            this.subnodes = new UpdateableSubnodeList(rel, osl);
+        } else {
+            this.subnodes = osl;
+        }
+        return this.subnodes;
     }
 
     /**
@@ -1594,6 +1615,10 @@ public final class Node implements INode, Serializable {
             keys[i] = ((NodeHandle) subnodes.get(i + startIndex)).getKey();
         }
 
+        prefetchChildren (keys);
+    }
+    
+    public void prefetchChildren (Key[] keys) throws Exception {
         nmgr.nmgr.prefetchNodes(this, dbmap.getSubnodeRelation(), keys);
     }
 
@@ -2612,4 +2637,28 @@ public final class Node implements INode, Serializable {
         System.err.println("properties: " + propMap);
     }
 
+    /**
+     * This method get's called from the JavaScript environment 
+     * (HopObject.updateSubnodes() or HopObject.collection.updateSubnodes()))
+     * The subnode-collection will be updated with a selectstatement getting all
+     * Nodes having a higher id than the highest id currently contained within
+     * this Node's subnoderelation. If this subnodelist has a special order
+     * all nodes will be loaded honoring this order.
+     * Example:
+     *  order by somefield1 asc, somefieled2 desc
+     * gives a where-clausel like the following:
+     *   (somefiled1 > theHighestKnownValue value and somefield2 < theLowestKnownValue)
+     * @return the number of loaded nodes within this collection update
+     */
+    public int updateSubnodes () {
+        // FIXME: what do we do if this.dbmap is null
+        if (this.dbmap == null) {
+            throw new RuntimeException (this + " doesn't have a DbMapping");
+        }
+        Relation rel = this.dbmap.getSubnodeRelation();
+        synchronized (this) {
+            lastSubnodeFetch = System.currentTimeMillis();
+            return this.nmgr.updateSubnodeList(this, rel);
+        }
+    }
 }
