@@ -430,6 +430,18 @@ public class ApplicationBean implements Serializable {
         // add one to the number to compensate for the internal scheduler.
         app.setNumberOfEvaluators(n + 1);
     }
+    
+    /**
+     *  Return a skin for a given object. The skin is found by determining the prototype
+     *  to use for the object, then looking up the skin for the prototype.
+     */
+    public Skin getSkin(String protoname, String skinname, Object[] skinpath) {
+        try {
+            return app.getSkin(protoname, skinname, skinpath);
+        } catch (Exception x) {
+            return null;
+        }
+    }
 
     /**
      *
