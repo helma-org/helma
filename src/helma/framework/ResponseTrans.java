@@ -189,7 +189,7 @@ public final class ResponseTrans implements Serializable {
     /**
      * Reset the response object to its initial empty state.
      */
-    public void reset() {
+    public synchronized void reset() {
         if (buffer != null) {
             buffer.setLength(0);
         }
@@ -218,7 +218,7 @@ public final class ResponseTrans implements Serializable {
      * This is called before a skin is rendered as string (renderSkinAsString) to redirect the output
      * to a new string buffer.
      */
-    public void pushStringBuffer() {
+    public synchronized void pushStringBuffer() {
         if (buffers == null) {
             buffers = new Stack();
         }
@@ -238,7 +238,7 @@ public final class ResponseTrans implements Serializable {
     /**
      * Returns the content of the current string buffer and switches back to the previos one.
      */
-    public String popStringBuffer() {
+    public synchronized String popStringBuffer() {
         if (buffer == null || buffers == null) {
             throw new RuntimeException("Can't pop string buffer: buffer stack is empty");
         }
@@ -257,7 +257,7 @@ public final class ResponseTrans implements Serializable {
     /**
      *  Get the response buffer, creating it if it doesn't exist
      */
-    public StringBuffer getBuffer() {
+    public synchronized StringBuffer getBuffer() {
         if (buffer == null) {
             buffer = new StringBuffer(INITIAL_BUFFER_SIZE);
         }
@@ -270,7 +270,7 @@ public final class ResponseTrans implements Serializable {
      * at the end of a request to write out the whole page, so if buffer
      * is uninitialized we just set it to the string argument.
      */
-    public void write(Object what) {
+    public synchronized void write(Object what) {
         if (what != null) {
             String str = what.toString();
 
@@ -285,7 +285,7 @@ public final class ResponseTrans implements Serializable {
     /**
      * Utility function that appends a <br> to whatever is written.
      */
-    public void writeln(Object what) {
+    public synchronized void writeln(Object what) {
         write(what);
 
         // if what is null, buffer may still be uninitialized
@@ -300,7 +300,7 @@ public final class ResponseTrans implements Serializable {
     /**
      *  Append a part from a char array to the response buffer.
      */
-    public void writeCharArray(char[] c, int start, int length) {
+    public synchronized void writeCharArray(char[] c, int start, int length) {
         if (buffer == null) {
             buffer = new StringBuffer(Math.max(length, INITIAL_BUFFER_SIZE));
         }
@@ -329,7 +329,7 @@ public final class ResponseTrans implements Serializable {
      * Replace special characters with entities, including <, > and ", thus allowing
      * no HTML tags.
      */
-    public void encode(Object what) {
+    public synchronized void encode(Object what) {
         if (what != null) {
             String str = what.toString();
 
@@ -344,7 +344,7 @@ public final class ResponseTrans implements Serializable {
     /**
      * Replace special characters with entities but pass through HTML tags
      */
-    public void format(Object what) {
+    public synchronized void format(Object what) {
         if (what != null) {
             String str = what.toString();
 
@@ -360,7 +360,7 @@ public final class ResponseTrans implements Serializable {
      * Replace special characters with entities, including <, > and ", thus allowing
      * no HTML tags.
      */
-    public void encodeXml(Object what) {
+    public synchronized void encodeXml(Object what) {
         if (what != null) {
             String str = what.toString();
 
@@ -375,7 +375,7 @@ public final class ResponseTrans implements Serializable {
     /**
      * Encode HTML entities, but leave newlines alone. This is for the content of textarea forms.
      */
-    public void encodeForm(Object what) {
+    public synchronized void encodeForm(Object what) {
         if (what != null) {
             String str = what.toString();
 
@@ -392,7 +392,7 @@ public final class ResponseTrans implements Serializable {
      *
      * @param str ...
      */
-    public void append(String str) {
+    public synchronized void append(String str) {
         if (str != null) {
             if (buffer == null) {
                 buffer = new StringBuffer(Math.max(str.length(), INITIAL_BUFFER_SIZE));
