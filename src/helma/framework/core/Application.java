@@ -990,7 +990,6 @@ public final class Application implements IPathElement, Runnable {
             }
 
             unode = new Node(uname, "user", nmgr.safe);
-            users.setNode(uname, unode);
 
             String usernameField = (userMapping != null) ? userMapping.getNameField() : null;
             String usernameProp = null;
@@ -1007,7 +1006,8 @@ public final class Application implements IPathElement, Runnable {
             unode.setString(usernameProp, uname);
             unode.setString("password", password);
 
-            return unode;
+            return users.addNode(unode);
+
         } catch (Exception x) {
             logEvent("Error registering User: " + x);
 
