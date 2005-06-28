@@ -25,7 +25,7 @@ import helma.framework.repository.Repository;
 /**
  *  A property dictionary that is updated from property resources
  */
-public final class ResourceProperties extends Properties {
+public class ResourceProperties extends Properties {
 
     // Delay between checks
     private final long cacheTime = 1500L;
