@@ -295,13 +295,6 @@ public final class Prototype {
     }
 
     /**
-     * Set the DbMapping associated with this prototype
-     */
-    protected void setDbMapping(DbMapping dbmap) {
-        this.dbmap = dbmap;
-    }
-
-    /**
      * Get the DbMapping associated with this prototype
      */
     public DbMapping getDbMapping() {
