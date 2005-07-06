@@ -617,7 +617,7 @@ public final class Node implements INode, Serializable {
      *
      * @param rel ...
      */
-    public void setSubnodeRelation(String rel) {
+    public synchronized void setSubnodeRelation(String rel) {
         if (((rel == null) && (this.subnodeRelation == null)) ||
                 ((rel != null) && rel.equalsIgnoreCase(this.subnodeRelation))) {
             return;
@@ -639,7 +639,7 @@ public final class Node implements INode, Serializable {
      *
      * @return ...
      */
-    public String getSubnodeRelation() {
+    public synchronized String getSubnodeRelation() {
         return subnodeRelation;
     }
 
