@@ -18,6 +18,8 @@ package helma.scripting.rhino;
 
 import helma.framework.core.Application;
 import org.mozilla.javascript.Scriptable;
+import java.util.Collections;
+import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
@@ -26,7 +28,7 @@ import java.util.WeakHashMap;
  */
 public class DynamicGlobalObject extends GlobalObject {
 
-    WeakHashMap map = new WeakHashMap();
+    Map map = Collections.synchronizedMap(new WeakHashMap());
 
     public DynamicGlobalObject(RhinoCore core, Application app) {
         super(core, app);
