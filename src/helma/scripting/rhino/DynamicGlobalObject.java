@@ -35,14 +35,14 @@ public class DynamicGlobalObject extends GlobalObject {
     }
 
     public Object get(String s, Scriptable scriptable) {
-        Object obj = super.get(s, scriptable);
-        if (obj != null && obj != NOT_FOUND)
-            return obj;
         Scriptable scope = getScope();
         if (scope != null) {
-            return scope.get(s, scope);
+            Object obj = scope.get(s, scope);
+            if (obj != null && obj != NOT_FOUND) {
+                return obj;
+            }
         }
-        return NOT_FOUND;
+        return super.get(s, scriptable);
     }
 
     public void registerScope(Scriptable scope) {
