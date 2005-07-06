@@ -38,8 +38,8 @@ public final class RequestEvaluator implements Runnable {
     static final int EXTERNAL = 4; // function from script etc
     public final Application app;
     protected ScriptingEngine scriptingEngine;
-    public RequestTrans req;
-    public ResponseTrans res;
+    public volatile RequestTrans req;
+    public volatile ResponseTrans res;
 
     // the one and only transactor thread
     volatile Transactor rtx;
