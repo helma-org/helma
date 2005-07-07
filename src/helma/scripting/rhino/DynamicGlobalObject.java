@@ -18,9 +18,8 @@ package helma.scripting.rhino;
 
 import helma.framework.core.Application;
 import org.mozilla.javascript.Scriptable;
-import java.util.Collections;
-import java.util.Map;
-import java.util.WeakHashMap;
+import org.mozilla.javascript.Context;
+
 
 /**
  * This class implements a global scope object that is a dynamic proxy
@@ -28,14 +27,13 @@ import java.util.WeakHashMap;
  */
 public class DynamicGlobalObject extends GlobalObject {
 
-    Map map = Collections.synchronizedMap(new WeakHashMap());
-
     public DynamicGlobalObject(RhinoCore core, Application app) {
         super(core, app);
     }
 
     public Object get(String s, Scriptable scriptable) {
-        Scriptable scope = getScope();
+        Context cx = Context.getCurrentContext();
+        Scriptable scope = (Scriptable) cx.getThreadLocal("threadscope");
         if (scope != null) {
             Object obj = scope.get(s, scope);
             if (obj != null && obj != NOT_FOUND) {
@@ -43,18 +41,6 @@ public class DynamicGlobalObject extends GlobalObject {
             }
         }
         return super.get(s, scriptable);
-    }
-
-    public void registerScope(Scriptable scope) {
-        map.put(Thread.currentThread(), scope);
-    }
-
-    public Scriptable unregisterScope() {
-        return (Scriptable) map.remove(Thread.currentThread());
-    }
-
-    public final Scriptable getScope() {
-        return (Scriptable) map.get(Thread.currentThread());
     }
 
 }

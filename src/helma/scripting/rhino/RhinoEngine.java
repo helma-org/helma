@@ -174,7 +174,8 @@ public class RhinoEngine implements ScriptingEngine {
 
         context.setOptimizationLevel(optLevel);
         // register the per-thread scope with the dynamic scope
-        core.global.registerScope(global);
+        // core.global.registerScope(global);
+        context.putThreadLocal("threadscope", global);
         context.putThreadLocal("reval", reval);
         context.putThreadLocal("engine", this);
         // update prototypes
@@ -225,8 +226,9 @@ public class RhinoEngine implements ScriptingEngine {
     public void exitContext() {
         context.removeThreadLocal("reval");
         context.removeThreadLocal("engine");
+        context.removeThreadLocal("threadscope");
         Context.exit();
-        core.global.unregisterScope();
+        // core.global.unregisterScope();
         thread = null;
 
         // if visual debugger is on let it know we're exiting a context

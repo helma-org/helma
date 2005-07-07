@@ -785,14 +785,16 @@ public final class RhinoCore implements ScopeProvider {
     ////////////////////////////////////////////////
 
     private synchronized void evaluate (TypeInfo type, Resource code) {
-        Scriptable threadScope = global.unregisterScope();
+        // get the current context
+        Context cx = Context.getCurrentContext();
+        // unregister the per-thread scope while evaluating
+        Object threadScope = cx.getThreadLocal("threadscope");
+        cx.removeThreadLocal("threadscope");
+
         String sourceName = code.getName();
         Reader reader = null;
 
         try {
-            // get the current context
-            Context cx = Context.getCurrentContext();
-
             Scriptable op = type.objProto;
 
             // do the update, evaluating the file
@@ -832,7 +834,7 @@ public final class RhinoCore implements ScopeProvider {
                 }
             }
             if (threadScope != null) {
-                global.registerScope(threadScope);
+                cx.putThreadLocal("threadscope", threadScope);
             }
         }
     }
