@@ -470,6 +470,9 @@ public final class NodeManager {
             throw new NullPointerException("Error inserting relational node: Connection is null");
         }
 
+        // set connection to write mode
+        if (con.isReadOnly()) con.setReadOnly(false);
+
         String insertString = dbm.getInsert();
         PreparedStatement stmt = con.prepareStatement(insertString);
 
@@ -619,6 +622,8 @@ public final class NodeManager {
             }
 
             Connection con = dbm.getConnection();
+            // set connection to write mode
+            if (con.isReadOnly()) con.setReadOnly(false);
             PreparedStatement stmt = con.prepareStatement(b.toString());
 
             int stmtNumber = 0;
@@ -691,6 +696,9 @@ public final class NodeManager {
 
             try {
                 Connection con = dbm.getConnection();
+                // set connection to write mode
+                if (con.isReadOnly()) con.setReadOnly(false);
+
                 String str = new StringBuffer("DELETE FROM ").append(dbm.getTableName())
                                                              .append(" WHERE ")
                                                              .append(dbm.getIDField())
@@ -777,6 +785,9 @@ public final class NodeManager {
 
         try {
             Connection con = map.getConnection();
+            // set connection to read-only mode
+            if (!con.isReadOnly()) con.setReadOnly(true);
+
             String q = new StringBuffer("SELECT MAX(").append(map.getIDField())
                                                       .append(") FROM ")
                                                       .append(map.getTableName())
@@ -826,6 +837,9 @@ public final class NodeManager {
 
         try {
             Connection con = map.getConnection();
+            // TODO is it necessary to set connection to write mode here?
+            if (con.isReadOnly()) con.setReadOnly(false);
+
             String q = new StringBuffer("SELECT ").append(map.getIDgen())
                                                   .append(".nextval FROM dual").toString();
 
@@ -879,6 +893,9 @@ public final class NodeManager {
             String idfield = (rel.groupby == null) ? rel.otherType.getIDField()
                                                    : rel.groupby;
             Connection con = rel.otherType.getConnection();
+            // set connection to read-only mode
+            if (!con.isReadOnly()) con.setReadOnly(true);
+
             String table = rel.otherType.getTableName();
 
             Statement stmt = null;
@@ -992,6 +1009,9 @@ public final class NodeManager {
             DbMapping dbm = rel.otherType;
 
             Connection con = dbm.getConnection();
+            // set connection to read-only mode
+            if (!con.isReadOnly()) con.setReadOnly(true);
+
             Statement stmt = con.createStatement();
             DbColumn[] columns = dbm.getColumns();
             Relation[] joins = dbm.getJoins();
@@ -1074,6 +1094,9 @@ public final class NodeManager {
 
             if (missing > 0) {
                 Connection con = dbm.getConnection();
+                // set connection to read-only mode
+                if (!con.isReadOnly()) con.setReadOnly(true);
+
                 Statement stmt = con.createStatement();
                 DbColumn[] columns = dbm.getColumns();
                 Relation[] joins = dbm.getJoins();
@@ -1248,6 +1271,9 @@ public final class NodeManager {
         } else {
             int retval = 0;
             Connection con = rel.otherType.getConnection();
+            // set connection to read-only mode
+            if (!con.isReadOnly()) con.setReadOnly(true);
+
             String table = rel.otherType.getTableName();
 
             Statement stmt = null;
@@ -1326,6 +1352,8 @@ public final class NodeManager {
             // retrieve the value of that field instead of the primary key
             String namefield = (rel.groupby == null) ? rel.accessName : rel.groupby; 
             Connection con = rel.otherType.getConnection();
+            // set connection to read-only mode
+            if (!con.isReadOnly()) con.setReadOnly(true);
             String table = rel.otherType.getTableName();
 
             Statement stmt = null;
@@ -1411,6 +1439,8 @@ public final class NodeManager {
 
             try {
                 Connection con = dbm.getConnection();
+                // set connection to read-only mode
+                if (!con.isReadOnly()) con.setReadOnly(true);
 
                 stmt = con.createStatement();
 
@@ -1504,6 +1534,8 @@ public final class NodeManager {
                 DbMapping dbm = rel.otherType;
 
                 Connection con = dbm.getConnection();
+                // set connection to read-only mode
+                if (!con.isReadOnly()) con.setReadOnly(true);
                 DbColumn[] columns = dbm.getColumns();
                 Relation[] joins = dbm.getJoins();
                 StringBuffer q = dbm.getSelect(rel);
