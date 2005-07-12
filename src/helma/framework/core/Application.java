@@ -259,7 +259,7 @@ public final class Application implements IPathElement, Runnable {
         eventLogName = props.getProperty("eventLog", "helma."+name+".event");
 
         // create app-level db sources
-        dbProps = new ResourceProperties(this, "db.properties", sysDbProps);
+        dbProps = new ResourceProperties(this, "db.properties", sysDbProps, false);
 
         // the passwd file, to be used with the authenticate() function
         CryptResource parentpwfile = null;
