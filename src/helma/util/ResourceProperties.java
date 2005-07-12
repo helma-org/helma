@@ -101,6 +101,24 @@ public class ResourceProperties extends Properties {
     }
 
     /**
+     * Constructs a ResourceProperties retrieving resources from the given
+     * application using the given name to fetch resources and falling back
+     * to the given default properties
+     * @param app application to fetch resources from
+     * @param resourceName name to use when fetching resources from the application
+     * @param defaultProperties default properties
+     * @param ignoreCase ignore case for property keys, setting all keys to lower case
+     */
+    public ResourceProperties(Application app, String resourceName,
+                              ResourceProperties defaultProperties,
+                              boolean ignoreCase) {
+        this(app, resourceName);
+        this.defaultProperties = defaultProperties;
+        this.ignoreCase = ignoreCase;
+        forceUpdate();
+    }
+
+    /**
      * Updates the properties regardless of an actual need
      */
     private void forceUpdate() {
