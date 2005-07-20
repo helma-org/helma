@@ -1486,30 +1486,30 @@ public final class Application implements IPathElement, Runnable {
                 lastCronParse = props.lastModified();
             }
 
-            Date d = new Date();
+            Date date = new Date();
             List jobs = new ArrayList(cronJobs);
 
             jobs.addAll(customCronJobs.values());
             CronJob.sort(jobs);
 
             for (Iterator i = jobs.iterator(); i.hasNext();) {
-                CronJob j = (CronJob) i.next();
+                CronJob job = (CronJob) i.next();
 
-                if (j.appliesToDate(d)) {
+                if (job.appliesToDate(date)) {
                     // check if the job is already active ...
-                    if (activeCronJobs.containsKey(j.getName())) {
-                        logEvent(j + " is still active, skipped in this minute");
+                    if (activeCronJobs.containsKey(job.getName())) {
+                        logEvent(job + " is still active, skipped in this minute");
 
                         continue;
                     }
 
-                    RequestEvaluator thisEvaluator;
+                    RequestEvaluator evaluator;
 
                     try {
-                        thisEvaluator = getEvaluator();
+                        evaluator = getEvaluator();
                     } catch (RuntimeException rt) {
                         if (running) {
-                            logEvent("couldn't execute " + j +
+                            logEvent("couldn't execute " + job +
                                      ", maximum thread count reached");
 
                             continue;
@@ -1520,20 +1520,20 @@ public final class Application implements IPathElement, Runnable {
 
                     // if the job has a long timeout or we're already late during this minute
                     // the job is run from an extra thread
-                    if ((j.getTimeout() > 20000) ||
+                    if ((job.getTimeout() > 20000) ||
                             (CronJob.millisToNextFullMinute() < 30000)) {
-                        CronRunner r = new CronRunner(thisEvaluator, j);
+                        CronRunner r = new CronRunner(evaluator, job);
 
-                        activeCronJobs.put(j.getName(), r);
+                        activeCronJobs.put(job.getName(), r);
                         r.start();
                     } else {
                         try {
-                            thisEvaluator.invokeInternal(null, j.getFunction(),
-                                                         new Object[0], j.getTimeout());
+                            evaluator.invokeInternal(null, job.getFunction(),
+                                                         new Object[0], job.getTimeout());
                         } catch (Exception ex) {
-                            logEvent("error running " + j + ": " + ex.toString());
+                            logEvent("error running " + job + ": " + ex.toString());
                         } finally {
-                            releaseEvaluator(thisEvaluator);
+                            releaseEvaluator(evaluator);
                         }
                     }
                 }
@@ -1546,7 +1546,9 @@ public final class Application implements IPathElement, Runnable {
                 if (sleepProp != null) {
                     sleepInterval = Math.max(1000, Integer.parseInt(sleepProp)*1000);
                 }
-            } catch (Exception ignore) {}
+            } catch (Exception ignore) {
+                // we'll use the default interval
+            }
 
             // sleep until the next full minute
             try {
@@ -1559,11 +1561,9 @@ public final class Application implements IPathElement, Runnable {
 
         // when interrupted, shutdown running cron jobs
         synchronized (activeCronJobs) {
-            for (Iterator i = activeCronJobs.keySet().iterator(); i.hasNext();) {
-                String jobname = (String) i.next();
-
-                ((CronRunner) activeCronJobs.get(jobname)).interrupt();
-                activeCronJobs.remove(jobname);
+            for (Iterator i = activeCronJobs.values().iterator(); i.hasNext();) {
+                ((CronRunner) i.next()).interrupt();
+                i.remove();
             }
         }
 
