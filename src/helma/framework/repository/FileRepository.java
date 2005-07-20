@@ -115,7 +115,7 @@ public class FileRepository extends AbstractRepository {
         return directory.lastModified();
     }
 
-    public long getChecksum() throws IOException {
+    public synchronized long getChecksum() throws IOException {
         // delay checksum check if already checked recently
         if (System.currentTimeMillis() > lastChecksumTime + cacheTime) {
 
@@ -141,8 +141,11 @@ public class FileRepository extends AbstractRepository {
     public synchronized void update() {
         if (!directory.exists()) {
             repositories = new Repository[0];
-            if (resources != null)
+            if (resources != null) {
+                resources = new HashMap();
+            } else {
                 resources.clear();
+            }
             lastModified = 0;
             return;
         }

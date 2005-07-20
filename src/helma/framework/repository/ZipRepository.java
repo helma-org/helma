@@ -95,7 +95,9 @@ public final class ZipRepository extends AbstractRepository {
     }
 
     public synchronized void update() {
-        if (file.lastModified() != lastModified) {
+        if (file.lastModified() != lastModified ||
+                repositories == null ||
+                resources == null) {
             lastModified = file.lastModified();
             ZipFile zipfile = null;
 

@@ -97,7 +97,7 @@ public abstract class AbstractRepository implements Repository {
      * If the name can't be resolved to a resource, a resource object is returned
      * for which {@link Resource exists()} returns <code>false<code>.
      */
-    public Resource getResource(String name) {
+    public synchronized Resource getResource(String name) {
         update();
 
         Resource res = (Resource) resources.get(name);
@@ -112,7 +112,7 @@ public abstract class AbstractRepository implements Repository {
     /**
      * Get an iterator over the resources contained in this repository.
      */
-    public Iterator getResources() {
+    public synchronized Iterator getResources() {
         update();
 
         return resources.values().iterator();
@@ -121,7 +121,7 @@ public abstract class AbstractRepository implements Repository {
     /**
      * Get an iterator over the sub-repositories contained in this repository.
      */
-    public Repository[] getRepositories() {
+    public synchronized Repository[] getRepositories() {
         update();
 
         return repositories;
@@ -138,7 +138,7 @@ public abstract class AbstractRepository implements Repository {
      * Get a deep list of this repository's resources, including all resources
      * contained in sub-reposotories.
      */
-    public List getAllResources() throws IOException {
+    public synchronized List getAllResources() throws IOException {
         update();
 
         ArrayList allResources = new ArrayList();
