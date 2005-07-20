@@ -228,12 +228,10 @@ public class CronJob {
       while (it.hasNext()) {
           CronJob job = (CronJob) it.next();
           if (job.getFunction() == null) {
-              System.err.println("DROPPING CRON JOB " + job);
               it.remove();
           }
       }
       List jobVec = new ArrayList (jobs.values());
-      System.err.println("GOT CRON JOB LIST: " + jobVec);
       return sort (jobVec);
    }
 
@@ -426,7 +424,7 @@ public class CronJob {
         // We return the interval to one second past the next full minute
         // to avoid the case where the scheduler wakes up slightly before the minute
         // and finishes so fast that the next call to this method returns the
-        // interval to the same minute instead of the next one. This happened 
+        // interval to the same minute instead of the next one. This happened
         // sometimes with the old code and caused the scheduler to run twice in
         // immediate succession.
         return (61000 - millisAfterMinute);
