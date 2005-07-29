@@ -185,13 +185,13 @@ public abstract class AbstractServletClient extends HttpServlet {
                                     item.get(),
                                     item.getContentType());
                         }
+                        item.delete();
                         // if multiple values exist for this name, append to _array
                         if (reqtrans.get(name) != null) {
                             appendFormValue(reqtrans, name, value);
                         } else {
                             reqtrans.set(name, value);
                         }
-                        item.delete();
                     }
 
                 } catch (Exception upx) {
