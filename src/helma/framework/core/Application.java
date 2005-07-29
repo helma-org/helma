@@ -163,7 +163,7 @@ public final class Application implements IPathElement, Runnable {
     private String xmlrpcHandlerName;
 
     // the list of currently active cron jobs
-    private Map activeCronJobs = null;
+    Hashtable activeCronJobs = null;
     // the list of custom cron jobs
     Hashtable customCronJobs = null;
 
@@ -361,7 +361,7 @@ public final class Application implements IPathElement, Runnable {
         }
 
         activeRequests = new Hashtable();
-        activeCronJobs = new WeakHashMap();
+        activeCronJobs = new Hashtable();
         customCronJobs = new Hashtable();
 
         // create the skin manager
@@ -1492,6 +1492,9 @@ public final class Application implements IPathElement, Runnable {
             jobs.addAll(customCronJobs.values());
             CronJob.sort(jobs);
 
+            logEvent("Running cron jobs: " + jobs);
+            logEvent("Cron jobs still running from last minute: " + activeCronJobs);
+
             for (Iterator i = jobs.iterator(); i.hasNext();) {
                 CronJob job = (CronJob) i.next();
 
@@ -1522,16 +1525,16 @@ public final class Application implements IPathElement, Runnable {
                     // the job is run from an extra thread
                     if ((job.getTimeout() > 20000) ||
                             (CronJob.millisToNextFullMinute() < 30000)) {
-                        CronRunner r = new CronRunner(evaluator, job);
+                        CronRunner runner = new CronRunner(evaluator, job);
 
-                        activeCronJobs.put(job.getName(), r);
-                        r.start();
+                        activeCronJobs.put(job.getName(), runner);
+                        runner.start();
                     } else {
                         try {
                             evaluator.invokeInternal(null, job.getFunction(),
                                                          new Object[0], job.getTimeout());
                         } catch (Exception ex) {
-                            logEvent("error running " + job + ": " + ex.toString());
+                            logEvent("error running " + job + ": " + ex);
                         } finally {
                             releaseEvaluator(evaluator);
                         }
@@ -1949,7 +1952,7 @@ public final class Application implements IPathElement, Runnable {
                 thisEvaluator.invokeInternal(null, job.getFunction(),
                                              new Object[0], job.getTimeout());
             } catch (Exception ex) {
-                // gets logged in RequestEvaluator
+                logEvent("error running " + job + ": " + ex);
             } finally {
                 releaseEvaluator(thisEvaluator);
                 thisEvaluator = null;
