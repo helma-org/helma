@@ -175,7 +175,6 @@ public abstract class AbstractServletClient extends HttpServlet {
 
                     while (it.hasNext()) {
                         FileItem item = (FileItem) it.next();
-                        // TODO: set fieldname_array if multiple values for one fieldname
                         String name = item.getFieldName();
                         Object value = null;
                         // check if this is an ordinary HTML form element or a file upload
@@ -192,6 +191,7 @@ public abstract class AbstractServletClient extends HttpServlet {
                         } else {
                             reqtrans.set(name, value);
                         }
+                        item.delete();
                     }
 
                 } catch (Exception upx) {
