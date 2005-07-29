@@ -27,6 +27,11 @@ import java.util.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
+import org.apache.commons.fileupload.FileUpload;
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.DiskFileUpload;
+import org.apache.commons.fileupload.FileUploadBase;
+
 /**
  * This is an abstract Hop servlet adapter. This class communicates with hop applications
  * via RMI. Subclasses are either one servlet per app, or one servlet that handles multiple apps
@@ -43,7 +48,7 @@ public abstract class AbstractServletClient extends HttpServlet {
     String hopUrl;
 
     // limit to HTTP uploads in kB
-    int uploadLimit = 4096;
+    int uploadLimit = 1024;
 
     // cookie domain to use
     String cookieDomain;
@@ -61,6 +66,10 @@ public abstract class AbstractServletClient extends HttpServlet {
     // enable debug output
     boolean debug;
 
+    // soft fail on file upload errors by setting flag "helma_upload_error" in RequestTrans
+    // if fals, an error response is written to the client immediately without entering helma
+    boolean uploadSoftfail = false;
+
     /**
      * Init this servlet.
      *
@@ -76,9 +85,12 @@ public abstract class AbstractServletClient extends HttpServlet {
         try {
             uploadLimit = (upstr == null) ? 1024 : Integer.parseInt(upstr);
         } catch (NumberFormatException x) {
-            System.err.println("Bad format for uploadLimit: " + upstr);
+            System.err.println("Bad number format for uploadLimit: " + upstr);
             uploadLimit = 1024;
         }
+
+        // soft fail mode for upload errors
+        uploadSoftfail = ("true".equalsIgnoreCase(init.getInitParameter("uploadSoftfail")));
 
         // get cookie domain
         cookieDomain = init.getInitParameter("cookieDomain");
@@ -150,36 +162,55 @@ public abstract class AbstractServletClient extends HttpServlet {
                 }
             }
 
-            // check for MIME file uploads
-            String contentType = request.getContentType();
-            
-            if ((contentType != null) &&
-                    (contentType.indexOf("multipart/form-data") == 0)) {
+            if (FileUpload.isMultipartContent(request)) {
                 // File Upload
                 try {
-                    FileUpload upload = getUpload(request, encoding);
+                    DiskFileUpload upload = new DiskFileUpload();
 
-                    if (upload != null) {
-                        Hashtable parts = upload.getParts();
+                    upload.setSizeMax(uploadLimit * 1024);
+                    upload.setHeaderEncoding(encoding);
 
-                        for (Enumeration e = parts.keys(); e.hasMoreElements();) {
-                            String nextKey = (String) e.nextElement();
-                            Object nextPart = parts.get(nextKey);
+                    List uploads = upload.parseRequest(request);
+                    Iterator it = uploads.iterator();
 
-                            if (nextPart instanceof List) {
-                                reqtrans.set(nextKey, ((List) nextPart).get(0));
-                                reqtrans.set(nextKey+"_array", ((List) nextPart).toArray());
-                            } else {
-                                reqtrans.set(nextKey, nextPart);
-                            }
+                    while (it.hasNext()) {
+                        FileItem item = (FileItem) it.next();
+                        // TODO: set fieldname_array if multiple values for one fieldname
+                        String name = item.getFieldName();
+                        Object value = null;
+                        // check if this is an ordinary HTML form element or a file upload
+                        if (item.isFormField()) {
+                            value =  item.getString(encoding);
+                        } else {
+                            value = new MimePart(item.getName(),
+                                    item.get(),
+                                    item.getContentType());
+                        }
+                        // if multiple values exist for this name, append to _array
+                        if (reqtrans.get(name) != null) {
+                            appendFormValue(reqtrans, name, value);
+                        } else {
+                            reqtrans.set(name, value);
                         }
                     }
-                } catch (Exception upx) {
-                    sendError(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
-                              "Sorry, upload size exceeds limit of " + uploadLimit +
-                              "kB.");
 
-                    return;
+                } catch (Exception upx) {
+                    System.err.println("Error in file upload: " + upx);
+                    if (uploadSoftfail) {
+                        String msg = upx.getMessage();
+                        if (msg == null || msg.length() == 0) {
+                            msg = upx.toString();
+                        }
+                        reqtrans.set("helma_upload_error", msg);
+                    } else if (upx instanceof FileUploadBase.SizeLimitExceededException) {
+                        sendError(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                              "File upload size exceeds limit of " + uploadLimit + "kB");
+                        return;
+                    } else {
+                        sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                              "Error in file upload: " + upx);
+                        return;
+                    }
                 }
             }
 
@@ -487,24 +518,29 @@ public abstract class AbstractServletClient extends HttpServlet {
         }
     }
 
-    FileUpload getUpload(HttpServletRequest request, String encoding) throws Exception {
-        int contentLength = request.getContentLength();
-        BufferedInputStream in = new BufferedInputStream(request.getInputStream());
-
-        if (contentLength > (uploadLimit * 1024)) {
-            throw new RuntimeException("Upload exceeds limit of " + uploadLimit + " kb.");
+    /**
+     * Used to build the form value array when a multipart (file upload) form has
+     * multiple values for one form element name.
+     * 
+     * @param reqtrans
+     * @param name
+     * @param value
+     */
+    private void appendFormValue(RequestTrans reqtrans, String name, Object value) {
+        String arrayName = name + "_array";
+        try {
+            Object[] values = (Object[]) reqtrans.get(arrayName);
+            if (values == null) {
+                reqtrans.set(arrayName, new Object[] {reqtrans.get(name), value});
+            } else {
+                Object[] newValues = new Object[values.length + 1];
+                System.arraycopy(values, 0, newValues, 0, values.length);
+                newValues[values.length] = value;
+                reqtrans.set(arrayName, newValues);
+            }
+        } catch (ClassCastException x) {
+            // name_array is defined as something else in the form - don't overwrite it
         }
-
-        String contentType = request.getContentType();
-        FileUpload upload = new FileUpload(uploadLimit);
-
-        upload.load(in, contentType, contentLength, encoding);
-
-        return upload;
-    }
-
-    Object getUploadPart(FileUpload upload, String name) {
-        return upload.getParts().get(name);
     }
 
     /**
