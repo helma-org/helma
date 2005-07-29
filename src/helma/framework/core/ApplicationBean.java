@@ -22,10 +22,7 @@ import helma.util.SystemMap;
 import helma.util.WrappedMap;
 import java.io.File;
 import java.io.Serializable;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  *
@@ -295,33 +292,47 @@ public class ApplicationBean implements Serializable {
         app.customCronJobs.remove(functionName);
     }
 
-    // getter methods for readonly properties of this application
+    /**
+     * Returns an read-only map of the custom cron jobs registered with the app
+     *
+     * @return
+     */
+    public Map getCronJobs() {
+        WrappedMap jobs = new WrappedMap(app.customCronJobs);
+        jobs.setReadonly(true);
+        return jobs;
+    }
+
+    /**
+     * Returns the number of elements in the NodeManager's cache
+     */
     public int getCacheusage() {
         return app.getCacheUsage();
     }
 
     /**
+     * Returns the app's data node used to share data between the app's evaluators
      *
-     *
-     * @return ...
+     * @return
      */
     public INode getData() {
         return app.getCacheNode();
     }
 
     /**
+     * Returns the app's modules map used to register application modules
      *
-     *
-     * @return ...
+     * @return
      */
     public Map getModules() {
         return app.modules;
     }
 
     /**
+     * Returns the absolute path of the app dir. When using repositories this
+     * equals the first file based repository.
      *
-     *
-     * @return ...
+     * @return
      */
     public String getDir() {
         return app.getAppDir().getAbsolutePath();
