@@ -1493,7 +1493,9 @@ public final class Application implements IPathElement, Runnable {
             CronJob.sort(jobs);
 
             logEvent("Running cron jobs: " + jobs);
-            logEvent("Cron jobs still running from last minute: " + activeCronJobs);
+            if (!activeCronJobs.isEmpty()) {
+                logEvent("Cron jobs still running from last minute: " + activeCronJobs);
+            }
 
             for (Iterator i = jobs.iterator(); i.hasNext();) {
                 CronJob job = (CronJob) i.next();
@@ -1958,6 +1960,10 @@ public final class Application implements IPathElement, Runnable {
                 thisEvaluator = null;
                 activeCronJobs.remove(job.getName());
             }
+        }
+
+        public String toString() {
+            return "CronRunner[" + job + "]";
         }
     }
 }
