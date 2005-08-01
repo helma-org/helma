@@ -284,6 +284,7 @@ public class ApplicationManager implements XmlRpcHandler {
         String sessionCookieName;
         String protectedSessionCookie;
         String uploadLimit;
+        String uploadSoftfail;
         String debug;
         boolean encode;
         Repository[] repositories;
@@ -318,6 +319,7 @@ public class ApplicationManager implements XmlRpcHandler {
             sessionCookieName = props.getProperty(name + ".sessionCookieName");
             protectedSessionCookie = props.getProperty(name + ".protectedSessionCookie");
             uploadLimit = props.getProperty(name + ".uploadLimit");
+            uploadSoftfail = props.getProperty(name + ".uploadSoftfail");
             debug = props.getProperty(name + ".debug");
             encode = "true".equalsIgnoreCase(props.getProperty(name +
                                         ".responseEncoding"));
@@ -479,6 +481,10 @@ public class ApplicationManager implements XmlRpcHandler {
 
                     if (uploadLimit != null) {
                         holder.setInitParameter("uploadLimit", uploadLimit);
+                    }
+
+                    if (uploadSoftfail != null) {
+                        holder.setInitParameter("uploadSoftfail", uploadSoftfail);
                     }
 
                     if (debug != null) {
