@@ -298,9 +298,7 @@ public class ApplicationBean implements Serializable {
      * @return
      */
     public Map getCronJobs() {
-        WrappedMap jobs = new WrappedMap(app.customCronJobs);
-        jobs.setReadonly(true);
-        return jobs;
+        return new WrappedMap(app.customCronJobs, WrappedMap.READ_ONLY);
     }
 
     /**
