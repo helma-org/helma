@@ -131,10 +131,6 @@ public final class Application implements IPathElement, Runnable {
 
     // the id of the object to use as root object
     String rootId = "0";
-    // the name of the root prototype
-    private String rootPrototype;
-    // the name of the user prototype
-    private String userPrototype;
 
     // Db mappings for some standard prototypes
     private DbMapping rootMapping;
@@ -369,8 +365,8 @@ public final class Application implements IPathElement, Runnable {
 
         // read in root id, root prototype, user prototype
         rootId = props.getProperty("rootid", "0");
-        rootPrototype = props.getProperty("rootprototype", "root");
-        userPrototype = props.getProperty("userprototype", "user");
+        String rootPrototype = props.getProperty("rootprototype", "root");
+        String userPrototype = props.getProperty("userprototype", "user");
 
         rootMapping = getDbMapping(rootPrototype);
         if (rootMapping == null)
