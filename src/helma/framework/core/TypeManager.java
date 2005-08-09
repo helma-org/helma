@@ -89,10 +89,11 @@ public final class TypeManager {
         }
 
         if (helmajar == null) {
-            throw new RuntimeException("helma.jar not found in embedding classpath");
+            // throw new RuntimeException("helma.jar not found in embedding classpath");
+            loader = new AppClassLoader(app.getName(), new URL[0]);
+        } else {
+            loader = new AppClassLoader(app.getName(), new URL[] { helmajar });
         }
-
-        loader = new AppClassLoader(app.getName(), new URL[] { helmajar });
     }
 
     /**
