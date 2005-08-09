@@ -1480,70 +1480,79 @@ public final class Application implements IPathElement, Runnable {
                 }
             }
 
-            if ((cronJobs == null) || (props.lastModified() > lastCronParse)) {
-                updateProperties();
-                cronJobs = CronJob.parse(props);
-                lastCronParse = props.lastModified();
+            try {
+                if ((cronJobs == null) || (props.lastModified() > lastCronParse)) {
+                    updateProperties();
+                    cronJobs = CronJob.parse(props);
+                    lastCronParse = props.lastModified();
+                }
+            } catch (Exception ex) {
+                logEvent ("error parsing CronJobs: " + ex);
+                ex.printStackTrace();
             }
 
-            Date date = new Date();
-            List jobs = new ArrayList(cronJobs);
-
-            jobs.addAll(customCronJobs.values());
-            CronJob.sort(jobs);
-
-            logEvent("Running cron jobs: " + jobs);
-            if (!activeCronJobs.isEmpty()) {
-                logEvent("Cron jobs still running from last minute: " + activeCronJobs);
-            }
-
-            for (Iterator i = jobs.iterator(); i.hasNext();) {
-                CronJob job = (CronJob) i.next();
-
-                if (job.appliesToDate(date)) {
-                    // check if the job is already active ...
-                    if (activeCronJobs.containsKey(job.getName())) {
-                        logEvent(job + " is still active, skipped in this minute");
-
-                        continue;
-                    }
-
-                    RequestEvaluator evaluator;
-
-                    try {
-                        evaluator = getEvaluator();
-                    } catch (RuntimeException rt) {
-                        if (running) {
-                            logEvent("couldn't execute " + job +
-                                     ", maximum thread count reached");
-
+            try {
+                Date date = new Date();
+                List jobs = new ArrayList(cronJobs);
+    
+                jobs.addAll(customCronJobs.values());
+                CronJob.sort(jobs);
+    
+                logEvent("Running cron jobs: " + jobs);
+                if (!activeCronJobs.isEmpty()) {
+                    logEvent("Cron jobs still running from last minute: " + activeCronJobs);
+                }
+    
+                for (Iterator i = jobs.iterator(); i.hasNext();) {
+                    CronJob job = (CronJob) i.next();
+    
+                    if (job.appliesToDate(date)) {
+                        // check if the job is already active ...
+                        if (activeCronJobs.containsKey(job.getName())) {
+                            logEvent(job + " is still active, skipped in this minute");
+    
                             continue;
-                        } else {
-                            break;
                         }
-                    }
-
-                    // if the job has a long timeout or we're already late during this minute
-                    // the job is run from an extra thread
-                    if ((job.getTimeout() > 20000) ||
-                            (CronJob.millisToNextFullMinute() < 30000)) {
-                        CronRunner runner = new CronRunner(evaluator, job);
-
-                        activeCronJobs.put(job.getName(), runner);
-                        runner.start();
-                    } else {
+    
+                        RequestEvaluator evaluator;
+    
                         try {
-                            evaluator.invokeInternal(null, job.getFunction(),
-                                                         new Object[0], job.getTimeout());
-                        } catch (Exception ex) {
-                            logEvent("error running " + job + ": " + ex);
-                        } finally {
-                            releaseEvaluator(evaluator);
+                            evaluator = getEvaluator();
+                        } catch (RuntimeException rt) {
+                            if (running) {
+                                logEvent("couldn't execute " + job +
+                                         ", maximum thread count reached");
+    
+                                continue;
+                            } else {
+                                break;
+                            }
+                        }
+    
+                        // if the job has a long timeout or we're already late during this minute
+                        // the job is run from an extra thread
+                        if ((job.getTimeout() > 20000) ||
+                                (CronJob.millisToNextFullMinute() < 30000)) {
+                            CronRunner runner = new CronRunner(evaluator, job);
+    
+                            activeCronJobs.put(job.getName(), runner);
+                            runner.start();
+                        } else {
+                            try {
+                                evaluator.invokeInternal(null, job.getFunction(),
+                                                             new Object[0], job.getTimeout());
+                            } catch (Exception ex) {
+                                logEvent("error running " + job + ": " + ex);
+                            } finally {
+                                releaseEvaluator(evaluator);
+                            }
                         }
                     }
                 }
+            } catch (Exception ex) {
+                logEvent("error handling CronJobs: " + ex);
+                ex.printStackTrace();
             }
-
 
             long sleepInterval = CronJob.millisToNextFullMinute();
             try {
