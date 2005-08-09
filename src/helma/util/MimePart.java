@@ -39,7 +39,7 @@ public class MimePart implements Serializable {
      * @param contentType ...
      */
     public MimePart(String name, byte[] content, String contentType) {
-        this.name = name;
+        this.name = normalizeFilename(name);
         this.content = (content == null) ? new byte[0] : content;
         this.contentType = contentType;
         contentLength = (content == null) ? 0 : content.length;
@@ -187,6 +187,22 @@ public class MimePart implements Serializable {
         }
 
         return null;
+    }
+
+    /**
+     * Normalize a upload file name. Internet Explorer on Windows sends
+     * the whole path, so we cut off everything before the actual name.
+     */
+    public  static String normalizeFilename(String filename) {
+        if (filename == null)
+            return null;
+        int idx = filename.lastIndexOf('/');
+        if (idx > -1)
+            filename = filename.substring(idx + 1);
+        idx = filename.lastIndexOf('\\');
+        if (idx > -1)
+            filename = filename.substring(idx + 1);
+        return filename;
     }
 
 }
