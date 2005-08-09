@@ -472,13 +472,13 @@ public final class Application implements IPathElement, Runnable {
         if ("true".equalsIgnoreCase(getProperty("persistentSessions"))) {
             sessionMgr.storeSessionData(null);
         }
-        sessionMgr.shutdown();        
+        sessionMgr.shutdown();
     }
 
     /**
      * Returns true if this app is currently running
      *
-     * @return
+     * @return true if the app is running
      */
     public synchronized boolean isRunning() {
         return running;
@@ -487,7 +487,7 @@ public final class Application implements IPathElement, Runnable {
     /**
      * Get the application directory.
      *
-     * @return
+     * @return the application directory, or first file based repository
      */
     public File getAppDir() {
         return appDir;
@@ -497,7 +497,7 @@ public final class Application implements IPathElement, Runnable {
      * Get a comparator for comparing Resources according to the order of
      * repositories they're contained in.
      *
-     * @return
+     * @return a comparator that sorts resources according to their repositories
      */
     public ResourceComparator getResourceComparator() {
         return resourceComparator;
@@ -1406,8 +1406,9 @@ public final class Application implements IPathElement, Runnable {
     public void run() {
 
         // as first thing, invoke global onStart() function
-        RequestEvaluator eval = getEvaluator();
+        RequestEvaluator eval = null;
         try {
+            eval = getEvaluator();
             eval.invokeInternal(null, "onStart", new Object[0]);
         } catch (Exception xcept) {
             logEvent("Error in " + name + "/onStart(): " + xcept);
@@ -1416,149 +1417,33 @@ public final class Application implements IPathElement, Runnable {
         }
 
         // interval between session cleanups
-        long sessionCleanupInterval = 60000;
         long lastSessionCleanup = System.currentTimeMillis();
 
         // logEvent ("Starting scheduler for "+name);
 
-        // loop-local cron job data
-        List cronJobs = null;
-        long lastCronParse = 0;
-
         while (Thread.currentThread() == worker) {
 
-            long now = System.currentTimeMillis();
-
-            // check if we should clean up user sessions
-            if ((now - lastSessionCleanup) > sessionCleanupInterval) {
-
-                lastSessionCleanup = now;
-
-                // get session timeout
-                int sessionTimeout = 30;
-
-                try {
-                    sessionTimeout = Math.max(0,
-                            Integer.parseInt(props.getProperty("sessionTimeout",
-                                                               "30")));
-                } catch (Exception ignore) {}
-
-                RequestEvaluator thisEvaluator = null;
-
-                try {
-
-                    thisEvaluator = getEvaluator();
-
-                    Map sessions = sessionMgr.getSessions();
-
-                    Iterator it = sessions.values().iterator();
-                    while (it.hasNext()) {
-                        Session session = (Session) it.next();
-
-                        if ((now - session.lastTouched()) > (sessionTimeout * 60000)) {
-                            NodeHandle userhandle = session.userHandle;
-
-                            if (userhandle != null) {
-                                try {
-                                    Object[] param = { session.getSessionId() };
-
-                                    thisEvaluator.invokeInternal(userhandle, "onLogout", param);
-                                } catch (Exception ignore) {
-                                }
-                            }
-
-                            sessionMgr.discardSession(session);
-                        }
-                    }
-                } catch (Exception cx) {
-                    logEvent("Error cleaning up sessions: " + cx);
-                    cx.printStackTrace();
-                } finally {
-                    if (thisEvaluator != null) {
-                        releaseEvaluator(thisEvaluator);
-                    }
-                }
-            }
-
+            // purge sessions
             try {
-                if ((cronJobs == null) || (props.lastModified() > lastCronParse)) {
-                    updateProperties();
-                    cronJobs = CronJob.parse(props);
-                    lastCronParse = props.lastModified();
-                }
-            } catch (Exception ex) {
-                logEvent ("error parsing CronJobs: " + ex);
-                ex.printStackTrace();
+                lastSessionCleanup = cleanupSessions(lastSessionCleanup);
+            } catch (Exception x) {
+                logError("Error in session cleanup", x);
             }
 
+            // execute cron jobs
             try {
-                Date date = new Date();
-                List jobs = new ArrayList(cronJobs);
-    
-                jobs.addAll(customCronJobs.values());
-                CronJob.sort(jobs);
-    
-                logEvent("Running cron jobs: " + jobs);
-                if (!activeCronJobs.isEmpty()) {
-                    logEvent("Cron jobs still running from last minute: " + activeCronJobs);
-                }
-    
-                for (Iterator i = jobs.iterator(); i.hasNext();) {
-                    CronJob job = (CronJob) i.next();
-    
-                    if (job.appliesToDate(date)) {
-                        // check if the job is already active ...
-                        if (activeCronJobs.containsKey(job.getName())) {
-                            logEvent(job + " is still active, skipped in this minute");
-    
-                            continue;
-                        }
-    
-                        RequestEvaluator evaluator;
-    
-                        try {
-                            evaluator = getEvaluator();
-                        } catch (RuntimeException rt) {
-                            if (running) {
-                                logEvent("couldn't execute " + job +
-                                         ", maximum thread count reached");
-    
-                                continue;
-                            } else {
-                                break;
-                            }
-                        }
-    
-                        // if the job has a long timeout or we're already late during this minute
-                        // the job is run from an extra thread
-                        if ((job.getTimeout() > 20000) ||
-                                (CronJob.millisToNextFullMinute() < 30000)) {
-                            CronRunner runner = new CronRunner(evaluator, job);
-    
-                            activeCronJobs.put(job.getName(), runner);
-                            runner.start();
-                        } else {
-                            try {
-                                evaluator.invokeInternal(null, job.getFunction(),
-                                                             new Object[0], job.getTimeout());
-                            } catch (Exception ex) {
-                                logEvent("error running " + job + ": " + ex);
-                            } finally {
-                                releaseEvaluator(evaluator);
-                            }
-                        }
-                    }
-                }
-            } catch (Exception ex) {
-                logEvent("error handling CronJobs: " + ex);
-                ex.printStackTrace();
+                executeCronJobs();
+            } catch (Exception x) {
+                logError("Error in cron job execution", x);
             }
 
-            long sleepInterval = CronJob.millisToNextFullMinute();
+            long sleepInterval = 60000;
             try {
                 String sleepProp = props.getProperty("schedulerInterval");
                 if (sleepProp != null) {
-                    sleepInterval = Math.max(1000, Integer.parseInt(sleepProp)*1000);
+                    sleepInterval = Math.max(1000, Integer.parseInt(sleepProp) * 1000);
+                } else {
+                    sleepInterval = CronJob.millisToNextFullMinute();
                 }
             } catch (Exception ignore) {
                 // we'll use the default interval
@@ -1582,6 +1467,147 @@ public final class Application implements IPathElement, Runnable {
         }
 
         logEvent("Scheduler for " + name + " exiting");
+    }
+
+    /**
+     * Purge sessions that have not been used for a certain amount of time.
+     * This is called by run().
+     *
+     * @param lastSessionCleanup the last time sessions were purged
+     * @return the updated lastSessionCleanup value
+     */
+    private long cleanupSessions(long lastSessionCleanup) {
+
+        long now = System.currentTimeMillis();
+        long sessionCleanupInterval = 60000;
+
+        // check if we should clean up user sessions
+        if ((now - lastSessionCleanup) > sessionCleanupInterval) {
+
+            // get session timeout
+            int sessionTimeout = 30;
+
+            try {
+                sessionTimeout = Math.max(0,
+                        Integer.parseInt(props.getProperty("sessionTimeout",
+                                "30")));
+            } catch (Exception ignore) {
+            }
+
+            RequestEvaluator thisEvaluator = null;
+
+            try {
+
+                thisEvaluator = getEvaluator();
+
+                Map sessions = sessionMgr.getSessions();
+
+                Iterator it = sessions.values().iterator();
+                while (it.hasNext()) {
+                    Session session = (Session) it.next();
+
+                    if ((now - session.lastTouched()) > (sessionTimeout * 60000)) {
+                        NodeHandle userhandle = session.userHandle;
+
+                        if (userhandle != null) {
+                            try {
+                                Object[] param = {session.getSessionId()};
+
+                                thisEvaluator.invokeInternal(userhandle, "onLogout", param);
+                            } catch (Exception ignore) {
+                            }
+                        }
+
+                        sessionMgr.discardSession(session);
+                    }
+                }
+            } catch (Exception cx) {
+                logEvent("Error cleaning up sessions: " + cx);
+                cx.printStackTrace();
+            } finally {
+                if (thisEvaluator != null) {
+                    releaseEvaluator(thisEvaluator);
+                }
+            }
+            return now;
+        } else {
+            return lastSessionCleanup;
+        }
+    }
+
+    /**
+     * Executes cron jobs for the application, which are either
+     * defined in app.properties or via app.addCronJob().
+     * This method is called by run().
+     */
+    private void executeCronJobs() {
+        // loop-local cron job data
+        List cronJobs = null;
+        long lastCronParse = 0;
+
+        if ((cronJobs == null) || (props.lastModified() > lastCronParse)) {
+            updateProperties();
+            cronJobs = CronJob.parse(props);
+            lastCronParse = props.lastModified();
+        }
+
+        Date date = new Date();
+        List jobs = new ArrayList(cronJobs);
+
+        jobs.addAll(customCronJobs.values());
+        CronJob.sort(jobs);
+
+        logEvent("Running cron jobs: " + jobs);
+        if (!activeCronJobs.isEmpty()) {
+            logEvent("Cron jobs still running from last minute: " + activeCronJobs);
+        }
+
+        for (Iterator i = jobs.iterator(); i.hasNext();) {
+            CronJob job = (CronJob) i.next();
+
+            if (job.appliesToDate(date)) {
+                // check if the job is already active ...
+                if (activeCronJobs.containsKey(job.getName())) {
+                    logEvent(job + " is still active, skipped in this minute");
+
+                    continue;
+                }
+
+                RequestEvaluator evaluator;
+
+                try {
+                    evaluator = getEvaluator();
+                } catch (RuntimeException rt) {
+                    if (running) {
+                        logEvent("couldn't execute " + job +
+                                ", maximum thread count reached");
+
+                        continue;
+                    } else {
+                        break;
+                    }
+                }
+
+                // if the job has a long timeout or we're already late during this minute
+                // the job is run from an extra thread
+                if ((job.getTimeout() > 20000) ||
+                        (CronJob.millisToNextFullMinute() < 30000)) {
+                    CronRunner runner = new CronRunner(evaluator, job);
+
+                    activeCronJobs.put(job.getName(), runner);
+                    runner.start();
+                } else {
+                    try {
+                        evaluator.invokeInternal(null, job.getFunction(),
+                                new Object[0], job.getTimeout());
+                    } catch (Exception ex) {
+                        logEvent("error running " + job + ": " + ex);
+                    } finally {
+                        releaseEvaluator(evaluator);
+                    }
+                }
+            }
+        }
     }
 
     /**
