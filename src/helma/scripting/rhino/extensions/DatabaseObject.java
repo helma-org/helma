@@ -198,18 +198,17 @@ public class DatabaseObject {
         ResultSet resultSet = null;
 
         try {
+            connection.setReadOnly(true);
             statement = connection.createStatement();
             resultSet = statement.executeQuery(sql);     // will return true if first result is a result set
 
-            RowSet rowSet = new RowSet(sql, this, statement, resultSet);
-
-            return rowSet;
-       } catch(SQLException e) {
+            return new RowSet(sql, this, statement, resultSet);
+        } catch (SQLException e) {
             // System.err.println("##Cannot retrieve: " + e);
             // e.printStackTrace();
             lastError = e;
             try {
-                if (statement!=null) statement.close();
+                if (statement != null) statement.close();
             } catch (Exception ignored) {
             }
             statement = null;
@@ -226,11 +225,12 @@ public class DatabaseObject {
         }
 
         Statement statement = null;
-         try {
+        try {
 
+            connection.setReadOnly(false);
             statement = connection.createStatement();
             count = statement.executeUpdate(sql);     // will return true if first result is a result set
-       } catch(SQLException e) {
+        } catch (SQLException e) {
             // System.err.println("##Cannot retrieve: " + e);
             // e.printStackTrace();
             lastError = e;
@@ -594,8 +594,7 @@ class RowSet {
 
 
     public String[] getSpecialPropertyNames() {
-        String [] ns = {"length"};
-        return ns;
+        return new String[] {"length"};
     }
 
 
