@@ -420,6 +420,25 @@ public final class RhinoCore implements ScopeProvider {
     }
 
     /**
+     * Get an array containing the property ids of all properties that were
+     * compiled from scripts for the given prototype.
+     *
+     * @param protoName the name of the prototype
+     * @return an array containing all compiled properties of the given prototype
+     */
+    public Map getPrototypeProperties(String protoName) {
+        TypeInfo type = getPrototypeInfo(protoName);
+        SystemMap map = new SystemMap();
+        Iterator it =    type.compiledProperties.iterator();
+        while(it.hasNext()) {
+            Object key = it.next();
+            if (key instanceof String)
+                map.put(key, type.objProto.get((String) key, type.objProto));
+        }
+        return map;
+    }
+
+    /**
      *  Private helper function that retrieves a prototype's TypeInfo
      *  and creates it if not yet created. This is used by getPrototype() and
      *  getValidPrototype().
