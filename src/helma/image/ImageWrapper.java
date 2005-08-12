@@ -99,7 +99,7 @@ public class ImageWrapper {
      * 
      * @return the Graphics object for drawing into this image
      */
-    public Graphics getGraphics() {
+    public Graphics2D getGraphics() {
         if (graphics == null) {
             // make sure the image is a BufferedImage and then create a graphics object
             BufferedImage img = getBufferedImage();
@@ -123,6 +123,8 @@ public class ImageWrapper {
             image.flush();
         }
         image = img;
+        width = image.getWidth(null);
+        height = image.getHeight(null);
     }
 
     /**
@@ -275,6 +277,17 @@ public class ImageWrapper {
     }
 
     /**
+     * Draws another image to this image.
+     * 
+     * @param filename ...
+     * @param at ...
+     */
+    public void drawImage(ImageWrapper image, AffineTransform at) 
+        throws IOException {
+        getGraphics().drawImage(image.getImage(), at, null);
+    }
+
+    /**
      * Draws a filled rectangle to this image.
      * 
      * @param x ...
@@ -314,7 +327,7 @@ public class ImageWrapper {
      */
     public void crop(int x, int y, int w, int h) {
         // do not use the CropFilter any longer:
-        if (image instanceof BufferedImage) {
+        if (image instanceof BufferedImage && x + w <= width && y + h <= height) {
             // BufferedImages define their own function for cropping:
             setImage(((BufferedImage)image).getSubimage(x, y, w, h));
         } else {
@@ -326,6 +339,111 @@ public class ImageWrapper {
             g2d.dispose();
             setImage(buffered);
         }
+    }
+    
+    /**
+     * Trims the image.
+     * 
+     * @param x the x-coordinate of the pixel specifying the background color
+     * @param y the y-coordinate of the pixel specifying the background color
+     */
+    
+   public void trim(int x, int y) {
+       trim(x, y, true, true, true, true);
+   }
+
+   /**
+    * Trims the image.
+    * 
+    * @param x
+    * @param y
+    * @param trimLeft
+    * @param trimTop
+    * @param trimRight
+    * @param trimBottom
+    */
+   public void trim(int x, int y, boolean trimLeft, boolean trimTop, boolean trimRight, boolean trimBottom) {
+        BufferedImage bi = this.getBufferedImage();
+        int color = bi.getRGB(x, y), pixel;
+        int left = 0, top = 0, right = width - 1, bottom = height - 1;
+
+        // create a BufferedImage of only 1 pixel height for fetching the rows of the image in the correct format (ARGB)
+        // This speeds up things by more than factor 2, compared to the standard BufferedImage.getRGB solution,
+        // which is supposed to be fast too. This is probably the case because drawing to BufferedImages uses 
+        // very optimized code which may even be hardware accelerated.
+        if (trimTop || trimBottom) {
+            BufferedImage row = new BufferedImage(width, 1, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2d = row.createGraphics();
+            int pixels[] = ((DataBufferInt)row.getRaster().getDataBuffer()).getData();
+            // make sure alpha values do not add up for each row:
+            g2d.setComposite(AlphaComposite.Src);
+            if (trimTop) {
+                // top:
+                for (top = 0; top < height; top++) {
+                    g2d.drawImage(bi, null, 0, -top);
+                    // now pixels contains the rgb values of the row y!
+                    // scan this row now:
+                    for (x = 0; x < width; x++) {
+                        if (pixels[x] != color)
+                            break;
+                    }
+                    if (x < width)
+                        break;
+                }
+            }
+            if (trimBottom) {
+                // bottom:
+                for (bottom = height - 1;  bottom > top; bottom--) {
+                    g2d.drawImage(bi, null, 0, -bottom);
+                    // now pixels contains the rgb values of the row y!
+                    // scan this row now:
+                    for (x = 0; x < width; x++) {
+                        if (pixels[x] != color)
+                            break;
+                    }
+                    if (x < width)
+                        break;
+                }
+            }
+            g2d.dispose();
+        }
+        if (trimLeft || trimRight) {
+            BufferedImage column = new BufferedImage(1, height, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2d = column.createGraphics();
+            int pixels[] = ((DataBufferInt)column.getRaster().getDataBuffer()).getData();
+            // make sure alpha values do not add up for each row:
+            g2d.setComposite(AlphaComposite.Src);
+            if (trimLeft) {
+                // left:
+                for (left = 0; left < width; left++) {
+                    g2d.drawImage(bi, null, -left, 0);
+                    // now pixels contains the rgb values of the row y!
+                    // scan this row now:
+                    for (y = 0; y < height; y++) {
+                        if (pixels[y] != color)
+                            break;
+                    }
+                    if (y < height)
+                        break;
+                }
+            }
+            if (trimRight) {
+                // right:
+                for (right = width - 1; right > left; right--) {
+                    g2d.drawImage(bi, null, -right, 0);
+                    // now pixels contains the rgb values of the row y!
+                    // scan this row now:
+                    for (y = 0; y < height; y++) {
+                        if (pixels[y] != color)
+                            break;
+                    }
+                    if (y < height)
+                        break;
+                }
+            }
+            g2d.dispose();
+        }
+        crop(left, top, right - left + 1, bottom - top + 1);
     }
     
     /**
@@ -352,9 +470,6 @@ public class ImageWrapper {
         g2d.drawImage(image, at, null);
         g2d.dispose();
         setImage(buffered);
-        // set new width/height
-        width = w;
-        height = h;
     }
 
     /**
@@ -363,7 +478,6 @@ public class ImageWrapper {
      * @param w ...
      * @param h ...
      */
-
     public void resize(int w, int h) {
         double factor = Math.max(
             (double) w / width,
@@ -384,8 +498,6 @@ public class ImageWrapper {
             // this version is up to 4 times faster than getScaledInstance:
             ImageFilterOp filter = new ImageFilterOp(new AreaAveragingScaleFilter(w, h));
             setImage(filter.filter(getBufferedImage(), null));
-            width = w;
-            height = h;
         }
     }
 
@@ -466,6 +578,45 @@ public class ImageWrapper {
     public void saveAs(String filename, float quality, boolean alpha)
         throws IOException {
         generator.write(this, filename, quality, alpha);
+    }
+    
+    /**
+     * Saves the image. Image format is deduced from mimeType.
+     * 
+     * @param out ...
+     * @param mimeType ...
+     * @throws IOException
+     */
+    public void saveAs(OutputStream out, String mimeType)
+        throws IOException {
+        generator.write(this, out, mimeType, -1f, false); // -1 means default quality
+    }
+    
+    /**
+     * Saves the image. Image format is deduced from mimeType.
+     * 
+     * @param out ...
+     * @param mimeType ...
+     * @param quality ...
+     * @throws IOException
+     */
+    public void saveAs(OutputStream out, String mimeType, float quality)
+        throws IOException {
+        generator.write(this, out, mimeType, quality, false);
+    }
+
+    /**
+     * Saves the image. Image format is deduced from mimeType.
+     * 
+     * @param out ...
+     * @param mimeType ...
+     * @param quality ...
+     * @param alpha ...
+     * @throws IOException
+     */
+    public void saveAs(OutputStream out, String mimeType, float quality, boolean alpha)
+        throws IOException {
+        generator.write(this, out, mimeType, quality, alpha);
     }
     
     /**
