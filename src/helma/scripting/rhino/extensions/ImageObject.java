@@ -19,6 +19,7 @@ package helma.scripting.rhino.extensions;
 import helma.image.*;
 import helma.util.MimePart;
 
+import java.awt.Image;
 import java.awt.image.*;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Function;
@@ -90,10 +91,23 @@ public class ImageObject {
                         img = generator.createImage(str);
                     }
                 } else if (args[0] instanceof NativeJavaObject) {
+                    // see wether a standard java image object is wrapped in a helma image:
                     Object arg = ((NativeJavaObject) args[0]).unwrap();
                     if (arg instanceof MimePart) {
                         img = generator.createImage(((MimePart) arg).getContent());
-                    }
+                    } else {
+                   		Image image = null;
+                   	 	if (arg instanceof BufferedImage) {
+                    	    // no need to wait for buffered images:
+                	        image = (Image) arg;
+            	        } else if (arg instanceof Image) {
+        	                // wait for all the other image types:
+    	                    image = ImageWaiter.waitForImage((Image) arg);
+	                    }
+    	                if (image != null) {
+        	                img = new ImageWrapper(image, image.getWidth(null), image.getHeight(null), generator);
+            	        }
+            	    }
                 }
             } else if (args.length == 2) {
                 if (args[0] instanceof Number &&
