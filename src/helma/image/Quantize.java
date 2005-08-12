@@ -785,10 +785,6 @@ public class Quantize {
                 int db = b1 - b2;
 
                 return da * da + dr * dr + dg * dg + db * db;
-//                return (SQUARES[r1 - r2 + MAX_RGB] +
-//                     SQUARES[g1 - g2 + MAX_RGB] +
-//                     SQUARES[b1 - b2 + MAX_RGB] +
-//                     SQUARES[a1 - a2 + MAX_RGB]);
             }
 
             public String toString() {

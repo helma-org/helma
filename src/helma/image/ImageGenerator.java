@@ -21,6 +21,7 @@ import helma.main.Server;
 import java.awt.*;
 import java.awt.image.*;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -207,5 +208,17 @@ public abstract class ImageGenerator {
      * @throws IOException
      */
     public abstract void write(ImageWrapper wrapper, String filename,
+        float quality, boolean alpha) throws IOException;
+
+    /**
+     * Saves the image. Image format is deduced from the dataSource.
+     * 
+     * @param wrapper
+     * @param out
+     * @param quality
+     * @param alpha
+     * @throws IOException
+     */
+    public abstract void write(ImageWrapper wrapper, OutputStream out, String type,
         float quality, boolean alpha) throws IOException;
 }

@@ -221,6 +221,7 @@ public class ImageInfo {
 	private int width;
 	private int height;
 	private int bitsPerPixel;
+    private int numColors;
 	private int colorType = COLOR_TYPE_UNKNOWN;
 	private boolean progressive;
 	private int format;
@@ -257,6 +258,7 @@ public class ImageInfo {
 		numberOfImages = 1;
 		physicalHeightDpi = -1;
 		physicalWidthDpi = -1;
+        numColors = -1;
 		comments = null;
 		try {
 			int b1 = read() & 0xff;
@@ -353,14 +355,14 @@ public class ImageInfo {
 		int flags = a[8] & 0xff;
 		bitsPerPixel = ((flags >> 4) & 0x07) + 1;
 		progressive = (flags & 0x02) != 0;
-		if (!determineNumberOfImages) {
-			return true;
-		}
 		// skip global color palette
 		if ((flags & 0x80) != 0) {
-			int tableSize = (1 << ((flags & 7) + 1)) * 3;
-			skip(tableSize);
+            numColors = (1 << ((flags & 7) + 1));
+			skip(numColors * 3);
 		}
+        if (!determineNumberOfImages) {
+            return true;
+        }
 		numberOfImages = 0;
 		int blockType;
 		do
@@ -379,7 +381,11 @@ public class ImageInfo {
 						bitsPerPixel = localBitsPerPixel;
 					}
 					if ((flags & 0x80) != 0) {
-						skip((1 << localBitsPerPixel) * 3);
+                       int localNumColors = 1 << localBitsPerPixel;
+                       skip(localNumColors * 3);
+                        if (localNumColors > numColors) {
+                            numColors = localNumColors;
+                        }
 					}
 					skip(1); // initial code length
 					int n;
@@ -777,7 +783,14 @@ public class ImageInfo {
 		return bitsPerPixel;
 	}
 
-	/**
+    /** 
+     * @return number of colors, for palette based images
+     */
+    public int getNumColors() {
+        return numColors;
+    }
+
+    /**
 	 * Returns the index'th comment retrieved from the image.
 	 * @throws IllegalArgumentException if index is smaller than 0 or larger than or equal
 	 * to the number of comments retrieved
