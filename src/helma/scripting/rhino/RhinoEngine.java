@@ -204,7 +204,9 @@ public class RhinoEngine implements ScriptingEngine {
 
                 // create a special wrapper for the path object.
                 // other objects are wrapped in the default way.
-                if (v instanceof RequestPath) {
+                if (v == null) {
+                    continue;
+                } else if (v instanceof RequestPath) {
                     scriptable = new PathWrapper((RequestPath) v, core);
                     scriptable.setPrototype(core.pathProto);
                 } else {
