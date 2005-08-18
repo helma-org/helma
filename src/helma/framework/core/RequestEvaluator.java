@@ -151,7 +151,7 @@ public final class RequestEvaluator implements Runnable {
                         // Transaction name is used for logging etc.
                         StringBuffer txname = new StringBuffer(app.getName());
                         txname.append(":").append(req.getMethod().toLowerCase()).append(":");
-                        txname.append((error == null) ? req.path : "error");
+                        txname.append((error == null) ? req.getPath() : "error");
 
                         // begin transaction
                         localrtx.begin(txname.toString());
@@ -190,8 +190,8 @@ public final class RequestEvaluator implements Runnable {
                                         if (action == null) {
                                             throw new RuntimeException(error);
                                         }
-                                    } else if ((req.path == null) ||
-                                            "".equals(req.path.trim())) {
+                                    } else if ((req.getPath() == null) ||
+                                            "".equals(req.getPath().trim())) {
                                         currentElement = root;
                                         requestPath.add(null, currentElement);
 
@@ -202,7 +202,7 @@ public final class RequestEvaluator implements Runnable {
                                         }
                                     } else {
                                         // march down request path...
-                                        StringTokenizer st = new StringTokenizer(req.path,
+                                        StringTokenizer st = new StringTokenizer(req.getPath(),
                                                 "/");
                                         int ntokens = st.countTokens();
 
@@ -674,7 +674,7 @@ public final class RequestEvaluator implements Runnable {
         wait(app.requestTimeout);
 
         if (reqtype != NONE) {
-            app.logEvent("Stopping Thread for Request " + app.getName() + "/" + req.path);
+            app.logEvent("Stopping Thread for Request " + app.getName() + "/" + req.getPath());
             stopTransactor();
             res.reset();
             res.writeErrorReport(app.getName(), "Request timed out");
@@ -879,8 +879,7 @@ public final class RequestEvaluator implements Runnable {
     private void initObjects(String functionName, int reqtype, String reqtypeName) {
         this.functionName = functionName;
         this.reqtype = reqtype;
-        req = new RequestTrans(reqtypeName);
-        req.path = functionName;
+        req = new RequestTrans(reqtypeName, functionName);
         session = new Session(functionName, app);
         res = new ResponseTrans(app, req);
         result = null;

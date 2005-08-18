@@ -134,7 +134,7 @@ public abstract class AbstractServletClient extends HttpServlet {
     protected void service (HttpServletRequest request, HttpServletResponse response)
                 throws ServletException, IOException {
 
-        RequestTrans reqtrans = new RequestTrans(request, response);
+        RequestTrans reqtrans = new RequestTrans(request, response, getPathInfo(request));
 
         try {
             // get the character encoding
@@ -225,7 +225,7 @@ public abstract class AbstractServletClient extends HttpServlet {
                         String nextPart = reqCookies[i].getValue();
 
                         if (sessionCookieName.equals(nextKey)) {
-                            reqtrans.session = nextPart;
+                            reqtrans.setSession(nextPart);
                         } else {
                             reqtrans.set(nextKey, nextPart);
                         }               
@@ -300,9 +300,6 @@ public abstract class AbstractServletClient extends HttpServlet {
             if (authorization != null) {
                 reqtrans.set("authorization", authorization);
             }
-
-            // response.setHeader ("Server", "Helma/"+helma.main.Server.version);
-            reqtrans.path = getPathInfo(request);
 
             ResponseTrans restrans = getApplication().execute(reqtrans);
 
@@ -559,10 +556,10 @@ public abstract class AbstractServletClient extends HttpServlet {
             addIPAddress(b, request.getRemoteAddr());
             addIPAddress(b, request.getHeader("X-Forwarded-For"));
             addIPAddress(b, request.getHeader("Client-ip"));
-            if (reqtrans.session == null || !reqtrans.session.startsWith(b.toString())) {
+            if (reqtrans.getSession() == null || !reqtrans.getSession().startsWith(b.toString())) {
                 response.addCookie(createSessionCookie(b, reqtrans, domain));
             }
-        } else if (reqtrans.session == null) {
+        } else if (reqtrans.getSession() == null) {
             response.addCookie(createSessionCookie(new StringBuffer(), reqtrans, domain));
         }
     }
@@ -581,8 +578,8 @@ public abstract class AbstractServletClient extends HttpServlet {
         b.append (Long.toString(Math.round(Math.random() * Long.MAX_VALUE) -
                     System.currentTimeMillis(), 36));
 
-        reqtrans.session = b.toString();
-        Cookie cookie = new Cookie(sessionCookieName, reqtrans.session);
+        reqtrans.setSession(b.toString());
+        Cookie cookie = new Cookie(sessionCookieName, reqtrans.getSession());
 
         cookie.setPath("/");
 

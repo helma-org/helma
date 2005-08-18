@@ -128,7 +128,7 @@ public class RequestBean implements Serializable {
      * @return ...
      */
     public String getPath() {
-        return req.path;
+        return req.getPath();
     }
 
     /**

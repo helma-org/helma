@@ -620,7 +620,7 @@ public final class Application implements IPathElement, Runnable {
         requestCount += 1;
 
         // get user for this request's session
-        Session session = createSession(req.session);
+        Session session = createSession(req.getSession());
 
         session.touch();
 

@@ -50,10 +50,10 @@ public class RequestTrans implements Serializable {
     final HttpServletResponse response;
 
     // the uri path of the request
-    public String path;
+    private final String path;
 
     // the request's session id
-    public String session;
+    private String session;
 
     // the map of form and cookie data
     private final Map values;
@@ -78,8 +78,9 @@ public class RequestTrans implements Serializable {
     /**
      *  Create a new Request transmitter with an empty data map.
      */
-    public RequestTrans(String method) {
+    public RequestTrans(String method, String path) {
         this.method = method;
+        this.path = path;
         this.request = null;
         this.response = null;
         values = new SystemMap();
@@ -89,10 +90,12 @@ public class RequestTrans implements Serializable {
     /**
      *  Create a new request transmitter with the given data map.
      */
-    public RequestTrans(HttpServletRequest request, HttpServletResponse response) {
+    public RequestTrans(HttpServletRequest request,
+                        HttpServletResponse response, String path) {
         this.method = request.getMethod();
         this.request = request;
         this.response = response;
+        this.path = path;
         values = new SystemMap();
         startTime = System.currentTimeMillis();
     }
@@ -143,7 +146,10 @@ public class RequestTrans implements Serializable {
      *  detect multiple identic requests.
      */
     public int hashCode() {
-        return (session == null) ? super.hashCode() : session.hashCode();
+        if (session == null || path == null)
+            return super.hashCode();
+        return 17 + (37 * session.hashCode()) +
+                    (37 * path.hashCode());
     }
 
     /**
@@ -184,16 +190,37 @@ public class RequestTrans implements Serializable {
     }
 
     /**
+     * Get the request's session id
+     */
+    public String getSession() {
+        return session;
+    }
+
+    /**
+     * Set the request's session id
+     */
+    public void setSession(String session) {
+        this.session = session;
+    }
+
+    /**
+     * Get the request's path
+     */
+    public String getPath() {
+        return path;
+    }
+
+    /**
      * Get the request's action.
      */
-    public synchronized String getAction() {
+    public String getAction() {
         return action;
     }
 
     /**
      * Set the request's action.
      */
-    public synchronized void setAction(String action) {
+    public void setAction(String action) {
         this.action = action;
     }
 
