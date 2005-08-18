@@ -85,12 +85,25 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     }
 
     /**
-     * Override ScriptableObject.put() to implement PropertyRecorder interface.
+     * Override ScriptableObject.get() to synchronize it.
+     *
+     * @param name
+     * @param start
+     * @return the property for the given name
+     */
+    public synchronized Object get(String name, Scriptable start) {
+        return super.get(name, start);
+    }
+
+    /**
+     * Override ScriptableObject.put() to implement PropertyRecorder interface
+     * and to synchronize method.
+     *
      * @param name
      * @param start
      * @param value
      */
-    public void put(String name, Scriptable start, Object value) {
+    public synchronized void put(String name, Scriptable start, Object value) {
         // register property for PropertyRecorder interface
         if (isRecording) {
             changedProperties.add(name);
@@ -519,7 +532,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
                 "the serialization to");
         }
         Object obj = args[0];
-        String filename = cx.toString(args[1]);
+        String filename = Context.toString(args[1]);
         FileOutputStream fos = new FileOutputStream(filename);
         Scriptable scope = ScriptableObject.getTopLevelScope(thisObj).getPrototype();
         // use a ScriptableOutputStream that unwraps Wrappers
@@ -542,13 +555,13 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
             throw Context.reportRuntimeError(
                 "Expected a filename to read the serialization from");
         }
-        String filename = cx.toString(args[0]);
+        String filename = Context.toString(args[0]);
         FileInputStream fis = new FileInputStream(filename);
         Scriptable scope = ScriptableObject.getTopLevelScope(thisObj).getPrototype();
         ObjectInputStream in = new ScriptableInputStream(fis, scope);
         Object deserialized = in.readObject();
         in.close();
-        return cx.toObject(deserialized, scope);
+        return Context.toObject(deserialized, scope);
     }
 
 
