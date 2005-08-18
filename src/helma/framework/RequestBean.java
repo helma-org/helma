@@ -92,7 +92,7 @@ public class RequestBean implements Serializable {
 
     // property related methods:
     public String getAction() {
-        return req.action;
+        return req.getAction();
     }
 
     /**
@@ -110,7 +110,7 @@ public class RequestBean implements Serializable {
      * @return ...
      */
     public long getRuntime() {
-        return (System.currentTimeMillis() - req.startTime);
+        return (System.currentTimeMillis() - req.getStartTime());
     }
 
     /**

@@ -160,8 +160,6 @@ public final class RequestEvaluator implements Runnable {
 
                         root = app.getDataRoot();
 
-                        req.startTime = System.currentTimeMillis();
-
                         initGlobals(root);
 
                         if (error != null) {
@@ -319,7 +317,7 @@ public final class RequestEvaluator implements Runnable {
                                 // beginning of execution section
                                 try {
                                     // set the req.action property, cutting off the _action suffix
-                                    req.action = action.substring(0, action.length() - 7);
+                                    req.setAction(action.substring(0, action.length() - 7));
 
                                     // reset skin recursion detection counter
                                     skinDepth = 0;

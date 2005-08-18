@@ -46,8 +46,8 @@ public class RequestTrans implements Serializable {
     public final static String INTERNAL = "INTERNAL";
 
     // the servlet request and response, may be null
-    HttpServletRequest request;
-    HttpServletResponse response;
+    final HttpServletRequest request;
+    final HttpServletResponse response;
 
     // the uri path of the request
     public String path;
@@ -56,10 +56,10 @@ public class RequestTrans implements Serializable {
     public String session;
 
     // the map of form and cookie data
-    private Map values;
+    private final Map values;
     
     // the HTTP request method
-    private String method;
+    private final String method;
 
     // timestamp of client-cached version, if present in request
     private long ifModifiedSince = -1;
@@ -68,20 +68,22 @@ public class RequestTrans implements Serializable {
     private Set etags;
 
     // when was execution started on this request?
-    public transient long startTime;
+    private final long startTime;
 
     // the name of the action being invoked
-    public transient String action;
-    private transient String httpUsername;
-    private transient String httpPassword;
-    
+    private String action;
+    private String httpUsername;
+    private String httpPassword;
+
     /**
      *  Create a new Request transmitter with an empty data map.
      */
     public RequestTrans(String method) {
         this.method = method;
         this.request = null;
+        this.response = null;
         values = new SystemMap();
+        startTime = System.currentTimeMillis();
     }
 
     /**
@@ -92,6 +94,7 @@ public class RequestTrans implements Serializable {
         this.request = request;
         this.response = response;
         values = new SystemMap();
+        startTime = System.currentTimeMillis();
     }
 
     /**
@@ -178,6 +181,27 @@ public class RequestTrans implements Serializable {
      */
     public boolean isPost() {
         return POST.equalsIgnoreCase(method);
+    }
+
+    /**
+     * Get the request's action.
+     */
+    public synchronized String getAction() {
+        return action;
+    }
+
+    /**
+     * Set the request's action.
+     */
+    public synchronized void setAction(String action) {
+        this.action = action;
+    }
+
+    /**
+     * Get the time the request was created.
+     */
+    public long getStartTime() {
+        return startTime;
     }
 
     /**
