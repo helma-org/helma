@@ -185,6 +185,13 @@ public class FileRepository extends AbstractRepository {
         return new FileResource(new File(directory, name), this);
     }
 
+    /**
+     * Get the repository's directory
+     */
+    public File getDirectory() {
+        return directory;
+    }
+
     public int hashCode() {
         return 17 + (37 * directory.hashCode());
     }
