@@ -231,7 +231,7 @@ public final class RequestEvaluator implements Runnable {
 
                                             // if we're at the last element of the path,
                                             // try to interpret it as action name.
-                                            if (i == (ntokens - 1)) {
+                                            if (i == (ntokens - 1) && !req.getPath().endsWith("/")) {
                                                 action = getAction(currentElement,
                                                         pathItems[i], req.getMethod());
                                             }
