@@ -232,7 +232,6 @@ public final class NodeManager {
         if (rel.isComplexReference()) {
             // a key for a complex reference
             key = new MultiKey(rel.otherType, rel.getKeyParts(home));
-        // } else if (rel.virtual || (rel.groupby != null) || !rel.usesPrimaryKey()) {
         } else if (rel.createOnDemand()) {
             // a key for a virtually defined object that's never actually  stored in the db
             // or a key for an object that represents subobjects grouped by some property,
@@ -1242,7 +1241,7 @@ public final class NodeManager {
                         }
                     }
                 } catch (Exception x) {
-                    System.err.println ("ERROR IN PREFETCHNODES: "+x);
+                    System.err.println ("Error in prefetchNodes(): "+x);
                 } finally {
                     if (stmt != null) {
                         try {
