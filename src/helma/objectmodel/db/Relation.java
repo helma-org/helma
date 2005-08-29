@@ -1242,8 +1242,10 @@ public final class Relation {
                 local = ref.getString(homeprop);
             }
 
-            q.append(otherType.getTableName());
-            q.append(".");
+            if (foreignName.indexOf('(') == -1 && foreignName.indexOf('.') == -1) {
+                q.append(otherType.getTableName());
+                q.append(".");
+            }
             q.append(foreignName);
             q.append(" = ");
 

@@ -908,9 +908,10 @@ public final class NodeManager {
                     b.append(rel.queryHints).append(" ");
                 }
 
-                b.append(table).append('.')
-                               .append(idfield).append(" FROM ")
-                               .append(table);
+                if (idfield.indexOf('(') == -1 && idfield.indexOf('.') == -1) {
+                    b.append(table).append('.');
+                }
+                b.append(idfield).append(" FROM ").append(table);
 
                 rel.appendAdditionalTables(b);
 
@@ -1345,7 +1346,7 @@ public final class NodeManager {
 
             // if we do a groupby query (creating an intermediate layer of groupby nodes),
             // retrieve the value of that field instead of the primary key
-            String namefield = (rel.groupby == null) ? rel.accessName : rel.groupby; 
+            String namefield = (rel.groupby == null) ? rel.accessName : rel.groupby;
             Connection con = rel.otherType.getConnection();
             // set connection to read-only mode
             if (!con.isReadOnly()) con.setReadOnly(true);
