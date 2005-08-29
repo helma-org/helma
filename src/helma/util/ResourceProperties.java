@@ -270,7 +270,7 @@ public class ResourceProperties extends Properties {
             update();
         }
 
-        return (String) super.get(ignoreCase == true ? key.toString().toLowerCase() : key.toString());
+        return (String) super.get(ignoreCase ? key.toString().toLowerCase() : key.toString());
     }
 
     /**
@@ -328,7 +328,7 @@ public class ResourceProperties extends Properties {
             update();
         }
 
-        return super.getProperty(ignoreCase == true ? key.toLowerCase() : key, defaultValue);
+        return super.getProperty(ignoreCase ? key.toLowerCase() : key, defaultValue);
     }
 
     /**
@@ -341,7 +341,7 @@ public class ResourceProperties extends Properties {
             update();
         }
 
-        return super.getProperty(ignoreCase == true ? key.toLowerCase() : key);
+        return super.getProperty(ignoreCase ? key.toLowerCase() : key);
     }
 
     /**
@@ -399,7 +399,7 @@ public class ResourceProperties extends Properties {
             value = value.toString().trim();
         }
 
-        return super.put(ignoreCase == true ? key.toString().toLowerCase() : key.toString(), value);
+        return super.put(ignoreCase ? key.toString().toLowerCase() : key.toString(), value);
     }
 
     /**
@@ -408,7 +408,7 @@ public class ResourceProperties extends Properties {
      * @return the old value
      */
     public Object remove(Object key) {
-        return super.remove(ignoreCase == true ? key.toString().toLowerCase() : key.toString());
+        return super.remove(ignoreCase ? key.toString().toLowerCase() : key.toString());
     }
 
     /**
