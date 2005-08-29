@@ -317,7 +317,7 @@ public final class RequestEvaluator implements Runnable {
                                 // beginning of execution section
                                 try {
                                     // set the req.action property, cutting off the _action suffix
-                                    req.setAction(action.substring(0, action.length() - 7));
+                                    req.setAction(action.substring(0, action.lastIndexOf("_action")));
 
                                     // reset skin recursion detection counter
                                     skinDepth = 0;
