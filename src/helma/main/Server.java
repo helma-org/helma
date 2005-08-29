@@ -442,6 +442,7 @@ public class Server implements IPathElement, Runnable {
 
         // read db.properties file in helma home directory
         dbProps = new ResourceProperties();
+        dbProps.setIgnoreCase(false);
         dbProps.addResource(new FileResource(new File(hopHome, "db.properties")));
         DbSource.setDefaultProps(dbProps);
 
