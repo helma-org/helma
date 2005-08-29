@@ -772,8 +772,10 @@ public final class Relation {
 
             String accessColumn = (accessName == null) ? otherType.getIDField() : accessName;
 
-            q.append(otherType.getTableName());
-            q.append(".");
+            if (accessColumn.indexOf('(') == -1 && accessColumn.indexOf('.') == -1) {
+                q.append(otherType.getTableName());
+                q.append(".");
+            }
             q.append(accessColumn);
             q.append(" = ");
 
