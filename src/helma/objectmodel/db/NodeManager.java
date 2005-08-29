@@ -453,7 +453,7 @@ public final class NodeManager {
 
         if (dbm == null) {
             throw new IllegalArgumentException("DbMapping can't be null in exportNode");
-        } else if ((dbm == null) || !dbm.isRelational()) {
+        } else if (!dbm.isRelational()) {
             throw new IllegalArgumentException("Can't export into non-relational database");
         } else {
             insertRelationalNode(node, dbm, dbm.getConnection());
@@ -901,7 +901,7 @@ public final class NodeManager {
             Statement stmt = null;
 
             try {
-                String q = null;
+                String q;
 
                 StringBuffer b = new StringBuffer("SELECT ");
 
@@ -913,9 +913,7 @@ public final class NodeManager {
                                .append(idfield).append(" FROM ")
                                .append(table);
 
-                if (rel.additionalTables != null) {
-                     b.append(',').append(rel.additionalTables);
-                }
+                rel.appendAdditionalTables(b);
 
                 if (home.getSubnodeRelation() != null) {
                     // subnode relation was explicitly set
@@ -1282,9 +1280,7 @@ public final class NodeManager {
                 String q = null;
                 StringBuffer tables = new StringBuffer(table);
 
-                if (rel.additionalTables != null) {
-                     tables.append(',').append(rel.additionalTables);
-                }
+                rel.appendAdditionalTables(tables);
 
                 // NOTE: we explicitly convert tables StringBuffer to a String
                 // before appending to be compatible with JDK 1.3
@@ -1360,9 +1356,7 @@ public final class NodeManager {
 
             StringBuffer tables = new StringBuffer(table);
 
-            if (rel.additionalTables != null) {
-                 tables.append(',').append(rel.additionalTables);
-            }
+            rel.appendAdditionalTables(tables);
 
             try {
                 // NOTE: we explicitly convert tables StringBuffer to a String

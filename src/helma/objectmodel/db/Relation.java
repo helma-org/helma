@@ -92,7 +92,8 @@ public final class Relation {
     String prototype;
     String groupbyPrototype;
     String filter;
-    String additionalTables;
+    private String additionalTables;
+    private boolean additionalTablesJoined = false;
     String queryHints;
     Vector filterFragments;
     Vector filterPropertyRefs;
@@ -105,24 +106,25 @@ public final class Relation {
     private Relation(Relation rel) {
         // Note: prototype, groupby, groupbyPrototype and groupbyOrder aren't copied here.
         // these are set by the individual get*Relation() methods as appropriate.
-        this.ownType =             rel.ownType;
-        this.otherType =           rel.otherType;
-        this.propName =            rel.propName;
-        this.columnName =          rel.columnName;
-        this.reftype =             rel.reftype;
-        this.order =               rel.order;
-        this.filter =              rel.filter;
-        this.filterFragments =     rel.filterFragments;
-        this.filterPropertyRefs =  rel.filterPropertyRefs;
-        this.additionalTables =    rel.additionalTables;
-        this.queryHints =          rel.queryHints;
-        this.maxSize =             rel.maxSize;
-        this.constraints =         rel.constraints;
-        this.accessName =          rel.accessName;
-        this.maxSize =             rel.maxSize;
-        this.logicalOperator =     rel.logicalOperator;
-        this.aggressiveLoading =   rel.aggressiveLoading;
-        this.aggressiveCaching =   rel.aggressiveCaching;
+        this.ownType =                  rel.ownType;
+        this.otherType =                rel.otherType;
+        this.propName =                 rel.propName;
+        this.columnName =               rel.columnName;
+        this.reftype =                  rel.reftype;
+        this.order =                    rel.order;
+        this.filter =                   rel.filter;
+        this.filterFragments =          rel.filterFragments;
+        this.filterPropertyRefs =       rel.filterPropertyRefs;
+        this.additionalTables =         rel.additionalTables;
+        this.additionalTablesJoined =   rel.additionalTablesJoined;
+        this.queryHints =               rel.queryHints;
+        this.maxSize =                  rel.maxSize;
+        this.constraints =              rel.constraints;
+        this.accessName =               rel.accessName;
+        this.maxSize =                  rel.maxSize;
+        this.logicalOperator =          rel.logicalOperator;
+        this.aggressiveLoading =        rel.aggressiveLoading;
+        this.aggressiveCaching =        rel.aggressiveCaching;
     }
 
     /**
@@ -290,8 +292,16 @@ public final class Relation {
         // get additional tables
         additionalTables = props.getProperty(propName + ".filter.additionalTables");
 
-        if (additionalTables != null && additionalTables.trim().length() == 0) {
+        if (additionalTables != null) {
+            if (additionalTables.trim().length() == 0) {
                 additionalTables = null;
+            } else {
+                String ucTables = additionalTables.toUpperCase();
+                // see wether the JOIN syntax is used. look for " join " with whitespaces on both sides
+                // and for "join " at the beginning:
+                additionalTablesJoined = (ucTables.indexOf(" JOIN ") != -1 ||
+                        ucTables.startsWith("STRAIGHT_JOIN ") || ucTables.startsWith("JOIN "));
+            }
         }
 
         // get query hints
@@ -787,22 +797,29 @@ public final class Relation {
 
         // add group and order clauses
         if (groupby != null) {
-            q.append(" GROUP BY " + groupby);
+            q.append(" GROUP BY ").append(groupby);
 
             if (useOrder && (groupbyOrder != null)) {
-                q.append(" ORDER BY " + groupbyOrder);
+                q.append(" ORDER BY ").append(groupbyOrder);
             }
         } else if (useOrder && (order != null)) {
-            q.append(" ORDER BY " + order);
+            q.append(" ORDER BY ").append(order);
         }
 
         return q.toString();
     }
 
+    protected void appendAdditionalTables(StringBuffer q) {
+        if (additionalTables != null) {
+            q.append(additionalTablesJoined ? ' ' : ',');
+            q.append(additionalTables);
+        }
+    }
+
     /**
      *  Build the filter.
      */
-    protected void appendFilter(StringBuffer q, INode nonvirtual, String prefix) throws SQLException {
+    protected void appendFilter(StringBuffer q, INode nonvirtual, String prefix) {
         q.append(prefix);
         q.append('(');
         if (filterFragments == null) {
@@ -813,26 +830,6 @@ public final class Relation {
             while (i.hasMoreElements()) {
                 String fragment = (String) i.nextElement();
                 if (fragment == null) {
-                    /*
-                    // begin property version
-                    String propertyName = (String) j.nextElement();
-                    Object value = null;
-                    if (propertyName != null) {
-                        if (propertyName.equals("__id__") || propertyName.equals("_id")) {
-                            value = nonvirtual.getID();
-                        } else if (propertyName.equals("__name__")) {
-                            value = nonvirtual.getName();
-                        } else if (propertyName.equals("__prototype__") || propertyName.equals("_prototype")) {
-                            value = nonvirtual.getPrototype();
-                        } else {
-                            IProperty property = nonvirtual.get(propertyName);
-                            if (property != null) {
-                                value = property.getValue();
-                            }
-                        }
-                    }
-                    // end property version
-                    */
                     // begin column version
                     String columnName = (String) j.nextElement();
                     Object value = null;

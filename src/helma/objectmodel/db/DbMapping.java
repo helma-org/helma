@@ -945,11 +945,8 @@ public final class DbMapping {
      * @param rel the Relation we use to select. Currently only used for optimizer hints.
      *            Is null if selecting by primary key.
      * @return the StringBuffer containing the first part of the select query
-     *
-     * @throws SQLException if the table meta data could not be retrieved
-     * @throws ClassNotFoundException if the JDBC driver class was not found
      */
-    public StringBuffer getSelect(Relation rel) throws SQLException, ClassNotFoundException {
+    public StringBuffer getSelect(Relation rel) {
         // assign to local variable first so we are thread safe
         // (selectString may be reset by other threads)
         String sel = selectString;
@@ -985,8 +982,8 @@ public final class DbMapping {
 
         s.append(table);
 
-        if (rel != null && rel.additionalTables != null) {
-            s.append(',').append(rel.additionalTables);
+        if (rel != null) {
+            rel.appendAdditionalTables(s);
         }
 
         s.append(" ");
@@ -1053,7 +1050,7 @@ public final class DbMapping {
                     rel.isReference())) ||
                     name.equalsIgnoreCase(getNameField()) ||
                     name.equalsIgnoreCase(getPrototypeField())) {
-                b1.append(", " + cols[i].getName());
+                b1.append(", ").append(cols[i].getName());
                 b2.append(", ?");
             }
         }
