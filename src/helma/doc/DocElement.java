@@ -60,7 +60,7 @@ public abstract class DocElement implements IPathElement {
 
     protected DocElement(String name, File location, int type)
                   throws DocException {
-        if (location.exists() == false) {
+        if (!location.exists()) {
             throw new DocException(name + " not found in " + location.toString());
         }
 
@@ -204,7 +204,7 @@ public abstract class DocElement implements IPathElement {
 
                 if ("".equals(line)) {
                     // if we've already had text, store that this line was empty
-                    lastEmpty = (mode != BLANK) ? true : false;
+                    lastEmpty = (mode != BLANK);
 
                     continue;
                 }
@@ -230,7 +230,7 @@ public abstract class DocElement implements IPathElement {
                 }
 
                 // append to current buffer
-                if (lastEmpty == true) {
+                if (lastEmpty) {
                     buf.append("\n");
                 }
 
