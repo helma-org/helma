@@ -17,8 +17,8 @@
 package helma.doc;
 
 import helma.framework.IPathElement;
-import helma.framework.repository.FileResource;
-import helma.framework.repository.FileResource;
+import helma.framework.core.Application;
+import helma.framework.repository.FileRepository;
 import helma.main.Server;
 import helma.util.ResourceProperties;
 import java.io.*;
@@ -27,19 +27,21 @@ import java.util.*;
 /**
  *
  */
-public class DocApplication extends DocDirElement {
+public class DocApplication extends DocElement {
+
+    Application app;
     HashSet excluded;
 
     /**
      * Creates a new DocApplication object.
      *
-     * @param name ...
-     * @param location ...
+     * @param app
      *
      * @throws DocException ...
      */
-    public DocApplication(String name, File location) throws DocException {
-        super(name, location, APPLICATION);
+    public DocApplication(Application app) throws DocException {
+        super(app.getName(), app.getAppDir(), APPLICATION);
+        this.app = app;
         readProps();
     }
 
@@ -61,7 +63,7 @@ public class DocApplication extends DocDirElement {
      *
      * @param args ...
      */
-    public static void main(String[] args) {
+   /* public static void main(String[] args) {
         System.out.println("this is helma.doc");
         DocApplication app;
         app = new DocApplication (args[0], args[1]);
@@ -90,20 +92,13 @@ public class DocApplication extends DocDirElement {
 
 //        System.out.println (func.getContent ());
 //        System.out.println ("\n\n\ncomment = " + func.getComment ());
-    }
+    } */
 
     /**
      * reads the app.properties file and parses for helma.excludeDocs
      */
     private void readProps() {
-        File propsFile = new File(location, "app.properties");
-        ResourceProperties serverProps = null;
-        if (Server.getServer()!=null) {
-            serverProps = Server.getServer().getProperties();
-        }
-        ResourceProperties appProps = new ResourceProperties();
-        appProps.setDefaultProperties(serverProps);
-        appProps.addResource(new FileResource(propsFile));
+        ResourceProperties appProps = app.getProperties();
 
         excluded = new HashSet();
         addExclude("cvs");
@@ -147,36 +142,48 @@ public class DocApplication extends DocDirElement {
      */
     public void readApplication() {
         readProps();
-
-        String[] arr = location.list();
-
         children.clear();
 
-        for (int i = 0; i < arr.length; i++) {
-            if (isExcluded(arr[i])) {
+        Iterator it  = app.getRepositories().iterator();
+
+        while (it.hasNext()) {
+            Object next = it.next();
+
+            if (!(next instanceof FileRepository)) {
                 continue;
             }
 
-            File f = new File(location.getAbsolutePath(), arr[i]);
+            File dir = ((FileRepository) next).getDirectory();
 
-            if (!f.isDirectory()) {
-                continue;
+            String[] arr = dir.list();
+
+            for (int i = 0; i < arr.length; i++) {
+                if (isExcluded(arr[i])) {
+                    continue;
+                }
+
+                File f = new File(dir.getAbsolutePath(), arr[i]);
+
+                if (!f.isDirectory()) {
+                    continue;
+                }
+
+                try {
+                    System.err.println("*** NEW PROTOTYPE DOC: " + f);
+                    DocPrototype pt = DocPrototype.newInstance(f, this);
+
+                    addChild(pt);
+                    pt.readFiles();
+                } catch (DocException e) {
+                    debug("Couldn't read prototype " + arr[i] + ": " + e.getMessage());
+                }
+
+                System.out.println(f);
             }
 
-            try {
-                DocPrototype pt = DocPrototype.newInstance(f, this);
-
-                addChild(pt);
-                pt.readFiles();
-            } catch (DocException e) {
-                debug("Couldn't read prototype " + arr[i] + ": " + e.getMessage());
+            for (Iterator i = children.values().iterator(); i.hasNext();) {
+                ((DocPrototype) i.next()).checkInheritance();
             }
-
-            System.out.println(f);
-        }
-
-        for (Iterator i = children.values().iterator(); i.hasNext();) {
-            ((DocPrototype) i.next()).checkInheritance();
         }
     }
 
