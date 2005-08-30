@@ -57,11 +57,8 @@ function renderLinkTag (param) {
   */
 function renderLocation (docEl, param) {
 	var f = docEl.getLocation ();
-	if (f.isDirectory ())
-		return f.getName ();
-	else {
-		return f.getParentFile ().getName () + "/" + f.getName ();
-	}
+        // with repositories, always display full file path
+        return f.getAbsolutePath();
 }
 
 
