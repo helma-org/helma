@@ -67,7 +67,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
                                    "encodeXml", "encodeForm", "stripTags", "formatParagraphs",
                                    "getXmlDocument", "getHtmlDocument", "seal",
                                    "getDBConnection", "getURL", "write", "writeln",
-                                   "serialize", "deserialize"
+                                   "serialize", "deserialize", "defineLibraryScope"
                                };
 
         defineFunctionProperties(globalFuncs, GlobalObject.class, 0);
@@ -363,6 +363,34 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         }
 
         return null;
+    }
+
+    /**
+     * Creates a global object, optionally initializing it with standard
+     * JavaScript objects. This can be used for script libraries that want
+     * to extend standard JavaScript functionality, but leave the original
+     * prototypes alone.
+     *
+     * @param name the name of the new scope
+     */
+    public void defineLibraryScope(final String name, boolean initStandardObjects) {
+        Object obj = get(name, this);
+        if (obj != NOT_FOUND) {
+            // put the property again to fool PropertyRecorder
+            // into believing it has been renewed
+            put(name, this, obj);
+            return;
+        }
+        ScriptableObject scope = new ScriptableObject() {
+            public String getClassName() {
+                return name;
+            }
+        };
+        if (initStandardObjects) {
+            Context cx = Context.getCurrentContext();
+            cx.initStandardObjects(scope, false);
+        }
+        put(name, this, scope);
     }
 
     /**
