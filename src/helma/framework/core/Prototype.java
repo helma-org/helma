@@ -65,10 +65,6 @@ public final class Prototype {
 
     private Prototype parent;
 
-    // Tells us whether this prototype is used to script a generic Java object,
-    // as opposed to a Helma objectmodel node object.
-    boolean isJavaPrototype;
-
     ResourceProperties props;
 
     /**
@@ -104,8 +100,6 @@ public final class Prototype {
         trackers = new HashMap();
 
         skinMap = new SkinMap();
-
-        isJavaPrototype = app.isJavaPrototype(name);
     }
 
     /**
@@ -345,12 +339,30 @@ public final class Prototype {
     }
 
     /**
-     *  Return a clone of this prototype's actions container. Synchronized
-     *  to not return a map in a transient state where it is just being
+     * Get the prototype's aggregated type.properties
+     *
+     * @return type.properties
+     */
+    public ResourceProperties getTypeProperties() {
+        return props;
+    }
+
+    /**
+     *  Return an iterator over this prototype's code resoruces. Synchronized
+     *  to not return a collection in a transient state where it is just being
      *  updated by the type manager.
      */
     public synchronized Iterator getCodeResources() {
         return code.iterator();
+    }
+
+    /**
+     *  Return an iterator over this prototype's skin resoruces. Synchronized
+     *  to not return a collection in a transient state where it is just being
+     *  updated by the type manager.
+     */
+    public Iterator getSkinResources() {
+        return skins.iterator();
     }
 
     /**
