@@ -129,7 +129,7 @@ public class HelmaDebugger extends Main implements TreeSelectionListener {
         String[] path = StringUtils.split(sourceName, ":/\\");
         DebuggerTreeNode node = treeRoot;
         DebuggerTreeNode newNode = null;
-        for (int i = 1; i < path.length; i++) {
+        for (int i = path.length-2; i < path.length; i++) {
             DebuggerTreeNode n = node.get(path[i]);
             if (n == null) {
                 n = new DebuggerTreeNode(path[i]);
