@@ -47,9 +47,9 @@
 	<td class="list_property" align="left"><% this.uptime %></td>
 </tr>
 <tr>
-	<td class="list_property" align="left">app directory</td>
+	<td class="list_property" align="left" valign="top">repositories</td>
 	<td class="list_property" width="5">&nbsp;</td>
-	<td class="list_property" align="left"><% this.appdir %></td>
+	<td class="list_property" align="left"><% this.repositories %></td>
 </tr>
 </table>
 

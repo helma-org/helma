@@ -3,7 +3,7 @@ To get the manage-application to work you must:
  - add it to the apps.properties file with the following line:
      manage
 
- - use helma distribution 1.2-RC1 or later.
+ - use helma distribution 1.5 or later.
 
  - add the following properties to server.properties:
  

@@ -11,7 +11,7 @@
 
 <p></p>
 <div class="list_apps">
-	<i>and <% root.appCount filter="disabled" %> disabled apps:</i>
+	<i>disabled apps:</i>
 </div>
 
 <% root.appList filter="disabled" skin="navig_disabled" %>
