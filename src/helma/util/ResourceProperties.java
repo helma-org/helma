@@ -162,6 +162,14 @@ public class ResourceProperties extends Properties {
     }
 
     /**
+     * Get an iterator over the properties' resources
+     * @return iterator over the properties' resources
+     */
+    public Iterator getResources() {
+        return resources.iterator();
+    }
+
+    /**
      * Checks wether the properties need to be updated
      * @return true if the properties need tu be updated
      */
