@@ -16,35 +16,36 @@
 
 package helma.doc;
 
-import java.io.*;
+import helma.framework.repository.Resource;
+
 import java.util.*;
+import java.io.IOException;
 
 /**
  * 
  */
-public class DocSkin extends DocFileElement {
-    protected DocSkin(String name, File location, DocElement parent) {
-        super(name, location, SKIN);
+public class DocSkin extends DocResourceElement {
+
+    protected DocSkin(String name, Resource res, DocElement parent) throws IOException {
+        super(name, res, SKIN);
         this.parent = parent;
-        content = Util.readFile(location);
+        content = res.getContent();
         parseHandlers();
     }
 
     /**
      * creates a new independent DocSkin object
      */
-    public static DocSkin newInstance(File location) {
-        return newInstance(location, null);
+    public static DocSkin newInstance(Resource res) throws IOException {
+        return newInstance(res, null);
     }
 
     /**
      * creates a new DocSkin object connected to another DocElement
      */
-    public static DocSkin newInstance(File location, DocElement parent) {
-        String skinname = Util.nameFromFile(location, ".skin");
-        DocSkin skin = new DocSkin(skinname, location, parent);
-
-        return skin;
+    public static DocSkin newInstance(Resource res, DocElement parent) throws IOException {
+        String skinname = res.getBaseName();
+        return new DocSkin(skinname, res, parent);
     }
 
     /**

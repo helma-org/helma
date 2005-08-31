@@ -20,51 +20,52 @@ import java.awt.Point;
 import java.io.*;
 import java.util.Vector;
 import org.mozilla.javascript.*;
+import helma.framework.repository.Resource;
 
 /**
  * 
  */
-public class DocFunction extends DocFileElement {
+public class DocFunction extends DocResourceElement {
 
-    protected DocFunction(String name, File location, DocElement parent, int type) {
-        super(name, location, type);
+    protected DocFunction(String name, Resource res, DocElement parent, int type) {
+        super(name, res, type);
         this.parent = parent;
     }
 
     /**
      * creates a new independent DocFunction object of type ACTION
      */
-    public static DocFunction newAction(File location) {
-        return newAction(location, null);
+    public static DocFunction newAction(Resource res) throws IOException {
+        return newAction(res, null);
     }
 
     /**
      * creates a new DocFunction object of type ACTION connected to another DocElement
      */
-    public static DocFunction newAction(File location, DocElement parent) {
-        String name = Util.nameFromFile(location, ".hac");
-        DocFunction func = new DocFunction(name, location, parent, ACTION);
+    public static DocFunction newAction(Resource res, DocElement parent) throws IOException{
+        String name = res.getBaseName();
+        DocFunction func = new DocFunction(name, res, parent, ACTION);
         String rawComment = "";
         try {
-            TokenStream ts = getTokenStream (location);
+            TokenStream ts = getTokenStream (res);
             Point p = getPoint (ts);
             ts.getToken();
-            rawComment = Util.getStringFromFile(location, p, getPoint(ts));
+            rawComment = Util.getStringFromFile(res, p, getPoint(ts));
             rawComment = Util.chopComment (rawComment);
         } catch (IOException io) {
             io.printStackTrace();
             throw new DocException (io.toString());
         }
         func.parseComment(rawComment);
-        func.content = Util.readFile(location);
+        func.content = res.getContent();
         return func;
     }
 
     /**
      * reads a function file and creates independent DocFunction objects of type FUNCTION
      */
-    public static DocFunction[] newFunctions(File location) {
-        return newFunctions(location, null);
+    public static DocFunction[] newFunctions(Resource res) {
+        return newFunctions(res, null);
     }
 
 
@@ -72,7 +73,7 @@ public class DocFunction extends DocFileElement {
      * reads a function file and creates DocFunction objects of type FUNCTION
      * connected to another DocElement.
      */
-    public static DocFunction[] newFunctions(File location, DocElement parent) {
+    public static DocFunction[] newFunctions(Resource res, DocElement parent) {
 
         Vector vec = new Vector();
 
@@ -89,16 +90,16 @@ public class DocFunction extends DocFileElement {
             String functionName   = null;
             String context        = null;
 
-            TokenStream ts = getTokenStream (location);
+            TokenStream ts = getTokenStream (res);
 
             while (!ts.eof()) {
 
                 // store the position of the last token 
                 endOfLastToken = getPoint (ts);
-                
+
                 // store last token
                 lastToken = token;
-                
+
                 // now get a new token
                 // regular expression syntax is troublesome for the TokenStream
                 // we can safely ignore syntax errors in regular expressions here
@@ -117,7 +118,7 @@ public class DocFunction extends DocFileElement {
                     context = ts.getString();
 
                 } else if (token == Token.RC && context != null) {
-                    
+
                     // when we come across a right brace outside of a function,
                     // we reset the current context cache
                     context = null;
@@ -148,7 +149,7 @@ public class DocFunction extends DocFileElement {
                     }
 
                 } else if (token == Token.FUNCTION) {
-                    
+
                     // store the end of the function word
                     Point p = getPoint(ts);
 
@@ -161,7 +162,7 @@ public class DocFunction extends DocFileElement {
 
                         // if the token after FUNCTION is NAME, it's the usual function
                         // declaration like this: function abc() {}
-                        
+
                         // set the pointer for the start of the actual function body
                         // to the letter f of the function word
                         startOfFunctionBody = p;
@@ -176,7 +177,7 @@ public class DocFunction extends DocFileElement {
                         functionName = ts.getString();
 
                     } else {
-                        
+
                         // it's a different kind of function declaration.
                         // the function name is the last found NAME-token
                         // if context is set, prepend it to the function name
@@ -185,12 +186,12 @@ public class DocFunction extends DocFileElement {
                     }
 
                     // get the comment from the file (unfortunately, the stream simply skips comments) ...
-                    String rawComment = Util.getStringFromFile(location, endOfLastUsedToken, startOfFunctionBody).trim ();
+                    String rawComment = Util.getStringFromFile(res, endOfLastUsedToken, startOfFunctionBody).trim ();
                     // .. and clean it
                     rawComment = Util.chopComment (rawComment);
 
                     // create the function object
-                    DocFunction theFunction = newFunction (functionName, location, parent);
+                    DocFunction theFunction = newFunction (functionName, res, parent);
                     theFunction.parseComment (rawComment);
                     vec.add (theFunction);
 
@@ -221,8 +222,8 @@ public class DocFunction extends DocFileElement {
                         }
                     }
                     endOfFunctionBody = getPoint(ts);
-                    
-                    theFunction.content = Util.getStringFromFile(location, startOfFunctionBody, endOfFunctionBody);
+
+                    theFunction.content = Util.getStringFromFile(res, startOfFunctionBody, endOfFunctionBody);
 
                 } // end if
             } // end while
@@ -235,13 +236,13 @@ public class DocFunction extends DocFileElement {
     }
 
 
-    private static DocFunction newFunction (String funcName, File location, DocElement parent) {
+    private static DocFunction newFunction (String funcName, Resource res, DocElement parent) {
         if (funcName.endsWith("_action")) {
-            return new DocFunction(funcName, location, parent, ACTION);
+            return new DocFunction(funcName, res, parent, ACTION);
         } else if (funcName.endsWith("_macro")) {
-            return new DocFunction(funcName, location, parent, MACRO);
+            return new DocFunction(funcName, res, parent, MACRO);
         } else {
-            return new DocFunction(funcName, location, parent, FUNCTION);
+            return new DocFunction(funcName, res, parent, FUNCTION);
         }
     }
 
@@ -249,15 +250,15 @@ public class DocFunction extends DocFileElement {
     /**
      * creates a rhino token stream for a given file
      */
-    protected static TokenStream getTokenStream (File f) {
-        FileReader reader = null;
+    protected static TokenStream getTokenStream (Resource res) throws IOException {
+        Reader reader = null;
         try {
-            reader = new FileReader(f);
+            reader = new InputStreamReader(res.getInputStream());
         } catch (FileNotFoundException fnfe) {
             fnfe.printStackTrace();
             throw new DocException (fnfe.toString());
         }
-        String name = f.getName();
+        String name = res.getName();
         int line = 0;
         CompilerEnvirons compilerEnv = new CompilerEnvirons();
         compilerEnv.initFromContext(Context.getCurrentContext());

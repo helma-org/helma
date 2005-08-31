@@ -16,40 +16,30 @@
 
 package helma.doc;
 
+import helma.framework.repository.Resource;
+import helma.framework.core.Prototype;
+import helma.util.ResourceProperties;
+
 import java.io.*;
+import java.util.Iterator;
 
 /**
  * 
  */
-public class DocPrototype extends DocDirElement {
-    private DocProperties typeProperties = null;
-    private DocPrototype parentPrototype = null;
+public class DocPrototype extends DocElement {
 
-    private DocPrototype(String name, File location, DocElement parent) {
-        super(name, location, PROTOTYPE);
-        this.parent = parent;
-        typeProperties = DocProperties.newInstance(new File(location, "type.properties"));
-    }
+    DocPrototype parentPrototype = null;
+    Prototype proto;
 
     /**
-     * creates a prototype that is independent of an
-     * application object
-     * @param location
-     */
-    public static DocPrototype newInstance(File location) {
-        return newInstance(location, null);
-    }
-
-    /**
-     * creates a prototype that is connected to an
-     * application object and resides in app's home dir.
-     * @param location
+     * creates a prototype based on a prototype of the application
+     *
+     * @param proto
      * @param parent
-     */
-    public static DocPrototype newInstance(File location, DocElement parent) {
-        DocPrototype pt = new DocPrototype(location.getName(), location, parent);
-
-        return pt;
+     */    protected DocPrototype(Prototype proto, DocElement parent) {
+        super(proto.getName(), PROTOTYPE);
+        this.parent = parent;
+        this.proto = proto;
     }
 
     /**
@@ -64,15 +54,12 @@ public class DocPrototype extends DocDirElement {
             return;
         }
 
-        if (typeProperties != null) {
-            // check for "_extends" in the the type.properties
-            String ext = typeProperties.getProperties().getProperty("_extends");
+        // check for "_extends" in the the type.properties
+        String ext = proto.getTypeProperties().getProperty("_extends");
 
-            if ((ext != null) && (parent != null)) {
-                // try to get the prototype if available
-                parentPrototype = (DocPrototype) parent.getChildElement("prototype_" +
-                                                                        ext);
-            }
+        if ((ext != null) && (parent != null)) {
+            // try to get the prototype if available
+            parentPrototype = (DocPrototype) parent.getChildElement("prototype_" + ext);
         }
 
         if ((parentPrototype == null) && (parent != null) && !name.equals("global")) {
@@ -82,63 +69,66 @@ public class DocPrototype extends DocDirElement {
     }
 
     /**
+     * Return this prototype's parent prototype
      *
-     *
-     * @return ...
+     * @return this prototype's parent prototype
      */
     public DocPrototype getParentPrototype() {
         return parentPrototype;
     }
 
     /**
-     *
-     *
-     * @return ...
-     */
-    public DocProperties getTypeProperties() {
-        return typeProperties;
-    }
-
-    /**
      * runs through the prototype directory and parses all helma files
      */
-    public void readFiles() {
+    public void readFiles() throws IOException {
         children.clear();
 
-        String[] arr = location.list();
+        Iterator it = proto.getCodeResources();
 
-        for (int i = 0; i < arr.length; i++) {
-            if (getDocApplication().isExcluded(arr[i])) {
-                continue;
-            }
+        while (it.hasNext()) {
+            Resource res = (Resource) it.next();
 
-            File f = new File(location.getAbsolutePath(), arr[i]);
-
-            if (f.isDirectory()) {
+            String name = res.getShortName();
+            if (getDocApplication().isExcluded(name)) {
                 continue;
             }
 
             try {
-                if (arr[i].endsWith(".skin")) {
-                    addChild(DocSkin.newInstance(f, this));
-                } else if (arr[i].endsWith(".properties")) {
-                    continue;
-                } else if (arr[i].endsWith(".hac")) {
-                    addChild(DocFunction.newAction(f, this));
-                } else if (arr[i].endsWith(".js")) {
-                    DocElement[] elements = DocFunction.newFunctions(f, this);
+                if (name.endsWith(".hac")) {
+                    addChild(DocFunction.newAction(res, this));
+                } else if (name.endsWith(".js")) {
+                    DocElement[] elements = DocFunction.newFunctions(res, this);
 
                     for (int j = 0; j < elements.length; j++) {
                         addChild(elements[j]);
                     }
                 }
-            } catch (Exception ex) {
-                System.out.println("couldn't parse file " + f.getAbsolutePath() + ": " +
-                                   ex.toString());
-                ex.printStackTrace();
             } catch (Throwable err) {
-                System.out.println("couldn't parse file " + f.getAbsolutePath() + ": " +
-                                   err.toString());
+                proto.getApplication().logError("Couldn't parse file " + res, err);
+            }
+        }
+
+        it = proto.getSkinResources();
+
+        while (it.hasNext()) {
+            Resource res = (Resource) it.next();
+
+            String name = res.getShortName();
+            if (getDocApplication().isExcluded(name)) {
+                continue;
+            }
+
+            addChild(DocSkin.newInstance(res, this));
+        }
+
+        ResourceProperties props = proto.getTypeProperties();
+        it = props.getResources();
+
+        int index = 0;
+        while (it.hasNext()) {
+            Resource res = (Resource) it.next();
+            if (res.exists()) {
+                addChild(new DocProperties(res, props, index++, this));
             }
         }
     }

@@ -16,57 +16,50 @@
 
 package helma.doc;
 
-import helma.util.SystemProperties;
-import java.io.*;
+import helma.util.ResourceProperties;
+import helma.framework.repository.Resource;
+
 import java.util.*;
+import java.io.IOException;
 
 /**
- * 
+ * Documentation around a properties file
  */
-public class DocProperties extends DocFileElement {
-    Properties props = null;
+public class DocProperties extends DocResourceElement {
 
-    protected DocProperties(File location, DocElement parent)
-                     throws DocException {
-        super(location.getName(), location, PROPERTIES);
+    ResourceProperties props;
+    String elementName;
+
+    protected DocProperties(Resource res, ResourceProperties props,
+                            int index, DocElement parent)
+                     throws DocException, IOException {
+        super(res.getShortName(), res, PROPERTIES);
+
         this.parent = parent;
-        content = Util.readFile(location);
-        props = new SystemProperties();
-
-        try {
-            props.load(new FileInputStream(location));
-        } catch (IOException e) {
-            debug("couldn't read file: " + e.toString());
-        } catch (Exception e) {
-            throw new DocException(e.toString());
-        }
+        this.props = props;
+        this.comment = resource.getName();
+        this.content = resource.getContent();
+        this.elementName = name + "_" + index;
     }
 
     /**
-     * creates a new independent DocProperties object
-     */
-    public static DocProperties newInstance(File location) {
-        return newInstance(location, null);
-    }
-
-    /**
-     * creates a new DocProperties object connected to another DocElement
-     */
-    public static DocProperties newInstance(File location, DocElement parent) {
-        try {
-            return new DocProperties(location, parent);
-        } catch (DocException doc) {
-            return null;
-        }
-    }
-
-    /**
+     * Get the underlying properties
      *
-     *
-     * @return ...
+     * @return the properties
      */
-    public Properties getProperties() {
+    public ResourceProperties getProperties() {
         return props;
+    }
+
+    public String getElementName() {
+        return elementName;
+    }
+
+    /**
+     * returns the comment string, empty string if no comment is set.
+     */
+    public String getComment() {
+        return resource.getName();
     }
 
     /**
@@ -91,5 +84,12 @@ public class DocProperties extends DocFileElement {
         }
 
         return childProps;
+    }
+
+    /**
+     * from helma.framework.IPathElement. Use the same prototype as functions etc.
+     */
+    public java.lang.String getPrototype() {
+        return "docfunction";
     }
 }

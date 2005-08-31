@@ -449,8 +449,12 @@ public class RhinoEngine implements ScriptingEngine {
      */
     public IPathElement getIntrospector() {
         if (doc == null) {
-            doc = new DocApplication(app);
-            doc.readApplication();
+            try {
+                doc = new DocApplication(app);
+                doc.readApplication();
+            } catch (IOException x) {
+                throw new RuntimeException(x.toString());
+            }
         }
         return doc;
     }

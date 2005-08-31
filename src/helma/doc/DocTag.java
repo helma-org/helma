@@ -63,7 +63,7 @@ public final class DocTag {
                 name = tok.nextToken();
             }
             while (tok.hasMoreTokens()) {
-                comment.append (" " + tok.nextToken());
+                comment.append (" ").append(tok.nextToken());
             }
         } catch (NoSuchElementException nsee) { // ignore
         }
@@ -143,9 +143,9 @@ public final class DocTag {
     public String toString() {
         StringBuffer buf = new StringBuffer ("[@" + type);
         if (name!=null && !"".equals(name))
-            buf.append (" " + name);
+            buf.append (" ").append(name);
         if (text!=null && !"".equals(text))
-            buf.append (" " + text);
+            buf.append (" ").append(text);
         return buf.toString() + "]";
     }
 }

@@ -16,12 +16,18 @@
 
 package helma.doc;
 
+import helma.framework.repository.Repository;
+import helma.framework.repository.Resource;
+
 import java.io.*;
 
 /**
  * 
  */
-public abstract class DocDirElement extends DocElement {
+public abstract class DocRepositoryElement extends DocElement {
+
+    protected Repository repos;
+
     // a default file that is read as comment for applications 
     // and prototypes if found in their directories
     public static final String[] DOCFILES = {
@@ -30,17 +36,40 @@ public abstract class DocDirElement extends DocElement {
                                                 "prototype.htm", "index.html", "index.htm"
                                             };
 
-    protected DocDirElement(String name, File location, int type) {
-        super(name, location, type);
+    protected DocRepositoryElement(String name, Repository repos, int type) throws IOException {
+        super(name, type);
+        this.repos = repos;
         checkCommentFiles();
     }
 
-    private void checkCommentFiles() throws DocException {
-        for (int i = 0; i < DOCFILES.length; i++) {
-            File f = new File(location, DOCFILES[i]);
+    /**
+     * Get a string describing this element's location
+     *
+     * @return lstring representation of the element's repository
+     */
+    public String toString() {
+        return repos.getName();
+    }
 
-            if (f.exists()) {
-                String rawComment = Util.readFile(f);
+    /**
+     * @return absolute path to location of element
+     * (directory for apps and prototypes, file for
+     * methods and properties files)
+     */
+    public Repository getRepository() {
+        return repos;
+    }
+
+
+    private void checkCommentFiles() throws DocException, IOException {
+        if (repos == null) {
+            return;
+        }
+        for (int i = 0; i < DOCFILES.length; i++) {
+            Resource res = repos.getResource(DOCFILES[i]);
+
+            if (res.exists()) {
+                String rawComment = res.getContent();
 
                 parseComment(rawComment);
 

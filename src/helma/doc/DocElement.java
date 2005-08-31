@@ -17,7 +17,7 @@
 package helma.doc;
 
 import helma.framework.IPathElement;
-import java.io.*;
+
 import java.util.*;
 
 /**
@@ -43,7 +43,6 @@ public abstract class DocElement implements IPathElement {
     // identifiers of this element
     String name;
     int type;
-    File location;
     DocElement parent = null;
     Map children = new HashMap();
 
@@ -53,19 +52,8 @@ public abstract class DocElement implements IPathElement {
     List tags = new Vector();
     List parameters = new Vector();
 
-    protected DocElement(String name, String location, int type)
-                  throws DocException {
-        this(name, new File(location), type);
-    }
-
-    protected DocElement(String name, File location, int type)
-                  throws DocException {
-        if (!location.exists()) {
-            throw new DocException(name + " not found in " + location.toString());
-        }
-
+    protected DocElement(String name, int type) throws DocException {
         this.name = name;
-        this.location = location;
         this.type = type;
     }
 
@@ -74,15 +62,6 @@ public abstract class DocElement implements IPathElement {
      */
     public String getName() {
         return name;
-    }
-
-    /**
-     * @return absolute path to location of element
-     * (directory for apps and prototypes, file for
-     * methods and properties files)
-     */
-    public File getLocation() {
-        return location;
     }
 
     /**
@@ -246,7 +225,7 @@ public abstract class DocElement implements IPathElement {
                 addTag(buf.toString());
             }
         } catch (RuntimeException rt) {
-            debug("parse error in " + location + ": " + rt.getMessage());
+            debug("parse error in " + name + ": " + rt.getMessage());
         }
     }
 

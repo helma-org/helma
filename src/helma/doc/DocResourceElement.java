@@ -16,19 +16,27 @@
 
 package helma.doc;
 
-import java.io.File;
+import helma.framework.repository.Resource;
 
 /**
  * abstract class for extracting doc information from files.
  * not used at the moment but left in for further extensions-
  */
-public abstract class DocFileElement extends DocElement {
-    protected DocFileElement(String name, File location, int type) {
-        super(name, location, type);
+public abstract class DocResourceElement extends DocElement {
+
+    protected Resource resource;
+
+    protected DocResourceElement(String name, Resource res, int type) {
+        super(name, type);
+        this.resource = res;
     }
 
-
-
-
-
+    /**
+     * Get a string describing this element's location
+     *
+     * @return string representation of the element's resource
+     */
+    public String toString() {
+        return resource.getName();
+    }
 }

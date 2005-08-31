@@ -16,6 +16,8 @@
 
 package helma.doc;
 
+import helma.framework.repository.Resource;
+
 import java.awt.Point;
 import java.io.*;
 
@@ -67,34 +69,6 @@ public final class Util {
         }
     }
 
-
-    /**
-     * reads a complete file
-     *
-     * @param file
-     *
-     * @return string with content of file
-     */
-    public static String readFile(File file) {
-        try {
-            StringBuffer buf = new StringBuffer();
-            BufferedReader in = new BufferedReader(new FileReader(file));
-            String line = in.readLine();
-
-            while (line != null) {
-                buf.append(line + "\n");
-                line = in.readLine();
-            }
-
-            in.close();
-
-            return buf.toString();
-        } catch (IOException e) {
-            return ("");
-        }
-    }
-
-
     /**
      * reads a part of a file defined by two points
 
@@ -104,11 +78,11 @@ public final class Util {
 
      * @return string
      */
-    public static String getStringFromFile (File sourceFile, Point start, Point end) {
+    public static String getStringFromFile (Resource res, Point start, Point end) {
         StringBuffer buf = new StringBuffer();
         int ct = 0;
         try {
-            BufferedReader in = new BufferedReader(new FileReader(sourceFile));
+            BufferedReader in = new BufferedReader(new InputStreamReader(res.getInputStream()));
             String line = "";
             while (line != null) {
                 line = in.readLine();
@@ -116,13 +90,13 @@ public final class Util {
                     break;
                 }
                 if ((ct > start.y) && (ct < end.y)) {
-                    buf.append(line + "\n");
+                    buf.append(line).append("\n");
                 } else if (ct == start.y) {
                     if (start.y==end.y) {
                         buf.append (line.substring (start.x, end.x));
                         break;
                     } else {
-                        buf.append(line.substring(start.x, line.length()) + "\n");
+                        buf.append(line.substring(start.x, line.length())).append("\n");
                     }
                 } else if (ct == end.y) {
                     buf.append(line.substring(0, end.x));
@@ -172,24 +146,5 @@ public final class Util {
             System.out.println(e.getMessage());
         }
     }
-
-
-
-    /**
-     * extracts the function name from a file. basically chops the given suffix
-     * and throws an error if the file name doesn't fit.
-     */
-    public static String nameFromFile(File f, String suffix)
-                                  throws DocException {
-        String filename = f.getName();
-
-        if (!filename.endsWith(suffix)) {
-            throw new DocException("file doesn't have suffix " + suffix + ": " +
-                                   f.toString());
-        }
-
-        return filename.substring(0, filename.lastIndexOf(suffix));
-    }
-
 
 }
