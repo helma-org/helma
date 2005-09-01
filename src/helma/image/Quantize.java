@@ -21,7 +21,7 @@ import java.awt.image.*;
 /*
  * @(#)Quantize.java    0.90 9/19/00 Adam Doppelt
  * 
- * Modifications by JŸrg Lehni:
+ * Modifications by Juerg Lehni:
  * 
  * - Support for alpha-channels.
  * - Returns a BufferedImage of TYPE_BYTE_INDEXED with a IndexColorModel.

@@ -17,7 +17,7 @@
 /*
  * The GIF encoding routines are based on the Acme libary
  *
- * The following addaptions and extensions were added by JŸrg Lehni:
+ * The following addaptions and extensions were added by Juerg Lehni:
  * 
  * - encode now directly works on BufferedImage objects, the ImageEncoder
  *   and ImageConsumer oriented frameworks has been removed.
