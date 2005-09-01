@@ -19,10 +19,8 @@ package helma.framework.core;
 import helma.framework.*;
 import helma.framework.repository.Resource;
 import helma.objectmodel.ConcurrencyException;
-import helma.util.HtmlEncoder;
-import helma.util.SystemMap;
-import helma.util.WrappedMap;
-import helma.util.UrlEncoded;
+import helma.util.*;
+
 import java.util.*;
 import java.io.UnsupportedEncodingException;
 import java.io.Reader;
@@ -221,11 +219,13 @@ public final class Skin {
         String handler;
         String name;
         String fullName;
-        String prefix;
-        String suffix;
-        String defaultValue;
         int encoding = ENCODE_NONE;
-        Map parameters = null;
+
+        // default render parameters - may be overridden if macro changes
+        // param.prefix/suffix/default
+        RenderParameters defaultRenderParams = new RenderParameters();
+        Map params = null;
+
         // comment macros are silently dropped during rendering
         boolean isCommentMacro = false;
 
@@ -282,12 +282,8 @@ public final class Skin {
 
                         if (!escape && (state == PARAMVALUE)) {
                             if (quotechar == source[i]) {
-                                String paramValue = b.toString();
-
-                                if (!setSpecialParameter(lastParamName, paramValue)) {
-                                    addGenericParameter(lastParamName, paramValue);
-                                }
-
+                                // add parameter
+                                addParameter(lastParamName, b.toString());
                                 lastParamName = null;
                                 b.setLength(0);
                                 state = PARAMNAME;
@@ -317,12 +313,8 @@ public final class Skin {
                             b.setLength(0);
                             state = PARAMNAME;
                         } else if ((state == PARAMVALUE) && (quotechar == '\u0000')) {
-                            String paramValue = b.toString();
-
-                            if (!setSpecialParameter(lastParamName, paramValue)) {
-                                addGenericParameter(lastParamName, paramValue);
-                            }
-
+                            // add parameter
+                            addParameter(lastParamName, b.toString());
                             lastParamName = null;
                             b.setLength(0);
                             state = PARAMNAME;
@@ -356,11 +348,8 @@ public final class Skin {
 
             if (b.length() > 0) {
                 if (lastParamName != null) {
-                    String paramValue = b.toString();
-
-                    if (!setSpecialParameter(lastParamName, paramValue)) {
-                        addGenericParameter(lastParamName, paramValue);
-                    }
+                    // add parameter
+                    addParameter(lastParamName, b.toString());
                 } else if (state <= MACRO) {
                     name = b.toString().trim();
                 }
@@ -373,15 +362,12 @@ public final class Skin {
             }
         }
 
-        private boolean setSpecialParameter(String name, String value) {
+        private void addParameter(String name, String value) {
+            // check if this is parameter is relevant to us
             if ("prefix".equals(name)) {
-                prefix = value;
-
-                return true;
+                defaultRenderParams.prefix = value;
             } else if ("suffix".equals(name)) {
-                suffix = value;
-
-                return true;
+                defaultRenderParams.suffix = value;
             } else if ("encoding".equals(name)) {
                 if ("html".equalsIgnoreCase(value)) {
                     encoding = ENCODE_HTML;
@@ -394,23 +380,15 @@ public final class Skin {
                 } else if ("all".equalsIgnoreCase(value)) {
                     encoding = ENCODE_ALL;
                 }
-
-                return true;
             } else if ("default".equals(name)) {
-                defaultValue = value;
-
-                return true;
+                defaultRenderParams.defaultValue = value;
             }
 
-            return false;
-        }
-
-        private void addGenericParameter(String name, String value) {
-            if (parameters == null) {
-                parameters = new HashMap();
+            // Add parameter to parameter map
+            if (params == null) {
+                params = new HashMap();
             }
-
-            parameters.put(name, value);
+            params.put(name, value);
         }
 
         /**
@@ -515,57 +493,58 @@ public final class Skin {
 
                     if (reval.scriptingEngine.hasFunction(handlerObject, funcName)) {
                         StringBuffer buffer = reval.res.getBuffer();
+                        RenderParameters renderParams = defaultRenderParams;
 
                         // remember length of response buffer before calling macro
                         int bufLength = buffer.length();
 
-                        // remember length of buffer with prefix written out
-                        int preLength = 0;
-
-                        if (prefix != null) {
-                            buffer.append(prefix);
-                            preLength = prefix.length();
-                        }
-
-                        // System.err.println ("Getting macro from function");
                         // pass a clone/copy of the parameter map so if the script changes it,
-                        Object[] arguments = new Object[1];
-                        if (parameters == null) {
-                            arguments[0] = new SystemMap(4);
+                        CopyOnWriteMap wrappedParams = null;
+                        Object[] arguments;
+
+                        if (params == null) {
+                            arguments = new Object[] { new SystemMap(4) };
                         } else {
-                            arguments[0] = new WrappedMap(parameters, WrappedMap.COPY_ON_WRITE);
-                            // arguments[0] = new SystemMap(parameters);
+                            wrappedParams = new CopyOnWriteMap(params);
+                            arguments = new Object[] { wrappedParams };
                         }
 
                         Object value = reval.invokeDirectFunction(handlerObject,
                                                                   funcName,
                                                                   arguments);
 
+                        // if parameter map was modified create new renderParams to override defaults
+                        if (wrappedParams != null && wrappedParams.wasModified()) {
+                            renderParams = new RenderParameters(wrappedParams);
+                        }
+
                         // check if macro wrote out to response buffer
-                        if (buffer.length() == (bufLength + preLength)) {
-                            // function didn't write out anything itself.
-                            // erase previously written prefix
-                            if (preLength > 0) {
-                                buffer.setLength(bufLength);
-                            }
-
-                            // write out macro's return value
-                            writeResponse(value, buffer, true);
+                        if (buffer.length() == bufLength) {
+                            // If the macro function didn't write anything to the response itself,
+                            // we interpret its return value as macro output.
+                            writeResponse(value, buffer, renderParams, true);
                         } else {
+                            // if an encoding is specified, re-encode the macro's output
                             if (encoding != ENCODE_NONE) {
-                                // if an encoding is specified, re-encode the macro's output
-                                String output = buffer.substring(bufLength + preLength);
+                                String output = buffer.substring(bufLength);
 
                                 buffer.setLength(bufLength);
-                                writeResponse(output, buffer, false);
+                                writeResponse(output, buffer, renderParams, false);
                             } else {
-                                // no re-encoding needed, just append suffix
-                                if (suffix != null) {
-                                    buffer.append(suffix);
+                                // insert prefix,
+                                if (renderParams.prefix != null) {
+                                    buffer.insert(bufLength, renderParams.prefix);
+                                }
+                                // append suffix
+                                if (renderParams.suffix != null) {
+                                    buffer.append(renderParams.suffix);
                                 }
                             }
 
-                            writeResponse(value, buffer, false);
+                            // Append macro return value even if it wrote something to the response,
+                            // but don't render default value in case it returned nothing.
+                            // We do this for the sake of consistency.
+                            writeResponse(value, buffer, renderParams, false);
                         }
                     } else {
                         // for unhandled global macros display error message,
@@ -577,7 +556,7 @@ public final class Skin {
 
                         } else {
                             Object value = reval.scriptingEngine.get(handlerObject, name);
-                            writeResponse(value, reval.res.getBuffer(), true);
+                            writeResponse(value, reval.res.getBuffer(), defaultRenderParams, true);
                         }
                     }
 
@@ -621,7 +600,7 @@ public final class Skin {
                 value = reval.res.get(name);
             }
 
-            writeResponse(value, reval.res.getBuffer(), true);
+            writeResponse(value, reval.res.getBuffer(), defaultRenderParams, true);
         }
 
         private void renderFromRequest(RequestEvaluator reval)
@@ -632,7 +611,7 @@ public final class Skin {
 
             Object value = reval.req.get(name);
 
-            writeResponse(value, reval.res.getBuffer(), true);
+            writeResponse(value, reval.res.getBuffer(), defaultRenderParams, true);
         }
 
         private void renderFromSession(RequestEvaluator reval)
@@ -643,7 +622,7 @@ public final class Skin {
 
             Object value = reval.session.getCacheNode().getString(name);
 
-            writeResponse(value, reval.res.getBuffer(), true);
+            writeResponse(value, reval.res.getBuffer(), defaultRenderParams, true);
         }
 
         private void renderFromParam(RequestEvaluator reval, Map paramObject)
@@ -653,20 +632,21 @@ public final class Skin {
             } else {
                 Object value = paramObject.get(name);
 
-                writeResponse(value, reval.res.getBuffer(), true);
+                writeResponse(value, reval.res.getBuffer(), defaultRenderParams, true);
             }
         }
 
         /**
          * Utility method for writing text out to the response object.
          */
-        void writeResponse(Object value, StringBuffer buffer, boolean useDefault)
+        void writeResponse(Object value, StringBuffer buffer,
+                           RenderParameters renderParams, boolean useDefault)
                 throws UnsupportedEncodingException {
             String text;
 
             if (value == null) {
                 if (useDefault) {
-                    text = defaultValue;
+                    text = renderParams.defaultValue;
                 } else {
                     return;
                 }
@@ -689,8 +669,8 @@ public final class Skin {
             if ((text != null) && (text.length() > 0)) {
                 // only write prefix/suffix if value is not null, if we write the default
                 // value provided by the macro tag, we assume it's already complete
-                if (prefix != null && value != null) {
-                    buffer.append(prefix);
+                if (renderParams.prefix != null && value != null) {
+                    buffer.append(renderParams.prefix);
                 }
 
                 switch (encoding) {
@@ -725,8 +705,8 @@ public final class Skin {
                         break;
                 }
 
-                if (suffix != null && value != null) {
-                    buffer.append(suffix);
+                if (renderParams.suffix != null && value != null) {
+                    buffer.append(renderParams.suffix);
                 }
             }
         }
@@ -740,6 +720,21 @@ public final class Skin {
          */
         public String getFullName() {
             return fullName;
+        }
+    }
+
+    class RenderParameters {
+        String prefix = null;
+        String suffix = null;
+        String defaultValue = null;
+
+        RenderParameters() {
+        }
+
+        RenderParameters(Map map) {
+            prefix = (String) map.get("prefix");
+            suffix = (String) map.get("suffix");
+            defaultValue = (String) map.get("default");
         }
     }
 }
