@@ -298,7 +298,7 @@ public class ApplicationBean implements Serializable {
      * @return
      */
     public Map getCronJobs() {
-        return new WrappedMap(app.customCronJobs, WrappedMap.READ_ONLY);
+        return new WrappedMap(app.customCronJobs, true);
     }
 
     /**
@@ -397,8 +397,7 @@ public class ApplicationBean implements Serializable {
      */
     public Map getProperties() {
         if (properties == null) {
-            properties = new WrappedMap(app.getProperties());
-            properties.setReadonly(true);
+            properties = new WrappedMap(app.getProperties(), true);
         }
         return properties;
     }
