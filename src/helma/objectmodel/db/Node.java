@@ -262,7 +262,7 @@ public final class Node implements INode, Serializable {
         }
 
         if ((lock != null) && (lock != current) && lock.isAlive() && lock.isActive()) {
-            nmgr.logEvent("Concurrency conflict for " + this + ", lock held by " + lock);
+            // nmgr.logEvent("Concurrency conflict for " + this + ", lock held by " + lock);
             throw new ConcurrencyException("Tried to modify " + this +
                                            " from two threads at the same time.");
         }
