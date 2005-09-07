@@ -481,6 +481,8 @@ public final class NodeManager {
         String nameField = dbm.getNameField();
         String prototypeField = dbm.getPrototypeField();
 
+        long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+
         try {
             int stmtNumber = 1;
 
@@ -517,16 +519,14 @@ public final class NodeManager {
                 }
             }
 
-            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
-
             stmt.executeUpdate();
 
+        } finally {
             if (logSql) {
                 long logTimeStop = java.lang.System.currentTimeMillis();
                 logSqlStatement("SQL INSERT", dbm.getTableName(),
                                 logTimeStart, logTimeStop, insertString);
             }
-        } finally {
             if (stmt != null) {
                 try {
                     stmt.close();
@@ -626,6 +626,7 @@ public final class NodeManager {
             PreparedStatement stmt = con.prepareStatement(b.toString());
 
             int stmtNumber = 0;
+            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
 
             try {
                 for (int i = 0; i < props.length; i++) {
@@ -647,17 +648,14 @@ public final class NodeManager {
                     }
                 }
 
-                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
-
                 stmt.executeUpdate();
 
+            } finally {
                 if (logSql) {
                     long logTimeStop = System.currentTimeMillis();
                     logSqlStatement("SQL UPDATE", dbm.getTableName(),
                                     logTimeStart, logTimeStop, b.toString());
                 }
-
-            } finally {
                 if (stmt != null) {
                     try {
                         stmt.close();
@@ -692,32 +690,29 @@ public final class NodeManager {
             db.deleteNode(txn, node.getID());
         } else {
             Statement st = null;
+            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+            String str = new StringBuffer("DELETE FROM ").append(dbm.getTableName())
+                                                         .append(" WHERE ")
+                                                         .append(dbm.getIDField())
+                                                         .append(" = ")
+                                                         .append(node.getID())
+                                                         .toString();
 
             try {
                 Connection con = dbm.getConnection();
                 // set connection to write mode
                 if (con.isReadOnly()) con.setReadOnly(false);
 
-                String str = new StringBuffer("DELETE FROM ").append(dbm.getTableName())
-                                                             .append(" WHERE ")
-                                                             .append(dbm.getIDField())
-                                                             .append(" = ")
-                                                             .append(node.getID())
-                                                             .toString();
-
                 st = con.createStatement();
-
-                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
 
                 st.executeUpdate(str);
 
+            } finally {
                 if (logSql) {
                     long logTimeStop = System.currentTimeMillis();
                     logSqlStatement("SQL DELETE", dbm.getTableName(),
                                     logTimeStart, logTimeStop, str);
                 }
-
-            } finally {
                 if (st != null) {
                     try {
                         st.close();
@@ -781,28 +776,20 @@ public final class NodeManager {
         // tx.timer.beginEvent ("generateID "+map);
         String retval = null;
         Statement stmt = null;
+        long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+        String q = new StringBuffer("SELECT MAX(").append(map.getIDField())
+                                                  .append(") FROM ")
+                                                  .append(map.getTableName())
+                                                  .toString();
 
         try {
             Connection con = map.getConnection();
             // set connection to read-only mode
             if (!con.isReadOnly()) con.setReadOnly(true);
 
-            String q = new StringBuffer("SELECT MAX(").append(map.getIDField())
-                                                      .append(") FROM ")
-                                                      .append(map.getTableName())
-                                                      .toString();
-
             stmt = con.createStatement();
 
-            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
-
             ResultSet rs = stmt.executeQuery(q);
-
-            if (logSql) {
-                long logTimeStop = System.currentTimeMillis();
-                logSqlStatement("SQL SELECT_MAX", map.getTableName(),
-                                logTimeStart, logTimeStop, q);
-            }
 
             // check for empty table
             if (!rs.next()) {
@@ -816,7 +803,11 @@ public final class NodeManager {
                 retval = Long.toString(currMax);
             }
         } finally {
-            // tx.timer.endEvent ("generateID "+map);
+            if (logSql) {
+                long logTimeStop = System.currentTimeMillis();
+                logSqlStatement("SQL SELECT_MAX", map.getTableName(),
+                                logTimeStart, logTimeStop, q);
+            }
             if (stmt != null) {
                 try {
                     stmt.close();
@@ -833,26 +824,19 @@ public final class NodeManager {
         // tx.timer.beginEvent ("generateID "+map);
         Statement stmt = null;
         String retval = null;
+        long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+        String q = new StringBuffer("SELECT ").append(map.getIDgen())
+                                              .append(".nextval FROM dual").toString();
+
 
         try {
             Connection con = map.getConnection();
             // TODO is it necessary to set connection to write mode here?
             if (con.isReadOnly()) con.setReadOnly(false);
 
-            String q = new StringBuffer("SELECT ").append(map.getIDgen())
-                                                  .append(".nextval FROM dual").toString();
-
             stmt = con.createStatement();
 
-            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
-
             ResultSet rs = stmt.executeQuery(q);
-
-            if (logSql) {
-                long logTimeStop = System.currentTimeMillis();
-                logSqlStatement("SQL SELECT_NEXTVAL", map.getTableName(),
-                                logTimeStart, logTimeStop, q);
-            }
 
             if (!rs.next()) {
                 throw new SQLException("Error creating ID from Sequence: empty recordset");
@@ -860,7 +844,11 @@ public final class NodeManager {
 
             retval = rs.getString(1);
         } finally {
-            // tx.timer.endEvent ("generateID "+map);
+            if (logSql) {
+                long logTimeStop = System.currentTimeMillis();
+                logSqlStatement("SQL SELECT_NEXTVAL", map.getTableName(),
+                                logTimeStart, logTimeStop, q);
+            }
             if (stmt != null) {
                 try {
                     stmt.close();
@@ -898,9 +886,10 @@ public final class NodeManager {
             String table = rel.otherType.getTableName();
 
             Statement stmt = null;
+            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+            String query = null;
 
             try {
-                String q;
 
                 StringBuffer b = new StringBuffer("SELECT ");
 
@@ -917,10 +906,10 @@ public final class NodeManager {
 
                 if (home.getSubnodeRelation() != null) {
                     // subnode relation was explicitly set
-                    q = b.append(" ").append(home.getSubnodeRelation()).toString();
+                    query = b.append(" ").append(home.getSubnodeRelation()).toString();
                 } else {
                     // let relation object build the query
-                    q = b.append(rel.buildQuery(home,
+                    query = b.append(rel.buildQuery(home,
                                                 home.getNonVirtualParent(),
                                                 null,
                                                 " WHERE ",
@@ -933,15 +922,7 @@ public final class NodeManager {
                     stmt.setMaxRows(rel.maxSize);
                 }
 
-                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
-
-                ResultSet result = stmt.executeQuery(q);
-
-                if (logSql) {
-                    long logTimeStop = System.currentTimeMillis();
-                    logSqlStatement("SQL SELECT_IDS", table,
-                                    logTimeStart, logTimeStop, q);
-                }
+                ResultSet result = stmt.executeQuery(query);
 
                 // problem: how do we derive a SyntheticKey from a not-yet-persistent Node?
                 Key k = (rel.groupby != null) ? home.getKey() : null;
@@ -972,7 +953,11 @@ public final class NodeManager {
                     }
                 }
             } finally {
-                // tx.timer.endEvent ("getNodeIDs "+home);
+                if (logSql) {
+                    long logTimeStop = System.currentTimeMillis();
+                    logSqlStatement("SQL SELECT_IDS", table,
+                                    logTimeStart, logTimeStop, query);
+                }
                 if (stmt != null) {
                     try {
                         stmt.close();
@@ -1013,33 +998,30 @@ public final class NodeManager {
             Statement stmt = con.createStatement();
             DbColumn[] columns = dbm.getColumns();
             Relation[] joins = dbm.getJoins();
-            StringBuffer q = dbm.getSelect(rel);
+            String query = null;
+            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
 
             try {
+                StringBuffer b = dbm.getSelect(rel);
+
                 if (home.getSubnodeRelation() != null) {
-                    q.append(home.getSubnodeRelation());
+                    b.append(home.getSubnodeRelation());
                 } else {
                     // let relation object build the query
-                    q.append(rel.buildQuery(home,
+                    b.append(rel.buildQuery(home,
                                             home.getNonVirtualParent(),
                                             null,
                                             " WHERE ",
                                             true));
                 }
 
+                query = b.toString();
+
                 if (rel.maxSize > 0) {
                     stmt.setMaxRows(rel.maxSize);
                 }
 
-                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
-
-                ResultSet rs = stmt.executeQuery(q.toString());
-
-                if (logSql) {
-                    long logTimeStop = System.currentTimeMillis();
-                    logSqlStatement("SQL SELECT_ALL", dbm.getTableName(),
-                                    logTimeStart, logTimeStop, q.toString());
-                }
+                ResultSet rs = stmt.executeQuery(query);
 
                 while (rs.next()) {
                     // create new Nodes.
@@ -1064,7 +1046,11 @@ public final class NodeManager {
                 }
 
             } finally {
-                // tx.timer.endEvent ("getNodes "+home);
+                if (logSql) {
+                    long logTimeStop = System.currentTimeMillis();
+                    logSqlStatement("SQL SELECT_ALL", dbm.getTableName(),
+                                    logTimeStart, logTimeStop, query);
+                }
                 if (stmt != null) {
                     try {
                         stmt.close();
@@ -1098,60 +1084,57 @@ public final class NodeManager {
                 Statement stmt = con.createStatement();
                 DbColumn[] columns = dbm.getColumns();
                 Relation[] joins = dbm.getJoins();
-                StringBuffer q = dbm.getSelect(rel);
+                String query = null;
+                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
 
                 try {
+                    StringBuffer b = dbm.getSelect(rel);
+
                     String idfield = (rel.groupby != null) ? rel.groupby : dbm.getIDField();
                     boolean needsQuotes = dbm.needsQuotes(idfield);
 
-                    q.append(" WHERE ");
-                    q.append(dbm.getTableName());
-                    q.append(".");
-                    q.append(idfield);
-                    q.append(" IN (");
+                    b.append(" WHERE ");
+                    b.append(dbm.getTableName());
+                    b.append(".");
+                    b.append(idfield);
+                    b.append(" IN (");
 
                     boolean first = true;
 
                     for (int i = 0; i < keys.length; i++) {
                         if (keys[i] != null) {
                             if (!first) {
-                                q.append(',');
+                                b.append(',');
                             } else {
                                 first = false;
                             }
 
                             if (needsQuotes) {
-                                q.append("'");
-                                q.append(escape(keys[i].getID()));
-                                q.append("'");
+                                b.append("'");
+                                b.append(escape(keys[i].getID()));
+                                b.append("'");
                             } else {
-                                q.append(keys[i].getID());
+                                b.append(keys[i].getID());
                             }
                         }
                     }
 
-                    q.append(") ");
+                    b.append(") ");
 
-                    dbm.addJoinConstraints(q, " AND ");
+                    dbm.addJoinConstraints(b, " AND ");
 
                     if (rel.groupby != null) {
-                        rel.renderConstraints(q, home, home.getNonVirtualParent(), " AND ");
+                        rel.renderConstraints(b, home, home.getNonVirtualParent(), " AND ");
 
                         if (rel.order != null) {
-                            q.append(" ORDER BY ");
-                            q.append(rel.order);
+                            b.append(" ORDER BY ");
+                            b.append(rel.order);
                         }
                     }
 
-                    long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+                    query = b.toString();
 
-                    ResultSet rs = stmt.executeQuery(q.toString());
-
-                    if (logSql) {
-                        long logTimeStop = System.currentTimeMillis();
-                        logSqlStatement("SQL SELECT_PREFETCH", dbm.getTableName(),
-                                        logTimeStart, logTimeStop, q.toString());
-                    }
+                    ResultSet rs = stmt.executeQuery(query);
 
                     String groupbyProp = null;
                     HashMap groupbySubnodes = null;
@@ -1244,6 +1227,11 @@ public final class NodeManager {
                 } catch (Exception x) {
                     System.err.println ("Error in prefetchNodes(): "+x);
                 } finally {
+                    if (logSql) {
+                        long logTimeStop = System.currentTimeMillis();
+                        logSqlStatement("SQL SELECT_PREFETCH", dbm.getTableName(),
+                                        logTimeStart, logTimeStop, query);
+                    }
                     if (stmt != null) {
                         try {
                             stmt.close();
@@ -1273,11 +1261,11 @@ public final class NodeManager {
             if (!con.isReadOnly()) con.setReadOnly(true);
 
             String table = rel.otherType.getTableName();
-
             Statement stmt = null;
+            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+            String query = null;
 
             try {
-                String q = null;
                 StringBuffer tables = new StringBuffer(table);
 
                 rel.appendAdditionalTables(tables);
@@ -1289,10 +1277,10 @@ public final class NodeManager {
 
                 if (home.getSubnodeRelation() != null) {
                     // use the manually set subnoderelation of the home node
-                    q = b.append(" ").append(home.getSubnodeRelation()).toString();
+                    query = b.append(" ").append(home.getSubnodeRelation()).toString();
                 } else {
                     // let relation object build the query
-                    q = b.append(rel.buildQuery(home,
+                    query = b.append(rel.buildQuery(home,
                                                 home.getNonVirtualParent(),
                                                 null,
                                                 " WHERE ",
@@ -1301,15 +1289,9 @@ public final class NodeManager {
 
                 stmt = con.createStatement();
 
-                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
 
-                ResultSet rs = stmt.executeQuery(q);
+                ResultSet rs = stmt.executeQuery(query);
 
-                if (logSql) {
-                    long logTimeStop = System.currentTimeMillis();
-                    logSqlStatement("SQL SELECT_COUNT", table,
-                                    logTimeStart, logTimeStop, q);
-                }
 
                 if (!rs.next()) {
                     retval = 0;
@@ -1317,7 +1299,11 @@ public final class NodeManager {
                     retval = rs.getInt(1);
                 }
             } finally {
-                // tx.timer.endEvent ("countNodes "+home);
+                if (logSql) {
+                    long logTimeStop = System.currentTimeMillis();
+                    logSqlStatement("SQL SELECT_COUNT", table,
+                                    logTimeStart, logTimeStop, query);
+                }
                 if (stmt != null) {
                     try {
                         stmt.close();
@@ -1350,26 +1336,27 @@ public final class NodeManager {
             Connection con = rel.otherType.getConnection();
             // set connection to read-only mode
             if (!con.isReadOnly()) con.setReadOnly(true);
+
             String table = rel.otherType.getTableName();
+            StringBuffer tables = new StringBuffer(table);
+            rel.appendAdditionalTables(tables);
 
             Statement stmt = null;
-
-            StringBuffer tables = new StringBuffer(table);
-
-            rel.appendAdditionalTables(tables);
+            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+            String query = null;
 
             try {
                 // NOTE: we explicitly convert tables StringBuffer to a String
                 // before appending to be compatible with JDK 1.3
-                StringBuffer q = new StringBuffer("SELECT ").append(namefield)
+                StringBuffer b = new StringBuffer("SELECT ").append(namefield)
                                                             .append(" FROM ")
                                                             .append(tables.toString());
 
                 if (home.getSubnodeRelation() != null) {
-                    q.append(" ").append(home.getSubnodeRelation());
+                    b.append(" ").append(home.getSubnodeRelation());
                 } else {
                     // let relation object build the query
-                    q.append(rel.buildQuery(home,
+                    b.append(rel.buildQuery(home,
                                             home.getNonVirtualParent(),
                                             null,
                                             " WHERE ",
@@ -1378,15 +1365,9 @@ public final class NodeManager {
 
                 stmt = con.createStatement();
 
-                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+                query = b.toString();
 
-                ResultSet rs = stmt.executeQuery(q.toString());
-
-                if (logSql) {
-                    long logTimeStop = System.currentTimeMillis();
-                    logSqlStatement("SQL SELECT_ACCESSNAMES", table,
-                                    logTimeStart, logTimeStop, q.toString());
-                }
+                ResultSet rs = stmt.executeQuery(query);
 
                 while (rs.next()) {
                     String n = rs.getString(1);
@@ -1396,7 +1377,12 @@ public final class NodeManager {
                     }
                 }
             } finally {
-                // tx.timer.endEvent ("getNodeIDs "+home);
+                if (logSql) {
+                    long logTimeStop = System.currentTimeMillis();
+                    logSqlStatement("SQL SELECT_ACCESSNAMES", table,
+                                    logTimeStart, logTimeStop, query);
+                }
+
                 if (stmt != null) {
                     try {
                         stmt.close();
@@ -1430,6 +1416,8 @@ public final class NodeManager {
             String idfield = dbm.getIDField();
 
             Statement stmt = null;
+            String query = null;
+            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
 
             try {
                 Connection con = dbm.getConnection();
@@ -1440,31 +1428,25 @@ public final class NodeManager {
 
                 DbColumn[] columns = dbm.getColumns();
                 Relation[] joins = dbm.getJoins();
-                StringBuffer q = dbm.getSelect(null).append("WHERE ")
+                StringBuffer b = dbm.getSelect(null).append("WHERE ")
                                                 .append(dbm.getTableName())
                                                 .append(".")
                                                 .append(idfield)
                                                 .append(" = ");
 
                 if (dbm.needsQuotes(idfield)) {
-                    q.append("'");
-                    q.append(escape(kstr));
-                    q.append("'");
+                    b.append("'");
+                    b.append(escape(kstr));
+                    b.append("'");
                 } else {
-                    q.append(kstr);
+                    b.append(kstr);
                 }
 
-                dbm.addJoinConstraints(q, " AND ");
+                dbm.addJoinConstraints(b, " AND ");
 
-                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+                query = b.toString();
 
-                ResultSet rs = stmt.executeQuery(q.toString());
-
-                if (logSql) {
-                    long logTimeStop = System.currentTimeMillis();
-                    logSqlStatement("SQL SELECT_BYKEY", dbm.getTableName(),
-                                    logTimeStart, logTimeStop, q.toString());
-                }
+                ResultSet rs = stmt.executeQuery(query);
 
                 if (!rs.next()) {
                     return null;
@@ -1478,6 +1460,11 @@ public final class NodeManager {
                     throw new RuntimeException("More than one value returned by query.");
                 }
             } finally {
+                if (logSql) {
+                    long logTimeStop = System.currentTimeMillis();
+                    logSqlStatement("SQL SELECT_BYKEY", dbm.getTableName(),
+                                    logTimeStart, logTimeStop, query);
+                }
                 if (stmt != null) {
                     try {
                         stmt.close();
@@ -1522,38 +1509,41 @@ public final class NodeManager {
 
             return node;
         } else {
+            DbMapping dbm = rel.otherType;
             Statement stmt = null;
+            String query = null;
+            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
 
             try {
-                DbMapping dbm = rel.otherType;
-
                 Connection con = dbm.getConnection();
                 // set connection to read-only mode
                 if (!con.isReadOnly()) con.setReadOnly(true);
                 DbColumn[] columns = dbm.getColumns();
                 Relation[] joins = dbm.getJoins();
-                StringBuffer q = dbm.getSelect(rel);
+                StringBuffer b = dbm.getSelect(rel);
 
                 if (home.getSubnodeRelation() != null && !rel.isComplexReference()) {
                     // combine our key with the constraints in the manually set subnode relation
-                    q.append(" WHERE ");
-                    q.append(dbm.getTableName());
-                    q.append(".");
-                    q.append(rel.accessName);
-                    q.append(" = '");
-                    q.append(escape(kstr));
-                    q.append("'");
+                    b.append(" WHERE ");
+                    if (rel.accessName.indexOf('(') == -1 && rel.accessName.indexOf('.') == -1) {
+                        b.append(dbm.getTableName());
+                        b.append(".");
+                    }
+                    b.append(rel.accessName);
+                    b.append(" = '");
+                    b.append(escape(kstr));
+                    b.append("'");
                     // add join contraints in case this is an old oracle style join
-                    dbm.addJoinConstraints(q, " AND ");
+                    dbm.addJoinConstraints(b, " AND ");
                     // add potential constraints from manually set subnodeRelation
                     String subrel = home.getSubnodeRelation().trim();
                     if (subrel.length() > 5) {
-                        q.append(" AND (");
-                        q.append(subrel.substring(5).trim());
-                        q.append(")");
+                        b.append(" AND (");
+                        b.append(subrel.substring(5).trim());
+                        b.append(")");
                     }
                 } else {
-                    q.append(rel.buildQuery(home,
+                    b.append(rel.buildQuery(home,
                                             home.getNonVirtualParent(),
                                             kstr,
                                             " WHERE ",
@@ -1562,15 +1552,9 @@ public final class NodeManager {
 
                 stmt = con.createStatement();
 
-                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+                query = b.toString();
 
-                ResultSet rs = stmt.executeQuery(q.toString());
-
-                if (logSql) {
-                    long logTimeStop = System.currentTimeMillis();
-                    logSqlStatement("SQL SELECT_BYRELATION", dbm.getTableName(),
-                                    logTimeStart, logTimeStop, q.toString());
-                }
+                ResultSet rs = stmt.executeQuery(query);
 
                 if (!rs.next()) {
                     return null;
@@ -1595,6 +1579,11 @@ public final class NodeManager {
                 }
 
             } finally {
+                if (logSql) {
+                    long logTimeStop = System.currentTimeMillis();
+                    logSqlStatement("SQL SELECT_BYRELATION", dbm.getTableName(),
+                                    logTimeStart, logTimeStop, query);
+                }
                 if (stmt != null) {
                     try {
                         stmt.close();
