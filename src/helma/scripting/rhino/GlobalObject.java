@@ -73,12 +73,17 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         defineFunctionProperties(globalFuncs, GlobalObject.class, 0);
         put("app", this, Context.toObject(new ApplicationBean(app), this));
         put("Xml", this, Context.toObject(new XmlObject(core), this));
+        // Define dontEnum() on Object prototype
+        String[] objFuncs = { "dontEnum" };
+        ScriptableObject objproto = (ScriptableObject) getObjectPrototype(this);
+        objproto.defineFunctionProperties(objFuncs, GlobalObject.class, 
+                    DONTENUM | READONLY | PERMANENT);
     }
-
+    
     /**
+     * Get the global object's class name
      *
-     *
-     * @return ...
+     * @return the class name for the global object
      */
     public String getClassName() {
         return "GlobalObject";
@@ -509,11 +514,10 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     }
 
     /**
+     * (Try to) strip all HTML/XML style tags from the given string argument
      *
-     *
-     * @param str ...
-     *
-     * @return ...
+     * @param str a string
+     * @return the string with tags removed
      */
     public String stripTags(String str) {
         if (str == null) {
@@ -550,6 +554,9 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         return str;
     }
 
+    /**
+     * Serialize a JavaScript object to a file.
+     */
     public static void serialize(Context cx, Scriptable thisObj,
                                  Object[] args, Function funObj)
         throws IOException
@@ -575,6 +582,9 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         out.close();
     }
 
+    /**
+     * Read a previously serialized JavaScript object from a file.
+     */
     public static Object deserialize(Context cx, Scriptable thisObj,
                                      Object[] args, Function funObj)
         throws IOException, ClassNotFoundException
@@ -592,7 +602,25 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         return Context.toObject(deserialized, scope);
     }
 
-
+    /**
+     * Set DONTENUM attrubutes on the given properties in this object. 
+     * This is set on the JavaScript Object prototype.
+     */
+    public static Object dontEnum (Context cx, Scriptable thisObj, 
+                                   Object[] args, Function funObj) {
+        if (!(thisObj instanceof ScriptableObject)) {
+            throw new EvaluatorException("dontEnum() called on non-ScriptableObject");
+        }
+        ScriptableObject obj = (ScriptableObject) thisObj;
+        for (int i=0; i<args.length; i++) {
+            if (!(args[i] instanceof String)) {
+                throw new EvaluatorException("dontEnum() called with non-String argument");
+            }
+            String str = (String) args[i];
+            obj.setAttributes(str, obj.getAttributes(str) | DONTENUM);
+        }
+        return null;
+    }
 
     private static String toString(Object obj) {
         if (obj == null || obj == Undefined.instance) {
