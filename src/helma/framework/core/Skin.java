@@ -154,7 +154,7 @@ public final class Skin {
         }
 
         if (macros == null) {
-            reval.res.writeCharArray(source, 0, sourceLength);
+            reval.getResponse().writeCharArray(source, 0, sourceLength);
             reval.skinDepth--;
 
             return;
@@ -170,7 +170,7 @@ public final class Skin {
 
             for (int i = 0; i < macros.length; i++) {
                 if (macros[i].start > written) {
-                    reval.res.writeCharArray(source, written, macros[i].start - written);
+                    reval.getResponse().writeCharArray(source, written, macros[i].start - written);
                 }
 
                 macros[i].render(reval, thisObject, paramObject, handlerCache);
@@ -178,7 +178,7 @@ public final class Skin {
             }
 
             if (written < sourceLength) {
-                reval.res.writeCharArray(source, written, sourceLength - written);
+                reval.getResponse().writeCharArray(source, written, sourceLength - written);
             }
         } finally {
             reval.skinDepth--;
@@ -403,7 +403,7 @@ public final class Skin {
             }
 
             if ((sandbox != null) && !sandbox.contains(fullName)) {
-                reval.res.write("[Macro " + fullName + " not allowed in sandbox]");
+                reval.getResponse().write("[Macro " + fullName + " not allowed in sandbox]");
 
                 return;
             } else if ("response".equalsIgnoreCase(handler)) {
@@ -468,7 +468,7 @@ public final class Skin {
                             // eiter because thisObject == null or the right object wasn't found
                             // in the object's parent path. Check if a matching macro handler
                             // is registered with the response object (res.handlers).
-                            handlerObject = reval.res.getMacroHandlers().get(handler);
+                            handlerObject = reval.getResponse().getMacroHandlers().get(handler);
                         }
 
                         // the macro handler object couldn't be found
@@ -492,7 +492,7 @@ public final class Skin {
                     String funcName = name + "_macro";
 
                     if (reval.scriptingEngine.hasFunction(handlerObject, funcName)) {
-                        StringBuffer buffer = reval.res.getBuffer();
+                        StringBuffer buffer = reval.getResponse().getBuffer();
                         RenderParameters renderParams = defaultRenderParams;
 
                         // remember length of response buffer before calling macro
@@ -551,18 +551,18 @@ public final class Skin {
                         // otherwise try property lookup
                         if (handlerObject == null) {
                             String msg = "[Macro unhandled: " + fullName + "]";
-                            reval.res.write(" " + msg + " ");
+                            reval.getResponse().write(" " + msg + " ");
                             app.logEvent(msg);                            
 
                         } else {
                             Object value = reval.scriptingEngine.get(handlerObject, name);
-                            writeResponse(value, reval.res.getBuffer(), defaultRenderParams, true);
+                            writeResponse(value, reval.getResponse().getBuffer(), defaultRenderParams, true);
                         }
                     }
 
                 } else {
                     String msg = "[Macro unhandled: " + fullName + "]";
-                    reval.res.write(" " + msg + " ");
+                    reval.getResponse().write(" " + msg + " ");
                     app.logEvent(msg);
 
                 }
@@ -581,7 +581,7 @@ public final class Skin {
                 }
 
                 msg = "[Macro error in " + fullName + ": " + msg + "]";
-                reval.res.write(" " + msg + " ");
+                reval.getResponse().write(" " + msg + " ");
                 app.logEvent(msg);
             }
         }
@@ -591,48 +591,48 @@ public final class Skin {
             Object value = null;
 
             if ("message".equals(name)) {
-                value = reval.res.message;
+                value = reval.getResponse().message;
             } else if ("error".equals(name)) {
-                value = reval.res.error;
+                value = reval.getResponse().error;
             }
 
             if (value == null) {
-                value = reval.res.get(name);
+                value = reval.getResponse().get(name);
             }
 
-            writeResponse(value, reval.res.getBuffer(), defaultRenderParams, true);
+            writeResponse(value, reval.getResponse().getBuffer(), defaultRenderParams, true);
         }
 
         private void renderFromRequest(RequestEvaluator reval)
                 throws UnsupportedEncodingException {
-            if (reval.req == null) {
+            if (reval.getRequest() == null) {
                 return;
             }
 
-            Object value = reval.req.get(name);
+            Object value = reval.getRequest().get(name);
 
-            writeResponse(value, reval.res.getBuffer(), defaultRenderParams, true);
+            writeResponse(value, reval.getResponse().getBuffer(), defaultRenderParams, true);
         }
 
         private void renderFromSession(RequestEvaluator reval)
                 throws UnsupportedEncodingException {
-            if (reval.session == null) {
+            if (reval.getSession() == null) {
                 return;
             }
 
-            Object value = reval.session.getCacheNode().getString(name);
+            Object value = reval.getSession().getCacheNode().getString(name);
 
-            writeResponse(value, reval.res.getBuffer(), defaultRenderParams, true);
+            writeResponse(value, reval.getResponse().getBuffer(), defaultRenderParams, true);
         }
 
         private void renderFromParam(RequestEvaluator reval, Map paramObject)
                 throws UnsupportedEncodingException {
             if (paramObject == null) {
-                reval.res.write("[Macro error: Skin requires a parameter object]");
+                reval.getResponse().write("[Macro error: Skin requires a parameter object]");
             } else {
                 Object value = paramObject.get(name);
 
-                writeResponse(value, reval.res.getBuffer(), defaultRenderParams, true);
+                writeResponse(value, reval.getResponse().getBuffer(), defaultRenderParams, true);
             }
         }
 

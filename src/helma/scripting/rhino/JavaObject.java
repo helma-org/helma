@@ -17,6 +17,7 @@
 package helma.scripting.rhino;
 
 import helma.framework.core.*;
+import helma.framework.ResponseTrans;
 import org.mozilla.javascript.*;
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -124,10 +125,10 @@ public class JavaObject extends NativeJavaObject {
         Map param = RhinoCore.getSkinParam(paramobj);
 
         if (skin != null) {
-            reval.res.pushStringBuffer();
+            ResponseTrans res = reval.getResponse();
+            res.pushStringBuffer();
             skin.render(reval, javaObject, param);
-
-            return reval.res.popStringBuffer();
+            return res.popStringBuffer();
         }
 
         return "";

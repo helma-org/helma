@@ -22,7 +22,7 @@ import helma.framework.core.RequestEvaluator;
 import java.io.OutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
+import java.util.Map;
 
 /**
  * This is the interface that must be implemented to make a scripting environment
@@ -68,7 +68,7 @@ public interface ScriptingEngine {
      *  evaluation is entered. The globals parameter contains the global values
      *  to be applied during this execution context.
      */
-    public void enterContext(HashMap globals) throws ScriptingException;
+    public void enterContext(Map globals) throws ScriptingException;
 
     /**
      *   This method is called to let the scripting engine know that the current

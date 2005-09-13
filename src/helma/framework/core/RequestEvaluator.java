@@ -36,41 +36,41 @@ public final class RequestEvaluator implements Runnable {
     static final int XMLRPC = 2; // via XML-RPC
     static final int INTERNAL = 3; // generic function call, e.g. by scheduler
     static final int EXTERNAL = 4; // function from script etc
+
     public final Application app;
+
     protected ScriptingEngine scriptingEngine;
-    public volatile RequestTrans req;
-    public volatile ResponseTrans res;
-
-    // the one and only transactor thread
-    volatile Transactor rtx;
-
-    // the type of request to be serviced,
-    // used to coordinate worker and waiter threads
-    volatile int reqtype;
-
-    // the object on which to invoke a function, if specified
-    Object thisObject;
-
-    // the method to be executed
-    String functionName;
-
-    // the session object associated with the current request
-    Session session;
-
-    // arguments passed to the function
-    Object[] args;
-
-    // the object path of the request we're evaluating
-    RequestPath requestPath;
-
-    // the result of the operation
-    Object result;
-
-    // the exception thrown by the evaluator, if any.
-    Exception exception;
 
     // skin depth counter, used to avoid recursive skin rendering
     protected int skinDepth;
+
+    private volatile RequestTrans req;
+    private volatile ResponseTrans res;
+
+    // the one and only transactor thread
+    private volatile Transactor rtx;
+
+    // the type of request to be serviced,
+    // used to coordinate worker and waiter threads
+    private volatile int reqtype;
+
+    // the object on which to invoke a function, if specified
+    private Object thisObject;
+
+    // the method to be executed
+    private String functionName;
+
+    // the session object associated with the current request
+    private Session session;
+
+    // arguments passed to the function
+    private Object[] args;
+
+    // the result of the operation
+    private Object result;
+
+    // the exception thrown by the evaluator, if any.
+    private Exception exception;
 
     /**
      *  Create a new RequestEvaluator for this application.
@@ -131,8 +131,13 @@ public final class RequestEvaluator implements Runnable {
                 // object reference to ressolve request path
                 Object currentElement;
 
+                // Get req and res into local variables to avoid memory caching problems
+                // in unsynchronized method.
+                RequestTrans req = getRequest();
+                ResponseTrans res = getResponse();
+
                 // request path object
-                requestPath = new RequestPath(app);
+                RequestPath requestPath = new RequestPath(app);
 
                 int tries = 0;
                 boolean done = false;
@@ -160,7 +165,7 @@ public final class RequestEvaluator implements Runnable {
 
                         root = app.getDataRoot();
 
-                        initGlobals(root);
+                        initGlobals(root, requestPath);
 
                         if (error != null) {
                             res.error = error;
@@ -489,8 +494,6 @@ public final class RequestEvaluator implements Runnable {
                                 Thread.sleep((long) (base + (Math.random() * base * 2)));
                             } catch (Exception ignore) {
                             }
-
-                            continue;
                         } else {
                             abortTransaction();
 
@@ -859,7 +862,7 @@ public final class RequestEvaluator implements Runnable {
      * @param req
      * @param session
      */
-    private void initObjects(RequestTrans req, Session session) {
+    private synchronized void initObjects(RequestTrans req, Session session) {
         this.req = req;
         this.reqtype = HTTP;
         this.session = session;
@@ -876,12 +879,12 @@ public final class RequestEvaluator implements Runnable {
      * @param reqtype
      * @param reqtypeName
      */
-    private void initObjects(String functionName, int reqtype, String reqtypeName) {
+    private synchronized void initObjects(String functionName, int reqtype, String reqtypeName) {
         this.functionName = functionName;
         this.reqtype = reqtype;
         req = new RequestTrans(reqtypeName, functionName);
         session = new Session(functionName, app);
-        res = new ResponseTrans(app, req);
+        res = new ResponseTrans(app, getRequest());
         result = null;
         exception = null;
     }
@@ -892,7 +895,8 @@ public final class RequestEvaluator implements Runnable {
      * @param root
      * @throws ScriptingException
      */
-    private void initGlobals(Object root) throws ScriptingException {
+    private synchronized void initGlobals(Object root, Object requestPath)
+                throws ScriptingException {
         HashMap globals = new HashMap();
 
         globals.put("root", root);
@@ -930,12 +934,11 @@ public final class RequestEvaluator implements Runnable {
     /**
      *  Null out some fields, mostly for the sake of garbage collection.
      */
-    public void recycle() {
+    public synchronized void recycle() {
         res = null;
         req = null;
         session = null;
         args = null;
-        requestPath = null;
         result = null;
         exception = null;
     }
@@ -989,4 +992,39 @@ public final class RequestEvaluator implements Runnable {
         return scriptingEngine;
     }
 
+    /**
+     * Get the request object for the current request.
+     *
+     * @return the request object
+     */
+    public synchronized RequestTrans getRequest() {
+        return req;
+    }
+
+    /**
+     * Get the response object for the current request.
+     *
+     * @return the response object
+     */
+    public synchronized ResponseTrans getResponse() {
+        return res;
+    }
+
+    /**
+     * Get the current transactor thread
+     *
+     * @return the current transactor thread
+     */
+    public synchronized Transactor getThread() {
+        return rtx;
+    }
+
+    /**
+     * Return the current session
+     *
+     * @return the session for the current request
+     */
+    public synchronized Session getSession() {
+        return session;
+    }
 }

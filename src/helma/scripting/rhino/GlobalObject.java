@@ -18,6 +18,7 @@ package helma.scripting.rhino;
 
 import helma.scripting.rhino.extensions.*;
 import helma.framework.core.*;
+import helma.framework.ResponseTrans;
 import helma.objectmodel.db.*;
 import helma.util.HtmlEncoder;
 import helma.util.MimePart;
@@ -178,10 +179,10 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         Map param = RhinoCore.getSkinParam(paramobj);
 
         if (skin != null) {
-            reval.res.pushStringBuffer();
+            ResponseTrans res = reval.getResponse();
+            res.pushStringBuffer();
             skin.render(reval, null, param);
-
-            return reval.res.popStringBuffer();
+            return res.popStringBuffer();
         }
 
         return "";

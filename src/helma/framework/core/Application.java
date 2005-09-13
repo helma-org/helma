@@ -1175,7 +1175,7 @@ public final class Application implements IPathElement, Runnable {
         for (int i = 0; i < l; i++) {
             RequestEvaluator r = (RequestEvaluator) allThreads.get(i);
 
-            if ((r != null) && (r.rtx == thread)) {
+            if ((r != null) && (r.getThread() == thread)) {
                 return r;
             }
         }

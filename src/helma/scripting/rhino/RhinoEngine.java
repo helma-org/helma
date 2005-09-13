@@ -187,7 +187,7 @@ public class RhinoEngine implements ScriptingEngine {
      *  evaluation is entered. The globals parameter contains the global values
      *  to be applied during this execution context.
      */
-    public void enterContext(HashMap globals) throws ScriptingException {
+    public void enterContext(Map globals) throws ScriptingException {
         // set the thread filed in the FESI evaluator
         // evaluator.thread = Thread.currentThread ();
         // set globals on the global object
@@ -524,7 +524,7 @@ public class RhinoEngine implements ScriptingEngine {
      *  Proxy method to RequestEvaluator.
      */
     public ResponseTrans getResponse() {
-        return reval.res;
+        return reval.getResponse();
     }
 
     /**
@@ -532,7 +532,7 @@ public class RhinoEngine implements ScriptingEngine {
      *  Proxy method to RequestEvaluator.
      */
     public RequestTrans getRequest() {
-        return reval.req;
+        return reval.getRequest();
     }
 
     /**
@@ -551,16 +551,17 @@ public class RhinoEngine implements ScriptingEngine {
      */
     public Skin getSkin(String protoName, String skinName) throws IOException {
         SkinKey key = new SkinKey(protoName, skinName);
+        ResponseTrans res = getResponse();
 
-        Skin skin = reval.res.getCachedSkin(key);
+        Skin skin = res.getCachedSkin(key);
 
         if (skin == null) {
             // retrieve res.skinpath, an array of objects that tell us where to look for skins
             // (strings for directory names and INodes for internal, db-stored skinsets)
-            Object[] skinpath = reval.res.getSkinpath();
+            Object[] skinpath = res.getSkinpath();
             RhinoCore.unwrapSkinpath(skinpath);
             skin = app.getSkin(protoName, skinName, skinpath);
-            reval.res.cacheSkin(key, skin);
+            res.cacheSkin(key, skin);
         }
         return skin;
     }

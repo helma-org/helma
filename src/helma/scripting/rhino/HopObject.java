@@ -19,6 +19,7 @@ package helma.scripting.rhino;
 import helma.scripting.ScriptingException;
 import helma.scripting.ScriptingEngine;
 import helma.framework.core.*;
+import helma.framework.ResponseTrans;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import org.mozilla.javascript.*;
@@ -311,10 +312,10 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         checkNode();
 
         if (skin != null) {
-            reval.res.pushStringBuffer();
+            ResponseTrans res = reval.getResponse();
+            res.pushStringBuffer();
             skin.render(reval, node, param);
-
-            return reval.res.popStringBuffer();
+            return res.popStringBuffer();
         }
 
         return "";
