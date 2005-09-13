@@ -239,7 +239,9 @@ public final class ResponseTrans implements Serializable {
      * Returns the content of the current string buffer and switches back to the previos one.
      */
     public synchronized String popStringBuffer() {
-        if (buffer == null || buffers == null) {
+        if (buffer == null) {
+            throw new RuntimeException("Can't pop string buffer: buffer is null");
+        } else if (buffers == null) {
             throw new RuntimeException("Can't pop string buffer: buffer stack is empty");
         }
 
