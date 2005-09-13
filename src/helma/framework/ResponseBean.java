@@ -32,63 +32,64 @@ public class ResponseBean implements Serializable {
     /**
      * Creates a new ResponseBean object.
      *
-     * @param res ...
+     * @param res the wrapped ResponseTrans
      */
     public ResponseBean(ResponseTrans res) {
         this.res = res;
     }
 
     /**
+     * Write an object to the response buffer by converting it to a string
+     * and then HTML-encoding it.
      *
-     *
-     * @param what ...
+     * @param obj the object to write to the response buffer 
      */
-    public void encode(Object what) {
-        res.encode(what);
+    public void encode(Object obj) {
+        res.encode(obj);
     }
 
     /**
+     * Write an object to the response buffer by converting it to a string
+     * and then XML-encoding it.
      *
-     *
-     * @param what ...
+     * @param obj the object to write to the response buffer 
      */
-    public void encodeXml(Object what) {
-        res.encodeXml(what);
+    public void encodeXml(Object obj) {
+        res.encodeXml(obj);
     }
 
     /**
+     * Write an object to the response buffer by converting it to a string
+     * and then HTML-formatting it.
      *
-     *
-     * @param what ...
+     * @param obj the object to write to the response buffer 
      */
-    public void format(Object what) {
-        res.format(what);
+    public void format(Object obj) {
+        res.format(obj);
     }
 
     /**
+     * Redirect the request to a different URL
      *
-     *
-     * @param url ...
-     *
-     * @throws RedirectException ...
+     * @param url the URL to redirect to
+     * @throws RedirectException to immediately terminate the request
      */
     public void redirect(String url) throws RedirectException {
         res.redirect(url);
     }
 
     /**
+     * Internally forward the request to a different URL
      *
-     *
-     * @param url ...
-     *
-     * @throws RedirectException ...
+     * @param url the URL to forward to
+     * @throws RedirectException to immediately terminate the request
      */
     public void forward(String url) throws RedirectException {
         res.forward(url);
     }
 
     /**
-     *
+     * Reset the response object, clearing all content previously written to it
      */
     public void reset() {
         res.reset();
@@ -103,258 +104,283 @@ public class ResponseBean implements Serializable {
     }
 
     /**
+     * Set a HTTP cookie with the name and value that is discarded when the 
+     * HTTP client is closed
      *
-     *
-     * @param key ...
-     * @param value ...
+     * @param key the cookie name
+     * @param value the cookie value
      */
     public void setCookie(String key, String value) {
         res.setCookie(key, value, -1, null, null);
     }
 
     /**
+     * Set a HTTP cookie with the name and value that is stored by the 
+     * HTTP client for the given number of days. A days value of 0 means the
+     * cookie should be immediately discarded.
      *
-     *
-     * @param key ...
-     * @param value ...
-     * @param days ...
+     * @param key the cookie name
+     * @param value the cookie value
+     * @param days number of days the cookie should be stored
      */
     public void setCookie(String key, String value, int days) {
         res.setCookie(key, value, days, null, null);
     }
 
     /**
+     * Set a HTTP cookie with the name and value that is only applied to 
+     * the URLs matching the given path and is stored by the 
+     * HTTP client for the given number of days. A days value of 0 means the
+     * cookie should be immediately discarded.
      *
-     *
-     * @param key ...
-     * @param value ...
-     * @param days ...
-     * @param path ...
+     * @param key the cookie name
+     * @param value the cookie value
+     * @param days number of days the cookie should be stored
+     * @param path the URL path to apply the cookie to
      */
     public void setCookie(String key, String value, int days, String path) {
         res.setCookie(key, value, days, path, null);
     }
 
     /**
+     * Set a HTTP cookie with the name and value that is only applied to 
+     * the URLs matching the given path and is stored by the 
+     * HTTP client for the given number of days. A days value of 0 means the
+     * cookie should be immediately discarded.
      *
-     *
-     * @param key ...
-     * @param value ...
-     * @param days ...
-     * @param path ...
-     * @param domain ...
+     * @param key the cookie name
+     * @param value the cookie value
+     * @param days number of days the cookie should be stored
+     * @param path the URL path to apply the cookie to
+     * @param domain domain
      */
     public void setCookie(String key, String value, int days, String path, String domain) {
         res.setCookie(key, value, days, path, domain);
     }
-
+    
     /**
+     * Unset a previously set HTTP cookie, causing it to be discarded immedialtely by the 
+     * HTTP client.
      *
-     *
-     * @param what ...
+     * @param key the name of the cookie to be discarded
      */
-    public void write(String what) {
-        res.write(what);
+    public void unsetCookie(String key) {
+        res.setCookie(key, "", 0, null, null);
     }
 
     /**
+     * Directly write a string to the response buffer without any transformation.
      *
-     *
-     * @param what ...
+     * @param str the string to write to the response buffer
      */
-    public void writeln(String what) {
-        res.writeln(what);
+    public void write(String str) {
+        res.write(str);
     }
 
     /**
+     * Write a string to the response buffer followed by an XHTML br tag.
      *
-     *
-     * @param what ...
+     * @param str the string to write to the response buffer
      */
-    public void writeBinary(byte[] what) {
-        res.writeBinary(what);
+    public void writeln(String str) {
+        res.writeln(str);
     }
 
     /**
+     * Directly write a byte array to the response buffer without any transformation.
      *
+     * @param bytes the string to write to the response buffer
+     */
+    public void writeBinary(byte[] bytes) {
+        res.writeBinary(bytes);
+    }
+
+    /**
+     * add an HTML formatted debug message to the end of the page.
      *
-     * @param message ...
+     * @param message the message
      */
     public void debug(String message) {
         res.debug(message);
     }
 
     /**
+     * Return a string representation for this object
      *
-     *
-     * @return ...
+     * @return string representation
      */
     public String toString() {
         return "[Response]";
     }
 
-    // property-related methods:
+    // property-related methods
+    
+    /**
+     * Return the current cachability setting for this response
+     * 
+     * @return true if the response may be cached by the HTTP client, false otherwise
+     */
     public boolean getCache() {
         return res.cache;
     }
 
     /**
+     * Set true cachability setting for this response
      *
-     *
-     * @param cache ...
+     * @param cache true if the response may be cached by the HTTP client, false otherwise
      */
     public void setCache(boolean cache) {
         res.cache = cache;
     }
 
     /**
+     * Get the current charset/encoding name for the response
      *
-     *
-     * @return ...
+     * @return The charset name
      */
     public String getCharset() {
         return res.charset;
     }
 
     /**
+     * Set the charset/encoding name for the response
      *
-     *
-     * @param charset ...
+     * @param charset The charset name
      */
     public void setCharset(String charset) {
         res.charset = charset;
     }
 
     /**
+     * Get the current content type name for the response
      *
-     *
-     * @return ...
+     * @return the content type
      */
     public String getContentType() {
         return res.contentType;
     }
 
     /**
+     * Set the content type for the response
      *
-     *
-     * @param contentType ...
+     * @param contentType The charset name
      */
     public void setContentType(String contentType) {
         res.contentType = contentType;
     }
 
     /**
+     * Get the data map for the response
      *
-     *
-     * @return ...
+     * @return the data object
      */
     public Map getData() {
         return res.getResponseData();
     }
 
     /**
+     * Get the macro handlers map for the response
      *
-     *
-     * @return ...
+     * @return the macro handlers map
      */
     public Map getHandlers() {
         return res.getMacroHandlers();
     }
     
     /**
+     * Get the meta map for the response
      *
-     *
-     * @return ...
+     * @return the meta map
      */
     public Map getMeta() {
         return res.getMetaData();
     }
 
     /**
+     * Get the current error message for the response, if any
      *
-     *
-     * @return ...
+     * @return the error message
      */
     public String getError() {
         return res.error;
     }
 
     /**
+     * Get the current message for the response, if set
      *
-     *
-     * @return ...
+     * @return the message
      */
     public String getMessage() {
         return res.message;
     }
 
     /**
+     * Set the message property for the response
      *
-     *
-     * @param message ...
+     * @param message the message property
      */
     public void setMessage(String message) {
         res.message = message;
     }
 
     /**
+     * Get the HTTP authentication realm for the response
      *
-     *
-     * @return ...
+     * @return the HTTP authentication realm
      */
     public String getRealm() {
         return res.realm;
     }
 
     /**
+     * Set the HTTP authentication realm for the response
      *
-     *
-     * @param realm ...
+     * @param realm the HTTP authentication realm
      */
     public void setRealm(String realm) {
         res.realm = realm;
     }
 
     /**
+     * Set the skin search path for the response
      *
-     *
-     * @param arr ...
+     * @param arr an array containing files or nodes containing skins
      */
     public void setSkinpath(Object[] arr) {
         res.setSkinpath(arr);
     }
 
     /**
+     * Get the skin search path for the response
      *
-     *
-     * @return ...
+     * @return The array of files or nodes used to search for skins
      */
     public Object[] getSkinpath() {
         return res.getSkinpath();
     }
 
     /**
+     * Get the HTTP status code for this response
      *
-     *
-     * @return ...
+     * @return the HTTP status code
      */
     public int getStatus() {
         return res.status;
     }
 
     /**
+     * Set the HTTP status code for this response
      *
-     *
-     * @param status ...
+     * @param status the HTTP status code
      */
     public void setStatus(int status) {
         res.status = status;
     }
 
     /**
+     * Get the last modified date for this response
      *
-     *
-     * @return ...
+     * @return the last modified date
      */
     public Date getLastModified() {
         long modified = res.getLastModified();
@@ -367,9 +393,9 @@ public class ResponseBean implements Serializable {
     }
 
     /**
+     * Set the last modified date for this response
      *
-     *
-     * @param date ...
+     * @param date the last modified date
      */
     public void setLastModified(Date date) {
         if (date == null) {
@@ -380,34 +406,35 @@ public class ResponseBean implements Serializable {
     }
 
     /**
+     * Get the ETag for this response
      *
-     *
-     * @return ...
+     * @return the HTTP etag
      */
     public String getETag() {
         return res.getETag();
     }
 
     /**
+     * Set the HTTP Etag for this response
      *
-     *
-     * @param etag ...
+     * @param etag the HTTP ETag
      */
     public void setETag(String etag) {
         res.setETag(etag);
     }
 
     /**
+     * Add an item to this response's dependencies. If no dependency has changed between 
+     * requests, an HTTP not-modified response will be generated.
      *
-     *
-     * @param what ...
+     * @param what a string item this response depends on
      */
     public void dependsOn(String what) {
         res.dependsOn(what);
     }
 
     /**
-     *
+     * Digest this response's dependencies to conditionally create a HTTP not-modified response
      */
     public void digest() {
         res.digestDependencies();
