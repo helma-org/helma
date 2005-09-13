@@ -28,7 +28,7 @@ public final class CookieTrans implements Serializable {
     String value;
     String path;
     String domain;
-    int days;
+    int days = -1;
 
     CookieTrans(String name, String value) {
         this.name = name;
@@ -107,7 +107,9 @@ public final class CookieTrans implements Serializable {
     public Cookie getCookie(String defaultPath, String defaultDomain) {
         Cookie c = new Cookie(name, value);
 
-        if (days > 0) {
+        c.setVersion(1);
+
+        if (days > -1) {
             // Cookie time to live, days -> seconds
             c.setMaxAge(days * 60 * 60 * 24);
         }
