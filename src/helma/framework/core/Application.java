@@ -1281,8 +1281,33 @@ public final class Application implements IPathElement, Runnable {
             // e implements the getPrototype() method
             return ((IPathElement) obj).getPrototype();
         } else {
-            // use java class name as prototype name
-            return classMapping.getProperty(obj.getClass().getName());
+            // look up prototype name by java class name
+            Class clazz = obj.getClass();
+            String protoname = classMapping.getProperty(clazz.getName());
+            if (protoname != null) {
+                return protoname;
+            }
+            // walk down superclass path
+            while ((clazz = clazz.getSuperclass()) != null) {
+                protoname = classMapping.getProperty(clazz.getName());
+                if (protoname != null) {
+                    // cache the class name for the object so we run faster next time
+                    classMapping.setProperty(obj.getClass().getName(), protoname);
+                    return protoname;
+                }
+            }
+            // check interfaces, too
+            Class[] classes = obj.getClass().getInterfaces();
+            for (int i = 0; i < classes.length && protoname == null; i++) {
+                protoname = classMapping.getProperty(classes[i].getName());
+                if (protoname != null) {
+                    // cache the class name for the object so we run faster next time
+                    classMapping.setProperty(obj.getClass().getName(), protoname);
+                    return protoname;
+                }
+            }
+            // nada
+            return null;
         }
     }
 
