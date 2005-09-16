@@ -295,7 +295,11 @@ public final class ResponseTrans implements Serializable {
             buffer = new StringBuffer(INITIAL_BUFFER_SIZE);
         }
 
-        buffer.append("<br />");
+        // only append <br> tag if we know this is an HTML/XHTML document. 
+        // even then should we use <br> for HTML 4.0 and below. Well well well...
+        if ("text/html".equals(contentType) || "application/xhtml+xml".equals(contentType)) {
+            buffer.append("<br />");
+        }
         buffer.append(newLine);
     }
 
