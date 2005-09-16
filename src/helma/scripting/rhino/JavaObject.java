@@ -31,7 +31,6 @@ import java.io.IOException;
 public class JavaObject extends NativeJavaObject {
 
     RhinoCore core;
-    Scriptable prototype;
     String protoName;
 
     static HashMap overload;
@@ -56,12 +55,11 @@ public class JavaObject extends NativeJavaObject {
         this.parent = scope;
         this.javaObject = obj;
         this.protoName = protoName;
-        this.prototype = prototype;
         this.core = core;
         staticType = obj.getClass();
+        setPrototype(prototype);
         initMembers();
     }
-
 
     /**
      *
@@ -162,23 +160,25 @@ public class JavaObject extends NativeJavaObject {
         return core.postProcessHref(javaObject, protoName, basicHref);
     }
 
+    /**
+     * Checks whether the given property is defined in this object.
+     */
     public boolean has(String name, Scriptable start) {
         // System.err.println ("HAS: "+name);
-        if (prototype.has(name, start))
+        if (overload.containsKey(name)) {
             return true;
+        }
         return super.has(name, start);
     }
 
+    /** 
+     * Get a named property from this object.
+     */
     public Object get(String name, Scriptable start) {
         // System.err.println ("GET: "+name);
         Object obj = overload.get(name);
         if (obj != null) {
             return new FunctionObject(name, (Method) obj, this);
-        }
-
-        obj = prototype.get(name, start);
-        if (obj != null && obj != NOT_FOUND) {
-            return obj;
         }
 
         return super.get(name, start);
