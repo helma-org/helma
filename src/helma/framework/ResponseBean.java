@@ -178,7 +178,7 @@ public class ResponseBean implements Serializable {
     }
 
     /**
-     * Write a string to the response buffer followed by an XHTML br tag.
+     * Write string to response buffer and append a platform dependent newline sequence.
      *
      * @param str the string to write to the response buffer
      */

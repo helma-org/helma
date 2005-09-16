@@ -285,7 +285,7 @@ public final class ResponseTrans implements Serializable {
     }
 
     /**
-     * Utility function that appends a <br> to whatever is written.
+     * Write object to response buffer and append a platform dependent newline sequence.
      */
     public synchronized void writeln(Object what) {
         write(what);
@@ -295,11 +295,6 @@ public final class ResponseTrans implements Serializable {
             buffer = new StringBuffer(INITIAL_BUFFER_SIZE);
         }
 
-        // only append <br> tag if we know this is an HTML/XHTML document. 
-        // even then should we use <br> for HTML 4.0 and below. Well well well...
-        if ("text/html".equals(contentType) || "application/xhtml+xml".equals(contentType)) {
-            buffer.append("<br />");
-        }
         buffer.append(newLine);
     }
 
