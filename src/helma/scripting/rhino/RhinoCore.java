@@ -1078,8 +1078,19 @@ public final class RhinoCore implements ScopeProvider {
         public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
             Date date = new Date((long) ScriptRuntime.toNumber(thisObj));
             SimpleDateFormat df = null;
+
             if (args.length > 0 && args[0] != Undefined.instance) {
-                df = new SimpleDateFormat(args[0].toString());
+                if (args.length > 1 && args[1] instanceof NativeJavaObject) {
+                    Object locale = ((NativeJavaObject) args[1]).unwrap();
+                    if (locale instanceof Locale) {
+                        df = new SimpleDateFormat(args[0].toString(), (Locale) locale);
+                    } else {
+                        throw new IllegalArgumentException("Second argument to Date.format() not a java.util.Locale: " +
+                                                            locale.getClass());
+                    }
+                } else {
+                    df = new SimpleDateFormat(args[0].toString());
+                }
             } else {
                 df = new SimpleDateFormat();
             }
