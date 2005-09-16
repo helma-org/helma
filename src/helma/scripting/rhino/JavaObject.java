@@ -181,6 +181,10 @@ public class JavaObject extends NativeJavaObject {
             return new FunctionObject(name, (Method) obj, this);
         }
 
+        if ("_prototype".equals(name)) {
+            return protoName;
+        }
+
         return super.get(name, start);
     }
 
