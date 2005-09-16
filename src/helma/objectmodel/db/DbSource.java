@@ -23,6 +23,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Enumeration;
 import java.util.Properties;
+import java.util.Hashtable;
 
 /**
  *  This class describes a releational data source (URL, driver, user and password).
@@ -36,6 +37,7 @@ public class DbSource {
     private String driver;
     private boolean isOracle;
     private long lastRead = 0L;
+    private Hashtable dbmappings = new Hashtable();
 
     /**
      * Creates a new DbSource object.
@@ -143,38 +145,59 @@ public class DbSource {
     }
 
     /**
+     * Return the class name of the JDBC driver
      *
-     *
-     * @return ...
+     * @return the class name of the JDBC driver
      */
     public String getDriverName() {
         return driver;
     }
 
     /**
+     * Return the name of the db dource
      *
-     *
-     * @return ...
+     * @return the name of the db dource
      */
     public String getName() {
         return name;
     }
 
     /**
+     * Set the default (server-wide) properties
      *
-     *
-     * @param props ...
+     * @param props server default db.properties
      */
     public static void setDefaultProps(ResourceProperties props) {
         defaultProps = props;
     }
 
     /**
-     * Is this an Oracle database?
+     * Check if this DbSource represents an Oracle database
      *
      * @return true if we're using an oracle JDBC driver
      */
     public boolean isOracle() {
         return isOracle;
+    }
+
+    /**
+     * Register a dbmapping by its table name.
+     *
+     * @param dbmap the DbMapping instance to register
+     */
+    protected void registerDbMapping(DbMapping dbmap) {
+        if (!dbmap.inheritsStorage() && dbmap.getTableName() != null) {
+            dbmappings.put(dbmap.getTableName().toUpperCase(), dbmap);
+        }
+    }
+
+    /**
+     * Look up a DbMapping instance for the given table name.
+     *
+     * @param tablename the table name
+     * @return the matching DbMapping instance
+     */
+    protected DbMapping getDbMapping(String tablename) {
+        return (DbMapping) dbmappings.get(tablename.toUpperCase());
     }
 }

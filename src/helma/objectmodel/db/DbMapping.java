@@ -112,6 +112,9 @@ public final class DbMapping {
     // evict objects of this type when received via replication
     private boolean evictOnReplication;
 
+    // Set of mappings that depend on us and should be forwarded last data change events
+    HashSet dependentMappings = new HashSet();
+
     /**
      * Create an empty DbMapping
      */
@@ -140,12 +143,10 @@ public final class DbMapping {
         db2prop = new HashMap();
 
         columnMap = new HashMap();
-
         parentInfo = null;
-
         idField = null;
-
         this.props = props;
+        readBasicProperties();
     }
 
     /**
@@ -155,17 +156,12 @@ public final class DbMapping {
         return props.lastModified() != lastTypeChange;
     }
 
-
     /**
-     * Read the mapping from the Properties. Return true if the properties were changed.
-     * The read is split in two, this method and the rewire method. The reason is that in order
-     * for rewire to work, all other db mappings must have been initialized and registered.
+     * Read in basic properties and register dbmapping with the
+     * dbsource.
      */
-    public synchronized void update() {
-        // read in properties
+    private void readBasicProperties() {
         tableName = props.getProperty("_table");
-        idgen = props.getProperty("_idgen");
-
         dbSourceName = props.getProperty("_db");
 
         if (dbSourceName != null) {
@@ -179,24 +175,36 @@ public final class DbMapping {
             } else if (tableName == null) {
                 app.logEvent("*** No table name specified for prototype " + typename);
                 app.logEvent("*** accessing or storing a " + typename +
-                             " object will cause an error.");
+                        " object will cause an error.");
 
                 // mark mapping as invalid by nulling the dbSource field
                 dbSource = null;
+            } else {
+                // dbSource and tableName not null - register this instance
+                dbSource.registerDbMapping(this);
             }
         }
+    }
 
+
+
+    /**
+     * Read the mapping from the Properties. Return true if the properties were changed.
+     * The read is split in two, this method and the rewire method. The reason is that in order
+     * for rewire to work, all other db mappings must have been initialized and registered.
+     */
+    public synchronized void update() {
+        // read in properties
+        readBasicProperties();
+        idgen = props.getProperty("_idgen");
         // if id field is null, we assume "ID" as default. We don't set it
         // however, so that if null we check the parent prototype first.
         idField = props.getProperty("_id");
-
         nameField = props.getProperty("_name");
-
         protoField = props.getProperty("_prototype");
+        evictOnReplication = "true".equals(props.getProperty("_evictOnReplication"));
 
         String parentSpec = props.getProperty("_parent");
-
-        evictOnReplication = "true".equals(props.getProperty("_evictOnReplication"));
 
         if (parentSpec != null) {
             // comma-separated list of properties to be used as parent
@@ -501,6 +509,14 @@ public final class DbMapping {
     public String columnNameToProperty(String columnName) {
         if (columnName == null) {
             return null;
+        }
+
+        // SEMIHACK: If columnName is a function call, try to extract actual
+        // column name from it
+        int open = columnName.indexOf('(');
+        int close = columnName.indexOf(')');
+        if (open > -1 && close > open) {
+            columnName = columnName.substring(open + 1, close);
         }
 
         return _columnNameToProperty(columnName.toUpperCase());
@@ -1163,9 +1179,9 @@ public final class DbMapping {
     }
 
     /**
+     * Return a string representation for this DbMapping
      *
-     *
-     * @return ...
+     * @return a string representation
      */
     public String toString() {
         if (typename == null) {
@@ -1176,18 +1192,18 @@ public final class DbMapping {
     }
 
     /**
+     * Get the last time something changed in the Mapping
      *
-     *
-     * @return ...
+     * @return time of last mapping change
      */
     public long getLastTypeChange() {
         return lastTypeChange;
     }
 
     /**
+     * Get the last time something changed in our data
      *
-     *
-     * @return ...
+     * @return time of last data change
      */
     public long getLastDataChange() {
         // refer to parent mapping if it uses the same db/table
@@ -1199,25 +1215,48 @@ public final class DbMapping {
     }
 
     /**
-     *
+     * Set the last time something changed in the data, propagating the event
+     * to mappings that depend on us through an additionalTables switch.
      */
     public void setLastDataChange(long t) {
-        // propagate data change timestamp to storage-compatible parent mapping
+        // forward data change timestamp to storage-compatible parent mapping
         if (inheritsStorage()) {
             parentMapping.setLastDataChange(t);
+        } else {
+            lastDataChange = t;
+            // propagate data change timestamp to mappings that depend on us
+            if (!dependentMappings.isEmpty()) {
+                Iterator it = dependentMappings.iterator();
+                while(it.hasNext()) {
+                    DbMapping dbmap = (DbMapping) it.next();
+                    dbmap.setIndirectDataChange(t);
+                }
+            }
+        }
+    }
+
+    /**
+     * Set the last time something changed in the data. This is already an indirect
+     * data change triggered by a mapping we depend on, so we don't propagate it to
+     * mappings that depend on us through an additionalTables switch.
+     */
+    protected void setIndirectDataChange(long t) {
+        // forward data change timestamp to storage-compatible parent mapping
+        if (inheritsStorage()) {
+            parentMapping.setIndirectDataChange(t);
         } else {
             lastDataChange = t;
         }
     }
 
     /**
+     * Helper method to generate a new ID. This is only used in the special case
+     * when using the select(max) method and the underlying table is still empty.
      *
-     *
-     * @param dbmax ...
-     *
-     * @return ...
+     * @param dbmax the maximum value already stored in db
+     * @return a new and hopefully unique id
      */
-    public synchronized long getNewID(long dbmax) {
+    protected synchronized long getNewID(long dbmax) {
         // refer to parent mapping if it uses the same db/table
         if (inheritsStorage()) {
             return parentMapping.getNewID(dbmax);
@@ -1228,9 +1267,9 @@ public final class DbMapping {
     }
 
     /**
+     * Return an enumeration of all properties defined by this db mapping.
      *
-     *
-     * @return ...
+     * @return the property enumeration
      */
     public Enumeration getPropertyEnumeration() {
         HashSet set = new HashSet();
@@ -1250,6 +1289,11 @@ public final class DbMapping {
             };
     }
 
+    /**
+     * Collect a set of all properties defined by this db mapping
+     *
+     * @param basket the set to put properties into
+     */
     private void collectPropertyNames(HashSet basket) {
         // fetch propnames from parent mapping first, than add our own.
         if (parentMapping != null) {
@@ -1262,7 +1306,7 @@ public final class DbMapping {
     }
 
     /**
-     *  Return the name of the prototype which specifies the storage location
+     * Return the name of the prototype which specifies the storage location
      * (dbsource + tablename) for this type, or null if it is stored in the embedded
      * db.
      */
@@ -1282,7 +1326,7 @@ public final class DbMapping {
      *
      * @return true if this mapping shares its parent mapping storage
      */
-    private boolean inheritsStorage() {
+    protected boolean inheritsStorage() {
         // note: tableName and dbSourceName are nulled out in update() if they
         // are inherited from the parent mapping. This way we know that
         // storage is not inherited if either of them is not null.
@@ -1344,20 +1388,30 @@ public final class DbMapping {
     }
 
     /**
+     * Get the mapping we inherit from, or null
      *
-     *
-     * @return ...
+     * @return the parent DbMapping, or null
      */
     public DbMapping getParentMapping() {
         return parentMapping;
     }
 
     /**
+     * Get our ResourceProperties
      *
-     *
-     * @return ...
+     * @return our properties
      */
     public ResourceProperties getProperties() {
         return props;
+    }
+
+    /**
+     * Register a DbMapping that depends on this DbMapping, so that collections of other mapping
+     * should be reloaded if data on this mapping is updated.
+     *
+     * @param dbmap the DbMapping that depends on us
+     */
+    protected void addDependency(DbMapping dbmap) {
+        this.dependentMappings.add(dbmap);
     }
 }

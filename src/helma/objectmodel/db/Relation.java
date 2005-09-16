@@ -19,6 +19,7 @@ package helma.objectmodel.db;
 import helma.framework.core.Application;
 import helma.objectmodel.INode;
 import helma.objectmodel.IProperty;
+import helma.util.StringUtils;
 
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -297,6 +298,21 @@ public final class Relation {
                 additionalTables = null;
             } else {
                 String ucTables = additionalTables.toUpperCase();
+                // create dependencies implied by additional tables
+                DbSource dbsource = otherType.getDbSource();
+                if (dbsource != null) {
+                    String[] tables = StringUtils.split(ucTables, ", ");
+                    for (int i=0; i<tables.length; i++) {
+                        // Skip some join-related keyworks we might encounter here
+                        if ("AS".equals(tables[i]) || "ON".equals(tables[i])) {
+                            continue;
+                        }
+                        DbMapping dbmap = dbsource.getDbMapping(tables[i]);
+                        if (dbmap != null) {
+                            dbmap.addDependency(otherType);
+                        }
+                    }
+                }
                 // see wether the JOIN syntax is used. look for " join " with whitespaces on both sides
                 // and for "join " at the beginning:
                 additionalTablesJoined = (ucTables.indexOf(" JOIN ") != -1 ||
