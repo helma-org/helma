@@ -26,6 +26,7 @@ import java.awt.image.IndexColorModel;
 /*
  * Modifications by Juerg Lehni:
  * 
+ * - Ported to Java from C
  * - Support for alpha-channels.
  * - Returns a BufferedImage of TYPE_BYTE_INDEXED with a IndexColorModel.
  * - Dithering of images through helma.image.DiffusionFilterOp by setting
@@ -332,25 +333,16 @@ public class ColorQuantizer {
                        children[id].findClosestColor(red, green, blue, alpha, closest);
            if (uniqueCount != 0) {
                // Determine if this color is "closest".
-               int r = (cube.colorMap[0][colorIndex] & 0xff) - red;
-               int distance = r * r;
+               int dr = (cube.colorMap[0][colorIndex] & 0xff) - red;
+               int dg = (cube.colorMap[1][colorIndex] & 0xff) - green;
+               int db = (cube.colorMap[2][colorIndex] & 0xff) - blue;
+               int da = (cube.colorMap[3][colorIndex] & 0xff) - alpha;
+               int distance = da * da + dr * dr + dg * dg + db * db;
                if (distance < closest.distance) {
-                   int g = (cube.colorMap[1][colorIndex] & 0xff) - green;
-                   distance += g * g;
-                   if (distance < closest.distance) {
-                       int b = (cube.colorMap[2][colorIndex] & 0xff) - blue;
-                       distance += b * b;
-                       if (distance < closest.distance) {
-                           int a = (cube.colorMap[3][colorIndex] & 0xff) - alpha;
-                           distance += a * a;
-                           if (distance < closest.distance) {
-                               closest.distance = distance;
-                               closest.colorIndex = colorIndex;
-                           }
-                       }
-                   }
+                   closest.distance = distance;
+                   closest.colorIndex = colorIndex;
                }
-           }
+            }
        }
 
        int fillColorMap(byte colorMap[][], int index) {
@@ -417,11 +409,9 @@ public class ColorQuantizer {
 
            // Classify the first 256 colors to a tree depth of MAX_TREE_DEPTH.
            int levelThreshold = MAX_TREE_DEPTH;
-           // create a BufferedImage of only 1 pixel height for fetching the
-           // rows
+           // create a BufferedImage of only 1 pixel height for fetching the rows
            // of the image in the correct format (ARGB)
-           // This speeds up things by more than factor 2, compared to the
-           // standard
+           // This speeds up things by more than factor 2, compared to the standard
            // BufferedImage.getRGB solution
            BufferedImage row = new BufferedImage(width, 1, BufferedImage.TYPE_INT_ARGB);
            Graphics2D g2d = row.createGraphics();
