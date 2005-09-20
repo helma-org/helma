@@ -99,7 +99,7 @@ public class GIFEncoder {
 
         // make sure it's index colors:
         if (bi.getType() != BufferedImage.TYPE_BYTE_INDEXED)
-            bi = Quantize.process(bi, 256, false, true);
+            bi = ColorQuantizer.quantizeImage(bi, 256, false, true);
 
         raster = bi.getRaster();
 

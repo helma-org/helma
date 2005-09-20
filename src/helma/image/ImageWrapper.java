@@ -540,7 +540,7 @@ public class ImageWrapper {
      */
 
     public void reduceColors(int colors, boolean dither, boolean alphaToBitmask) {
-        setImage(Quantize.process(getBufferedImage(), colors, dither,
+        setImage(ColorQuantizer.quantizeImage(getBufferedImage(), colors, dither,
             alphaToBitmask));
     }
 
