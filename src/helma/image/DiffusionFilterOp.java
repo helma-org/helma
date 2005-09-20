@@ -15,7 +15,7 @@
  */
 
 /*
- * Code from com.jhlabs.image.DiffusionFilter, Java Image Processing
+ * DiffusionFilter code from com.jhlabs.image.DiffusionFilter, Java Image Processing
  * Copyright (C) Jerry Huxtable 1998
  * http://www.jhlabs.com/ip/
  * 
@@ -31,14 +31,14 @@ import java.awt.geom.*;
 import java.awt.image.*;
 
 public class DiffusionFilterOp implements BufferedImageOp {
-	
-	protected final static int[] diffusionMatrix = {
-		 0, 0, 0,
-		 0, 0, 7,
-		 3, 5, 1,
-	};
+    
+    protected final static int[] diffusionMatrix = {
+         0, 0, 0,
+         0, 0, 7,
+         3, 5, 1,
+    };
 
-	private int[] matrix;
+    private int[] matrix;
     private int sum;
     private boolean serpentine = true;
     private int[] colorMap;
@@ -51,7 +51,8 @@ public class DiffusionFilterOp implements BufferedImageOp {
     }
 
     /**
-     * Set whether to use a serpentine pattern for return or not. This can reduce 'avalanche' artifacts in the output.
+     * Set whether to use a serpentine pattern for return or not.
+     * This can reduce 'avalanche' artifacts in the output.
      * @param serpentine true to use serpentine pattern
      */
     public void setSerpentine(boolean serpentine) {
@@ -108,32 +109,43 @@ public class DiffusionFilterOp implements BufferedImageOp {
         int width = src.getWidth();
         int height = src.getHeight();
 
-        DataBufferInt srcBuffer = (DataBufferInt) src.getRaster().getDataBuffer();
-        int srcData[] = srcBuffer.getData();
-
         // This is the offset into the buffer of the current source pixel
         int index = 0;
 
         // Loop through each pixel
-        for (int y = 0; y < height; y++) {
+        // create a BufferedImage of only 1 pixel height for fetching the rows
+        // of the image in the correct format (ARGB)
+        // This speeds up things by more than factor 2, compared to the standard
+        // BufferedImage.getRGB solution
+        BufferedImage row = new BufferedImage(width, 1, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = row.createGraphics();
+        int pixels[] = ((DataBufferInt) row.getRaster().getDataBuffer()).getData();
+        // make sure alpha values do not add up for each row:
+        g2d.setComposite(AlphaComposite.Src);
+        // calculate scanline by scanline in order to safe memory.
+        // It also seems to run faster like that
+        int rowIndex = 0;
+        for (int y = 0; y < height; y++, rowIndex += width) {
+            g2d.drawImage(src, null, 0, -y);
+            // now pixels contains the rgb values of the row y!
             boolean reverse = serpentine && (y & 1) == 1;
             int direction;
             if (reverse) {
-                index = y * width + width - 1;
+                index = width - 1;
                 direction = -1;
             } else {
-                index = y * width;
+                index = 0;
                 direction = 1;
             }
             for (int x = 0; x < width; x++) {
-                int rgb1 = srcData[index];
+                int rgb1 = pixels[index];
                 int a1 = (rgb1 >> 24) & 0xff;
                 int r1 = (rgb1 >> 16) & 0xff;
                 int g1 = (rgb1 >> 8) & 0xff;
                 int b1 = rgb1 & 0xff;
 
                 int idx = findIndex(r1, g1, b1, a1);
-                dstData[index] = (byte) idx;
+                dstData[rowIndex + index] = (byte) idx;
 
                 int rgb2 = colorMap[idx];
                 int a2 = (rgb2 >> 24) & 0xff;
@@ -159,14 +171,16 @@ public class DiffusionFilterOp implements BufferedImageOp {
                                     w = matrix[(i + 1) * 3 + j + 1];
                                 if (w != 0) {
                                     int k = reverse ? index - j : index + j;
-                                    rgb1 = srcData[k];
+                                    rgb1 = pixels[k];
                                     a1 = ((rgb1 >> 24) & 0xff) + ea * w / sum;
                                     r1 = ((rgb1 >> 16) & 0xff) + er * w / sum;
                                     g1 = ((rgb1 >> 8) & 0xff) + eg * w / sum;
                                     b1 = (rgb1 & 0xff) + eb * w / sum;
-
-                                    srcData[k] = ((clamp(a1) << 24) | clamp(r1) << 16)
-                                        | (clamp(g1) << 8) | clamp(b1);
+                                    pixels[k] =
+                                        (clamp(a1) << 24) |
+                                        (clamp(r1) << 16) |
+                                        (clamp(g1) << 8) |
+                                        clamp(b1);
                                 }
                             }
                         }
@@ -190,31 +204,24 @@ public class DiffusionFilterOp implements BufferedImageOp {
     int findIndex(int r1, int g1, int b1, int a1)
         throws ArrayIndexOutOfBoundsException {
         int idx = 0;
-        long dist = Long.MAX_VALUE;
+        int dist = Integer.MAX_VALUE;
         for (int i = 0; i < colorMap.length; i++) {
             int rgb2 = colorMap[i];
-            int a2 = (rgb2 >> 24) & 0xff;
-            int r2 = (rgb2 >> 16) & 0xff;
-            int g2 = (rgb2 >> 8) & 0xff;
-            int b2 = rgb2 & 0xff;
-
-            int da = a1 - a2;
-            int dr = r1 - r2;
-            int dg = g1 - g2;
-            int db = b1 - b2;
-
-            long newdist = da * da + dr * dr + dg * dg + db * db;
+            int da = a1 - ((rgb2 >> 24) & 0xff);
+            int dr = r1 - ((rgb2 >> 16) & 0xff);
+            int dg = g1 - ((rgb2 >> 8) & 0xff);
+            int db = b1 - (rgb2 & 0xff);
+            int newdist = da * da + dr * dr + dg * dg + db * db;
             if (newdist < dist) {
                 idx = i;
                 dist = newdist;
             }
-        }
+          }
         return idx;
     }
 
     // This always returns an indexed image
-    public BufferedImage createCompatibleDestImage(BufferedImage src,
-        ColorModel destCM) {
+    public BufferedImage createCompatibleDestImage(BufferedImage src, ColorModel destCM) {
         return new BufferedImage(src.getWidth(), src.getHeight(),
             BufferedImage.TYPE_BYTE_INDEXED);
     }
