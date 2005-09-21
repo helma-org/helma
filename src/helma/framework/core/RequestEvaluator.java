@@ -505,6 +505,7 @@ public final class RequestEvaluator implements Runnable {
                             done = true;
                         }
                     } catch (Throwable x) {
+                        String txname = localrtx.getTransactionName();
                         abortTransaction();
 
                         // If the transactor thread has been killed by the invoker thread we don't have to
@@ -518,7 +519,6 @@ public final class RequestEvaluator implements Runnable {
                         // check if we tried to process the error already
                         if (error == null) {
                             app.errorCount += 1;
-                            app.logError("Error in " + Thread.currentThread(), x);
 
                             // set done to false so that the error will be processed
                             done = false;
@@ -531,6 +531,13 @@ public final class RequestEvaluator implements Runnable {
                             if (error == null) {
                                 error = "Unspecified error";
                             }
+
+                            if (x instanceof ScriptingException) {
+                                x = ((ScriptingException) x).getWrappedException();
+                            }
+
+                            app.logError(txname + ": " + error, x);
+
                         } else {
                             // error in error action. use traditional minimal error message
                             res.writeErrorReport(app.getName(), error);

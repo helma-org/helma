@@ -149,7 +149,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
 
             hobj.init(core, node);
             if (proto != null) {
-                engine.invoke(hobj, "constructor", args, ScriptingEngine.ARGS_WRAP_NONE);
+                engine.invoke(hobj, "__constructor__", args, ScriptingEngine.ARGS_WRAP_NONE);
             }
 
             return hobj;
@@ -710,22 +710,25 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     }
 
     /**
+     * Set a property in this HopObject
      *
-     *
-     * @param name ...
-     * @param start ...
+     * @param name property name
+     * @param start
      * @param value ...
      */
     public void put(String name, Scriptable start, Object value) {
-        // register property for PropertyRecorder interface
-        if (isRecording) {
-            changedProperties.add(name);
-        }
-
         if (node == null) {
+            // redirect the scripted constructor to __constructor__,
+            // constructor is set to the native constructor method.
+            if ("constructor".equals(name) && value instanceof NativeFunction) {
+                name = "__constructor__";
+            }
+            // register property for PropertyRecorder interface
+            if (isRecording) {
+                changedProperties.add(name);
+            }
             super.put(name, start, value);
         } else {
-
             checkNode();
 
             if ("subnodeRelation".equals(name)) {
@@ -769,12 +772,11 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     }
 
     /**
+     * Check if a property is set in this HopObject
      *
-     *
-     * @param name ...
-     * @param start ...
-     *
-     * @return ...
+     * @param name the property name
+     * @param start the object in which the lookup began
+     * @return true if the property was found
      */
     public boolean has(String name, Scriptable start) {
         if (node != null) {
@@ -895,8 +897,12 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
             return node.getID();
         }
 
+        if ("__proto__".equals(name)) {
+            return getPrototype(); // prototype object
+        }
+
         if ("__prototype__".equals(name) || "_prototype".equals(name)) {
-            return node.getPrototype();
+            return node.getPrototype(); // prototype name
         }
 
         if ("__parent__".equals(name) || "_parent".equals(name)) {

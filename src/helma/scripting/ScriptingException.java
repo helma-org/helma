@@ -23,83 +23,24 @@ import java.io.PrintWriter;
  * The base class for exceptions thrown by Helma scripting package
  */
 public class ScriptingException extends Exception {
+
+    // original exception that caused this ScriptingException to be thrown.
     Exception wrapped;
 
     /**
-     * Construct a ScriptingException given an error message
+     * Construct a ScriptingException given an error message and wrapped exception.
      */
-    public ScriptingException(String msg) {
+    public ScriptingException(String msg, Exception wrapped) {
         super(msg);
-        wrapped = null;
+        this.wrapped = wrapped;
     }
 
     /**
-     * Construct a ScriptingException given an error message
+     * Get the original exception that caused this exception to be thrown.
+     *
+     * @return the wrapped exception
      */
-    public ScriptingException(Exception w) {
-        wrapped = w;
-    }
-
-    /**
-     *
-     *
-     * @return ...
-     */
-    public String toString() {
-        if (wrapped == null) {
-            return super.toString();
-        } else {
-            return wrapped.toString();
-        }
-    }
-
-    /**
-     *
-     *
-     * @return ...
-     */
-    public String getMessage() {
-        if (wrapped == null) {
-            return super.getMessage();
-        } else {
-            return wrapped.getMessage();
-        }
-    }
-
-    /**
-     *
-     */
-    public void printStackTrace() {
-        if (wrapped == null) {
-            super.printStackTrace();
-        } else {
-            wrapped.printStackTrace();
-        }
-    }
-
-    /**
-     *
-     *
-     * @param stream ...
-     */
-    public void printStackTrace(PrintStream stream) {
-        if (wrapped == null) {
-            super.printStackTrace(stream);
-        } else {
-            wrapped.printStackTrace(stream);
-        }
-    }
-
-    /**
-     *
-     *
-     * @param writer ...
-     */
-    public void printStackTrace(PrintWriter writer) {
-        if (wrapped == null) {
-            super.printStackTrace(writer);
-        } else {
-            wrapped.printStackTrace(writer);
-        }
+    public Exception getWrappedException() {
+         return wrapped;
     }
 }

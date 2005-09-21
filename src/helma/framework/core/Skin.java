@@ -20,6 +20,7 @@ import helma.framework.*;
 import helma.framework.repository.Resource;
 import helma.objectmodel.ConcurrencyException;
 import helma.util.*;
+import helma.scripting.ScriptingException;
 
 import java.util.*;
 import java.io.UnsupportedEncodingException;
@@ -573,16 +574,18 @@ public final class Skin {
             } catch (TimeoutException timeout) {
                 throw timeout;
             } catch (Exception x) {
-                // x.printStackTrace();
                 String msg = x.getMessage();
-
                 if ((msg == null) || (msg.length() < 10)) {
                     msg = x.toString();
                 }
-
-                msg = "[Macro error in " + fullName + ": " + msg + "]";
-                reval.getResponse().write(" " + msg + " ");
-                app.logEvent(msg);
+                msg = new StringBuffer("Macro error in ").append(fullName)
+                        .append(": ").append(x.getMessage()).toString();
+                reval.getResponse().write(" [" + msg + "] ");
+                // for ScriptingExceptions get the original exception
+                if (x instanceof ScriptingException) {
+                    x = ((ScriptingException) x).getWrappedException();
+                }
+                app.logError(msg, x);
             }
         }
 

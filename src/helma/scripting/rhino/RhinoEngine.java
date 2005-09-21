@@ -314,9 +314,12 @@ public class RhinoEngine implements ScriptingEngine {
             // create and throw a ScriptingException with the right message
             String msg;
             if (x instanceof JavaScriptException) {
-                msg = ((JavaScriptException) x).getValue().toString();
+                // created by javascript throw statement
+                msg = ((JavaScriptException) x).getMessage();
             } else if (x instanceof WrappedException) {
-                Throwable wrapped = ((WrappedException) x).getWrappedException();
+                // wrapped java excepiton
+                WrappedException wx = (WrappedException) x;
+                Throwable wrapped = wx.getWrappedException();
                 // if this is a wrapped concurrencyException, rethrow it.
                 if (wrapped instanceof ConcurrencyException) {
                     throw (ConcurrencyException) wrapped;
@@ -325,17 +328,22 @@ public class RhinoEngine implements ScriptingEngine {
                 if (wrapped instanceof RedirectException) {
                     throw (RedirectException) wrapped;
                 }
-                msg = wrapped.toString();
-            } else {
+                // we need to build our own message here, default implementation is broken
+                StringBuffer b = new StringBuffer(wrapped.toString());
+                b.append(" (").append(wx.getSourceName()).append("#")
+                        .append(wx.getLineNumber()).append(")");
+                msg = b.toString();
+                // replace wrapper with original exception
+                if (wrapped instanceof Exception) {
+                    x = (Exception) wrapped;
+                }
+            } else if (x instanceof EcmaError) {
                 msg = x.toString();
+            } else {
+                msg = x.getMessage();
             }
 
-            if (app.debug()) {
-                System.err.println("Error in Script: " + msg);
-                x.printStackTrace();
-            }
-
-            throw new ScriptingException(msg);
+            throw new ScriptingException(msg, x);
         }
     }
 

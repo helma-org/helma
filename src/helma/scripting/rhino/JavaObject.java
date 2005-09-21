@@ -32,6 +32,7 @@ public class JavaObject extends NativeJavaObject {
 
     RhinoCore core;
     String protoName;
+    NativeJavaObject unscriptedJavaObj;
 
     static HashMap overload;
 
@@ -57,6 +58,7 @@ public class JavaObject extends NativeJavaObject {
         this.protoName = protoName;
         this.core = core;
         staticType = obj.getClass();
+        unscriptedJavaObj = new NativeJavaObject(scope, obj, staticType);
         setPrototype(prototype);
         initMembers();
     }
@@ -181,8 +183,28 @@ public class JavaObject extends NativeJavaObject {
             return new FunctionObject(name, (Method) obj, this);
         }
 
-        if ("_prototype".equals(name)) {
+        // we really are not supposed to walk down the prototype chain in get(),
+        // but we break the rule in order to be able to override java methods,
+        // which are looked up by super.get() below
+        Scriptable proto = getPrototype();
+        while (proto != null) {
+            obj = proto.get(name, start);
+            if (obj != NOT_FOUND) {
+                return obj;
+            }
+            proto = proto.getPrototype();
+        }
+
+        if ("_prototype".equals(name) || "__prototype__".equals(name)) {
             return protoName;
+        }
+
+        if ("__proto__".equals(name)) {
+            return getPrototype();
+        }
+
+        if ("__javaObject__".equals(name)) {
+            return unscriptedJavaObj;
         }
 
         return super.get(name, start);

@@ -218,7 +218,8 @@ public final class RhinoCore implements ScopeProvider {
         // the actual (scripted) constructor on it.
         if (!"global".equals(lowerCaseName)) {
             try {
-                installConstructor(name, op);
+                FunctionObject fo = new FunctionObject(name, HopObject.hopObjCtor, global);
+                fo.addAsConstructor(global, op);
             } catch (Exception ignore) {
                 System.err.println("Error adding ctor for " + name + ": " + ignore);
                 ignore.printStackTrace();
@@ -283,29 +284,6 @@ public final class RhinoCore implements ScopeProvider {
 
             type.setParentType(parentType);
         }
-    }
-
-    /**
-     *  This is a version of org.mozilla.javascript.FunctionObject.addAsConstructor()
-     *  that does not set the constructor property in the prototype. This is because
-     *  we want our own scripted constructor function to be visible, if it is defined.
-     *
-     * @param name the name of the constructor
-     * @param op the object prototype
-     */
-    private void installConstructor(String name, Scriptable op) {
-        FunctionObject fo = new FunctionObject(name, HopObject.hopObjCtor, global);
-
-        ScriptRuntime.setFunctionProtoAndParent(global, fo);
-        fo.setImmunePrototypeProperty(op);
-
-        // add static getById() function
-        fo.defineProperty("getById", new GetById(name), GetById.ATTRIBUTES);
-        op.setParentScope(fo);
-
-        ScriptableObject.defineProperty(global, name, fo, ScriptableObject.DONTENUM);
-
-        fo.setParentScope(global);
     }
 
     /**
@@ -619,11 +597,11 @@ public final class RhinoCore implements ScopeProvider {
             Scriptable op = getPrototype(prototypeName);
 
             if (op == null) {
-                prototypeName = "HopObject";
-                op = getPrototype("HopObject");
+                // no prototype found, return an unscripted wrapper
+                w = new NativeJavaObject(global, e, e.getClass());
+            } else {
+                w = new JavaObject(global, e, prototypeName, op, this);
             }
-
-            w = new JavaObject(global, e, prototypeName, op, this);
 
             wrappercache.put(e, w);
         }
