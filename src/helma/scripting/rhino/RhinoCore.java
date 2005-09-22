@@ -220,6 +220,8 @@ public final class RhinoCore implements ScopeProvider {
             try {
                 FunctionObject fo = new FunctionObject(name, HopObject.hopObjCtor, global);
                 fo.addAsConstructor(global, op);
+                // add static getById() function
+                fo.defineProperty("getById", new GetById(name), GetById.ATTRIBUTES);
             } catch (Exception ignore) {
                 System.err.println("Error adding ctor for " + name + ": " + ignore);
                 ignore.printStackTrace();
