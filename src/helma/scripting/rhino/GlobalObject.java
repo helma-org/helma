@@ -387,11 +387,12 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
             put(name, this, obj);
             return;
         }
-        ScriptableObject scope = new ScriptableObject() {
+        ScriptableObject scope = new NativeObject() {
             public String getClassName() {
                 return name;
             }
         };
+        scope.setPrototype(ScriptableObject.getObjectPrototype(this));
         if (initStandardObjects) {
             Context cx = Context.getCurrentContext();
             cx.initStandardObjects(scope, false);
