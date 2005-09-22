@@ -8,7 +8,7 @@
     <target name="init">
         <property name="Name" value="helma"/>
         <property name="year" value="1998-${year}"/>
-        <property name="version" value="1.5.0"/>
+        <property name="version" value="1.5.x"/>
         <property name="project" value="helma"/>
 
         <property name="cvs.root.apps" value=":pserver:anonymous@adele.helma.at:/opt/cvs/apps"/>
@@ -60,15 +60,16 @@
         <echo message=""/>
         <echo message=" available targets are:"/>
         <echo message=""/>
-        <echo message=" compile    --> compiles the source code to ./classes"/>
-        <echo message=" jar        --> generates the ./lib/helma-YYYYMMDD.jar file"/>
-        <echo message=" javadocs   --> generates the API docs"/>
-        <echo message=" docs       --> tries to retrieve the HTML documentation "/>
-        <echo message="                (may need proxy settings in startscript)"/>
-        <echo message=" package    --> generates the distribution (zip and tar.gz)"/>
-        <echo message=" app [name] --> gets an application from the cvs and zips it"/>
+        <echo message=" compile       --> compiles the source code to ./classes"/>
+        <echo message=" jar           --> generates the ./lib/helma-YYYYMMDD.jar file"/>
+        <echo message=" javadocs      --> generates the API docs"/>
+    <!--<echo message=" docs           -> tries to retrieve the HTML documentation "/>   -->
+    <!--<echo message="                   (may need proxy settings in startscript)"/>    -->
+        <echo message=" package       --> generates the distribution (zip and tar.gz)"/>
+        <echo message=" app [name]    --> gets an application from the cvs and zips it"/>
+        <echo message=" module [name] --> gets a module from the cvs and zips it"/>
         <echo message=""/>
-        <echo message=" usage      --> provides help on using the build tool (default)"/>
+        <echo message=" usage         --> provides help on using the build tool (default)"/>
         <echo message=""/>
         <echo message=" See comments inside the build.xml file for more details."/>
         <echo message="-------------------------------------------------------------"/>
@@ -139,12 +140,12 @@
     <!-- Get the documentation (currently can fail due to request time-out   -->
     <!-- or missing support for proxies)                                     -->
     <!-- =================================================================== -->
-    <target name="docs" depends="init">
-        <get src="http://www.helma.org/docs/reference/print"
-             dest="${build.docs}/reference.html"
-             ignoreerrors="true"
-        />
-    </target>
+    <!-- <target name="docs" depends="init">                                 -->
+    <!--     <get src="http://www.helma.org/docs/reference/print"            -->
+    <!--          dest="${build.docs}/reference.html"                        -->
+    <!--          ignoreerrors="true"                                        -->
+    <!--     />                                                              -->
+    <!-- </target>                                                           -->
 
 
     <!-- =================================================================== -->
@@ -166,6 +167,9 @@
 
         <!-- checkout the demo apps (and zip manage-app) -->
         <antcall target="package-apps" />
+
+        <!-- checkout and zip the default modules -->
+        <antcall target="package-modules" />
 
         <!-- zip up the whole thing -->
         <antcall target="package-zip">
@@ -274,6 +278,41 @@
 
 
     <!-- =================================================================== -->
+    <!-- Checkout modules, put them in work directory and zip them           -->
+    <!-- =================================================================== -->
+    <target name="package-modules" depends="init">
+
+        <mkdir dir="${build.work}/modules" />
+
+        <antcall target="package-helmaLib" />
+    <!--<antcall target="package-helmaTools" />                              -->
+
+    </target>
+
+
+    <!-- =================================================================== -->
+    <!-- Checkout and zip helmaLib                                           -->
+    <!-- =================================================================== -->
+    <target name="package-helmaLib" depends="init">
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="helmaLib" dest="${build.work}" />
+        <mkdir dir="${build.work}/modules"/>
+        <zip zipfile="${build.work}/modules/helmaLib.zip" basedir="${build.work}/helmaLib/" includes="**" excludes="**/*.txt, **/*.html, **/*.bat, **/*.sh" />
+        <delete dir="${build.work}/helmaLib" />
+    </target>
+
+
+    <!-- =================================================================== -->
+    <!-- Checkout and zip helmaTools                                         -->
+    <!-- =================================================================== -->
+    <target name="package-helmaTools" depends="init">
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="helmaTools" dest="${build.work}" />
+        <mkdir dir="${build.work}/modules"/>
+        <zip zipfile="${build.work}/modules/helmaTools.zip" basedir="${build.work}/helmaTools/" includes="**" excludes="**/*.txt, **/*.html, **/*.bat, **/*.sh" />
+        <delete dir="${build.work}/helmaTools" />
+    </target>
+
+
+    <!-- =================================================================== -->
     <!-- Packages the work directory with TAR-GZIP                           -->
     <!-- needs parameter ${filename} for final dist-file                     -->
     <!-- =================================================================== -->
@@ -335,6 +374,7 @@
         </zip>
     </target>
 
+
     <!-- =================================================================== -->
     <!-- Gets an application from the cvs and zips/targzs it                 -->
     <!-- =================================================================== -->
@@ -360,5 +400,17 @@
         <delete file="${build.dist}/${application}-${DSTAMP}.tar" />
         <delete dir="${build.work}" />
     </target>
+
+
+    <!-- =================================================================== -->
+    <!-- Checkout and zip a module                                       -->
+    <!-- =================================================================== -->
+    <target name="module" depends="init">
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="${application}" dest="${build.work}" />
+        <mkdir dir="${build.work}/modules"/>
+        <zip zipfile="${build.work}/modules/${application}-${DSTAMP}.zip" basedir="${build.work}/${application}/" includes="**" excludes="**/*.txt, **/*.html, **/*.bat, **/*.sh" />
+        <delete dir="${build.work}/${application}" />
+    </target>
+
 
 </project>
