@@ -285,7 +285,7 @@
         <mkdir dir="${build.work}/modules" />
 
         <antcall target="package-helmaLib" />
-    <!--<antcall target="package-helmaTools" />                              -->
+        <antcall target="package-helmaTools" />
 
     </target>
 
