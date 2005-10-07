@@ -107,7 +107,8 @@ public final class CookieTrans implements Serializable {
     public Cookie getCookie(String defaultPath, String defaultDomain) {
         Cookie c = new Cookie(name, value);
 
-        c.setVersion(1);
+        // NOTE: If cookie version is set to 1, cookie values will be quoted.
+        // c.setVersion(1);
 
         if (days > -1) {
             // Cookie time to live, days -> seconds
