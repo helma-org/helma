@@ -451,11 +451,11 @@ public class Server implements IPathElement, Runnable {
         File file;
         if ((appsPropfile != null) && !"".equals(appsPropfile.trim())) {
             file = new File(appsPropfile);
-            appsProps = new ResourceProperties();
         } else {
             file = new File(hopHome, "apps.properties");
-            appsProps = new ResourceProperties();
         }
+        appsProps = new ResourceProperties();
+        appsProps.setIgnoreCase(false);
         appsProps.addResource(new FileResource(file));
 
         paranoid = "true".equalsIgnoreCase(sysProps.getProperty("paranoid"));
