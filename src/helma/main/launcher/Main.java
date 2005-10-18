@@ -39,7 +39,7 @@ public class Main {
                                             "commons-logging.jar", 
                                             "crimson.jar", "xmlrpc.jar", "servlet.jar",
                                             "mail.jar", "activation.jar",
-                                            "commons-fileupload.jar",
+                                            "commons-fileupload.jar", "commons-codec.jar",
                                             "netcomponents.jar", "jimi.jar",
                                             "apache-dom.jar"
                                         };
