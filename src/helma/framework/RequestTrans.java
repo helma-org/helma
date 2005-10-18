@@ -70,6 +70,9 @@ public class RequestTrans implements Serializable {
     // when was execution started on this request?
     private final long startTime;
 
+    // true if this might be an XML-RPC request
+    private boolean isXmlRpc;
+
     // the name of the action being invoked
     private String action;
     private String httpUsername;
@@ -98,6 +101,27 @@ public class RequestTrans implements Serializable {
         this.path = path;
         values = new SystemMap();
         startTime = System.currentTimeMillis();
+        if ("POST".equals(method) && "text/xml".equals(request.getContentType())) {
+            isXmlRpc = true;
+        }
+    }
+
+    /**
+     * Return true if we should try to handle this as XML-RPC request.
+     *
+     * @return true if this might be an XML-RPC request.
+     */
+    public boolean isXmlRpc() {
+        return isXmlRpc;
+    }
+
+    /**
+     * Set the isXmlRpc flag
+     *
+     * @param xmlrpc true if this is infact an XML-RPC request
+     */
+    public synchronized void setXmlRpc(boolean xmlrpc) {
+        isXmlRpc = xmlrpc;
     }
 
     /**
