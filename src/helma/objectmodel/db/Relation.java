@@ -857,7 +857,7 @@ public final class Relation {
                         if (propertyName != null) {
                             IProperty property = nonvirtual.get(propertyName);
                             if (property != null) {
-                                value = property.getValue();
+                                value = property.getStringValue();
                             }
                         }
                         if (value == null) {
