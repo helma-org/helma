@@ -23,6 +23,10 @@ import helma.scripting.*;
 import java.lang.reflect.*;
 import java.util.*;
 
+import org.apache.xmlrpc.XmlRpcRequestProcessor;
+import org.apache.xmlrpc.XmlRpcServerRequest;
+import org.apache.xmlrpc.XmlRpcResponseProcessor;
+
 /**
  * This class does the work for incoming requests. It holds a transactor thread
  * and an EcmaScript evaluator to get the work done. Incoming threads are
@@ -200,7 +204,7 @@ public final class RequestEvaluator implements Runnable {
                                         currentElement = root;
                                         requestPath.add(null, currentElement);
 
-                                        action = getAction(currentElement, null, req.getMethod());
+                                        action = getAction(currentElement, null, req);
 
                                         if (action == null) {
                                             throw new FrameworkException("Action not found");
@@ -237,8 +241,7 @@ public final class RequestEvaluator implements Runnable {
                                             // if we're at the last element of the path,
                                             // try to interpret it as action name.
                                             if (i == (ntokens - 1) && !req.getPath().endsWith("/")) {
-                                                action = getAction(currentElement,
-                                                        pathItems[i], req.getMethod());
+                                                action = getAction(currentElement, pathItems[i], req);
                                             }
 
                                             if (action == null) {
@@ -258,7 +261,7 @@ public final class RequestEvaluator implements Runnable {
                                         }
 
                                         if (action == null) {
-                                            action = getAction(currentElement, null, req.getMethod());
+                                            action = getAction(currentElement, null, req);
                                         }
 
                                         if (action == null) {
@@ -345,9 +348,23 @@ public final class RequestEvaluator implements Runnable {
                                     skinDepth = 0;
 
                                     // do the actual action invocation
-                                    scriptingEngine.invoke(currentElement, action,
+                                    if (req.isXmlRpc()) {
+                                        XmlRpcRequestProcessor xreqproc = new XmlRpcRequestProcessor();
+                                        XmlRpcServerRequest xreq = xreqproc.decodeRequest(req.getServletRequest()
+                                                .getInputStream());
+                                        System.err.println("ARGUMENTS: " + xreq.getParameters());
+                                        Vector args = xreq.getParameters();
+                                        args.add(0, xreq.getMethodName());
+                                        result = scriptingEngine.invoke(currentElement, action,
+                                            args.toArray(), ScriptingEngine.ARGS_WRAP_XMLRPC);
+                                        res.reset();
+                                        XmlRpcResponseProcessor xresproc = new XmlRpcResponseProcessor();
+                                        res.writeBinary(xresproc.encodeResponse(result, "UTF-8"));
+                                    } else {
+                                        scriptingEngine.invoke(currentElement, action,
                                             new Object[0],
                                             ScriptingEngine.ARGS_WRAP_DEFAULT);
+                                    }
                                 } catch (RedirectException redirect) {
                                     // if there is a message set, save it on the user object for the next request
                                     if (res.message != null) {
@@ -934,7 +951,7 @@ public final class RequestEvaluator implements Runnable {
         if (obj instanceof IPathElement) {
             return ((IPathElement) obj).getChildElement(name);
         }
-        
+
         return null;
     }
 
@@ -954,7 +971,7 @@ public final class RequestEvaluator implements Runnable {
      * Check if an action with a given name is defined for a scripted object. If it is,
      * return the action's function name. Otherwise, return null.
      */
-    public String getAction(Object obj, String action, String method) {
+    public String getAction(Object obj, String action, RequestTrans req) {
         if (obj == null)
             return null;
 
@@ -962,13 +979,23 @@ public final class RequestEvaluator implements Runnable {
             action = "main";
 
         StringBuffer buffer = new StringBuffer(action).append("_action");
+        // record length so we can check without method
+        // afterwards for GET, POST, HEAD requests
+        int length = buffer.length();
 
+        if (req.isXmlRpc()) {
+            // append _methodname
+            buffer.append("_xmlrpc");
+            if (scriptingEngine.hasFunction(obj, buffer.toString()))
+                return buffer.toString();
+            // cut off method in case it has been appended
+            req.setXmlRpc(false);
+            buffer.setLength(length);
+        }
+
+        String method = req.getMethod();
         // append HTTP method to action name
         if (method != null) {
-            // record length so we can check without method
-            // afterwards for GET, POST, HEAD requests
-            int length = buffer.length();
-
             // append _methodname
             buffer.append('_').append(method.toLowerCase());
             if (scriptingEngine.hasFunction(obj, buffer.toString()))
