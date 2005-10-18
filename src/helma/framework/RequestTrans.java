@@ -111,7 +111,7 @@ public class RequestTrans implements Serializable {
      *
      * @return true if this might be an XML-RPC request.
      */
-    public boolean isXmlRpc() {
+    public synchronized boolean isXmlRpc() {
         return isXmlRpc;
     }
 
