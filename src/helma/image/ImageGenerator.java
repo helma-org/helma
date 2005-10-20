@@ -56,15 +56,18 @@ public abstract class ImageGenerator {
             if (className == null) {
                 // if no class is defined, try the default ones:
                 try {
-                    Class.forName("com.sun.jimi.core.Jimi");
-                    // if we're still here, JimiWrapper can be used
-                    className = "helma.image.jimi.JimiGenerator";
+                    // start with ImageIO
+                    Class.forName("javax.imageio.ImageIO");
+                    // if we're still here, ImageIOWrapper can be used
+                    className = "helma.image.imageio.ImageIOGenerator";
                 } catch (ClassNotFoundException e1) {
                     try {
-                        Class.forName("javax.imageio.ImageIO");
-                        // if we're still here, ImageIOWrapper can be used
-                        className = "helma.image.imageio.ImageIOGenerator";
+                        // use Jimi as a fallback scenaio
+                        Class.forName("com.sun.jimi.core.Jimi");
+                        // if we're still here, JimiWrapper can be used
+                        className = "helma.image.jimi.JimiGenerator";
                     } catch (ClassNotFoundException e2) {
+                        throw new RuntimeException("JimiGenerator canot be used. Please make sure you placed jimi.jar in helma/lib/ext");
                     }
                 }
             }
@@ -175,7 +178,7 @@ public abstract class ImageGenerator {
     }
 
     /**
-     * @param url the URL the filename of the image to create
+     * @param url the URL of the image to create
      * 
      * @return the newly created image
      * @throws IOException
