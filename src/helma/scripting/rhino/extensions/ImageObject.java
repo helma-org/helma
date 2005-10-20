@@ -26,7 +26,6 @@ import org.mozilla.javascript.Function;
 import org.mozilla.javascript.FunctionObject;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
-import org.mozilla.javascript.NativeJavaArray;
 import org.mozilla.javascript.NativeJavaObject;
 import org.mozilla.javascript.BaseFunction;
 import org.mozilla.javascript.Wrapper;
@@ -73,16 +72,17 @@ public class ImageObject {
             ImageGenerator generator = ImageGenerator.getInstance();
 
             if (args.length == 1) {
-                if (args[0] instanceof NativeJavaArray) {
-                    Object array = ((NativeJavaArray) args[0]).unwrap();
-                    if (array instanceof byte[]) {
-                        img = generator.createImage((byte[]) array);
-                    }
-                } else if (args[0] instanceof byte[]) {
-                    img = generator.createImage((byte[]) args[0]);
-                } else if (args[0] instanceof String) {
+                Object arg = args[0];
+                
+                if (arg instanceof Wrapper) {
+                    arg = ((Wrapper) arg).unwrap();
+                }
+                
+                if (arg instanceof byte[]) {
+                    img = generator.createImage((byte[]) arg);
+                } else if (arg instanceof String) {
                     // the string could either be a url or a local filename, let's try both:
-                    String str = args[0].toString();
+                    String str = arg.toString();
                     try {
                         URL url = new URL(str);
                         img = generator.createImage(url);
@@ -90,24 +90,24 @@ public class ImageObject {
                         // try the local file now:
                         img = generator.createImage(str);
                     }
-                } else if (args[0] instanceof NativeJavaObject) {
-                    // see wether a standard java image object is wrapped in a helma image:
-                    Object arg = ((NativeJavaObject) args[0]).unwrap();
-                    if (arg instanceof MimePart) {
-                        img = generator.createImage(((MimePart) arg).getContent());
-                    } else {
-                   		Image image = null;
-                   	 	if (arg instanceof BufferedImage) {
-                    	    // no need to wait for buffered images:
-                	        image = (Image) arg;
-            	        } else if (arg instanceof Image) {
-        	                // wait for all the other image types:
-    	                    image = ImageWaiter.waitForImage((Image) arg);
-	                    }
-    	                if (image != null) {
-        	                img = new ImageWrapper(image, image.getWidth(null), image.getHeight(null), generator);
-            	        }
-            	    }
+                } else if (arg instanceof MimePart) {
+                    img = generator.createImage(((MimePart) arg).getContent());
+                } else if (arg instanceof File) {
+                    img = generator.createImage(((File) arg).getPath());
+                } else if (arg instanceof FileObject) {
+                    img = generator.createImage(((FileObject) arg).getFile().getPath());
+                } else {
+                    Image image = null;
+                    if (arg instanceof BufferedImage) {
+                        // no need to wait for buffered images:
+                        image = (Image) arg;
+                    } else if (arg instanceof Image) {
+                        // wait for all the other image types:
+                        image = ImageWaiter.waitForImage((Image) arg);
+                    }
+                    if (image != null) {
+                        img = new ImageWrapper(image, image.getWidth(null), image.getHeight(null), generator);
+                    }
                 }
             } else if (args.length == 2) {
                 if (args[0] instanceof Number &&
@@ -168,8 +168,8 @@ public class ImageObject {
                     in = (InputStream) arg;
                 } else if (arg instanceof byte[]) {
                     in = new ByteArrayInputStream((byte[]) arg);
-                } else if (arg instanceof File) {
-                    in = new FileInputStream((File) arg);
+                } else if (arg instanceof MimePart) {
+                    in = new ByteArrayInputStream(((MimePart) arg).getContent());
                 } else if (arg instanceof File) {
                     in = new FileInputStream((File) arg);
                 } else if (arg instanceof FileObject) {
