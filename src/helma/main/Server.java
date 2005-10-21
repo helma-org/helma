@@ -530,6 +530,14 @@ public class Server implements IPathElement, Runnable {
                 // http.stop() interrupted by another thread. ignore.
             }
         }
+
+        if (xmlrpc != null) {
+            try {
+                xmlrpc.shutdown();
+            } catch (Exception x) {
+                // exception in xmlrpc server shutdown, ignore.
+            }
+        }
         
         if (helmaLogging) {
             Logging.shutdown();
@@ -622,7 +630,7 @@ public class Server implements IPathElement, Runnable {
                             xmlrpc.acceptClient(st.nextToken());
                     }
                 }
-
+                xmlrpc.start();
                 logger.info("Starting XML-RPC server on port " + (xmlrpcPort));
             }
 
