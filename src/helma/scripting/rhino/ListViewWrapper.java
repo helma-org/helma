@@ -47,10 +47,9 @@ public class ListViewWrapper extends ScriptableObject implements Wrapper, Script
     INode node;
 
     ListViewWrapper (List list, RhinoCore core, WrappedNodeManager wnm, HopObject hObj) {
-        if (list == null)
-            throw new RuntimeException ("ListWrapper unable to wrap null");
-        if (!(list instanceof List))
-            throw new RuntimeException ("ListWrapper unable to wrap anything else than a list");
+        if (list == null) {
+            throw new IllegalArgumentException ("ListWrapper unable to wrap null list.");
+        }
         this.core = core;
         this.list = list;
         this.wnm = wnm;
