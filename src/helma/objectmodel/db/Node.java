@@ -1566,11 +1566,11 @@ public final class Node implements INode, Serializable {
      */
     public List getEmptySubnodeList() {
         Relation rel = this.dbmap.getSubnodeRelation();
-        OrderedSubnodeList osl = new OrderedSubnodeList(rel); 
         if (rel != null && rel.updateCriteria!=null) {
+            OrderedSubnodeList osl = new OrderedSubnodeList(rel);
             this.subnodes = new UpdateableSubnodeList(rel, osl);
         } else {
-            this.subnodes = osl;
+            this.subnodes = new OrderedSubnodeList(rel);
         }
         return this.subnodes;
     }
