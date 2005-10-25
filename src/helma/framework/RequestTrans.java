@@ -59,7 +59,7 @@ public class RequestTrans implements Serializable {
     private final Map values;
     
     // the HTTP request method
-    private final String method;
+    private String method;
 
     // timestamp of client-cached version, if present in request
     private long ifModifiedSince = -1;
@@ -69,9 +69,6 @@ public class RequestTrans implements Serializable {
 
     // when was execution started on this request?
     private final long startTime;
-
-    // true if this might be an XML-RPC request
-    private boolean isXmlRpc;
 
     // the name of the action being invoked
     private String action;
@@ -101,9 +98,6 @@ public class RequestTrans implements Serializable {
         this.path = path;
         values = new SystemMap();
         startTime = System.currentTimeMillis();
-        if ("POST".equals(method) && "text/xml".equals(request.getContentType())) {
-            isXmlRpc = true;
-        }
     }
 
     /**
@@ -111,17 +105,19 @@ public class RequestTrans implements Serializable {
      *
      * @return true if this might be an XML-RPC request.
      */
-    public synchronized boolean isXmlRpc() {
-        return isXmlRpc;
+    public synchronized boolean checkXmlRpc() {
+        return "POST".equals(method) && "text/xml".equals(request.getContentType());
     }
 
     /**
-     * Set the isXmlRpc flag
+     * Return true if this request is in fact handled as XML-RPC request.
+     * This implies that {@link #checkXmlRpc()} returns true and a matching
+     * XML-RPC action was found.
      *
-     * @param xmlrpc true if this is infact an XML-RPC request
+     * @return true if this request is handled as XML-RPC request.
      */
-    public synchronized void setXmlRpc(boolean xmlrpc) {
-        isXmlRpc = xmlrpc;
+    public synchronized boolean isXmlRpc() {
+        return XMLRPC.equals(method);
     }
 
     /**
@@ -195,8 +191,17 @@ public class RequestTrans implements Serializable {
      * Return the method of the request. This may either be a HTTP method or
      * one of the Helma pseudo methods defined in this class.
      */
-    public String getMethod() {
+    public synchronized String getMethod() {
         return method;
+    }
+
+    /**
+     * Set the method of this request.
+     *
+     * @param method the method.
+     */
+    public synchronized void setMethod(String method) {
+        this.method = method;
     }
 
     /**

@@ -25,7 +25,6 @@ import java.util.*;
 
 import org.apache.xmlrpc.XmlRpcRequestProcessor;
 import org.apache.xmlrpc.XmlRpcServerRequest;
-import org.apache.xmlrpc.XmlRpcResponseProcessor;
 
 /**
  * This class does the work for incoming requests. It holds a transactor thread
@@ -194,7 +193,7 @@ public final class RequestEvaluator implements Runnable {
                                         String errorAction = app.props.getProperty("error",
                                                 "error");
 
-                                        action = getAction(currentElement, errorAction, null);
+                                        action = getAction(currentElement, errorAction, req);
 
                                         if (action == null) {
                                             throw new RuntimeException(error);
@@ -284,7 +283,7 @@ public final class RequestEvaluator implements Runnable {
                                             "notfound");
 
                                     currentElement = root;
-                                    action = getAction(currentElement, notFoundAction, null);
+                                    action = getAction(currentElement, notFoundAction, req);
 
                                     if (action == null) {
                                         throw new FrameworkException(notfound.getMessage());
@@ -352,14 +351,11 @@ public final class RequestEvaluator implements Runnable {
                                         XmlRpcRequestProcessor xreqproc = new XmlRpcRequestProcessor();
                                         XmlRpcServerRequest xreq = xreqproc.decodeRequest(req.getServletRequest()
                                                 .getInputStream());
-                                        System.err.println("ARGUMENTS: " + xreq.getParameters());
                                         Vector args = xreq.getParameters();
                                         args.add(0, xreq.getMethodName());
                                         result = scriptingEngine.invoke(currentElement, action,
                                             args.toArray(), ScriptingEngine.ARGS_WRAP_XMLRPC);
-                                        res.reset();
-                                        XmlRpcResponseProcessor xresproc = new XmlRpcResponseProcessor();
-                                        res.writeBinary(xresproc.encodeResponse(result, "UTF-8"));
+                                        res.writeXmlRpcResponse(result);
                                     } else {
                                         scriptingEngine.invoke(currentElement, action,
                                             new Object[0],
@@ -533,7 +529,8 @@ public final class RequestEvaluator implements Runnable {
 
                         res.reset();
 
-                        // check if we tried to process the error already
+                        // check if we tried to process the error already,
+                        // or if this is an XML-RPC request
                         if (error == null) {
                             app.errorCount += 1;
 
@@ -555,6 +552,15 @@ public final class RequestEvaluator implements Runnable {
 
                             app.logError(txname + ": " + error, x);
 
+                            if (req.isXmlRpc()) {
+                                // if it's an XML-RPC exception immediately generate error response
+                                if (!(x instanceof Exception)) {
+                                    // we need an exception to pass to XML-RPC responder
+                                    x = new Exception(x.toString(), x);
+                                }
+                                res.writeXmlRpcError((Exception) x);
+                                done = true;
+                            }
                         } else {
                             // error in error action. use traditional minimal error message
                             res.writeErrorReport(app.getName(), error);
@@ -983,13 +989,15 @@ public final class RequestEvaluator implements Runnable {
         // afterwards for GET, POST, HEAD requests
         int length = buffer.length();
 
-        if (req.isXmlRpc()) {
+        if (req.checkXmlRpc()) {
             // append _methodname
             buffer.append("_xmlrpc");
-            if (scriptingEngine.hasFunction(obj, buffer.toString()))
+            if (scriptingEngine.hasFunction(obj, buffer.toString())) {
+                // handle as XML-RPC request
+                req.setMethod(RequestTrans.XMLRPC);
                 return buffer.toString();
+            }
             // cut off method in case it has been appended
-            req.setXmlRpc(false);
             buffer.setLength(length);
         }
 

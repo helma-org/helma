@@ -25,6 +25,8 @@ import java.io.*;
 import java.security.*;
 import java.util.*;
 
+import org.apache.xmlrpc.XmlRpcResponseProcessor;
+
 /**
  * A Transmitter for a response to the servlet client. Objects of this
  * class are directly exposed to JavaScript as global property res.
@@ -118,7 +120,7 @@ public final class ResponseTrans implements Serializable {
 
     // the res.meta map for meta response data
     private transient Map meta = new SystemMap();
-    
+
     // the request trans for this response
     private transient RequestTrans reqtrans;
 
@@ -128,13 +130,6 @@ public final class ResponseTrans implements Serializable {
     // the application
     Application app;
 
-
-    /**
-     * Creates a new ResponseTrans object.
-     */
-    public ResponseTrans(Application app) {
-        this.app = app;
-    }
 
     /**
      * Creates a new ResponseTrans object.
@@ -170,7 +165,7 @@ public final class ResponseTrans implements Serializable {
     public Map getMacroHandlers() {
         return handlers;
     }
- 
+
     /**
      *  Get the meta info map for this response transmitter.
      */
@@ -462,12 +457,39 @@ public final class ResponseTrans implements Serializable {
      * @param message the error message
      */
     public void writeErrorReport(String appName, String message) {
-        write("<html><body><h3>");
-        write("Error in application ");
-        write(appName);
-        write("</h3>");
-        write(message);
-        write("</body></html>");
+        if (reqtrans.isXmlRpc()) {
+            writeXmlRpcError(new RuntimeException(message));
+        } else {
+            write("<html><body><h3>");
+            write("Error in application ");
+            write(appName);
+            write("</h3>");
+            write(message);
+            write("</body></html>");
+        }
+    }
+
+    public void writeXmlRpcResponse(Object result) {
+        try {
+            reset();
+            contentType = "text/xml";
+            if (charset == null) {
+                charset = "UTF-8";
+            }
+            XmlRpcResponseProcessor xresproc = new XmlRpcResponseProcessor();
+            writeBinary(xresproc.encodeResponse(result, charset));
+        } catch (Exception x) {
+            writeXmlRpcError(x);
+        }
+    }
+
+    public void writeXmlRpcError(Exception x) {
+        contentType = "text/xml";
+        if (charset == null) {
+            charset = "UTF-8";
+        }
+        XmlRpcResponseProcessor xresproc = new XmlRpcResponseProcessor();
+        writeBinary(xresproc.encodeException(x, charset));
     }
 
     /**
