@@ -275,7 +275,14 @@ public abstract class AbstractServletClient extends HttpServlet {
             if (resCookieDomain != null) {
                 // check if cookieDomain is valid for this response.
                 // (note: cookieDomain is guaranteed to be lower case)
-                if ((host != null) && (host.toLowerCase().indexOf(cookieDomain) == -1)) {
+                // check for x-forwarded-for header, fix for bug 443
+                String proxiedHost = request.getHeader("x-forwarded-host");
+                if (proxiedHost != null) {
+                    if (proxiedHost.toLowerCase().indexOf(cookieDomain) == -1) {
+                        resCookieDomain = null;
+                    }
+                } else if ((host != null) &&
+                        host.toLowerCase().indexOf(cookieDomain) == -1) {
                     resCookieDomain = null;
                 }
             }
