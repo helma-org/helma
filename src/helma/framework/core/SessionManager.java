@@ -138,9 +138,7 @@ public class SessionManager {
         while (e.hasMoreElements()) {
             Session s = (Session) e.nextElement();
 
-            if (s == null) {
-                continue;
-            } else if (username.equals(s.getUID())) {
+            if (s != null && username.equals(s.getUID())) {
                 // append to list if session is logged in and fits the given username
                 list.add(new SessionBean(s));
             }
@@ -159,9 +157,7 @@ public class SessionManager {
         for (Enumeration e = sessions.elements(); e.hasMoreElements();) {
             Session s = (Session) e.nextElement();
 
-            if (s == null) {
-                continue;
-            } else if (s.isLoggedIn()) {
+            if (s != null && s.isLoggedIn()) {
                 // returns a session if it is logged in and has not been
                 // returned before (so for each logged-in user is only added once)
                 INode node = s.getUserNode();
@@ -178,9 +174,9 @@ public class SessionManager {
 
 
     /**
+     * Dump session state to a file.
      *
-     *
-     * @param f ...
+     * @param f the file to write session into, or null to use the default sesssion store.
      */
     public void storeSessionData(File f) {
         if (f == null) {
@@ -195,7 +191,12 @@ public class SessionManager {
                 p.writeInt(sessions.size());
 
                 for (Enumeration e = sessions.elements(); e.hasMoreElements();) {
-                    p.writeObject(e.nextElement());
+                    try {
+                        p.writeObject(e.nextElement());
+                    } catch (NotSerializableException nsx) {
+                        // not serializable, skip this session
+                        app.logError("Error serializing session.", nsx);
+                    }
                 }
             }
 
@@ -203,7 +204,7 @@ public class SessionManager {
             ostream.close();
             app.logEvent("stored " + sessions.size() + " sessions in file");
         } catch (Exception e) {
-            app.logEvent("error storing session data: " + e.toString());
+            app.logError("error storing session data.", e);
         }
     }
 
@@ -251,8 +252,10 @@ public class SessionManager {
             istream.close();
             sessions = newSessions;
             app.logEvent("loaded " + newSessions.size() + " sessions from file");
+        } catch (FileNotFoundException fnf) {
+            // suppress error message if session file doesn't exist
         } catch (Exception e) {
-            app.logEvent("error loading session data: " + e.toString());
+            app.logError("error loading session data.", e);
         }
     }
 
