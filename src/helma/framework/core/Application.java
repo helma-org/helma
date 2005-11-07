@@ -1864,13 +1864,23 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
+     * Get the application's app properties
      *
-     *
-     * @return ...
+     * @return the properties reflecting the app.properties
      */
     public ResourceProperties getProperties() {
         return props;
     }
+
+    /**
+     * Get the application's db properties
+     *
+     * @return the properties reflecting the db.properties
+     */
+    public ResourceProperties getDbProperties() {
+        return dbProps;
+    }
+
 
     /**
      * Return the XML-RPC handler name for this app. The contract is to
