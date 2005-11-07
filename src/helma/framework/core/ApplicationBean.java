@@ -17,6 +17,7 @@
 package helma.framework.core;
 
 import helma.objectmodel.INode;
+import helma.objectmodel.db.DbSource;
 import helma.util.CronJob;
 import helma.util.SystemMap;
 import helma.util.WrappedMap;
@@ -391,15 +392,31 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
+     * Get a wrapper around the app's properties
      *
-     *
-     * @return ...
+     * @return a readonly wrapper around the application's app properties
      */
     public Map getProperties() {
         if (properties == null) {
             properties = new WrappedMap(app.getProperties(), true);
         }
         return properties;
+    }
+
+    /**
+     * Get a wrapper around the app's db properties
+     *
+     * @return a readonly wrapper around the application's db properties
+     */
+    public Map getDbProperties() {
+        return new WrappedMap(app.getDbProperties(), true);
+    }
+
+    /**
+     * Return a DbSource object for a given name.
+     */
+    public DbSource getDbSource(String name) {
+        return app.getDbSource(name);
     }
 
     /**
