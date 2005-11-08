@@ -294,7 +294,7 @@
     <!-- Checkout and zip helmaLib                                           -->
     <!-- =================================================================== -->
     <target name="package-helmaLib" depends="init">
-        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="release_1_5" package="helmaLib" dest="${build.work}" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="helmaLib" dest="${build.work}" />
         <mkdir dir="${build.work}/modules"/>
         <zip zipfile="${build.work}/modules/helmaLib.zip" basedir="${build.work}/helmaLib/" includes="**" excludes="**/*.txt, **/*.html, **/*.bat, **/*.sh" />
         <delete dir="${build.work}/helmaLib" />
