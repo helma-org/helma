@@ -1432,7 +1432,7 @@ public final class Application implements IPathElement, Runnable {
             eval = getEvaluator();
             eval.invokeInternal(null, "onStart", new Object[0]);
         } catch (Exception xcept) {
-            logEvent("Error in " + name + "/onStart(): " + xcept);
+            logError("Error in " + name + "/onStart()", xcept);
         } finally {
             releaseEvaluator(eval);
         }
