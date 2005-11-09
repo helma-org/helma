@@ -420,6 +420,25 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
+     * Get an array of this app's prototypes
+     *
+     * @return an array containing the app's prototypes
+     */
+    public Prototype[] getPrototypes() {
+        return (Prototype[]) app.getPrototypes().toArray(new Prototype[0]);
+    }
+
+    /**
+     * Get a prototype by name.
+     *
+     * @param name the prototype name
+     * @return the prototype
+     */
+    public Prototype getPrototype(String name) {
+        return app.getPrototypeByName(name);
+    }
+
+    /**
      *
      *
      * @return ...
