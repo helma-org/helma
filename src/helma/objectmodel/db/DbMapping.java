@@ -748,6 +748,13 @@ public final class DbMapping {
     }
 
     /**
+     * Return the list of defined property names as String array.
+     */
+    public String[] getPropertyNames() {
+        return (String[]) prop2db.keySet().toArray(new String[prop2db.size()]);
+    }
+
+    /**
      *
      *
      * @return ...
