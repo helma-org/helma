@@ -410,6 +410,20 @@ public final class Relation {
     }
 
     /**
+     * Return the target type of this relation, or null if this is a primitive mapping.
+     */
+    public DbMapping getTargetType() {
+        return otherType;
+    }
+
+    /**
+     * Get the reference type of this relation.
+     */
+    public int getRefType() {
+        return reftype;
+    }
+
+    /**
      * Tell if this relation represents a primitive (scalar) value mapping.
      */
     public boolean isPrimitive() {
