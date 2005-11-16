@@ -256,7 +256,7 @@
         <mkdir dir="${build.work}/apps" />
 
         <!-- get demo apps -->
-        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="base" dest="${build.work}/apps" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="welcome" dest="${build.work}/apps" />
  
         <antcall target="package-manage" />
 
