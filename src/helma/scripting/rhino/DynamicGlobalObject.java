@@ -40,6 +40,10 @@ public class DynamicGlobalObject extends GlobalObject {
                 return obj;
             }
         }
+        // make thread scope accessible as "global"
+        if ("global".equals(s)) {
+            return scope;
+        }
         return super.get(s, scriptable);
     }
 
