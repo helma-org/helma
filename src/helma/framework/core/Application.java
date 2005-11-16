@@ -108,6 +108,8 @@ public final class Application implements IPathElement, Runnable {
     // Map of requesttrans -> active requestevaluators
     Hashtable activeRequests;
 
+    String logDir;
+
     // Two logs for each application
     Log eventLog;
     Log accessLog;
@@ -251,8 +253,10 @@ public final class Application implements IPathElement, Runnable {
         props = new ResourceProperties(this, "app.properties", sysProps);
 
         // get log names
-        accessLogName = props.getProperty("accessLog", "helma."+name+".access");
-        eventLogName = props.getProperty("eventLog", "helma."+name+".event");
+        accessLogName = props.getProperty("accessLog",
+                new StringBuffer("helma.").append(name).append(".access").toString());
+        eventLogName = props.getProperty("eventLog",
+                new StringBuffer("helma.").append(name).append(".event").toString());
 
         // create app-level db sources
         dbProps = new ResourceProperties(this, "db.properties", sysDbProps, false);
@@ -303,16 +307,15 @@ public final class Application implements IPathElement, Runnable {
 
         // create and init type mananger
         typemgr = new TypeManager(this, ignoreDirs);
+        // set the context classloader. Note that this must be done before
+        // using the logging framework so that a new LogFactory gets created
+        // for this app.
+        Thread.currentThread().setContextClassLoader(typemgr.getClassLoader());
         try {
             typemgr.createPrototypes();
         } catch (Exception x) {
             logError("Error creating prototypes", x);
         }
-
-        // set the context classloader. Note that this must be done before
-        // using the logging framework so that a new LogFactory gets created
-        // for this app.
-        Thread.currentThread().setContextClassLoader(typemgr.getClassLoader());
 
         if (Server.getServer() != null) {
             Vector extensions = Server.getServer().getExtensions();
@@ -1150,23 +1153,26 @@ public final class Application implements IPathElement, Runnable {
     }
 
     /**
-     *  Returns the prototype name that Hrefs in this application should start with.
+     * Returns the prototype name that Hrefs in this application should
+     * start with.
      */
     public String getHrefRootPrototype() {
         return hrefRootPrototype;
     }
 
     /**
-     * Tell other classes whether they should output logging information for this application.
+     * Tell other classes whether they should output logging information for
+     * this application.
      */
     public boolean debug() {
         return debug;
     }
 
     /**
+     * Get the current RequestEvaluator, or null if the calling thread
+     * is not evaluating a request.
      *
-     *
-     * @return ...
+     * @return the RequestEvaluator belonging to the current thread
      */
     public RequestEvaluator getCurrentRequestEvaluator() {
         Thread thread = Thread.currentThread();
@@ -1406,16 +1412,9 @@ public final class Application implements IPathElement, Runnable {
      *  Get a logger object to log events for this application.
      */
     public Log getLogger(String logname) {
-        String logdir = props.getProperty("logdir", "log");
-
-        if ("console".equals(logdir) || "console".equals(logname)) {
+        if ("console".equals(logDir) || "console".equals(logname)) {
             return Logging.getConsoleLog();
         } else {
-
-            // set up helma.logdir system property in case we're using it
-            File dir = new File(logdir);
-            System.setProperty("helma.logdir", dir.getAbsolutePath());
-
             return LogFactory.getLog(logname);
         }
     }
@@ -1698,7 +1697,7 @@ public final class Application implements IPathElement, Runnable {
      * Add a repository to this app's repository list. This is used for
      * ZipRepositories contained in top-level file repositories, for instance.
      *
-     * @param rep
+     * @param rep the repository to add
      * @return if the repository was not yet contained
      */
     public boolean addRepository(Repository rep) {
@@ -1715,7 +1714,7 @@ public final class Application implements IPathElement, Runnable {
                 }
             }
             // no parent or parent not in app's repositories.
-            repositories.add(rep);
+            repositories.add(0, rep);
             return true;
         }
         return false;
@@ -1831,6 +1830,13 @@ public final class Application implements IPathElement, Runnable {
                         logEvent("Error updating extension "+ext+": "+e);
                     }
                 }
+            }
+
+            logDir = props.getProperty("logdir", "log");
+            if (System.getProperty("helma.logdir") == null) {
+                // set up helma.logdir system property in case we're using it
+                File dir = new File(logDir);
+                System.setProperty("helma.logdir", dir.getAbsolutePath());
             }
 
             // set prop read timestamp

@@ -25,12 +25,15 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.*;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 /**
  *
  */
 public class ApplicationBean implements Serializable {
     Application app;
-
+    Log appLog;
     WrappedMap properties = null;
 
     /**
@@ -43,59 +46,77 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     *
+     * Clear the application cache.
      */
     public void clearCache() {
         app.clearCache();
     }
 
     /**
+     * Get the app logger. This is a commons-logging Log with the
+     * category helma.[appname].app.
      *
+     * @return the app logger.
+     */
+    public synchronized Log getLogger() {
+        if (appLog == null) {
+            appLog = app.getLogger(new StringBuffer("helma.")
+                .append(app.getName()).append(".app").toString());
+        }
+        return appLog;
+    }
+
+    /**
+     * Get the app logger. This is a commons-logging Log with the
+     * category <code>logname</code>.
      *
-     * @param msg ...
+     * @return a logger for the given log name.
+     */
+    public Log getLogger(String logname) {
+        return  LogFactory.getLog(logname);
+    }
+
+    /**
+     * Log a INFO message to the app log.
+     *
+     * @param msg the log message
      */
     public void log(Object msg) {
-        String str = (msg == null) ? "null" : msg.toString();
-
-        app.logEvent(str);
+        getLogger().info(msg);
     }
 
     /**
+     * Log a INFO message to the app log.
      *
-     *
-     * @param logname ...
-     * @param msg ...
+     * @param logname the name (category) of the log
+     * @param msg the log message
      */
     public void log(String logname, Object msg) {
-        String str = (msg == null) ? "null" : msg.toString();
-
-        app.getLogger(logname).info(str);
+        getLogger(logname).info(msg);
     }
 
     /**
+     * Log a DEBUG message to the app log if debug is set to true in
+     * app.properties.
      *
-     *
-     * @param msg ...
+     * @param msg the log message
      */
     public void debug(Object msg) {
         if (app.debug()) {
-            String str = (msg == null) ? "null" : msg.toString();
-
-            app.logEvent(str);
+            getLogger().debug(msg);
         }
     }
 
     /**
+     * Log a DEBUG message to the app log if debug is set to true in
+     * app.properties.
      *
-     *
-     * @param logname ...
-     * @param msg ...
+     * @param logname the name (category) of the log
+     * @param msg the log message
      */
     public void debug(String logname, Object msg) {
         if (app.debug()) {
-            String str = (msg == null) ? "null" : msg.toString();
-
-            app.getLogger(logname).info(str);
+            getLogger(logname).debug(msg);
         }
     }
 
@@ -162,7 +183,7 @@ public class ApplicationBean implements Serializable {
 
         Iterator it = sessions.values().iterator();
         while (it.hasNext()) {
-            array[i++] = new SessionBean((Session) it.next());    
+            array[i++] = new SessionBean((Session) it.next());
         }
 
         return array;
@@ -296,7 +317,7 @@ public class ApplicationBean implements Serializable {
     /**
      * Returns an read-only map of the custom cron jobs registered with the app
      *
-     * @return
+     * @return a map of cron jobs
      */
     public Map getCronJobs() {
         return new WrappedMap(app.customCronJobs, true);
@@ -312,7 +333,7 @@ public class ApplicationBean implements Serializable {
     /**
      * Returns the app's data node used to share data between the app's evaluators
      *
-     * @return
+     * @return the app.data node
      */
     public INode getData() {
         return app.getCacheNode();
@@ -321,7 +342,7 @@ public class ApplicationBean implements Serializable {
     /**
      * Returns the app's modules map used to register application modules
      *
-     * @return
+     * @return the module map
      */
     public Map getModules() {
         return app.modules;
@@ -331,61 +352,49 @@ public class ApplicationBean implements Serializable {
      * Returns the absolute path of the app dir. When using repositories this
      * equals the first file based repository.
      *
-     * @return
+     * @return the app dir
      */
     public String getDir() {
         return app.getAppDir().getAbsolutePath();
     }
 
     /**
-     *
-     *
-     * @return ...
+     * @return the app name
      */
     public String getName() {
         return app.getName();
     }
 
     /**
-     *
-     *
-     * @return ...
+     * @return the application start time
      */
     public Date getUpSince() {
         return new Date(app.starttime);
     }
 
     /**
-     *
-     *
-     * @return ...
+     * @return the number of requests processed by this app
      */
     public long getRequestCount() {
         return app.getRequestCount();
     }
 
     /**
-     *
-     *
-     * @return ...
+     * @return the number of XML-RPC requests processed
      */
     public long getXmlrpcCount() {
         return app.getXmlrpcCount();
     }
 
     /**
-     *
-     *
-     * @return ...
+     * @return the number of errors encountered
      */
     public long getErrorCount() {
         return app.getErrorCount();
     }
 
     /**
-     *
-     *
-     * @return ...
+     * @return the wrapped helma.framework.core.Application object
      */
     public Application get__app__() {
         return app;
@@ -474,7 +483,7 @@ public class ApplicationBean implements Serializable {
         // add one to the number to compensate for the internal scheduler.
         app.setNumberOfEvaluators(n + 1);
     }
-    
+
     /**
      *  Return a skin for a given object. The skin is found by determining the prototype
      *  to use for the object, then looking up the skin for the prototype.
