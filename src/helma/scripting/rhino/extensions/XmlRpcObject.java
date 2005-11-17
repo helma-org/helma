@@ -124,7 +124,11 @@ public class XmlRpcObject extends BaseFunction {
             }
 
             Object result = client.execute(method, v);
-
+            // FIXME: Apache XML-RPC 2.0 seems to return Exceptions instead of
+            // throwing them.
+            if (result instanceof Exception) {
+                throw (Exception) result;
+            }
             retval.put("result", retval, c.processXmlRpcArgument(result));
 
         } catch (Exception x) {
