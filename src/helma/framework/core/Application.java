@@ -1390,22 +1390,34 @@ public final class Application implements IPathElement, Runnable {
      * Log a generic application event
      */
     public void logEvent(String msg) {
-        if (eventLog == null) {
-            eventLog = getLogger(eventLogName);
-        }
-
-        eventLog.info(msg);
+        getEventLog().info(msg);
     }
 
     /**
      * Log an application access
      */
     public void logAccess(String msg) {
+        getAccessLog().info(msg);
+    }
+
+    /**
+     * get the app's event log.
+     */
+    Log getEventLog() {
+        if (eventLog == null) {
+            eventLog = getLogger(eventLogName);
+        }
+        return eventLog;
+    }
+
+    /**
+     * get the app's access log.
+     */
+    Log getAccessLog() {
         if (accessLog == null) {
             accessLog = getLogger(accessLogName);
         }
-
-        accessLog.info(msg);
+        return accessLog;
     }
 
     /**

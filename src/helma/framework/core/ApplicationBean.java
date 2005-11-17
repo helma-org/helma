@@ -33,7 +33,6 @@ import org.apache.commons.logging.LogFactory;
  */
 public class ApplicationBean implements Serializable {
     Application app;
-    Log appLog;
     WrappedMap properties = null;
 
     /**
@@ -53,17 +52,13 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     * Get the app logger. This is a commons-logging Log with the
-     * category helma.[appname].app.
+     * Get the app's event logger. This is a Log with the
+     * category helma.[appname].event.
      *
      * @return the app logger.
      */
-    public synchronized Log getLogger() {
-        if (appLog == null) {
-            appLog = app.getLogger(new StringBuffer("helma.")
-                .append(app.getName()).append(".app").toString());
-        }
-        return appLog;
+    public Log getLogger() {
+        return  app.getEventLog();
     }
 
     /**
@@ -86,7 +81,7 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     * Log a INFO message to the app log.
+     * Log a INFO message to the log defined by logname.
      *
      * @param logname the name (category) of the log
      * @param msg the log message
@@ -108,8 +103,8 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     * Log a DEBUG message to the app log if debug is set to true in
-     * app.properties.
+     * Log a DEBUG message to the log defined by logname
+     * if debug is set to true in app.properties.
      *
      * @param logname the name (category) of the log
      * @param msg the log message
