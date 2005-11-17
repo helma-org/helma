@@ -42,10 +42,9 @@ public class DbSource {
     /**
      * Creates a new DbSource object.
      *
-     * @param name ...
-     * @param props ...
-     *
-     * @throws ClassNotFoundException ...
+     * @param name the db source name
+     * @param props the properties
+     * @throws ClassNotFoundException if the JDBC driver couldn't be loaded
      */
     public DbSource(String name, ResourceProperties props)
              throws ClassNotFoundException {
@@ -55,14 +54,15 @@ public class DbSource {
     }
 
     /**
+     * Get a JDBC connection to the db source.
      *
+     * @return a JDBC connection
      *
-     * @return ...
-     *
-     * @throws ClassNotFoundException ...
-     * @throws SQLException ...
+     * @throws ClassNotFoundException if the JDBC driver couldn't be loaded
+     * @throws SQLException if the connection couldn't be created
      */
-    public Connection getConnection() throws ClassNotFoundException, SQLException {
+    public synchronized Connection getConnection()
+            throws ClassNotFoundException, SQLException {
         Connection con = null;
         Transactor tx = null;
         if (Thread.currentThread() instanceof Transactor) {
@@ -93,7 +93,12 @@ public class DbSource {
         return con;
     }
 
-    private void init() throws ClassNotFoundException {
+    /**
+     * Initialize the db source from the properties
+     *
+     * @throws ClassNotFoundException if the JDBC driver couldn't be loaded
+     */
+    private synchronized void init() throws ClassNotFoundException {
         lastRead = (defaultProps == null) ? props.lastModified()
                                           : Math.max(props.lastModified(),
                                                      defaultProps.lastModified());
