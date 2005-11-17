@@ -37,14 +37,11 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     static Method hopObjCtor;
 
     static {
-        Method[] methods = HopObject.class.getMethods();
-
-        for (int i = 0; i < methods.length; i++) {
-            if ("jsConstructor".equals(methods[i].getName())) {
-                hopObjCtor = methods[i];
-
-                break;
-            }
+        try {
+            hopObjCtor = HopObject.class.getMethod("jsConstructor", new Class[] {
+                Context.class, Object[].class, Function.class, Boolean.TYPE });
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException("Error getting HopObject.jsConstructor()");
         }
     }
 
@@ -221,6 +218,12 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
             if (node instanceof helma.objectmodel.db.Node) {
                 NodeHandle handle = ((helma.objectmodel.db.Node) node).getHandle();
                 node = handle.getNode(core.app.getWrappedNodeManager());
+                if (node == null) {
+                    // we probably have a deleted node. Replace with empty transient node
+                    // to avoid throwing an exception.
+                    node = new helma.objectmodel.TransientNode();
+                    // throw new RuntimeException("Tried to access invalid/removed node " + handle + ".");
+                }
             }
         }
     }
@@ -827,7 +830,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
 
             checkNode();
 
-            // Property names starting with an underscore is interpreted 
+            // Property names starting with an underscore is interpreted
             // as internal properties
             if (name.charAt(0) == '_') {
                 Object value = getInternalProperty(name);
