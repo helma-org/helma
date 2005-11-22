@@ -1059,7 +1059,7 @@ public final class RhinoCore implements ScopeProvider {
             Date date = new Date((long) ScriptRuntime.toNumber(thisObj));
             SimpleDateFormat df = null;
 
-            if (args.length > 0 && args[0] != Undefined.instance) {
+            if (args.length > 0 && args[0] != Undefined.instance && args[0] != null) {
                 if (args.length > 1 && args[1] instanceof NativeJavaObject) {
                     Object locale = ((NativeJavaObject) args[1]).unwrap();
                     if (locale instanceof Locale) {
@@ -1125,4 +1125,3 @@ public final class RhinoCore implements ScopeProvider {
     }
 
 }
-
