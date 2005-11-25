@@ -859,13 +859,13 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
                     Date d = p.getDateValue();
 
                     if (d == null) {
-                        return NOT_FOUND;
+                        return null;
                     } else {
                         Object[] args = { new Long(d.getTime()) };
                         try {
                             return cx.newObject(core.global, "Date", args);
                         } catch (JavaScriptException nafx) {
-                            return NOT_FOUND;
+                            return null;
                         }
                     }
                 }
@@ -874,7 +874,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
                     INode n = p.getNodeValue();
 
                     if (n == null) {
-                        return NOT_FOUND;
+                        return null;
                     } else {
                         return Context.toObject(n, core.global);
                     }
@@ -884,11 +884,16 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
                     Object obj = p.getJavaObjectValue();
 
                     if (obj == null) {
-                        return NOT_FOUND;
+                        return null;
                     } else {
                         return Context.toObject(obj, core.global);
                     }
                 }
+            }
+
+            DbMapping dbmap = node.getDbMapping();
+            if (dbmap != null && dbmap.propertyToRelation(name) != null) {
+                return null;
             }
         }
 
