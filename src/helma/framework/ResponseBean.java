@@ -187,6 +187,13 @@ public class ResponseBean implements Serializable {
     }
 
     /**
+     * Write a platform dependent newline sequence to response buffer.
+     */
+    public void writeln() {
+        res.writeln();
+    }
+
+    /**
      * Directly write a byte array to the response buffer without any transformation.
      *
      * @param bytes the string to write to the response buffer
