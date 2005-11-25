@@ -155,7 +155,7 @@ public final class Skin {
         }
 
         if (macros == null) {
-            reval.getResponse().writeCharArray(source, 0, sourceLength);
+            reval.getResponse().write(source, 0, sourceLength);
             reval.skinDepth--;
 
             return;
@@ -171,7 +171,7 @@ public final class Skin {
 
             for (int i = 0; i < macros.length; i++) {
                 if (macros[i].start > written) {
-                    reval.getResponse().writeCharArray(source, written, macros[i].start - written);
+                    reval.getResponse().write(source, written, macros[i].start - written);
                 }
 
                 macros[i].render(reval, thisObject, paramObject, handlerCache);
@@ -179,7 +179,7 @@ public final class Skin {
             }
 
             if (written < sourceLength) {
-                reval.getResponse().writeCharArray(source, written, sourceLength - written);
+                reval.getResponse().write(source, written, sourceLength - written);
             }
         } finally {
             reval.skinDepth--;

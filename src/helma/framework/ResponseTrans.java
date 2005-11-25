@@ -31,7 +31,7 @@ import org.apache.xmlrpc.XmlRpcResponseProcessor;
  * A Transmitter for a response to the servlet client. Objects of this
  * class are directly exposed to JavaScript as global property res.
  */
-public final class ResponseTrans implements Serializable {
+public final class ResponseTrans extends Writer implements Serializable {
 
     static final long serialVersionUID = -8627370766119740844L;
     static final int INITIAL_BUFFER_SIZE = 2048;
@@ -263,20 +263,72 @@ public final class ResponseTrans implements Serializable {
     }
 
     /**
-     * Append a string to the response unchanged. This is often called
-     * at the end of a request to write out the whole page, so if buffer
-     * is uninitialized we just set it to the string argument.
+     * Append a string to the response unchanged.
      */
-    public synchronized void write(Object what) {
-        if (what != null) {
-            String str = what.toString();
-
+    public synchronized void write(String str) {
+        if (str != null) {
             if (buffer == null) {
                 buffer = new StringBuffer(Math.max(str.length() + 100, INITIAL_BUFFER_SIZE));
             }
-
             buffer.append(str);
         }
+    }
+
+    /**
+     * Appends a objct to the response unchanged.
+     * The object is first converted to a string.
+     */
+    public void write(Object what) {
+        if (what != null) {
+            write(what.toString());
+        }
+    }
+
+    /**
+     *  Appends a part from a char array to the response buffer.
+     *
+     * @param chars
+     * @param offset
+     * @param length
+     */
+    public synchronized void write(char[] chars, int offset, int length) {
+        if (buffer == null) {
+            buffer = new StringBuffer(Math.max(length + 100, INITIAL_BUFFER_SIZE));
+        }
+        buffer.append(chars, offset, length);
+    }
+
+    /**
+     *  Appends a char array to the response buffer.
+     *
+     * @param chars
+     */
+    public void write(char chars[]) {
+        write(chars, 0, chars.length);
+    }
+
+
+    /**
+     * Appends a signle character to the response buffer.
+     * @param c
+     */
+    public synchronized void write(int c) {
+        if (buffer == null) {
+            buffer = new StringBuffer(INITIAL_BUFFER_SIZE);
+        }
+        buffer.append((char) c);
+    }
+
+    /**
+     * Appends a part from a string to the response buffer.
+     * @param str
+     * @param offset
+     * @param length
+     */
+    public void write(String str, int offset, int length) {
+        char cbuf[]  = new char[length];
+        str.getChars(offset, (offset + length), cbuf, 0);
+        write(cbuf, 0, length);
     }
 
     /**
@@ -284,24 +336,22 @@ public final class ResponseTrans implements Serializable {
      */
     public synchronized void writeln(Object what) {
         write(what);
-
         // if what is null, buffer may still be uninitialized
         if (buffer == null) {
             buffer = new StringBuffer(INITIAL_BUFFER_SIZE);
         }
-
         buffer.append(newLine);
     }
 
     /**
-     *  Append a part from a char array to the response buffer.
+     * Writes a platform dependent newline sequence to response buffer.
      */
-    public synchronized void writeCharArray(char[] c, int start, int length) {
+    public synchronized void writeln() {
+        // buffer may still be uninitialized
         if (buffer == null) {
-            buffer = new StringBuffer(Math.max(length, INITIAL_BUFFER_SIZE));
+            buffer = new StringBuffer(INITIAL_BUFFER_SIZE);
         }
-
-        buffer.append(c, start, length);
+        buffer.append(newLine);
     }
 
     /**
@@ -380,21 +430,6 @@ public final class ResponseTrans implements Serializable {
             }
 
             HtmlEncoder.encodeAll(str, buffer, false);
-        }
-    }
-
-    /**
-     *
-     *
-     * @param str ...
-     */
-    public synchronized void append(String str) {
-        if (str != null) {
-            if (buffer == null) {
-                buffer = new StringBuffer(Math.max(str.length(), INITIAL_BUFFER_SIZE));
-            }
-
-            buffer.append(str);
         }
     }
 
@@ -492,9 +527,21 @@ public final class ResponseTrans implements Serializable {
         writeBinary(xresproc.encodeException(x, charset));
     }
 
+    public void flush() {
+        // does nothing!
+    }
+
     /**
      * This has to be called after writing to this response has finished and before it is shipped back to the
-     * web server. Transforms the string buffer into a char array to minimize size.
+     * web server. Transforms the string buffer into a byte array for transmission.
+     */
+    public void close() throws UnsupportedEncodingException {
+        close(null);
+    }
+
+    /**
+     * This has to be called after writing to this response has finished and before it is shipped back to the
+     * web server. Transforms the string buffer into a byte array for transmission.
      */
     public synchronized void close(String cset) throws UnsupportedEncodingException {
         // if the response was already written and committed by the application
@@ -842,5 +889,4 @@ public final class ResponseTrans implements Serializable {
 
         return c;
     }
-
 }
