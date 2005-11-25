@@ -186,7 +186,7 @@ public final class Prototype {
      *  Returns the list of resources in this prototype's repositories. Used
      *  by checkForUpdates() to see whether there is anything new.
      */
-    Resource[] getResources() {
+    public Resource[] getResources() {
         long checksum = getRepositoryChecksum();
         // reload resources if the repositories checksum has changed
         if (checksum != lastChecksum) {
