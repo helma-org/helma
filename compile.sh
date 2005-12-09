@@ -3,4 +3,3 @@ cd build
 cd ..
 mv lib/helma-* lib/helma.jar
 ./start.sh
-
