@@ -125,7 +125,7 @@ public final class Prototype {
      * called the code and skins collections of this prototype should be
      * up-to-date and the lastCodeUpdate be set if there has been any changes.
      */
-    public void checkForUpdates() {
+    public synchronized void checkForUpdates() {
         boolean updatedResources = false;
 
         // check if any resource the prototype knows about has changed or gone
