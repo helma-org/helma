@@ -365,11 +365,11 @@
         <fixcrlf srcdir="${build.work}" eol="lf" eof="remove" includes="**/*.txt, **/*.properties, **/*.hac, **/*.js, **/*.skin" />
         <tar tarfile="${build.dist}/${filename}.tar" basedir="${build.work}" excludes="**">
             <tarfileset prefix="${filename}" dir="${build.work}" mode="755">
-                <include name="hop.sh"/>
+                <include name="start.sh"/>
             </tarfileset>
             <tarfileset prefix="${filename}" dir="${build.work}">
                 <include name="**"/>
-                <exclude name="hop.sh"/>
+                <exclude name="start.sh"/>
                 <exclude name="**/jimi.jar"/>
             </tarfileset>
         </tar>
