@@ -1,26 +1,40 @@
-This is the README file for version 1.4.1 of Helma Object Publisher.
+This is the README file for version 1.5.0 of the Helma Javascript 
+Web Application Framework.
+
+==============
+STARTING HELMA
+==============
+
+With the default package installed, all you need to do to get 
+started is:
+ -> make sure that you have Java 1.3 or higher installed
+ -> call start.sh, resp. start.bat depending on your platform
+ -> direct your web browser to http://localhost:8080/
+See below for more detailed information.
 
 ===========
 ABOUT HELMA
 ===========
 
-Helma is a scriptable platform for creating dynamic, database backed 
-web sites.
+Helma is an open source web application framework for fast 
+and efficient scripting and serving of your websites and 
+Internet applications.
 
-Helma provides an easy way to map relational database tables to objects.
-These objects are wrapped with a layer of scripts and skins that allow
-them to be presented and manipulated over the web. The clue here is that
-both functions and skins work in an object oriented manner and force
-a clear separation between content, functionality and presentation.
-Actions are special functions that are callable over the web. Macros are
-special functions that expose functionality to the presentation layer. 
-Skins are pieces of layout that do not contain any application logic, 
-only macro tags as placeholders for parts that are dynamically provided 
-by the application.
+Helma is written in Java and employs Javascript for its server-side 
+scripting environment, removing the need for compilation cycles and 
+reducing development costs while giving you instant access to leverage 
+the whole wealth of Java libraries out there.
 
-In short, Helma provides a one stop framework to create web applications 
-with less code and in shorter time than most of the other software out 
-there.
+Helma pioneered the simple and codeless mapping of application objects 
+to database tables, which has only recently come into vogue with other 
+web frameworks. In addition, an embedded object-oriented database 
+performs automatic data persistence of unmapped objects.
+
+Helma has proven itself to be stable and fast, capable of serving high 
+traffic sites with hundreds of thousands of dynamic pages per day. The 
+Austrian Broadcasting Corporation, popular weblog hosting sites such 
+as antville.org, twoday.net, and blogger.de, among many others, have 
+successfully been deploying Helma for several years now.
 
 ===================
 SYSTEM REQUIREMENTS
@@ -35,26 +49,13 @@ you already have a Java runtime that will work well with Helma.
 For other operating systems, please consult the documentation about the 
 availabilty of a Java 1.3 (or higher) runtime.
 
-===============================================
-USING IMAGE MANIPULATION FEATURES WITH JAVA 1.3
-===============================================
-
-As of version 1.4.1, Helma uses a new Imaging extension contributed by 
-Juerg Lehni that is based on the javax.imageio.* package introduced with 
-Java 1.4.0. 
-
-Users of Java 1.3 who wish to use Helma's imaging features need to get the 
-JIMI Software Development Kit <http://java.sun.com/products/jimi/>
-and add the Jimi classes to Helma's classpath. The most convenient way 
-to do this is by installing the Helma source package.
-
 ============================
 INSTALLING AND RUNNING HELMA
 ============================
 
 Simply unzip or untar the contents of the archive file into any place 
-on your hard disk. Start Helma by invoking hop.bat or hop.sh from the 
-command line, depending on whether you are on Windows or 
+on your hard disk. Start Helma by invoking start.bat or start.sh from  
+the command line, depending on whether you are on Windows or 
 Linux/Unix/MacOSX. If the java command is not found, try setting the
 JAVA_HOME variable in the start script to the location of your Java
 installation. 
@@ -85,24 +86,28 @@ classes that communicate with Helma either directly or via Java RMI.
 since most of the recent development efforts have been geared towards the
 mod_jk/AJPv13 setup.)
 
-
 =====================================
 DOCUMENTATION AND FURTHER INFORMATION
 =====================================
 
-Currently, documentation-in-progress is available online at
-http://helma.org/. We know that it sucks and hope to do some substantial
-improvments within the coming weeks and months.
+After installing and running Helma, you will be able to access  
+introductions to the features of Helma and the various included 
+development tools. Further information you will find on the helma.org 
+website:
 
-Your input is highly welcome. There is a mailing-list to discuss Helma at
-http://helma.org/lists/listinfo/hop. Don't hesitate to voice any questions,
-proposals, complaints, praise you may have on the list. We know we have
-a lot to do and to learn, and we're open to suggestions.
+http://helma.org/docs/guide
+http://helma.org/docs/reference/
+http://helma.org/docs/tutorial/
+http://helma.org/docs/docbook/
 
-For questions, comments or suggestions also feel free to contact
-hannes@helma.at.
+========================
+MAILING LIST AND SUPPORT
+========================
+
+Please join us on the Helma mailing lists where we will be happy to 
+answer any further questions you may have!
+
+http://helma.org/development/mailinglists/
 
 
---
 
-Last modified on June 30, 2004 by Hannes Wallnoefer <hannes@helma.at>
