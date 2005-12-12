@@ -180,7 +180,7 @@ public final class Application implements IPathElement, Runnable {
      */
     public Application(String name, Repository[] repositories, File dbDir)
                 throws RemoteException, IllegalArgumentException {
-        this(name, null, repositories, dbDir);
+        this(name, null, repositories, null, dbDir);
     }
 
     /**
@@ -189,14 +189,15 @@ public final class Application implements IPathElement, Runnable {
      */
     public Application(String name, Server server)
                 throws RemoteException, IllegalArgumentException {
-        this(name, server, new Repository[0], null);
+        this(name, server, new Repository[0], null, null);
     }
 
     /**
      * Build an application with the given name, server instance, sources and
      * db directory.
      */
-    public Application(String name, Server server, Repository[] repositories, File customDbDir)
+    public Application(String name, Server server, Repository[] repositories,
+                       File customAppDir, File customDbDir)
                 throws RemoteException, IllegalArgumentException {
         if ((name == null) || (name.trim().length() == 0)) {
             throw new IllegalArgumentException("Invalid application name: " + name);
@@ -212,6 +213,7 @@ public final class Application implements IPathElement, Runnable {
         this.repositories.addAll(Arrays.asList(repositories));
         resourceComparator = new ResourceComparator(this);
 
+        appDir = customAppDir;
         dbDir = customDbDir;
 
         // system-wide properties, default to null
@@ -239,10 +241,12 @@ public final class Application implements IPathElement, Runnable {
             dbDir.mkdirs();
         }
 
-        for (int i=0; i<repositories.length; i++) {
-            if (repositories[i] instanceof FileRepository) {
-                appDir = new File(repositories[i].getName());
-                break;
+        if (appDir == null) {
+            for (int i=repositories.length-1; i>=0; i--) {
+                if (repositories[i] instanceof FileRepository) {
+                    appDir = new File(repositories[i].getName());
+                    break;
+                }
             }
         }
 

@@ -333,18 +333,17 @@ public class ApplicationManager implements XmlRpcHandler {
 
             // read and configure app repositories
             ArrayList repositoryList = new ArrayList();
+            Class[] parameters = { String.class };
             for (int i = 0; true; i++) {
-                Class[] parameters = { String.class };
+                String repositoryArgs = props.getProperty(name + ".repository." + i);
 
-                String[] repositoryArgs = { props.getProperty(name + ".repository." + i) };
-
-                if (repositoryArgs[0] != null) {
+                if (repositoryArgs != null) {
                     // lookup repository implementation
                     String repositoryImpl = props.getProperty(name + ".repository." + i +
                                                               ".implementation");
                     if (repositoryImpl == null) {
                         // implementation not set manually, have to guess it
-                        if (repositoryArgs[0].endsWith(".zip")) {
+                        if (repositoryArgs.endsWith(".zip")) {
                             repositoryImpl = "helma.framework.repository.ZipRepository";
                         } else {
                             repositoryImpl = "helma.framework.repository.FileRepository";
@@ -355,10 +354,10 @@ public class ApplicationManager implements XmlRpcHandler {
                     try {
                         newRepository = (Repository) Class.forName(repositoryImpl)
                                 .getConstructor(parameters)
-                                .newInstance((Object[]) repositoryArgs);
+                                .newInstance(new Object[] { repositoryArgs });
                         repositoryList.add(newRepository);
                     } catch (Exception ex) {
-                        System.out.println("Adding repository " + repositoryArgs[0] + " failed. " +
+                        System.out.println("Adding repository " + repositoryArgs + " failed. " +
                                            "Will not use that repository. Check your initArgs!");
                     }
                 } else {
@@ -369,24 +368,17 @@ public class ApplicationManager implements XmlRpcHandler {
                 }
             }
 
-            if (repositoryList.size() > 0) {
-                repositories = new Repository[repositoryList.size()];
-                repositoryList.toArray(repositories);
-            } else {
-                repositories = new Repository[1];
-                if (appDir != null) {
-                    repositories[0] = new FileRepository(appDir);
-                } else {
-                    repositories[0] = new FileRepository(new File(server.getAppsHome(), appName));
+            if (appDir != null) {
+                FileRepository appRep = new FileRepository(appDir);
+                if (!repositoryList.contains(appRep)) {
+                    repositoryList.add(appRep);
                 }
-                try {
-                    if (!repositories[0].exists()) {
-                        repositories[0].create();
-                    }
-                } catch (Exception swallow) {
-                    // couldn't create repository
-                }
+            } else if (repositoryList.isEmpty()) {
+                repositoryList.add(new FileRepository(
+                        new File(server.getAppsHome(), appName)));
             }
+            repositories = new Repository[repositoryList.size()];
+            repositoryList.toArray(repositories);
         }
 
 
@@ -395,7 +387,7 @@ public class ApplicationManager implements XmlRpcHandler {
 
             try {
                 // create the application instance
-                app = new Application(appName, server, repositories, dbDir);
+                app = new Application(appName, server, repositories, appDir, dbDir);
 
                 // register ourselves
                 descriptors.put(appName, this);
