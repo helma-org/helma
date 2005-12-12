@@ -2,6 +2,7 @@ The following license terms apply to the Lucene wrapper by Robert
 Gaggle, which is made available as helma.Search and is included in the
 Helma default distribution package as part of modules/helmaLib.zip
 
+
 		  GNU LESSER GENERAL PUBLIC LICENSE
 		       Version 2.1, February 1999
 

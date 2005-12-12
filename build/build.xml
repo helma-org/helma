@@ -28,6 +28,7 @@
 
         <property name="jar.name" value="${project}"/>
         <property name="package.name" value="${project}-${version}"/>
+        <property name="core.name" value="${project}-core-${version}"/>
 
         <property name="debug" value="on"/>
         <property name="optimize" value="on"/>
@@ -178,10 +179,10 @@
 
         <!-- zip up the whole thing -->
         <antcall target="package-zip">
-            <param name="filename" value="core-${package.name}"/>
+            <param name="filename" value="${core.name}"/>
         </antcall>
         <antcall target="package-tgz">
-            <param name="filename" value="core-${package.name}"/>
+            <param name="filename" value="${core.name}"/>
         </antcall>
 
         <!-- clean up -->
