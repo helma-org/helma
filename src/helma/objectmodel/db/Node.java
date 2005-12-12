@@ -186,7 +186,7 @@ public final class Node implements INode, Serializable {
             created = in.readLong();
             lastmodified = in.readLong();
 
-            subnodes = (ExternalizableVector) in.readObject();
+            subnodes = (List) in.readObject();
             // left-over from links vector
             in.readObject();
             propMap = (Hashtable) in.readObject();
