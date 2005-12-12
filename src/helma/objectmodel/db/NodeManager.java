@@ -1073,25 +1073,22 @@ public final class NodeManager {
      * @throws Exception
      */
     public int updateSubnodeList(Node home, Relation rel) throws Exception {
-        // Transactor tx = (Transactor) Thread.currentThread ();
-        // tx.timer.beginEvent ("getNodeIDs "+home);
-
         if ((rel == null) || (rel.otherType == null) || !rel.otherType.isRelational()) {
             // this should never be called for embedded nodes
             throw new RuntimeException("NodeMgr.updateSubnodeList called for non-relational node " +
                                        home);
         } else {
-            List sList = home.getSubnodeList();
-            if (sList == null)
-                sList = home.getEmptySubnodeList();
+            List list = home.getSubnodeList();
+            if (list == null)
+                list = home.getEmptySubnodeList();
             
-            if (!(sList instanceof UpdateableSubnodeList))
+            if (!(list instanceof UpdateableSubnodeList))
                 throw new RuntimeException ("unable to update SubnodeList not marked as updateable (" + rel.propName + ")");
             
-            UpdateableSubnodeList retval = (UpdateableSubnodeList) sList;
+            UpdateableSubnodeList sublist = (UpdateableSubnodeList) list;
             
             // FIXME: grouped subnodes aren't supported yet
-            if (rel.groupby!=null)
+            if (rel.groupby != null)
                 throw new RuntimeException ("update not yet supported on grouped collections");
 
             String idfield = rel.otherType.getIDField();
@@ -1119,11 +1116,11 @@ public final class NodeManager {
                          b.append(',').append(rel.additionalTables);
                     }
                 }
-                String updateCriteria = retval.getUpdateCriteria();
+                String updateCriteria = sublist.getUpdateCriteria();
                 if (home.getSubnodeRelation() != null) {
                     if (updateCriteria != null) {
                         b.append (" WHERE ");
-                        b.append (retval.getUpdateCriteria());
+                        b.append (sublist.getUpdateCriteria());
                         b.append (" AND ");
                         b.append (home.getSubnodeRelation());
                     } else {
@@ -1202,12 +1199,11 @@ public final class NodeManager {
                         }
                     }
                 }
-                System.err.println("GOT NEW NODES: " + newNodes);
+                // System.err.println("GOT NEW NODES: " + newNodes);
                 if (!newNodes.isEmpty())
-                    retval.addAll(newNodes);
+                    sublist.addAll(newNodes);
                 return newNodes.size();
             } finally {
-                // tx.timer.endEvent ("getNodeIDs "+home);
                 if (stmt != null) {
                     try {
                         stmt.close();
