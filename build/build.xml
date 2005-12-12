@@ -68,6 +68,7 @@
         <echo message=" package       --> generates the distribution (zip and tar.gz)"/>
         <echo message=" app [name]    --> gets an application from the cvs and zips it"/>
         <echo message=" module [name] --> gets a module from the cvs and zips it"/>
+        <echo message=" core          --> generates core for production updates (zip and tar.gz)"/>
         <echo message=""/>
         <echo message=" usage         --> provides help on using the build tool (default)"/>
         <echo message=""/>
@@ -149,6 +150,46 @@
 
 
     <!-- =================================================================== -->
+    <!-- Builds and packages only the core for the deployment and updating   -->
+    <!-- of production environments                                          -->
+    <!-- =================================================================== -->
+    <target name="core" depends="init, jar">
+        <mkdir dir="${build.work}"/>
+        
+        <!-- copy all libraries except helma-YYYYMMDD.jar -->
+        <copy todir="${build.work}/lib">
+            <fileset dir="${home.dir}/lib">
+                <exclude name="**/helma-*.jar" />
+                <include name="**/*.jar" />
+            </fileset>
+        </copy>
+
+        <!-- copy the launcher jar and start files-->
+        <copy file="${home.dir}/launcher.jar" todir="${build.work}/lib"/>
+
+        <!-- create lib/ext directory -->
+        <mkdir dir="${build.work}/lib/ext"/>
+
+        <!-- copy the license files -->
+        <copy todir="${build.work}/licenses">
+            <fileset dir="${home.dir}/licenses" excludes="**/CVS**"/>
+        </copy>
+        <copy file="${home.dir}/license.txt" todir="${build.work}/licenses"/>
+
+        <!-- zip up the whole thing -->
+        <antcall target="package-zip">
+            <param name="filename" value="core-${package.name}"/>
+        </antcall>
+        <antcall target="package-tgz">
+            <param name="filename" value="core-${package.name}"/>
+        </antcall>
+
+        <!-- clean up -->
+        <delete dir="${build.work}"/>
+    </target>
+
+
+    <!-- =================================================================== -->
     <!-- Creates the full helma distribution                                 -->
     <!-- =================================================================== -->
     <target name="package" depends="init">
@@ -161,7 +202,7 @@
 
         <chmod perm="755">
             <fileset dir="${build.work}">
-                <include name="hop.sh"/>
+                <include name="start.sh"/>
             </fileset>
         </chmod>
 
@@ -204,8 +245,10 @@
             <fileset dir="${build.dir}/${distribution}" excludes="**/CVS**"/>
         </copy>
 
-        <!-- copy the launcher jar file -->
+        <!-- copy the launcher jar and start files -->
         <copy file="${home.dir}/launcher.jar" todir="${build.work}/"/>
+        <copy file="${home.dir}/start.sh" todir="${build.work}"/>
+        <copy file="${home.dir}/start.bat" todir="${build.work}"/>
 
         <!-- copy README.txt -->
         <copy file="${home.dir}/README.txt" todir="${build.work}/"/>
