@@ -77,7 +77,7 @@ for more information. While Jetty works well for deploying real web sites,
 you may want to run Helma behind an existing web server. This is most
 easily done by running Helma with the AJPv13 listener which allows you to
 plug Helma into any web server using the Apache mod_jk module. See
-http://jakarta.apache.org/tomcat/tomcat-4.1-doc/jk2/index.html for more
+http://tomcat.apache.org/connectors-doc/index.html for more 
 information on mod_jk and AJPv13.
 
 Finally, Helma can be plugged into Servlet containers using Servlet
@@ -95,7 +95,7 @@ introductions to the features of Helma and the various included
 development tools. Further information you will find on the helma.org 
 website:
 
-http://helma.org/docs/guide
+http://helma.org/docs/guide/
 http://helma.org/docs/reference/
 http://helma.org/docs/tutorial/
 http://helma.org/docs/docbook/
