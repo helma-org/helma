@@ -226,7 +226,7 @@ public final class NodeManager {
 
         Transactor tx = (Transactor) Thread.currentThread();
 
-        Key key = null;
+        Key key;
 
         // check what kind of object we're looking for and make an apropriate key
         if (rel.isComplexReference()) {
@@ -453,7 +453,7 @@ public final class NodeManager {
 
         if (dbm == null) {
             throw new IllegalArgumentException("DbMapping can't be null in exportNode");
-        } else if ((dbm == null) || !dbm.isRelational()) {
+        } else if (!dbm.isRelational()) {
             throw new IllegalArgumentException("Can't export into non-relational database");
         } else {
             insertRelationalNode(node, dbm, dbm.getConnection());
@@ -863,7 +863,7 @@ public final class NodeManager {
      *  Loades subnodes via subnode relation. Only the ID index is loaded, the nodes are
      *  loaded later on demand.
      */
-    public List getNodeIDs(Node home, Relation rel) throws Exception {
+    public SubnodeList getNodeIDs(Node home, Relation rel) throws Exception {
         // Transactor tx = (Transactor) Thread.currentThread ();
         // tx.timer.beginEvent ("getNodeIDs "+home);
 
@@ -872,7 +872,7 @@ public final class NodeManager {
             throw new RuntimeException("NodeMgr.getNodeIDs called for non-relational node " +
                                        home);
         } else {
-            List retval = home.createSubnodeList();
+            SubnodeList retval = home.createSubnodeList();
 
             // if we do a groupby query (creating an intermediate layer of groupby nodes),
             // retrieve the value of that field instead of the primary key
@@ -884,8 +884,7 @@ public final class NodeManager {
             Statement stmt = null;
 
             try {
-                String q = null;
-
+                String q;
                 StringBuffer b = new StringBuffer("SELECT ");
 
                 if (rel.queryHints != null) {
@@ -945,7 +944,7 @@ public final class NodeManager {
                               ? (Key) new DbKey(rel.otherType, kstr)
                               : (Key) new SyntheticKey(k, kstr);
 
-                    retval.add(new NodeHandle(key));
+                    retval.addSorted(new NodeHandle(key));
 
                     // if these are groupby nodes, evict nullNode keys
                     if (rel.groupby != null) {
@@ -975,7 +974,7 @@ public final class NodeManager {
      *  actually loades all nodes in one go, which is better for small node collections.
      *  This method is used when xxx.loadmode=aggressive is specified.
      */
-    public List getNodes(Node home, Relation rel) throws Exception {
+    public SubnodeList getNodes(Node home, Relation rel) throws Exception {
         // This does not apply for groupby nodes - use getNodeIDs instead
         if (rel.groupby != null) {
             return getNodeIDs(home, rel);
@@ -988,7 +987,7 @@ public final class NodeManager {
             throw new RuntimeException("NodeMgr.getNodes called for non-relational node " +
                                        home);
         } else {
-            List retval = home.createSubnodeList();
+            SubnodeList retval = home.createSubnodeList();
             DbMapping dbm = rel.otherType;
 
             Connection con = dbm.getConnection();
@@ -1031,7 +1030,7 @@ public final class NodeManager {
                     }
                     Key primKey = node.getKey();
 
-                    retval.add(new NodeHandle(primKey));
+                    retval.addSorted(new NodeHandle(primKey));
 
                     // do we need to synchronize on primKey here?
                     synchronized (cache) {
@@ -1186,7 +1185,7 @@ public final class NodeManager {
                         }
                         key = node.getKey();
                     } else {
-                        key = (Key) new DbKey(rel.otherType, kstr);
+                        key = new DbKey(rel.otherType, kstr);
                     }
                     newNodes.add(new NodeHandle(key));
 
@@ -1316,14 +1315,14 @@ public final class NodeManager {
                         if (groupbyProp != null) {
                             groupName = node.getString(groupbyProp);
 
-                            List sn = (List) groupbySubnodes.get(groupName);
+                            SubnodeList sn = (SubnodeList) groupbySubnodes.get(groupName);
 
                             if (sn == null) {
-                                sn = new ExternalizableVector();
+                                sn = new SubnodeList();
                                 groupbySubnodes.put(groupName, sn);
                             }
 
-                            sn.add(new NodeHandle(primKey));
+                            sn.addSorted(new NodeHandle(primKey));
                         }
 
                         // if relation doesn't use primary key as accessName, get accessName value
@@ -1371,12 +1370,12 @@ public final class NodeManager {
 
                             Node groupnode = home.getGroupbySubnode(groupname, true);
 
-                            groupnode.setSubnodes((List) groupbySubnodes.get(groupname));
+                            groupnode.setSubnodes((SubnodeList) groupbySubnodes.get(groupname));
                             groupnode.lastSubnodeFetch = System.currentTimeMillis();
                         }
                     }
                 } catch (Exception x) {
-                    System.err.println ("ERROR IN PREFETCHNODES: "+x);
+                    System.err.println ("Error in prefetchNodes: "+x);
                 } finally {
                     if (stmt != null) {
                         try {
@@ -1408,7 +1407,7 @@ public final class NodeManager {
             Statement stmt = null;
 
             try {
-                String q = null;
+                String q;
                 StringBuffer tables = new StringBuffer(table);
 
                 if (rel.additionalTables != null) {
@@ -1836,7 +1835,7 @@ public final class NodeManager {
                         Reader in = rs.getCharacterStream(i+1+offset);
                         char[] buffer = new char[2048];
                         int read = 0;
-                        int r = 0;
+                        int r;
 
                         while ((r = in.read(buffer, read, buffer.length - read)) > -1) {
                             read += r;

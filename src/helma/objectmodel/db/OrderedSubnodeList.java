@@ -29,7 +29,7 @@ import java.util.List;
  * order. These views will be cached and automatically updated if this List's add- 
  * or remove-methods are called.
  */
-public class OrderedSubnodeList extends ArrayList {
+public class OrderedSubnodeList extends SubnodeList {
     HashMap views = null;
     private final OrderedSubnodeList origin;
 

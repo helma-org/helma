@@ -104,7 +104,7 @@ public final class WrappedNodeManager {
      * @param rel
      * @return
      */
-    public List getNodes(Node home, Relation rel) {
+    public SubnodeList getNodes(Node home, Relation rel) {
         try {
             return nmgr.getNodes(home, rel);
         } catch (Exception x) {
@@ -124,7 +124,7 @@ public final class WrappedNodeManager {
      * @param rel
      * @return
      */
-    public List getNodeIDs(Node home, Relation rel) {
+    public SubnodeList getNodeIDs(Node home, Relation rel) {
         try {
             return nmgr.getNodeIDs(home, rel);
         } catch (Exception x) {

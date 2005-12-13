@@ -40,7 +40,7 @@ public final class Node implements INode, Serializable {
     protected NodeHandle parentHandle;
 
     // Ordered list of subnodes of this node
-    private List subnodes;
+    private SubnodeList subnodes;
 
     // Named subnodes (properties) of this node
     private Hashtable propMap;
@@ -186,7 +186,7 @@ public final class Node implements INode, Serializable {
             created = in.readLong();
             lastmodified = in.readLong();
 
-            subnodes = (List) in.readObject();
+            subnodes = (SubnodeList) in.readObject();
             // left-over from links vector
             in.readObject();
             propMap = (Hashtable) in.readObject();
@@ -235,7 +235,7 @@ public final class Node implements INode, Serializable {
     /**
      * used by Xml deserialization
      */
-    public void setSubnodes(List subnodes) {
+    public void setSubnodes(SubnodeList subnodes) {
         this.subnodes = subnodes;
     }
 
@@ -1229,7 +1229,7 @@ public final class Node implements INode, Serializable {
         loadNodes();
 
         if (subnodes == null) {
-            subnodes = new ExternalizableVector();
+            subnodes = new SubnodeList();
         }
 
         if (create || subnodes.contains(new NodeHandle(new SyntheticKey(getKey(), sid)))) {
@@ -1563,16 +1563,16 @@ public final class Node implements INode, Serializable {
      * used for this Nodes subnode-list
      * @return List an empty List of the type used by this Node
      */
-    List createSubnodeList() {
+    public SubnodeList createSubnodeList() {
         Relation rel = this.dbmap == null ? null : this.dbmap.getSubnodeRelation();
         if (rel == null || rel.groupby != null) {
-            this.subnodes = new ExternalizableVector();
+            subnodes = new SubnodeList();
         } else if (rel.updateCriteria != null) {
-            this.subnodes = new UpdateableSubnodeList(rel);
+            subnodes = new UpdateableSubnodeList(rel);
         } else {
-            this.subnodes = new OrderedSubnodeList(rel);
+            subnodes = new OrderedSubnodeList(rel);
         }
-        return this.subnodes;
+        return subnodes;
     }
 
     /**
