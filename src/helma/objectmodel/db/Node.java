@@ -1564,10 +1564,10 @@ public final class Node implements INode, Serializable {
      * @return List an empty List of the type used by this Node
      */
     List createSubnodeList() {
-        Relation rel = this.dbmap.getSubnodeRelation();
-        if (rel != null && rel.groupby != null) {
+        Relation rel = this.dbmap == null ? null : this.dbmap.getSubnodeRelation();
+        if (rel == null || rel.groupby != null) {
             this.subnodes = new ExternalizableVector();
-        } else if (rel != null && rel.updateCriteria != null) {
+        } else if (rel.updateCriteria != null) {
             this.subnodes = new UpdateableSubnodeList(rel);
         } else {
             this.subnodes = new OrderedSubnodeList(rel);
