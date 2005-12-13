@@ -272,7 +272,7 @@ public class ListViewWrapper extends ScriptableObject implements Wrapper, Script
      * .) the id's of this collection must be in ascending order, meaning, that new records
      *    do have a higher id than the last record loaded by this collection
      */
-    public int jsFunction_updateSubnodes() {
+    public int jsFunction_update() {
         if (!(node instanceof helma.objectmodel.db.Node))
             throw new RuntimeException ("updateSubnodes only callabel on persistent HopObjects");
         checkNode();
@@ -287,9 +287,9 @@ public class ListViewWrapper extends ScriptableObject implements Wrapper, Script
      * @param expr the order (like sql-order using the properties instead)
      * @return ListViewWrapper holding the information of the ordered view
      */
-    public Object jsFunction_getOrderedSubnodeView(String expr) {
+    public Object jsFunction_getOrderedView(String expr) {
         if (!(list instanceof OrderedSubnodeList))
-            throw new RuntimeException ("getOrderedSubnodeView only callable on persistent HopObjects");
+            throw new RuntimeException ("getOrderedView only callable on persistent HopObjects");
         checkNode();
         
         OrderedSubnodeList osl = (OrderedSubnodeList) list;
