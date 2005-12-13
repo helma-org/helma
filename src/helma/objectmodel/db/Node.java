@@ -918,7 +918,7 @@ public final class Node implements INode, Serializable {
         } else {
             // create subnode list if necessary
             if (subnodes == null) {
-                subnodes = getEmptySubnodeList();
+                subnodes = createSubnodeList();
             }
 
             // check if subnode accessname is set. If so, check if another node
@@ -1520,11 +1520,10 @@ public final class Node implements INode, Serializable {
 
     /**
      * Make sure the subnode index is loaded for subnodes stored in a relational data source.
-     *  Depending on the subnode.loadmode specified in the type.properties, we'll load just the
-     *  ID index or the actual nodes.
-     * @return true if this subnodelist has been loaded, false if not (this Node is TRANSIENT or no subnodemapping is available or no Data-/Mapping-change occured inside Helma)
+     * Depending on the subnode.loadmode specified in the type.properties, we'll load just the
+     * ID index or the actual nodes.
      */
-    protected void loadNodes() {
+    public void loadNodes() {
         // Don't do this for transient nodes which don't have an explicit subnode relation set
         if (((state == TRANSIENT) || (state == NEW)) && (subnodeRelation == null)) {
             return;
@@ -1564,11 +1563,12 @@ public final class Node implements INode, Serializable {
      * used for this Nodes subnode-list
      * @return List an empty List of the type used by this Node
      */
-    public List getEmptySubnodeList() {
+    List createSubnodeList() {
         Relation rel = this.dbmap.getSubnodeRelation();
-        if (rel != null && rel.updateCriteria!=null) {
-            OrderedSubnodeList osl = new OrderedSubnodeList(rel);
-            this.subnodes = new UpdateableSubnodeList(rel, osl);
+        if (rel != null && rel.groupby != null) {
+            this.subnodes = new ExternalizableVector();
+        } else if (rel != null && rel.updateCriteria != null) {
+            this.subnodes = new UpdateableSubnodeList(rel);
         } else {
             this.subnodes = new OrderedSubnodeList(rel);
         }

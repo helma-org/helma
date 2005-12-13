@@ -872,7 +872,7 @@ public final class NodeManager {
             throw new RuntimeException("NodeMgr.getNodeIDs called for non-relational node " +
                                        home);
         } else {
-            List retval = home.getEmptySubnodeList();
+            List retval = home.createSubnodeList();
 
             // if we do a groupby query (creating an intermediate layer of groupby nodes),
             // retrieve the value of that field instead of the primary key
@@ -988,7 +988,7 @@ public final class NodeManager {
             throw new RuntimeException("NodeMgr.getNodes called for non-relational node " +
                                        home);
         } else {
-            List retval = home.getEmptySubnodeList();
+            List retval = home.createSubnodeList();
             DbMapping dbm = rel.otherType;
 
             Connection con = dbm.getConnection();
@@ -1080,7 +1080,7 @@ public final class NodeManager {
         } else {
             List list = home.getSubnodeList();
             if (list == null)
-                list = home.getEmptySubnodeList();
+                list = home.createSubnodeList();
             
             if (!(list instanceof UpdateableSubnodeList))
                 throw new RuntimeException ("unable to update SubnodeList not marked as updateable (" + rel.propName + ")");
