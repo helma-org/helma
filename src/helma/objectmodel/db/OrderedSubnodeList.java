@@ -18,7 +18,7 @@ package helma.objectmodel.db;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -29,17 +29,17 @@ import java.util.List;
  * order. These views will be cached and automatically updated if this List's add- 
  * or remove-methods are called.
  */
-public class OrderedSubnodeList extends LinkedList {
+public class OrderedSubnodeList extends ArrayList {
     HashMap views = null;
     private final OrderedSubnodeList origin;
-    
+
     // an array containing the order-fields
     private final String orderProperties[];
     // an array containing the direction for ordering 
     private final boolean orderIsDesc[];
-    
+
     // the relation which is the basis for this collection
-    private final Relation rel;
+    final Relation rel;
 
     /**
      * Construct a new OrderedSubnodeList. The Relation is needed
@@ -113,15 +113,28 @@ public class OrderedSubnodeList extends LinkedList {
     }
 
     public boolean add(Object obj) {
+        return add(obj, false);
+    }
+
+    public boolean addSorted(Object obj) {
+        return add(obj, true);
+    }
+
+    private boolean add(Object obj, boolean sorted) {
         if (origin != null)
             return origin.add(obj);
         vAdd(obj);
         while (rel.maxSize>0 && this.size() >= rel.maxSize)
             super.remove(0);
-        super.add(obj);
+        // escape sorting for grouped nodes
+        if (sorted || rel.groupby != null) {
+            super.add(obj);
+        } else {
+            sortIn(obj);
+        }
         return true;
     }
-    
+
     /**
      * add a new node honoring the Nodes SQL-Order
      * @param obj the object to add
@@ -131,17 +144,17 @@ public class OrderedSubnodeList extends LinkedList {
         if (this.orderProperties==null)
             return super.add(obj);
         vAdd(obj);
-//        long start = System.currentTimeMillis();
-//        try {
+        long start = System.currentTimeMillis();
+        try {
             int idx = this.determineNodePosition((NodeHandle) obj, 0);
             if (idx<0)
                 return super.add(obj);
             else
                 super.add(idx, obj);
             return true;
-/*        } finally {
+        } finally {
             System.out.println("Sortmillis: " + (System.currentTimeMillis() - start));
-        } */
+        }
     }
 
     private void vAdd (Object obj) {
@@ -152,7 +165,7 @@ public class OrderedSubnodeList extends LinkedList {
             osl.sortIn(obj);
         }
     }
-    
+
     public boolean addAll(Collection col) {
         return sortIn(col, true) > 0;
     }
@@ -172,7 +185,7 @@ public class OrderedSubnodeList extends LinkedList {
         super.add(idx, obj);
         vAdd(obj);
     }
-    
+
     /**
      * Add all nodes contained inside the specified Collection to this
      * UpdateableSubnodeList. The order of the added Nodes is asumed to
@@ -211,7 +224,7 @@ public class OrderedSubnodeList extends LinkedList {
             int locIdx=determineNodePosition(nhArr[0], 0); // determine start-point
             if (locIdx==-1)
                 locIdx=this.size();
-            int interval=Math.max(1, this.size()/2);
+            // int interval=Math.max(1, this.size()/2);
             int addIdx=0;
             for (; addIdx < nhArr.length; addIdx++) {
                 while (locIdx < this.size() && compareNodes(nhArr[addIdx], (NodeHandle) this.get(locIdx)) >= 0)
@@ -228,7 +241,7 @@ public class OrderedSubnodeList extends LinkedList {
         }
         return cntr;
     }
-    
+
     /**
      * remove the object specified by the given index-position
      * @param idx the index-position of the NodeHandle to remove
@@ -237,7 +250,7 @@ public class OrderedSubnodeList extends LinkedList {
         vRemove(idx);
         return super.remove(idx);
     }
-    
+
     private void vRemove(int idx) {
         if (views==null || origin!=null || views.size()<1)
             return;
@@ -310,8 +323,8 @@ public class OrderedSubnodeList extends LinkedList {
         int interval = Math.max(1, (size-startIdx)/2);
         boolean dirUp=true;
         int cntr = 0;
-        for (int i = 0; i < size 
-                && (i < rel.maxSize || rel.maxSize <= 0) 
+        for (int i = 0; i < size
+                && (i < rel.maxSize || rel.maxSize <= 0)
                 && cntr<(size*2); cntr++) {  // cntr is used to avoid endless-loops which shouldn't happen
             NodeHandle curr = (NodeHandle) this.get(i);
             int comp = compareNodes(nh, curr);
@@ -346,7 +359,7 @@ public class OrderedSubnodeList extends LinkedList {
                     i=0;
                 }
             }
-            
+
         }
         if (cntr >= size*2 && size>1) {
             System.err.println("determineNodePosition needed more than the allowed iterations" + this.rel.prototype);
@@ -363,7 +376,7 @@ public class OrderedSubnodeList extends LinkedList {
     private int compareNodes(NodeHandle nh1, NodeHandle nh2) {
         WrappedNodeManager wnmgr=null;
         for (int i = 0; i < orderProperties.length; i++) {
-            if (orderProperties[i]==null) { 
+            if (orderProperties[i]==null) {
                 // we have the id as order-criteria-> avoid loading node
                 // and compare numerically instead of lexicographically
                 String s1 = nh1.getID();
@@ -385,7 +398,7 @@ public class OrderedSubnodeList extends LinkedList {
                 continue;
             else if (p1==null)
                 j = -1;
-            else 
+            else
                 j = p1.compareTo(p2);
             if (j == 0)
                 continue;
@@ -437,7 +450,7 @@ public class OrderedSubnodeList extends LinkedList {
             views.put(key, osl);
             System.out.println("getting view cost me " + (System.currentTimeMillis()-start) + " millis");
         } else
-        	System.out.println("getting cached view cost me " + (System.currentTimeMillis()-start) + " millis");
+            System.out.println("getting cached view cost me " + (System.currentTimeMillis()-start) + " millis");
         return osl;
     }
 }

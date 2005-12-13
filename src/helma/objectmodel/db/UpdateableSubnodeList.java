@@ -20,12 +20,8 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
 
-public class UpdateableSubnodeList implements List {
-    // the wrapped list storing the elements
-    private final List wrappedList;
+public class UpdateableSubnodeList extends OrderedSubnodeList {
 
     // the update-criteria-fields
     private final String updateCriteria[];
@@ -37,17 +33,14 @@ public class UpdateableSubnodeList implements List {
     // arrays representing the current borders for each update-criteria
     private Object highestValues[]=null;
     private Object lowestValues[]=null;
-    
-    private final Relation rel;
-    
+
     /**
      * Construct a new UpdateableSubnodeList. The Relation is needed
      * to get the information about the ORDERING and the UPDATECriteriaS
      */
-    public UpdateableSubnodeList (Relation rel, List wrap) {
-        this.rel = rel;
-        this.wrappedList = wrap;
-        // check the updtae-criterias for updating this collection
+    public UpdateableSubnodeList (Relation rel) {
+        super(rel);
+        // check the update-criterias for updating this collection
         if (rel.updateCriteria == null) {
             // criteria-field muss vom criteria-operant getrennt werden
             // damit das update-criteria-rendering gut funktioniert
@@ -65,8 +58,9 @@ public class UpdateableSubnodeList implements List {
             updateTypeDesc = new boolean[singleCriterias.length];
             highestValues = new Object[singleCriterias.length];
             lowestValues = new Object[singleCriterias.length];
-            for (int i = 0; i < singleCriterias.length; i++)
+            for (int i = 0; i < singleCriterias.length; i++) {
                 parseCriteria (i, singleCriterias[i]);
+            }
         }
     }
 
@@ -213,7 +207,7 @@ public class UpdateableSubnodeList implements List {
         // we do not have a SQL-Order and add this node on top of the list
         NodeHandle nh = (NodeHandle) obj;
         updateBorders(nh);
-        return wrappedList.add(nh);
+        return super.add(nh);
     }
 
     /**
@@ -225,7 +219,7 @@ public class UpdateableSubnodeList implements List {
      */
     public void add (int idx, Object obj) {
         NodeHandle nh = (NodeHandle) obj;
-        wrappedList.add(idx, nh);
+        super.add(idx, nh);
         updateBorders(nh);
     }
 
@@ -339,7 +333,7 @@ public class UpdateableSubnodeList implements List {
      * @param idx the index-position of the NodeHandle to remove
      */
     public Object remove (int idx) {
-        Object obj = wrappedList.remove(idx);
+        Object obj = super.remove(idx);
         if (obj == null)
             return null;
         rebuildBorders((NodeHandle) obj);
@@ -351,7 +345,7 @@ public class UpdateableSubnodeList implements List {
      * @param obj the NodeHandle to remove
      */
     public boolean remove (Object obj) {
-        if (!wrappedList.remove(obj))
+        if (!super.remove(obj))
             return false;
         rebuildBorders((NodeHandle) obj);
         return true;
@@ -364,7 +358,7 @@ public class UpdateableSubnodeList implements List {
      * @return true if the List has been modified
      */
     public boolean removeAll(Collection c) {
-        if (!wrappedList.removeAll(c))
+        if (!super.removeAll(c))
             return false;
         for (Iterator i = c.iterator(); i.hasNext(); )
             rebuildBorders((NodeHandle) i.next());
@@ -378,7 +372,7 @@ public class UpdateableSubnodeList implements List {
      * @return true if the List has been modified
      */
     public boolean retainAll (Collection c) {
-        if (!wrappedList.retainAll(c))
+        if (!super.retainAll(c))
             return false;
         rebuildBorders();
         return true;
@@ -389,7 +383,7 @@ public class UpdateableSubnodeList implements List {
      * the added NodeHandle.
      */
     public Object set(int idx, Object obj) {
-        Object prevObj = wrappedList.set(idx, obj);
+        Object prevObj = super.set(idx, obj);
         rebuildBorders((NodeHandle) prevObj);
         updateBorders((NodeHandle) obj);
         return prevObj;
@@ -400,75 +394,6 @@ public class UpdateableSubnodeList implements List {
      * the sortIn-method will be used.
      */
     public boolean addAll(Collection col) {
-        if (wrappedList instanceof OrderedSubnodeList) {
-            return ((OrderedSubnodeList) wrappedList).sortIn(col, true) > 0;
-        }
-        return wrappedList.addAll(col);
-    }
-
-    public List getWrappedList() {
-        return this.wrappedList;
-    }
-
-    // only wrapped methods below here ****************
-
-    public int size() {
-        return wrappedList.size();
-    }
-
-    public void clear() {
-        wrappedList.clear();
-    }
-
-    public boolean isEmpty() {
-        return wrappedList.isEmpty();
-    }
-
-    public Object[] toArray() {
-        return wrappedList.toArray();
-    }
-
-    public Object get(int idx) {
-        return wrappedList.get(idx);
-    }
-
-    public int indexOf(Object obj) {
-        return wrappedList.indexOf(obj);
-    }
-
-    public int lastIndexOf(Object obj) {
-        return lastIndexOf(obj);
-    }
-
-    public boolean contains(Object obj) {
-        return wrappedList.contains(obj);
-    }
-
-    public boolean addAll(int idx, Collection col) {
-        return wrappedList.addAll(idx, col);
-    }
-
-    public boolean containsAll(Collection col) {
-        return containsAll(col);
-    }
-
-    public Iterator iterator() {
-        return wrappedList.iterator();
-    }
-
-    public List subList(int idx, int len) {
-        return wrappedList.subList(idx, len);
-    }
-
-    public ListIterator listIterator() {
-        return wrappedList.listIterator();
-    }
-
-    public ListIterator listIterator(int idx) {
-        return wrappedList.listIterator(idx);
-    }
-
-    public Object[] toArray(Object[] protoArr) {
-        return wrappedList.toArray(protoArr);
+        return sortIn(col, true) > 0;
     }
 }
