@@ -253,7 +253,12 @@ public final class Property implements IProperty, Serializable, Cloneable, Compa
      */
     public void setDateValue(Date date) {
         type = DATE;
-        value = date;
+        // normalize from java.sql.* Date subclasses
+        if (date != null && date.getClass() != Date.class) {
+            value = new Date(date.getTime());
+        } else {
+            value = date;
+        }
         dirty = true;
     }
 
@@ -497,8 +502,7 @@ public final class Property implements IProperty, Serializable, Cloneable, Compa
         Object pvalue = p.getValue();
 
         if (type==NODE || ptype==NODE ||
-                type == BOOLEAN || ptype == BOOLEAN ||
-                type != ptype) {
+                type == BOOLEAN || ptype == BOOLEAN) {
             throw new ClassCastException("uncomparable values " + this + "(" + type + ") : " + p + "(" + ptype + ")");
         }
         if (value==null && pvalue == null) {
@@ -508,9 +512,14 @@ public final class Property implements IProperty, Serializable, Cloneable, Compa
         } if (pvalue == null) {
             return 1;
         }
-        if (!(value instanceof Comparable)) {
-            throw new ClassCastException("uncomparable value " + this + "(" + this.getClass() + ")");
+        if (type != ptype) {
+            throw new ClassCastException("uncomparable values " + this + "(" + type + ") : " + p + "(" + ptype + ")");
+
         }
+        if (!(value instanceof Comparable)) {
+            throw new ClassCastException("uncomparable value " + value + "(" + value.getClass() + ")");
+        }
+        // System.err.println("COMPARING: " + value.getClass() + " TO " + pvalue.getClass());
         return ((Comparable) value).compareTo(pvalue);
     }
 
