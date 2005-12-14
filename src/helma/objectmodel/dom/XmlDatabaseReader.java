@@ -121,8 +121,7 @@ public final class XmlDatabaseReader extends DefaultHandler implements XmlConsta
 
             if ("hop:child".equals(qName)) {
                 if (subnodes == null) {
-                    subnodes = new ExternalizableVector();
-                    currentNode.setSubnodes(subnodes);
+                    subnodes = currentNode.createSubnodeList();
                 }
 
                 subnodes.add(handle);
