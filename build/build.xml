@@ -92,6 +92,8 @@
         <copy file="${build.src}/helma/objectmodel/dom/helma.xsl"
             todir="${build.classes}/helma/objectmodel/dom" />
         <javac srcdir="${build.src}"
+            source="1.3"
+            target="1.3"
             destdir="${build.classes}"
             debug="${debug}"
             deprecation="${deprecation}"
