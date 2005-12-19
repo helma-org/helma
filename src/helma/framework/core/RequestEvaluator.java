@@ -123,6 +123,7 @@ public final class RequestEvaluator implements Runnable {
         // when it's time to quit because another thread took over.
         Transactor localrtx = (Transactor) Thread.currentThread();
 
+        // spans whole execution loop - close connections in finally clause
         try {
 
             // while this thread is serving requests
@@ -149,6 +150,7 @@ public final class RequestEvaluator implements Runnable {
                 while (!done && localrtx == rtx) {
                     currentElement = null;
 
+                    // catch errors in path resolution and script execution
                     try {
 
                         // initialize scripting engine
@@ -183,146 +185,149 @@ public final class RequestEvaluator implements Runnable {
                                     session.message = null;
                                 }
 
+                                // catch redirect in path resolution or script execution
                                 try {
-                                    if (error != null) {
-                                        // there was an error in the previous loop, call error handler
-                                        currentElement = root;
+                                    // catch object not found in path resolution
+                                    try {
+                                        if (error != null) {
+                                            // there was an error in the previous loop, call error handler
+                                            currentElement = root;
 
-                                        // do not reset the requestPath so error handler can use the original one
-                                        // get error handler action
-                                        String errorAction = app.props.getProperty("error",
-                                                "error");
+                                            // do not reset the requestPath so error handler can use the original one
+                                            // get error handler action
+                                            String errorAction = app.props.getProperty("error",
+                                                    "error");
 
-                                        action = getAction(currentElement, errorAction, req);
+                                            action = getAction(currentElement, errorAction, req);
 
-                                        if (action == null) {
-                                            throw new RuntimeException(error);
-                                        }
-                                    } else if ((req.getPath() == null) ||
-                                            "".equals(req.getPath().trim())) {
-                                        currentElement = root;
-                                        requestPath.add(null, currentElement);
+                                            if (action == null) {
+                                                throw new RuntimeException(error);
+                                            }
+                                        } else if ((req.getPath() == null) ||
+                                                "".equals(req.getPath().trim())) {
+                                            currentElement = root;
+                                            requestPath.add(null, currentElement);
 
-                                        action = getAction(currentElement, null, req);
+                                            action = getAction(currentElement, null, req);
 
-                                        if (action == null) {
-                                            throw new FrameworkException("Action not found");
-                                        }
-                                    } else {
-                                        // march down request path...
-                                        StringTokenizer st = new StringTokenizer(req.getPath(),
-                                                "/");
-                                        int ntokens = st.countTokens();
+                                            if (action == null) {
+                                                throw new FrameworkException("Action not found");
+                                            }
+                                        } else {
+                                            // march down request path...
+                                            StringTokenizer st = new StringTokenizer(req.getPath(),
+                                                    "/");
+                                            int ntokens = st.countTokens();
 
-                                        // limit path to < 50 tokens
-                                        if (ntokens > 50) {
-                                            throw new RuntimeException("Path too long");
-                                        }
+                                            // limit path to < 50 tokens
+                                            if (ntokens > 50) {
+                                                throw new RuntimeException("Path too long");
+                                            }
 
-                                        String[] pathItems = new String[ntokens];
+                                            String[] pathItems = new String[ntokens];
 
-                                        for (int i = 0; i < ntokens; i++)
-                                            pathItems[i] = st.nextToken();
+                                            for (int i = 0; i < ntokens; i++)
+                                                pathItems[i] = st.nextToken();
 
-                                        currentElement = root;
-                                        requestPath.add(null, currentElement);
+                                            currentElement = root;
+                                            requestPath.add(null, currentElement);
 
 
-                                        for (int i = 0; i < ntokens; i++) {
+                                            for (int i = 0; i < ntokens; i++) {
+                                                if (currentElement == null) {
+                                                    throw new FrameworkException("Object not found.");
+                                                }
+
+                                                if (pathItems[i].length() == 0) {
+                                                    continue;
+                                                }
+
+                                                // if we're at the last element of the path,
+                                                // try to interpret it as action name.
+                                                if (i == (ntokens - 1) && !req.getPath().endsWith("/")) {
+                                                    action = getAction(currentElement, pathItems[i], req);
+                                                }
+
+                                                if (action == null) {
+                                                    currentElement = getChildElement(currentElement,
+                                                            pathItems[i]);
+
+                                                    // add object to request path if suitable
+                                                    if (currentElement != null) {
+                                                        // add to requestPath array
+                                                        requestPath.add(pathItems[i], currentElement);
+                                                    }
+                                                }
+                                            }
+
                                             if (currentElement == null) {
                                                 throw new FrameworkException("Object not found.");
                                             }
 
-                                            if (pathItems[i].length() == 0) {
-                                                continue;
-                                            }
-
-                                            // if we're at the last element of the path,
-                                            // try to interpret it as action name.
-                                            if (i == (ntokens - 1) && !req.getPath().endsWith("/")) {
-                                                action = getAction(currentElement, pathItems[i], req);
+                                            if (action == null) {
+                                                action = getAction(currentElement, null, req);
                                             }
 
                                             if (action == null) {
-                                                currentElement = getChildElement(currentElement,
-                                                        pathItems[i]);
-
-                                                // add object to request path if suitable
-                                                if (currentElement != null) {
-                                                    // add to requestPath array
-                                                    requestPath.add(pathItems[i], currentElement);
-                                                }
+                                                throw new FrameworkException("Action not found");
                                             }
                                         }
+                                    } catch (FrameworkException notfound) {
+                                        if (error != null) {
 
-                                        if (currentElement == null) {
-                                            throw new FrameworkException("Object not found.");
+                                            // we already have an error and the error template wasn't found,
+                                            // display it instead of notfound message
+                                            throw new RuntimeException();
                                         }
+
+                                        // The path could not be resolved. Check if there is a "not found" action
+                                        // specified in the property file.
+                                        res.status = 404;
+
+                                        String notFoundAction = app.props.getProperty("notfound",
+                                                "notfound");
+
+                                        currentElement = root;
+                                        action = getAction(currentElement, notFoundAction, req);
 
                                         if (action == null) {
-                                            action = getAction(currentElement, null, req);
-                                        }
-
-                                        if (action == null) {
-                                            throw new FrameworkException("Action not found");
+                                            throw new FrameworkException(notfound.getMessage());
                                         }
                                     }
-                                } catch (FrameworkException notfound) {
-                                    if (error != null) {
 
-                                        // we already have an error and the error template wasn't found,
-                                        // display it instead of notfound message
-                                        throw new RuntimeException();
+                                    // register path objects with their prototype names in
+                                    // res.handlers
+                                    Map macroHandlers = res.getMacroHandlers();
+                                    int l = requestPath.size();
+                                    Prototype[] protos = new Prototype[l];
+
+                                    for (int i = 0; i < l; i++) {
+
+                                        Object obj = requestPath.get(i);
+
+                                        protos[i] = app.getPrototype(obj);
+
+                                        // immediately register objects with their direct prototype name
+                                        if (protos[i] != null) {
+                                            macroHandlers.put(protos[i].getName(), obj);
+                                            macroHandlers.put(protos[i].getLowerCaseName(), obj);
+                                        }
                                     }
 
-                                    // The path could not be resolved. Check if there is a "not found" action
-                                    // specified in the property file.
-                                    res.status = 404;
-
-                                    String notFoundAction = app.props.getProperty("notfound",
-                                            "notfound");
-
-                                    currentElement = root;
-                                    action = getAction(currentElement, notFoundAction, req);
-
-                                    if (action == null) {
-                                        throw new FrameworkException(notfound.getMessage());
+                                    // in a second pass, we register path objects with their indirect
+                                    // (i.e. parent prototype) names, starting at the end and only
+                                    // if the name isn't occupied yet.
+                                    for (int i = l - 1; i >= 0; i--) {
+                                        if (protos[i] != null) {
+                                            protos[i].registerParents(macroHandlers, requestPath.get(i));
+                                        }
                                     }
-                                }
 
-                                // register path objects with their prototype names in
-                                // res.handlers
-                                Map macroHandlers = res.getMacroHandlers();
-                                int l = requestPath.size();
-                                Prototype[] protos = new Prototype[l];
+                                    /////////////////////////////////////////////////////////////////////////////
+                                    // end of path resolution section
+                                    /////////////////////////////////////////////////////////////////////////////
+                                    // beginning of execution section
 
-                                for (int i = 0; i < l; i++) {
-
-                                    Object obj = requestPath.get(i);
-
-                                    protos[i] = app.getPrototype(obj);
-
-                                    // immediately register objects with their direct prototype name
-                                    if (protos[i] != null) {
-                                        macroHandlers.put(protos[i].getName(), obj);
-                                        macroHandlers.put(protos[i].getLowerCaseName(), obj);
-                                    }
-                                }
-
-                                // in a second pass, we register path objects with their indirect
-                                // (i.e. parent prototype) names, starting at the end and only
-                                // if the name isn't occupied yet.
-                                for (int i = l - 1; i >= 0; i--) {
-                                    if (protos[i] != null) {
-                                        protos[i].registerParents(macroHandlers, requestPath.get(i));
-                                    }
-                                }
-
-                                /////////////////////////////////////////////////////////////////////////////
-                                // end of path resolution section
-                                /////////////////////////////////////////////////////////////////////////////
-                                // beginning of execution section
-                                try {
                                     // set the req.action property, cutting off the _action suffix
                                     req.setAction(action.substring(0, action.lastIndexOf("_action")));
 
