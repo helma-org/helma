@@ -74,18 +74,25 @@ public class FileResource implements Resource {
         return file.lastModified();
     }
 
-    public String getContent() {
-        try {
-            InputStream in = getInputStream();
-            byte[] byteBuffer = new byte[in.available()];
-
-            in.read(byteBuffer);
-            in.close();
-
-            return new String(byteBuffer);
-        } catch (Exception ignore) {
-            return "";
+    public String getContent(String encoding) throws IOException {
+        InputStream in = getInputStream();
+        int size = (int) file.length();
+        byte[] buf = new byte[size];
+        int read = 0;
+        while (read < size) {
+            int r = in.read(buf, read, size - read);
+            if (r == -1)
+                break;
+            read += r;
         }
+        in.close();
+        return encoding == null ?
+                new String(buf) :
+                new String(buf, encoding);
+    }
+
+    public String getContent() throws IOException {
+        return getContent(null);
     }
 
     public long getLength() {

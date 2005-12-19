@@ -87,7 +87,7 @@ public final class ZipResource implements Resource {
         }
     }
 
-    public String getContent() throws IOException {
+    public String getContent(String encoding) throws IOException {
         ZipFile zipfile = null;
         try {
             zipfile = repository.getZipFile();
@@ -95,9 +95,9 @@ public final class ZipResource implements Resource {
             if (entry == null) {
                 throw new IOException("Zip resource " + this + " does not exist");
             }
-            InputStreamReader in = new InputStreamReader(zipfile.getInputStream(entry));
+            InputStream in = zipfile.getInputStream(entry);
             int size = (int) entry.getSize();
-            char[] buf = new char[size];
+            byte[] buf = new byte[size];
             int read = 0;
             while (read < size) {
                 int r = in.read(buf, read, size-read);
@@ -106,10 +106,18 @@ public final class ZipResource implements Resource {
                 read += r;
             }
             in.close();
-            return new String(buf);
+            return encoding == null ?
+                    new String(buf) :
+                    new String(buf, encoding);
         } finally {
-            zipfile.close();
+            if (zipfile != null) {
+                zipfile.close();
+            }
         }
+    }
+
+    public String getContent() throws IOException {
+        return getContent(null);
     }
 
     public String getName() {

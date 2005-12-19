@@ -51,6 +51,13 @@ public interface Resource {
     public InputStream getInputStream() throws IOException;
 
     /**
+     * Returns the content of the resource in a given encoding
+     * @param encoding
+     * @return content
+     */
+    public String getContent(String encoding) throws IOException;
+
+    /**
      * Returns the content of the resource
      * @return content
      */
@@ -73,7 +80,7 @@ public interface Resource {
     /**
      * Returns the short name of the resource with the file extension
      * (everything following the last dot character) cut off.
-     * @return
+     * @return the file name without the file extension
      */
     public String getBaseName();
 
