@@ -20,6 +20,7 @@ import helma.scripting.ScriptingException;
 import helma.scripting.ScriptingEngine;
 import helma.framework.core.*;
 import helma.framework.ResponseTrans;
+import helma.framework.repository.Resource;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import org.mozilla.javascript.*;
@@ -283,6 +284,30 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         }
 
         return true;
+    }
+
+    /**
+     * Returns a prototype's resource of a given name. Walks up the prototype's
+     * inheritance chain if the resource is not found
+     *
+     * @param resourceName the name of the resource, e.g. "type.properties",
+     *                     "messages.properties", "script.js", etc.
+     * @return the resource, if found, null otherwise
+     */
+    public Object jsFunction_getResource(String resourceName) {
+        Context cx = Context.getCurrentContext();
+        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+        Prototype prototype = engine.core.app.getPrototypeByName(this.node.getPrototype());
+        while (prototype != null) {
+            Resource[] resources = prototype.getResources();
+            for (int i = resources.length - 1; i >= 0; i--) {
+                Resource resource = resources[i];
+                if (resource.exists() && resource.getShortName().equals(resourceName))
+                    return Context.toObject(resource, core.global);
+            }
+            prototype =  prototype.getParentPrototype();
+        }
+        return null;
     }
 
     /**
@@ -746,14 +771,14 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
                 node.unset(name);
             } else if (value instanceof Scriptable) {
                 Scriptable s = (Scriptable) value;
-
-                if ("Date".equals(s.getClassName())) {
+                String className = s.getClassName();
+                if ("Date".equals(className)) {
                     node.setDate(name, new Date((long) ScriptRuntime.toNumber(s)));
-                } else if ("String".equals(s.getClassName())) {
+                } else if ("String".equals(className)) {
                     node.setString(name, ScriptRuntime.toString(s));
-                } else if ("Number".equals(s.getClassName())) {
+                } else if ("Number".equals(className)) {
                     node.setFloat(name, ScriptRuntime.toNumber(s));
-                } else if ("Boolean".equals(s.getClassName())) {
+                } else if ("Boolean".equals(className)) {
                     node.setBoolean(name, ScriptRuntime.toBoolean(s));
                 } else {
                     node.setJavaObject(name, s);
