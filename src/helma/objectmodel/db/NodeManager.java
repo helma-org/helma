@@ -2071,7 +2071,7 @@ public final class NodeManager {
                                       .append(" ")
                                       .append((logTimeStop - logTimeStart))
                                       .append(": ")
-                                      .append(statement.toString())
+                                      .append(statement)
                                       .toString());
     }
 }
