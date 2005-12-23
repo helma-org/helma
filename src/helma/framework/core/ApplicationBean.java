@@ -21,6 +21,9 @@ import helma.objectmodel.db.DbSource;
 import helma.util.CronJob;
 import helma.util.SystemMap;
 import helma.util.WrappedMap;
+import helma.framework.repository.Repository;
+import helma.framework.repository.FileRepository;
+
 import java.io.File;
 import java.io.Serializable;
 import java.util.*;
@@ -113,6 +116,42 @@ public class ApplicationBean implements Serializable {
         if (app.debug()) {
             getLogger(logname).debug(msg);
         }
+    }
+
+    /**
+     * Returns the app's repository list.
+     *
+     * @return the an array containing this app's repositories
+     */
+    public Object[] getRepositories() {
+        return app.getRepositories().toArray();
+    }
+
+    /**
+     * Add a repository to the app's repository list. The .zip extension
+     * is automatically added, if the original library path does not
+     * point to an existing file or directory.
+     *
+     * @param obj the repository, relative or absolute path to the library.
+     */
+    public void addRepository(Object obj) {
+        Repository rep;
+        if (obj instanceof String) {
+            String path = (String) obj;
+            File file = new File(path).getAbsoluteFile();
+            if (!file.exists()) {
+                file = new File(path + ".zip").getAbsoluteFile();
+            }
+            if (!file.exists()) {
+                throw new RuntimeException("Repository path does not exist: " + file);
+            }
+            rep = new FileRepository(file);
+        } else if (obj instanceof Repository) {
+            rep = (Repository) obj;
+        } else {
+            throw new RuntimeException("Invalid argument to addRepository: " + obj);
+        }
+        app.addRepository(rep);
     }
 
     /**
