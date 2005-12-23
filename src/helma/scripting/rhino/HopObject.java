@@ -297,7 +297,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     public Object jsFunction_getResource(String resourceName) {
         Context cx = Context.getCurrentContext();
         RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
-        Prototype prototype = engine.core.app.getPrototypeByName(this.node.getPrototype());
+        Prototype prototype = engine.core.app.getPrototypeByName(className);
         while (prototype != null) {
             Resource[] resources = prototype.getResources();
             for (int i = resources.length - 1; i >= 0; i--) {
@@ -308,6 +308,31 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
             prototype =  prototype.getParentPrototype();
         }
         return null;
+    }
+
+
+    /**
+     * Returns an array containing the prototype's resource with a given name.
+     *
+     * @param resourceName the name of the resource, e.g. "type.properties",
+     *                     "messages.properties", "script.js", etc.
+     * @return an array of resources with the given name
+     */
+    public Object jsFunction_getResources(String resourceName) {
+        Context cx = Context.getCurrentContext();
+        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+        Prototype prototype = engine.core.app.getPrototypeByName(className);
+        ArrayList a = new ArrayList();
+        while (prototype != null) {
+            Resource[] resources = prototype.getResources();
+            for (int i = resources.length - 1; i >= 0; i--) {
+                Resource resource = resources[i];
+                if (resource.exists() && resource.getShortName().equals(resourceName))
+                    a.add(Context.toObject(resource, core.global));
+            }
+            prototype =  prototype.getParentPrototype();
+        }
+        return Context.getCurrentContext().newArray(core.global, a.toArray());
     }
 
     /**
