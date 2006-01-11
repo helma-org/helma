@@ -706,12 +706,15 @@ public final class RhinoCore implements ScopeProvider {
             // first, look in the object href was called on.
             Skin skin = null;
             Object handler = obj;
+            // get the currently active rhino engine and render the skin
+            Context cx = Context.getCurrentContext();
+            RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
 
             while (handler != null) {
                 Prototype proto = app.getPrototype(handler);
 
                 if (proto != null) {
-                    skin = proto.getSkin(hrefSkin);
+                    skin = engine.getSkin(proto.getName(), hrefSkin);
                 }
 
                 if (skin != null) {
@@ -722,10 +725,6 @@ public final class RhinoCore implements ScopeProvider {
             }
 
             if (skin != null) {
-                // get the currently active rhino engine and render the skin
-                Context cx = Context.getCurrentContext();
-                RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
-
                 engine.getResponse().pushStringBuffer();
                 HashMap param = new HashMap();
                 param.put("path", basicHref);
