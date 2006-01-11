@@ -431,6 +431,18 @@ public final class Application implements IPathElement, Runnable {
      * This is called to shut down a running application.
      */
     public synchronized void stop() {
+        // invoke global onStop() function
+        RequestEvaluator eval = null;
+        try {
+            eval = getEvaluator();
+            eval.invokeInternal(null, "onStop", new Object[0]);
+        } catch (Exception x) {
+            logError("Error in " + name + "/onStop()", x);
+        } finally {
+            releaseEvaluator(eval);
+        }
+
+        // mark app as stopped
         running = false;
 
         // stop all threads, this app is going down
@@ -622,13 +634,10 @@ public final class Application implements IPathElement, Runnable {
      *  Execute a request coming in from a web client.
      */
     public ResponseTrans execute(RequestTrans req) {
-        System.setProperty("request.start", String.valueOf(System.currentTimeMillis()));
-
         requestCount += 1;
 
         // get user for this request's session
         Session session = createSession(req.getSession());
-
         session.touch();
 
         ResponseTrans res = null;
