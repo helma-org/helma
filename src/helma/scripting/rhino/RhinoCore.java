@@ -678,7 +678,8 @@ public final class RhinoCore implements ScopeProvider {
                     try {
                         result = engine.invoke(handler, hrefFunction,
                                                new Object[] { basicHref },
-                                               ScriptingEngine.ARGS_WRAP_DEFAULT);
+                                               ScriptingEngine.ARGS_WRAP_DEFAULT,
+                                               false);
                     } catch (ScriptingException x) {
                         throw new EvaluatorException("Error in hrefFunction: " + x);
                     }

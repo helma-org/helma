@@ -330,8 +330,6 @@ public final class RequestEvaluator implements Runnable {
 
                                     // set the req.action property, cutting off the _action suffix
                                     req.setAction(action);
-                                    // make sure we have a valid function name by replacing dots with underscores
-                                    action = action.replace('.', '_');
 
                                     // reset skin recursion detection counter
                                     skinDepth = 0;
@@ -344,7 +342,8 @@ public final class RequestEvaluator implements Runnable {
                                             scriptingEngine.invoke(currentElement,
                                                     "onRequest",
                                                     new Object[0],
-                                                    ScriptingEngine.ARGS_WRAP_DEFAULT);
+                                                    ScriptingEngine.ARGS_WRAP_DEFAULT,
+                                                    false);
                                         }
                                     } catch (RedirectException redir) {
                                         throw redir;
@@ -360,13 +359,18 @@ public final class RequestEvaluator implements Runnable {
                                                 .getInputStream());
                                         Vector args = xreq.getParameters();
                                         args.add(0, xreq.getMethodName());
-                                        result = scriptingEngine.invoke(currentElement, action,
-                                            args.toArray(), ScriptingEngine.ARGS_WRAP_XMLRPC);
+                                        result = scriptingEngine.invoke(currentElement,
+                                                action,
+                                                args.toArray(),
+                                                ScriptingEngine.ARGS_WRAP_XMLRPC,
+                                                false);
                                         res.writeXmlRpcResponse(result);
                                     } else {
-                                        scriptingEngine.invoke(currentElement, action,
-                                            new Object[0],
-                                            ScriptingEngine.ARGS_WRAP_DEFAULT);
+                                        scriptingEngine.invoke(currentElement,
+                                                action,
+                                                new Object[0],
+                                                ScriptingEngine.ARGS_WRAP_DEFAULT,
+                                                false);
                                     }
                                 } catch (RedirectException redirect) {
                                     // if there is a message set, save it on the user object for the next request
@@ -420,8 +424,10 @@ public final class RequestEvaluator implements Runnable {
                                     // reset skin recursion detection counter
                                     skinDepth = 0;
 
-                                    result = scriptingEngine.invoke(currentElement, functionName, args,
-                                            ScriptingEngine.ARGS_WRAP_XMLRPC);
+                                    result = scriptingEngine.invoke(currentElement,
+                                            functionName, args,
+                                            ScriptingEngine.ARGS_WRAP_XMLRPC,
+                                            false);
                                     commitTransaction();
                                 } catch (Exception x) {
                                     abortTransaction();
@@ -475,8 +481,11 @@ public final class RequestEvaluator implements Runnable {
                                         // reset skin recursion detection counter
                                         skinDepth = 0;
 
-                                        result = scriptingEngine.invoke(thisObject, functionName, args,
-                                                ScriptingEngine.ARGS_WRAP_DEFAULT);
+                                        result = scriptingEngine.invoke(thisObject,
+                                                functionName,
+                                                args,
+                                                ScriptingEngine.ARGS_WRAP_DEFAULT,
+                                                true);
                                         commitTransaction();
                                     } catch (Exception x) {
                                         abortTransaction();
@@ -836,7 +845,8 @@ public final class RequestEvaluator implements Runnable {
      */
     public Object invokeDirectFunction(Object obj, String functionName, Object[] args)
                                 throws Exception {
-        return scriptingEngine.invoke(obj, functionName, args, ScriptingEngine.ARGS_WRAP_DEFAULT);
+        return scriptingEngine.invoke(obj, functionName, args,
+                ScriptingEngine.ARGS_WRAP_DEFAULT, false);
     }
 
     /**
@@ -961,7 +971,7 @@ public final class RequestEvaluator implements Runnable {
     private Object getChildElement(Object obj, String name) throws ScriptingException {
         if (scriptingEngine.hasFunction(obj, "getChildElement")) {
             return scriptingEngine.invoke(obj, "getChildElement", new Object[] {name},
-                                          ScriptingEngine.ARGS_WRAP_DEFAULT);
+                                          ScriptingEngine.ARGS_WRAP_DEFAULT, false);
         }
 
         if (obj instanceof IPathElement) {

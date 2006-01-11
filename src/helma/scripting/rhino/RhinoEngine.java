@@ -255,16 +255,24 @@ public class RhinoEngine implements ScriptingEngine {
 
     /**
      * Invoke a function on some object, using the given arguments and global vars.
+     * XML-RPC calls require special input and output parameter conversion.
+     *
+     * @param thisObject the object to invoke the function on, or null for
+     *                   global functions
+     * @param functionName the name of the function to be invoked
+     * @param args array of argument objects
+     * @param argsWrapMode indicated the way to process the arguments. Must be
+     *                   one of <code>ARGS_WRAP_NONE</code>,
+     *                          <code>ARGS_WRAP_DEFAULT</code>,
+     *                          <code>ARGS_WRAP_XMLRPC</code>
+     * @param resolve indicates whether functionName may contain an object path
+     *                   or just the plain function name
+     * @return the return value of the function
+     * @throws ScriptingException to indicate something went wrong
+     *                   with the invocation
      */
     public Object invoke(Object thisObject, String functionName, Object[] args,
-                         int argsWrapMode) throws ScriptingException {
-        Scriptable eso = null;
-
-        if (thisObject == null) {
-            eso = global;
-        } else {
-            eso = Context.toObject(thisObject, global);
-        }
+                         int argsWrapMode, boolean resolve) throws ScriptingException {
         try {
             for (int i = 0; i < args.length; i++) {
                 switch (argsWrapMode) {
@@ -279,15 +287,37 @@ public class RhinoEngine implements ScriptingEngine {
                         args[i] = core.processXmlRpcArgument(args[i]);
                         break;
                 }
-            }
 
-            Object f = ScriptableObject.getProperty(eso, functionName.replace('.', '_'));
+            }
+            Scriptable obj = thisObject == null ? global : Context.toObject(thisObject, global);
+
+            // if function name should be resolved interpret it as member expression,
+            // otherwise replace dots with underscores.
+            if (resolve) {
+                if (functionName.indexOf('.') > 0) {
+                    StringTokenizer st = new StringTokenizer(functionName, ".");
+                    for (int i=0; i<st.countTokens()-1; i++) {
+                        String propName = st.nextToken();
+                        Object propValue = ScriptableObject.getProperty(obj, propName);
+                        if (propValue instanceof Scriptable) {
+                            obj = (Scriptable) propValue;
+                        } else {
+                            throw new RuntimeException("Can't resolve function name " +
+                                    functionName + " in " + thisObject);
+                        }
+                    }
+                    functionName = st.nextToken();
+                }
+            } else {
+                functionName = functionName.replace('.', '_');
+            }
+            Object f = ScriptableObject.getProperty(obj, functionName);
 
             if ((f == ScriptableObject.NOT_FOUND) || !(f instanceof Function)) {
                 return null;
             }
 
-            Object retval = ((Function) f).call(context, global, eso, args);
+            Object retval = ((Function) f).call(context, global, obj, args);
 
             if (retval instanceof Wrapper) {
                 retval = ((Wrapper) retval).unwrap();
@@ -372,16 +402,18 @@ public class RhinoEngine implements ScriptingEngine {
      * is a java object) with that name.
      */
     public boolean hasFunction(Object obj, String fname) {
+        // Convert '.' to '_' in function name
+        fname = fname.replace('.', '_');
         // Treat HopObjects separately - otherwise we risk to fetch database
         // references/child objects just to check for function properties.
         if (obj instanceof INode) {
             String protoname = ((INode) obj).getPrototype();
-            return core.hasFunction(protoname, fname.replace('.', '_'));
+            return core.hasFunction(protoname, fname);
         }
 
         Scriptable op = obj == null ? global : Context.toObject(obj, global);
 
-        Object func = ScriptableObject.getProperty(op, fname.replace('.', '_'));
+        Object func = ScriptableObject.getProperty(op, fname);
 
         if (func != null && func != Undefined.instance && func instanceof Function) {
             return true;
@@ -395,7 +427,6 @@ public class RhinoEngine implements ScriptingEngine {
      * is a java object) with that name.
      */
     public Object get(Object obj, String propname) {
-        // System.err.println ("GET: "+propname);
         if ((obj == null) || (propname == null)) {
             return null;
         }

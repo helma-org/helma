@@ -147,7 +147,10 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
 
             hobj.init(core, node);
             if (proto != null) {
-                engine.invoke(hobj, "__constructor__", args, ScriptingEngine.ARGS_WRAP_NONE);
+                engine.invoke(hobj,
+                        "__constructor__",
+                        args, ScriptingEngine.ARGS_WRAP_NONE,
+                        false);
             }
 
             return hobj;

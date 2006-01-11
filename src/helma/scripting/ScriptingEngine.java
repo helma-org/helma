@@ -88,12 +88,14 @@ public interface ScriptingEngine {
      *                   one of <code>ARGS_WRAP_NONE</code>,
      *                          <code>ARGS_WRAP_DEFAULT</code>,
      *                          <code>ARGS_WRAP_XMLRPC</code>
+     * @param resolve indicates whether functionName may contain an object path
+     *                   or just the plain function name
      * @return the return value of the function
      * @throws ScriptingException to indicate something went wrong
      *                   with the invocation
      */
     public Object invoke(Object thisObject, String functionName,
-                         Object[] args, int argsWrapMode)
+                         Object[] args, int argsWrapMode, boolean resolve)
             throws ScriptingException;
 
 

@@ -28,11 +28,27 @@ import helma.scripting.ScriptingException;
  * @see helma.main.launcher.FilteredClassLoader
  */
 public final class PhantomEngine extends RhinoEngine {
+
     /**
+     * Invoke a function on some object, using the given arguments and global vars.
+     * XML-RPC calls require special input and output parameter conversion.
      *
+     * @param thisObject the object to invoke the function on, or null for
+     *                   global functions
+     * @param functionName the name of the function to be invoked
+     * @param args array of argument objects
+     * @param argsWrapMode indicated the way to process the arguments. Must be
+     *                   one of <code>ARGS_WRAP_NONE</code>,
+     *                          <code>ARGS_WRAP_DEFAULT</code>,
+     *                          <code>ARGS_WRAP_XMLRPC</code>
+     * @param resolve indicates whether functionName may contain an object path
+     *                   or just the plain function name
+     * @return the return value of the function
+     * @throws ScriptingException to indicate something went wrong
+     *                   with the invocation
      */
     public Object invoke(Object thisObject, String functionName, Object[] args,
-                         int argsWrapMode) throws ScriptingException {
-        return super.invoke(thisObject, functionName, args, argsWrapMode);
+                         int argsWrapMode, boolean resolve) throws ScriptingException {
+        return super.invoke(thisObject, functionName, args, argsWrapMode, resolve);
     }
 }
