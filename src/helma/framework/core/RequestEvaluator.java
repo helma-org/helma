@@ -163,9 +163,6 @@ public final class RequestEvaluator implements Runnable {
                         txname.append(":").append(req.getMethod().toLowerCase()).append(":");
                         txname.append((error == null) ? req.getPath() : "error");
 
-                        // begin transaction
-                        localrtx.begin(txname.toString());
-
                         String action = null;
 
                         root = app.getDataRoot();
@@ -178,6 +175,9 @@ public final class RequestEvaluator implements Runnable {
 
                         switch (reqtype) {
                             case HTTP:
+
+                                // begin transaction
+                                localrtx.begin(txname.toString());
 
                                 if (session.message != null) {
                                     // bring over the message from a redirect
@@ -382,6 +382,9 @@ public final class RequestEvaluator implements Runnable {
                             case XMLRPC:
                             case EXTERNAL:
 
+                                // begin transaction
+                                localrtx.begin(txname.toString());
+
                                 try {
                                     currentElement = root;
 
@@ -445,7 +448,6 @@ public final class RequestEvaluator implements Runnable {
                                     // see if a valid node was returned
                                     if (thisObject == null) {
                                         reqtype = NONE;
-                                        abortTransaction();
                                         done = true;
                                         break;
                                     }
@@ -463,10 +465,11 @@ public final class RequestEvaluator implements Runnable {
                                 if (!functionexists) {
                                     // function doesn't exist, nothing to do here.
                                     reqtype = NONE;
-                                    abortTransaction();
                                 } else {
-                                    try {
+                                    // begin transaction
+                                    localrtx.begin(txname.toString());
 
+                                    try {
                                         // reset skin recursion detection counter
                                         skinDepth = 0;
 
