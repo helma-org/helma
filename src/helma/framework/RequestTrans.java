@@ -250,7 +250,7 @@ public class RequestTrans implements Serializable {
      * Set the request's action.
      */
     public void setAction(String action) {
-        this.action = action;
+        this.action = action.substring(0, action.lastIndexOf("_action"));
     }
 
     /**
