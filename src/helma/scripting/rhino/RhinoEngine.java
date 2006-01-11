@@ -72,12 +72,13 @@ public class RhinoEngine implements ScriptingEngine {
      *  Zero argument constructor.
      */
     public RhinoEngine() {
+        // nothing to do
     }
 
     /**
      * Init the scripting engine with an application and a request evaluator
      */
-    public void init(Application app, RequestEvaluator reval) {
+    public synchronized void init(Application app, RequestEvaluator reval) {
         this.app = app;
         this.reval = reval;
         core = getRhinoCore(app);
@@ -170,6 +171,7 @@ public class RhinoEngine implements ScriptingEngine {
         try {
             optLevel = Integer.parseInt(app.getProperty("rhino.optlevel"));
         } catch (Exception ignore) {
+            // use default opt-level
         }
 
         context.setOptimizationLevel(optLevel);
@@ -187,20 +189,19 @@ public class RhinoEngine implements ScriptingEngine {
      *  evaluation is entered. The globals parameter contains the global values
      *  to be applied during this execution context.
      */
-    public void enterContext(Map globals) throws ScriptingException {
-        // set the thread filed in the FESI evaluator
-        // evaluator.thread = Thread.currentThread ();
-        // set globals on the global object
-        // context = Context.enter (context);
-        globals.putAll(extensionGlobals);
+    public synchronized void enterContext(Map globals) throws ScriptingException {
+        // remember the current thread as our thread
         thread = Thread.currentThread();
 
-        if ((globals != null) && (globals != lastGlobals)) {
+        // set globals on the global object
+        if (globals != lastGlobals) {
+            // add globals from extensions
+            globals.putAll(extensionGlobals);
             // loop through global vars and set them
             for (Iterator i = globals.keySet().iterator(); i.hasNext();) {
                 String k = (String) i.next();
                 Object v = globals.get(k);
-                Scriptable scriptable = null;
+                Scriptable scriptable;
 
                 // create a special wrapper for the path object.
                 // other objects are wrapped in the default way.
@@ -215,17 +216,16 @@ public class RhinoEngine implements ScriptingEngine {
 
                 global.put(k, global, scriptable);
             }
+            // remember the globals set on this evaluator
+            lastGlobals = globals;
         }
-
-        // remember the globals set on this evaluator
-        lastGlobals = globals;
     }
 
     /**
      *   This method is called to let the scripting engine know that the current
      *   execution context has terminated.
      */
-    public void exitContext() {
+    public synchronized void exitContext() {
         context.removeThreadLocal("reval");
         context.removeThreadLocal("engine");
         context.removeThreadLocal("threadscope");
@@ -241,16 +241,16 @@ public class RhinoEngine implements ScriptingEngine {
 
         // loop through previous globals and unset them, if necessary.
         if (lastGlobals != null) {
-           for (Iterator i=lastGlobals.keySet().iterator(); i.hasNext(); ) {
-               String g = (String) i.next ();
-               try {
-                   global.delete (g);
-               } catch (Exception x) {
-                   System.err.println ("Error resetting global property: "+g);
-               }
-           }
-           lastGlobals = null;
-           }
+            for (Iterator i = lastGlobals.keySet().iterator(); i.hasNext();) {
+                String g = (String) i.next();
+                try {
+                    global.delete(g);
+                } catch (Exception x) {
+                    System.err.println("Error resetting global property: " + g);
+                }
+            }
+            lastGlobals = null;
+        }
     }
 
     /**
@@ -345,7 +345,7 @@ public class RhinoEngine implements ScriptingEngine {
             String msg;
             if (x instanceof JavaScriptException) {
                 // created by javascript throw statement
-                msg = ((JavaScriptException) x).getMessage();
+                msg = x.getMessage();
             } else if (x instanceof WrappedException) {
                 // wrapped java excepiton
                 WrappedException wx = (WrappedException) x;
@@ -381,7 +381,7 @@ public class RhinoEngine implements ScriptingEngine {
      *  Let the evaluator know that the current evaluation has been
      *  aborted.
      */
-    public void abort() {
+    public synchronized void abort() {
         // current request has been aborted.
         Thread t = thread;
         if (t != null && t.isAlive()) {
@@ -393,6 +393,7 @@ public class RhinoEngine implements ScriptingEngine {
                     t.stop();
                 }
             } catch (InterruptedException i) {
+                // interrupted, ignore
             }
         }
     }
@@ -415,11 +416,7 @@ public class RhinoEngine implements ScriptingEngine {
 
         Object func = ScriptableObject.getProperty(op, fname);
 
-        if (func != null && func != Undefined.instance && func instanceof Function) {
-            return true;
-        }
-
-        return false;
+        return func instanceof Function;
     }
 
     /**
