@@ -160,6 +160,10 @@ public final class Node implements INode, Serializable {
         // set lastmodified and created timestamps and mark as clean
         created = lastmodified = System.currentTimeMillis();
 
+        if (state != CLEAN) {
+            markAs(CLEAN);
+        }
+
         // Invoke onInit() if it is defined by this Node's prototype
         if (dbm != null) {
             try {
@@ -172,10 +176,6 @@ public final class Node implements INode, Serializable {
             } catch (Exception x) {
                 nmgr.nmgr.app.logError("Error invoking onInit()", x);
             }
-        }
-
-        if (state != CLEAN) {
-            markAs(CLEAN);
         }
     }
 
