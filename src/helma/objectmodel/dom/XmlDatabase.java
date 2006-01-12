@@ -94,7 +94,7 @@ public final class XmlDatabase implements IDatabase {
             Node node = null;
 
             try {
-                node = (Node) getNode(txn, "0");
+                getNode(txn, "0");
             } catch (ObjectNotFoundException notfound) {
                 node = new Node("root", "0", "Root", nmgr.safe);
                 node.setDbMapping(app.getDbMapping("root"));
@@ -104,7 +104,7 @@ public final class XmlDatabase implements IDatabase {
             }
 
             try {
-                node = (Node) getNode(txn, "1");
+                getNode(txn, "1");
             } catch (ObjectNotFoundException notfound) {
                 node = new Node("users", "1", null, nmgr.safe);
                 node.setDbMapping(app.getDbMapping("__userroot__"));
