@@ -40,6 +40,8 @@ public final class RequestEvaluator implements Runnable {
     static final int INTERNAL = 3; // generic function call, e.g. by scheduler
     static final int EXTERNAL = 4; // function from script etc
 
+    public static final Object[] EMPTY_ARGS = new Object[0];
+
     public final Application app;
 
     protected ScriptingEngine scriptingEngine;
@@ -337,14 +339,11 @@ public final class RequestEvaluator implements Runnable {
                                     // try calling onRequest() function on object before
                                     // calling the actual action
                                     try {
-                                        if (scriptingEngine.hasFunction(currentElement,
-                                                "onRequest")) {
-                                            scriptingEngine.invoke(currentElement,
-                                                    "onRequest",
-                                                    new Object[0],
-                                                    ScriptingEngine.ARGS_WRAP_DEFAULT,
-                                                    false);
-                                        }
+                                        scriptingEngine.invoke(currentElement,
+                                                "onRequest",
+                                                EMPTY_ARGS,
+                                                ScriptingEngine.ARGS_WRAP_DEFAULT,
+                                                false);
                                     } catch (RedirectException redir) {
                                         throw redir;
                                     }
@@ -368,7 +367,7 @@ public final class RequestEvaluator implements Runnable {
                                     } else {
                                         scriptingEngine.invoke(currentElement,
                                                 action,
-                                                new Object[0],
+                                                EMPTY_ARGS,
                                                 ScriptingEngine.ARGS_WRAP_DEFAULT,
                                                 false);
                                     }
@@ -707,14 +706,13 @@ public final class RequestEvaluator implements Runnable {
     }
 
     /**
+     * Invoke an action function for a HTTP request. The function is dispatched
+     * in a new thread and waits for it to finish.
      *
-     *
-     * @param req ...
-     * @param session ...
-     *
-     * @return ...
-     *
-     * @throws Exception ...
+     * @param req the incoming HTTP request
+     * @param session the client's session
+     * @return the result returned by the invocation
+     * @throws Exception any exception thrown by the invocation
      */
     public synchronized ResponseTrans invokeHttp(RequestTrans req, Session session)
                                       throws Exception {
@@ -763,14 +761,13 @@ public final class RequestEvaluator implements Runnable {
      */
 
     /**
+     * Invoke a function for an XML-RPC request. The function is dispatched in a new thread
+     * and waits for it to finish.
      *
-     *
-     * @param functionName ...
-     * @param args ...
-     *
-     * @return ...
-     *
-     * @throws Exception ...
+     * @param functionName the name of the function to invoke
+     * @param args the arguments
+     * @return the result returned by the invocation
+     * @throws Exception any exception thrown by the invocation
      */
     public synchronized Object invokeXmlRpc(String functionName, Object[] args)
                                      throws Exception {
@@ -799,14 +796,13 @@ public final class RequestEvaluator implements Runnable {
 
 
     /**
+     * Invoke a function for an external request. The function is dispatched
+     * in a new thread and waits for it to finish.
      *
-     *
-     * @param functionName ...
-     * @param args ...
-     *
-     * @return ...
-     *
-     * @throws Exception ...
+     * @param functionName the name of the function to invoke
+     * @param args the arguments
+     * @return the result returned by the invocation
+     * @throws Exception any exception thrown by the invocation
      */
     public synchronized Object invokeExternal(String functionName, Object[] args)
                                      throws Exception {
@@ -833,32 +829,32 @@ public final class RequestEvaluator implements Runnable {
     }
 
     /**
+     * Invoke a function internally and directly, using the thread we're running on.
      *
-     *
-     * @param obj ...
-     * @param functionName ...
-     * @param args ...
-     *
-     * @return ...
-     *
-     * @throws Exception ...
+     * @param obj the object to invoke the function on
+     * @param functionName the name of the function to invoke
+     * @param args the arguments
+     * @return the result returned by the invocation
+     * @throws Exception any exception thrown by the invocation
      */
     public Object invokeDirectFunction(Object obj, String functionName, Object[] args)
                                 throws Exception {
+        if (args == null) {
+            args = EMPTY_ARGS;
+        }
         return scriptingEngine.invoke(obj, functionName, args,
                 ScriptingEngine.ARGS_WRAP_DEFAULT, false);
     }
 
     /**
+     * Invoke a function internally. The function is dispatched in a new thread
+     * and waits for it to finish.
      *
-     *
-     * @param object ...
-     * @param functionName ...
-     * @param args ...
-     *
-     * @return ...
-     *
-     * @throws Exception ...
+     * @param object the object to invoke the function on
+     * @param functionName the name of the function to invoke
+     * @param args the arguments
+     * @return the result returned by the invocation
+     * @throws Exception any exception thrown by the invocation
      */
     public synchronized Object invokeInternal(Object object, String functionName,
                                               Object[] args)
@@ -868,16 +864,15 @@ public final class RequestEvaluator implements Runnable {
     }
 
     /**
+     * Invoke a function internally. The function is dispatched in a new thread
+     * and waits for it to finish.
      *
-     *
-     * @param object ...
-     * @param functionName ...
-     * @param args ...
-     * @param timeout ...
-     *
-     * @return ...
-     *
-     * @throws Exception ...
+     * @param object the object to invoke the function on
+     * @param functionName the name of the function to invoke
+     * @param args the arguments
+     * @param timeout the time in milliseconds to wait for the function to return
+     * @return the result returned by the invocation
+     * @throws Exception any exception thrown by the invocation
      */
     public synchronized Object invokeInternal(Object object, String functionName,
                                               Object[] args, long timeout)

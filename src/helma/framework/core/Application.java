@@ -1208,11 +1208,6 @@ public final class Application implements IPathElement, Runnable {
      */
     private Object invokeFunction(Object obj, String func, Object[] args) {
         RequestEvaluator reval = getCurrentRequestEvaluator();
-
-        if (args == null) {
-            args = new Object[0];
-        }
-
         if (reval != null) {
             try {
                 return reval.invokeDirectFunction(obj, func, args);
@@ -1223,7 +1218,6 @@ public final class Application implements IPathElement, Runnable {
                 }
             }
         }
-
         return null;
     }
 
