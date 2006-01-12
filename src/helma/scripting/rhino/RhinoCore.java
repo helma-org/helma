@@ -382,10 +382,13 @@ public final class RhinoCore implements ScopeProvider {
             throw new EvaluatorException(globalError);
         }
         TypeInfo type = getPrototypeInfo(protoName);
-        if (type != null && type.hasError()) {
-            throw new EvaluatorException(type.getError());
+        if (type != null) {
+            if (type.hasError()) {
+                throw new EvaluatorException(type.getError());
+            }
+            return type.objProto;
         }
-        return type == null ? null : type.objProto;
+        return null;
     }
 
     /**
@@ -458,27 +461,15 @@ public final class RhinoCore implements ScopeProvider {
     * is a java object) with that name.
     */
     public boolean hasFunction(String protoname, String fname) {
-        // System.err.println ("HAS_FUNC: "+fname);
         // throws EvaluatorException if type has a syntax error
         Scriptable op = getValidPrototype(protoname);
 
-        try {
-            // if this is an untyped object return false
-            if (op == null) {
-                return false;
-            }
-
-            Object func = ScriptableObject.getProperty(op, fname);
-
-            if ((func != null) && func instanceof Function) {
-                return true;
-            }
-        } catch (Exception esx) {
-            // System.err.println ("Error in hasFunction: "+esx);
+        // if this is an untyped object return false
+        if (op == null) {
             return false;
         }
 
-        return false;
+        return ScriptableObject.getProperty(op, fname) instanceof Function;
     }
 
     /**
