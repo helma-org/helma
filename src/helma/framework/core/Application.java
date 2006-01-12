@@ -435,9 +435,9 @@ public final class Application implements IPathElement, Runnable {
         RequestEvaluator eval = null;
         try {
             eval = getEvaluator();
-            eval.invokeInternal(null, "onStop", new Object[0]);
+            eval.invokeInternal(null, "onStop", RequestEvaluator.EMPTY_ARGS);
         } catch (Exception x) {
-            logError("Error in " + name + "/onStop()", x);
+            logError("Error in " + name + "onStop()", x);
         } finally {
             releaseEvaluator(eval);
         }
@@ -1209,6 +1209,9 @@ public final class Application implements IPathElement, Runnable {
     private Object invokeFunction(Object obj, String func, Object[] args) {
         RequestEvaluator reval = getCurrentRequestEvaluator();
         if (reval != null) {
+            if (args == null) {
+                args = RequestEvaluator.EMPTY_ARGS;
+            }
             try {
                 return reval.invokeDirectFunction(obj, func, args);
             } catch (Exception x) {
@@ -1244,7 +1247,7 @@ public final class Application implements IPathElement, Runnable {
             return ((IPathElement) obj).getElementName();
         }
 
-        Object retval = invokeFunction(obj, "getElementName", new Object[0]);
+        Object retval = invokeFunction(obj, "getElementName", RequestEvaluator.EMPTY_ARGS);
 
         if (retval != null) {
             return retval.toString();
@@ -1276,7 +1279,7 @@ public final class Application implements IPathElement, Runnable {
             return ((IPathElement) obj).getParentElement();
         }
 
-        return invokeFunction(obj, "getParentElement", new Object[0]);
+        return invokeFunction(obj, "getParentElement", RequestEvaluator.EMPTY_ARGS);
     }
 
     /**
@@ -1448,9 +1451,9 @@ public final class Application implements IPathElement, Runnable {
         RequestEvaluator eval = null;
         try {
             eval = getEvaluator();
-            eval.invokeInternal(null, "onStart", new Object[0]);
+            eval.invokeInternal(null, "onStart", RequestEvaluator.EMPTY_ARGS);
         } catch (Exception xcept) {
-            logError("Error in " + name + "/onStart()", xcept);
+            logError("Error in " + name + "onStart()", xcept);
         } finally {
             releaseEvaluator(eval);
         }
@@ -1638,7 +1641,7 @@ public final class Application implements IPathElement, Runnable {
                 } else {
                     try {
                         evaluator.invokeInternal(null, job.getFunction(),
-                                new Object[0], job.getTimeout());
+                                RequestEvaluator.EMPTY_ARGS, job.getTimeout());
                     } catch (Exception ex) {
                         logEvent("error running " + job + ": " + ex);
                     } finally {
@@ -2043,7 +2046,7 @@ public final class Application implements IPathElement, Runnable {
         public void run() {
             try {
                 thisEvaluator.invokeInternal(null, job.getFunction(),
-                                             new Object[0], job.getTimeout());
+                                             RequestEvaluator.EMPTY_ARGS, job.getTimeout());
             } catch (Exception ex) {
                 logEvent("error running " + job + ": " + ex);
             } finally {
