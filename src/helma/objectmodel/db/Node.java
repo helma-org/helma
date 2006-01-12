@@ -17,6 +17,7 @@
 package helma.objectmodel.db;
 
 import helma.framework.IPathElement;
+import helma.framework.core.RequestEvaluator;
 import helma.objectmodel.ConcurrencyException;
 import helma.objectmodel.INode;
 import helma.objectmodel.IProperty;
@@ -73,30 +74,27 @@ public final class Node implements INode, Serializable {
     transient private int state;
 
     /**
-     * This constructor is only used for NullNode instance. Do not use for ordinary Nodes.
+     * Creates an empty, uninitialized Node. The init() method must be called on the
+     * Node before it can do anything useful.
      */
-    Node() {
+    protected Node() {
         created = lastmodified = System.currentTimeMillis();
-        nmgr = null;
     }
 
     /**
-     * Creates a new Node with the given name. Only used by NodeManager for "root nodes" and
-     * not in a Transaction context, which is why we can immediately mark it as CLEAN.
-     * ADD: used by wrapped database to re-create an existing Node.
+     * Creates a new Node with the given name. Used by NodeManager for creating "root nodes"
+     * outside of a Transaction context, which is why we can immediately mark it as CLEAN.
+     * Also used by embedded database to re-create an existing Node.
      */
     public Node(String name, String id, String prototype, WrappedNodeManager nmgr) {
-        this.nmgr = nmgr;
-        this.id = id;
-        this.name = ((name == null) || "".equals(name)) ? id : name;
-        this.prototype = prototype;
-
-        created = lastmodified = System.currentTimeMillis();
-        markAs(CLEAN);
+        if (prototype == null) {
+            prototype = "HopObject";
+        }
+        init(nmgr.getDbMapping(prototype), id, name, prototype, null, nmgr);
     }
 
     /**
-     * Constructor used to create a Node with a given name from a wrapped database.
+     * Constructor used to create a Node with a given name from a embedded database.
      */
     public Node(String name, String id, String prototype, WrappedNodeManager nmgr,
                 long created, long lastmodified) {
@@ -143,9 +141,9 @@ public final class Node implements INode, Serializable {
     }
 
     /**
-     * Initializer used for nodes being stored in a relational database table.
+     * Initializer used for nodes being instanced from an embedded or relational database.
      */
-    public void init(DbMapping dbm, String id, String name, String prototype,
+    public synchronized void init(DbMapping dbm, String id, String name, String prototype,
                 Hashtable propMap, WrappedNodeManager nmgr) {
         this.nmgr = nmgr;
         this.dbmap = dbm;
@@ -154,14 +152,31 @@ public final class Node implements INode, Serializable {
         this.name = name;
         // If name was not set from resultset, create a synthetical name now.
         if ((name == null) || (name.length() == 0)) {
-            this.name = dbmap.getTypeName() + " " + id;
+            this.name = prototype + " " + id;
         }
 
         this.propMap = propMap;
 
         // set lastmodified and created timestamps and mark as clean
         created = lastmodified = System.currentTimeMillis();
-        state = CLEAN;
+
+        // Invoke onInit() if it is defined by this Node's prototype
+        if (dbm != null) {
+            try {
+                // We need to reach deap into helma.framework.core to invoke onInit(),
+                // but the functionality is neat so we got to be strong here.
+                RequestEvaluator reval = nmgr.nmgr.app.getCurrentRequestEvaluator();
+                if (reval != null) {
+                    reval.invokeDirectFunction(this, "onInit", RequestEvaluator.EMPTY_ARGS);
+                }
+            } catch (Exception x) {
+                nmgr.nmgr.app.logError("Error invoking onInit()", x);
+            }
+        }
+
+        if (state != CLEAN) {
+            markAs(CLEAN);
+        }
     }
 
     /**
@@ -228,14 +243,14 @@ public final class Node implements INode, Serializable {
     /**
      * used by Xml deserialization
      */
-    public void setPropMap(Hashtable propMap) {
+    public synchronized void setPropMap(Hashtable propMap) {
         this.propMap = propMap;
     }
 
     /**
      * used by Xml deserialization
      */
-    public void setSubnodes(List subnodes) {
+    public synchronized void setSubnodes(List subnodes) {
         this.subnodes = subnodes;
     }
 
@@ -281,8 +296,8 @@ public final class Node implements INode, Serializable {
     /**
      *  Set this node's state, registering it with the transactor if necessary.
      */
-    void markAs(int s) {
-        if ((state == INVALID) || (state == VIRTUAL) || (state == TRANSIENT)) {
+    synchronized void markAs(int s) {
+        if (s == state || state == INVALID || state == VIRTUAL || state == TRANSIENT) {
             return;
         }
 
@@ -357,7 +372,7 @@ public final class Node implements INode, Serializable {
      *
      * @return this node's state
      */
-    public int getState() {
+    public synchronized int getState() {
         return state;
     }
 
@@ -366,7 +381,7 @@ public final class Node implements INode, Serializable {
      *
      * @param s this node's new state
      */
-    public void setState(int s) {
+    public synchronized void setState(int s) {
         this.state = s;
     }
 
