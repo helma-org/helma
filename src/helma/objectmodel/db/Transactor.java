@@ -218,7 +218,6 @@ public class Transactor extends Thread {
     public synchronized void commit() throws Exception {
         if (killed) {
             abort();
-
             return;
         }
 
