@@ -88,7 +88,6 @@ public final class RequestEvaluator implements Runnable {
         if (scriptingEngine == null) {
             String engineClassName = app.getProperty("scriptingEngine",
                                                      "helma.scripting.rhino.RhinoEngine");
-
             try {
                 Class clazz = app.getClassLoader().loadClass(engineClassName);
 
@@ -183,17 +182,14 @@ public final class RequestEvaluator implements Runnable {
                         String action = null;
 
                         if (error != null) {
-                            res.error = error;
+                            res.setError(error);
                         }
 
                         switch (reqtype) {
                             case HTTP:
 
-                                if (session.message != null) {
-                                    // bring over the message from a redirect
-                                    res.message = session.message;
-                                    session.message = null;
-                                }
+                                // bring over the message from a redirect
+                                session.recoverResponseMessages(res);
 
                                 // catch redirect in path resolution or script execution
                                 try {
@@ -292,7 +288,7 @@ public final class RequestEvaluator implements Runnable {
 
                                         // The path could not be resolved. Check if there is a "not found" action
                                         // specified in the property file.
-                                        res.status = 404;
+                                        res.setStatus(404);
 
                                         String notFoundAction = app.props.getProperty("notfound",
                                                 "notfound");
@@ -381,9 +377,7 @@ public final class RequestEvaluator implements Runnable {
                                     }
                                 } catch (RedirectException redirect) {
                                     // if there is a message set, save it on the user object for the next request
-                                    if (res.message != null) {
-                                        session.message = res.message;
-                                    }
+                                    session.storeResponseMessages(res);
                                 }
 
                                 // check if we're still the one and only or if the waiting thread has given up on us already

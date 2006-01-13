@@ -38,30 +38,20 @@ public final class ResponseTrans extends Writer implements Serializable {
 
     static final String newLine = System.getProperty("line.separator");
 
-    /**
-     * Set the MIME content type of the response.
-     */
-    public String contentType = "text/html";
+    //  MIME content type of the response.
+    private String contentType = "text/html";
 
-    /**
-     * Set the charset (encoding) to use for the response.
-     */
-    public String charset;
+    // Charset (encoding) to use for the response.
+    private String charset;
 
-    /**
-     * used to allow or disable client side caching
-     */
-    public boolean cache = true;
+    // Used to allow or disable client side caching
+    private boolean cacheable = true;
 
-    /**
-     * Value for HTTP response code, defaults to 200 (OK).
-     */
-    public int status = 200;
+    // HTTP response code, defaults to 200 (OK).
+    private int status = 200;
 
-    /**
-     * Used for HTTP authentication
-     */
-    public String realm;
+    // HTTP authentication realm
+    private String realm;
 
     // the actual response
     private byte[] response = null;
@@ -102,15 +92,11 @@ public final class ResponseTrans extends Writer implements Serializable {
     // buffer for debug messages - will be automatically appended to response
     private transient StringBuffer debugBuffer;
 
-    /**
-     * string fields that hold a user message
-     */
-    public transient String message;
+    // field for generic message to be displayed
+    private transient String message;
 
-    /**
-     * string fields that hold an error message
-     */
-    public transient String error;
+    // field for error message
+    private transient String error;
 
     // the res.data map of form and cookie data
     private transient Map values = new SystemMap();
@@ -191,7 +177,7 @@ public final class ResponseTrans extends Writer implements Serializable {
 
         buffers = null;
         response = null;
-        cache = true;
+        cacheable = true;
         redir = forward = message = error = null;
         etag = realm = charset = null;
         contentType =  "text/html";
@@ -629,22 +615,24 @@ public final class ResponseTrans extends Writer implements Serializable {
                 wait(10000L);
             }
         } catch (InterruptedException ix) {
+            // Ignore
         }
     }
 
     /**
+     * Get the body content for this response as byte array, encoded using the
+     * response's charset.
      *
-     *
-     * @return ...
+     * @return the response body
      */
     public byte[] getContent() {
         return (response == null) ? new byte[0] : response;
     }
 
     /**
+     * Get the number of bytes of the response body.
      *
-     *
-     * @return ...
+     * @return the length of the response body
      */
     public int getContentLength() {
         if (response != null) {
@@ -655,9 +643,9 @@ public final class ResponseTrans extends Writer implements Serializable {
     }
 
     /**
+     * Get the response's MIME content type
      *
-     *
-     * @return ...
+     * @return the MIME type for this response
      */
     public String getContentType() {
         if (charset != null) {
@@ -667,10 +655,20 @@ public final class ResponseTrans extends Writer implements Serializable {
         return contentType;
     }
 
+
     /**
+     * Set the response's MIME content type
      *
+     * @param contentType MIME type for this response
+     */
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
+    }
+
+    /**
+     * Set the Last-Modified header for this response
      *
-     * @param modified ...
+     * @param modified the Last-Modified header in milliseconds
      */
     public void setLastModified(long modified) {
         if ((modified > -1) && (reqtrans != null) &&
@@ -683,18 +681,18 @@ public final class ResponseTrans extends Writer implements Serializable {
     }
 
     /**
+     * Get the value of the Last-Modified header for this response.
      *
-     *
-     * @return ...
+     * @return the Last-Modified header in milliseconds
      */
     public long getLastModified() {
         return lastModified;
     }
 
     /**
+     * Set the ETag header value for this response.
      *
-     *
-     * @param value ...
+     * @param value the ETag header value
      */
     public void setETag(String value) {
         etag = (value == null) ? null : ("\"" + value + "\"");
@@ -706,27 +704,27 @@ public final class ResponseTrans extends Writer implements Serializable {
     }
 
     /**
+     * Get the ETag header value for this response.
      *
-     *
-     * @return ...
+     * @return the ETag header value
      */
     public String getETag() {
         return etag;
     }
 
     /**
+     * Check if this response should generate a Not-Modified response.
      *
-     *
-     * @return ...
+     * @return true if the the response wasn't modified since the client last saw it.
      */
     public boolean getNotModified() {
         return notModified;
     }
 
     /**
+     * Add a dependency to this response.
      *
-     *
-     * @param what ...
+     * @param what an item this response's output depends on.
      */
     public void dependsOn(Object what) {
         if (digest == null) {
@@ -755,7 +753,7 @@ public final class ResponseTrans extends Writer implements Serializable {
     }
 
     /**
-     *
+     * Digest all dependencies to a checksum to see if the response has changed.
      */
     public void digestDependencies() {
         if (digest == null) {
@@ -770,9 +768,10 @@ public final class ResponseTrans extends Writer implements Serializable {
     }
 
     /**
+     * Set the path in which to look for skins. This may contain file locations and
+     * HopObjects.
      *
-     *
-     * @param arr ...
+     * @param arr the skin path
      */
     public void setSkinpath(Object[] arr) {
         this.skinpath = arr;
@@ -780,9 +779,10 @@ public final class ResponseTrans extends Writer implements Serializable {
     }
 
     /**
+     * Get the path in which to look for skins. This may contain file locations and
+     * HopObjects.
      *
-     *
-     * @return ...
+     * @return the skin path
      */
     public Object[] getSkinpath() {
         if (skinpath == null) {
@@ -793,11 +793,10 @@ public final class ResponseTrans extends Writer implements Serializable {
     }
 
     /**
+     * Look up a cached skin.
      *
-     *
-     * @param id ...
-     *
-     * @return ...
+     * @param id the skin key
+     * @return the skin, or null if no skin is cached for the given key
      */
     public Skin getCachedSkin(Object id) {
         if (skincache == null) {
@@ -808,10 +807,10 @@ public final class ResponseTrans extends Writer implements Serializable {
     }
 
     /**
+     * Cache a skin for the length of this response.
      *
-     *
-     * @param id ...
-     * @param skin ...
+     * @param id the skin key
+     * @param skin the skin to cache
      */
     public void cacheSkin(Object id, Skin skin) {
         if (skincache == null) {
@@ -822,13 +821,13 @@ public final class ResponseTrans extends Writer implements Serializable {
     }
 
     /**
+     * Set a cookie.
      *
-     *
-     * @param key ...
-     * @param value ...
-     * @param days ...
-     * @param path ...
-     * @param domain ...
+     * @param key the cookie key
+     * @param value the cookie value
+     * @param days the cookie's lifespan in days
+     * @param path the URL path to apply the cookie to
+     * @param domain the domain to apply the cookie to
      */
     public void setCookie(String key, String value, int days, String path, String domain) {
         CookieTrans c = null;
@@ -852,7 +851,7 @@ public final class ResponseTrans extends Writer implements Serializable {
     }
 
     /**
-     *
+     * Reset all previously set cookies.
      */
     public void resetCookies() {
         if (cookies != null) {
@@ -861,9 +860,9 @@ public final class ResponseTrans extends Writer implements Serializable {
     }
 
     /**
+     * Get the number of cookies set in this response.
      *
-     *
-     * @return ...
+     * @return the number of cookies
      */
     public int countCookies() {
         if (cookies != null) {
@@ -874,9 +873,9 @@ public final class ResponseTrans extends Writer implements Serializable {
     }
 
     /**
+     * Get the cookies set in this response.
      *
-     *
-     * @return ...
+     * @return the cookies
      */
     public CookieTrans[] getCookies() {
         if (cookies == null) {
@@ -884,9 +883,119 @@ public final class ResponseTrans extends Writer implements Serializable {
         }
 
         CookieTrans[] c = new CookieTrans[cookies.size()];
-
         cookies.values().toArray(c);
-
         return c;
+    }
+
+    /**
+     * Get the message to display to the user, if any.
+     * @return the message
+     */
+    public String getMessage() {
+        return message;
+    }
+
+    /**
+     * Set a message to display to the user.
+     * @param message the message
+     */
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    /**
+     * Get the error message to display to the user, if any.
+     * @return the error message
+     */
+    public String getError() {
+        return error;
+    }
+
+    /**
+     * Set a message to display to the user.
+     * @param error the error message
+     */
+    public void setError(String error) {
+        this.error = error;
+    }
+
+    /**
+     * Get debug messages to append to the response, if any.
+     * @return the response's debug buffer
+     */
+    public StringBuffer getDebugBuffer() {
+        return debugBuffer;
+    }
+
+    /**
+     * Set debug messages to append to the response.
+     * @param debugBuffer the response's debug buffer
+     */
+    public void setDebugBuffer(StringBuffer debugBuffer) {
+        this.debugBuffer = debugBuffer;
+    }
+
+    /**
+     * Get the charset/encoding for this response
+     * @return the charset name
+     */
+    public String getCharset() {
+        return charset;
+    }
+
+    /**
+     * Set the charset/encoding for this response
+     * @param charset the charset name
+     */
+    public void setCharset(String charset) {
+        this.charset = charset;
+    }
+
+    /**
+     * Returns true if this response may be cached by the client
+     * @return true if the response may be cached
+     */
+    public boolean isCacheable() {
+        return cacheable;
+    }
+
+    /**
+     * Set the cacheability of this response
+     * @param cache true if the response may be cached
+     */
+    public void setCacheable(boolean cache) {
+        this.cacheable = cache;
+    }
+
+    /**
+     * Get the HTTP response status code
+     * @return the HTTP response code
+     */
+    public int getStatus() {
+        return status;
+    }
+
+    /**
+     * Set the HTTP response status code
+     * @param status the HTTP response code
+     */
+    public void setStatus(int status) {
+        this.status = status;
+    }
+
+    /**
+     * Get the HTTP authentication realm
+     * @return the name of the authentication realm
+     */
+    public String getRealm() {
+        return realm;
+    }
+
+    /**
+     * Set the HTTP authentication realm
+     * @param realm the name of the authentication realm
+     */
+    public void setRealm(String realm) {
+        this.realm = realm;
     }
 }

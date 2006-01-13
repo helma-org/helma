@@ -18,6 +18,8 @@ package helma.framework.core;
 
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
+import helma.framework.ResponseTrans;
+
 import java.io.*;
 import java.util.*;
 
@@ -47,6 +49,7 @@ public class Session implements Serializable {
 
     // used to remember messages to the user between requests, mainly between redirects.
     protected String message;
+    protected StringBuffer debugBuffer;
 
     /**
      * Creates a new Session object.
@@ -105,11 +108,7 @@ public class Session implements Serializable {
      * @return ...
      */
     public boolean isLoggedIn() {
-        if ((userHandle != null) && (uid != null)) {
-            return true;
-        } else {
-            return false;
-        }
+        return (userHandle != null) && (uid != null);
     }
 
     /**
@@ -257,6 +256,30 @@ public class Session implements Serializable {
 
 
     /**
+     * Set the user and debug messages over from a previous response.
+     * This is used for redirects, where messages can't be displayed immediately.
+     * @param res the response to set the messages on
+     */
+    public synchronized void recoverResponseMessages(ResponseTrans res) {
+        if (message != null || debugBuffer != null) {
+            res.setMessage(message);
+            res.setDebugBuffer(debugBuffer);
+            message = null;
+            debugBuffer = null;
+        }
+    }
+
+    /**
+     * Remember the response's user and debug messages for a later response.
+     * This is used for redirects, where messages can't be displayed immediately.
+     * @param res the response to retrieve the messages from
+     */
+    public synchronized void storeResponseMessages(ResponseTrans res) {
+        message = res.getMessage();
+        debugBuffer = res.getDebugBuffer();
+    }
+
+    /**
      * Return the message that is to be displayed upon the next
      * request within this session.
      *
@@ -272,9 +295,31 @@ public class Session implements Serializable {
      * the current request can't be used to display a user visible
      * message.
      *
-     * @param msg
+     * @param msg the message
      */
     public void setMessage(String msg) {
         message = msg;
+    }
+
+    /**
+     * Return the debug buffer that is to be displayed upon the next
+     * request within this session.
+     *
+     * @return the debug buffer, or null if none was set.
+     */
+    public StringBuffer getDebugBuffer() {
+        return debugBuffer;
+    }
+
+    /**
+     * Set the debug buffer to be displayed to this session's user. This
+     * can be used to save the debug buffer over to the next request when
+     * the current request can't be used to display a user visible
+     * message.
+     *
+     * @param buffer the buffer
+     */
+    public void setDebugBuffer(StringBuffer buffer) {
+        debugBuffer = buffer;
     }
 }

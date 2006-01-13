@@ -228,7 +228,7 @@ public class ResponseBean implements Serializable {
      * @return true if the response may be cached by the HTTP client, false otherwise
      */
     public boolean getCache() {
-        return res.cache;
+        return res.isCacheable();
     }
 
     /**
@@ -237,7 +237,7 @@ public class ResponseBean implements Serializable {
      * @param cache true if the response may be cached by the HTTP client, false otherwise
      */
     public void setCache(boolean cache) {
-        res.cache = cache;
+        res.setCacheable(cache);
     }
 
     /**
@@ -246,7 +246,7 @@ public class ResponseBean implements Serializable {
      * @return The charset name
      */
     public String getCharset() {
-        return res.charset;
+        return res.getCharset();
     }
 
     /**
@@ -255,7 +255,7 @@ public class ResponseBean implements Serializable {
      * @param charset The charset name
      */
     public void setCharset(String charset) {
-        res.charset = charset;
+        res.setCharset(charset);
     }
 
     /**
@@ -264,7 +264,7 @@ public class ResponseBean implements Serializable {
      * @return the content type
      */
     public String getContentType() {
-        return res.contentType;
+        return res.getContentType();
     }
 
     /**
@@ -273,7 +273,7 @@ public class ResponseBean implements Serializable {
      * @param contentType The charset name
      */
     public void setContentType(String contentType) {
-        res.contentType = contentType;
+        res.setContentType(contentType);
     }
 
     /**
@@ -309,7 +309,7 @@ public class ResponseBean implements Serializable {
      * @return the error message
      */
     public String getError() {
-        return res.error;
+        return res.getError();
     }
 
     /**
@@ -318,7 +318,7 @@ public class ResponseBean implements Serializable {
      * @return the message
      */
     public String getMessage() {
-        return res.message;
+        return res.getMessage();
     }
 
     /**
@@ -327,7 +327,7 @@ public class ResponseBean implements Serializable {
      * @param message the message property
      */
     public void setMessage(String message) {
-        res.message = message;
+        res.setMessage(message);
     }
 
     /**
@@ -336,7 +336,7 @@ public class ResponseBean implements Serializable {
      * @return the HTTP authentication realm
      */
     public String getRealm() {
-        return res.realm;
+        return res.getRealm();
     }
 
     /**
@@ -345,7 +345,7 @@ public class ResponseBean implements Serializable {
      * @param realm the HTTP authentication realm
      */
     public void setRealm(String realm) {
-        res.realm = realm;
+        res.setRealm(realm);
     }
 
     /**
@@ -372,7 +372,7 @@ public class ResponseBean implements Serializable {
      * @return the HTTP status code
      */
     public int getStatus() {
-        return res.status;
+        return res.getStatus();
     }
 
     /**
@@ -381,7 +381,7 @@ public class ResponseBean implements Serializable {
      * @param status the HTTP status code
      */
     public void setStatus(int status) {
-        res.status = status;
+        res.setStatus(status);
     }
 
     /**

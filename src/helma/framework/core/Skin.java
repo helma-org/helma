@@ -594,9 +594,9 @@ public final class Skin {
             Object value = null;
 
             if ("message".equals(name)) {
-                value = reval.getResponse().message;
+                value = reval.getResponse().getMessage();
             } else if ("error".equals(name)) {
-                value = reval.getResponse().error;
+                value = reval.getResponse().getError();
             }
 
             if (value == null) {

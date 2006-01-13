@@ -366,7 +366,7 @@ public abstract class AbstractServletClient extends HttpServlet {
         } else if (hopres.getNotModified()) {
             res.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
         } else {
-            if (!hopres.cache || !caching) {
+            if (!hopres.isCacheable() || !caching) {
                 // Disable caching of response.
                 // for HTTP 1.0
                 res.setDateHeader("Expires", System.currentTimeMillis() - 10000);
@@ -377,12 +377,12 @@ public abstract class AbstractServletClient extends HttpServlet {
                               "no-cache, no-store, must-revalidate, max-age=0");
             }
 
-            if (hopres.realm != null) {
-                res.setHeader("WWW-Authenticate", "Basic realm=\"" + hopres.realm + "\"");
+            if (hopres.getRealm() != null) {
+                res.setHeader("WWW-Authenticate", "Basic realm=\"" + hopres.getRealm() + "\"");
             }
 
-            if (hopres.status > 0) {
-                res.setStatus(hopres.status);
+            if (hopres.getStatus() > 0) {
+                res.setStatus(hopres.getStatus());
             }
 
             // set last-modified header to now
