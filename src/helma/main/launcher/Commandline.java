@@ -38,7 +38,7 @@ public class Commandline {
         try {
             String installDir = Main.getInstallDir(args);
 
-            FilteredClassLoader loader = Main.createClassLoader(installDir);
+            ClassLoader loader = Main.createClassLoader(installDir);
 
             // get the main server class
             Class clazz = loader.loadClass("helma.main.CommandlineRunner");

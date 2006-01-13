@@ -55,7 +55,7 @@ public class Main {
         try {
             String installDir = getInstallDir(args);
 
-            FilteredClassLoader loader = createClassLoader(installDir);
+            ClassLoader loader = createClassLoader(installDir);
 
             // get the main server class
             Class clazz = loader.loadClass("helma.main.Server");
@@ -83,7 +83,7 @@ public class Main {
      * @return the main classloader we'll be using
      * @throws MalformedURLException
      */
-    public static FilteredClassLoader createClassLoader(String installDir)
+    public static ClassLoader createClassLoader(String installDir)
             throws MalformedURLException {
 
         // decode installDir in case it is URL-encoded
@@ -129,12 +129,12 @@ public class Main {
         // find out if system classes should be excluded from class path
         String excludeSystemClasses = System.getProperty("helma.excludeSystemClasses");
 
-        FilteredClassLoader loader;
+        ClassLoader loader;
 
         if ("true".equalsIgnoreCase(excludeSystemClasses)) {
-            loader = new FilteredClassLoader(urls, null);
+            loader = new URLClassLoader(urls, null);
         } else {
-            loader = new FilteredClassLoader(urls);
+            loader = new URLClassLoader(urls);
         }
 
         // set the new class loader as context class loader
