@@ -131,9 +131,6 @@ public final class RequestEvaluator implements Runnable {
             // while this thread is serving requests
             while (localrtx == rtx) {
 
-                // root object reference
-                Object root;
-
                 // object reference to ressolve request path
                 Object currentElement;
 
@@ -160,16 +157,30 @@ public final class RequestEvaluator implements Runnable {
                         // update scripting prototypes
                         scriptingEngine.updatePrototypes();
 
+
+                        // avoid going into transaction if called function doesn't exist.
+                        // this only works for the (common) case that method is a plain
+                        // method name, not an obj.method path
+                        if (reqtype == INTERNAL &&
+                                functionName.indexOf('.') < 0 &&
+                                !scriptingEngine.hasFunction(thisObject, functionName)) {
+                            done = true;
+                            reqtype = NONE;
+                            break;
+                        }
+
                         // Transaction name is used for logging etc.
                         StringBuffer txname = new StringBuffer(app.getName());
                         txname.append(":").append(req.getMethod().toLowerCase()).append(":");
                         txname.append((error == null) ? req.getPath() : "error");
 
-                        String action = null;
+                        // begin transaction
+                        localrtx.begin(txname.toString());
 
-                        root = app.getDataRoot();
-
+                        Object root = app.getDataRoot();
                         initGlobals(root, requestPath);
+
+                        String action = null;
 
                         if (error != null) {
                             res.error = error;
@@ -177,9 +188,6 @@ public final class RequestEvaluator implements Runnable {
 
                         switch (reqtype) {
                             case HTTP:
-
-                                // begin transaction
-                                localrtx.begin(txname.toString());
 
                                 if (session.message != null) {
                                     // bring over the message from a redirect
@@ -387,9 +395,6 @@ public final class RequestEvaluator implements Runnable {
                             case XMLRPC:
                             case EXTERNAL:
 
-                                // begin transaction
-                                localrtx.begin(txname.toString());
-
                                 try {
                                     currentElement = root;
 
@@ -448,58 +453,29 @@ public final class RequestEvaluator implements Runnable {
 
                             case INTERNAL:
 
-                                // if thisObject is an instance of NodeHandle, get the node object itself.
-                                if ((thisObject != null) && thisObject instanceof NodeHandle) {
-                                    thisObject = ((NodeHandle) thisObject).getNode(app.nmgr.safe);
+                                try {
+                                    // reset skin recursion detection counter
+                                    skinDepth = 0;
 
-                                    // see if a valid node was returned
-                                    if (thisObject == null) {
-                                        reqtype = NONE;
-                                        done = true;
-                                        break;
+                                    result = scriptingEngine.invoke(thisObject,
+                                            functionName,
+                                            args,
+                                            ScriptingEngine.ARGS_WRAP_DEFAULT,
+                                            true);
+                                    commitTransaction();
+                                } catch (Exception x) {
+                                    abortTransaction();
+
+                                    app.logEvent("Exception in " + Thread.currentThread() +
+                                            ": " + x);
+
+                                    // If the transactor thread has been killed by the invoker thread we don't have to
+                                    // bother for the error message, just quit.
+                                    if (localrtx != rtx) {
+                                        return;
                                     }
-                                }
 
-                                // avoid going into transaction if called function doesn't exist.
-                                boolean functionexists = true;
-
-                                // this only works for the (common) case that method is a plain
-                                // method name, not an obj.method path
-                                if (functionName.indexOf('.') < 0) {
-                                    functionexists = scriptingEngine.hasFunction(thisObject, functionName);
-                                }
-
-                                if (!functionexists) {
-                                    // function doesn't exist, nothing to do here.
-                                    reqtype = NONE;
-                                } else {
-                                    // begin transaction
-                                    localrtx.begin(txname.toString());
-
-                                    try {
-                                        // reset skin recursion detection counter
-                                        skinDepth = 0;
-
-                                        result = scriptingEngine.invoke(thisObject,
-                                                functionName,
-                                                args,
-                                                ScriptingEngine.ARGS_WRAP_DEFAULT,
-                                                true);
-                                        commitTransaction();
-                                    } catch (Exception x) {
-                                        abortTransaction();
-
-                                        app.logEvent("Exception in " + Thread.currentThread() +
-                                                ": " + x);
-
-                                        // If the transactor thread has been killed by the invoker thread we don't have to
-                                        // bother for the error message, just quit.
-                                        if (localrtx != rtx) {
-                                            return;
-                                        }
-
-                                        this.exception = x;
-                                    }
+                                    this.exception = x;
                                 }
 
                                 done = true;
@@ -508,7 +484,7 @@ public final class RequestEvaluator implements Runnable {
                         } // switch (reqtype)
                     } catch (AbortException x) {
                         // res.abort() just aborts the transaction and
-                        // leaves the respons untouched
+                        // leaves the response untouched
                         abortTransaction();
                         done = true;
                     } catch (ConcurrencyException x) {
@@ -839,9 +815,6 @@ public final class RequestEvaluator implements Runnable {
      */
     public Object invokeDirectFunction(Object obj, String functionName, Object[] args)
                                 throws Exception {
-        if (args == null) {
-            args = EMPTY_ARGS;
-        }
         return scriptingEngine.invoke(obj, functionName, args,
                 ScriptingEngine.ARGS_WRAP_DEFAULT, false);
     }
@@ -878,6 +851,14 @@ public final class RequestEvaluator implements Runnable {
                                               Object[] args, long timeout)
                                        throws Exception {
         initObjects(functionName, INTERNAL, RequestTrans.INTERNAL);
+        // if object is an instance of NodeHandle, get the node object itself.
+        if (object instanceof NodeHandle) {
+            object = ((NodeHandle) thisObject).getNode(app.nmgr.safe);
+            // If no valid node object return immediately
+            if (object == null) {
+                return null;
+            }
+        }
         thisObject = object;
         this.functionName = functionName;
         this.args = args;
