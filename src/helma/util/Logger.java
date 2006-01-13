@@ -48,8 +48,7 @@ public class Logger implements Log {
     public final static int ERROR = 5;
     public final static int FATAL = 6;
     
-    int logLevel = INFO;
-    
+    int logLevel = INFO;    
     
     /**
      * zero argument constructor, only here for FileLogger subclass
@@ -88,6 +87,22 @@ public class Logger implements Log {
             logLevel = ERROR;
         else if ("fatal".equalsIgnoreCase(level))
             logLevel = FATAL;    
+    }
+
+    /**
+     * Get the current log level.
+     * @return the current log level
+     */
+    public int getLogLevel() {
+        return logLevel;
+    }
+
+    /**
+     * Set the log level for this logger.
+     * @param logLevel the new log level
+     */
+    public void setLogLevel(int logLevel) {
+        this.logLevel = logLevel;
     }
 
     /**
