@@ -1416,6 +1416,11 @@ public final class Application implements IPathElement, Runnable {
     Log getEventLog() {
         if (eventLog == null) {
             eventLog = getLogger(eventLogName);
+            // set log level for event log in case it is a helma.util.Logger
+            if (eventLog instanceof Logger) {
+                ((Logger) eventLog).setLogLevel(debug ? Logger.DEBUG : Logger.INFO);
+            }
+
         }
         return eventLog;
     }
@@ -1857,8 +1862,14 @@ public final class Application implements IPathElement, Runnable {
             logDir = props.getProperty("logdir", "log");
             if (System.getProperty("helma.logdir") == null) {
                 // set up helma.logdir system property in case we're using it
+                // FIXME: this sets a global System property, should be per-app
                 File dir = new File(logDir);
                 System.setProperty("helma.logdir", dir.getAbsolutePath());
+            }
+
+            // set log level for event log in case it is a helma.util.Logger
+            if (eventLog instanceof Logger) {
+                ((Logger) eventLog).setLogLevel(debug ? Logger.DEBUG : Logger.INFO);
             }
 
             // set prop read timestamp
