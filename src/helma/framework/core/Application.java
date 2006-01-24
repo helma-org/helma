@@ -1740,8 +1740,8 @@ public final class Application implements IPathElement, Runnable {
                     return true;
                 }
             }
-            // no parent or parent not in app's repositories.
-            repositories.add(0, rep);
+            // no parent or parent not in app's repositories, add at end of list.
+            repositories.add(rep);
             return true;
         }
         return false;
