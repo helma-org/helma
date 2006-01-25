@@ -185,7 +185,7 @@ public final class Relation {
                 }
 
                 // make sure the type we're referring to is up to date!
-                if (otherType != null && otherType.needsUpdate()) {
+                if (otherType.needsUpdate()) {
                     otherType.update();
                 }
 
