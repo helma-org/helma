@@ -298,48 +298,46 @@ public class ApplicationManager implements XmlRpcHandler {
          *  Creates an AppDescriptor from the properties.
          */
         AppDescriptor(String name) {
+            ResourceProperties conf = props.getSubProperties(name + '.');
             appName = name;
-            mountpoint = getMountpoint(props.getProperty(name + ".mountpoint",
-                                        appName));
+            mountpoint = getMountpoint(conf.getProperty("mountpoint", appName));
             pathPattern = getPathPattern(mountpoint);
-            staticDir = props.getProperty(name + ".static");
-            staticMountpoint = getPathPattern(props.getProperty(name + ".staticMountpoint",
+            staticDir = conf.getProperty("static");
+            staticMountpoint = getPathPattern(conf.getProperty("staticMountpoint",
                                         joinMountpoint(mountpoint, "static")));
-            staticIndex = "true".equalsIgnoreCase(props.getProperty(name+
-                                                  ".staticIndex"));
-            String home = props.getProperty(name + ".staticHome");
+            staticIndex = "true".equalsIgnoreCase(conf.getProperty("staticIndex"));
+            String home = conf.getProperty("staticHome");
             if (home == null) {
                 staticHome = new String[] {"index.html", "index.htm"};
             } else {
                 staticHome = StringUtils.split(home, ",");
             }
-            protectedStaticDir = props.getProperty(name + ".protectedStatic");
+            protectedStaticDir = conf.getProperty("protectedStatic");
 
-            cookieDomain = props.getProperty(name + ".cookieDomain");
-            sessionCookieName = props.getProperty(name + ".sessionCookieName");
-            protectedSessionCookie = props.getProperty(name + ".protectedSessionCookie");
-            uploadLimit = props.getProperty(name + ".uploadLimit");
-            uploadSoftfail = props.getProperty(name + ".uploadSoftfail");
-            debug = props.getProperty(name + ".debug");
-            encode = "true".equalsIgnoreCase(props.getProperty(name +
-                                        ".responseEncoding"));
-            String appDirName = props.getProperty(name + ".appdir");
+            cookieDomain = conf.getProperty("cookieDomain");
+            sessionCookieName = conf.getProperty("sessionCookieName");
+            protectedSessionCookie = conf.getProperty("protectedSessionCookie");
+            uploadLimit = conf.getProperty("uploadLimit");
+            uploadSoftfail = conf.getProperty("uploadSoftfail");
+            debug = conf.getProperty("debug");
+            encode = "true".equalsIgnoreCase(conf.getProperty("responseEncoding"));
+            String appDirName = conf.getProperty("appdir");
             appDir = (appDirName == null) ? null : new File(appDirName);
-            String dbDirName = props.getProperty(name + ".dbdir");
+            String dbDirName = conf.getProperty("dbdir");
             dbDir = (dbDirName == null) ? null : new File(dbDirName);
 
             // got ignore dirs
-            ignoreDirs = props.getProperty(name + ".ignore");
+            ignoreDirs = conf.getProperty("ignore");
 
             // read and configure app repositories
             ArrayList repositoryList = new ArrayList();
             Class[] parameters = { String.class };
             for (int i = 0; true; i++) {
-                String repositoryArgs = props.getProperty(name + ".repository." + i);
+                String repositoryArgs = conf.getProperty("repository." + i);
 
                 if (repositoryArgs != null) {
                     // lookup repository implementation
-                    String repositoryImpl = props.getProperty(name + ".repository." + i +
+                    String repositoryImpl = conf.getProperty("repository." + i +
                                                               ".implementation");
                     if (repositoryImpl == null) {
                         // implementation not set manually, have to guess it
@@ -350,9 +348,8 @@ public class ApplicationManager implements XmlRpcHandler {
                         }
                     }
 
-                    Repository newRepository = null;
                     try {
-                        newRepository = (Repository) Class.forName(repositoryImpl)
+                        Repository newRepository = (Repository) Class.forName(repositoryImpl)
                                 .getConstructor(parameters)
                                 .newInstance(new Object[] { repositoryArgs });
                         repositoryList.add(newRepository);
