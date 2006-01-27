@@ -20,6 +20,7 @@ import helma.framework.core.Application;
 import helma.objectmodel.INode;
 import helma.objectmodel.IProperty;
 import helma.util.StringUtils;
+import helma.util.ResourceProperties;
 
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -140,7 +141,7 @@ public final class Relation {
     ////////////////////////////////////////////////////////////////////////////////////////////
     // parse methods for new file format
     ////////////////////////////////////////////////////////////////////////////////////////////
-    public void update(String desc, Properties props) {
+    public void update(String desc, ResourceProperties props) {
         Application app = ownType.getApplication();
 
         if ((desc == null) || "".equals(desc.trim())) {
@@ -196,15 +197,17 @@ public final class Relation {
             }
         }
 
-        readonly = "true".equalsIgnoreCase(props.getProperty(propName + ".readonly"));
+        ResourceProperties config = props.getSubProperties(propName + '.');
 
-        isPrivate = "true".equalsIgnoreCase(props.getProperty(propName + ".private"));
+        readonly = "true".equalsIgnoreCase(config.getProperty("readonly"));
+
+        isPrivate = "true".equalsIgnoreCase(config.getProperty("private"));
 
         // the following options only apply to object and collection relations
         if ((reftype != PRIMITIVE) && (reftype != INVALID)) {
             Vector newConstraints = new Vector();
 
-            parseOptions(newConstraints, props);
+            parseOptions(newConstraints, config);
 
             constraints = new Constraint[newConstraints.size()];
             newConstraints.copyInto(constraints);
@@ -249,26 +252,26 @@ public final class Relation {
         }
     }
 
-    protected void parseOptions(Vector cnst, Properties props) {
-        String loading = props.getProperty(propName + ".loadmode");
+    protected void parseOptions(Vector cnst, Properties config) {
+        String loading = config.getProperty("loadmode");
 
         aggressiveLoading = (loading != null) &&
                             "aggressive".equalsIgnoreCase(loading.trim());
 
-        String caching = props.getProperty(propName + ".cachemode");
+        String caching = config.getProperty("cachemode");
 
         aggressiveCaching = (caching != null) &&
                             "aggressive".equalsIgnoreCase(caching.trim());
 
         // get order property
-        order = props.getProperty(propName + ".order");
+        order = config.getProperty("order");
 
         if ((order != null) && (order.trim().length() == 0)) {
             order = null;
         }
 
         // get additional filter property
-        filter = props.getProperty(propName + ".filter");
+        filter = config.getProperty("filter");
 
         if (filter != null) {
             if (filter.trim().length() == 0) {
@@ -291,7 +294,7 @@ public final class Relation {
         }
 
         // get additional tables
-        additionalTables = props.getProperty(propName + ".filter.additionalTables");
+        additionalTables = config.getProperty("filter.additionalTables");
 
         if (additionalTables != null) {
             if (additionalTables.trim().length() == 0) {
@@ -321,10 +324,10 @@ public final class Relation {
         }
 
         // get query hints
-        queryHints = props.getProperty(propName + ".hints");
+        queryHints = config.getProperty("hints");
 
         // get max size of collection
-        String max = props.getProperty(propName + ".maxSize");
+        String max = config.getProperty("maxSize");
 
         if (max != null) {
             try {
@@ -337,20 +340,20 @@ public final class Relation {
         }
 
         // get group by property
-        groupby = props.getProperty(propName + ".group");
+        groupby = config.getProperty("group");
 
         if ((groupby != null) && (groupby.trim().length() == 0)) {
             groupby = null;
         }
 
         if (groupby != null) {
-            groupbyOrder = props.getProperty(propName + ".group.order");
+            groupbyOrder = config.getProperty("group.order");
 
             if ((groupbyOrder != null) && (groupbyOrder.trim().length() == 0)) {
                 groupbyOrder = null;
             }
 
-            groupbyPrototype = props.getProperty(propName + ".group.prototype");
+            groupbyPrototype = config.getProperty("group.prototype");
 
             if ((groupbyPrototype != null) && (groupbyPrototype.trim().length() == 0)) {
                 groupbyPrototype = null;
@@ -361,11 +364,11 @@ public final class Relation {
         }
 
         // check if subnode condition should be applied for property relations
-        accessName = props.getProperty(propName + ".accessname");
+        accessName = config.getProperty("accessname");
 
         // parse contstraints
-        String local = props.getProperty(propName + ".local");
-        String foreign = props.getProperty(propName + ".foreign");
+        String local = config.getProperty("local");
+        String foreign = config.getProperty("foreign");
 
         if ((local != null) && (foreign != null)) {
             cnst.addElement(new Constraint(local, foreign, false));
@@ -374,8 +377,8 @@ public final class Relation {
 
         // parse additional contstraints from *.1 to *.9
         for (int i=1; i<10; i++) {
-            local = props.getProperty(propName + ".local."+i);
-            foreign = props.getProperty(propName + ".foreign."+i);
+            local = config.getProperty("local."+i);
+            foreign = config.getProperty("foreign."+i);
 
             if ((local != null) && (foreign != null)) {
                 cnst.addElement(new Constraint(local, foreign, false));
@@ -384,7 +387,7 @@ public final class Relation {
 
         // parse constraints logic
         if (cnst.size() > 1) {
-            String logic = props.getProperty(propName + ".logicalOperator");
+            String logic = config.getProperty("logicalOperator");
             if ("and".equalsIgnoreCase(logic)) {
                 logicalOperator = AND;
             } else if ("or".equalsIgnoreCase(logic)) {
@@ -401,6 +404,13 @@ public final class Relation {
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Get the configuration properties for this relation.
+     */
+    public ResourceProperties getConfig() {
+        return ownType.getProperties().getSubProperties(propName + '.');
+    }
 
     /**
      * Does this relation describe a virtual (collection) node?
