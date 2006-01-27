@@ -30,8 +30,10 @@ public class ResourceProperties extends Properties {
     // Delay between checks
     private final long cacheTime = 1500L;
 
-    // Default properties
-    public ResourceProperties defaultProperties;
+    // Default properties. Note that in contrast to java.util.Properties,
+    // defaultProperties are copied statically to ourselves in update(), so
+    // there's no need to check them in retrieval methods.
+    protected ResourceProperties defaultProperties;
 
     // Defines wether keys are case-sensitive or not
     private boolean ignoreCase = true;
@@ -157,8 +159,6 @@ public class ResourceProperties extends Properties {
             resources.remove(resource);
             forceUpdate();
         }
-
-        return;
     }
 
     /**
@@ -226,8 +226,34 @@ public class ResourceProperties extends Properties {
             lastChecksum = getChecksum();
             lastCheck = lastModified = System.currentTimeMillis();
         }
+    }
 
-        return;
+    /**
+     * Extract all entries where the key matches the given string prefix from
+     * the source map to the target map, cutting off the prefix from the original key.
+     * The ignoreCase property is inherited and also considered when matching keys
+     * against the prefix.
+     *
+     * @param prefix the string prefix to match against
+     */
+    public ResourceProperties getSubProperties(String prefix) {
+        if (prefix == null)
+            throw new NullPointerException("prefix");
+        if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
+            update();
+        }
+        ResourceProperties subprops = new ResourceProperties();
+        subprops.setIgnoreCase(ignoreCase);
+        Iterator it = entrySet().iterator();
+        int prefixLength = prefix.length();
+        while (it.hasNext()) {
+            Map.Entry entry = (Map.Entry) it.next();
+            String key = entry.getKey().toString();
+            if (key.regionMatches(ignoreCase, 0, prefix, 0, prefixLength)) {
+                subprops.put(key.substring(prefixLength), entry.getValue());
+            }
+        }
+        return subprops;
     }
 
     /**
@@ -239,7 +265,6 @@ public class ResourceProperties extends Properties {
         if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
             update();
         }
-
         return super.contains(value.toString());
     }
 
@@ -252,7 +277,6 @@ public class ResourceProperties extends Properties {
         if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
             update();
         }
-
         return super.containsKey(key.toString());
     }
 
@@ -264,7 +288,6 @@ public class ResourceProperties extends Properties {
         if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
             update();
         }
-
         return super.elements();
     }
 
@@ -277,7 +300,6 @@ public class ResourceProperties extends Properties {
         if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
             update();
         }
-
         return (String) super.get(ignoreCase ? key.toString().toLowerCase() : key.toString());
     }
 
@@ -289,7 +311,6 @@ public class ResourceProperties extends Properties {
         if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
             update();
         }
-
         return lastModified;
     }
 
@@ -335,7 +356,6 @@ public class ResourceProperties extends Properties {
         if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
             update();
         }
-
         return super.getProperty(ignoreCase ? key.toLowerCase() : key, defaultValue);
     }
 
@@ -348,7 +368,6 @@ public class ResourceProperties extends Properties {
         if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
             update();
         }
-
         return super.getProperty(ignoreCase ? key.toLowerCase() : key);
     }
 
@@ -360,7 +379,6 @@ public class ResourceProperties extends Properties {
         if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
             update();
         }
-
         return super.isEmpty();
     }
 
@@ -380,7 +398,6 @@ public class ResourceProperties extends Properties {
         if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
             update();
         }
-
         return super.keys();
     }
 
@@ -392,7 +409,6 @@ public class ResourceProperties extends Properties {
         if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
             update();
         }
-
         return super.keySet();
     }
 
@@ -406,7 +422,6 @@ public class ResourceProperties extends Properties {
         if (value != null) {
             value = value.toString().trim();
         }
-
         return super.put(ignoreCase ? key.toString().toLowerCase() : key.toString(), value);
     }
 
@@ -428,7 +443,6 @@ public class ResourceProperties extends Properties {
             throw new RuntimeException("setIgnoreCase() can only be called on empty Properties");
         }
         ignoreCase = ignore;
-        return;
     }
 
     /**
@@ -439,7 +453,6 @@ public class ResourceProperties extends Properties {
         if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
             update();
         }
-
         return super.size();
     }
 
