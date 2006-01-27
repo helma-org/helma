@@ -34,7 +34,7 @@ import java.text.*;
 import java.io.*;
 
 /**
- *
+ * Helma global object defines a number of custom global functions.
  */
 public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     Application app;
@@ -68,7 +68,8 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
                                    "encodeXml", "encodeForm", "stripTags", "formatParagraphs",
                                    "getXmlDocument", "getHtmlDocument", "seal",
                                    "getDBConnection", "getURL", "write", "writeln",
-                                   "serialize", "deserialize", "defineLibraryScope"
+                                   "serialize", "deserialize", "defineLibraryScope",
+                                   "wrapJavaMap", "unwrapJavaMap"
                                };
 
         defineFunctionProperties(globalFuncs, GlobalObject.class, 0);
@@ -77,10 +78,10 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         // Define dontEnum() on Object prototype
         String[] objFuncs = { "dontEnum" };
         ScriptableObject objproto = (ScriptableObject) getObjectPrototype(this);
-        objproto.defineFunctionProperties(objFuncs, GlobalObject.class, 
+        objproto.defineFunctionProperties(objFuncs, GlobalObject.class,
                     DONTENUM | READONLY | PERMANENT);
     }
-    
+
     /**
      * Get the global object's class name
      *
@@ -398,6 +399,36 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
             cx.initStandardObjects(scope, false);
         }
         put(name, this, scope);
+    }
+
+    /**
+     * Wrap a java.util.Map so that it looks and behaves like a native JS object
+     * @param obj a map
+     * @return a wrapper that makes the map look like a JS object
+     */
+    public Object wrapJavaMap(Object obj) {
+        if (obj instanceof Wrapper) {
+            obj = ((Wrapper) obj).unwrap();
+        }
+        if (!(obj instanceof Map)) {
+            throw ScriptRuntime.constructError("TypeError",
+                "Invalid argument to wrapMap(): " + obj);
+        }
+        return new MapWrapper((Map) obj, core);
+    }
+
+    /**
+     * Unwrap a map previously wrapped using {@link #wrapJavaMap(Object)}.
+     * @param obj the wrapped map
+     * @return the map exposed as java object
+     */
+    public Object unwrapJavaMap(Object obj) {
+        if (!(obj instanceof MapWrapper)) {
+            throw ScriptRuntime.constructError("TypeError",
+                "Invalid argument to unwrapMap(): " + obj);
+        }
+        obj = ((MapWrapper) obj).unwrap();
+        return new NativeJavaObject(core.global, obj, Map.class);
     }
 
     /**
