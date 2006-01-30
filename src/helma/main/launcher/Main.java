@@ -40,6 +40,7 @@ public class Main {
                                             "crimson.jar", "xmlrpc.jar", "servlet.jar",
                                             "mail.jar", "activation.jar",
                                             "commons-fileupload.jar", "commons-codec.jar",
+                                            "commons-io.jar",
                                             "netcomponents.jar", "jimi.jar",
                                             "apache-dom.jar"
                                         };
@@ -182,19 +183,21 @@ public class Main {
             String jarUrl = launcherUrl.toString();
 
             if (!jarUrl.startsWith("jar:") || jarUrl.indexOf("!") < 0) {
-                throw new RuntimeException("  Unable to get JAR URL from " + jarUrl);
+                installDir = System.getProperty("user.dir");
+                System.err.println("Warning: Helma install dir not set by -i parameter ");
+                System.err.println("         and not started from launcher.jar. Using ");
+                System.err.println("         current working directory as install dir.");
+            } else {
+                jarUrl = jarUrl.substring(4);
+
+                int excl = jarUrl.indexOf("!");
+                jarUrl = jarUrl.substring(0, excl);
+                launcherUrl = new URL(jarUrl);
+
+                File f = new File(launcherUrl.getPath()).getAbsoluteFile();
+
+                installDir = f.getParentFile().getCanonicalPath();
             }
-
-            jarUrl = jarUrl.substring(4);
-
-            int excl = jarUrl.indexOf("!");
-
-            jarUrl = jarUrl.substring(0, excl);
-            launcherUrl = new URL(jarUrl);
-
-            File f = new File(launcherUrl.getPath()).getAbsoluteFile();
-
-            installDir = f.getParentFile().getCanonicalPath();
         }
         // set System property
         System.setProperty("helma.home", installDir);
