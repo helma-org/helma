@@ -27,10 +27,11 @@ import java.util.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
-import org.apache.commons.fileupload.FileUpload;
 import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.DiskFileUpload;
 import org.apache.commons.fileupload.FileUploadBase;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.fileupload.servlet.ServletRequestContext;
 
 /**
  * This is an abstract Hop servlet adapter. This class communicates with hop applications
@@ -162,10 +163,11 @@ public abstract class AbstractServletClient extends HttpServlet {
                 }
             }
 
-            if (FileUpload.isMultipartContent(request)) {
-                // File Upload
-                try {
-                    DiskFileUpload upload = new DiskFileUpload();
+            try {
+                ServletRequestContext reqcx = new ServletRequestContext(request);
+                if (ServletFileUpload.isMultipartContent(reqcx)) {
+                    // File Upload
+                    ServletFileUpload upload = new ServletFileUpload(new DiskFileItemFactory());
 
                     upload.setSizeMax(uploadLimit * 1024);
                     upload.setHeaderEncoding(encoding);
@@ -194,23 +196,23 @@ public abstract class AbstractServletClient extends HttpServlet {
                         }
                     }
 
-                } catch (Exception upx) {
-                    System.err.println("Error in file upload: " + upx);
-                    if (uploadSoftfail) {
-                        String msg = upx.getMessage();
-                        if (msg == null || msg.length() == 0) {
-                            msg = upx.toString();
-                        }
-                        reqtrans.set("helma_upload_error", msg);
-                    } else if (upx instanceof FileUploadBase.SizeLimitExceededException) {
-                        sendError(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
-                              "File upload size exceeds limit of " + uploadLimit + "kB");
-                        return;
-                    } else {
-                        sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                              "Error in file upload: " + upx);
-                        return;
+                }
+            } catch (Exception upx) {
+                System.err.println("Error in file upload: " + upx);
+                if (uploadSoftfail) {
+                    String msg = upx.getMessage();
+                    if (msg == null || msg.length() == 0) {
+                        msg = upx.toString();
                     }
+                    reqtrans.set("helma_upload_error", msg);
+                } else if (upx instanceof FileUploadBase.SizeLimitExceededException) {
+                    sendError(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                            "File upload size exceeds limit of " + uploadLimit + "kB");
+                    return;
+                } else {
+                    sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                            "Error in file upload: " + upx);
+                    return;
                 }
             }
 
@@ -816,7 +818,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 
             pathbuffer.append(UrlEncoded.decode(token, encoding));
         }
-        
+
         // append trailing "/" if it is contained in original URI
         if (uri.endsWith("/"))
             pathbuffer.append('/');
