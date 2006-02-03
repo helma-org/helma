@@ -155,6 +155,14 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
+     * Get the app's classloader
+     * @return the app's classloader
+     */
+    public ClassLoader getClassLoader() {
+        return app.getClassLoader();
+    }
+
+    /**
      *
      *
      * @return ...
