@@ -847,7 +847,7 @@ public final class RequestEvaluator implements Runnable {
         initObjects(functionName, INTERNAL, RequestTrans.INTERNAL);
         // if object is an instance of NodeHandle, get the node object itself.
         if (object instanceof NodeHandle) {
-            object = ((NodeHandle) thisObject).getNode(app.nmgr.safe);
+            object = ((NodeHandle) object).getNode(app.nmgr.safe);
             // If no valid node object return immediately
             if (object == null) {
                 return null;
