@@ -43,7 +43,7 @@ public final class XmlDatabaseReader extends DefaultHandler implements XmlConsta
     private String elementName = null;
     private StringBuffer charBuffer = null;
     Hashtable propMap = null;
-    List subnodes = null;
+    SubnodeList subnodes = null;
 
     /**
      * Creates a new XmlDatabaseReader object.
@@ -124,7 +124,7 @@ public final class XmlDatabaseReader extends DefaultHandler implements XmlConsta
                     subnodes = currentNode.createSubnodeList();
                 }
 
-                subnodes.add(handle);
+                subnodes.addSorted(handle);
             } else if ("hop:parent".equals(qName)) {
                 currentNode.setParentHandle(handle);
             } else {
