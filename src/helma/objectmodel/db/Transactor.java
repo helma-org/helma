@@ -350,10 +350,8 @@ public class Transactor extends Thread {
 
     /**
      * Abort the current transaction, rolling back all changes made.
-     *
-     * @throws Exception ...
      */
-    public synchronized void abort() throws Exception {
+    public synchronized void abort() {
         Object[] dirty = dirtyNodes.values().toArray();
 
         // evict dirty nodes from cache
@@ -409,6 +407,7 @@ public class Transactor extends Thread {
         try {
             join(500);
         } catch (InterruptedException ir) {
+            // interrupted by other thread
         }
 
         // Interrupt the thread if it has not noticed the flag (e.g. because it is busy
@@ -419,6 +418,7 @@ public class Transactor extends Thread {
             try {
                 join(1000);
             } catch (InterruptedException ir) {
+                // interrupted by other thread
             }
         }
     }
@@ -436,6 +436,7 @@ public class Transactor extends Thread {
                     con.close();
                     nmgr.app.logEvent("Closing DB connection: " + con);
                 } catch (Exception ignore) {
+                    // exception closing db connection, ignore
                 }
             }
 
