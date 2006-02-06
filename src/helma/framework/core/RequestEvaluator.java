@@ -342,15 +342,11 @@ public final class RequestEvaluator implements Runnable {
 
                                     // try calling onRequest() function on object before
                                     // calling the actual action
-                                    try {
-                                        scriptingEngine.invoke(currentElement,
-                                                "onRequest",
-                                                EMPTY_ARGS,
-                                                ScriptingEngine.ARGS_WRAP_DEFAULT,
-                                                false);
-                                    } catch (RedirectException redir) {
-                                        throw redir;
-                                    }
+                                    scriptingEngine.invoke(currentElement,
+                                            "onRequest",
+                                            EMPTY_ARGS,
+                                            ScriptingEngine.ARGS_WRAP_DEFAULT,
+                                            false);
 
                                     // reset skin recursion detection counter
                                     skinDepth = 0;
