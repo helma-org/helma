@@ -18,7 +18,6 @@ package helma.objectmodel.db;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.ArrayList;
 import java.util.List;
 
 
@@ -112,10 +111,21 @@ public class OrderedSubnodeList extends SubnodeList {
         this.sortIn(origin, false);
     }
 
-    public boolean add(Object obj) {
+   /**
+    * Adds the specified object to this list performing
+    * custom ordering
+    *
+    * @param obj element to be inserted.
+    */    public boolean add(Object obj) {
         return add(obj, false);
     }
 
+   /**
+    * Adds the specified object to this list without performing
+    * custom ordering.
+    *
+    * @param obj element to be inserted.
+    */
     public boolean addSorted(Object obj) {
         return add(obj, true);
     }
@@ -126,7 +136,7 @@ public class OrderedSubnodeList extends SubnodeList {
         vAdd(obj);
         while (rel.maxSize>0 && this.size() >= rel.maxSize)
             super.remove(0);
-        // escape sorting for grouped nodes
+        // escape sorting for presorted adds and grouped nodes
         if (sorted || rel.groupby != null) {
             super.add(obj);
         } else {
