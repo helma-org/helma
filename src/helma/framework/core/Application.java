@@ -990,13 +990,13 @@ public final class Application implements IPathElement, Runnable {
             return null;
         }
 
-        INode unode = null;
+        INode unode;
 
         try {
             INode users = getUserRoot();
 
+            // check if a user with this name is already registered
             unode = (INode) users.getChildElement(uname);
-
             if (unode != null) {
                 return null;
             }
@@ -1107,7 +1107,7 @@ public final class Application implements IPathElement, Runnable {
         return b.toString();
     }
 
-    private final void composeHref(Object elem, StringBuffer b, int pathCount)
+    private void composeHref(Object elem, StringBuffer b, int pathCount)
             throws UnsupportedEncodingException {
         if ((elem == null) || (pathCount > 50)) {
             return;
@@ -1314,7 +1314,7 @@ public final class Application implements IPathElement, Runnable {
             }
             // check interfaces, too
             Class[] classes = obj.getClass().getInterfaces();
-            for (int i = 0; i < classes.length && protoname == null; i++) {
+            for (int i = 0; i < classes.length; i++) {
                 protoname = classMapping.getProperty(classes[i].getName());
                 if (protoname != null) {
                     // cache the class name for the object so we run faster next time
@@ -1538,7 +1538,8 @@ public final class Application implements IPathElement, Runnable {
                 sessionTimeout = Math.max(0,
                         Integer.parseInt(props.getProperty("sessionTimeout",
                                 "30")));
-            } catch (Exception ignore) {
+            } catch (NumberFormatException nfe) {
+                logEvent("Invalid sessionTimeout setting: " + props.getProperty("sessionTimeout"));
             }
 
             RequestEvaluator thisEvaluator = null;
@@ -1561,7 +1562,9 @@ public final class Application implements IPathElement, Runnable {
                                 Object[] param = {session.getSessionId()};
 
                                 thisEvaluator.invokeInternal(userhandle, "onLogout", param);
-                            } catch (Exception ignore) {
+                            } catch (Exception x) {
+                                // errors should already be logged by requestevaluator, but you never know
+                                logError("Error in onLogout", x);
                             }
                         }
 
@@ -1589,17 +1592,8 @@ public final class Application implements IPathElement, Runnable {
      */
     private void executeCronJobs() {
         // loop-local cron job data
-        List cronJobs = null;
-        long lastCronParse = 0;
-
-        if ((cronJobs == null) || (props.lastModified() > lastCronParse)) {
-            updateProperties();
-            cronJobs = CronJob.parse(props);
-            lastCronParse = props.lastModified();
-        }
-
+        List jobs = CronJob.parse(props);
         Date date = new Date();
-        List jobs = new ArrayList(cronJobs);
 
         jobs.addAll(customCronJobs.values());
         CronJob.sort(jobs);
