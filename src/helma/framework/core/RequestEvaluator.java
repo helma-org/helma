@@ -146,8 +146,6 @@ public final class RequestEvaluator implements Runnable {
                 String error = null;
 
                 while (!done && localrtx == rtx) {
-                    currentElement = null;
-
                     // catch errors in path resolution and script execution
                     try {
 
@@ -425,9 +423,7 @@ public final class RequestEvaluator implements Runnable {
                                     commitTransaction();
                                 } catch (Exception x) {
                                     abortTransaction();
-
-                                    app.logEvent("Exception in " + Thread.currentThread() + ": " +
-                                            x);
+                                    app.logError(txname + ": " + error, x);
 
                                     // If the transactor thread has been killed by the invoker thread we don't have to
                                     // bother for the error message, just quit.
@@ -455,9 +451,7 @@ public final class RequestEvaluator implements Runnable {
                                     commitTransaction();
                                 } catch (Exception x) {
                                     abortTransaction();
-
-                                    app.logEvent("Exception in " + Thread.currentThread() +
-                                            ": " + x);
+                                    app.logError(txname + ": " + error, x);
 
                                     // If the transactor thread has been killed by the invoker thread we don't have to
                                     // bother for the error message, just quit.
@@ -487,9 +481,13 @@ public final class RequestEvaluator implements Runnable {
                             try {
                                 // wait a bit longer with each try
                                 int base = 800 * tries;
-
                                 Thread.sleep((long) (base + (Math.random() * base * 2)));
-                            } catch (Exception ignore) {
+                            } catch (InterruptedException interrupt) {
+                                // we got interrrupted, create minimal error message 
+                                res.writeErrorReport(app.getName(), error);
+                                done = true;
+                                // and release resources and thread
+                                rtx = null;
                             }
                         } else {
                             abortTransaction();
@@ -580,11 +578,7 @@ public final class RequestEvaluator implements Runnable {
 
     synchronized void abortTransaction() {
         Transactor localrtx = (Transactor) Thread.currentThread();
-
-        try {
-            localrtx.abort();
-        } catch (Exception ignore) {
-        }
+        localrtx.abort();
     }
 
     private synchronized void startTransactor() {
@@ -618,22 +612,23 @@ public final class RequestEvaluator implements Runnable {
         }
 
         reqtype = NONE;
-
         notifyAll();
 
         try {
             // wait for request, max 10 min
             wait(1000 * 60 * 10);
-
-            //  if no request arrived, release ressources and thread
-            if ((reqtype == NONE) && (rtx == localrtx)) {
-                // comment this in to release not just the thread, but also the scripting engine.
-                // currently we don't do this because of the risk of memory leaks (objects from
-                // framework referencing into the scripting engine)
-                // scriptingEngine = null;
-                rtx = null;
-            }
         } catch (InterruptedException ix) {
+            // we got interrrupted, releases resources and thread
+            rtx = null;
+        }
+
+        //  if no request arrived, release ressources and thread
+        if ((reqtype == NONE) && (rtx == localrtx)) {
+            // comment this in to release not just the thread, but also the scripting engine.
+            // currently we don't do this because of the risk of memory leaks (objects from
+            // framework referencing into the scripting engine)
+            // scriptingEngine = null;
+            rtx = null;
         }
     }
 
@@ -659,12 +654,7 @@ public final class RequestEvaluator implements Runnable {
             reqtype = NONE;
 
             t.kill();
-
-            try {
-                t.abort();
-            } catch (Exception ignore) {
-            }
-
+            t.abort();
             t.closeConnections();
 
             notifyAll();
