@@ -60,8 +60,6 @@ public class FileLogger extends Logger implements Log {
             logdir.mkdirs();
         }
 
-        openFile();
-
         // create a synchronized list for log entries since different threads may
         // attempt to modify the list at the same time
         entries = Collections.synchronizedList(new LinkedList());
