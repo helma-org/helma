@@ -158,12 +158,24 @@ public final class RequestEvaluator implements Runnable {
                         // avoid going into transaction if called function doesn't exist.
                         // this only works for the (common) case that method is a plain
                         // method name, not an obj.method path
-                        if (reqtype == INTERNAL &&
-                                functionName.indexOf('.') < 0 &&
-                                !scriptingEngine.hasFunction(thisObject, functionName)) {
-                            done = true;
-                            reqtype = NONE;
-                            break;
+                        if (reqtype == INTERNAL) {
+                            // if object is an instance of NodeHandle, get the node object itself.
+                            if (thisObject instanceof NodeHandle) {
+                                thisObject = ((NodeHandle) thisObject).getNode(app.nmgr.safe);
+                                // If no valid node object return immediately
+                                if (thisObject == null) {
+                                    done = true;
+                                    reqtype = NONE;
+                                    break;
+                                }
+                            }
+                            // If function doesn't exist, return immediately
+                            if (functionName.indexOf('.') < 0 &&
+                                    !scriptingEngine.hasFunction(thisObject, functionName)) {
+                                done = true;
+                                reqtype = NONE;
+                                break;
+                            }
                         }
 
                         // Transaction name is used for logging etc.
@@ -831,14 +843,6 @@ public final class RequestEvaluator implements Runnable {
                                               Object[] args, long timeout)
                                        throws Exception {
         initObjects(functionName, INTERNAL, RequestTrans.INTERNAL);
-        // if object is an instance of NodeHandle, get the node object itself.
-        if (object instanceof NodeHandle) {
-            object = ((NodeHandle) object).getNode(app.nmgr.safe);
-            // If no valid node object return immediately
-            if (object == null) {
-                return null;
-            }
-        }
         thisObject = object;
         this.functionName = functionName;
         this.args = args;
