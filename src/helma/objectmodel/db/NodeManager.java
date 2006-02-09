@@ -1609,7 +1609,7 @@ public final class NodeManager {
                 fetchJoinedNodes(rs, joins, columns.length);
 
                 if (rs.next()) {
-                    throw new RuntimeException("More than one value returned by query.");
+                    app.logError("Warning: More than one value returned for query " + query);
                 }
             } finally {
                 if (logSql) {
@@ -1621,6 +1621,7 @@ public final class NodeManager {
                     try {
                         stmt.close();
                     } catch (Exception ignore) {
+                        // ignore
                     }
                 }
             }
@@ -1717,7 +1718,7 @@ public final class NodeManager {
                 fetchJoinedNodes(rs, joins, columns.length);
 
                 if (rs.next()) {
-                    throw new RuntimeException("More than one value returned by query.");
+                    app.logError("Warning: More than one value returned for query " + query);
                 }
 
                 // Check if node is already cached with primary Key.
@@ -1740,6 +1741,7 @@ public final class NodeManager {
                     try {
                         stmt.close();
                     } catch (Exception ignore) {
+                        // ignore
                     }
                 }
             }
@@ -1772,7 +1774,7 @@ public final class NodeManager {
 
                     if (dbmap == null) {
                         // invalid prototype name!
-                        System.err.println("Warning: Invalid prototype name: " + protoName +
+                        app.logError("Warning: Invalid prototype name: " + protoName +
                                        " - using default");
                         dbmap = dbm;
                         protoName = dbmap.getTypeName();
