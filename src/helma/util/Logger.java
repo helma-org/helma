@@ -129,8 +129,11 @@ public class Logger implements Log {
         if ((System.currentTimeMillis() - 1000) > dateLastRendered) {
             renderDate();
         }
-
-        entries.add(dateCache + msg);
+        // add a safety net so we don't grow indefinitely even if writer thread
+        // has gone. the 2000 entries threshold is somewhat arbitrary. 
+        if (entries.size() < 2000) {
+            entries.add(dateCache + msg);
+        }
     }
 
     /**
