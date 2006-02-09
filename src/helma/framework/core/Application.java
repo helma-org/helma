@@ -1598,7 +1598,9 @@ public final class Application implements IPathElement, Runnable {
         jobs.addAll(customCronJobs.values());
         CronJob.sort(jobs);
 
-        logEvent("Running cron jobs: " + jobs);
+        if (debug) {
+            logEvent("Running cron jobs: " + jobs);
+        }
         if (!activeCronJobs.isEmpty()) {
             logEvent("Cron jobs still running from last minute: " + activeCronJobs);
         }
