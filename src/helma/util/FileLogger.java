@@ -99,6 +99,7 @@ public class FileLogger extends Logger implements Log {
             try {
                 writer.close();
             } catch (Exception ignore) {
+                // ignore
             } finally {
                 writer = null;
             }
@@ -228,75 +229,50 @@ public class FileLogger extends Logger implements Log {
         return Logging.nextMidnight() - 86400000;
     }
 
-    // override error() and fatal() to print error and fatal messages 
-    // to the console, in addition to logging them to file.
+    /**
+     * a Thread class that zips up a file, filename will stay the same.
+     */
+    static class GZipper extends Thread {
+        List files;
+        final static int BUFFER_SIZE = 8192;
 
-    public void error(Object parm1) {
-        System.err.println("Error: "+parm1);
-        super.error(parm1);
+        public GZipper(List files) {
+            this.files = files;
+            setPriority(MIN_PRIORITY);
+        }
+
+        public GZipper(File file) {
+            files = new ArrayList(1);
+            files.add(file);
+            setPriority(MIN_PRIORITY);
+        }
+
+        public void run() {
+            Iterator it = files.iterator();
+            File file = null;
+
+            while (it.hasNext()) {
+                try {
+                    file = (File) it.next();
+                    File zipped = new File(file.getAbsolutePath() + ".gz");
+                    GZIPOutputStream zip = new GZIPOutputStream(new FileOutputStream(zipped));
+                    BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
+                    byte[] b = new byte[BUFFER_SIZE];
+                    int len;
+
+                    while ((len = in.read(b, 0, BUFFER_SIZE)) != -1) {
+                        zip.write(b, 0, len);
+                    }
+
+                    zip.close();
+                    in.close();
+                    file.delete();
+                } catch (Exception e) {
+                    System.err.println("Error gzipping " + file);
+                    System.err.println(e.toString());
+                }
+            }
+        }
     }
-
-    public void error(Object parm1, Throwable parm2) {
-        System.err.println("Error: "+parm1);
-        System.err.println("See "+logfile+" for stack trace");
-        super.error(parm1, parm2);
-    }
-
-    public void fatal(Object parm1) {
-        System.err.println("Fatal: "+parm1);
-        super.fatal(parm1);
-    }
-
-    public void fatal(Object parm1, Throwable parm2) {
-        System.err.println("Fatal: "+parm1);
-        System.err.println("See "+logfile+" for stack trace");
-        super.fatal(parm1, parm2);
-    }
-
-     /**
-      * a Thread class that zips up a file, filename will stay the same.
-      */
-     static class GZipper extends Thread {
-         List files;
-         final static int BUFFER_SIZE = 8192;
-
-         public GZipper(List files) {
-             this.files = files;
-             setPriority(MIN_PRIORITY);
-         }
-
-         public GZipper(File file) {
-             files = new ArrayList(1);
-             files.add(file);
-             setPriority(MIN_PRIORITY);
-         }
-
-         public void run() {
-             Iterator it = files.iterator();
-             File file = null;
-
-             while (it.hasNext()) {
-                 try {
-                     file = (File) it.next();
-                     File zipped = new File(file.getAbsolutePath() + ".gz");
-                     GZIPOutputStream zip = new GZIPOutputStream(new FileOutputStream(zipped));
-                     BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
-                     byte[] b = new byte[BUFFER_SIZE];
-                     int len = 0;
-
-                     while ((len = in.read(b, 0, BUFFER_SIZE)) != -1) {
-                         zip.write(b, 0, len);
-                     }
-
-                     zip.close();
-                     in.close();
-                     file.delete();
-                 } catch (Exception e) {
-                     System.err.println("Error gzipping " + file);
-                     System.err.println(e.toString());
-                 }
-             }
-         }
-     }
 
 }
