@@ -31,7 +31,7 @@ import java.util.Date;
  * A property implementation for Nodes stored inside a database. Basically
  * the same as for transient nodes, with a few hooks added.
  */
-public final class Property implements IProperty, Serializable, Cloneable {
+public final class Property implements IProperty, Serializable, Cloneable, Comparable {
     static final long serialVersionUID = -1022221688349192379L;
     private String propname;
     private Node node;
@@ -253,7 +253,12 @@ public final class Property implements IProperty, Serializable, Cloneable {
      */
     public void setDateValue(Date date) {
         type = DATE;
-        value = date;
+        // normalize from java.sql.* Date subclasses
+        if (date != null && date.getClass() != Date.class) {
+            value = new Date(date.getTime());
+        } else {
+            value = date;
+        }
         dirty = true;
     }
 
@@ -482,5 +487,57 @@ public final class Property implements IProperty, Serializable, Cloneable {
         }
 
         return null;
+    }
+
+    /**
+     * @see java.lang.Comparable#compareTo(java.lang.Object)
+     *
+     * The following cases throw a ClassCastException
+     * - Properties of a different type
+     * - Properties of boolean or node type
+     */
+    public int compareTo(Object obj) {
+        Property p = (Property) obj;
+        int ptype = p.getType();
+        Object pvalue = p.getValue();
+
+        if (type==NODE || ptype==NODE ||
+                type == BOOLEAN || ptype == BOOLEAN) {
+            throw new ClassCastException("uncomparable values " + this + "(" + type + ") : " + p + "(" + ptype + ")");
+        }
+        if (value==null && pvalue == null) {
+            return 0;
+        } else if (value == null) {
+            return -1;
+        } if (pvalue == null) {
+            return 1;
+        }
+        if (type != ptype) {
+            throw new ClassCastException("uncomparable values " + this + "(" + type + ") : " + p + "(" + ptype + ")");
+
+        }
+        if (!(value instanceof Comparable)) {
+            throw new ClassCastException("uncomparable value " + value + "(" + value.getClass() + ")");
+        }
+        // System.err.println("COMPARING: " + value.getClass() + " TO " + pvalue.getClass());
+        return ((Comparable) value).compareTo(pvalue);
+    }
+
+    /**
+     * Return true if object o is equal to this property.
+     *
+     * @param obj the object to compare to
+     * @return true if this equals obj
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    public boolean equals(Object obj) {
+        if (obj == this)
+            return true;
+        if (obj == null)
+            return false;
+        if (!(obj instanceof Property))
+            return false;
+        Property p = (Property) obj;
+        return value == null ? p.value == null : value.equals(p.value);
     }
 }

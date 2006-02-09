@@ -41,7 +41,7 @@ public final class Node implements INode, Serializable {
     protected NodeHandle parentHandle;
 
     // Ordered list of subnodes of this node
-    private List subnodes;
+    private SubnodeList subnodes;
 
     // Named subnodes (properties) of this node
     private Hashtable propMap;
@@ -201,7 +201,7 @@ public final class Node implements INode, Serializable {
             created = in.readLong();
             lastmodified = in.readLong();
 
-            subnodes = (ExternalizableVector) in.readObject();
+            subnodes = (SubnodeList) in.readObject();
             // left-over from links vector
             in.readObject();
             propMap = (Hashtable) in.readObject();
@@ -250,7 +250,7 @@ public final class Node implements INode, Serializable {
     /**
      * used by Xml deserialization
      */
-    public synchronized void setSubnodes(List subnodes) {
+    public synchronized void setSubnodes(SubnodeList subnodes) {
         this.subnodes = subnodes;
     }
 
@@ -586,7 +586,7 @@ public final class Node implements INode, Serializable {
 
     /**
      *
-     * 
+     *
      * @param nmgr
      */
     public void setWrappedNodeManager(WrappedNodeManager nmgr) {
@@ -845,12 +845,13 @@ public final class Node implements INode, Serializable {
     }
 
     /**
+     * Add a node to this Node's subnodes, making the added node persistent if it
+     * hasn't been before and this Node is already persistent.
      *
+     * @param elem the node to add to this Nodes subnode-list
+     * @param where the index-position where this node has to be added
      *
-     * @param elem ...
-     * @param where ...
-     *
-     * @return ...
+     * @return the added node itselve
      */
     public INode addNode(INode elem, int where) {
         Node node = null;
@@ -932,7 +933,7 @@ public final class Node implements INode, Serializable {
         } else {
             // create subnode list if necessary
             if (subnodes == null) {
-                subnodes = new ExternalizableVector();
+                subnodes = createSubnodeList();
             }
 
             // check if subnode accessname is set. If so, check if another node
@@ -1097,7 +1098,7 @@ public final class Node implements INode, Serializable {
                 if (state != TRANSIENT && rel.otherType != null && rel.otherType.isRelational()) {
                     return nmgr.getNode(this, name, rel);
                 } else {
-                    // Do what we have to do: loop through subnodes and 
+                    // Do what we have to do: loop through subnodes and
                     // check if any one matches
                     String propname = rel.groupby != null ? "groupname" : rel.accessName;
                     INode node = null;
@@ -1243,7 +1244,7 @@ public final class Node implements INode, Serializable {
         loadNodes();
 
         if (subnodes == null) {
-            subnodes = new ExternalizableVector();
+            subnodes = new SubnodeList();
         }
 
         if (create || subnodes.contains(new NodeHandle(new SyntheticKey(getKey(), sid)))) {
@@ -1537,7 +1538,7 @@ public final class Node implements INode, Serializable {
      *  Depending on the subnode.loadmode specified in the type.properties, we'll load just the
      *  ID index or the actual nodes.
      */
-    protected void loadNodes() {
+    public void loadNodes() {
         // Don't do this for transient nodes which don't have an explicit subnode relation set
         if (((state == TRANSIENT) || (state == NEW)) && (subnodeRelation == null)) {
             return;
@@ -1556,17 +1557,38 @@ public final class Node implements INode, Serializable {
                 // also reload if the type mapping has changed.
                 lastChange = Math.max(lastChange, dbmap.getLastTypeChange());
 
-                if ((lastChange >= lastSubnodeFetch) || (subnodes == null)) {
-                    if (subRel.aggressiveLoading) {
-                        subnodes = nmgr.getNodes(this, dbmap.getSubnodeRelation());
+                if ((lastChange >= lastSubnodeFetch && !subRel.autoSorted) ||
+                        (subnodes == null)) {
+                    if (subRel.updateCriteria!=null) {
+                        // updateSubnodeList is setting the subnodes directly returning an integer
+                        nmgr.updateSubnodeList(this, subRel);
+                    } else if (subRel.aggressiveLoading) {
+                        subnodes = nmgr.getNodes(this, subRel);
                     } else {
-                        subnodes = nmgr.getNodeIDs(this, dbmap.getSubnodeRelation());
+                        subnodes = nmgr.getNodeIDs(this, subRel);
                     }
 
                     lastSubnodeFetch = System.currentTimeMillis();
                 }
             }
         }
+    }
+
+    /**
+     * Retrieve an empty subnodelist. This empty List is an instance of the Class
+     * used for this Nodes subnode-list
+     * @return List an empty List of the type used by this Node
+     */
+    public SubnodeList createSubnodeList() {
+        Relation rel = this.dbmap == null ? null : this.dbmap.getSubnodeRelation();
+        if (rel != null && rel.updateCriteria != null) {
+            subnodes = new UpdateableSubnodeList(rel);
+        } else if (rel != null && rel.autoSorted) {
+            subnodes = new OrderedSubnodeList(rel);
+        } else {
+            subnodes = new SubnodeList();
+        }
+        return subnodes;
     }
 
     /**
@@ -1609,6 +1631,10 @@ public final class Node implements INode, Serializable {
             keys[i] = ((NodeHandle) subnodes.get(i + startIndex)).getKey();
         }
 
+        prefetchChildren (keys);
+    }
+
+    public void prefetchChildren (Key[] keys) throws Exception {
         nmgr.nmgr.prefetchNodes(this, dbmap.getSubnodeRelation(), keys);
     }
 
@@ -2412,7 +2438,7 @@ public final class Node implements INode, Serializable {
 
                 if (relational) {
                     p.setStringValue(null);
-                    notifyPropertyChange(propname);                    
+                    notifyPropertyChange(propname);
                 }
 
                 lastmodified = System.currentTimeMillis();
@@ -2627,4 +2653,28 @@ public final class Node implements INode, Serializable {
         System.err.println("properties: " + propMap);
     }
 
+    /**
+     * This method get's called from the JavaScript environment
+     * (HopObject.updateSubnodes() or HopObject.collection.updateSubnodes()))
+     * The subnode-collection will be updated with a selectstatement getting all
+     * Nodes having a higher id than the highest id currently contained within
+     * this Node's subnoderelation. If this subnodelist has a special order
+     * all nodes will be loaded honoring this order.
+     * Example:
+     *  order by somefield1 asc, somefieled2 desc
+     * gives a where-clausel like the following:
+     *   (somefiled1 > theHighestKnownValue value and somefield2 < theLowestKnownValue)
+     * @return the number of loaded nodes within this collection update
+     */
+    public int updateSubnodes () {
+        // FIXME: what do we do if this.dbmap is null
+        if (this.dbmap == null) {
+            throw new RuntimeException (this + " doesn't have a DbMapping");
+}
+        Relation rel = this.dbmap.getSubnodeRelation();
+        synchronized (this) {
+            lastSubnodeFetch = System.currentTimeMillis();
+            return this.nmgr.updateSubnodeList(this, rel);
+        }
+    }
 }

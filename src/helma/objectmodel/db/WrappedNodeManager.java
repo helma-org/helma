@@ -104,7 +104,7 @@ public final class WrappedNodeManager {
      * @param rel
      * @return
      */
-    public List getNodes(Node home, Relation rel) {
+    public SubnodeList getNodes(Node home, Relation rel) {
         try {
             return nmgr.getNodes(home, rel);
         } catch (Exception x) {
@@ -124,7 +124,7 @@ public final class WrappedNodeManager {
      * @param rel
      * @return
      */
-    public List getNodeIDs(Node home, Relation rel) {
+    public SubnodeList getNodeIDs(Node home, Relation rel) {
         try {
             return nmgr.getNodeIDs(home, rel);
         } catch (Exception x) {
@@ -133,6 +133,21 @@ public final class WrappedNodeManager {
             }
 
             throw new RuntimeException("Error retrieving NodeIDs: " + x);
+        }
+    }
+
+    /**
+     * @see helma.objectmodel.db.NodeManager#updateSubnodeList(Node, Relation)
+     */
+    public int updateSubnodeList (Node home, Relation rel) {
+        try {
+            return nmgr.updateSubnodeList(home, rel);
+        } catch (Exception x) {
+            if (nmgr.app.debug()) {
+                x.printStackTrace();
+            }
+
+            throw new RuntimeException("Error retrieving NodeIDs: ", x);
         }
     }
 

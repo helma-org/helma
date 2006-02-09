@@ -87,8 +87,10 @@ public final class Relation {
     boolean aggressiveCaching;
     boolean isPrivate = false;
     boolean referencesPrimaryKey = false;
+    String updateCriteria;
     String accessName; // db column used to access objects through this relation
     String order;
+    boolean autoSorted = false;
     String groupbyOrder;
     String groupby;
     String prototype;
@@ -127,6 +129,8 @@ public final class Relation {
         this.logicalOperator =          rel.logicalOperator;
         this.aggressiveLoading =        rel.aggressiveLoading;
         this.aggressiveCaching =        rel.aggressiveCaching;
+        this.updateCriteria =           rel.updateCriteria;
+        this.autoSorted =               rel.autoSorted;
     }
 
     /**
@@ -269,6 +273,12 @@ public final class Relation {
         if ((order != null) && (order.trim().length() == 0)) {
             order = null;
         }
+
+        // get the criteria(s) for updating this collection
+        updateCriteria = config.getProperty("updatecriteria");
+
+        // get the autosorting flag
+        autoSorted = "auto".equalsIgnoreCase(config.getProperty("sortmode"));
 
         // get additional filter property
         filter = config.getProperty("filter");

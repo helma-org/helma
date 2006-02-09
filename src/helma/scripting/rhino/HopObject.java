@@ -32,7 +32,7 @@ import java.io.UnsupportedEncodingException;
 import java.io.IOException;
 
 /**
- * 
+ *
  */
 public class HopObject extends ScriptableObject implements Wrapper, PropertyRecorder {
     static Method hopObjCtor;
@@ -573,7 +573,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
 
         while ((e != null) && e.hasMoreElements()) {
             Object obj = e.nextElement();
-            if (obj != null) 
+            if (obj != null)
                 a.add(Context.toObject(obj, core.global));
         }
 
@@ -1101,5 +1101,47 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      */
     public void clearChangeSet() {
         changedProperties = null;
+    }
+
+    /**
+     * This method represents the Java-Script-exposed function for updating Subnode-Collections.
+     * The following conditions must be met to make a subnodecollection updateable.
+     * .) the collection must be specified with collection.updateable=true
+     * .) the id's of this collection must be in ascending order, meaning, that new records
+     *    do have a higher id than the last record loaded by this collection
+     */
+    public int jsFunction_update() {
+        if (!(node instanceof helma.objectmodel.db.Node))
+            throw new RuntimeException ("update only callabel on persistent HopObjects");
+        checkNode();
+        helma.objectmodel.db.Node n = (helma.objectmodel.db.Node) node;
+        return n.updateSubnodes();
+    }
+
+    /**
+     * Retrieve a view having a different order from this Node's subnodelist.
+     * The underlying OrderedSubnodeList will keep those views and updates them
+     * if the original collection has been updated.
+     * @param expr the order (like sql-order using the properties instead)
+     * @return ListViewWrapper holding the information of the ordered view
+     */
+    public Object jsFunction_getOrderedView(String expr) {
+        if (!(node instanceof helma.objectmodel.db.Node)) {
+            throw new RuntimeException (
+                    "getOrderedView only callable on persistent HopObjects");
+        }
+        helma.objectmodel.db.Node n = (helma.objectmodel.db.Node) node;
+        n.loadNodes();
+        List subnodes = n.getSubnodeList();
+        if (subnodes == null) {
+            throw new RuntimeException (
+                    "getOrderedView only callable on already existing subnode-collections");
+        }
+        if (subnodes instanceof OrderedSubnodeList) {
+            return new ListViewWrapper ((((OrderedSubnodeList) subnodes).getOrderedView(expr)),
+                    core, n.getDbMapping().getWrappedNodeManager(), this);
+        }
+        throw new RuntimeException (
+                "getOrderedView only callable on OrderedSubnodeList");
     }
 }

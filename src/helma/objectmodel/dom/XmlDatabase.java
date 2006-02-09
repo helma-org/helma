@@ -21,8 +21,11 @@ import helma.objectmodel.db.NodeManager;
 import helma.objectmodel.db.Node;
 import helma.framework.core.Application;
 
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 import java.util.ArrayList;
+
+import org.xml.sax.SAXException;
 
 /**
  * A simple XML-database
@@ -125,7 +128,7 @@ public final class XmlDatabase implements IDatabase {
             throw (new DatabaseException("Error initializing db"));
         }
     }
-    
+
     /**
      * Try to copy style sheet for XML files to database directory
      */
@@ -134,7 +137,7 @@ public final class XmlDatabase implements IDatabase {
         FileOutputStream out = null;
         byte[] buffer = new byte[1024];
         int read;
-        
+
         try {
             in = getClass().getResourceAsStream("helma.xsl");
             out = new FileOutputStream(destination);
@@ -145,9 +148,9 @@ public final class XmlDatabase implements IDatabase {
             System.err.println("Error copying db style sheet: "+iox);
         } finally {
             try {
-                if (out != null) 
+                if (out != null)
                     out.close();
-                if (in != null) 
+                if (in != null)
                     in.close();
             } catch (IOException ignore) {
             }
@@ -181,7 +184,7 @@ public final class XmlDatabase implements IDatabase {
         if (idgen.dirty) {
             try {
                 saveIDGenerator(txn);
-                idgen.dirty = false;                
+                idgen.dirty = false;
             } catch (IOException x) {
                 throw new DatabaseException(x.toString());
             }
@@ -266,12 +269,15 @@ public final class XmlDatabase implements IDatabase {
             throw new ObjectNotFoundException("Object not found for key " + kstr);
         }
 
-        try {
+       try {
             XmlDatabaseReader reader = new XmlDatabaseReader(nmgr);
             Node node = reader.read(f);
 
             return node;
-        } catch (Exception x) {
+        } catch (ParserConfigurationException x) {
+            app.logError("Error reading " +f, x);
+            throw new IOException(x.toString());
+        } catch (SAXException x) {
             app.logError("Error reading " +f, x);
             throw new IOException(x.toString());
         }
