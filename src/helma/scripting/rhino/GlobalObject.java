@@ -650,7 +650,9 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
                 throw new EvaluatorException("dontEnum() called with non-String argument");
             }
             String str = (String) args[i];
-            obj.setAttributes(str, obj.getAttributes(str) | DONTENUM);
+            if (obj.has(str, obj)) {
+                obj.setAttributes(str, obj.getAttributes(str) | DONTENUM);
+            }
         }
         return null;
     }
