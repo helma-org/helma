@@ -455,7 +455,7 @@ public class Server implements IPathElement, Runnable {
             file = new File(hopHome, "apps.properties");
         }
         appsProps = new ResourceProperties();
-        appsProps.setIgnoreCase(false);
+        appsProps.setIgnoreCase(true);
         appsProps.addResource(new FileResource(file));
 
         paranoid = "true".equalsIgnoreCase(sysProps.getProperty("paranoid"));
