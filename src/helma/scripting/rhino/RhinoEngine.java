@@ -91,8 +91,6 @@ public class RhinoEngine implements ScriptingEngine {
             global.setPrototype(core.global);
             global.setParentScope(null);
 
-            // context.putThreadLocal ("reval", reval);
-            // context.putThreadLocal ("engine", this);
             extensionGlobals = new HashMap();
 
             if (Server.getServer() != null) {
@@ -114,8 +112,6 @@ public class RhinoEngine implements ScriptingEngine {
                 }
             }
 
-            // context.removeThreadLocal ("reval");
-            // context.removeThreadLocal ("engine");
         } catch (Exception e) {
             System.err.println("Cannot initialize interpreter");
             System.err.println("Error: " + e);
@@ -176,7 +172,6 @@ public class RhinoEngine implements ScriptingEngine {
 
         context.setOptimizationLevel(optLevel);
         // register the per-thread scope with the dynamic scope
-        // core.global.registerScope(global);
         context.putThreadLocal("threadscope", global);
         context.putThreadLocal("reval", reval);
         context.putThreadLocal("engine", this);
