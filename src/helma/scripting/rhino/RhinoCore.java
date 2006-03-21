@@ -113,7 +113,7 @@ public final class RhinoCore implements ScopeProvider {
 
             pathProto = new PathWrapper(this);
 
-            hopObjectProto =  HopObject.init(global);
+            hopObjectProto =  HopObject.init(this);
             // use lazy loaded constructors for all extension objects that
             // adhere to the ScriptableObject.defineClass() protocol
             new LazilyLoadedCtor(global, "File",
@@ -207,10 +207,9 @@ public final class RhinoCore implements ScopeProvider {
             } else if ("hopobject".equals(lowerCaseName)) {
                 op = hopObjectProto;
             } else {
-                op = new HopObject(name);
-                op.setParentScope(global);
+                op = new HopObject(name, this);
             }
-            type = registerPrototype(prototype, op);
+            registerPrototype(prototype, op);
         }
 
         // Register a constructor for all types except global.
@@ -218,13 +217,10 @@ public final class RhinoCore implements ScopeProvider {
         // the actual (scripted) constructor on it.
         if (!"global".equals(lowerCaseName)) {
             try {
-                FunctionObject fo = new FunctionObject(name, HopObject.hopObjCtor, global);
-                fo.addAsConstructor(global, op);
-                // add static getById() function
-                fo.defineProperty("getById", new GetById(name), GetById.ATTRIBUTES);
-            } catch (Exception ignore) {
-                System.err.println("Error adding ctor for " + name + ": " + ignore);
-                ignore.printStackTrace();
+                new HopObjectCtor(name, this, op);
+                op.setParentScope(global);
+            } catch (Exception x) {
+                app.logError("Error adding ctor for " + name,  x);
             }
         }
     }
@@ -294,58 +290,52 @@ public final class RhinoCore implements ScopeProvider {
      *  here is to check for update those prototypes which already have been compiled
      *  before. Others will be updated/compiled on demand.
      */
-    public void updatePrototypes() throws IOException {
+    public synchronized void updatePrototypes() throws IOException {
         if ((System.currentTimeMillis() - lastUpdate) < 1000L + updateSnooze) {
             return;
         }
 
-        synchronized(this) {
-            if ((System.currentTimeMillis() - lastUpdate) < 1000L + updateSnooze) {
-                return;
+        // init prototypes and/or update prototype checksums
+        app.typemgr.checkPrototypes();
+
+        // get a collection of all prototypes (code directories)
+        Collection protos = app.getPrototypes();
+
+        // in order to respect inter-prototype dependencies, we try to update
+        // the global prototype before all other prototypes, and parent
+        // prototypes before their descendants.
+
+        HashSet checked = new HashSet(protos.size() * 2);
+
+        TypeInfo type = (TypeInfo) prototypes.get("global");
+
+        if (type != null) {
+            updatePrototype(type, checked);
+        }
+
+        for (Iterator i = protos.iterator(); i.hasNext();) {
+            Prototype proto = (Prototype) i.next();
+
+            if (checked.contains(proto)) {
+                continue;
             }
 
-            // init prototypes and/or update prototype checksums
-            app.typemgr.checkPrototypes();
+            type = (TypeInfo) prototypes.get(proto.getLowerCaseName());
 
-            // get a collection of all prototypes (code directories)
-            Collection protos = app.getPrototypes();
-
-            // in order to respect inter-prototype dependencies, we try to update
-            // the global prototype before all other prototypes, and parent
-            // prototypes before their descendants.
-
-            HashSet checked = new HashSet(protos.size() * 2);
-
-            TypeInfo type = (TypeInfo) prototypes.get("global");
-
-            if (type != null) {
+            if (type == null) {
+                // a prototype we don't know anything about yet. Init local update info.
+                initPrototype(proto);
+            } else if (type.lastUpdate > -1) {
+                // only need to update prototype if it has already been initialized.
+                // otherwise, this will be done on demand.
                 updatePrototype(type, checked);
             }
-
-            for (Iterator i = protos.iterator(); i.hasNext();) {
-                Prototype proto = (Prototype) i.next();
-
-                if (checked.contains(proto)) {
-                    continue;
-                }
-
-                type = (TypeInfo) prototypes.get(proto.getLowerCaseName());
-
-                if (type == null) {
-                    // a prototype we don't know anything about yet. Init local update info.
-                    initPrototype(proto);
-                } else if (type.lastUpdate > -1) {
-                    // only need to update prototype if it has already been initialized.
-                    // otherwise, this will be done on demand.
-                    updatePrototype(type, checked);
-                }
-            }
-
-            lastUpdate = System.currentTimeMillis();
-            // max updateSnooze is 4 seconds, reached after 66.6 idle minutes
-            long newSnooze = (lastUpdate - app.typemgr.getLastCodeUpdate()) / 1000;
-            updateSnooze = Math.min(4000, Math.max(0, newSnooze));
         }
+
+        lastUpdate = System.currentTimeMillis();
+        // max updateSnooze is 4 seconds, reached after 66.6 idle minutes
+        long newSnooze = (lastUpdate - app.typemgr.getLastCodeUpdate()) / 1000;
+        updateSnooze = Math.min(4000, Math.max(0, newSnooze));
     }
 
     /**
@@ -638,8 +628,7 @@ public final class RhinoCore implements ScopeProvider {
                 }
             }
 
-            esn = new HopObject(protoname, op);
-            esn.init(this, n);
+            esn = new HopObject(protoname, this, n, op);
 
             wrappercache.put(n, esn);
         }
@@ -1077,41 +1066,7 @@ public final class RhinoCore implements ScopeProvider {
             } else {
                 df = new DecimalFormat("#,##0.00");
             }
-            return df.format(ScriptRuntime.toNumber(thisObj)).toString();
-        }
-    }
-
-    class GetById extends BaseFunction {
-        static final int ATTRIBUTES = DONTENUM | PERMANENT | READONLY;
-        String typeName;
-
-        public GetById(String typeName) {
-            this.typeName = typeName;
-        }
-
-        /**
-         * Retrieve any persistent HopObject by type name and id.
-         *
-         * @return the HopObject or null if it doesn't exist
-         */
-        public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
-            if (args.length < 1 || args.length > 2)
-                throw new IllegalArgumentException("Wrong number of arguments in getById()");
-            // If second argument is provided, use it as type name.
-            // Otherwise, use our own type name.
-            String type = args.length == 1 ? typeName: Context.toString(args[1]); 
-
-            DbMapping dbmap = app.getDbMapping(type);
-            if (dbmap == null)
-                return null;
-            Object node = null;
-            try {
-                DbKey key = new DbKey(dbmap, Context.toString(args[0]));
-                node = app.getNodeManager().getNode(key);
-            } catch (Exception x) {
-                return null;
-            }
-            return node == null ? null : Context.toObject(node, this);
+            return df.format(ScriptRuntime.toNumber(thisObj));
         }
     }
 

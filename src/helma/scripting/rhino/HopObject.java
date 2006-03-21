@@ -35,16 +35,6 @@ import java.io.IOException;
  *
  */
 public class HopObject extends ScriptableObject implements Wrapper, PropertyRecorder {
-    static Method hopObjCtor;
-
-    static {
-        try {
-            hopObjCtor = HopObject.class.getMethod("jsConstructor", new Class[] {
-                Context.class, Object[].class, Function.class, Boolean.TYPE });
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException("Error getting HopObject.jsConstructor()");
-        }
-    }
 
     String className;
     INode node;
@@ -55,39 +45,45 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     private HashSet changedProperties;
 
     /**
-     * Creates a new HopObject object.
-     */
-    public HopObject() {
-        className = "HopObject";
-    }
-
-    /**
      * Creates a new HopObject prototype.
      *
-     * @param cname ...
+     * @param className the prototype name
+     * @param core the RhinoCore
      */
-    protected HopObject(String cname) {
-        className = cname;
+    protected HopObject(String className, RhinoCore core) {
+        this.className = className;
+        this.core = core;
+        setParentScope(core.global);
     }
 
 
     /**
-     * Creates a new HopObject prototype.
+     * Creates a new HopObject.
      *
-     * @param cname ...
+     * @param className the className
+     * @param proto the object's prototype
      */
-    protected HopObject(String cname, Scriptable proto) {
-        className = cname;
+    protected HopObject(String className, RhinoCore core,
+                        INode node, Scriptable proto) {
+        this(className, core);
+        this.node = node;
         setPrototype(proto);
     }
 
-    public static HopObject init(Scriptable scope)
+    /**
+     * Initialize HopObject prototype for Rhino scope.
+     *
+     * @param core the RhinoCore
+     * @return the HopObject prototype
+     * @throws PropertyException
+     */
+    public static HopObject init(RhinoCore core)
             throws PropertyException {
         int attributes = READONLY | DONTENUM | PERMANENT;
 
         // create prototype object
-        HopObject proto = new HopObject();
-        proto.setPrototype(getObjectPrototype(scope));
+        HopObject proto = new HopObject("HopObject", core);
+        proto.setPrototype(getObjectPrototype(core.global));
 
         // install JavaScript methods and properties
         Method[] methods = HopObject.class.getDeclaredMethods();
@@ -109,54 +105,6 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         return proto;
     }
 
-
-    /**
-     *  This method is used as HopObject constructor from JavaScript.
-     */
-    public static Object jsConstructor(Context cx, Object[] args,
-                                              Function ctorObj, boolean inNewExpr)
-                         throws EvaluatorException, ScriptingException {
-        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
-        RhinoCore core = engine.core;
-        String protoname = ((FunctionObject) ctorObj).getFunctionName();
-
-        // if this is a java object prototype, create a new java object
-        // of the given class instead of a HopObject.
-        if (core.app.isJavaPrototype(protoname)) {
-            String classname = core.app.getJavaClassForPrototype(protoname);
-            try {
-                Class clazz = Class.forName(classname);
-                // try to get the constructor matching our arguments
-                Class[] argsTypes = new Class[args.length];
-                for (int i=0; i<argsTypes.length; i++) {
-                    argsTypes[i] = args[i] == null ? null : args[i].getClass();
-                }
-                Constructor cnst = clazz.getConstructor(argsTypes);
-                // crate a new instance using the constructor
-                Object obj = cnst.newInstance(args);
-                return Context.toObject(obj, engine.global);
-            } catch (Exception x) {
-                System.err.println("Error in Java constructor: "+x);
-                throw new EvaluatorException(x.toString());
-            }
-        } else {
-            INode node = new helma.objectmodel.db.Node(protoname, protoname,
-                                                    core.app.getWrappedNodeManager());
-            Scriptable proto = core.getPrototype(protoname);
-            HopObject hobj = new HopObject(protoname, proto);
-
-            hobj.init(core, node);
-            if (proto != null) {
-                engine.invoke(hobj,
-                        "__constructor__",
-                        args, ScriptingEngine.ARGS_WRAP_NONE,
-                        false);
-            }
-
-            return hobj;
-        }
-    }
-
     /**
      *
      *
@@ -175,17 +123,6 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      */
     public Object getDefaultValue(Class hint) {
         return toString();
-    }
-
-    /**
-     *
-     *
-     * @param c ...
-     * @param n ...
-     */
-    public void init(RhinoCore c, INode n) {
-        core = c;
-        node = n;
     }
 
     /**
@@ -217,7 +154,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * Check if the node has been invalidated. If so, it has to be re-fetched
      * from the db via the app's node manager.
      */
-    private final void checkNode() {
+    private void checkNode() {
         if (node != null && node.getState() == INode.INVALID) {
             if (node instanceof helma.objectmodel.db.Node) {
                 NodeHandle handle = ((helma.objectmodel.db.Node) node).getHandle();
@@ -425,7 +362,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
 
         if (id instanceof Number) {
             n = node.getSubnodeAt(((Number) id).intValue());
-        } else if (id != null) {
+        } else {
             n = node.getChildElement(id.toString());
         }
 
@@ -1132,16 +1069,12 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         }
         helma.objectmodel.db.Node n = (helma.objectmodel.db.Node) node;
         n.loadNodes();
-        List subnodes = n.getSubnodeList();
+        SubnodeList subnodes = n.getSubnodeList();
         if (subnodes == null) {
             throw new RuntimeException (
                     "getOrderedView only callable on already existing subnode-collections");
         }
-        if (subnodes instanceof OrderedSubnodeList) {
-            return new ListViewWrapper ((((OrderedSubnodeList) subnodes).getOrderedView(expr)),
+        return new ListViewWrapper (subnodes.getOrderedView(expr),
                     core, n.getDbMapping().getWrappedNodeManager(), this);
-        }
-        throw new RuntimeException (
-                "getOrderedView only callable on OrderedSubnodeList");
     }
 }

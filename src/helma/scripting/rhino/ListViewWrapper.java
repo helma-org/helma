@@ -46,6 +46,26 @@ public class ListViewWrapper extends ScriptableObject implements Wrapper, Script
     final HopObject hObj;
     INode node;
 
+    static ListViewWrapper listViewProto;
+
+    /**
+     * Private constructor used to create the object prototype.
+     */
+    private ListViewWrapper() {
+        list = null;
+        core = null;
+        wnm = null;
+        node = null;
+        hObj = null;
+    }
+
+    /**
+     * Create a JS wrapper around a subnode list.
+     * @param list
+     * @param core
+     * @param wnm
+     * @param hObj
+     */
     ListViewWrapper (List list, RhinoCore core, WrappedNodeManager wnm, HopObject hObj) {
         if (list == null) {
             throw new IllegalArgumentException ("ListWrapper unable to wrap null list.");
@@ -55,13 +75,20 @@ public class ListViewWrapper extends ScriptableObject implements Wrapper, Script
         this.wnm = wnm;
         this.hObj = hObj;
         this.node = hObj.node;
-        init();
+        if (listViewProto == null) {
+            listViewProto = new ListViewWrapper();
+            listViewProto.init();
+        }
+        setPrototype(listViewProto);
     }
 
-    private void init() {
+    /**
+     * Init JS functions from methods.
+     */
+    void init() {
         int attributes = READONLY | DONTENUM | PERMANENT;
         
-        Method[] methods = this.getClass().getDeclaredMethods();
+        Method[] methods = getClass().getDeclaredMethods();
         for (int i=0; i<methods.length; i++) {
             String methodName = methods[i].getName();
 
@@ -70,7 +97,6 @@ public class ListViewWrapper extends ScriptableObject implements Wrapper, Script
                 FunctionObject func = new FunctionObject(methodName,
                                                          methods[i], this);
                 this.defineProperty(methodName, func, attributes);
-
             }
         }
     }
@@ -98,9 +124,7 @@ public class ListViewWrapper extends ScriptableObject implements Wrapper, Script
         
         // return HopObject in case of a NodeHandle
         if (obj instanceof NodeHandle) {
-            HopObject hObj = new HopObject();
-            hObj.init(core, ((NodeHandle) obj).getNode(wnm));
-            return hObj;
+            return Context.toObject(((NodeHandle) obj).getNode(wnm), core.global);
         } else if (!(obj instanceof Scriptable)) {
             // do NOT wrap primitives - otherwise they'll be wrapped as Objects,
             // which makes them unusable for many purposes (e.g. ==)

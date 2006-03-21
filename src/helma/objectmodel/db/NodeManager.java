@@ -1186,6 +1186,12 @@ public final class NodeManager {
                             continue;
                         }
                         key = node.getKey();
+                        synchronized (cache) {
+                            Node oldnode = (Node) cache.put(key, node);
+                            if ((oldnode != null) && (oldnode.getState() != INode.INVALID)) {
+                                cache.put(key, oldnode);
+                            }
+                        }
                     } else {
                         key = new DbKey(rel.otherType, kstr);
                     }
@@ -1320,7 +1326,7 @@ public final class NodeManager {
                             SubnodeList sn = (SubnodeList) groupbySubnodes.get(groupName);
 
                             if (sn == null) {
-                                sn = new SubnodeList();
+                                sn = new SubnodeList(safe, rel);
                                 groupbySubnodes.put(groupName, sn);
                             }
 

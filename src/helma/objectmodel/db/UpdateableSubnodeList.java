@@ -38,8 +38,8 @@ public class UpdateableSubnodeList extends OrderedSubnodeList {
      * Construct a new UpdateableSubnodeList. The Relation is needed
      * to get the information about the ORDERING and the UPDATECriteriaS
      */
-    public UpdateableSubnodeList (Relation rel) {
-        super(rel);
+    public UpdateableSubnodeList (WrappedNodeManager nmgr, Relation rel) {
+        super(nmgr, rel);
         // check the update-criterias for updating this collection
         if (rel.updateCriteria == null) {
             // criteria-field muss vom criteria-operant getrennt werden
@@ -391,7 +391,7 @@ public class UpdateableSubnodeList extends OrderedSubnodeList {
 
     /**
      * if the wrapped List is an instance of OrderedSubnodeList,
-     * the sortIn-method will be used.
+     * the sortIn() method will be used.
      */
     public boolean addAll(Collection col) {
         return sortIn(col, true) > 0;

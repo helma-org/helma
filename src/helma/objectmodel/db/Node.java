@@ -1244,7 +1244,7 @@ public final class Node implements INode, Serializable {
         loadNodes();
 
         if (subnodes == null) {
-            subnodes = new SubnodeList();
+            subnodes = new SubnodeList(nmgr, dbmap.getSubnodeRelation());
         }
 
         if (create || subnodes.contains(new NodeHandle(new SyntheticKey(getKey(), sid)))) {
@@ -1582,11 +1582,11 @@ public final class Node implements INode, Serializable {
     public SubnodeList createSubnodeList() {
         Relation rel = this.dbmap == null ? null : this.dbmap.getSubnodeRelation();
         if (rel != null && rel.updateCriteria != null) {
-            subnodes = new UpdateableSubnodeList(rel);
+            subnodes = new UpdateableSubnodeList(nmgr, rel);
         } else if (rel != null && rel.autoSorted) {
-            subnodes = new OrderedSubnodeList(rel);
+            subnodes = new OrderedSubnodeList(nmgr, rel);
         } else {
-            subnodes = new SubnodeList();
+            subnodes = new SubnodeList(nmgr, rel);
         }
         return subnodes;
     }
@@ -1661,11 +1661,11 @@ public final class Node implements INode, Serializable {
     }
 
     /**
+     * Return this Node's subnode list
      *
-     *
-     * @return ...
+     * @return the subnode list
      */
-    public List getSubnodeList() {
+    public SubnodeList getSubnodeList() {
         return subnodes;
     }
 

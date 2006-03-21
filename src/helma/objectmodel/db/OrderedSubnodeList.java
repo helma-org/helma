@@ -29,49 +29,24 @@ import java.util.List;
  * or remove-methods are called.
  */
 public class OrderedSubnodeList extends SubnodeList {
-    HashMap views = null;
-    private final OrderedSubnodeList origin;
 
+    // the base subnode list, in case this is an ordered view
+    private SubnodeList origin;
     // an array containing the order-fields
-    private final String orderProperties[];
+    private String orderProperties[];
     // an array containing the direction for ordering 
-    private final boolean orderIsDesc[];
-
-    // the relation which is the basis for this collection
-    final Relation rel;
+    private boolean orderIsDesc[];
 
     /**
      * Construct a new OrderedSubnodeList. The Relation is needed
      * to get the information about the ORDERING
      */
-    public OrderedSubnodeList (Relation rel) {
-        this.rel = rel;
+    public OrderedSubnodeList (WrappedNodeManager nmgr, Relation rel) {
+        super(nmgr, rel);
         this.origin = null;
         // check the order of this collection for automatically sorting
         // in the values in the correct order
-        if (rel.order == null) {
-            orderProperties=null;
-            orderIsDesc=null;
-        } else {
-            String singleOrders[] = rel.order.split(",");
-            orderProperties = new String[singleOrders.length];
-            orderIsDesc = new boolean[singleOrders.length];
-            DbMapping dbm = rel.otherType;
-            for (int i = 0; i < singleOrders.length; i++) {
-                String currOrder[] = singleOrders[i].trim().split(" ");
-                if (currOrder[0].equalsIgnoreCase(rel.otherType.getIDField())) {
-                    orderProperties[i]=null;
-                } else {
-                    orderProperties[i] = dbm.columnNameToProperty(currOrder[0]);
-                }
-                System.err.println("ORDER PROP " + i + " IS " + orderProperties[i] + " FROM " +currOrder[0]);
-                if (currOrder.length < 2
-                        || "ASC".equalsIgnoreCase(currOrder[1]))
-                    orderIsDesc[i]=false;
-                else
-                    orderIsDesc[i]=true;
-            }
-        }
+        initOrder(rel.order);
     }
 
     /**
@@ -80,36 +55,31 @@ public class OrderedSubnodeList extends SubnodeList {
      * @param expr the new order for this view
      * @param rel the relation given for the origin-list
      */
-    public OrderedSubnodeList (OrderedSubnodeList origin, String expr, Relation rel) {
+    public OrderedSubnodeList (WrappedNodeManager nmgr, Relation rel, SubnodeList origin, String expr) {
+        super(nmgr, rel);
         this.origin = origin;
-        this.rel = rel;
-        if (expr==null) {
+        initOrder(expr);
+        if (origin != null) {
+            sortIn(origin, false);
+        }
+    }
+
+    private void initOrder(String order) {
+        if (order == null) {
             orderProperties=null;
             orderIsDesc=null;
         } else {
-            String singleOrders[] = expr.split(",");
-            orderProperties = new String[singleOrders.length];
-            orderIsDesc = new boolean[singleOrders.length];
-            DbMapping dbm = rel.otherType;
-            for (int i = 0; i<singleOrders.length; i++) {
-                String currOrder[] = singleOrders[i].trim().split(" ");
-                if (currOrder[0].equalsIgnoreCase("_id")) {
-                    orderProperties[i]=null;
-                } else {
-                    if (dbm.propertyToColumnName(currOrder[0])==null)
-                        throw new RuntimeException ("Properties must be mapped to get an ordered collection for these properties.");
-                    orderProperties[i]=currOrder[0];
-                }
-                if (currOrder.length < 2
-                        || "ASC".equalsIgnoreCase(currOrder[1]))
-                    orderIsDesc[i]=false;
-                else
-                    orderIsDesc[i]=true;
+            String orderParts[] = order.split(",");
+            orderProperties = new String[orderParts.length];
+            orderIsDesc = new boolean[orderParts.length];
+            for (int i = 0; i < orderParts.length; i++) {
+                String part[] = orderParts[i].trim().split(" ");
+                orderProperties[i] =  part[0].equals("_id") ?
+                    null : part[0];
+                orderIsDesc[i] = part.length == 2 &&
+                        "DESC".equalsIgnoreCase(part[1]);
             }
         }
-        if (origin == null)
-            return;
-        this.sortIn(origin, false);
     }
 
    /**
@@ -119,8 +89,19 @@ public class OrderedSubnodeList extends SubnodeList {
     * @param obj element to be inserted.
     */
     public boolean add(Object obj) {
-        System.err.println("******** SORT-ADDING " + obj);
-        return add(obj, false);
+        return add(obj, true);
+    }
+
+    /**
+     * Adds the specified object to the list at the given position
+     * @param idx the index to insert the element at
+     * @param obj the object t add
+     */
+    public void add(int idx, Object obj) {
+        if (this.orderProperties!=null)
+            throw new RuntimeException ("Indexed add isn't alowed for ordered subnodes");
+        super.add(idx, obj);
+        addToViews(obj);
     }
 
    /**
@@ -130,20 +111,23 @@ public class OrderedSubnodeList extends SubnodeList {
     * @param obj element to be inserted.
     */
     public boolean addSorted(Object obj) {
-        return add(obj, true);
+        return add(obj, false);
     }
 
-    private boolean add(Object obj, boolean sorted) {
-        if (origin != null)
+    boolean add(Object obj, boolean sort) {
+        if (origin != null) {
             return origin.add(obj);
-        vAdd(obj);
-        while (rel.maxSize>0 && this.size() >= rel.maxSize)
-            super.remove(0);
+        }
+        addToViews(obj);
+        int maxSize = rel == null ? 0 : rel.maxSize;
+        while (maxSize > 0 && this.size() >= maxSize) {
+            remove(size() - 1);
+        }
         // escape sorting for presorted adds and grouped nodes
-        if (sorted || rel.groupby != null) {
-            super.add(obj);
-        } else {
+        if (sort && (rel == null || rel.groupby == null)) {
             sortIn(obj);
+        } else {
+            super.add(obj);
         }
         return true;
     }
@@ -156,36 +140,23 @@ public class OrderedSubnodeList extends SubnodeList {
         // no order, just add
         if (this.orderProperties==null)
             return super.add(obj);
-        vAdd(obj);
-        long start = System.currentTimeMillis();
-        try {
-            int idx = this.determineNodePosition((NodeHandle) obj, 0);
-            System.err.println("Position: " + idx);
-            if (idx<0)
-                return super.add(obj);
-            else
-                super.add(idx, obj);
-            return true;
-        } finally {
-            System.out.println("Sortmillis: " + (System.currentTimeMillis() - start));
-        }
-    }
-
-    private void vAdd (Object obj) {
-        if (views==null || origin!=null || views.size()<1)
-            return;
-        for (Iterator i = views.values().iterator(); i.hasNext(); ) {
-            OrderedSubnodeList osl = (OrderedSubnodeList) i.next();
-            osl.sortIn(obj);
-        }
+        addToViews(obj);
+        Node node = ((NodeHandle) obj).getNode(nmgr);
+        int idx = this.determineNodePosition(node, 0);
+        // System.err.println("Position: " + idx);
+        if (idx<0)
+            return super.add(obj);
+        else
+            super.add(idx, obj);
+        return true;
     }
 
     public boolean addAll(Collection col) {
         return sortIn(col, true) > 0;
     }
 
-    private void vAddAll (Collection col) {
-        if (views==null || origin!=null || views.size()<1)
+    private void addAllToViews (Collection col) {
+        if (views == null || origin != null || views.isEmpty())
             return;
         for (Iterator i = views.values().iterator(); i.hasNext(); ) {
             OrderedSubnodeList osl = (OrderedSubnodeList) i.next();
@@ -193,37 +164,32 @@ public class OrderedSubnodeList extends SubnodeList {
         }
     }
 
-    public void add(int idx, Object obj) {
-        if (this.orderProperties!=null)
-            throw new RuntimeException ("Indexed add isn't alowed for ordered subnodes");
-        super.add(idx, obj);
-        vAdd(obj);
-    }
-
     /**
      * Add all nodes contained inside the specified Collection to this
-     * UpdateableSubnodeList. The order of the added Nodes is asumed to
-     * be ordered according to the SQL-Order-Clausel given for this 
-     * Subnodecollection but doesn't prevent adding of unordered Collections.
-     * Ordered Collections will be sorted in more efficient than unordered ones.
+     * UpdateableSubnodeList. The order of the added Nodes is assumed to
+     * be ordered according to the SQL-Order-Clause given for this
+     * Subnode collection but doesn't prevent adding of unordered Collections.
+     * Ordered Collections will be sorted in more efficiently than unordered ones.
+     *
      * @param col the collection containing all elements to add in the order returned by the select-statement
      * @param colHasDefaultOrder true if the given collection does have the default-order defined by the relation
      */
     public int sortIn (Collection col, boolean colHasDefaultOrder) {
-        vAddAll(col);
+        addAllToViews(col);
         int cntr=0;
         // there is no order specified, add on top
-        if (orderProperties==null) {
+        if (orderProperties == null) {
             for (Iterator i = col.iterator(); i.hasNext(); ) {
                 super.add(cntr, i.next());
                 cntr++;
             }
-            if (rel.maxSize > 0) {
-                int diff = this.size() - rel.maxSize;
+            int maxSize = rel == null ? 0 : rel.maxSize;
+            if (maxSize > 0) {
+                int diff = this.size() - maxSize;
                 if (diff > 0)
                     super.removeRange(this.size()-1-diff, this.size()-1);
             }
-        } else if (!colHasDefaultOrder || origin!=null) {
+        } else if (!colHasDefaultOrder || origin != null) {
             // this collection is a view or the given collection doesn't have the
             // default order
             for (Iterator i = col.iterator(); i.hasNext(); ) {
@@ -235,21 +201,21 @@ public class OrderedSubnodeList extends SubnodeList {
             }
         } else {
             NodeHandle[] nhArr = (NodeHandle[]) col.toArray (new NodeHandle[0]);
-            int locIdx=determineNodePosition(nhArr[0], 0); // determine start-point
-            if (locIdx==-1)
-                locIdx=this.size();
+            Node node = nhArr[0].getNode(nmgr);
+            int locIdx = determineNodePosition(node, 0); // determine start-point
+            if (locIdx == -1)
+                locIdx = this.size();
             // int interval=Math.max(1, this.size()/2);
-            int addIdx=0;
-            for (; addIdx < nhArr.length; addIdx++) {
-                while (locIdx < this.size() && compareNodes(nhArr[addIdx], (NodeHandle) this.get(locIdx)) >= 0)
+            for (int addIdx=0; addIdx < nhArr.length; addIdx++) {
+                node = nhArr[addIdx].getNode(nmgr);
+                while (locIdx < this.size() &&
+                        compareNodes(node, (NodeHandle) this.get(locIdx)) >= 0)
                     locIdx++;
-                if (locIdx >= this.size())
-                    break;
-                this.add(locIdx, nhArr[addIdx]);
-                cntr++;
-            }
-            for (; addIdx < nhArr.length; addIdx++) {
-                this.add(nhArr[addIdx]);
+                if (locIdx < this.size()) {
+                    this.add(locIdx, nhArr[addIdx]);
+                } else {
+                    this.add(nhArr[addIdx]);
+                }
                 cntr++;
             }
         }
@@ -257,54 +223,18 @@ public class OrderedSubnodeList extends SubnodeList {
     }
 
     /**
-     * remove the object specified by the given index-position
-     * @param idx the index-position of the NodeHandle to remove
-     */
-    public Object remove (int idx) {
-        vRemove(idx);
-        return super.remove(idx);
-    }
-
-    private void vRemove(int idx) {
-        if (views==null || origin!=null || views.size()<1)
-            return;
-        for (Iterator i = views.values().iterator(); i.hasNext(); ) {
-            OrderedSubnodeList osl = (OrderedSubnodeList) i.next();
-            osl.remove(idx);
-        }
-    }
-
-    /**
-     * remove the given Object from this List
-     * @param obj the NodeHandle to remove
-     */
-    public boolean remove (Object obj) {
-        vRemove(obj);
-        return super.remove(obj);
-    }
-
-    private void vRemove(Object obj) {
-        if (views==null || origin!=null || views.size()<1)
-            return;
-        for (Iterator i = views.values().iterator(); i.hasNext(); ) {
-            OrderedSubnodeList osl = (OrderedSubnodeList) i.next();
-            osl.remove(obj);
-        }
-    }
-
-    /**
-     * remove all elements conteined inside the specified collection
+     * remove all elements contained inside the specified collection
      * from this List
      * @param c the Collection containing all Objects to remove from this List
      * @return true if the List has been modified
      */
     public boolean removeAll(Collection c) {
-        vRemoveAll(c);
+        removeAllFromViews(c);
         return super.removeAll(c);
     }
 
-    private void vRemoveAll(Collection c) {
-        if (views==null || origin!=null || views.size()<1)
+    private void removeAllFromViews(Collection c) {
+        if (views == null || origin != null || views.isEmpty())
             return;
         for (Iterator i = views.values().iterator(); i.hasNext(); ) {
             OrderedSubnodeList osl = (OrderedSubnodeList) i.next();
@@ -319,12 +249,12 @@ public class OrderedSubnodeList extends SubnodeList {
      * @return true if the List has been modified
      */
     public boolean retainAll (Collection c) {
-        vRetainAll(c);
+        retainAllInViews(c);
         return super.retainAll(c);
     }
 
-    private void vRetainAll(Collection c) {
-        if (views==null || origin!=null || views.size()<1)
+    private void retainAllInViews(Collection c) {
+        if (views == null || origin != null || views.isEmpty())
             return;
         for (Iterator i = views.values().iterator(); i.hasNext(); ) {
             OrderedSubnodeList osl = (OrderedSubnodeList) i.next();
@@ -332,21 +262,22 @@ public class OrderedSubnodeList extends SubnodeList {
         }
     }
 
-    private int determineNodePosition (NodeHandle nh, int startIdx) {
+    private int determineNodePosition (Node node, int startIdx) {
         int size = this.size();
-        int interval = Math.max(1, (size-startIdx)/2);
+        int interval = Math.max(1, (size - startIdx) / 2);
         boolean dirUp=true;
         int cntr = 0;
+        int maxSize = rel == null ? 0 : rel.maxSize;
         for (int i = 0; i < size
-                && (i < rel.maxSize || rel.maxSize <= 0)
-                && cntr<(size*2); cntr++) {  // cntr is used to avoid endless-loops which shouldn't happen
+                && (i < maxSize || maxSize <= 0)
+                && cntr < (size * 2); cntr++) {  // cntr is used to avoid endless-loops which shouldn't happen
             NodeHandle curr = (NodeHandle) this.get(i);
-            int comp = compareNodes(nh, curr);
+            int comp = compareNodes(node, curr);
             // current NodeHandle is below the given NodeHandle
             // interval has to be 1 and 
             // idx must be zero or the node before the current node must be higher or equal
             // all conditions must be met to determine the correct position of a node
-            if (comp < 0 && interval==1 && (i==0 || compareNodes(nh, (NodeHandle) this.get(i-1)) >= 0)) {
+            if (comp < 0 && interval==1 && (i==0 || compareNodes(node, (NodeHandle) this.get(i-1)) >= 0)) {
                 return i;
             } else if (comp < 0) {
                 dirUp=false;
@@ -359,7 +290,7 @@ public class OrderedSubnodeList extends SubnodeList {
             if (dirUp) {
                 i=i+interval;
                 if (i >= this.size()) {
-                    if (compareNodes(nh, (NodeHandle) this.get(size-1)) >= 0)
+                    if (compareNodes(node, (NodeHandle) this.get(size-1)) >= 0)
                         break;
                     interval = Math.max(1, (i - size-1)/2);
                     i = this.size()-1;
@@ -367,58 +298,58 @@ public class OrderedSubnodeList extends SubnodeList {
                     interval = Math.max(1,interval/2);
                 }
             } else {
-                i=i-interval;
+                i = i-interval;
                 if (i < 0) { // shouldn't happen i think
-                    interval=Math.max(1,(interval+i)/2);
+                    interval=Math.max(1, (interval+i)/2);
                     i=0;
                 }
             }
 
         }
-        if (cntr >= size*2 && size>1) {
-            System.err.println("determineNodePosition needed more than the allowed iterations" + this.rel.prototype);
+        if (cntr >= size * 2 && size > 1) {
+            System.err.println("determineNodePosition needed more than the allowed iterations");
         }
         return -1;
     }
 
     /**
      * Compare two nodes depending on the specified ORDER for this collection.
-     * @param nh1 the first NodeHandle
-     * @param nh2 the second NodeHandle
+     * @param node the first Node
+     * @param nodeHandle the second Node
      * @return an integer lesser than zero if nh1 is less than, zero if nh1 is equal to and a value greater than zero if nh1 is bigger than nh2.
      */
-    private int compareNodes(NodeHandle nh1, NodeHandle nh2) {
-        WrappedNodeManager wnmgr=null;
+    private int compareNodes(Node node, NodeHandle nodeHandle) {
         for (int i = 0; i < orderProperties.length; i++) {
             if (orderProperties[i]==null) {
                 // we have the id as order-criteria-> avoid loading node
                 // and compare numerically instead of lexicographically
-                String s1 = nh1.getID();
-                String s2 = nh2.getID();
+                String s1 = node.getID();
+                String s2 = nodeHandle.getID();
                 int j = compareNumericString (s1, s2);
-                if (j==0)
+                if (j == 0)
                     continue;
                 if (orderIsDesc[i])
-                    j=j*-1;
+                    j = j * -1;
                 return j;
             }
-            System.err.println("CHECKING PROPERTY: " + orderProperties[i] + " / " + orderIsDesc[i]);
-            if (wnmgr == null)
-                wnmgr = rel.otherType.getWrappedNodeManager();
-            Property p1 = nh1.getNode(wnmgr).getProperty(orderProperties[i]);
-            Property p2 = nh2.getNode(wnmgr).getProperty(orderProperties[i]);
-            System.out.println ("*** Comparing " + p1 + " - " + p2);
+            Property p1 = node.getProperty(orderProperties[i]);
+            Property p2 = nodeHandle.getNode(nmgr).getProperty(orderProperties[i]);
             int j;
-            if (p1==null && p2==null)
+            if (p1 == null && p2 == null) {
                 continue;
-            else if (p1==null)
+            } else if (p1 == null) {
+                j = 1;
+            } else if (p2 == null) {
                 j = -1;
-            else
+            } else {
                 j = p1.compareTo(p2);
-            if (j == 0)
+            }
+            if (j == 0) {
                 continue;
-            if (orderIsDesc[i])
+            }
+            if (orderIsDesc[i]) {
                 j = j * -1;
+            }
             return j;
         }
         return -1;
@@ -451,21 +382,10 @@ public class OrderedSubnodeList extends SubnodeList {
     }
 
     public List getOrderedView (String order) {
-        if (origin != null)
+        if (origin != null) {
             return origin.getOrderedView(order);
-        String key = order.trim().toLowerCase();
-        if (key.equalsIgnoreCase(rel.order))
-            return this;
-        long start = System.currentTimeMillis();
-        if (views == null)
-            views = new HashMap();
-        OrderedSubnodeList osl = (OrderedSubnodeList) views.get(key);
-        if (osl == null) {
-            osl = new OrderedSubnodeList (this, order, rel);
-            views.put(key, osl);
-            System.out.println("getting view cost me " + (System.currentTimeMillis()-start) + " millis");
-        } else
-            System.out.println("getting cached view cost me " + (System.currentTimeMillis()-start) + " millis");
-        return osl;
+        } else {
+            return super.getOrderedView(order);
+        }
     }
 }

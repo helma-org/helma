@@ -508,9 +508,9 @@ public final class Property implements IProperty, Serializable, Cloneable, Compa
         if (value==null && pvalue == null) {
             return 0;
         } else if (value == null) {
-            return -1;
-        } if (pvalue == null) {
             return 1;
+        } if (pvalue == null) {
+            return -1;
         }
         if (type != ptype) {
             throw new ClassCastException("uncomparable values " + this + "(" + type + ") : " + p + "(" + ptype + ")");
