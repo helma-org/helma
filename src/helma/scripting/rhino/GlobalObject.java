@@ -75,6 +75,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         defineFunctionProperties(globalFuncs, GlobalObject.class, 0);
         put("app", this, Context.toObject(new ApplicationBean(app), this));
         put("Xml", this, Context.toObject(new XmlObject(core), this));
+        put("global", this, this);
         // Define dontEnum() on Object prototype
         String[] objFuncs = { "dontEnum" };
         ScriptableObject objproto = (ScriptableObject) getObjectPrototype(this);
