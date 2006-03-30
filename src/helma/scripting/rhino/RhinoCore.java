@@ -23,7 +23,6 @@ import helma.framework.core.*;
 import helma.framework.repository.Resource;
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
-import helma.objectmodel.db.DbKey;
 import helma.scripting.*;
 import helma.util.CacheMap;
 import helma.util.SystemMap;
@@ -877,7 +876,7 @@ public final class RhinoCore implements ScopeProvider {
 
         /**
          * Compilation has been completed successfully - switch over to code
-         * from temporary prototype, removing properties that haven't been 
+         * from temporary prototype, removing properties that haven't been
          * renewed.
          */
         public void commitCompilation() {
