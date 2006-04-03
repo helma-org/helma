@@ -27,6 +27,7 @@ import helma.scripting.*;
 import helma.util.CacheMap;
 import helma.util.SystemMap;
 import helma.util.WrappedMap;
+import helma.util.WeakCacheMap;
 import org.mozilla.javascript.*;
 
 import java.io.*;
@@ -75,8 +76,7 @@ public final class RhinoCore implements ScopeProvider {
      */
     public RhinoCore(Application app) {
         this.app = app;
-        // wrappercache = new CacheMap(500, .75f);
-        wrappercache = new CacheMap(500);
+        wrappercache = new WeakCacheMap(500);
         prototypes = new Hashtable();
 
         Context context = Context.enter();
