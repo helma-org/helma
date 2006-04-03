@@ -29,6 +29,7 @@
 // Moved to helma.util to use java.util.HashMap instead of java.util.Hashtable
 package helma.util;
 
+import java.util.Map;
 import java.util.HashMap;
 import java.util.Properties;
 
@@ -59,8 +60,8 @@ public class CacheMap implements ObjectCache {
     private int eachCapacity;
 
     // The tables.
-    private HashMap oldTable;
-    private HashMap newTable;
+    private Map oldTable;
+    private Map newTable;
 
     // the application to output messages to
     private Application app = null;
@@ -100,9 +101,10 @@ public class CacheMap implements ObjectCache {
         // in other words, make sure our threshold for table rotation is lower
         // than that of the underlying HashMap for table rehashing.
         eachCapacity = (int) (threshold / loadFactor) + 2;
-        // create tables
+        // create tables - we'll never insert into the initial oldTable,
+        // it's a dummy that will be lost on the first cache rotation.
         oldTable = new HashMap();
-        newTable = new HashMap(eachCapacity, loadFactor);
+        newTable = createTable(eachCapacity, loadFactor);
     }
 
     /// Constructs a new, empty hashtable with the specified initial
@@ -143,7 +145,7 @@ public class CacheMap implements ObjectCache {
         // if newtable is larger than threshold, rotate.
         if (newTable.size() > threshold) {
             oldTable = newTable;
-            newTable = new HashMap(eachCapacity, loadFactor);
+            newTable = createTable(eachCapacity, loadFactor);
         }
     }
 
@@ -184,7 +186,7 @@ public class CacheMap implements ObjectCache {
         return false;
     }
 
-    /// Returns the number of keys in object array <code>keys</code> that 
+    /// Returns the number of keys in object array <code>keys</code> that
     //  were not found in the Map.
     //  Those keys that are contained in the Map are nulled out in the array.
     // @param keys an array of key objects we are looking for
@@ -229,10 +231,10 @@ public class CacheMap implements ObjectCache {
 
     /// Puts the specified element into the hashtable, using the specified
     // key.  The element may be retrieved by doing a get() with the same key.
-    // The key and the element cannot be null. 
+    // The key and the element cannot be null.
     // @param key the specified key in the hashtable
     // @param value the specified element
-    // @exception NullPointerException If the value of the element 
+    // @exception NullPointerException If the value of the element
     // is equal to null.
     // @see LruHashtable#get
     // @return the old value of the key, or null if it did not have one.
@@ -252,7 +254,7 @@ public class CacheMap implements ObjectCache {
                 app.logEvent("Rotating Cache tables at " + newTable.size() +
                         "/" + oldTable.size() + " (new/old)");
             oldTable = newTable;
-            newTable = new HashMap(eachCapacity, loadFactor);
+            newTable = createTable(eachCapacity, loadFactor);
         }
         return oldValue;
     }
@@ -305,6 +307,18 @@ public class CacheMap implements ObjectCache {
 
     public String toString() {
         return newTable.toString() + oldTable.toString() + hashCode();
+    }
+
+    /**
+     * Override this method to use custom Map implementations. The
+     * default implementation returns a java.util.HashMap instance.
+     *
+     * @param capacity the initial capacity
+     * @param loadFactor the load factor
+     * @return a new Map used for internal caching
+     */
+    protected Map createTable(int capacity, float loadFactor) {
+        return new HashMap(capacity, loadFactor);
     }
 
 }
