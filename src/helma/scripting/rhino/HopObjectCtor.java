@@ -96,7 +96,11 @@ public class HopObjectCtor extends FunctionObject {
             HopObject hobj = new HopObject(protoname, core, node, proto);
 
             if (proto != null) {
-                Object f = ScriptableObject.getProperty(proto, "__constructor__");
+                Object f = ScriptableObject.getProperty(proto, protoname);
+                if (!(f instanceof Function)) {
+                    // backup compatibility: look up function constructor
+                    f = ScriptableObject.getProperty(proto, "__constructor__");
+                }
                 if (f instanceof Function) {
                     ((Function) f).call(cx, core.global, hobj, args);
                 }
