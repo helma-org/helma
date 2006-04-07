@@ -23,6 +23,8 @@ import helma.util.SystemMap;
 import helma.util.WrappedMap;
 import helma.framework.repository.Repository;
 import helma.framework.repository.FileRepository;
+import helma.framework.repository.SingleFileRepository;
+import helma.framework.repository.ZipRepository;
 
 import java.io.File;
 import java.io.Serializable;
@@ -143,9 +145,24 @@ public class ApplicationBean implements Serializable {
                 file = new File(path + ".zip").getAbsoluteFile();
             }
             if (!file.exists()) {
-                throw new RuntimeException("Repository path does not exist: " + file);
+                file = new File(path + ".js").getAbsoluteFile();
             }
-            rep = new FileRepository(file);
+            if (!file.exists()) {
+                throw new RuntimeException("Repository path does not exist: " + obj);
+            }
+            if (file.isDirectory()) {
+                rep = new FileRepository(file);
+            } else if (file.isFile()) {
+                if (file.getName().endsWith(".js")) {
+                    rep = new SingleFileRepository(file);
+                } else if (file.getName().endsWith(".zip")) {
+                    rep = new ZipRepository(file);
+                } else {
+                    throw new RuntimeException("Unrecognized file type in addRepository: " + obj);
+                }
+            } else {
+                throw new RuntimeException("Unrecognized file type in addRepository: " + obj);
+            }
         } else if (obj instanceof Repository) {
             rep = (Repository) obj;
         } else {
