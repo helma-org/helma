@@ -343,6 +343,8 @@ public class ApplicationManager implements XmlRpcHandler {
                         // implementation not set manually, have to guess it
                         if (repositoryArgs.endsWith(".zip")) {
                             repositoryImpl = "helma.framework.repository.ZipRepository";
+                        } else if (repositoryArgs.endsWith(".js")) {
+                            repositoryImpl = "helma.framework.repository.SingleFileRepository";
                         } else {
                             repositoryImpl = "helma.framework.repository.FileRepository";
                         }
