@@ -31,7 +31,7 @@ public class FileResource implements Resource {
         this(file, null);
     }
 
-    protected FileResource(File file, FileRepository repository) {
+    protected FileResource(File file, Repository repository) {
         this.file = file;
 
         this.repository = repository;

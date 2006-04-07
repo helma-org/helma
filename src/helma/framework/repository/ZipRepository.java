@@ -45,6 +45,14 @@ public final class ZipRepository extends AbstractRepository {
     }
 
     /**
+     * Constructs a ZipRespository using the given argument
+     * @param file zip file
+     */
+    public ZipRepository(File file) {
+        this(file, null, null);
+    }
+
+    /**
      * Constructs a ZipRepository using the given zip file as top-level
      * repository
      * @param file a zip file
@@ -143,7 +151,7 @@ public final class ZipRepository extends AbstractRepository {
 
             } catch (Exception ex) {
                 ex.printStackTrace();
-                repositories = new Repository[0];
+                repositories = emptyRepositories;
                 if (resources == null) {
                     resources = new HashMap();
                 } else {

@@ -54,6 +54,11 @@ public abstract class AbstractRepository implements Repository {
      */
     String shortName;
 
+    /*
+     * empty repository array for convenience
+     */
+    final static Repository[] emptyRepositories = new Repository[0]; 
+
     /**
      * Called to check the repository's content.
      */

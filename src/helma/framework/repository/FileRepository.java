@@ -85,18 +85,13 @@ public class FileRepository extends AbstractRepository {
     }
 
     public boolean exists() {
-        if (directory.exists() && directory.isDirectory()) {
-            return true;
-        } else {
-            return false;
-        }
+        return directory.exists() && directory.isDirectory();
     }
 
     public void create() {
         if (!directory.exists() || !directory.isDirectory()) {
             directory.mkdirs();
         }
-        return;
     }
 
     /**
@@ -140,7 +135,7 @@ public class FileRepository extends AbstractRepository {
      */
     public synchronized void update() {
         if (!directory.exists()) {
-            repositories = new Repository[0];
+            repositories = emptyRepositories;
             if (resources != null) {
                 resources = new HashMap();
             } else {

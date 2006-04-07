@@ -53,7 +53,7 @@ public class MultiFileRepository extends FileRepository {
      */
     public synchronized void update() {
         if (!directory.exists()) {
-            repositories = new Repository[0];
+            repositories = emptyRepositories;
             if (resources != null)
                 resources.clear();
             lastModified = 0;
