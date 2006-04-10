@@ -16,8 +16,6 @@
 
 package helma.scripting.rhino;
 
-import helma.scripting.ScriptingException;
-import helma.scripting.ScriptingEngine;
 import helma.framework.core.*;
 import helma.framework.ResponseTrans;
 import helma.framework.repository.Resource;
@@ -26,7 +24,6 @@ import helma.objectmodel.db.*;
 import org.mozilla.javascript.*;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Constructor;
 import java.util.*;
 import java.io.UnsupportedEncodingException;
 import java.io.IOException;
@@ -1075,6 +1072,6 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
                     "getOrderedView only callable on already existing subnode-collections");
         }
         return new ListViewWrapper (subnodes.getOrderedView(expr),
-                    core, n.getDbMapping().getWrappedNodeManager(), this);
+                    core, core.app.getWrappedNodeManager(), this);
     }
 }
