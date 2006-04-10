@@ -100,6 +100,10 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
      * @return the property for the given name
      */
     public synchronized Object get(String name, Scriptable start) {
+        // register property for PropertyRecorder interface
+        if (isRecording) {
+            changedProperties.add(name);
+        }
         return super.get(name, start);
     }
 
@@ -670,7 +674,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     /**
      * Tell this PropertyRecorder to start recording changes to properties
      */
-    public void startRecording() {
+    public synchronized void startRecording() {
         changedProperties = new HashSet();
         isRecording = true;
     }
@@ -678,7 +682,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     /**
      * Tell this PropertyRecorder to stop recording changes to properties
      */
-    public void stopRecording() {
+    public synchronized void stopRecording() {
         isRecording = false;
     }
 
@@ -688,14 +692,14 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
      *
      * @return a Set containing the names of changed properties
      */
-    public Set getChangeSet() {
+    public synchronized Set getChangeSet() {
         return changedProperties;
     }
 
     /**
      * Clear the set of changed properties.
      */
-    public void clearChangeSet() {
+    public synchronized void clearChangeSet() {
         changedProperties = null;
     }
 }
