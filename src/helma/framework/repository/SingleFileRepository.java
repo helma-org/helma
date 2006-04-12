@@ -25,8 +25,10 @@ import java.util.LinkedList;
 public class SingleFileRepository implements Repository {
 
     final Resource res;
-    final Repository global;
     final Repository[] repositories;
+    final LinkedList resources = new LinkedList();
+    final LinkedList allResources = new LinkedList();
+    final boolean isScriptFile;
 
     /**
      * Constructs a SingleFileRepository using the given argument
@@ -42,8 +44,14 @@ public class SingleFileRepository implements Repository {
      */
     public SingleFileRepository(File file) {
         res = new FileResource(file, this);
-        global = new FakeGlobal();
-        repositories = new Repository[] { global };
+        allResources.add(res);
+        isScriptFile = file.getName().endsWith(".js");
+        if (isScriptFile) {
+            repositories = new Repository[] { new FakeGlobal() };
+        } else {
+            repositories = AbstractRepository.emptyRepositories;
+            resources.add(res);
+        }
     }
 
     /**
@@ -144,7 +152,7 @@ public class SingleFileRepository implements Repository {
      * @throws java.io.IOException
      */
     public List getAllResources() throws IOException {
-        return global.getAllResources();
+        return resources;
     }
 
     /**
@@ -154,17 +162,7 @@ public class SingleFileRepository implements Repository {
      * @throws java.io.IOException
      */
     public Iterator getResources() throws IOException {
-        return new Iterator() {
-            public boolean hasNext() {
-                return false;
-            }
-
-            public void remove() {}
-
-            public Object next() {
-                return null;
-            }
-        };
+        return resources.iterator();
     }
 
     /**
@@ -174,6 +172,9 @@ public class SingleFileRepository implements Repository {
      * @return specified child resource
      */
     public Resource getResource(String resourceName) {
+        if (!isScriptFile && res.getName().equals(resourceName)) {
+            return res;
+        }
         return null;
     }
 
@@ -187,14 +188,38 @@ public class SingleFileRepository implements Repository {
         return res.lastModified();
     }
 
+    /**
+     * Return our single resource.
+     * @return the wrapped resource
+     */
+    protected Resource getResource() {
+        return res;
+    }
+
+    /**
+     * Indicates whether some other object is "equal to" this one.
+     */
+    public boolean equals(Object obj) {
+        return (obj instanceof SingleFileRepository &&
+                res.equals(((SingleFileRepository) obj).res));
+    }
+
+    /**
+     * Returns a hash code value for the object.
+     */
+    public int hashCode() {
+        return res.hashCode();
+    }
+
+    /**
+     * Returns a string representation of the object.
+     */
+    public String toString() {
+        return new StringBuffer("SingleFileRepository[")
+                .append(res.getName()).append("]").toString();
+    }
+
     class FakeGlobal implements Repository {
-
-        final List resources;
-
-        FakeGlobal() {
-            resources = new LinkedList();
-            resources.add(res);
-        }
 
         /**
          * Checksum of the repository and all its content. Implementations
@@ -295,7 +320,7 @@ public class SingleFileRepository implements Repository {
          * @throws java.io.IOException
          */
         public List getAllResources() throws IOException {
-            return resources;
+            return allResources;
         }
 
         /**
@@ -305,7 +330,7 @@ public class SingleFileRepository implements Repository {
          * @throws java.io.IOException
          */
         public Iterator getResources() throws IOException {
-            return resources.iterator();
+            return allResources.iterator();
         }
 
         /**

@@ -153,12 +153,10 @@ public class ApplicationBean implements Serializable {
             if (file.isDirectory()) {
                 rep = new FileRepository(file);
             } else if (file.isFile()) {
-                if (file.getName().endsWith(".js")) {
-                    rep = new SingleFileRepository(file);
-                } else if (file.getName().endsWith(".zip")) {
+                if (file.getName().endsWith(".zip")) {
                     rep = new ZipRepository(file);
                 } else {
-                    throw new RuntimeException("Unrecognized file type in addRepository: " + obj);
+                    rep = new SingleFileRepository(file);
                 }
             } else {
                 throw new RuntimeException("Unrecognized file type in addRepository: " + obj);
