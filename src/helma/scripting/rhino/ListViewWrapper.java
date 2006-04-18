@@ -17,15 +17,12 @@ package helma.scripting.rhino;
 
 import helma.objectmodel.INode;
 import helma.objectmodel.db.Key;
-import helma.objectmodel.db.Node;
 import helma.objectmodel.db.NodeHandle;
 import helma.objectmodel.db.OrderedSubnodeList;
-import helma.objectmodel.db.UpdateableSubnodeList;
 import helma.objectmodel.db.WrappedNodeManager;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 
@@ -106,7 +103,6 @@ public class ListViewWrapper extends ScriptableObject implements Wrapper, Script
     }
 
     public Object jsFunction_get(Object idxObj) {
-        int idx;
         if (idxObj instanceof Number)
             return jsFunction_get(((Number) idxObj).intValue());
         else // fallback to this View's HopObject's get-function
@@ -159,28 +155,21 @@ public class ListViewWrapper extends ScriptableObject implements Wrapper, Script
     }
 
     private void prefetchChildren(int start, int length) {
-        if (list.size() < 1)
-            return;
         if (!(node instanceof helma.objectmodel.db.Node))
             return;
+        checkNode();
+        start = Math.max(start, 0);
+        length = Math.min(list.size() - start, length);
         if (length < 1)
             return;
-        if (start < 0)
-            return;
-        if (start >= list.size())
-            return;
-        checkNode();
-        int l = Math.min(list.size() - start, length);
-        if (l < 1)
-            return;
-        Key[] keys = new Key[l];
-        for (int i = start; i<start+l; i++) {
-            keys[i] = ((NodeHandle) list.get(i)).getKey();
+        Key[] keys = new Key[length];
+        for (int i = start; i < start+length; i++) {
+            keys[i - start] = ((NodeHandle) list.get(i)).getKey();
         }
         try {
             ((helma.objectmodel.db.Node) node).prefetchChildren(keys);
-        } catch (Exception ignore) {
-            System.err.println("Error in HopObject.prefetchChildren(): "+ignore);
+        } catch (Exception x) {
+            System.err.println("Error in HopObject.prefetchChildren(): " + x);
         }
     }
 
@@ -236,6 +225,8 @@ public class ListViewWrapper extends ScriptableObject implements Wrapper, Script
         }
 
         checkNode();
+        start = Math.max(start, 0);
+        length = Math.min(list.size() - start, length);
 
         prefetchChildren(start, length);
         ArrayList a = new ArrayList();
