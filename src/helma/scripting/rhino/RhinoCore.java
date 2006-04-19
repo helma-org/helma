@@ -42,7 +42,7 @@ public final class RhinoCore implements ScopeProvider {
     public final Application app;
 
     // the global object
-    DynamicGlobalObject global;
+    GlobalObject global;
 
     // caching table for JavaScript object wrappers
     CacheMap wrappercache;
@@ -104,7 +104,7 @@ public final class RhinoCore implements ScopeProvider {
 
         try {
             // create global object
-            global = new DynamicGlobalObject(this, app);
+            global = new GlobalObject(this, app, false);
             // call the initStandardsObject in ImporterTopLevel so that
             // importClass() and importPackage() are set up.
             global.initStandardObjects(context, false);

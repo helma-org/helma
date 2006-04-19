@@ -49,7 +49,7 @@ public class RhinoEngine implements ScriptingEngine {
     Context context;
 
     // the per-thread global object
-    Scriptable global;
+    GlobalObject global;
 
     // the request evaluator instance owning this fesi evaluator
     RequestEvaluator reval;
@@ -87,9 +87,7 @@ public class RhinoEngine implements ScriptingEngine {
         context.setApplicationClassLoader(app.getClassLoader());
 
         try {
-            global = new GlobalObject(core, app);
-            global.setPrototype(core.global);
-            global.setParentScope(null);
+            global = new GlobalObject(core, app, true);
 
             extensionGlobals = new HashMap();
 

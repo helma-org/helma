@@ -39,6 +39,7 @@ import java.io.*;
 public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     Application app;
     RhinoCore core;
+    GlobalObject sharedGlobal = null;
 
     // fields to implement PropertyRecorder
     private boolean isRecording = false;
@@ -50,9 +51,14 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
      * @param core ...
      * @param app ...
      */
-    public GlobalObject(RhinoCore core, Application app) {
+    public GlobalObject(RhinoCore core, Application app, boolean perThread) {
         this.core = core;
         this.app = app;
+        if (perThread) {
+            sharedGlobal = core.global;
+            setPrototype(sharedGlobal);
+            setParentScope(null);
+        }
     }
 
     /**
@@ -93,21 +99,6 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     }
 
     /**
-     * Override ScriptableObject.get() to synchronize it.
-     *
-     * @param name
-     * @param start
-     * @return the property for the given name
-     */
-    public synchronized Object get(String name, Scriptable start) {
-        // register property for PropertyRecorder interface
-        if (isRecording) {
-            changedProperties.add(name);
-        }
-        return super.get(name, start);
-    }
-
-    /**
      * Override ScriptableObject.put() to implement PropertyRecorder interface
      * and to synchronize method.
      *
@@ -121,6 +112,48 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
             changedProperties.add(name);
         }
         super.put(name, start, value);
+    }
+
+    /**
+     * Override ScriptableObject.get() to synchronize it, use the per-thread scope if possible,
+     * and return the per-thread scope for "global".
+     *
+     * @param name
+     * @param start
+     * @return the property for the given name
+     */
+    public synchronized Object get(String name, Scriptable start) {
+        // register property for PropertyRecorder interface
+        if (isRecording) {
+            changedProperties.add(name);
+        }
+        Context cx = Context.getCurrentContext();
+        GlobalObject scope = (GlobalObject) cx.getThreadLocal("threadscope");
+        if (scope != null) {
+            Object obj = scope.get(name);
+            if (obj != null && obj != NOT_FOUND) {
+                return obj;
+            }
+            // make thread scope accessible as "global"
+            if ("global".equals(name)) {
+                return scope;
+            }
+        }
+        if (sharedGlobal != null) {
+            return sharedGlobal.get(name);
+        } else {
+            return super.get(name, start);
+        }
+    }
+
+    /**
+     * Directly get a property, bypassing the extra stuff in get(String, Scriptable)
+     *
+     * @param name
+     * @return the property for the given name
+     */
+    protected synchronized Object get(String name) {
+        return super.get(name, this);
     }
 
     /**
