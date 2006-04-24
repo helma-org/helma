@@ -324,26 +324,11 @@
 
 
     <!-- =================================================================== -->
-    <!-- Checkout modules, put them in work directory and zip them           -->
+    <!-- Checkout modules, and include helmaTools                            -->
     <!-- =================================================================== -->
     <target name="package-modules" depends="init">
-
-        <mkdir dir="${build.work}/modules" />
-
-        <antcall target="package-helmaLib" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="modules" dest="${build.work}" />
         <antcall target="package-helmaTools" />
-
-    </target>
-
-
-    <!-- =================================================================== -->
-    <!-- Checkout and zip helmaLib                                           -->
-    <!-- =================================================================== -->
-    <target name="package-helmaLib" depends="init">
-        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="helmaLib" dest="${build.work}" />
-        <mkdir dir="${build.work}/modules"/>
-        <zip zipfile="${build.work}/modules/helmaLib.zip" basedir="${build.work}/helmaLib/" includes="**" excludes="**/*.txt, **/*.html, **/*.bat, **/*.sh" />
-        <delete dir="${build.work}/helmaLib" />
     </target>
 
 
