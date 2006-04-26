@@ -71,7 +71,7 @@ public final class Node implements INode, Serializable {
     transient long lastSubnodeCount = 0; // these two are only used
     transient int subnodeCount = -1; // for aggressive loading relational subnodes
     transient private volatile Transactor lock;
-    transient private int state;
+    transient private volatile int state;
 
     /**
      * Creates an empty, uninitialized Node. The init() method must be called on the
@@ -296,7 +296,7 @@ public final class Node implements INode, Serializable {
     /**
      *  Set this node's state, registering it with the transactor if necessary.
      */
-    synchronized void markAs(int s) {
+    void markAs(int s) {
         if (s == state || state == INVALID || state == VIRTUAL || state == TRANSIENT) {
             return;
         }
@@ -372,7 +372,7 @@ public final class Node implements INode, Serializable {
      *
      * @return this node's state
      */
-    public synchronized int getState() {
+    public int getState() {
         return state;
     }
 
@@ -381,8 +381,8 @@ public final class Node implements INode, Serializable {
      *
      * @param s this node's new state
      */
-    public synchronized void setState(int s) {
-        this.state = s;
+    public void setState(int s) {
+        state = s;
     }
 
     /**
@@ -428,7 +428,6 @@ public final class Node implements INode, Serializable {
         if ((state == TRANSIENT) && (id == null)) {
             id = TransientNode.generateID();
         }
-
         return id;
     }
 
@@ -1669,9 +1668,11 @@ public final class Node implements INode, Serializable {
         return subnodes;
     }
 
+   /**
+    * Return true if a change in subnodes can be ignored because it is
+    * stored in the subnodes themselves.
+    */
     private boolean ignoreSubnodeChange() {
-        // return true if a change in subnodes can be ignored because it is
-        // stored in the subnodes themselves.
         Relation rel = (dbmap == null) ? null : dbmap.getSubnodeRelation();
 
         return ((rel != null) && (rel.otherType != null) && rel.otherType.isRelational());
@@ -2027,7 +2028,6 @@ public final class Node implements INode, Serializable {
                     if (subrel.order != null && subrel.order.indexOf(dbcolumn) > -1) {
                         parent.registerSubnodeChange();
                     }
-
                     // check if accessname has changed
                     if (subrel.accessName != null &&
                             subrel.accessName.equals(dbcolumn)) {
