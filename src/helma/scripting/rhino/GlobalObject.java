@@ -42,8 +42,8 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     GlobalObject sharedGlobal = null;
 
     // fields to implement PropertyRecorder
-    private boolean isRecording = false;
-    private HashSet changedProperties;
+    private volatile boolean isRecording = false;
+    private volatile HashSet changedProperties;
 
     /**
      * Creates a new GlobalObject object.
@@ -106,7 +106,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
      * @param start
      * @param value
      */
-    public synchronized void put(String name, Scriptable start, Object value) {
+    public void put(String name, Scriptable start, Object value) {
         // register property for PropertyRecorder interface
         if (isRecording) {
             changedProperties.add(name);
@@ -115,14 +115,14 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     }
 
     /**
-     * Override ScriptableObject.get() to synchronize it, use the per-thread scope if possible,
+     * Override ScriptableObject.get() to use the per-thread scope if possible,
      * and return the per-thread scope for "global".
      *
      * @param name
      * @param start
      * @return the property for the given name
      */
-    public synchronized Object get(String name, Scriptable start) {
+    public Object get(String name, Scriptable start) {
         // register property for PropertyRecorder interface
         if (isRecording) {
             changedProperties.add(name);
@@ -130,29 +130,44 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         Context cx = Context.getCurrentContext();
         GlobalObject scope = (GlobalObject) cx.getThreadLocal("threadscope");
         if (scope != null) {
-            Object obj = scope.get(name);
-            if (obj != null && obj != NOT_FOUND) {
-                return obj;
-            }
             // make thread scope accessible as "global"
             if ("global".equals(name)) {
                 return scope;
             }
+            // use synchronized get on fast changing per-thread scopes just to be sure
+            Object obj = scope.getSynchronized(name);
+            if (obj != null && obj != NOT_FOUND) {
+                return obj;
+            }
         }
         if (sharedGlobal != null) {
-            return sharedGlobal.get(name);
+            // we're a per-thread scope
+            return sharedGlobal.getInternal(name);
         } else {
+            // we are the shared scope
             return super.get(name, start);
         }
     }
 
     /**
-     * Directly get a property, bypassing the extra stuff in get(String, Scriptable)
+     * Directly get a property, bypassing the extra stuff in get(String, Scriptable).
      *
      * @param name
      * @return the property for the given name
      */
-    protected synchronized Object get(String name) {
+    protected Object getInternal(String name) {
+        return super.get(name, this);
+    }
+
+    /**
+     * Directly get a property, bypassing the extra stuff in get(String, Scriptable),
+     * and synchronizing in order to prevent cache read errors on multiprocessor systems.
+     * TODO: we need extensive testing in order to tell whether this is really necessary.
+     *
+     * @param name
+     * @return the property for the given name
+     */
+    protected synchronized Object getSynchronized(String name) {
         return super.get(name, this);
     }
 
@@ -707,7 +722,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     /**
      * Tell this PropertyRecorder to start recording changes to properties
      */
-    public synchronized void startRecording() {
+    public void startRecording() {
         changedProperties = new HashSet();
         isRecording = true;
     }
@@ -715,7 +730,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     /**
      * Tell this PropertyRecorder to stop recording changes to properties
      */
-    public synchronized void stopRecording() {
+    public void stopRecording() {
         isRecording = false;
     }
 
@@ -725,14 +740,14 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
      *
      * @return a Set containing the names of changed properties
      */
-    public synchronized Set getChangeSet() {
+    public Set getChangeSet() {
         return changedProperties;
     }
 
     /**
      * Clear the set of changed properties.
      */
-    public synchronized void clearChangeSet() {
+    public void clearChangeSet() {
         changedProperties = null;
     }
 }
