@@ -145,6 +145,12 @@ public class RhinoEngine implements ScriptingEngine {
      *  engine know it should update its prototype information.
      */
     public void updatePrototypes() throws IOException {
+        // remember the current thread as our thread - we this here so
+        // the thread is already set when the RequestEvaluator calls
+        // Application.getDataRoot(), which may result in a function invocation
+        // (chicken and egg problem, kind of)
+        thread = Thread.currentThread();
+
         context = Context.enter();
         context.setCompileFunctionsWithDynamicScope(true);
         context.setApplicationClassLoader(app.getClassLoader());
@@ -331,8 +337,9 @@ public class RhinoEngine implements ScriptingEngine {
             throw concur;
         } catch (Exception x) {
             // has the request timed out? If so, throw TimeoutException
-            if (thread != Thread.currentThread())
-                throw new TimeoutException ();
+            if (thread != Thread.currentThread()) {
+                throw new TimeoutException();
+            }
 
             // create and throw a ScriptingException with the right message
             String msg;
