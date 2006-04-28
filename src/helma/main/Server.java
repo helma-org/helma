@@ -42,7 +42,7 @@ import helma.util.ResourceProperties;
  */
 public class Server implements IPathElement, Runnable {
     // version string
-    public static final String version = "1.5.x (CVS)";
+    public static final String version = "1.5.0 (__builddate__)";
 
     // static server instance
     private static Server server;
@@ -669,11 +669,8 @@ public class Server implements IPathElement, Runnable {
             // add shutdown hook to close running apps and servers on exit
             shutdownhook = new HelmaShutdownHook();
             Runtime.getRuntime().addShutdownHook(shutdownhook);
-        } catch (Exception gx) {
-            logger.error("Error initializing embedded database: " + gx);
-            gx.printStackTrace();
-
-            return;
+        } catch (Exception x) {
+            throw new RuntimeException("Error setting up Server", x);
         }
 
         // set the security manager.
@@ -689,18 +686,15 @@ public class Server implements IPathElement, Runnable {
                 logger.info("Setting security manager to " + secManClass);
             }
         } catch (Exception x) {
-            logger.error("Error setting security manager: " + x);
+            logger.error("Error setting security manager", x);
         }
-
-        // start applications
-        appManager.startAll();
 
         // start embedded web server
         if (http != null) {
             try {
                 http.start();
             } catch (MultiException m) {
-                logger.error("Error starting embedded web server: " + m);
+                throw new RuntimeException("Error starting embedded web server", m);
             }
         }
 
@@ -708,9 +702,12 @@ public class Server implements IPathElement, Runnable {
             try {
                 ajp13.start();
             } catch (Exception m) {
-                logger.error("Error starting AJP13 listener: " + m);
+                throw new RuntimeException("Error starting AJP13 listener: " + m);
             }
         }
+
+        // start applications
+        appManager.startAll();
 
         while (Thread.currentThread() == mainThread) {
             try {
