@@ -91,7 +91,14 @@
         <!-- copy helma db style sheet -->
         <copy file="${build.src}/helma/objectmodel/dom/helma.xsl"
             todir="${build.classes}/helma/objectmodel/dom" />
-        <javac srcdir="${build.src}"
+        <!-- copy source files over to work directory -->
+        <mkdir dir="${build.work}/src" />
+        <copy todir="${build.work}/src" overwrite="true">
+            <fileset dir="${build.src}" includes="**/*.java"/>
+        </copy>
+        <replace file="${build.work}/src/helma/main/Server.java"
+            token="__builddate__" value="${TODAY}"/>
+        <javac srcdir="${build.work}/src"
             source="1.3"
             target="1.3"
             destdir="${build.classes}"
@@ -100,6 +107,7 @@
             optimize="${optimize}">
             <classpath refid="build.class.path" />
         </javac>
+        <delete dir="${build.work}/src"/>
         <rmic classname="helma.framework.core.RemoteApplication" base="${build.classes}"/>
     </target>
 
