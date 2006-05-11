@@ -20,6 +20,8 @@ import helma.objectmodel.DatabaseException;
 import helma.objectmodel.ITransaction;
 
 import java.sql.Connection;
+import java.sql.Statement;
+import java.sql.SQLException;
 import java.util.*;
 
 /**
@@ -48,7 +50,10 @@ public class Transactor extends Thread {
     protected ITransaction txn;
 
     // Transactions for SQL data sources
-    protected HashMap sqlCon;
+    private HashMap sqlConnections;
+
+    // Set of SQL connections that already have been verified
+    private HashSet testedConnections;
 
     // when did the current transaction start?
     private long tstart;
@@ -71,13 +76,14 @@ public class Transactor extends Thread {
         cleanNodes = new HashMap();
         parentNodes = new HashSet();
 
-        sqlCon = new HashMap();
+        sqlConnections = new HashMap();
+        testedConnections = new HashSet();
         active = false;
         killed = false;
     }
 
     /**
-     *
+     * Mark a Node as modified/created/deleted during this transaction
      *
      * @param node ...
      */
@@ -92,7 +98,7 @@ public class Transactor extends Thread {
     }
 
     /**
-     *
+     * Unmark a Node that has previously been marked as modified during the transaction
      *
      * @param node ...
      */
@@ -105,7 +111,7 @@ public class Transactor extends Thread {
     }
 
     /**
-     *
+     * Keep a reference to an unmodified Node local to this transaction
      *
      * @param node ...
      */
@@ -120,7 +126,7 @@ public class Transactor extends Thread {
     }
 
     /**
-     *
+     * Keep a reference to an unmodified Node local to this transaction
      *
      * @param key ...
      * @param node ...
@@ -134,7 +140,7 @@ public class Transactor extends Thread {
     }
 
     /**
-     *
+     * Get a reference to an unmodified Node local to this transaction
      *
      * @param key ...
      *
@@ -170,7 +176,9 @@ public class Transactor extends Thread {
      * @param con ...
      */
     public void registerConnection(DbSource src, Connection con) {
-        sqlCon.put(src, con);
+        sqlConnections.put(src, con);
+        // we assume a freshly created connection is ok.
+        testedConnections.add(src);
     }
 
     /**
@@ -181,7 +189,22 @@ public class Transactor extends Thread {
      * @return ...
      */
     public Connection getConnection(DbSource src) {
-        return (Connection) sqlCon.get(src);
+        Connection con = (Connection) sqlConnections.get(src);
+        if (con != null && !testedConnections.contains(src)) {
+            // Check if the connection is still alive by executing a simple statement.
+            try {
+                Statement stmt = con.createStatement();
+                stmt.execute("SELECT 1");
+                stmt.close();
+                testedConnections.add(src);
+            } catch (SQLException sx) {
+                try {
+                    con.close();
+                } catch (SQLException ignore) {/* nothing to do */}
+                return null;
+            }
+        }
+        return con;
     }
 
     /**
@@ -208,6 +231,7 @@ public class Transactor extends Thread {
         active = true;
         tstart = System.currentTimeMillis();
         tname = name;
+        testedConnections.clear();
     }
 
     /**
@@ -238,7 +262,7 @@ public class Transactor extends Thread {
             deletedNodes = new ArrayList();
             modifiedParentNodes = new ArrayList();
         }
-        
+
         if (!dirtyNodes.isEmpty()) {
             Object[] dirty = dirtyNodes.values().toArray();
 
@@ -309,9 +333,9 @@ public class Transactor extends Thread {
                 }
             }
         }
-        
+
         long now = System.currentTimeMillis();
-        
+
         if (!parentNodes.isEmpty()) {
             // set last subnode change times in parent nodes
             for (Iterator i = parentNodes.iterator(); i.hasNext(); ) {
@@ -322,17 +346,18 @@ public class Transactor extends Thread {
                 }
             }
         }
-            
+
         if (hasListeners) {
-            nmgr.fireNodeChangeEvent(insertedNodes, updatedNodes, 
+            nmgr.fireNodeChangeEvent(insertedNodes, updatedNodes,
                                      deletedNodes, modifiedParentNodes);
         }
-        
+
         // clear the node collections
         dirtyNodes.clear();
         cleanNodes.clear();
         parentNodes.clear();
-        
+        testedConnections.clear();
+
         if (active) {
             active = false;
             nmgr.db.commitTransaction(txn);
@@ -376,6 +401,7 @@ public class Transactor extends Thread {
         dirtyNodes.clear();
         cleanNodes.clear();
         parentNodes.clear();
+        testedConnections.clear();
 
         // close any JDBC connections associated with this transactor thread
         closeConnections();
@@ -428,8 +454,8 @@ public class Transactor extends Thread {
      */
     public void closeConnections() {
         // nmgr.app.logEvent("Cleaning up Transactor thread");
-        if (sqlCon != null) {
-            for (Iterator i = sqlCon.values().iterator(); i.hasNext();) {
+        if (sqlConnections != null) {
+            for (Iterator i = sqlConnections.values().iterator(); i.hasNext();) {
                 try {
                     Connection con = (Connection) i.next();
 
@@ -440,7 +466,7 @@ public class Transactor extends Thread {
                 }
             }
 
-            sqlCon.clear();
+            sqlConnections.clear();
         }
     }
 
