@@ -208,6 +208,13 @@ public final class Prototype {
     }
 
     /**
+     * Returns an array of repositories containing code for this prototype.
+     */
+    public Repository[] getRepositories() {
+        return (Repository[]) repositories.toArray(new Repository[repositories.size()]);
+    }
+
+    /**
      *  Get a checksum over this prototype's repositories. This tells us
      *  if any resources were added or removed.
      */
@@ -375,7 +382,7 @@ public final class Prototype {
     /**
      * Get a map containing this prototype's skins as strings
      *
-     * @return
+     * @return a scriptable skin map
      */
     public Map getScriptableSkinMap() {
         return new ScriptableSkinMap(new SkinMap());
@@ -385,7 +392,7 @@ public final class Prototype {
      * Get a map containing this prototype's skins as strings, overloaded by the
      * skins found in the given skinpath.
      *
-     * @return
+     * @return a scriptable skin map
      */
     public Map getScriptableSkinMap(Object[] skinpath) {
         return new ScriptableSkinMap(new SkinMap(skinpath));
@@ -543,10 +550,10 @@ public final class Prototype {
         }
 
         private void loadSkinFiles(String skinDir) {
-            File dir = new File(skinDir.toString(), Prototype.this.getName());
+            File dir = new File(skinDir, Prototype.this.getName());
             // if directory does not exist use lower case property name
             if (!dir.isDirectory()) {
-                dir = new File(skinDir.toString(), Prototype.this.getLowerCaseName());
+                dir = new File(skinDir, Prototype.this.getLowerCaseName());
                 if (!dir.isDirectory()) {
                     return;
                 }
