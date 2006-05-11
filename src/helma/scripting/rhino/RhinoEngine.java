@@ -386,14 +386,16 @@ public class RhinoEngine implements ScriptingEngine {
         Thread t = thread;
         if (t != null && t.isAlive()) {
             t.interrupt();
-            try {
-                Thread.sleep(5000);
-                if (t.isAlive()) {
-                    // thread is still running, gotta stop it.
-                    t.stop();
+            if ("true".equals(app.getProperty("requestTimeoutStop", "true"))) {
+                try {
+                    Thread.sleep(5000);
+                    if (t.isAlive()) {
+                        // thread is still running, gotta stop it.
+                        t.stop();
+                    }
+                } catch (InterruptedException i) {
+                    // interrupted, ignore
                 }
-            } catch (InterruptedException i) {
-                // interrupted, ignore
             }
         }
     }
