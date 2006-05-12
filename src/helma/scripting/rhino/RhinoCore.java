@@ -33,6 +33,7 @@ import org.mozilla.javascript.*;
 import java.io.*;
 import java.text.*;
 import java.util.*;
+import java.lang.ref.WeakReference;
 
 /**
  * This is the implementation of ScriptingEnvironment for the Mozilla Rhino EcmaScript interpreter.
@@ -95,9 +96,13 @@ public final class RhinoCore implements ScopeProvider {
         // Set default optimization level according to whether debugger is on
         int optLevel = debugger == null ? 0 : -1;
 
-        try {
-            optLevel = Integer.parseInt(app.getProperty("rhino.optlevel"));
-        } catch (Exception ignore) {
+        String opt = app.getProperty("rhino.optlevel");
+        if (opt != null) {
+            try {
+                optLevel = Integer.parseInt(opt);
+            } catch (Exception ignore) {
+                app.logError("Invalid rhino optlevel: " + opt);
+            }
         }
 
         context.setOptimizationLevel(optLevel);
@@ -569,26 +574,25 @@ public final class RhinoCore implements ScopeProvider {
      * to use. Otherwise, a Java-Class-to-Script-Prototype mapping is consulted.
      */
     public Scriptable getElementWrapper(Object e) {
+        WeakReference ref = (WeakReference) wrappercache.get(e);
+        Scriptable wrapper = ref == null ? null : (Scriptable) ref.get();
 
-        Scriptable w = (Scriptable) wrappercache.get(e);
-
-        if (w == null) {
+        if (wrapper == null) {
             // Gotta find out the prototype name to use for this object...
             String prototypeName = app.getPrototypeName(e);
-
             Scriptable op = getPrototype(prototypeName);
 
             if (op == null) {
                 // no prototype found, return an unscripted wrapper
-                w = new NativeJavaObject(global, e, e.getClass());
+                wrapper = new NativeJavaObject(global, e, e.getClass());
             } else {
-                w = new JavaObject(global, e, prototypeName, op, this);
+                wrapper = new JavaObject(global, e, prototypeName, op, this);
             }
 
-            wrappercache.put(e, w);
+            wrappercache.put(e, new WeakReference(wrapper));
         }
 
-        return w;
+        return wrapper;
     }
 
     /**
@@ -605,9 +609,7 @@ public final class RhinoCore implements ScopeProvider {
 
             String protoname = n.getPrototype();
 
-            Scriptable op = null;
-
-            op = getValidPrototype(protoname);
+            Scriptable op = getValidPrototype(protoname);
 
             // no prototype found for this node
             if (op == null) {
@@ -652,7 +654,7 @@ public final class RhinoCore implements ScopeProvider {
                     // get the currently active rhino engine and invoke the function
                     Context cx = Context.getCurrentContext();
                     RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
-                    Object result = null;
+                    Object result;
 
                     try {
                         result = engine.invoke(handler, hrefFunction,
@@ -1036,7 +1038,7 @@ public final class RhinoCore implements ScopeProvider {
     class DateFormat extends BaseFunction {
         public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
             Date date = new Date((long) ScriptRuntime.toNumber(thisObj));
-            SimpleDateFormat df = null;
+            SimpleDateFormat df;
 
             if (args.length > 0 && args[0] != Undefined.instance && args[0] != null) {
                 if (args.length > 1 && args[1] instanceof NativeJavaObject) {
@@ -1059,7 +1061,7 @@ public final class RhinoCore implements ScopeProvider {
 
     class NumberFormat extends BaseFunction {
         public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
-            DecimalFormat df = null;
+            DecimalFormat df;
             if (args.length > 0 && args[0] != Undefined.instance) {
                 df = new DecimalFormat(args[0].toString());
             } else {
