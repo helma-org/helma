@@ -477,10 +477,11 @@ public final class ResponseTrans extends Writer implements Serializable {
      * @param appName the application name
      * @param message the error message
      */
-    public void writeErrorReport(String appName, String message) {
+    public void reportError(String appName, String message) {
         if (reqtrans.isXmlRpc()) {
             writeXmlRpcError(new RuntimeException(message));
         } else {
+            status = 500;
             write("<html><body><h3>");
             write("Error in application ");
             write(appName);
@@ -576,19 +577,22 @@ public final class ResponseTrans extends Writer implements Serializable {
             }
         }
 
-        // if etag is not set, calc MD5 digest and check it, but only if not a redirect
-        if (etag == null && lastModified == -1 && redir == null) {
+        boolean autoETags = "true".equals(app.getProperty("autoETags", "true"));
+        // if etag is not set, calc MD5 digest and check it, but only if
+        // not a redirect or error
+        if (autoETags &&
+                etag == null &&
+                lastModified == -1 &&
+                status == 200 &&
+                redir == null) {
             try {
                 digest = MessageDigest.getInstance("MD5");
-
                 // if (contentType != null)
                 //     digest.update (contentType.getBytes());
                 byte[] b = digest.digest(response);
-
                 etag = "\"" + new String(Base64.encode(b)) + "\"";
-
                 // only set response to 304 not modified if no cookies were set
-                if (reqtrans != null && reqtrans.hasETag(etag) && countCookies() == 0) {
+                if (reqtrans.hasETag(etag) && countCookies() == 0) {
                     response = new byte[0];
                     notModified = true;
                 }
@@ -671,13 +675,12 @@ public final class ResponseTrans extends Writer implements Serializable {
      * @param modified the Last-Modified header in milliseconds
      */
     public void setLastModified(long modified) {
-        if ((modified > -1) && (reqtrans != null) &&
-                (reqtrans.getIfModifiedSince() >= modified)) {
+        // date headers don't do milliseconds, round to seconds
+        lastModified = (modified / 1000) * 1000;
+        if (reqtrans.getIfModifiedSince() == lastModified) {
             notModified = true;
             throw new RedirectException(null);
         }
-
-        lastModified = modified;
     }
 
     /**
@@ -696,8 +699,7 @@ public final class ResponseTrans extends Writer implements Serializable {
      */
     public void setETag(String value) {
         etag = (value == null) ? null : ("\"" + value + "\"");
-
-        if ((etag != null) && (reqtrans != null) && reqtrans.hasETag(etag)) {
+        if (etag != null && reqtrans.hasETag(etag)) {
             notModified = true;
             throw new RedirectException(null);
         }

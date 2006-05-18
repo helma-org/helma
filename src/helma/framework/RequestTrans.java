@@ -56,7 +56,7 @@ public class RequestTrans implements Serializable {
     private String session;
 
     // the map of form and cookie data
-    private final Map values;
+    private final Map values = new SystemMap();
     
     // the HTTP request method
     private String method;
@@ -65,7 +65,7 @@ public class RequestTrans implements Serializable {
     private long ifModifiedSince = -1;
 
     // set of ETags the client sent with If-None-Match header
-    private Set etags;
+    private final Set etags = new HashSet();
 
     // when was execution started on this request?
     private final long startTime;
@@ -83,7 +83,6 @@ public class RequestTrans implements Serializable {
         this.path = path;
         this.request = null;
         this.response = null;
-        values = new SystemMap();
         startTime = System.currentTimeMillis();
     }
 
@@ -96,7 +95,6 @@ public class RequestTrans implements Serializable {
         this.request = request;
         this.response = response;
         this.path = path;
-        values = new SystemMap();
         startTime = System.currentTimeMillis();
     }
 
@@ -166,25 +164,33 @@ public class RequestTrans implements Serializable {
      *  detect multiple identic requests.
      */
     public int hashCode() {
-        if (session == null || path == null)
+        if (session == null || path == null) {
             return super.hashCode();
-        return 17 + (37 * session.hashCode()) +
-                    (37 * path.hashCode());
+        } else {
+            return 17 + (37 * session.hashCode()) +
+                        (37 * path.hashCode());
+        }
     }
 
     /**
-     * A request is considered equal to another one if it has the same user, path,
-     * and request data. This is used to evaluate multiple simultanous requests only once
+     * A request is considered equal to another one if it has the same method,
+     * path, session, request data, and conditional get data. This is used to
+     * evaluate multiple simultanous identical requests only once.
      */
     public boolean equals(Object what) {
-        try {
-            RequestTrans other = (RequestTrans) what;
-
-            return (session.equals(other.session) && path.equalsIgnoreCase(other.path) &&
-                   values.equals(other.getRequestData()));
-        } catch (Exception x) {
-            return false;
+        if (what instanceof RequestTrans) {
+            if (session == null || path == null) {
+                return super.equals(what);
+            } else {
+                RequestTrans other = (RequestTrans) what;
+                return (session.equals(other.session)
+                        && path.equalsIgnoreCase(other.path)
+                        && values.equals(other.values)
+                        && ifModifiedSince == other.ifModifiedSince
+                        && etags.equals(other.etags));
+            }
         }
+        return false;
     }
 
     /**
@@ -284,11 +290,8 @@ public class RequestTrans implements Serializable {
      * @param etagHeader ...
      */
     public void setETags(String etagHeader) {
-        etags = new HashSet();
-
         if (etagHeader.indexOf(",") > -1) {
             StringTokenizer st = new StringTokenizer(etagHeader, ", \r\n");
-
             while (st.hasMoreTokens())
                 etags.add(st.nextToken());
         } else {

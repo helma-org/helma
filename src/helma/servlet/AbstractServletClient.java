@@ -332,7 +332,7 @@ public abstract class AbstractServletClient extends HttpServlet {
             }
 
             // write response
-            writeResponse(request, response, restrans);
+            writeResponse(request, response, reqtrans, restrans);
         } catch (Exception x) {
             try {
                 if (debug) {
@@ -352,8 +352,9 @@ public abstract class AbstractServletClient extends HttpServlet {
         }
     }
 
-    void writeResponse(HttpServletRequest req, HttpServletResponse res,
-                       ResponseTrans hopres) throws IOException {
+    protected void writeResponse(HttpServletRequest req, HttpServletResponse res,
+                                 RequestTrans hopreq, ResponseTrans hopres)
+            throws IOException {
         if (hopres.getForward() != null) {
             sendForward(res, req, hopres);
             return;
@@ -389,9 +390,8 @@ public abstract class AbstractServletClient extends HttpServlet {
 
             // set last-modified header to now
             long modified = hopres.getLastModified();
-
             if (modified > -1) {
-                res.setDateHeader("Last-Modified", System.currentTimeMillis());
+                res.setDateHeader("Last-Modified", modified);
             }
 
             res.setContentLength(hopres.getContentLength());
@@ -498,7 +498,7 @@ public abstract class AbstractServletClient extends HttpServlet {
         long lastModified = (file.lastModified() / 1000) * 1000;
         long ifModifiedSince = req.getDateHeader("If-Modified-Since");
         if (lastModified == ifModifiedSince) {
-            res.setStatus(304);
+            res.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
             return;
         }
         int length = (int) file.length();

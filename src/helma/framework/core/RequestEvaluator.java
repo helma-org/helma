@@ -248,7 +248,6 @@ public final class RequestEvaluator implements Runnable {
                                             currentElement = root;
                                             requestPath.add(null, currentElement);
 
-
                                             for (int i = 0; i < ntokens; i++) {
                                                 if (currentElement == null) {
                                                     throw new FrameworkException("Object not found.");
@@ -496,7 +495,7 @@ public final class RequestEvaluator implements Runnable {
                                 Thread.sleep((long) (base + (Math.random() * base * 2)));
                             } catch (InterruptedException interrupt) {
                                 // we got interrrupted, create minimal error message 
-                                res.writeErrorReport(app.getName(), error);
+                                res.reportError(app.getName(), error);
                                 done = true;
                                 // and release resources and thread
                                 rtx = null;
@@ -508,7 +507,7 @@ public final class RequestEvaluator implements Runnable {
                                 error = "Application too busy, please try again later";
 
                             // error in error action. use traditional minimal error message
-                            res.writeErrorReport(app.getName(), error);
+                            res.reportError(app.getName(), error);
                             done = true;
                         }
                     } catch (Throwable x) {
@@ -557,7 +556,7 @@ public final class RequestEvaluator implements Runnable {
                             }
                         } else {
                             // error in error action. use traditional minimal error message
-                            res.writeErrorReport(app.getName(), error);
+                            res.reportError(app.getName(), error);
                             done = true;
                         }
                     }
@@ -695,7 +694,7 @@ public final class RequestEvaluator implements Runnable {
             app.logEvent("Stopping Thread for Request " + app.getName() + "/" + req.getPath());
             stopTransactor();
             res.reset();
-            res.writeErrorReport(app.getName(), "Request timed out");
+            res.reportError(app.getName(), "Request timed out");
         }
 
         session.commit(this);
@@ -894,7 +893,7 @@ public final class RequestEvaluator implements Runnable {
         this.reqtype = reqtype;
         req = new RequestTrans(reqtypeName, functionName);
         session = new Session(functionName, app);
-        res = new ResponseTrans(app, getRequest());
+        res = new ResponseTrans(app, req);
         result = null;
         exception = null;
     }
