@@ -355,7 +355,7 @@ public abstract class AbstractServletClient extends HttpServlet {
     void writeResponse(HttpServletRequest req, HttpServletResponse res,
                        ResponseTrans hopres) throws IOException {
         if (hopres.getForward() != null) {
-            sendForward(res, hopres);
+            sendForward(res, req, hopres);
             return;
         }
 
@@ -484,8 +484,8 @@ public abstract class AbstractServletClient extends HttpServlet {
      * Forward the request to a static file. The file must be reachable via
      * the context's protectedStatic resource base.
      */
-    void sendForward(HttpServletResponse res, ResponseTrans hopres) throws IOException {
-
+    void sendForward(HttpServletResponse res, HttpServletRequest req,
+                     ResponseTrans hopres) throws IOException {
         String forward = hopres.getForward();
         ServletContext cx = getServletConfig().getServletContext();
         String path = cx.getRealPath(forward);
@@ -493,8 +493,17 @@ public abstract class AbstractServletClient extends HttpServlet {
             throw new IOException("Resource "+forward+" not found");
 
         File file = new File(path);
+        // check last modified date.
+        // date headers don't do milliseconds, round to seconds
+        long lastModified = (file.lastModified() / 1000) * 1000;
+        long ifModifiedSince = req.getDateHeader("If-Modified-Since");
+        if (lastModified == ifModifiedSince) {
+            res.setStatus(304);
+            return;
+        }
         int length = (int) file.length();
         res.setContentLength(length);
+        res.setDateHeader("Last-Modified", lastModified);
         res.setContentType(hopres.getContentType());
 
         InputStream in = cx.getResourceAsStream(forward);
@@ -505,13 +514,13 @@ public abstract class AbstractServletClient extends HttpServlet {
     
             int bufferSize = 4096;
             byte buffer[] = new byte[bufferSize];
-            int l = bufferSize;
+            int l;
     
             while (length>0) {
                 if (length < bufferSize)
                     l = in.read(buffer, 0, length);
                 else
-                    l=in.read(buffer, 0, bufferSize);
+                    l = in.read(buffer, 0, bufferSize);
     
                 if (l == -1)
                     break;
