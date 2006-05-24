@@ -409,7 +409,13 @@ public final class Application implements IPathElement, Runnable {
 
         // read the sessions if wanted
         if ("true".equalsIgnoreCase(getProperty("persistentSessions"))) {
-            sessionMgr.loadSessionData(null);
+            RequestEvaluator ev = getEvaluator();
+            try {
+                ev.initScriptingEngine();
+                sessionMgr.loadSessionData(null, ev.scriptingEngine);
+            } finally {
+                releaseEvaluator(ev);
+            }
         }
 
         // reset the classloader to the parent/system/server classloader.
@@ -438,8 +444,6 @@ public final class Application implements IPathElement, Runnable {
             eval.invokeInternal(null, "onStop", RequestEvaluator.EMPTY_ARGS);
         } catch (Exception x) {
             logError("Error in " + name + "onStop()", x);
-        } finally {
-            releaseEvaluator(eval);
         }
 
         // mark app as stopped
@@ -485,7 +489,8 @@ public final class Application implements IPathElement, Runnable {
 
         // store the sessions if wanted
         if ("true".equalsIgnoreCase(getProperty("persistentSessions"))) {
-            sessionMgr.storeSessionData(null);
+            // sessionMgr.storeSessionData(null);
+            sessionMgr.storeSessionData(null, eval.scriptingEngine);
         }
         sessionMgr.shutdown();
     }

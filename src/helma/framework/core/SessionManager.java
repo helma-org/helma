@@ -17,6 +17,7 @@ package helma.framework.core;
 
 import helma.objectmodel.INode;
 import helma.objectmodel.db.Node;
+import helma.scripting.ScriptingEngine;
 
 import java.util.*;
 import java.io.*;
@@ -178,7 +179,7 @@ public class SessionManager {
      *
      * @param f the file to write session into, or null to use the default sesssion store.
      */
-    public void storeSessionData(File f) {
+    public void storeSessionData(File f, ScriptingEngine engine) {
         if (f == null) {
             f = new File(app.dbDir, "sessions");
         }
@@ -192,7 +193,8 @@ public class SessionManager {
 
                 for (Enumeration e = sessions.elements(); e.hasMoreElements();) {
                     try {
-                        p.writeObject(e.nextElement());
+                        engine.serialize(e.nextElement(), p);
+                        // p.writeObject(e.nextElement());
                     } catch (NotSerializableException nsx) {
                         // not serializable, skip this session
                         app.logError("Error serializing session.", nsx);
@@ -211,7 +213,7 @@ public class SessionManager {
     /**
      * loads the serialized session table from a given file or from dbdir/sessions
      */
-    public void loadSessionData(File f) {
+    public void loadSessionData(File f, ScriptingEngine engine) {
         if (f == null) {
             f = new File(app.dbDir, "sessions");
         }
@@ -238,7 +240,7 @@ public class SessionManager {
             Hashtable newSessions = new Hashtable();
 
             while (ct < size) {
-                Session session = (Session) p.readObject();
+                Session session = (Session) engine.deserialize(p);
 
                 if ((now - session.lastTouched()) < (sessionTimeout * 60000)) {
                     session.setApp(app);
