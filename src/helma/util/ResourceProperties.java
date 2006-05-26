@@ -28,7 +28,7 @@ import helma.framework.repository.Repository;
 public class ResourceProperties extends Properties {
 
     // Delay between checks
-    private final long cacheTime = 1500L;
+    private final long CACHE_TIME = 1500L;
 
     // Default properties. Note that in contrast to java.util.Properties,
     // defaultProperties are copied statically to ourselves in update(), so
@@ -170,29 +170,26 @@ public class ResourceProperties extends Properties {
     }
 
     /**
-     * Checks wether the properties need to be updated
-     * @return true if the properties need tu be updated
-     */
-    public boolean needsUpdate() {
-        lastCheck = System.currentTimeMillis();
-        return (getChecksum() != lastChecksum);
-    }
-
-    /**
      * Updates all properties if there is a need to update
      */
-    public void update() {
-        if (needsUpdate() || (defaultProperties != null && defaultProperties.needsUpdate())) {
-            clear();
+    public synchronized void update() {
+        // set lastCheck first to reduce risk of recursive calls
+        lastCheck = System.currentTimeMillis();
+        if (getChecksum() != lastChecksum) {
+            // First collect properties into a temporary collection,
+            // in a second step copy over new properties,
+            // and in the final step delete properties which have gone.
+            ResourceProperties temp = new ResourceProperties();
+            temp.setIgnoreCase(ignoreCase);
 
             // first of all, properties are load from default properties
             if (defaultProperties != null) {
                 defaultProperties.update();
-                this.putAll(defaultProperties);
+                temp.putAll(defaultProperties);
             }
 
-            /* next we try to load properties from the application's
-             repositories, if we blong to any application */
+            // next we try to load properties from the application's
+            // repositories, if we belong to any application
             if (resourceName != null) {
                 Iterator iterator = app.getRepositories().iterator();
                 while (iterator.hasNext()) {
@@ -200,7 +197,7 @@ public class ResourceProperties extends Properties {
                         Repository repository = (Repository) iterator.next();
                         Resource res = repository.getResource(resourceName);
                         if (res != null && res.exists()) {
-                            load(res.getInputStream());
+                            temp.load(res.getInputStream());
                         }
                     } catch (IOException iox) {
                         iox.printStackTrace();
@@ -215,11 +212,21 @@ public class ResourceProperties extends Properties {
                     try {
                         Resource res = (Resource) iterator.next();
                         if (res.exists()) {
-                            load(res.getInputStream());
+                            temp.load(res.getInputStream());
                         }
                     } catch (IOException iox) {
                         iox.printStackTrace();
                     }
+                }
+            }
+
+            // Copy over new properties ...
+            putAll(temp);
+            // ... and remove properties which have been removed.
+            Iterator it = super.keySet().iterator();
+            while (it.hasNext()) {
+                if (!temp.containsKey(it.next())) {
+                    it.remove();
                 }
             }
 
@@ -239,7 +246,7 @@ public class ResourceProperties extends Properties {
     public ResourceProperties getSubProperties(String prefix) {
         if (prefix == null)
             throw new NullPointerException("prefix");
-        if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
+        if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
         ResourceProperties subprops = new ResourceProperties();
@@ -262,7 +269,7 @@ public class ResourceProperties extends Properties {
      * @return true if the value is found in the value list
      */
     public boolean contains(Object value) {
-        if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
+        if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
         return super.contains(value.toString());
@@ -274,7 +281,7 @@ public class ResourceProperties extends Properties {
      * @return true if the key is found in the key list
      */
     public boolean containsKey(Object key) {
-        if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
+        if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
         return super.containsKey(key.toString());
@@ -285,7 +292,7 @@ public class ResourceProperties extends Properties {
      * @return values enumeration
      */
     public Enumeration elements() {
-        if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
+        if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
         return super.elements();
@@ -297,7 +304,7 @@ public class ResourceProperties extends Properties {
      * @return value belonging to the given key
      */
     public Object get(Object key) {
-        if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
+        if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
         return (String) super.get(ignoreCase ? key.toString().toLowerCase() : key.toString());
@@ -308,7 +315,7 @@ public class ResourceProperties extends Properties {
      * @return last modified date
      */
     public long lastModified() {
-        if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
+        if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
         return lastModified;
@@ -324,13 +331,10 @@ public class ResourceProperties extends Properties {
         if (resourceName != null) {
             Iterator iterator = app.getRepositories().iterator();
             while (iterator.hasNext()) {
-                try {
-                    Repository repository = (Repository) iterator.next();
-                    Resource resource = repository.getResource(resourceName);
-                    checksum += resource != null ?
-                            resource.lastModified() : repository.lastModified();
-                } catch (IOException iox) {
-                    iox.printStackTrace();
+                Repository repository = (Repository) iterator.next();
+                Resource resource = repository.getResource(resourceName);
+                if (resource != null) {
+                    checksum += resource.lastModified();
                 }
             }
         }
@@ -340,6 +344,10 @@ public class ResourceProperties extends Properties {
             while (iterator.hasNext()) {
                 checksum += ((Resource) iterator.next()).lastModified();
             }
+        }
+
+        if (defaultProperties != null) {
+            checksum += defaultProperties.getChecksum();
         }
 
         return checksum;
@@ -353,7 +361,7 @@ public class ResourceProperties extends Properties {
      * @return spiecific value or default value if not found
      */
     public String getProperty(String key, String defaultValue) {
-        if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
+        if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
         return super.getProperty(ignoreCase ? key.toLowerCase() : key, defaultValue);
@@ -365,7 +373,7 @@ public class ResourceProperties extends Properties {
      * @return value belonging to the given key
      */
     public String getProperty(String key) {
-        if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
+        if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
         return super.getProperty(ignoreCase ? key.toLowerCase() : key);
@@ -376,7 +384,7 @@ public class ResourceProperties extends Properties {
      * @return true if the properties list is empty
      */
     public boolean isEmpty() {
-        if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
+        if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
         return super.isEmpty();
@@ -395,7 +403,7 @@ public class ResourceProperties extends Properties {
      * @return keys enumeration
      */
     public Enumeration keys() {
-        if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
+        if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
         return super.keys();
@@ -406,7 +414,7 @@ public class ResourceProperties extends Properties {
      * @return keys set
      */
     public Set keySet() {
-        if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
+        if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
         return super.keySet();
@@ -450,7 +458,7 @@ public class ResourceProperties extends Properties {
      * @return number of properties
      */
     public int size() {
-        if ((System.currentTimeMillis() - lastCheck) > cacheTime) {
+        if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
         return super.size();
