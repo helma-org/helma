@@ -28,15 +28,13 @@ HTTP_PORT=8080
 # must be contained in PATH variable.
 if [ "$JAVA_HOME" ]; then
    JAVACMD="$JAVA_HOME/bin/java"
+   # Check if java command is executable
+   if [ ! -x $JAVACMD ]; then
+      echo "Warning: JAVA_HOME variable may be set incorrectly:"
+      echo "         No executable found at $JAVACMD"
+   fi
 else
    JAVACMD=java
-fi
-
-
-# If JAVA_HOME is set, check if java command is executable
-if [ $JAVA_HOME -a ! -x $JAVACMD ] ; then
-   echo "Warning: JAVA_HOME variable may be set incorrectly:"
-   echo "         No executable found at $JAVACMD"
 fi
 
 # Get the Helma installation directory
