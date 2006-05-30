@@ -8,17 +8,17 @@
  *
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
- * $RCSfile: Aspects.js,v $
+ * $RCSfile: all.js,v $
  * $Author: czv $
- * $Revision: 1.2 $
- * $Date: 2006/04/24 07:02:17 $
+ * $Revision: 1.3 $
+ * $Date: 2006/04/24 08:27:00 $
  */
 
 // convenience SingleFileRepository to load all the 
 // Javascript library files in ./modules/core
 
-app.addRepository('modules/helma/Array.js');
-app.addRepository('modules/helma/Date.js');
-app.addRepository('modules/helma/Number.js');
-app.addRepository('modules/helma/Object.js');
-app.addRepository('modules/helma/String.js');
+app.addRepository('modules/core/Array.js');
+app.addRepository('modules/core/Date.js');
+app.addRepository('modules/core/Number.js');
+app.addRepository('modules/core/Object.js');
+app.addRepository('modules/core/String.js');
