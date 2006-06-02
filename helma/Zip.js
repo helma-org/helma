@@ -8,10 +8,10 @@
  *
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
- * $RCSfile: helma.Zip.js,v $
+ * $RCSfile: Zip.js,v $
  * $Author: czv $
- * $Revision: 1.6 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
 // take care of any dependencies
@@ -84,7 +84,7 @@ helma.Zip = function (file) {
      *                    file should be added (optional)
      */
     var addFile = function(zOutStream, f, level, pathPrefix) {
-        var fInStream = new java.io.BufferedInputStream(new java.io.FileInputStream(f), f.length());
+        var fInStream = new java.io.BufferedInputStream(new java.io.FileInputStream(f));
         buf = new java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, f.length());
         fInStream.read(buf, 0, f.length());
 
@@ -214,7 +214,7 @@ helma.Zip = function (file) {
             level = 9;
         }
         // only levels between 0 and 9 are allowed
-        level = Math.max(0, Math.min(9, arguments[1]));
+        level = Math.max(0, Math.min(9, level));
 
         if (f.isDirectory()) {
             // add a whole directory to the zip file (recursive!)
