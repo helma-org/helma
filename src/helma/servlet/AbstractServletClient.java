@@ -493,22 +493,27 @@ public abstract class AbstractServletClient extends HttpServlet {
             throw new IOException("Resource "+forward+" not found");
 
         File file = new File(path);
-        // check last modified date.
-        // date headers don't do milliseconds, round to seconds
-        long lastModified = (file.lastModified() / 1000) * 1000;
-        long ifModifiedSince = req.getDateHeader("If-Modified-Since");
-        if (lastModified == ifModifiedSince) {
-            res.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
-            return;
+        // calculate checksom on last modified date and content length.
+        byte[] checksum = getChecksum(file);
+        String etag = "\"" + new String(Base64.encode(checksum)) + "\"";
+        res.setHeader("ETag", etag);
+        String etagHeader = req.getHeader("If-None-Match");
+        if (etagHeader != null) {
+            StringTokenizer st = new StringTokenizer(etagHeader, ", \r\n");
+            while (st.hasMoreTokens()) {
+                if (etag.equals(st.nextToken())) {
+                    res.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+                    return;
+                }
+            }
         }
         int length = (int) file.length();
         res.setContentLength(length);
-        res.setDateHeader("Last-Modified", lastModified);
         res.setContentType(hopres.getContentType());
 
         InputStream in = cx.getResourceAsStream(forward);
         if (in == null)
-            throw new IOException("Can't read "+path);
+            throw new IOException("Can't read " + path);
         try {
             OutputStream out = res.getOutputStream();
     
@@ -531,6 +536,21 @@ public abstract class AbstractServletClient extends HttpServlet {
         } finally {
             in.close();
         }
+    }
+
+    private byte[] getChecksum(File file) {
+        byte[] checksum = new byte[16];
+        long n = file.lastModified();
+        for (int i=0; i<8; i++) {
+            checksum[i] = (byte) (n);
+            n >>>= 8;
+        }
+        n = file.length();
+        for (int i=8; i<16; i++) {
+            checksum[i] = (byte) (n);
+            n >>>= 8;
+        }
+        return checksum;
     }
 
     /**
