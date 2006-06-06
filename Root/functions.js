@@ -28,6 +28,8 @@ function getAllApplications() {
     var appsDir = this.getAppsHome();
     var dir = appsDir.list();
     var arr = new Array();
+    if (!dir)
+      return arr;
     for (var i = 0; i < dir.length; i++) {
         if (dir[i].toLowerCase() != "cvs" && dir[i].indexOf(".") == -1)
             arr[arr.length] = this.getApp(dir[i]);
