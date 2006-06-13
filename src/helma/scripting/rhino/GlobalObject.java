@@ -653,8 +653,8 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
                 "the serialization to");
         }
         Object obj = args[0];
-        String filename = Context.toString(args[1]);
-        FileOutputStream fos = new FileOutputStream(filename);
+        File file = new File(Context.toString(args[1])).getAbsoluteFile();
+        FileOutputStream fos = new FileOutputStream(file);
         Scriptable scope = ScriptableObject.getTopLevelScope(thisObj).getPrototype();
         // use a ScriptableOutputStream that unwraps Wrappers
         ScriptableOutputStream out = new ScriptableOutputStream(fos, scope) {
@@ -679,8 +679,8 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
             throw Context.reportRuntimeError(
                 "Expected a filename to read the serialization from");
         }
-        String filename = Context.toString(args[0]);
-        FileInputStream fis = new FileInputStream(filename);
+        File file = new File(Context.toString(args[0])).getAbsoluteFile();
+        FileInputStream fis = new FileInputStream(file);
         Scriptable scope = ScriptableObject.getTopLevelScope(thisObj).getPrototype();
         ObjectInputStream in = new ScriptableInputStream(fis, scope);
         Object deserialized = in.readObject();
