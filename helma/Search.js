@@ -17,9 +17,9 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //
-// $Revision: 1.7 $
+// $Revision: 1.2 $
 // $Author: czv $
-// $Date: 2006/04/18 13:06:58 $
+// $Date: 2006/04/24 07:02:17 $
 //
 
 
@@ -42,7 +42,7 @@ helma.Search = function() {
 
     try {
         var c = java.lang.Class.forName("org.apache.lucene.analysis.Analyzer",
-                                        true, app.__app__.typemgr.getClassLoader());
+                                        true, app.getClassLoader());
     } catch (e) {
         throw("helma.Search needs lucene.jar \
                in lib/ext or application directory \
@@ -155,12 +155,13 @@ helma.Search.prototype.getRAMDirectory = function(dir) {
 
 /**
  * returns a new index Object
- * @param String name of the index
- * @param Object Analyzer to use (instance of analysis.Analyzer)
- * @param Object base directory of the index (File object)
+ * @param Object directory containing the index (an instance of either
+ * org.apache.lucene.store.FSDirectory or org.apache.lucene.store.RAMDirectory)
+ * @param Object (optional) Analyzer to use (instance of org.apache.lucene.analysis.Analyzer)
+ * @param Boolean (optional) Flag to force index creation
  * @return Object Index object
  */
-helma.Search.prototype.createIndex = function(dir, analyzer) {
+helma.Search.prototype.createIndex = function(dir, analyzer, forceCreate) {
     if (arguments.length == 0) {
         throw("helma.Search.createIndex(): insufficient arguments.");
     } else if (arguments.length == 1) {
@@ -175,7 +176,7 @@ helma.Search.prototype.createIndex = function(dir, analyzer) {
         }
     }
     var index = new helma.Search.Index(dir, analyzer);
-    if (!helma.Search.PKG.index.IndexReader.indexExists(dir)) {
+    if (!helma.Search.PKG.index.IndexReader.indexExists(dir) || forceCreate == true) {
         index.create();
     }
     return index;
@@ -349,9 +350,14 @@ helma.Search.Index.prototype.checkWriteLock = function() {
  * merge indexes into this one
  */
 helma.Search.Index.prototype.addIndexes = function(dirs) {
+    var arr = java.lang.reflect.Array.newInstance(helma.Search.PKG.store.Directory,
+                                                  dirs.length);
+    for (var i=0;i<dirs.length;i++) {
+        arr[i] = dirs[i];
+    }
     try {
         var writer = this.getWriter();
-        writer.addIndexes(dirs);
+        writer.addIndexes(arr);
     } finally {
         writer.close();
     }
@@ -869,10 +875,10 @@ helma.Search.Document.prototype.addField = function(name, value, param) {
     if (value instanceof Date)
         value = helma.Search.PKG.document.DateField.timeToString(value.getTime());
     var f = new helma.Search.PKG.document.Field(String(name),
-                                                              String(value),
-                                                              param.store,
-                                                              param.index,
-                                                              param.tokenize);
+                                                String(value),
+                                                param.store,
+                                                param.index,
+                                                param.tokenize);
     this.getDocument().add(f);
     return;
 };
