@@ -35,7 +35,7 @@ public class DbSource {
     private ResourceProperties props;
     protected String url;
     private String driver;
-    private boolean isOracle;
+    private boolean isOracle, isMySQL;
     private long lastRead = 0L;
     private Hashtable dbmappings = new Hashtable();
 
@@ -71,12 +71,11 @@ public class DbSource {
         }
 
         boolean fileUpdated = props.lastModified() > lastRead;
-
         if (!fileUpdated && (defaultProps != null)) {
             fileUpdated = defaultProps.lastModified() > lastRead;
         }
 
-        if ((con == null) || con.isClosed() || fileUpdated) {
+        if (con == null || con.isClosed() || fileUpdated) {
             init();
             Class.forName(driver);
             con = DriverManager.getConnection(url, conProps);
@@ -112,8 +111,10 @@ public class DbSource {
         if (driver == null) {
             throw new NullPointerException(name+".driver class not defined in db.properties");
         }
-        // test if this is an Oracle driver
+        // test if this is an Oracle or MySQL driver
         isOracle = driver.startsWith("oracle.jdbc.driver");
+        isMySQL = driver.startsWith("com.mysql.jdbc") ||
+                  driver.startsWith("org.gjt.mm.mysql");
         // test if driver class is available
         Class.forName(driver);
 
@@ -183,6 +184,15 @@ public class DbSource {
      */
     public boolean isOracle() {
         return isOracle;
+    }
+
+    /**
+     * Check if this DbSource represents a MySQL database
+     *
+     * @return true if we're using a MySQL JDBC driver
+     */
+    public boolean isMySQL() {
+        return isMySQL;
     }
 
     /**

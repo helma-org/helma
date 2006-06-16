@@ -1186,6 +1186,21 @@ public final class DbMapping {
     }
 
     /**
+     * Is the database behind this a MySQL db?
+     *
+     * @return true if the dbsource is using a MySQL JDBC driver
+     */
+    public boolean isMySQL() {
+        if (dbSource != null) {
+            return dbSource.isMySQL();
+        }
+        if (parentMapping != null) {
+            return parentMapping.isMySQL();
+        }
+        return false;
+    }
+
+    /**
      * Return a string representation for this DbMapping
      *
      * @return a string representation
