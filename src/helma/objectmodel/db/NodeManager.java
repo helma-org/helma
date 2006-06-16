@@ -748,13 +748,13 @@ public final class NodeManager {
             return generateEmbeddedID(map);
         }
         String idMethod = map.getIDgen();
-        if (idMethod == null || "[max]".equalsIgnoreCase(idMethod)) {
+        if (idMethod == null || "[max]".equalsIgnoreCase(idMethod) || map.isMySQL()) {
             // use select max as id generator
             return generateMaxID(map);
         } else if ("[hop]".equalsIgnoreCase(idMethod)) {
             // use embedded db id generator
             return generateEmbeddedID(map);
-        } else  {
+        } else {
             // use db sequence as id generator
             return generateSequenceID(map);
         }
