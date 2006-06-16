@@ -61,13 +61,11 @@ public final class WrappedNodeManager {
         } catch (ObjectNotFoundException x) {
             return null;
         } catch (Exception x) {
-            nmgr.app.logEvent("Error retrieving Node for "+key+": " + x);
-
+            nmgr.app.logError("Error retrieving Node for " + key, x);
             if (nmgr.app.debug()) {
                 x.printStackTrace();
             }
-
-            throw new RuntimeException("Error retrieving Node: " + x);
+            throw new RuntimeException("Error retrieving Node", x);
         }
     }
 
@@ -85,14 +83,11 @@ public final class WrappedNodeManager {
         } catch (ObjectNotFoundException x) {
             return null;
         } catch (Exception x) {
-            nmgr.app.logEvent("Error retrieving Node \"" + id + "\" from " + home + ": " +
-                              x);
-
+            nmgr.app.logError("Error retrieving Node \"" + id + "\" from " + home, x);
             if (nmgr.app.debug()) {
                 x.printStackTrace();
             }
-
-            throw new RuntimeException("Error retrieving Node: " + x);
+            throw new RuntimeException("Error retrieving Node", x);
         }
     }
 
@@ -111,8 +106,7 @@ public final class WrappedNodeManager {
             if (nmgr.app.debug()) {
                 x.printStackTrace();
             }
-
-            throw new RuntimeException("Error retrieving Nodes: " + x);
+            throw new RuntimeException("Error retrieving Nodes", x);
         }
     }
 
@@ -131,8 +125,7 @@ public final class WrappedNodeManager {
             if (nmgr.app.debug()) {
                 x.printStackTrace();
             }
-
-            throw new RuntimeException("Error retrieving NodeIDs: " + x);
+            throw new RuntimeException("Error retrieving NodeIDs", x);
         }
     }
 
@@ -146,8 +139,7 @@ public final class WrappedNodeManager {
             if (nmgr.app.debug()) {
                 x.printStackTrace();
             }
-
-            throw new RuntimeException("Error retrieving NodeIDs: ", x);
+            throw new RuntimeException("Error retrieving NodeIDs", x);
         }
     }
 
@@ -166,8 +158,7 @@ public final class WrappedNodeManager {
             if (nmgr.app.debug()) {
                 x.printStackTrace();
             }
-
-            throw new RuntimeException("Error counting Node: " + x);
+            throw new RuntimeException("Error counting Nodes", x);
         }
     }
 
@@ -183,8 +174,7 @@ public final class WrappedNodeManager {
             if (nmgr.app.debug()) {
                 x.printStackTrace();
             }
-
-            throw new RuntimeException("Error deleting Node: " + x);
+            throw new RuntimeException("Error deleting Node", x);
         }
     }
 
@@ -203,8 +193,7 @@ public final class WrappedNodeManager {
             if (nmgr.app.debug()) {
                 x.printStackTrace();
             }
-
-            throw new RuntimeException("Error retrieving property names: " + x);
+            throw new RuntimeException("Error retrieving property names ", x);
         }
     }
 
