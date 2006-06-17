@@ -1201,6 +1201,21 @@ public final class DbMapping {
     }
 
     /**
+     * Is the database behind this a PostgreSQL db?
+     *
+     * @return true if the dbsource is using a PostgreSQL JDBC driver
+     */
+    public boolean isPostgreSQL() {
+        if (dbSource != null) {
+            return dbSource.isPostgreSQL();
+        }
+        if (parentMapping != null) {
+            return parentMapping.isPostgreSQL();
+        }
+        return false;
+    }
+
+    /**
      * Return a string representation for this DbMapping
      *
      * @return a string representation

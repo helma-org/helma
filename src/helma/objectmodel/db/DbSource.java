@@ -35,7 +35,7 @@ public class DbSource {
     private ResourceProperties props;
     protected String url;
     private String driver;
-    private boolean isOracle, isMySQL;
+    private boolean isOracle, isMySQL, isPostgreSQL;
     private long lastRead = 0L;
     private Hashtable dbmappings = new Hashtable();
 
@@ -115,6 +115,7 @@ public class DbSource {
         isOracle = driver.startsWith("oracle.jdbc.driver");
         isMySQL = driver.startsWith("com.mysql.jdbc") ||
                   driver.startsWith("org.gjt.mm.mysql");
+        isPostgreSQL = driver.equals("org.postgresql.Driver");
         // test if driver class is available
         Class.forName(driver);
 
@@ -195,6 +196,14 @@ public class DbSource {
         return isMySQL;
     }
 
+    /**
+     * Check if this DbSource represents a PostgreSQL database
+     *
+     * @return true if we're using a PostgreSQL JDBC driver
+     */
+    public boolean isPostgreSQL() {
+        return isPostgreSQL;
+    }
     /**
      * Register a dbmapping by its table name.
      *
