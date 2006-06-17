@@ -825,9 +825,16 @@ public final class NodeManager {
         Statement stmt = null;
         String retval = null;
         long logTimeStart = logSql ? System.currentTimeMillis() : 0;
-        String q = new StringBuffer("SELECT ").append(map.getIDgen())
-                                              .append(".nextval FROM dual").toString();
-
+        String q;
+        if (map.isOracle()) {
+            q = new StringBuffer("SELECT ").append(map.getIDgen())
+                    .append(".nextval FROM dual").toString();
+        } else if (map.isPostgreSQL()) {
+            q = new StringBuffer("SELECT nextval('")
+                    .append(map.getIDgen()).append("')").toString();
+        } else {
+            throw new RuntimeException("Unable to generate sequence: unknown DB");
+        }
 
         try {
             Connection con = map.getConnection();
