@@ -903,10 +903,16 @@ public final class RhinoCore implements ScopeProvider {
                 // renewed in this compilation
                 compiledProperties.removeAll(changedProperties);
 
+                boolean isGlobal = "global".equals(frameworkProto.getLowerCaseName());
+
                 Iterator it = compiledProperties.iterator();
                 while (it.hasNext()) {
                     String key = (String) it.next();
-
+                    if (isGlobal && prototypes.containsKey(key.toLowerCase())) {
+                        // avoid removing HopObject constructor
+                        predefinedProperties.add(key);
+                        continue;
+                    }
                     try {
                         objProto.setAttributes(key, 0);
                         objProto.delete(key);
