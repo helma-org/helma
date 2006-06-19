@@ -18,10 +18,12 @@ package helma.scripting.rhino;
 
 import helma.framework.core.*;
 import helma.framework.ResponseTrans;
+import helma.framework.repository.Resource;
 import org.mozilla.javascript.*;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
 import java.io.UnsupportedEncodingException;
 import java.io.IOException;
 
@@ -42,7 +44,9 @@ public class JavaObject extends NativeJavaObject {
         for (int i=0; i<m.length; i++) {
             if ("href".equals(m[i].getName()) ||
                 "renderSkin".equals(m[i].getName()) ||
-                "renderSkinAsString".equals(m[i].getName())) {
+                "renderSkinAsString".equals(m[i].getName()) ||
+                "getResource".equals(m[i].getName()) ||
+                "getResources".equals(m[i].getName())) {
                 overload.put(m[i].getName(), m[i]);
             }
         }
@@ -208,6 +212,54 @@ public class JavaObject extends NativeJavaObject {
         }
 
         return super.get(name, start);
+    }
+    /**
+     * Returns a prototype's resource of a given name. Walks up the prototype's
+     * inheritance chain if the resource is not found
+     *
+     * @param resourceName the name of the resource, e.g. "type.properties",
+     *                     "messages.properties", "script.js", etc.
+     * @return the resource, if found, null otherwise
+     */
+    public Object getResource(String resourceName) {
+        Context cx = Context.getCurrentContext();
+        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+        Prototype prototype = engine.core.app.getPrototypeByName(protoName);
+        while (prototype != null) {
+            Resource[] resources = prototype.getResources();
+            for (int i = resources.length - 1; i >= 0; i--) {
+                Resource resource = resources[i];
+                if (resource.exists() && resource.getShortName().equals(resourceName))
+                    return Context.toObject(resource, core.global);
+            }
+            prototype =  prototype.getParentPrototype();
+        }
+        return null;
+    }
+
+
+    /**
+     * Returns an array containing the prototype's resource with a given name.
+     *
+     * @param resourceName the name of the resource, e.g. "type.properties",
+     *                     "messages.properties", "script.js", etc.
+     * @return an array of resources with the given name
+     */
+    public Object getResources(String resourceName) {
+        Context cx = Context.getCurrentContext();
+        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+        Prototype prototype = engine.core.app.getPrototypeByName(protoName);
+        ArrayList a = new ArrayList();
+        while (prototype != null) {
+            Resource[] resources = prototype.getResources();
+            for (int i = resources.length - 1; i >= 0; i--) {
+                Resource resource = resources[i];
+                if (resource.exists() && resource.getShortName().equals(resourceName))
+                    a.add(Context.toObject(resource, core.global));
+            }
+            prototype =  prototype.getParentPrototype();
+        }
+        return Context.getCurrentContext().newArray(core.global, a.toArray());
     }
 
 }
