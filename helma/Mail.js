@@ -8,10 +8,10 @@
  *
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
- * $RCSfile: helma.Mail.js,v $
+ * $RCSfile: Mail.js,v $
  * $Author: czv $
- * $Revision: 1.6 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
 
@@ -264,6 +264,7 @@ helma.Mail = function(smtp) {
             } else {
                 message.setText("");
             }
+            message.setSentDate(new Date());
             Transport.send(message);
         } catch (mx) {
             res.debug(errStr + ".send(): " + mx);
