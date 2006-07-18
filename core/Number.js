@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Number.js,v $
- * $Author: hannes $
- * $Revision: 1.5 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Author: czv $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
 
@@ -41,8 +41,8 @@ Number.Sorter.DESC = -1;
  */
 Number.prototype.format = function(fmt) {
     var df = fmt ? new java.text.DecimalFormat(fmt)
-                : new java.text.DecimalFormat("#,##0.00");
-    return df.format(0+this);
+                 : new java.text.DecimalFormat("###,##0.##");
+    return df.format(0 + this); // addition with 0 prevents exception
 };
 
 
@@ -54,9 +54,9 @@ Number.prototype.format = function(fmt) {
  * @return Int Percentage
  */
 Number.prototype.toPercent = function(total, fmt) {
-	var p = this / (total / 100);
-    if (!fmt)
-        return Math.round(p * 100) / 100;
+    if (!total)
+        return (0).format(fmt);
+    var p = this / (total / 100);
     return p.format(fmt);
 };
 
