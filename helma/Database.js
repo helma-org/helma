@@ -8,10 +8,10 @@
  *
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
- * $RCSfile: helma.Database.js,v $
+ * $RCSfile: Database.js,v $
  * $Author: czv $
- * $Revision: 1.5 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
 
@@ -19,19 +19,17 @@ if (!global.helma) {
     global.helma = {};
 }
 
-helma.Database = function(driver, url, user, password, name) {
-    if (!driver || !url || !user)
+helma.Database = function(driver, url, name, user, password) {
+    if (!driver || !url || !name)
         throw("Insufficient arguments to create helma.db.Connection");
-    if (!name)
-        name = "db" + new Date().getTime();
     if (typeof password != "string")
         password = "";
 
-    MYSQL = "mysql";
-    ORACLE = "oracle";
-    JDBC = "jdbc:";
-    DRIVER_MYSQL = "org.gjt.mm.mysql.Driver";
-    DRIVER_ORACLE = "oracle.jdbc.driver.OracleDriver";
+    var MYSQL = "mysql";
+    var ORACLE = "oracle";
+    var JDBC = "jdbc:";
+    var DRIVER_MYSQL = "org.gjt.mm.mysql.Driver";
+    var DRIVER_ORACLE = "oracle.jdbc.driver.OracleDriver";
 
     if (driver == MYSQL) {
         driver = DRIVER_MYSQL;
@@ -45,13 +43,15 @@ helma.Database = function(driver, url, user, password, name) {
 
     var DbSource = Packages.helma.objectmodel.db.DbSource;
     var DatabaseObject = Packages.helma.scripting.rhino.extensions.DatabaseObject;
-
     var DbSource = Packages.helma.objectmodel.db.DbSource;
+
     var props = new Packages.helma.util.ResourceProperties();
     props.put(name + ".url", url);
     props.put(name + ".driver", driver);
     if (user) {
-        props.put(name + ".user", user);
+        props.put(name + ".user", user)
+    }
+    if (password) {
         props.put(name + ".password", password);
     }
     var source = new DbSource(name, props);
@@ -77,9 +77,9 @@ helma.Database = function(driver, url, user, password, name) {
         return this.getProductName() == MYSQL;
     };
 
-    this.query = function(query) {
+    this.query = function(sql) {
         var statement = connection.createStatement();
-        var resultSet = statement.executeQuery(query);
+        var resultSet = statement.executeQuery(sql);
         var metaData = resultSet.getMetaData();
         var max = metaData.getColumnCount();
         var result = [];
@@ -90,6 +90,11 @@ helma.Database = function(driver, url, user, password, name) {
             result.push(row);
         }
         return result;
+    };
+
+    this.execute = function(sql) {
+        var statement = connection.createStatement();
+        return statement.execute(sql);
     };
 
     this.getName = function() {
