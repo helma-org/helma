@@ -49,7 +49,7 @@ public final class TypeManager {
 
     private long lastCheck = 0;
     private long lastCodeUpdate;
-    private long[] lastRepoScan;
+    private HashMap lastRepoScan;
 
     // app specific class loader, includes jar files in the app directory
     private AppClassLoader loader;
@@ -66,6 +66,7 @@ public final class TypeManager {
         prototypes = new HashMap();
         jarfiles = new HashSet();
         ignoreDirs = new HashSet();
+        lastRepoScan = new HashMap();
         // split ignore dirs list and add to hash set
         if (ignore != null) {
             String[] arr = StringUtils.split(ignore, ",");
@@ -146,8 +147,7 @@ public final class TypeManager {
                 }
             } else {
                 // it's an prototype
-                String name = null;
-                name = list[i].getShortName();
+                String name = list[i].getShortName();
                 Prototype proto = getPrototype(name);
 
                 // if prototype doesn't exist, create it
@@ -185,17 +185,14 @@ public final class TypeManager {
      */
     private void checkRepositories() throws IOException {
         List list = app.getRepositories();
-        // first check if we need to create or adapt our array of last scans
-        if (lastRepoScan == null || lastRepoScan.length != list.size()) {
-            lastRepoScan = new long[list.size()];
-        }
 
         // walk through repositories and check if any of them have changed.
-        for (int i = 0; i < lastRepoScan.length; i++) {
+        for (int i = 0; i < list.size(); i++) {
             Repository repository = (Repository) list.get(i);
-            if (repository.lastModified() != lastRepoScan[i]) {
-                lastRepoScan[i] = repository.lastModified();
-
+            long lastScan = lastRepoScan.containsKey(repository) ?
+                    ((Long) lastRepoScan.get(repository)).longValue() : 0;
+            if (repository.lastModified() != lastScan) {
+                lastRepoScan.put(repository, new Long(repository.lastModified()));
                 checkRepository(repository);
             }
         }
