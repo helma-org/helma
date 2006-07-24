@@ -8,10 +8,10 @@
  *
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
- * $RCSfile: helma.String.js,v $
+ * $RCSfile: String.js,v $
  * $Author: czv $
- * $Revision: 1.5 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
 
@@ -340,23 +340,23 @@ String.prototype.entitize = function() {
  * @return Object containing head and tail properties
  */
 String.prototype.embody = function(limit, clipping, delimiter) {
-   if (typeof(limit) == "string")
+   if (typeof limit == "string")
       limit = parseInt(limit, 10);
    var result = {head: this, tail: ""};
    if (!limit || limit < 1)
       return result;
    if (!delimiter || delimiter =="")
-      result.head= this.substring(0,limit);
+      result.head= this.substring(0, limit);
    else {
       var re = new RegExp ("(" + delimiter + "+)");
-      result.head = this.split(re,2*limit-1).join("");
+      result.head = this.split(re, 2*limit - 1).join("");
    }
    if (result.head != this) {
       result.tail = this.substring(result.head.length).trim();
       if (result.tail) {
          if (clipping == null)
             clipping = "...";
-         result.head = result.head.trim()+clipping;
+         result.head = result.head.trim() + clipping;
          result.tail = clipping + result.tail;
       }
    }
@@ -604,6 +604,38 @@ String.prototype.trim = function () {
  */
 String.prototype.isEmail = function() {
     return String.EMAILPATTERN.test(this);
+};
+
+
+/**
+ * returns the amount of occurences of one string in another
+ */
+String.prototype.count = function(str) {
+    var count = 0;
+    var offset = 0;
+    while ((offset = this.indexOf(str, offset)) > -1) {
+        count += 1;
+        offset += 1;
+    }
+    return count;
+};
+
+
+/**
+ * returns the string encoded using the base64 algorithm
+ */
+String.prototype.enbase64 = function() {
+    var bytes = new java.lang.String(this) . getBytes();
+    return new Packages.sun.misc.BASE64Encoder().encode(bytes);
+};
+
+
+/**
+ * returns the decoded string using the base64 algorithm
+ */
+String.prototype.debase64 = function() {
+    var bytes = new Packages.sun.misc.BASE64Decoder().decodeBuffer(this);
+    return String(new java.lang.String(bytes));
 };
 
 
