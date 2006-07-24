@@ -34,7 +34,7 @@ fi
 
 # local settins
 RUN_CMD="sudo -u $HELMA_USER $JAVA_BIN"
-RUN_ARGS="$JAVA_OPTS -jar $HELMA_HOME/launcher.jar $HELMA_ARGS"
+RUN_ARGS="$JAVA_OPTS -jar $HELMA_INSTALL/launcher.jar $HELMA_ARGS"
 
 case "$1" in
 start)	
