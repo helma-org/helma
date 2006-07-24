@@ -8,10 +8,10 @@
  *
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
- * $RCSfile: all.js,v $
- * $Author: czv $
- * $Revision: 1.4 $
- * $Date: 2006/05/30 18:34:31 $
+ * $RCSfile: JSON.js,v $
+ * $Author: tobi $
+ * $Revision: 1.1 $
+ * $Date: 2006/07/24 17:09:23 $
  */
 
 
@@ -21,12 +21,12 @@
 
     This file adds these methods to JavaScript:
 
-        object.toJSONString()
+        object.toJSON()
 
             This method produces a JSON text from an object. The
             object must not contain any cyclical references.
 
-        array.toJSONString()
+        array.toJSON()
 
             This method produces a JSON text from an array. The
             array must not contain any cyclical references.
@@ -124,16 +124,16 @@
         }
     };
 
-    Object.prototype.toJSONString = function () {
+    Object.prototype.toJSON = function () {
         return s.object(this);
     };
 
-    Array.prototype.toJSONString = function () {
+    Array.prototype.toJSON = function () {
         return s.array(this);
     };
 
-    Object.prototype.dontEnum("toJSONString");
-    Array.prototype.dontEnum("toJSONString");
+    Object.prototype.dontEnum("toJSON");
+    Array.prototype.dontEnum("toJSON");
     return;
 })();
    
@@ -145,3 +145,5 @@ String.prototype.parseJSON = function () {
         return false;
     }
 };
+
+String.prototype.dontEnum("parseJSON");
