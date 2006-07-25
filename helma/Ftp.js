@@ -8,10 +8,10 @@
  *
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
- * $RCSfile: helma.Ftp.js,v $
+ * $RCSfile: Ftp.js,v $
  * $Author: czv $
- * $Revision: 1.7 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
 
@@ -62,7 +62,7 @@ helma.Ftp = function(server) {
    };
 
    var debug = function(methName, msg) {
-      var msg = msg ? " " + msg : "";
+      msg = msg ? " " + msg : "";
       app.debug(className + ":" + methName + msg);
       return;
    };
@@ -112,9 +112,9 @@ helma.Ftp = function(server) {
    this.login = function(username, password) {
       try {
          ftpclient.connect(this.server);
-         ftpclient.login(username, password);
+         var result = ftpclient.login(username, password);
          debug("login", username + "@" + server);
-         return true;
+         return result;
       } catch(x) {
          error("login", x);
          setStatus(LOGIN);
@@ -124,9 +124,9 @@ helma.Ftp = function(server) {
 
    this.binary = function() {
       try {
-         ftpclient.setFileType(FTP.BINARY_FILE_TYPE);
+         var result = ftpclient.setFileType(FTP.BINARY_FILE_TYPE);
          debug("binary");
-         return true;
+         return result;
       } catch(x) {
          error("binary", x);
          setStatus(BINARY);
@@ -136,9 +136,9 @@ helma.Ftp = function(server) {
 
    this.ascii = function() {
       try {
-         ftpclient.setFileType(FTP.ASCII_FILE_TYPE);
+         var result = ftpclient.setFileType(FTP.ASCII_FILE_TYPE);
          debug("ascii");
-         return true;
+         return result;
       } catch(x) {
          error("ascii", x);
          setStatus(ASCII);
@@ -194,9 +194,9 @@ helma.Ftp = function(server) {
 
    this.mkdir = function(dir) {
       try {
-         ftpclient.makeDirectory(dir);
+         var result = ftpclient.makeDirectory(dir);
          debug("mkdir", dir);
-         return true;
+         return result;
       } catch(x) {
          error("mkdir", x);
          setStatus(MKDIR);
@@ -206,9 +206,9 @@ helma.Ftp = function(server) {
 
    this.rmdir = function(dir) {
       try {
-         ftpclient.removeDirectory(dir);
+         var result = ftpclient.removeDirectory(dir);
          debug("rmdir", dir);
-         return true;
+         return result;
       } catch(x) {
          error("rmdir", x);
          setStatus(RMDIR);
@@ -218,9 +218,9 @@ helma.Ftp = function(server) {
 
    this.cd = function(path) {
       try {
-         ftpclient.changeWorkingDirectory(path);
+         var result = ftpclient.changeWorkingDirectory(path);
          debug("cd", path);
-         return true;
+         return result;
       } catch(x) {
          error("cd", x);
          setStatus(CD);
@@ -259,10 +259,10 @@ helma.Ftp = function(server) {
          if (!remoteFile) {
             remoteFile = f.getName();
          }
-         ftpclient.storeFile(remoteFile, stream);
+         var result = ftpclient.storeFile(remoteFile, stream);
          stream.close();
          debug("putFile", remoteFile);
-         return true;
+         return result;
       } catch(x) {
          error("putFile", x);
          setStatus(PUT);
@@ -275,9 +275,9 @@ helma.Ftp = function(server) {
          str = new java.lang.String(str);
          var bytes = charset ? str.getBytes(charset) : str.getBytes();
          var stream = ByteArrayInputStream(bytes);
-         ftpclient.storeFile(remoteFile, stream);
+         var result = ftpclient.storeFile(remoteFile, stream);
          debug("putString", remoteFile);
-         return true;
+         return result;
       } catch(x) {
          error("putString", x);
          setStatus(PUT);
@@ -294,10 +294,10 @@ helma.Ftp = function(server) {
          var stream = new BufferedOutputStream(
             new FileOutputStream(f.getPath())
          );
-         ftpclient.retrieveFile(remoteFile, stream);
+         var result = ftpclient.retrieveFile(remoteFile, stream);
          stream.close();
          debug("getFile", remoteFile);
-         return true;
+         return result;
       } catch(x) {
          error("getFile", x);
          setStatus(GET);
@@ -320,9 +320,9 @@ helma.Ftp = function(server) {
 
    this.deleteFile = function(remoteFile) {
       try {
-         ftpclient.deleteFile(remoteFile);
+         var result = ftpclient.deleteFile(remoteFile);
          debug("deleteFile", remoteFile);
-         return true;
+         return result;
       } catch(x) {
          error("deleteFile", x);
          setStatus(DELETE);
@@ -332,10 +332,10 @@ helma.Ftp = function(server) {
 
    this.logout = function() {
       try {
-         ftpclient.logout();
+         var result = ftpclient.logout();
          ftpclient.disconnect();
          debug("logout");
-         return true;
+         return result;
       } catch(x) {
          error("logout", x);
          setStatus(LOGOUT);
