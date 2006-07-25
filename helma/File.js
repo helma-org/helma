@@ -8,10 +8,10 @@
  *
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
- * $RCSfile: helma.File.js,v $
+ * $RCSfile: File.js,v $
  * $Author: czv $
- * $Revision: 1.9 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
 
@@ -36,10 +36,12 @@ helma.File = function(path) {
 
    var file;
    try {
+      // immediately convert to absolute path - java.io.File is 
+      // incredibly stupid when dealing with relative file names
       if (arguments.length > 1)
-         file = new File(path, arguments[1]);
+         file = new File(path, arguments[1]).getAbsoluteFile();
       else
-         file = new File(path);
+         file = new File(path).getAbsoluteFile();
    } catch (e) {
       throw(e);
    }
