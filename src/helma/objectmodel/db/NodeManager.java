@@ -504,8 +504,8 @@ public final class NodeManager {
                 if (!((rel != null) && (rel.isPrimitive() || rel.isReference())) &&
                         !name.equalsIgnoreCase(nameField) &&
                         !name.equalsIgnoreCase(prototypeField)) {
-                    continue;
-                }
+                        continue;
+                    }
 
                 stmtNumber++;
                 if (p!=null) {
@@ -585,11 +585,9 @@ public final class NodeManager {
 
                 // skip readonly, virtual and collection relations
                 if ((rel == null) || rel.readonly || rel.virtual ||
-                        ((rel.reftype != Relation.REFERENCE) &&
-                        (rel.reftype != Relation.PRIMITIVE))) {
+                        (!rel.isReference() && !rel.isPrimitive())) {
                     // null out property so we don't consider it later
                     props[i] = null;
-
                     continue;
                 }
 
@@ -1253,7 +1251,7 @@ public final class NodeManager {
                 long logTimeStart = logSql ? System.currentTimeMillis() : 0;
 
                 try {
-                    StringBuffer b = dbm.getSelect(rel);
+                    StringBuffer b = dbm.getSelect(null);
 
                     String idfield = (rel.groupby != null) ? rel.groupby : dbm.getIDField();
                     boolean needsQuotes = dbm.needsQuotes(idfield);
@@ -1957,7 +1955,7 @@ public final class NodeManager {
         }
 
         node.init(dbmap, id, name, protoName, propMap, safe);
-
+        node.invokeOnInit();
         return node;
     }
 

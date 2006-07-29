@@ -163,9 +163,11 @@ public final class Node implements INode, Serializable {
         if (state != CLEAN) {
             markAs(CLEAN);
         }
+    }
 
+    public void invokeOnInit() {
         // Invoke onInit() if it is defined by this Node's prototype
-        if (dbm != null) {
+        if (dbmap != null) {
             try {
                 // We need to reach deap into helma.framework.core to invoke onInit(),
                 // but the functionality is neat so we got to be strong here.
@@ -1971,7 +1973,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN) {
+        if (state == CLEAN && propname.charAt(0) != '_') {
             markAs(MODIFIED);
         }
     }
@@ -2082,7 +2084,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN) {
+        if (state == CLEAN && propname.charAt(0) != '_') {
             markAs(MODIFIED);
         }
     }
@@ -2119,7 +2121,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN) {
+        if (state == CLEAN && propname.charAt(0) != '_') {
             markAs(MODIFIED);
         }
     }
@@ -2156,7 +2158,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN) {
+        if (state == CLEAN && propname.charAt(0) != '_') {
             markAs(MODIFIED);
         }
     }
@@ -2193,7 +2195,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN) {
+        if (state == CLEAN && propname.charAt(0) != '_') {
             markAs(MODIFIED);
         }
     }
@@ -2230,7 +2232,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN) {
+        if (state == CLEAN && propname.charAt(0) != '_') {
             markAs(MODIFIED);
         }
     }
@@ -2267,7 +2269,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN) {
+        if (state == CLEAN && propname.charAt(0) != '_') {
             markAs(MODIFIED);
         }
     }

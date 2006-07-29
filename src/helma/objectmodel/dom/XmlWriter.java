@@ -268,7 +268,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
                           throws IOException {
         Enumeration e = null;
 
-        if ((dbmode == true) && node instanceof helma.objectmodel.db.Node) {
+        if (dbmode && node instanceof helma.objectmodel.db.Node) {
             // a newly constructed db.Node doesn't have a propMap,
             // but returns an enumeration of all it's db-mapped properties
             Hashtable props = ((Node) node).getPropMap();
@@ -284,6 +284,9 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
 
         while (e.hasMoreElements()) {
             String key = (String) e.nextElement();
+            if (dbmode && key.charAt(0) == '_') {
+                continue;
+            }
             IProperty prop = node.get(key);
 
             if (prop != null) {
@@ -376,6 +379,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
                 if (str != null) {
                     write(str);
                 }
+                break;
         }
 
         write("</");
@@ -388,7 +392,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
      * loop through the children-array and print them as <hop:child>
      */
     private void writeChildren(INode node, int level) throws IOException {
-        if ((dbmode == true) && node instanceof helma.objectmodel.db.Node) {
+        if (dbmode && node instanceof helma.objectmodel.db.Node) {
             Node dbNode = (Node) node;
             DbMapping smap = (dbNode.getDbMapping() == null) ? null
                                                              : dbNode.getDbMapping()
