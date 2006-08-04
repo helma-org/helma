@@ -76,7 +76,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      */
     public static HopObject init(RhinoCore core)
             throws PropertyException {
-        int attributes = READONLY | DONTENUM | PERMANENT;
+        int attributes = DONTENUM | PERMANENT;
 
         // create prototype object
         HopObject proto = new HopObject("HopObject", core);
