@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: String.js,v $
- * $Author: czv $
- * $Revision: 1.2 $
- * $Date: 2006/04/24 07:02:17 $
+ * $Author: tobi $
+ * $Revision: 1.3 $
+ * $Date: 2006/07/24 16:03:57 $
  */
 
 
@@ -26,6 +26,7 @@ String.LEFT           = -1
 String.BALANCE        = 0
 String.RIGHT          = 1
 String.ISOFORMAT      = "yyyy-MM-dd'T'HH:mm:ssZ";
+String.NULL           = "";
 
 
 /**
@@ -40,8 +41,8 @@ String.Sorter = function(field, order) {
     var key = field + ":" + order;
     if (!String.Sorter.cache[key]) {
         String.Sorter.cache[key] = function(a, b) {
-            var str1 = String(a[field] || "").toLowerCase();
-            var str2 = String(b[field] || "").toLowerCase();
+            var str1 = String(a[field] || String.NULL).toLowerCase();
+            var str2 = String(b[field] || String.NULL).toLowerCase();
             if (str1 > str2)
                 return order * 1;
             if (str1 < str2)
@@ -83,7 +84,7 @@ String.random = function(len, mode) {
         var x = Math.random() * Math.pow(10,len);
         return Math.floor(x);
     }
-    var keystr = "";
+    var keystr = String.NULL;
     for (var i=0; i<len; i++) {
         var x = Math.floor((Math.random() * 36));
         if (mode == 1) {
@@ -113,7 +114,7 @@ String.random = function(len, mode) {
  */
 String.join = function(str1, str2, glue) {
     if (glue == null)
-        glue = "";
+        glue = String.NULL;
     if (str1 && str2)
         return str1 + glue + str2;
     else if (str2)
@@ -195,7 +196,7 @@ String.prototype.isFileName = function() {
  * @return Boolean
  */
 String.prototype.toFileName = function() {
-    return this.replace(new RegExp(String.FILEPATTERN.source, "g"), "");
+    return this.replace(new RegExp(String.FILEPATTERN.source, "g"), String.NULL);
 };
 
 
@@ -224,7 +225,7 @@ String.prototype.isHexColor = function() {
 String.prototype.toHexColor = function() {
     if (this.startsWith("rgb")) {
         res.push();
-        var col = this.replace(/[^0-9,]/g,"");
+        var col = this.replace(/[^0-9,]/g, String.NULL);
         var parts = col.split(",");
         for (var i in parts) {
             var num = parseInt(parts[i], 10);
@@ -233,7 +234,7 @@ String.prototype.toHexColor = function() {
         }
         return res.pop();
     }
-    var col = this.replace(new RegExp(String.HEXPATTERN.source), "");
+    var col = this.replace(new RegExp(String.HEXPATTERN.source), String.NULL);
     return col.toLowerCase().pad("0", 6, String.LEFT);
 };
 
@@ -256,7 +257,7 @@ String.prototype.isAlphanumeric = function() {
  * @return cleaned string
  */
 String.prototype.toAlphanumeric = function() {
-    return this.replace(new RegExp(String.ANUMPATTERN.source, "g"), "");
+    return this.replace(new RegExp(String.ANUMPATTERN.source, "g"), String.NULL);
 };
 
 
@@ -342,14 +343,14 @@ String.prototype.entitize = function() {
 String.prototype.embody = function(limit, clipping, delimiter) {
    if (typeof limit == "string")
       limit = parseInt(limit, 10);
-   var result = {head: this, tail: ""};
+   var result = {head: this, tail: String.NULL};
    if (!limit || limit < 1)
       return result;
-   if (!delimiter || delimiter =="")
+   if (!delimiter || delimiter == String.NULL)
       result.head= this.substring(0, limit);
    else {
       var re = new RegExp ("(" + delimiter + "+)");
-      result.head = this.split(re, 2*limit - 1).join("");
+      result.head = this.split(re, 2*limit - 1).join(String.NULL);
    }
    if (result.head != this) {
       result.tail = this.substring(result.head.length).trim();
@@ -423,7 +424,7 @@ String.prototype.group = function(interval, str, ignoreWhiteSpace) {
  */
 String.prototype.unwrap = function(removeTags, replacement) {
     if (replacement == null)
-        replacement = "";
+        replacement = String.NULL;
     var str = this.replace(/[\n|\r]/g, replacement);
     if (removeTags)
         str = str.replace(/<[w]?br *\/?>/g, replacement);

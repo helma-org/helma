@@ -10,8 +10,8 @@
  *
  * $RCSfile: all.js,v $
  * $Author: czv $
- * $Revision: 1.3 $
- * $Date: 2006/04/24 08:27:00 $
+ * $Revision: 1.4 $
+ * $Date: 2006/05/30 18:34:31 $
  */
 
 // convenience SingleFileRepository to load all the 
@@ -22,3 +22,5 @@ app.addRepository('modules/core/Date.js');
 app.addRepository('modules/core/Number.js');
 app.addRepository('modules/core/Object.js');
 app.addRepository('modules/core/String.js');
+app.addRepository('modules/core/HopObject.js');
+app.addRepository('modules/core/Global.js');
