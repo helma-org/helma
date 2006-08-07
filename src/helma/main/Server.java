@@ -42,7 +42,7 @@ import helma.util.ResourceProperties;
  */
 public class Server implements IPathElement, Runnable {
     // version string
-    public static final String version = "1.5.0 (__builddate__)";
+    public static final String version = "1.5.1 (__builddate__)";
 
     // static server instance
     private static Server server;
