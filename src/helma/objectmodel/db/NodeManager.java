@@ -475,50 +475,36 @@ public final class NodeManager {
         String insertString = dbm.getInsert();
         PreparedStatement stmt = con.prepareStatement(insertString);
 
-        // app.logEvent ("inserting relational node: "+node.getID ());
+        // app.logEvent ("inserting relational node: " + node.getID ());
         DbColumn[] columns = dbm.getColumns();
-
-        String nameField = dbm.getNameField();
-        String prototypeField = dbm.getPrototypeField();
 
         long logTimeStart = logSql ? System.currentTimeMillis() : 0;
 
         try {
             int stmtNumber = 1;
 
-            // first column of insert statement is always the primary key
-            stmt.setString(stmtNumber, node.getID());
-
-            Hashtable propMap = node.getPropMap();
-
             for (int i = 0; i < columns.length; i++) {
-                Relation rel = columns[i].getRelation();
-                Property p = null;
-
-                if (rel != null && propMap != null && (rel.isPrimitive() || rel.isReference())) {
-                    p = (Property) propMap.get(rel.getPropName());
-                }
-
-                String name = columns[i].getName();
-
-                if (!((rel != null) && (rel.isPrimitive() || rel.isReference())) &&
-                        !name.equalsIgnoreCase(nameField) &&
-                        !name.equalsIgnoreCase(prototypeField)) {
-                        continue;
-                    }
-
-                stmtNumber++;
-                if (p!=null) {
-                    this.setStatementValues (stmt, stmtNumber, p, columns[i].getType());
-                } else if (name.equalsIgnoreCase(nameField)) {
-                    stmt.setString(stmtNumber, node.getName());
-                } else if (name.equalsIgnoreCase(prototypeField)) {
-                    stmt.setString(stmtNumber, node.getPrototype());
+                DbColumn col = columns[i];
+                if (!col.isMapped()) 
+                    continue;
+                if (col.isIdField()) {
+                    setStatementValue(stmt, stmtNumber, node.getID(), col);
+                } else if (col.isPrototypeField()) {
+                    setStatementValue(stmt, stmtNumber, dbm.getExtensionId(), col);
                 } else {
-                    stmt.setNull(stmtNumber, columns[i].getType());
+                    Relation rel = col.getRelation();
+                    Property p = rel == null ? null : node.getProperty(rel.getPropName());
+ 
+                    if (p != null) {
+                        setStatementValue(stmt, stmtNumber, p, col.getType());
+                    } else if (col.isNameField()) {
+                        stmt.setString(stmtNumber, node.getName());
+                    } else {
+                        stmt.setNull(stmtNumber, col.getType());
+                    }
                 }
+                stmtNumber += 1;
             }
-
             stmt.executeUpdate();
 
         } finally {
@@ -533,7 +519,6 @@ public final class NodeManager {
                 } catch (Exception ignore) {}
             }
         }
-
     }
 
     /**
@@ -607,16 +592,7 @@ public final class NodeManager {
             }
 
             b.append(" WHERE ");
-            b.append(dbm.getIDField());
-            b.append(" = ");
-
-            if (dbm.needsQuotes(dbm.getIDField())) {
-                b.append("'");
-                b.append(escape(node.getID()));
-                b.append("'");
-            } else {
-                b.append(node.getID());
-            }
+            dbm.appendCondition(b, dbm.getIDField(), node.getID());
 
             Connection con = dbm.getConnection();
             // set connection to write mode
@@ -637,7 +613,7 @@ public final class NodeManager {
                     Relation rel = dbm.propertyToRelation(p.getName());
 
                     stmtNumber++;
-                    this.setStatementValues (stmt, stmtNumber, p, rel.getColumnType());
+                    setStatementValue(stmt, stmtNumber, p, rel.getColumnType());
 
                     p.dirty = false;
 
@@ -1233,10 +1209,8 @@ public final class NodeManager {
                        throws Exception {
         DbMapping dbm = rel.otherType;
 
-        if ((dbm == null) || !dbm.isRelational()) {
-            // this does nothing for objects in the embedded database
-            return;
-        } else {
+        // this does nothing for objects in the embedded database
+        if (dbm != null && dbm.isRelational()) {
             int missing = cache.containsKeys(keys);
 
             if (missing > 0) {
@@ -1251,39 +1225,17 @@ public final class NodeManager {
                 long logTimeStart = logSql ? System.currentTimeMillis() : 0;
 
                 try {
-                    StringBuffer b = dbm.getSelect(null);
-
+                    StringBuffer b = dbm.getSelect(null).append(" WHERE ");
                     String idfield = (rel.groupby != null) ? rel.groupby : dbm.getIDField();
-                    boolean needsQuotes = dbm.needsQuotes(idfield);
 
-                    b.append(" WHERE ");
-                    b.append(dbm.getTableName());
-                    b.append(".");
-                    b.append(idfield);
-                    b.append(" IN (");
-
-                    boolean first = true;
-
-                    for (int i = 0; i < keys.length; i++) {
-                        if (keys[i] != null) {
-                            if (!first) {
-                                b.append(',');
-                            } else {
-                                first = false;
-                            }
-
-                            if (needsQuotes) {
-                                b.append("'");
-                                b.append(escape(keys[i].getID()));
-                                b.append("'");
-                            } else {
-                                b.append(keys[i].getID());
-                            }
-                        }
+                    String[] ids = new String[missing];
+                    int j = 0;
+                    for (int k = 0; k < keys.length; k++) {
+                        if (keys[k] != null)
+                            ids[j++] = keys[k].getID();
                     }
 
-                    b.append(") ");
-
+                    dbm.appendCondition(b, idfield, ids);
                     dbm.addJoinConstraints(b, " AND ");
 
                     if (rel.groupby != null) {
@@ -1388,7 +1340,7 @@ public final class NodeManager {
                         }
                     }
                 } catch (Exception x) {
-                    System.err.println ("Error in prefetchNodes(): "+x);
+                    app.logError("Error in prefetchNodes()", x);
                 } finally {
                     if (logSql) {
                         long logTimeStop = System.currentTimeMillis();
@@ -1591,22 +1543,10 @@ public final class NodeManager {
 
                 DbColumn[] columns = dbm.getColumns();
                 Relation[] joins = dbm.getJoins();
-                StringBuffer b = dbm.getSelect(null).append("WHERE ")
-                                                .append(dbm.getTableName())
-                                                .append(".")
-                                                .append(idfield)
-                                                .append(" = ");
-
-                if (dbm.needsQuotes(idfield)) {
-                    b.append("'");
-                    b.append(escape(kstr));
-                    b.append("'");
-                } else {
-                    b.append(kstr);
-                }
-
+                
+                StringBuffer b = dbm.getSelect(null).append("WHERE ");
+                dbm.appendCondition(b, idfield, kstr);
                 dbm.addJoinConstraints(b, " AND ");
-
                 query = b.toString();
 
                 ResultSet rs = stmt.executeQuery(query);
@@ -1689,14 +1629,7 @@ public final class NodeManager {
                 if (home.getSubnodeRelation() != null && !rel.isComplexReference()) {
                     // combine our key with the constraints in the manually set subnode relation
                     b.append(" WHERE ");
-                    if (rel.accessName.indexOf('(') == -1 && rel.accessName.indexOf('.') == -1) {
-                        b.append(dbm.getTableName());
-                        b.append(".");
-                    }
-                    b.append(rel.accessName);
-                    b.append(" = '");
-                    b.append(escape(kstr));
-                    b.append("'");
+                    dbm.appendCondition(b, rel.accessName, kstr);
                     // add join contraints in case this is an old oracle style join
                     dbm.addJoinConstraints(b, " AND ");
                     // add potential constraints from manually set subnodeRelation
@@ -1778,7 +1711,8 @@ public final class NodeManager {
 
             // set prototype?
             if (columns[i].isPrototypeField()) {
-                protoName = rs.getString(i+1+offset);
+                String protoId = rs.getString(i + 1 + offset);
+                protoName = dbm.getPrototypeName(protoId);
 
                 if (protoName != null) {
                     dbmap = getDbMapping(protoName);
@@ -1795,7 +1729,7 @@ public final class NodeManager {
 
             // set id?
             if (columns[i].isIdField()) {
-                id = rs.getString(i+1+offset);
+                id = rs.getString(i + 1 + offset);
                 // if id == null, the object doesn't actually exist - return null
                 if (id == null) {
                     return null;
@@ -1804,14 +1738,14 @@ public final class NodeManager {
 
             // set name?
             if (columns[i].isNameField()) {
-                name = rs.getString(i+1+offset);
+                name = rs.getString(i + 1 + offset);
             }
 
             Property newprop = new Property(node);
 
             switch (columns[i].getType()) {
                 case Types.BIT:
-                    newprop.setBooleanValue(rs.getBoolean(i+1+offset));
+                    newprop.setBooleanValue(rs.getBoolean(i + 1 + offset));
 
                     break;
 
@@ -1819,21 +1753,21 @@ public final class NodeManager {
                 case Types.BIGINT:
                 case Types.SMALLINT:
                 case Types.INTEGER:
-                    newprop.setIntegerValue(rs.getLong(i+1+offset));
+                    newprop.setIntegerValue(rs.getLong(i + 1 + offset));
 
                     break;
 
                 case Types.REAL:
                 case Types.FLOAT:
                 case Types.DOUBLE:
-                    newprop.setFloatValue(rs.getDouble(i+1+offset));
+                    newprop.setFloatValue(rs.getDouble(i + 1 + offset));
 
                     break;
 
                 case Types.DECIMAL:
                 case Types.NUMERIC:
 
-                    BigDecimal num = rs.getBigDecimal(i+1+offset);
+                    BigDecimal num = rs.getBigDecimal(i + 1 + offset);
 
                     if (num == null) {
                         break;
@@ -1849,16 +1783,16 @@ public final class NodeManager {
 
                 case Types.VARBINARY:
                 case Types.BINARY:
-                    newprop.setStringValue(rs.getString(i+1+offset));
+                    newprop.setStringValue(rs.getString(i + 1 + offset));
 
                     break;
 
                 case Types.LONGVARBINARY:
                 case Types.LONGVARCHAR:
                     try {
-                        newprop.setStringValue(rs.getString(i+1+offset));
+                        newprop.setStringValue(rs.getString(i + 1 + offset));
                     } catch (SQLException x) {
-                        Reader in = rs.getCharacterStream(i+1+offset);
+                        Reader in = rs.getCharacterStream(i + 1 + offset);
                         char[] buffer = new char[2048];
                         int read = 0;
                         int r;
@@ -1883,14 +1817,14 @@ public final class NodeManager {
                 case Types.CHAR:
                 case Types.VARCHAR:
                 case Types.OTHER:
-                    newprop.setStringValue(rs.getString(i+1+offset));
+                    newprop.setStringValue(rs.getString(i + 1 + offset));
 
                     break;
 
                 case Types.DATE:
                 case Types.TIME:
                 case Types.TIMESTAMP:
-                    newprop.setDateValue(rs.getTimestamp(i+1+offset));
+                    newprop.setDateValue(rs.getTimestamp(i + 1 + offset));
 
                     break;
 
@@ -1912,7 +1846,7 @@ public final class NodeManager {
                     break;
 
                 default:
-                    newprop.setStringValue(rs.getString(i+1+offset));
+                    newprop.setStringValue(rs.getString(i + 1 + offset));
 
                     break;
             }
@@ -1994,32 +1928,6 @@ public final class NodeManager {
      */
     public DbMapping getDbMapping(String protoname) {
         return app.getDbMapping(protoname);
-    }
-
-    // a utility method to escape single quotes
-    private String escape(String str) {
-        if (str == null) {
-            return null;
-        }
-
-        if (str.indexOf("'") < 0) {
-            return str;
-        }
-
-        int l = str.length();
-        StringBuffer sbuf = new StringBuffer(l + 10);
-
-        for (int i = 0; i < l; i++) {
-            char c = str.charAt(i);
-
-            if (c == '\'') {
-                sbuf.append('\'');
-            }
-
-            sbuf.append(c);
-        }
-
-        return sbuf.toString();
     }
 
     /**
@@ -2144,7 +2052,19 @@ public final class NodeManager {
         }
     }
 
-    private void setStatementValues (PreparedStatement stmt, int stmtNumber, Property p, int columnType) throws SQLException {
+    private void setStatementValue(PreparedStatement stmt, int stmtNumber, String value, DbColumn col)
+            throws SQLException {
+        if (value == null) {
+            stmt.setNull(stmtNumber, col.getType());
+        } else if (col.needsQuotes()) {
+            stmt.setString(stmtNumber, value);
+        } else {
+            stmt.setLong(stmtNumber, Long.parseLong(value));
+        }
+    }
+
+    private void setStatementValue(PreparedStatement stmt, int stmtNumber, Property p, int columnType)
+            throws SQLException {
         if (p.getValue() == null) {
             stmt.setNull(stmtNumber, columnType);
         } else {

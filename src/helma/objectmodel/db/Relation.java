@@ -813,30 +813,17 @@ public final class Relation {
      *  and a local object.
      */
     public String buildQuery(INode home, INode nonvirtual, String kstr, String pre,
-                             boolean useOrder) throws SQLException {
+                             boolean useOrder)
+            throws SQLException, ClassNotFoundException {
         StringBuffer q = new StringBuffer();
         String prefix = pre;
 
         if (kstr != null && !isComplexReference()) {
             q.append(prefix);
 
-            String accessColumn = (accessName == null) ? otherType.getIDField() : accessName;
-
-            if (accessColumn.indexOf('(') == -1 && accessColumn.indexOf('.') == -1) {
-                q.append(otherType.getTableName());
-                q.append(".");
-            }
-            q.append(accessColumn);
-            q.append(" = ");
-
-            // check if column is string type and value needs to be quoted
-            if (otherType.needsQuotes(accessColumn)) {
-                q.append("'");
-                q.append(escape(kstr));
-                q.append("'");
-            } else {
-                q.append(escape(kstr));
-            }
+            String accessColumn = (accessName == null) ?
+                    otherType.getIDField() : accessName;
+            otherType.appendCondition(q, accessColumn, kstr);
 
             prefix = " AND ";
         }
@@ -906,7 +893,7 @@ public final class Relation {
                     }
                     // end column version
                     if (value != null) {
-                        q.append(escape(value.toString()));
+                        q.append(DbMapping.escape(value.toString()));
                     } else {
                         q.append("NULL");
                     }
@@ -930,7 +917,7 @@ public final class Relation {
      */
     public void renderConstraints(StringBuffer q, INode home,
                                   INode nonvirtual, String prefix)
-                             throws SQLException {
+                             throws SQLException, ClassNotFoundException {
 
         if (constraints.length > 1 && logicalOperator != AND) {
             q.append(prefix);
@@ -947,6 +934,23 @@ public final class Relation {
         if (constraints.length > 1 && logicalOperator != AND) {
             q.append(")");
             prefix = " AND ";
+        }
+        
+        // also take the prototype into consideration if someone
+        // specifies an extension of an prototype inside the brakets of
+        // a type.properties's collection, only nodes having this proto
+        // sould appear inside the collection
+        if (otherType.inheritsStorage()) {
+            String protoField = otherType.getPrototypeField();
+            String[] extensions = otherType.getExtensions();
+
+            // extensions should never be null for extension- and
+            // extended prototypes. nevertheless we check it here
+            if (extensions != null) {
+                q.append(prefix);
+                otherType.appendCondition(q, protoField, extensions);
+                prefix = " AND ";
+            }
         }
 
         if (filter != null) {
@@ -1214,32 +1218,6 @@ public final class Relation {
         return map;
     }
 
-    // a utility method to escape single quotes
-    String escape(String str) {
-        if (str == null) {
-            return null;
-        }
-
-        if (str.indexOf("'") < 0) {
-            return str;
-        }
-
-        int l = str.length();
-        StringBuffer sbuf = new StringBuffer(l + 10);
-
-        for (int i = 0; i < l; i++) {
-            char c = str.charAt(i);
-
-            if (c == '\'') {
-                sbuf.append('\'');
-            }
-
-            sbuf.append(c);
-        }
-
-        return sbuf.toString();
-    }
-
     /**
      *
      *
@@ -1279,7 +1257,7 @@ public final class Relation {
         }
 
         public void addToQuery(StringBuffer q, INode home, INode nonvirtual)
-                        throws SQLException {
+                        throws SQLException, ClassNotFoundException {
             String local = null;
             INode ref = isGroupby ? home : nonvirtual;
 
@@ -1292,20 +1270,7 @@ public final class Relation {
                 local = ref.getString(homeprop);
             }
 
-            if (foreignName.indexOf('(') == -1 && foreignName.indexOf('.') == -1) {
-                q.append(otherType.getTableName());
-                q.append(".");
-            }
-            q.append(foreignName);
-            q.append(" = ");
-
-            if (otherType.needsQuotes(foreignName)) {
-                q.append("'");
-                q.append(escape(local));
-                q.append("'");
-            } else {
-                q.append(escape(local));
-            }
+            otherType.appendCondition(q, foreignName, local);
         }
 
         public boolean foreignKeyIsPrimary() {

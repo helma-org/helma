@@ -65,7 +65,7 @@ public final class DbMapping {
     // Case insensitive, keys are stored in upper case so
     // lookups must do a toUpperCase().
     private HashMap db2prop;
-
+    
     // list of columns to fetch from db
     private DbColumn[] columns = null;
 
@@ -89,8 +89,13 @@ public final class DbMapping {
     // db field used to identify name of prototype to use for object instantiation
     private String protoField;
 
-    // name of parent prototype, if any
-    private String extendsProto;
+    // Used to map prototype ids to prototype names for
+    // prototypes which extend the prototype represented by
+    // this DbMapping.
+    private ResourceProperties extensionMap;
+
+    // a numeric or literal id used to represent this type in db
+    private String extensionId;
 
     // dbmapping of parent prototype, if any
     private DbMapping parentMapping;
@@ -221,7 +226,7 @@ public final class DbMapping {
         lastTypeChange = props.lastModified();
 
         // see if this prototype extends (inherits from) any other prototype
-        extendsProto = props.getProperty("_extends");
+        String extendsProto = props.getProperty("_extends");
 
         if (extendsProto != null) {
             parentMapping = app.getDbMapping(extendsProto);
@@ -244,6 +249,10 @@ public final class DbMapping {
         } else {
             parentMapping = null;
         }
+
+        // check if there is an extension-id specified inside the type.properties
+        extensionId = props.getProperty("_extensionId", typename);
+        registerExtension(extensionId, typename);
 
         // set the parent prototype in the corresponding Prototype object!
         // this was previously done by TypeManager, but we need to do it
@@ -362,6 +371,57 @@ public final class DbMapping {
     }
 
     /**
+     * Add the given extensionId and the coresponding prototypename
+     * to extensionMap for later lookup.
+     * @param extID the id mapping to the prototypename recogniced by helma
+     * @param extName the name of the extending prototype
+     */
+    private void registerExtension(String extID, String extName) {
+        // lazy initialization of extensionMap
+        if (extensionMap == null) {
+            extensionMap = new ResourceProperties();
+            extensionMap.setIgnoreCase(true);
+        } else if (extensionMap.containsValue(extName)) {
+            // remove any preexisting mapping for the given childmapping
+            extensionMap.values().remove(extName);
+        }
+        extensionMap.setProperty(extID, extName);
+        if (inheritsStorage()) {
+            parentMapping.registerExtension(extID, extName);
+        }
+    }
+
+    /**
+     * Returns the Set of Prototypes extending this prototype
+     * @return the Set of Prototypes extending this prototype
+     */
+    public String[] getExtensions() {
+        return extensionMap == null
+                ? new String[] { extensionId }
+                : (String[]) extensionMap.keySet().toArray(new String[0]);
+    }
+    
+    /**
+     * Looks up the prototype-name identified by the given integer value
+     * @param id the id specified for the prototype
+     * @return the name of the extending prototype
+     */
+    public String getPrototypeName(String id) {
+        if (inheritsStorage()) {
+            return parentMapping.getPrototypeName(id);
+        }
+        // fallback to base-prototype if the proto isn't recogniced
+        return extensionMap.getProperty(id, typename);
+    }
+
+    /**
+     * get the id-value of this extension
+     */
+    public String getExtensionId() {
+        return extensionId;
+    }
+
+    /**
      * Method in interface Updatable.
      */
     public void remove() {
@@ -459,7 +519,7 @@ public final class DbMapping {
      * Get the name of this type's parent type, if any.
      */
     public String getExtends() {
-        return extendsProto;
+        return parentMapping == null ? null : parentMapping.getTypeName();
     }
 
     /**
@@ -937,27 +997,20 @@ public final class DbMapping {
      */
     public DbColumn getColumn(String columnName)
                        throws ClassNotFoundException, SQLException {
-
         DbColumn col = (DbColumn) columnMap.get(columnName);
-
         if (col == null) {
             DbColumn[] cols = columns;
-
             if (cols == null) {
                 cols = getColumns();
             }
-
             for (int i = 0; i < cols.length; i++) {
                 if (columnName.equalsIgnoreCase(cols[i].getName())) {
                     col = cols[i];
-
                     break;
                 }
             }
-
             columnMap.put(columnName, col);
         }
-
         return col;
     }
 
@@ -1057,24 +1110,22 @@ public final class DbMapping {
         }
 
         StringBuffer b1 = new StringBuffer("INSERT INTO ");
+        StringBuffer b2 = new StringBuffer(" ) VALUES ( ");
         b1.append(getTableName());
         b1.append(" ( ");
-        b1.append(getIDField());
-
-        StringBuffer b2 = new StringBuffer(" ) VALUES ( ?");
 
         DbColumn[] cols = getColumns();
-
+        boolean needsComma = false;
+        
         for (int i = 0; i < cols.length; i++) {
-            Relation rel = cols[i].getRelation();
-            String name = cols[i].getName();
-
-            if (((rel != null) && (rel.isPrimitive() ||
-                    rel.isReference())) ||
-                    name.equalsIgnoreCase(getNameField()) ||
-                    name.equalsIgnoreCase(getPrototypeField())) {
-                b1.append(", ").append(cols[i].getName());
-                b2.append(", ?");
+            if (cols[i].isMapped()) {
+                if (needsComma) {
+                    b1.append(", ");
+                    b2.append(", ");
+                }
+                b1.append(cols[i].getName());
+                b2.append("?");
+                needsComma = true;
             }
         }
 
@@ -1115,36 +1166,16 @@ public final class DbMapping {
      *  Return true if values for the column identified by the parameter need
      *  to be quoted in SQL queries.
      */
-    public boolean needsQuotes(String columnName) throws SQLException {
+    public boolean needsQuotes(String columnName) throws SQLException, ClassNotFoundException {
         if ((tableName == null) && (parentMapping != null)) {
             return parentMapping.needsQuotes(columnName);
         }
-
-        try {
-            DbColumn col = getColumn(columnName);
-
-            // This is not a mapped column. In case of doubt, add quotes.
-            if (col == null) {
-                return true;
-            }
-
-            switch (col.getType()) {
-                case Types.CHAR:
-                case Types.VARCHAR:
-                case Types.LONGVARCHAR:
-                case Types.BINARY:
-                case Types.VARBINARY:
-                case Types.LONGVARBINARY:
-                case Types.DATE:
-                case Types.TIME:
-                case Types.TIMESTAMP:
-                    return true;
-
-                default:
-                    return false;
-            }
-        } catch (Exception x) {
-            throw new SQLException(x.getMessage());
+        DbColumn col = getColumn(columnName);
+        // This is not a mapped column. In case of doubt, add quotes.
+        if (col == null) {
+            return true;
+        } else {
+            return col.needsQuotes();
         }
     }
 
@@ -1367,10 +1398,7 @@ public final class DbMapping {
         // note: tableName and dbSourceName are nulled out in update() if they
         // are inherited from the parent mapping. This way we know that
         // storage is not inherited if either of them is not null.
-        if (parentMapping == null || tableName != null || dbSourceName != null) {
-            return false;
-        }
-        return true;
+        return parentMapping != null && tableName == null && dbSourceName == null;
     }
 
     /**
@@ -1450,5 +1478,91 @@ public final class DbMapping {
      */
     protected void addDependency(DbMapping dbmap) {
         this.dependentMappings.add(dbmap);
+    }
+    
+    /**
+     * Append a sql-condition for the given column which must have
+     * one of the values contained inside the given Set to the given
+     * StringBuffer. 
+     * @param q the StringBuffer to append to
+     * @param column the column which must match one of the values
+     * @param values the list of values
+     * @throws SQLException
+     */
+    protected void appendCondition(StringBuffer q, String column, String[] values)
+            throws SQLException, ClassNotFoundException {
+        if (values.length == 1) {
+            appendCondition(q, column, values[0]);
+            return;
+        }
+        if (column.indexOf('(') == -1 && column.indexOf('.') == -1) {
+            q.append(getTableName()).append(".");
+        }
+        q.append(column).append(" in (");
+
+        if (needsQuotes(column)) {
+            for (int i = 0; i < values.length; i++) {
+                if (i > 0)
+                    q.append(", ");
+                q.append("'").append(escape(values[i])).append("'");
+            }
+        } else {
+            for (int i = 0; i < values.length; i++) {
+                if (i > 0)
+                    q.append(", ");
+                q.append(values[i]);
+            }
+        }
+        q.append(")");
+    }
+
+    /**
+     * Append a sql-condition for the given column which must have
+     * the value given to the given StringBuffer. 
+     * @param q the StringBuffer to append to
+     * @param column the column which must match one of the values
+     * @param val the value
+     * @throws SQLException
+     */
+    protected void appendCondition(StringBuffer q, String column, String val)
+            throws SQLException, ClassNotFoundException {
+        if (column.indexOf('(') == -1 && column.indexOf('.') == -1) {
+            q.append(getTableName()).append(".");
+        }
+        q.append(column).append(" = ");
+        
+        if (needsQuotes(column)) {
+            q.append("'").append(escape(val)).append("'");
+        } else {
+            q.append(val);
+        }
+    }
+
+    /**
+     * a utility method to escape single quotes used for inserting
+     * string-values into relational databases.
+     * Searches for "'" characters and escapes them by duplicating them (= "''")
+     * @param str the string to escape
+     * @return the escaped string
+     */
+    static String escape(String str) {
+        if (str == null) {
+            return null;
+        } else if (str.indexOf("'") < 0) {
+            return str;
+        }
+
+        int l = str.length();
+        StringBuffer sbuf = new StringBuffer(l + 10);
+
+        for (int i = 0; i < l; i++) {
+            char c = str.charAt(i);
+
+            if (c == '\'') {
+                sbuf.append('\'');
+            }
+            sbuf.append(c);
+        }
+        return sbuf.toString();
     }
 }
