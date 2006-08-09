@@ -297,10 +297,9 @@ public final class DbMapping {
 
                     rel.update(dbField, props);
 
-                    // key enumerations from SystemProperties are all lower case, which is why
-                    // even though we don't do a toLowerCase() here,
-                    // we have to when we lookup things in p2d later.
-                    p2d.put(propName, rel);
+                    // store relation with lower case property name
+                    // (ResourceProperties now preserve key capitalization!)
+                    p2d.put(propName.toLowerCase(), rel);
 
                     if ((rel.columnName != null) &&
                             ((rel.reftype == Relation.PRIMITIVE) ||
