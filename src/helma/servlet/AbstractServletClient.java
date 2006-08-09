@@ -490,22 +490,14 @@ public abstract class AbstractServletClient extends HttpServlet {
         ServletContext cx = getServletConfig().getServletContext();
         String path = cx.getRealPath(forward);
         if (path == null)
-            throw new IOException("Resource "+forward+" not found");
+            throw new IOException("Resource " + forward + " not found");
 
         File file = new File(path);
-        // calculate checksom on last modified date and content length.
-        byte[] checksum = getChecksum(file);
-        String etag = "\"" + new String(Base64.encode(checksum)) + "\"";
-        res.setHeader("ETag", etag);
-        String etagHeader = req.getHeader("If-None-Match");
-        if (etagHeader != null) {
-            StringTokenizer st = new StringTokenizer(etagHeader, ", \r\n");
-            while (st.hasMoreTokens()) {
-                if (etag.equals(st.nextToken())) {
-                    res.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
-                    return;
-                }
-            }
+        // check if the client has an up-to-date copy so we can
+        // send a not-modified response
+        if (checkNotModified(file, req, res)) {
+            res.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+            return;
         }
         int length = (int) file.length();
         res.setContentLength(length);
@@ -538,7 +530,10 @@ public abstract class AbstractServletClient extends HttpServlet {
         }
     }
 
-    private byte[] getChecksum(File file) {
+    private boolean checkNotModified(File file, HttpServletRequest req, HttpServletResponse res) {
+        // we do two rounds of conditional requests:
+        // first ETag based, then based on last modified date.
+        // calculate ETag checksum on last modified date and content length.
         byte[] checksum = new byte[16];
         long n = file.lastModified();
         for (int i=0; i<8; i++) {
@@ -550,7 +545,27 @@ public abstract class AbstractServletClient extends HttpServlet {
             checksum[i] = (byte) (n);
             n >>>= 8;
         }
-        return checksum;
+        String etag = "\"" + new String(Base64.encode(checksum)) + "\"";
+        res.setHeader("ETag", etag);
+        String etagHeader = req.getHeader("If-None-Match");
+        if (etagHeader != null) {
+            StringTokenizer st = new StringTokenizer(etagHeader, ", \r\n");
+            while (st.hasMoreTokens()) {
+                if (etag.equals(st.nextToken())) {
+                    return true;
+                }
+            }
+        }
+        // as a fallback, since some browsers don't support ETag based
+        // conditional GET for embedded images and stuff, check last modified date.
+        // date headers don't do milliseconds, round to seconds
+        long lastModified = (file.lastModified() / 1000) * 1000;
+        long ifModifiedSince = req.getDateHeader("If-Modified-Since");
+        if (lastModified == ifModifiedSince) {
+            return true;
+        }
+        res.setDateHeader("Last-Modified", lastModified);
+        return false;
     }
 
     /**
@@ -810,12 +825,7 @@ public abstract class AbstractServletClient extends HttpServlet {
         if (protocol == null) {
             return false;
         }
-
-        if (protocol.endsWith("1.1")) {
-            return true;
-        }
-
-        return false;
+        return protocol.endsWith("1.1");
     }
 
     String getPathInfo(HttpServletRequest req)
@@ -856,11 +866,10 @@ public abstract class AbstractServletClient extends HttpServlet {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Return servlet info
+     * @return the servlet info
      */
     public String getServletInfo() {
-        return new String("Helma Servlet Client");
+        return "Helma Servlet Client";
     }
 }
