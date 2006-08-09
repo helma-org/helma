@@ -946,7 +946,7 @@ public final class Relation {
 
             // extensions should never be null for extension- and
             // extended prototypes. nevertheless we check it here
-            if (extensions != null) {
+            if (extensions != null && protoField != null) {
                 q.append(prefix);
                 otherType.appendCondition(q, protoField, extensions);
                 prefix = " AND ";
