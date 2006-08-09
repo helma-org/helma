@@ -56,6 +56,8 @@ public class ResourceProperties extends Properties {
     // Sorted map of resources
     private Set resources;
 
+    private Properties keyMap = new Properties();
+
     /**
      * Constructs an empty ResourceProperties
      * Resources must be added manually afterwards
@@ -307,7 +309,13 @@ public class ResourceProperties extends Properties {
         if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
-        return (String) super.get(ignoreCase ? key.toString().toLowerCase() : key.toString());
+        String strkey = key.toString();
+        if (ignoreCase) {
+            strkey = keyMap.getProperty(strkey.toLowerCase());
+            if (strkey == null)
+                return null;
+        }
+        return (String) super.get(key.toString());
     }
 
     /**
@@ -364,7 +372,12 @@ public class ResourceProperties extends Properties {
         if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
-        return super.getProperty(ignoreCase ? key.toLowerCase() : key, defaultValue);
+        if (ignoreCase) {
+            key = keyMap.getProperty(key.toLowerCase());
+            if (key == null)
+                return defaultValue;
+        }
+        return super.getProperty(key, defaultValue);
     }
 
     /**
@@ -376,7 +389,12 @@ public class ResourceProperties extends Properties {
         if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
-        return super.getProperty(ignoreCase ? key.toLowerCase() : key);
+        if (ignoreCase) {
+            key = keyMap.getProperty(key.toLowerCase());
+            if (key == null)
+                return null;
+        }
+        return super.getProperty(key);
     }
 
     /**
@@ -430,7 +448,11 @@ public class ResourceProperties extends Properties {
         if (value != null) {
             value = value.toString().trim();
         }
-        return super.put(ignoreCase ? key.toString().toLowerCase() : key.toString(), value);
+        String strkey = key.toString();
+        if (ignoreCase) {
+            keyMap.put(strkey.toLowerCase(), strkey);
+        }
+        return super.put(strkey, value);
     }
 
     /**
@@ -439,7 +461,13 @@ public class ResourceProperties extends Properties {
      * @return the old value
      */
     public Object remove(Object key) {
-        return super.remove(ignoreCase ? key.toString().toLowerCase() : key.toString());
+        String strkey = key.toString();
+        if (ignoreCase) {
+            strkey = (String) keyMap.remove(strkey.toLowerCase());
+            if (strkey == null)
+                return null;
+        }
+        return super.remove(strkey);
     }
 
     /**
@@ -462,6 +490,14 @@ public class ResourceProperties extends Properties {
             update();
         }
         return super.size();
+    }
+
+    /**
+     * Overwrite clear() to also empty the key map.
+     */
+    public void clear() {
+        keyMap.clear();
+        super.clear();
     }
 
     /**
