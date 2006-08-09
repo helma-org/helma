@@ -56,6 +56,7 @@ public class ResourceProperties extends Properties {
     // Sorted map of resources
     private Set resources;
 
+    // lower case key to original key mapping for case insensitive lookups
     private Properties keyMap = new Properties();
 
     /**
