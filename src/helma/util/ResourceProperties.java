@@ -287,7 +287,11 @@ public class ResourceProperties extends Properties {
         if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
-        return super.containsKey(key.toString());
+        if (ignoreCase) {
+            return keyMap.containsKey(key.toString().toLowerCase());
+        } else {
+            return super.containsKey(key.toString());
+        }
     }
 
     /**
@@ -316,7 +320,7 @@ public class ResourceProperties extends Properties {
             if (strkey == null)
                 return null;
         }
-        return (String) super.get(key.toString());
+        return (String) super.get(strkey);
     }
 
     /**
