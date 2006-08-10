@@ -103,7 +103,7 @@ public final class XmlDatabase implements IDatabase {
                 node.setDbMapping(app.getDbMapping("root"));
                 insertNode(txn, node.getID(), node);
                 // register node with nodemanager cache
-                nmgr.registerNode(node);
+                // nmgr.registerNode(node);
             }
 
             try {
@@ -113,7 +113,7 @@ public final class XmlDatabase implements IDatabase {
                 node.setDbMapping(app.getDbMapping("__userroot__"));
                 insertNode(txn, node.getID(), node);
                 // register node with nodemanager cache
-                nmgr.registerNode(node);
+                // nmgr.registerNode(node);
             }
 
             commitTransaction(txn);
