@@ -788,8 +788,8 @@ public final class Node implements INode, Serializable {
                     if (pinfo.virtualname != null) {
                         pn = (Node) pn.getNode(pinfo.virtualname);
                         if (pn == null)
-                            System.err.println("Error: Can't retrieve parent "+
-                                               "node "+pinfo+" for "+this);
+                            nmgr.nmgr.app.logError("Error: Can't retrieve parent node " +
+                                                   pinfo + " for " + this);
                     }
 
                     DbMapping dbm = (pn == null) ? null : pn.getDbMapping();
@@ -807,7 +807,9 @@ public final class Node implements INode, Serializable {
 
                             return pn;
                         }
-                    } catch (Exception ignore) {
+                    } catch (Exception x) {
+                        nmgr.nmgr.app.logError("Error retrieving parent node " +
+                                                   pinfo + " for " + this, x);
                     }
                 }
                 if (i == parentInfo.length-1) {
@@ -1973,7 +1975,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN && propname.charAt(0) != '_') {
+        if (state == CLEAN && isPersistableProperty(propname)) {
             markAs(MODIFIED);
         }
     }
@@ -2084,7 +2086,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN && propname.charAt(0) != '_') {
+        if (state == CLEAN && isPersistableProperty(propname)) {
             markAs(MODIFIED);
         }
     }
@@ -2121,7 +2123,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN && propname.charAt(0) != '_') {
+        if (state == CLEAN && isPersistableProperty(propname)) {
             markAs(MODIFIED);
         }
     }
@@ -2158,7 +2160,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN && propname.charAt(0) != '_') {
+        if (state == CLEAN && isPersistableProperty(propname)) {
             markAs(MODIFIED);
         }
     }
@@ -2195,7 +2197,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN && propname.charAt(0) != '_') {
+        if (state == CLEAN && isPersistableProperty(propname)) {
             markAs(MODIFIED);
         }
     }
@@ -2232,7 +2234,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN && propname.charAt(0) != '_') {
+        if (state == CLEAN && isPersistableProperty(propname)) {
             markAs(MODIFIED);
         }
     }
@@ -2269,7 +2271,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN && propname.charAt(0) != '_') {
+        if (state == CLEAN && isPersistableProperty(propname)) {
             markAs(MODIFIED);
         }
     }
@@ -2309,7 +2311,7 @@ public final class Node implements INode, Serializable {
         }
 
         // if the new node is marked as TRANSIENT and this node is not, mark new node as NEW
-        if ((state != TRANSIENT) && (n.state == TRANSIENT)) {
+        if (state != TRANSIENT && n.state == TRANSIENT && isPersistableProperty(propname)) {
             n.makePersistable();
         }
 
@@ -2384,7 +2386,7 @@ public final class Node implements INode, Serializable {
 
             propMap.put(p2, prop);
 
-            if (state == CLEAN) {
+            if (state == CLEAN && isPersistableProperty(propname)) {
                 markAs(MODIFIED);
             }
         }
@@ -2412,6 +2414,10 @@ public final class Node implements INode, Serializable {
         if (n.state == DELETED) {
             n.markAs(MODIFIED);
         }
+    }
+
+    private boolean isPersistableProperty(String propname) {
+        return propname.length() > 0 && propname.charAt(0) != '_';
     }
 
     /**
