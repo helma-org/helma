@@ -819,6 +819,10 @@ public final class Node implements INode, Serializable {
                     lastParentSet = System.currentTimeMillis();
                 }
             }
+            if (parentHandle == null && !nmgr.isRootNode(this)) {
+                nmgr.nmgr.app.logEvent("*** Couldn't resolve parent for " + this);
+                nmgr.nmgr.app.logEvent("*** Please check _parent info in type.properties!");
+            }
         }
 
         // fall back to heuristic parent (the node that fetched this one from db)
