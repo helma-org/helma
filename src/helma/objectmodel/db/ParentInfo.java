@@ -46,9 +46,7 @@ public class ParentInfo {
             virtualname = null;
         }
 
-        isroot = "root".equals(propname);
-
-        // System.err.println ("created "+this);
+        isroot = "root".equalsIgnoreCase(propname);
     }
 
     /**
