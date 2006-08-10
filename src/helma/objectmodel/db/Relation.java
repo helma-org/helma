@@ -734,7 +734,7 @@ public final class Relation {
         // create a synthetic DbMapping that describes how to fetch the
         // collection's child objects.
         if (virtualMapping == null) {
-            virtualMapping = new DbMapping(ownType.app);
+            virtualMapping = new DbMapping(ownType.app, null);
             virtualMapping.subRelation = getVirtualSubnodeRelation();
             virtualMapping.propRelation = getVirtualPropertyRelation();
         }

@@ -30,13 +30,13 @@ import java.util.*;
  */
 public final class DbMapping {
     // DbMappings belong to an application
-    protected Application app;
+    protected final Application app;
 
     // prototype name of this mapping
-    private String typename;
+    private final String typename;
 
     // properties from where the mapping is read
-    private ResourceProperties props;
+    private final ResourceProperties props;
 
     // name of data dbSource to which this mapping writes
     private DbSource dbSource;
@@ -120,19 +120,14 @@ public final class DbMapping {
     // Set of mappings that depend on us and should be forwarded last data change events
     HashSet dependentMappings = new HashSet();
 
+    // flag that tells us whether this maps to a relational db
+    private boolean relational = false;
+
     /**
      * Create an empty DbMapping
      */
-    public DbMapping(Application app) {
-        this.app = app;
-        this.typename = null;
-
-        prop2db = new HashMap();
-        db2prop = new HashMap();
-
-        parentInfo = null;
-
-        idField = null;
+    public DbMapping(Application app, String typename) {
+        this(app, typename, null);
     }
 
     /**
@@ -146,12 +141,14 @@ public final class DbMapping {
 
         prop2db = new HashMap();
         db2prop = new HashMap();
-
         columnMap = new HashMap();
         parentInfo = null;
         idField = null;
         this.props = props;
-        readBasicProperties();
+
+        if (props != null) {
+            readBasicProperties();
+        }
     }
 
     /**
@@ -173,14 +170,14 @@ public final class DbMapping {
             dbSource = app.getDbSource(dbSourceName);
 
             if (dbSource == null) {
-                app.logEvent("*** Data Source for prototype " + typename +
+                app.logError("*** Data Source for prototype " + typename +
                              " does not exist: " + dbSourceName);
-                app.logEvent("*** accessing or storing a " + typename +
+                app.logError("*** accessing or storing a " + typename +
                              " object will cause an error.");
             } else if (tableName == null) {
-                app.logEvent("*** No table name specified for prototype " + typename);
-                app.logEvent("*** accessing or storing a " + typename +
-                        " object will cause an error.");
+                app.logError("*** No table name specified for prototype " + typename);
+                app.logError("*** accessing or storing a " + typename +
+                             " object will cause an error.");
 
                 // mark mapping as invalid by nulling the dbSource field
                 dbSource = null;
@@ -230,7 +227,10 @@ public final class DbMapping {
 
         if (extendsProto != null) {
             parentMapping = app.getDbMapping(extendsProto);
-            if (parentMapping != null) {
+            if (parentMapping == null) {
+                app.logError("*** Parent mapping for prototype " + typename +
+                             " does not exist: " + extendsProto);
+            } else {
                 if (parentMapping.needsUpdate()) {
                     parentMapping.update();
                 }
@@ -245,9 +245,18 @@ public final class DbMapping {
                     dbSourceName = null;
                     dbSource = null;
                 }
+                // set/update relational flag
+                relational = dbSourceName != null || parentMapping.isRelational();
             }
         } else {
             parentMapping = null;
+            // set/update relational flag
+            relational = dbSourceName != null;
+        }
+
+        if (inheritsStorage() && getPrototypeField() == null) {
+            app.logError("*** Prototype not stored for extended relational type " + typename);
+            app.logError("*** objects fetched from db will have base prototype!");
         }
 
         // check if there is an extension-id specified inside the type.properties
@@ -401,7 +410,8 @@ public final class DbMapping {
     }
     
     /**
-     * Looks up the prototype-name identified by the given integer value
+     * Looks up the prototype name identified by the given id, returing
+     * our own type name if it can't be resolved
      * @param id the id specified for the prototype
      * @return the name of the extending prototype
      */
@@ -765,7 +775,7 @@ public final class DbMapping {
     private void initGroupbyMapping() {
         // if a prototype is defined for groupby nodes, use that
         // if mapping doesn' exist or isn't defined, create a new (anonymous internal) one
-        groupbyMapping = new DbMapping(app);
+        groupbyMapping = new DbMapping(app, subRelation.groupbyPrototype);
 
         // If a mapping is defined, make the internal mapping inherit from
         // the defined named prototype.
@@ -780,8 +790,6 @@ public final class DbMapping {
         } else {
             groupbyMapping.propRelation = subRelation.getGroupbyPropertyRelation();
         }
-
-        groupbyMapping.typename = subRelation.groupbyPrototype;
     }
 
     /**
@@ -916,15 +924,7 @@ public final class DbMapping {
      *  not what we want.
      */
     public boolean isRelational() {
-        if (dbSourceName != null) {
-            return true;
-        }
-
-        if (parentMapping != null) {
-            return parentMapping.isRelational();
-        }
-
-        return false;
+        return relational;
     }
 
     /**
@@ -1378,10 +1378,9 @@ public final class DbMapping {
      * db.
      */
     public String getStorageTypeName() {
-        if ((tableName == null) && (parentMapping != null)) {
+        if (inheritsStorage()) {
             return parentMapping.getStorageTypeName();
         }
-
         return (dbSourceName == null) ? null : typename;
     }
 
@@ -1397,7 +1396,8 @@ public final class DbMapping {
         // note: tableName and dbSourceName are nulled out in update() if they
         // are inherited from the parent mapping. This way we know that
         // storage is not inherited if either of them is not null.
-        return parentMapping != null && tableName == null && dbSourceName == null;
+        return relational && parentMapping != null
+                && tableName == null && dbSourceName == null;
     }
 
     /**
