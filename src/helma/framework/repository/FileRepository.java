@@ -136,7 +136,7 @@ public class FileRepository extends AbstractRepository {
     public synchronized void update() {
         if (!directory.exists()) {
             repositories = emptyRepositories;
-            if (resources != null) {
+            if (resources == null) {
                 resources = new HashMap();
             } else {
                 resources.clear();
