@@ -321,9 +321,10 @@ public final class ResponseTrans extends Writer implements Serializable {
      * Write object to response buffer and append a platform dependent newline sequence.
      */
     public synchronized void writeln(Object what) {
-        write(what);
-        // if what is null, buffer may still be uninitialized
-        if (buffer == null) {
+        if (what != null) {
+            write(what.toString());
+        } else if (buffer == null) {
+            // if what is null, buffer may still be uninitialized
             buffer = new StringBuffer(INITIAL_BUFFER_SIZE);
         }
         buffer.append(newLine);
