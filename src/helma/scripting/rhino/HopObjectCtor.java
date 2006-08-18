@@ -42,9 +42,7 @@ public class HopObjectCtor extends FunctionObject {
         }
     }
 
-    static final int attr = ScriptableObject.DONTENUM  |
-                            ScriptableObject.PERMANENT |
-                            ScriptableObject.READONLY;
+    static final int attr = DONTENUM | PERMANENT | READONLY;
     /**
      * Create and install a HopObject constructor.
      * Part of this is copied from o.m.j.FunctionObject.addAsConstructor().
@@ -115,7 +113,7 @@ public class HopObjectCtor extends FunctionObject {
             // trigger prototype compilation on static
             // constructor property access
             initialized = true;
-            core.getPrototype(functionName);
+            core.getPrototype(getFunctionName());
         }
         return super.get(name, start);
     }
