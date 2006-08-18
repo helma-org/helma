@@ -232,12 +232,6 @@ public class RhinoEngine implements ScriptingEngine {
         // core.global.unregisterScope();
         thread = null;
 
-        // if visual debugger is on let it know we're exiting a context
-        if (core.debugger != null) {
-            core.debugger.contextExited(context);
-            core.debugger.contextReleased(context);
-        }
-
         // loop through previous globals and unset them, if necessary.
         if (lastGlobals != null) {
             for (Iterator i = lastGlobals.keySet().iterator(); i.hasNext();) {

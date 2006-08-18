@@ -47,7 +47,7 @@ public class DocFunction extends DocResourceElement {
         DocFunction func = new DocFunction(name, res, parent, ACTION);
         String rawComment = "";
         try {
-            TokenStream ts = getTokenStream (res);
+            DockenStream ts = getDockenStream (res);
             Point p = getPoint (ts);
             ts.getToken();
             rawComment = Util.getStringFromFile(res, p, getPoint(ts));
@@ -90,7 +90,7 @@ public class DocFunction extends DocResourceElement {
             String functionName   = null;
             String context        = null;
 
-            TokenStream ts = getTokenStream (res);
+            DockenStream ts = getDockenStream (res);
 
             while (!ts.eof()) {
 
@@ -101,7 +101,7 @@ public class DocFunction extends DocResourceElement {
                 lastToken = token;
 
                 // now get a new token
-                // regular expression syntax is troublesome for the TokenStream
+                // regular expression syntax is troublesome for the DockenStream
                 // we can safely ignore syntax errors in regular expressions here
                 try {
                     token = ts.getToken();
@@ -208,7 +208,7 @@ public class DocFunction extends DocResourceElement {
                     token = ts.getToken();
                     int level = (token == Token.LC) ? 1 : 0;
                     while (!ts.eof() && level > 0) {
-                        // regular expression syntax is troublesome for the TokenStream
+                        // regular expression syntax is troublesome for the DockenStream
                         // we don't need them here, so we just ignore such an error
                         try {
                             token = ts.getToken();
@@ -250,7 +250,7 @@ public class DocFunction extends DocResourceElement {
     /**
      * creates a rhino token stream for a given file
      */
-    protected static TokenStream getTokenStream (Resource res) throws IOException {
+    protected static DockenStream getDockenStream (Resource res) throws IOException {
         Reader reader = null;
         try {
             reader = new InputStreamReader(res.getInputStream());
@@ -258,18 +258,20 @@ public class DocFunction extends DocResourceElement {
             fnfe.printStackTrace();
             throw new DocException (fnfe.toString());
         }
-        String name = res.getName();
-        int line = 0;
+        // String name = res.getName();
+        Integer line = new Integer(0);
         CompilerEnvirons compilerEnv = new CompilerEnvirons();
         compilerEnv.initFromContext(Context.getCurrentContext());
-        return new TokenStream (compilerEnv, reader, null, name, line);
+        ErrorReporter errorReporter = Context.getCurrentContext().getErrorReporter();
+        Parser parser = new Parser(compilerEnv, errorReporter);
+        return new DockenStream (parser, reader, null, line);
     }
 
 
     /**
-     * returns a pointer to the current position in the TokenStream
+     * returns a pointer to the current position in the DockenStream
      */
-    protected static Point getPoint (TokenStream ts) {
+    protected static Point getPoint (DockenStream ts) {
         return new Point (ts.getOffset(), ts.getLineno());
     }
 

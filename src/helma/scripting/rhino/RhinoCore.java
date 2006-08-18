@@ -18,7 +18,6 @@ package helma.scripting.rhino;
 
 import helma.scripting.rhino.extensions.*;
 import helma.scripting.rhino.debug.HelmaDebugger;
-import helma.scripting.rhino.debug.ScopeProvider;
 import helma.framework.core.*;
 import helma.framework.repository.Resource;
 import helma.objectmodel.*;
@@ -29,6 +28,7 @@ import helma.util.SystemMap;
 import helma.util.WrappedMap;
 import helma.util.WeakCacheMap;
 import org.mozilla.javascript.*;
+import org.mozilla.javascript.tools.debugger.ScopeProvider;
 
 import java.io.*;
 import java.text.*;
@@ -72,6 +72,11 @@ public final class RhinoCore implements ScopeProvider {
     // as the app remains unchanged
     long updateSnooze = 500;
 
+    static {
+       ContextFactory.initGlobal(new HelmaContextFactory());
+    }
+
+
     /**
      *  Create a Rhino evaluator for the given application and request evaluator.
      */
@@ -104,7 +109,6 @@ public final class RhinoCore implements ScopeProvider {
                 app.logError("Invalid rhino optlevel: " + opt);
             }
         }
-
         context.setOptimizationLevel(optLevel);
 
         try {
@@ -148,25 +152,24 @@ public final class RhinoCore implements ScopeProvider {
             throw new RuntimeException(e.getMessage());
         } finally {
             Context.exit();
-
-            if (debugger != null) {
-                debugger.contextExited(context);
-                debugger.contextReleased(context);
-            }
         }
     }
 
     void initDebugger(Context context) {
+        try {
         if (debugger == null) {
             debugger = new HelmaDebugger(app.getName());
             debugger.setScopeProvider(this);
-            debugger.pack();
-            debugger.setLocation(60, 60);
+            // debugger.setScope(global);
+            debugger.attachTo(context.getFactory());
+            // debugger.pack();
+            // debugger.getDebugFrame().setLocation(60, 60);
         }
-        if (!debugger.isVisible())
-            debugger.setVisible(true);
-        debugger.contextCreated(context);
-        debugger.contextEntered(context);
+        // if (!debugger.isVisible())
+            // debugger.setVisible(true);
+        } catch (Exception x) {
+            x.printStackTrace();
+        }
     }
 
     /**
@@ -1077,4 +1080,13 @@ public final class RhinoCore implements ScopeProvider {
         }
     }
 
+}
+
+class HelmaContextFactory extends ContextFactory {
+    protected  boolean hasFeature(Context cx, int featureIndex) {
+        if (featureIndex == Context.FEATURE_DYNAMIC_SCOPE) {
+            return true;
+        }
+        return super.hasFeature(cx, featureIndex);
+    }
 }
