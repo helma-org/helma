@@ -92,6 +92,7 @@
         <copy file="${build.src}/helma/objectmodel/dom/helma.xsl"
             todir="${build.classes}/helma/objectmodel/dom" />
         <!-- copy source files over to work directory -->
+        <delete dir="${build.work}/src" quiet="true"/>
         <mkdir dir="${build.work}/src" />
         <copy todir="${build.work}/src" overwrite="true">
             <fileset dir="${build.src}" includes="**/*.java"/>
