@@ -10,8 +10,8 @@
  *
  * $RCSfile: Date.js,v $
  * $Author: czv $
- * $Revision: 1.5 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
 
@@ -91,7 +91,7 @@ Date.prototype.getTimespan = function(param) {
 
     var result = {isFuture: this > param.date};
     var diff = Math.abs(param.date.diff(this));
-    var age = {days: Math.floor((diff % Date.ONEMONTH) / Date.ONEDAY),
+    var age = {days: Math.floor(diff / Date.ONEDAY),
                hours: Math.floor((diff % Date.ONEDAY) / Date.ONEHOUR),
                minutes: Math.floor((diff % Date.ONEHOUR) / Date.ONEMINUTE)};
 
