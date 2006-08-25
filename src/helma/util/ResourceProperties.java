@@ -232,6 +232,8 @@ public class ResourceProperties extends Properties {
                     it.remove();
                 }
             }
+            // copy new up-to-date keyMap to ourself
+            keyMap = temp.keyMap;
 
             lastChecksum = getChecksum();
             lastCheck = lastModified = System.currentTimeMillis();
