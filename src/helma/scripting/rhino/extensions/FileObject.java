@@ -50,11 +50,15 @@ public class FileObject extends ScriptableObject {
     }
 
     protected FileObject(String fileName) {
-        file = new File(fileName);
+        // always convert to absolute file straight away, since
+        // relative file name handling is pretty broken in java.io.File
+        file = new File(fileName).getAbsoluteFile();
     }
 
     protected FileObject(String pathName, String fileName) {
-        file = new File(pathName, fileName);
+        // always convert to absolute file straight away, since
+        // relative file name handling is pretty broken in java.io.File
+        file = new File(pathName, fileName).getAbsoluteFile();
     }
 
     public static FileObject fileObjCtor(Context cx, Object[] args,
