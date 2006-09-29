@@ -17,14 +17,15 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //
-// $Revision: 1.2 $
-// $Author: czv $
-// $Date: 2006/04/24 07:02:17 $
+// $Revision: 1.3 $
+// $Author: robert $
+// $Date: 2006/06/15 07:38:19 $
 //
 
 
 // take care of any dependencies
-app.addRepository('modules/helma/lucene.jar');
+app.addRepository('modules/helma/lucene-core.jar');
+app.addRepository('modules/helma/lucene-analyzers.jar');
 
 
 if (!global.helma) {
@@ -32,63 +33,94 @@ if (!global.helma) {
 }
 
 /**
- * Search constructor
+ * Constructs a new instance of Search. This merely
+ * checks if the Lucene library is in the application
+ * classpath.
+ * @classDescription This class provides functionality for
+ * creating a search index.
+ * @return A newly created instance of this prototype.
+ * @constructor
  */
 helma.Search = function() {
-
-    this.toString = function() {
-        return helma.Search.toString();
-    };
-
     try {
         var c = java.lang.Class.forName("org.apache.lucene.analysis.Analyzer",
                                         true, app.getClassLoader());
+       // FIXME: add additional check for version, since we need >= 1.9
     } catch (e) {
-        throw("helma.Search needs lucene.jar \
+        throw("helma.Search needs lucene.jar in version > 1.9 \
                in lib/ext or application directory \
                [http://lucene.apache.org/]");
     }
     return this;
-}
+};
 
-helma.Search.PKG = Packages.org.apache.lucene;
 
-///////////////////////////////////////////
-// static methods
-///////////////////////////////////////////
+/**********************
+ *   STATIC METHODS   *
+ **********************/
+
 
 helma.Search.toString = function() {
     return "[helma.Search]";
-}
+};
 
 /**
- * static method that returns a new Analyzer instance
- * depending on the language passed as argument
- * @param String language
- * @return Object analyzer
+ * Returns a new Analyzer instance depending on the key
+ * passed as argument. Currently supported arguments are
+ * "br" (BrazilianAnalyzer), "cn" (ChineseAnalyzer), "cz" (CzechAnalyzer),
+ * "nl" (DutchAnalyzer), "fr" (FrenchAnalyzer), "de" (GermanAnalyzer),
+ * "el" (GreekAnalyzer), "keyword" (KeywordAnalyzer), "ru" (RussianAnalyzer),
+ * "simple" (SimpleAnalyzer), "snowball" (SnowballAnalyzer), "stop" (StopAnalyzer)
+ * "whitespace" (WhitespaceAnalyzer). If no argument is given, a StandardAnalyzer
+ * is returned.
+ * @param {String} key The key identifying the analyzer
+ * @return A newly created Analyzer instance
+ * @type {org.apache.lucene.analysis.Analyzer}
  */
-helma.Search.getAnalyzer = function(lang) {
-    switch (lang) {
+helma.Search.getAnalyzer = function(key) {
+    var pkg = Packages.org.apache.lucene;
+    switch (key) {
+        case "br":
+            return new pkg.analysis.br.BrazilianAnalyzer();
+        case "cn":
+            return new pkg.analysis.cn.ChineseAnalyzer();
+        case "cz":
+            return new pkg.analysis.cz.CzechAnalyzer();
+        case "nl":
+            return new pkg.analysis.nl.DutchAnalyzer();
+        case "fr":
+            return new pkg.analysis.fr.FrenchAnalyzer();
         case "de":
-            return new helma.Search.PKG.analysis.de.GermanAnalyzer();
+            return new pkg.analysis.de.GermanAnalyzer();
+        case "el":
+            return new pkg.analysis.el.GreekAnalyzer();
+        case "keyword":
+            return new pkg.analysis.KeywordAnalyzer();
         case "ru":
-            return new helma.Search.PKG.analysis.ru.RussianAnalyzer();
-        case "si":
+            return new pkg.analysis.ru.RussianAnalyzer();
         case "simple":
-            return new helma.Search.PKG.analysis.SimpleAnalyzer();
+            return new pkg.analysis.SimpleAnalyzer();
+        case "snowball":
+            return new pkg.analysis.snowball.SnowballAnalyzer();
+        case "stop":
+            return new pkg.analysis.StopAnalyzer();
         case "whitespace":
-            return new helma.Search.PKG.analysis.WhitespaceAnalyzer();
+            return new pkg.analysis.WhitespaceAnalyzer();
         default:
-            return new helma.Search.PKG.analysis.standard.StandardAnalyzer();
+            return new pkg.analysis.standard.StandardAnalyzer();
     }
 };
 
 /**
- * constructor for QueryFilter objects
- * @param Object instance of Search.Query
+ * Constructs a new QueryFilter instance. This class
+ * wraps a lucene QueryFilter.
+ * @param {helma.Search.Query} q The query object to use as
+ * the basis for the QueryFilter instance.
+ * @return A newly created QueryFilter instance.
+ * @constructor
  */
 helma.Search.QueryFilter = function(q) {
-    var wrappedFilter = new helma.Search.PKG.search.QueryFilter(q.getQuery());
+    var wrappedFilter = new Packages.org.apache.lucene.search.QueryFilter(q.getQuery());
 
     this.getFilter = function() {
         return wrappedFilter;
@@ -102,15 +134,22 @@ helma.Search.QueryFilter = function(q) {
 };
 
 
-///////////////////////////////////////////
-// prototype methods
-///////////////////////////////////////////
+/*************************
+ *   PROTOTYPE METHODS   *
+ *************************/
+
+
+/** @ignore */
+helma.Search.prototype.toString = function() {
+    return helma.Search.toString();
+};
 
 /**
- * returns an instance of org.apache.lucene.store.FSDirectory
- * @param Object an instance of File, helma.File, java.io.File or the
- * path to the directory as String
- * @return Object org.apache.lucene.store.FSDirectory
+ * Returns an instance of org.apache.lucene.store.FSDirectory
+ * @param {File | helma.File | java.io.File | String} dir The directory
+ * where the index is located or should be created at.
+ * @return The index directory.
+ * @type org.apache.lucene.store.FSDirectory
  */
 helma.Search.prototype.getDirectory = function(dir, create) {
     if (!dir) {
@@ -124,16 +163,16 @@ helma.Search.prototype.getDirectory = function(dir, create) {
     } else if (!((d = dir) instanceof java.io.File)) {
         throw("helma.Search.getDirectory(): " + dir + " is not a valid argument.");
     }
-    return helma.Search.PKG.store.FSDirectory.getDirectory(d,
+    return Packages.org.apache.lucene.store.FSDirectory.getDirectory(d,
                create == true ? true : !d.exists());
-}
+};
 
 /**
- * returns an instance of org.apache.lucene.store.RAMDirectory
- * @param Object the directory to create the RAMDirectory from. Argument
- *               can be an instance of File, helma.File, java.io.File or the
- *               path to the directory as String
- * @return Object org.apache.lucene.store.RAMDirectory
+ * Returns a RAM directory object.
+ * @param {File | helma.File | java.io.File | String} dir Optional directory
+ * containing a Lucene index from which this RAM directory should be created.
+ * @return A RAM directory instance.
+ * @type org.apache.lucene.store.RAMDirectory
  */
 helma.Search.prototype.getRAMDirectory = function(dir) {
     if (dir != null) {
@@ -148,176 +187,143 @@ helma.Search.prototype.getRAMDirectory = function(dir) {
         if (!d.exists()) {
             throw("helma.Search.getRAMDirectory(): " + dir + " does not exist.");
         }
-        return helma.Search.PKG.store.RAMDirectory(d);
+        return Packages.org.apache.lucene.store.RAMDirectory(d);
     }
-    return helma.Search.PKG.store.RAMDirectory();
-}
+    return Packages.org.apache.lucene.store.RAMDirectory();
+};
 
 /**
- * returns a new index Object
- * @param Object directory containing the index (an instance of either
- * org.apache.lucene.store.FSDirectory or org.apache.lucene.store.RAMDirectory)
- * @param Object (optional) Analyzer to use (instance of org.apache.lucene.analysis.Analyzer)
- * @param Boolean (optional) Flag to force index creation
- * @return Object Index object
+ * Creates a new Lucene index in the directory passed as
+ * argument, using an optional analyzer, and returns an instance
+ * of helma.Search.Index. Any already existing index in this
+ * directory will be preserved.
+ * @param {org.apache.lucene.store.Directory} dir The directory
+ * where the index should be stored. This can be either a
+ * FSDirectory or a RAMDirectory instance.
+ * @param {org.apache.lucene.analysis.Analyzer} analyzer The analyzer to
+ * use for the index. If not specified a StandardAnalyzer will be used.
+ * @return The index instance.
+ * @type helma.Search.Index
  */
-helma.Search.prototype.createIndex = function(dir, analyzer, forceCreate) {
-    if (arguments.length == 0) {
-        throw("helma.Search.createIndex(): insufficient arguments.");
-    } else if (arguments.length == 1) {
+helma.Search.prototype.createIndex = function(dir, analyzer) {
+    if (!dir || !(dir instanceof Packages.org.apache.lucene.store.Directory)) {
+        throw("Index directory missing or invalid.");
+    } else if (!analyzer) {
+        // no analyzer given, use a StandardAnalyzer
         analyzer = helma.Search.getAnalyzer();
-        forceCreate = false;
-    } else if (arguments.length == 2) {
-        if (arguments[1].constructor == Boolean) {
-            analyzer = helma.Search.getAnalyzer();
-            forceCreate = arguments[1];
-        } else {
-            forceCreate = false;
-        }
     }
     var index = new helma.Search.Index(dir, analyzer);
-    if (!helma.Search.PKG.index.IndexReader.indexExists(dir) || forceCreate == true) {
+    if (!Packages.org.apache.lucene.index.IndexReader.indexExists(dir)) {
         index.create();
     }
     return index;
 };
 
 
-///////////////////////////////////////////
-// Index
-///////////////////////////////////////////
+/*************
+ *   INDEX   *
+ *************/
 
 
 /**
- * static constructor for Index objects
- * @param Object index directory, either an instance of FSDirectory or RAMDirectory
- * @param Object Lucene analyzer object
+ * @class Instances of this class represent a Lucene search index
+ * located in either a directory on disk or in RAM. This class
+ * provides various methods for modifying the underlying Lucene index.
+ * @param {org.apache.lucene.store.Directory} directory The directory
+ * where the Lucene index is located at.
+ * @param {org.apache.lucene.analysis.Analyzer} analyzer The analyzer
+ * to use when modifying the index.
+ * @constructor
  */
 helma.Search.Index = function(directory, analyzer) {
+
     /**
-     * returns an IndexWriter object
-     * @param Boolean if true a new index is created
+     * Tries to create a new IndexWriter or IndexModifier for up to the
+     * number of milliseconds defined in helma.Search.Index.LOCK_TIMEOUT.
+     * @private
+     */
+    var getWriterModifier = function(what, create) {
+        var waitFor, elapsed = 0;
+        while (elapsed < helma.Search.Index.LOCK_TIMEOUT) {
+            if (!this.isLocked()) {
+                return new Packages.org.apache.lucene.index[what](directory,
+                                   analyzer, create == true ? true : false);
+            } else {
+                waitFor = Math.round(Math.random() * 100) + 50;
+                java.lang.Thread.sleep(waitFor);
+                elapsed += waitFor;
+                app.logger.debug("[Thread " + java.lang.Thread.currentThread().getId()
+                                 + "] waiting for " + elapsed + "ms");
+            }
+        }
+        throw("Failed to create " + what + " due to active lock (Thread "
+              + java.lang.Thread.currentThread().getId() + ")");
+    };
+
+    /**
+     * Returns an IndexModifier instance for adding or deleting
+     * documents to resp. from the underlying index. If the
+     * index is currently locked this method will try for the next
+     * two seconds to create the IndexModifier, otherwise it will
+     * throw an error.
+     * @return An IndexModifier instance.
+     * @type org.apache.lucene.index.IndexModifier
+     */
+    this.getModifier = function(create) {
+        return getWriterModifier.call(this, "IndexModifier", create);
+    };
+
+    /**
+     * Returns an IndexWriter instance that can be used to add documents to
+     * the underlying index or to perform various other modifying operations.
+     * If the index is currently locked this method will try for the next
+     * two seconds to create the IndexWriter, otherwise it will
+     * throw an error.
+     * @return An IndexWriter instance.
+     * @type org.apache.lucene.index.IndexWriter
      */
     this.getWriter = function(create) {
-        return new helma.Search.PKG.index.IndexWriter(directory,
-                       analyzer, create == true ? true : false);
+        return getWriterModifier.call(this, "IndexWriter", create);
     };
 
     /**
-     * returns an IndexReader object
+     * Returns an IndexReader instance. Due to locking issues an
+     * IndexModifier should be used for deleting documents.
+     * @return An IndexReader instance
+     * @type org.apache.lucene.index.IndexReader
      */
     this.getReader = function() {
-        return helma.Search.PKG.index.IndexReader.open(directory);
+        return Packages.org.apache.lucene.index.IndexReader.open(directory);
     };
 
     /**
-     * return the directory of the index
-     * @param Object helma.File object representing the index' directory
+     * Returns the directory the underlying Lucene index is located at.
+     * @return The directory of this index
+     * @type org.apache.lucene.store.Directory
      */
     this.getDirectory = function() {
         return directory;
     };
 
     /**
-     * constructor function for Searcher objects
+     * Returns the analyzer used within this index.
+     * @return The analyzer used within this index.
+     * @type org.apache.lucene.analysis.Analyer
      */
-    this.Searcher = function() {
-        var s = new helma.Search.PKG.search.IndexSearcher(directory);
-        var sortFields;
-
-        /**
-         * wraps a org.lucene.search.Hits collection
-         * @param Object instance of org.lucene.search.Hits
-         */
-        var HitCollection = function(hits) {
-            /**
-             * silently converts the requested hit into
-             * an instance of helma.Search.Document
-             * @param Int index position of hit in collection
-             * @return instance of helma.Search.Document
-             */
-            this.get = function(idx) {
-                var doc = new helma.Search.Document(hits.doc(idx));
-                doc.score = hits.score(idx);
-                doc.rank = idx +1;
-                return doc;
-            }
-
-            /**
-             * returns the nr. of hits
-             */
-            this.size = this.length = function() {
-                return (hits != null) ? hits.length() : 0;
-            }
-            return this;
-        }
-
-        this.hits = null;
-
-        /**
-         * main search method. the resulting hits collection is
-         * stored in the property hits. don't forget to do a close()
-         * when finished processing the resulting hits, otherwise
-         * the index files will stay locked!
-         * @param Object instance of Search.Query
-         * @param Object instance of QueryFilter
-         * @return Int number of hits
-         */
-        this.search = function(query, filter) {
-            var pkg = helma.Search.PKG.search;
-            var hits;
-            if (sortFields) {
-                var arr = java.lang.reflect.Array.newInstance(pkg.SortField, sortFields.size());
-                var sort = pkg.Sort(sortFields.toArray(arr));
-                if (filter) {
-                    hits = s.search(query.getQuery(), filter.getFilter(), sort);
-                } else {
-                    hits = s.search(query.getQuery(), sort);
-                }
-            } else if (filter) {
-                hits = s.search(query.getQuery(), filter.getFilter());
-            } else {
-                hits = s.search(query.getQuery());
-            }
-            this.hits = new HitCollection(hits);
-            return this.hits.length();
-        };
-
-        /**
-         * sets a field as result sorting field
-         */
-        this.sortBy = function(field) {
-            var pkg = helma.Search.PKG.search;
-            if (!sortFields)
-                sortFields = new java.util.Vector();
-            var f = field;
-            var t = pkg.SortField.AUTO;
-            var r = false;
-            if (arguments.length == 3) {
-                t = pkg.SortField[arguments[1].toUpperCase()];
-                r = arguments[2];
-            } else if (arguments.length == 2) {
-                if (arguments[1].constructor == Boolean) {
-                    r = arguments[1];
-                } else {
-                    t = pkg.SortField[arguments[1].toUpperCase()];
-                }
-            }
-            sortFields.add(new pkg.SortField(f, t, r));
-            return;
-        };
-
-        /**
-         * closes the wrapped IndexSearcher
-         */
-        this.close = function() {
-            s.close();
-            return;
-        };
-
-        return this;
+    this.getAnalyzer = function() {
+        return analyzer;
     };
-
+    
+    /**
+     * Returns a searcher for querying this index.
+     * @return A searcher useable for querying the index.
+     * @type helma.Search.Searcher
+     */
+    this.getSearcher = function() {
+        return new helma.Search.Searcher(this);
+    };
+    
+    /** @ignore */
     this.toString = function() {
         return ("[Lucene Index " + directory + "]");
     };
@@ -326,314 +332,501 @@ helma.Search.Index = function(directory, analyzer) {
 };
 
 /**
- * check if the index is locked. if true wait a bit
- * and return it again until the timeout is reached
+ * Constant containing the number of milliseconds
+ * the index will try to create an IndexModifier or IndexWriter
+ * in case it is currently locked.
+ * @type Number
  */
-helma.Search.Index.prototype.checkWriteLock = function() {
-    var interval = 500;
-    var timeout = 5000;
-    var isLocked = helma.Search.PKG.index.IndexReader.isLocked(this.getDirectory());
-    if (isLocked) {
-        var elapsed = 0;
-        while (elapsed < timeout) {
-            java.lang.Thread.sleep(interval);
-            elapsed += interval;
-            isLocked = helma.Search.PKG.index.IndexReader.isLocked(this.getDirectory());
-            if (!isLocked)
-                return;
+helma.Search.Index.LOCK_TIMEOUT = 2000;
+
+/**
+ * Merges the indexes passed as argument into this one.
+ * @param {org.apache.lucene.store.Directory} dir At least one
+ * index director to add to this index.
+ */
+helma.Search.Index.prototype.addIndexes = function(dir /* [, dir[, dir...] */) {
+    var dirs = java.lang.reflect.Array.newInstance(helma.Search.PKG.store.Directory,
+  	                                               arguments.length);
+    for (var i=0;i<arguments.length;i++) {
+        dirs[i] = arguments[i];
+    }
+    try {
+        var writer = this.getWriter();
+        writer.addIndexes(dirs);
+    } finally {
+        if (writer != null) {
+            writer.close();
         }
-        throw("Timeout while waiting for Index unlock");
-    }
-};
-
-/**
- * merge indexes into this one
- */
-helma.Search.Index.prototype.addIndexes = function(dirs) {
-    var arr = java.lang.reflect.Array.newInstance(helma.Search.PKG.store.Directory,
-                                                  dirs.length);
-    for (var i=0;i<dirs.length;i++) {
-        arr[i] = dirs[i];
-    }
-    try {
-        var writer = this.getWriter();
-        writer.addIndexes(arr);
-    } finally {
-        writer.close();
     }
     return;
 };
 
 /**
- * return the analyzer used within this index
- */
-helma.Search.Index.prototype.getAnalyzer = function() {
-    this.checkWriteLock();
-    try {
-        var writer = this.getWriter();
-        return writer.getAnalyzer();
-    } finally {
-        writer.close();
-    }
-    return;
-};
-
-/**
- * create a new index
+ * Creates a new index. This will delete any existing index
+ * files in the directory of this index.
  */
 helma.Search.Index.prototype.create = function() {
     try {
+        // FIXME: IndexWriter is supposed to remove files
+        // if instantiated with create == true, but for some reason
+        // it doesn't, so instead use FSDirectory.getDirectory()
+        // for deletion and then re-create the index segments file
+        var dir = this.getDirectory().getFile();
+        Packages.org.apache.lucene.store.FSDirectory.getDirectory(dir, true);
         var writer = this.getWriter(true);
         return true;
     } finally {
-        writer.close();
+        if (writer != null) {
+            writer.close();
+        }
     }
     return;
 };
 
 /**
- * clear the index by re-creating it
- */
-helma.Search.Index.prototype.clear = function() {
-    this.create();
-    return true;
-};
-
-/**
- * return the number of documents in the index
+ * Returns the number of documents in this index.
+ * @return The number of documents in this index.
+ * @type Number
  */
 helma.Search.Index.prototype.size = function() {
-    this.checkWriteLock();
     try {
-        var writer = this.getWriter();
-        var size = writer.docCount();
-        return size;
+        var reader = this.getReader();
+        return reader.numDocs();
     } finally {
-        writer.close();
+        if (reader != null) {
+            reader.close();
+        }
     }
     return;
-}
+};
 
 /**
- * optimize the index
+ * Optimizes the underlying index.
  */
 helma.Search.Index.prototype.optimize = function() {
-    this.checkWriteLock();
     try {
         var writer = this.getWriter();
         writer.optimize();
     } finally {
-        writer.close();
+        if (writer != null) {
+            writer.close();
+        }
     }
     return;
 };
 
 /**
- * return an array containing all field Names
- * indexed in this index
- * @return Object java Array
+ * Returns an array containing all field names in this index.
+ * @return An array with the field names in this index.
+ * @type Array
  */
 helma.Search.Index.prototype.getFieldNames = function() {
     try {
         var reader = this.getReader();
-        var coll = reader.getFieldNames();
-        // FIXME: should return a JS Array, not a Java Array
-        return coll.toArray();
+        var coll = reader.getFieldNames().toArray();
+        // convert java array into javascript array
+        var result = [];
+        for (var i in coll) {
+            result[i] = coll[i];
+        }
+        return result;
     } finally {
-        reader.close();
+        if (reader != null) {
+            reader.close();
+        }
     }
     return;
 };
 
 /**
- * check if the index is locked
- * @return Boolean
+ * Checks if the index is locked.
+ * @return True if the underlying index is locked,
+ * false otherwise.
+ * @type Boolean
  */
 helma.Search.Index.prototype.isLocked = function() {
-    try {
-        var reader = this.getReader();
-        return helma.Search.PKG.index.IndexReader.isLocked(reader.directory());
-    } finally {
-        reader.close();
-    }
-    return;
+    return Packages.org.apache.lucene.index.IndexReader.isLocked(this.getDirectory());
 };
 
 /**
- * unlock the index
+ * Unlocks the index. Use this with caution, as it removes
+ * any active locks in the Lucene index, which might lead
+ * to index corruption.
  */
 helma.Search.Index.prototype.unlock = function() {
-    try {
-        var reader = this.getReader();
-        helma.Search.PKG.index.IndexReader.unlock(reader.directory());
-        return true;
-    } finally {
-        reader.close();
-    }
+    Packages.org.apache.lucene.index.IndexReader.unlock(this.getDirectory());
     return;
 };
 
 /**
- * return an Array containing all terms of an index
- * @param String field name (optional)
- * @param String field value (optional)
- * @return Object Array containing terms
- */
-helma.Search.Index.prototype.getTerms = function(field, str) {
-    try {
-        var reader = this.getReader();
-        var arr = [];
-        var e;
-        if (field && str) {
-            e = reader.terms(new helma.Search.PKG.index.Term(field, str));
-        } else {
-            e = reader.terms();
-        }
-        while (e.next()) {
-            arr.push(e.term());
-        }
-        e.close();
-        return arr;
-    } finally {
-        reader.close();
-    }
-    return;
-};
-
-/**
- * close the directory of this index to
- * future operations
+ * Closes the underlying index directory for future operations.
  */
 helma.Search.Index.prototype.close = function() {
-    this.checkWriteLock();
+    this.getDirectory().close();
+    return;
+};
+
+/**
+ * Adds a document to the index.
+ * @param {helma.Search.Document} doc The document to add to the index.
+ */
+helma.Search.Index.prototype.addDocument = function(doc) {
     try {
-        var reader = this.getReader();
-        var dir = reader.directory();
-        dir.close();
+        var modifier = this.getModifier();
+        modifier.addDocument(doc.getDocument());
     } finally {
-        reader.close();
+        if (modifier != null) {
+            modifier.close();
+        }
     }
     return;
 };
 
 /**
- * add a document object to the index
- * @param Object either a single Document object
- *                    or a Hashtable/Vector containing numerous
- *                    Document objects to add to the index
+ * Adds all documents in the passed collection to this index.
+ * @param {java.util.Hashtable | java.util.Vector | Array} docs
+ * The documents to add to the index.
  */
-helma.Search.Index.prototype.addDocument = function(d) {
-    this.checkWriteLock();
+helma.Search.Index.prototype.addDocuments = function(docs) {
     try {
-        var writer = this.getWriter();
-        if (d instanceof java.util.Hashtable || d instanceof java.util.Vector) {
-            var e = d.elements();
-            while (e.hasMoreElements())
-                writer.addDocument(e.nextElement().getDocument());
-        } else {
-            writer.addDocument(d.getDocument());
+        var modifier = this.getModifier();
+        if (docs instanceof java.util.Hashtable || docs instanceof java.util.Vector) {
+            var e = docs.elements();
+            while (e.hasMoreElements()) {
+                modifier.addDocument(e.nextElement().getDocument());
+            }
+        } else if (doc instanceof Array) {
+            for (var i=0;i<docs.length;i++) {
+                modifier.addDocument(docs[i]);
+            }
         }
     } finally {
-        writer.close();
+        if (modifier != null) {
+            modifier.close();
+        }
     }
     return;
 };
 
 /**
- * remove those document(s) from the index whose
- * field-value matches the passed arguments
- * @param String Name of the field
- * @param Object either a single string value or a
- *                    Hashtable/Vector containing numerous
- *                    key values of Documents to remove from index
+ * Remove those documents from the index whose field-value
+ * with the given name matches the passed value argument.
+ * @param {String} fieldName The name of the field
+ * @param {String} fieldValue The value of the field.
+ * @return The number of documents that have been deleted.
+ * @type Number
  */
 helma.Search.Index.prototype.removeDocument = function(fieldName, fieldValue) {
-
-    /**
-     * private method that does the actual
-     * removal in the index
-     */
-    var remove = function(name, value) {
-        return reader["delete"](new helma.Search.PKG.index.Term(name, value));
-    }
-
-    this.checkWriteLock();
     try {
-        var reader = this.getReader();
-        if (fieldValue instanceof java.util.Hashtable || fieldValue instanceof java.util.Vector) {
-            var result = [];
-            var e = fieldValue.elements();
-            while (e.hasMoreElements())
-                result.push(remove(fieldName, e.nextElement()));
-            return result;
-        } else
-            return remove(fieldName, fieldValue);
+        var modifier = this.getModifier();
+        var term;
+        term = new Packages.org.apache.lucene.index.Term(fieldName, fieldValue);
+        return modifier.deleteDocuments(term);
     } finally {
-        reader.close();
+        if (modifier != null) {
+            modifier.close();
+        }
     }
     return;
 };
 
-///////////////////////////////////////////
-// Query constructors
-///////////////////////////////////////////
+/**
+ * Removes all documents whose field with the given name matches
+ * the values passed as argument.
+ * @param {String} fieldName The name of the field
+ * @param {java.util.Hashtable | java.util.Vector | Array} values
+ * The values that define the documents that should be removed from
+ * the index.
+ * @return An array containing the numbers of deleted documents
+ * for each field value.
+ */
+helma.Search.Index.prototype.removeDocuments = function(fieldName, values) {
+    try {
+        var modifier = this.getModifier();
+        var term, result = [];
+        if (values instanceof java.util.Hashtable ||
+                values instanceof java.util.Vector) {
+            var e = values.elements();
+            while (e.hasMoreElements()) {
+                term = new Packages.org.apache.lucene.index.Term(fieldName, e.nextElement());
+                result.push(modifier.deleteDocuments(term));
+            }
+            return result;
+        } else if (values instanceof Array) {
+            for (var i=0;i<values.length;i++) {
+                term = new Packages.org.apache.lucene.index.Term(fieldName, values[i]);
+                result.push(modifier.deleteDocuments(term));
+            }
+        }
+    } finally {
+        if (modifier != null) {
+            modifier.close();
+        }
+    }
+    return;
+};
 
 /**
- * static constructor for Query objects
- * contains basic methods inherited by other types of Query objects
+ * Updates the index with the document passed as argument. In contrast
+ * to addDocument() this removes any existing objects whose fieldName
+ * matches the one of the document object. Eg. if the document object
+ * has a field "Id" with the value "123", all document objects whose
+ * fieldName "Id" matches "123" will be removed from the index before.
+ * @param {helma.Search.Document} docObj Document object to add to index.
+ * @param {String} fieldName The name of the identifier field.
  */
-helma.Search.QueryBase = function() {
-    this.toString = function(field) {
-        return "[" + this.getQuery().toString(field) + "]";
+helma.Search.Index.prototype.updateDocument = function(docObj, fieldName) {
+    try {
+        var modifier = this.getModifier();
+        var doc = docObj.getDocument();
+        var term = new Packages.org.apache.lucene.index.Term(fieldName, doc.get(fieldName));
+        modifier.deleteDocuments(term);
+        modifier.addDocument(doc);
+    } finally {
+        if (modifier != null) {
+            modifier.close();
+        }
+    }
+    return;
+};
+
+/**
+ * @class This class provides basic functionality for
+ * searching an index.
+ * @param {helma.Search.Index} index The index to search in.
+ * @return A newly created index searcher
+ * @constructor
+ */
+helma.Search.Searcher = function(index) {
+    var searcher = new Packages.org.apache.lucene.search.IndexSearcher(index.getDirectory());
+
+    /**
+     * The search results.
+     * @type helma.Search.HitCollection
+     */
+    this.hits = null;
+
+    /**
+     * A vector with SortField instances, if any have been defined.
+     * @type java.util.Vector
+     * @see #sortBy
+     */
+    this.sortFields = null;
+
+    /**
+     * Returns the wrapped IndexSearcher instance.
+     * @type org.apache.lucene.search.IndexSearcher
+     */
+    this.getSearcher = function() {
+        return searcher;
     };
-    this.getBoost = function() {
-        return this.getQuery().getBoost();
+
+    return this;
+};
+
+/** @ignore */
+helma.Search.Searcher.prototype.toString = function() {
+    return "[Index Searcher]";
+};
+
+/**
+ * Searches an index using the query passed as argument.
+ * The resulting collection of hits is stored in the property "hits"
+ * of this Searcher instance. Don't forget to close the searcher
+ * when finished processing its hits.
+ * @param {helma.Search.Query} query The query to use for searching
+ * @param {helma.Search.QueryFilter} filter An optional query filter
+ * for filtering the results.
+ * @return The number of hits.
+ * @type Number
+ */
+helma.Search.Searcher.prototype.search = function(query, filter) {
+    var PKG = Packages.org.apache.lucene.search;
+    var hits;
+    if (this.sortFields != null && this.sortFields.size() > 0) {
+        var arr = java.lang.reflect.Array.newInstance(PKG.SortField, this.sortFields.size());
+        var sort = PKG.Sort(this.sortFields.toArray(arr));
+        if (filter) {
+            hits = this.getSearcher().search(query.getQuery(), filter.getFilter(), sort);
+        } else {
+            hits = this.getSearcher().search(query.getQuery(), sort);
+        }
+    } else if (filter) {
+        hits = this.getSearcher().search(query.getQuery(), filter.getFilter());
+    } else {
+        hits = this.getSearcher().search(query.getQuery());
+    }
+    this.hits = new helma.Search.HitCollection(hits);
+    return this.hits.length();
+};
+
+/**
+ * Sets a field as result sorting field. This method can be called
+ * with a different number of arguments:
+ * sortBy(fieldName)
+ * sortBy(fieldName, type)
+ * sortBy(fieldName, reverse)
+ * sortBy(fieldName, type, reverse)
+ * @param {String} fieldName The name of the field in the index by which
+ * the search result should be ordered.
+ * @param {String} type The type of the field defined by argument fieldName.
+ * Valid arguments are "string", "float", "int", "score", "doc", "auto", "custom".
+ * Default is "auto". See http://lucene.apache.org/java/docs/api/org/apache/lucene/search/SortField.html
+ * for an explanation.
+ */
+helma.Search.Searcher.prototype.sortBy = function(fieldName /** type, reverse */) {
+    var PKG = Packages.org.apache.lucene.search;
+    if (!this.sortFields)
+        this.sortFields = new java.util.Vector();
+    var f = fieldName;
+    var t = PKG.SortField.AUTO;
+    var r = false;
+    if (arguments.length == 3) {
+        t = PKG.SortField[arguments[1].toUpperCase()];
+        r = arguments[2];
+    } else if (arguments.length == 2) {
+        if (arguments[1].constructor == Boolean) {
+            r = arguments[1];
+        } else {
+            t = PKG.SortField[arguments[1].toUpperCase()];
+        }
+    }
+    this.sortFields.add(new PKG.SortField(f, t, r));
+    return;
+};
+
+/**
+ * Closes the wrapped IndexSearcher instance.
+ */
+helma.Search.Searcher.prototype.close = function() {
+    var s = this.getSearcher();
+    if (s != null) {
+        s.close();
+    }
+    return;
+};
+
+/**
+ * @class This class provides Helma-like methods for accessing
+ * a collection of search hits.
+ * @param {org.lucene.search.Hits} hits The hit collection returned
+ * by lucene.
+ * @constructor
+ */
+helma.Search.HitCollection = function(hits) {
+    /**
+     * Silently converts the hit at the given index position into
+     * an instance of helma.Search.Document.
+     * @param {Number} idx The index position of the hit
+     * @return The document object at the given index position
+     * @type helma.Search.Document
+     */
+    this.get = function(idx) {
+        var doc = new helma.Search.Document(hits.doc(idx));
+        doc.score = hits.score(idx);
+        doc.rank = idx +1;
+        return doc;
     };
-    this.setBoost = function(fact) {
-        this.getQuery().setBoost(fact);
-        return;
+
+    /**
+     * Returns the number of hits in this collection.
+     * @return The number of hits.
+     * @type Number
+     */
+    this.size = this.length = function() {
+        return (hits != null) ? hits.length() : 0;
     };
+
+    return this;
+};
+
+
+/**************************
+ *   QUERY CONSTRUCTORS   *
+ **************************/
+
+/**
+ * @class Base class for the various query constructors. Don't
+ * call this directly, as it provides just basic methods used
+ * in all of its extends.
+ * @constructor
+ */
+helma.Search.Query = function() {
+    /**
+     * The wrapped query instance
+     * @type org.apache.lucene.search.Query
+     * @private
+     */
+    this.query = null;
+
+    return this;
+};
+
+/**
+ * Returns the wrapped Lucene Query object.
+ * @return The wrapped query object
+ * @type org.apache.lucene.search.Query
+ */
+helma.Search.Query.prototype.getQuery = function() {
+    return this.query;
+};
+
+/** @ignore */
+helma.Search.Query.prototype.toString = function(field) {
+    return "[" + this.getQuery().toString(field) + "]";
+};
+
+/**
+ * Returns the boost factor of this query.
+ * @type Number
+ */
+helma.Search.Query.prototype.getBoost = function() {
+    return this.getQuery().getBoost();
+};
+
+/**
+ * Sets the boost factor of this query clause to
+ * the given number. Documents matching this query
+ * will have their score multiplied with the given
+ * factor
+ * @param {Number} fact The factor to multiply the score
+ * of matching documents with.
+ */
+helma.Search.Query.prototype.setBoost = function(fact) {
+    this.getQuery().setBoost(fact);
+    return;
 };
 
 /**
  * Term Query constructor
- * @param String name of the field
- * @param String query string
- * @return Object TermQuery object
+ * @class This class represents a simple Term Query.
+ * @param {String} field The name of the field
+ * @param {String} str The value of the field
+ * @constructor
+ * @extends helma.Search.Query
  */
 helma.Search.TermQuery = function(field, str) {
-    var t = new helma.Search.PKG.index.Term(field, str);
-    var wrappedQuery = new helma.Search.PKG.search.TermQuery(t);
-
-    /**
-     * getter for wrapped java object
-     */
-    this.getQuery = function() {
-        return wrappedQuery;
-    };
+    var t = new Packages.org.apache.lucene.index.Term(field, str);
+    this.query = new Packages.org.apache.lucene.search.TermQuery(t);
     return this;
 };
-helma.Search.TermQuery.prototype = new helma.Search.QueryBase;
+helma.Search.TermQuery.prototype = new helma.Search.Query;
 
 /**
  * Boolean Query constructor
+ * @class This class represents a Boolean Query, providing
+ * various methods for combining other Query instances using boolean operators.
  * @param String name of the field
  * @param String query string
  * @return Object BooleanQuery object
+ * @constructor
+ * @extends helma.Search.Query
  */
 helma.Search.BooleanQuery = function(field, str, clause, analyzer) {
-    var wrappedQuery = new helma.Search.PKG.search.BooleanQuery();
+    this.query = new Packages.org.apache.lucene.search.BooleanQuery();
 
     /**
-     * getter for wrapped java object
-     */
-    this.getQuery = function() {
-        return wrappedQuery;
-    };
-
-    /**
-     * directly call addTerm if constructor was
-     * called with arguments
+     * Main constructor body
      */
     if (field && str) {
         this.addTerm.apply(this, arguments);
@@ -641,40 +834,36 @@ helma.Search.BooleanQuery = function(field, str, clause, analyzer) {
 
     return this;
 };
-helma.Search.BooleanQuery.prototype = new helma.Search.QueryBase;
+helma.Search.BooleanQuery.prototype = new helma.Search.Query;
 
 /**
- * add a term to the wrappedQuery object. this method can be called
+ * Adds a term to the wrapped query object. This method can be called
  * with two, three or four arguments, eg.:
  * addTerm("fieldname", "querystring")
  * addTerm("fieldname", "querystring", "and")
  * addTerm("fieldname", "querystring", helma.Search.getAnalyzer("de"))
  * addTerm("fieldname", "querystring", "not", helma.Search.getAnalyzer("simple"))
- *
- * @param Object either a String or an Array containing Strings
- *                    that determine the index field(s) to match
- * @param String string to match
- * @param String boolean clause ("or"|"not", default is "and")
- * @param Object instance of analysis.Analyzer
+ * @param {String | Array} field Either a String or an Array containing Strings
+ * that determine the index field(s) to match
+ * @param {String} str Query string to match
+ * @param {String} clause Boolean clause ("or", "not" or "and", default is "and")
+ * @param {org.apache.lucene.analysis.Analyzer} analyzer An analyzer to use
  */
 helma.Search.BooleanQuery.prototype.addTerm = function(field, str, clause, analyzer) {
-    if (arguments.length == 3 && arguments[2] instanceof helma.Search.PKG.analysis.Analyzer) {
+    if (arguments.length == 3 && arguments[2] instanceof Packages.org.apache.lucene.analysis.Analyzer) {
         analyzer = arguments[2];
         clause = "or";
     }
-    if (!analyzer)
+    if (!analyzer) {
         analyzer = helma.Search.getAnalyzer();
-
-    var q;
-    try {
-        if (field instanceof Array)
-            q = helma.Search.PKG.queryParser.MultiFieldQueryParser.parse(str, field, analyzer);
-        else
-            q = helma.Search.PKG.queryParser.QueryParser.parse(str, field, analyzer);
-    } catch (e) {
-        return;
     }
 
+    var q;
+    if (field instanceof Array) {
+        q = Packages.org.apache.lucene.queryParser.MultiFieldQueryParser.parse(str, field, analyzer);
+    } else {
+        q = Packages.org.apache.lucene.queryParser.QueryParser.parse(str, field, analyzer);
+    }
     switch (clause) {
         case "or":
             this.getQuery().add(q, false, false);
@@ -689,10 +878,9 @@ helma.Search.BooleanQuery.prototype.addTerm = function(field, str, clause, analy
 };
 
 /**
- * "merge" a query object with a query object passed as
- * argument
- * @param Object Query object
- * @param String boolean clause ("or"|"not", default is "and")
+ * Adds an additional query clause to this query.
+ * @param {helma.Search.Query} q The query to add
+ * @param {String} clause Boolean clause ("or", "not", or "and", default is "and")
  */
 helma.Search.BooleanQuery.prototype.addQuery = function(q, clause) {
     switch (clause) {
@@ -709,28 +897,25 @@ helma.Search.BooleanQuery.prototype.addQuery = function(q, clause) {
 };
 
 /**
- * Phrase Query constructor
- * @param String name of the field
- * @param String query string
- * @return Object PhraseQuery object
+ * Constructs a new PhraseQuery instance that wraps a lucene Phrase
+ * Query object.
+ * @class Instances of this class represent a phrase query.
+ * @param {String} field The name of the field
+ * @param {String} str The phrase query string
+ * @return A newly created PhraseQuery instance
+ * @constructor
+ * @extends helma.Search.Query
  */
 helma.Search.PhraseQuery = function(field, str) {
-    var wrappedQuery = new helma.Search.PKG.search.PhraseQuery();
+    this.query = new Packages.org.apache.lucene.search.PhraseQuery();
 
     /**
      * add a term to the end of the phrase query
      */
     this.addTerm = function(field, str) {
-        var t = new helma.Search.PKG.index.Term(field, str);
-        wrappedQuery.add(t);
+        var t = new Packages.org.apache.lucene.index.Term(field, str);
+        this.query.add(t);
         return;
-    };
-
-    /**
-     * getter for wrapped java object
-     */
-    this.getQuery = function() {
-        return wrappedQuery;
     };
 
     if (field && str)
@@ -738,116 +923,102 @@ helma.Search.PhraseQuery = function(field, str) {
     delete this.base;
     return this;
 };
-helma.Search.PhraseQuery.prototype = new helma.Search.QueryBase;
+helma.Search.PhraseQuery.prototype = new helma.Search.Query;
 
 /**
- * Range Query constructor
- * @param String name of the field
- * @param String min value (can be null)
- * @param String max value (can be null)
- * @param Boolean if true min/max values are included
- * @return Obj JS wrapper object
+ * Constructs a new RangeQuery instance.
+ * @class Instances of this class represent a range
+ * query
+ * @param {String} field The name of the field
+ * @param {String} from The minimum value to match (can be null)
+ * @param {String} to The maximum value to match (can be null)
+ * @param {Boolean} inclusive If true the given min/max values are included
+ * @return A newly created RangeQuery instance
+ * @constructor
+ * @extends helma.Search.Query
  */
 helma.Search.RangeQuery = function(field, from, to, inclusive) {
     if (!field)
         throw("Missing field name in RangeQuery()");
     if (arguments.length < 4)
         inclusive = true;
-    var t1 = from ? new helma.Search.PKG.index.Term(field, from) : null;
-    var t2 = to ? new helma.Search.PKG.index.Term(field, to) : null;
-    var wrappedQuery = new helma.Search.PKG.search.RangeQuery(t1, t2, inclusive);
-
-    /**
-     * getter for wrapped java object
-     */
-    this.getQuery = function() {
-        return wrappedQuery;
-    };
-
+    var t1 = from ? new Packages.org.apache.lucene.index.Term(field, from) : null;
+    var t2 = to ? new Packages.org.apache.lucene.index.Term(field, to) : null;
+    this.query = new Packages.org.apache.lucene.search.RangeQuery(t1, t2, inclusive);
     return this;
 };
-helma.Search.RangeQuery.prototype = new helma.Search.QueryBase;
+helma.Search.RangeQuery.prototype = new helma.Search.Query;
 
 /**
- * Fuzzy Query constructor
- * @param String name of the field
- * @param String query string
- * @return Object FuzzyQuery object
+ * Constructs a new FuzzyQuery instance
+ * @class Instances of this class represent a fuzzy query
+ * @param {String} field The name of the field
+ * @param {String} str The query string to match
+ * @return A newly created FuzzyQuery instance
+ * @constructor
+ * @extends helma.Search.Query
  */
 helma.Search.FuzzyQuery = function(field, str) {
-    var t = new helma.Search.PKG.index.Term(field, str);
-    var wrappedQuery = new helma.Search.PKG.search.FuzzyQuery(t);
-
-    /**
-     * getter for wrapped java object
-     */
-    this.getQuery = function() {
-        return wrappedQuery;
-    };
-
+    var t = new Packages.org.apache.lucene.index.Term(field, str);
+    this.query = new Packages.org.apache.lucene.search.FuzzyQuery(t);
     return this;
 };
-helma.Search.FuzzyQuery.prototype = new helma.Search.QueryBase;
+helma.Search.FuzzyQuery.prototype = new helma.Search.Query;
 
 /**
- * Prefix Query constructor
- * @param String name of the field
- * @param String query string
- * @return Object PrefixQuery object
+ * Constructs a new PrefixQuery instance.
+ * @class Instances of this class represent a prefix query
+ * @param {String} field The name of the field
+ * @param {String} str The query string to match
+ * @return A newly created PrefixQuery instance
+ * @constructor
+ * @extends helma.Search.Query
  */
 helma.Search.PrefixQuery = function(field, str) {
-    var t = new helma.Search.PKG.index.Term(field, str);
-    var wrappedQuery = new helma.Search.PKG.search.PrefixQuery(t);
-
-    /**
-     * getter for wrapped java object
-     */
-    this.getQuery = function() {
-        return wrappedQuery;
-    };
-
+    var t = new Packages.org.apache.lucene.index.Term(field, str);
+    this.query = new Packages.org.apache.lucene.search.PrefixQuery(t);
     return this;
 };
-helma.Search.PrefixQuery.prototype = new helma.Search.QueryBase;
+helma.Search.PrefixQuery.prototype = new helma.Search.Query;
 
 /**
- * Wildcard Query constructor
- * @param String name of the field
- * @param String query string
- * @return Object WildcardQuery object
+ * Constructs a new WildcardQuery instance.
+ * @class Instances of this class represent a wildcard query.
+ * @param {String} field The name of the field
+ * @param {String} str The query string to match
+ * @return A newly created WildcardQuery instance
+ * @constructor
+ * @extends helma.Search.Query
  */
 helma.Search.WildcardQuery = function(field, str) {
-    var t = new helma.Search.PKG.index.Term(field, str);
-    var  wrappedQuery = new helma.Search.PKG.search.WildcardQuery(t);
-
-    /**
-     * getter for wrapped java object
-     */
-    this.getQuery = function() {
-        return wrappedQuery;
-    };
-
+    var t = new Packages.org.apache.lucene.index.Term(field, str);
+    this.query = new Packages.org.apache.lucene.search.WildcardQuery(t);
     return this;
 };
-helma.Search.WildcardQuery.prototype = new helma.Search.QueryBase;
+helma.Search.WildcardQuery.prototype = new helma.Search.Query;
 
 
-///////////////////////////////////////////
-// Document
-///////////////////////////////////////////
+/****************
+ *   DOCUMENT   *
+ ****************/
+
 
 /**
- * constructor function for Document objects that wrap
- * a Lucene Document object
- * @param Object (optional) Lucene Document object
+ * @class Instances of this class represent a single
+ * index document. This class provides various methods for
+ * adding content to such documents.
+ * @param {org.apache.lucene.document.Document} document Optional Lucene Document object
+ * that should be wrapped by this Document instance.
+ * @constructor
  */
 helma.Search.Document = function(document) {
     if (!document)
-        document = new helma.Search.PKG.document.Document();
+        document = new Packages.org.apache.lucene.document.Document();
 
     /**
-     * return the Lucene Document object wrapped
-     * by this javascript Document object
+     * Returns the wrapped Lucene Document object
+     * @return The wrapped Document object
+     * @type org.apache.lucene.document.Document
      */
     this.getDocument = function() {
         return document;
@@ -857,77 +1028,77 @@ helma.Search.Document = function(document) {
 };
 
 /**
- * adds a field to this document.
- * @param String Name of the field
- * @param String Value of the field
- * @param Object Parameter object (optional) containing
- *                    the following properties:
- *                    .store (Boolean)
- *                    .index (Boolean)
- *                    .tokenize (Boolean)
+ * Adds a field to this document.
+ * @param {String} name The name of the field
+ * @param {String} value The value of the field
+ * @param {Object} param Optional parameter object containing the following properties:
+ * <ul>
+ * <li>.store (Boolean) defaults to true</li>
+ * <li>.index (Boolean) defaults to true</li>
+ * <li>.tokenize (Boolean) defaults to true</li>
+ * </ul>
  */
 helma.Search.Document.prototype.addField = function(name, value, param) {
-    if (!param)
-        param = {store: true, index: true, tokenize: true};
-    if (value === null)
-        value = "";
-    // if value is a date convert it
-    if (value instanceof Date)
-        value = helma.Search.PKG.document.DateField.timeToString(value.getTime());
-    var f = new helma.Search.PKG.document.Field(String(name),
-                                                String(value),
-                                                param.store,
-                                                param.index,
-                                                param.tokenize);
-    this.getDocument().add(f);
+    if (!param) {
+        param = {};
+    }
+    if (value != null) {
+        var pkg = Packages.org.apache.lucene.document;
+        if (value.constructor == Date) {
+            // Convert the value 
+            value = pkg.DateTools.timeToString(value.getTime(),
+                            pkg.DateTools.Resolution.MINUTE);
+        } else if (value.constructor != String) {
+            value = String(value);
+        }
+        var f = new pkg.Field(String(name),
+                              value,
+                              param.store || true,
+                              param.index || true,
+                              param.tokenize || true);
+        this.getDocument().add(f);
+    }
     return;
 };
 
 /**
- * return a single document field
- * @param String name of the field
- * @return Object containing the following parameters:
- *                     .name (String) name of the Field
- *                     .boost (Int) boost factor
- *                     .indexed (Boolean) true if Field is indexed, false otherwise
- *                     .stored (Boolean) true if Field is stored, false otherwise
- *                     .tokenized (Boolean) true if Field is tokenized, false otherwise
- *                     .value (String) value of the Field
+ * Returns a single document field.
+ * @param {String} name The name of the field in this document object.
+ * @return An object containing the following properties:
+ * <ul>
+ * <li>.name (String) The name of the field</li>
+ * <li>.boost (Int) The boost factor</li>
+ * <li>.indexed (Boolean) True if the field is indexed, false otherwise</li>
+ * <li>.stored (Boolean) True if the field is stored, false otherwise</li>
+ * <li>.tokenized (Boolean) True if the field is tokenized, false otherwise</li>
+ * <li>.value (String) The value of the field</li>
+ * </ul>
+ * @type Object
  */
 helma.Search.Document.prototype.getField = function(name) {
     var f = this.getDocument().getField(name);
     if (f != null) {
-        return ({name: name,
-                    boost: f.getBoost(),
-                    indexed: f.isIndexed(),
-                    stored: f.isStored(),
-                    tokenized: f.isTokenized(),
-                    value: f.stringValue()});
-   } else {
-       return null;
+        var result = {name: name,
+                      boost: f.getBoost(),
+                      indexed: f.isIndexed(),
+                      stored: f.isStored(),
+                      tokenized: f.isTokenized(),
+                      value: null};
+        try {
+            var pkg = Packages.org.apache.lucene.document.DateTools;
+            result.value = pkg.stringToDate(f.stringValue());
+        } catch (e) {
+            result.value = f.stringValue();
+        }
+        return result;
    }
+   return null;
 };
 
 /**
- * return a single document field as Date Object
- * @param String name of the field
- */
-helma.Search.Document.prototype.getDateField = function(name) {
-    var f = this.getDocument().getField(name);
-    if (f != null) {
-        return ({name: name,
-                    boost: f.getBoost(),
-                    indexed: f.isIndexed(),
-                    stored: f.isStored(),
-                    tokenized: f.isTokenized(),
-                    value: new Date(helma.Search.PKG.document.DateField.stringToTime(f.stringValue()))});
-    } else {
-        return null;
-    }
-};
-
-/**
- * return the fields of a document
+ * Returns the fields of a document object.
+ * @return An array containing all fields in this document object.
+ * @type Array
  */
 helma.Search.Document.prototype.getFields = function() {
     var e = this.getDocument().fields();
@@ -939,28 +1110,33 @@ helma.Search.Document.prototype.getFields = function() {
 };
 
 /**
- * returns the boost factor of a document
+ * Returns the boost factor of a document.
+ * @return The boost factor of a document
+ * @type Number
  */
 helma.Search.Document.prototype.getBoost = function() {
     return this.getDocument().getBoost();
 };
 
 /**
- * sets the boost factor of a document
+ * Sets the boost factor of a document.
+ * @param {Number} boost The boost factor of the document
  */
 helma.Search.Document.prototype.setBoost = function(boost) {
     this.getDocument().setBoost(boost);
     return;
 };
 
+/** @ignore */
 helma.Search.Document.prototype.toString = function() {
     return "[Document Object]";
 };
 
 
-///////////////////////////////////////////
-// helma library stuff
-///////////////////////////////////////////
+/***************************
+ *   HELMA LIBRARY STUFF   *
+ ***************************/
+
 
 helma.lib = "Search";
 helma.dontEnum(helma.lib);
