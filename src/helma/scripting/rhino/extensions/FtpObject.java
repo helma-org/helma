@@ -104,9 +104,7 @@ public class FtpObject extends ScriptableObject {
             ftpclient = new FTPClient();
             ftpclient.connect(server);
 
-            boolean b = ftpclient.login(username, password);
-
-            return b;
+            return ftpclient.login(username, password);
         } catch (Exception x) {
             return false;
         } catch (NoClassDefFoundError x) {
