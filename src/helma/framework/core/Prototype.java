@@ -23,6 +23,7 @@ import helma.framework.repository.Resource;
 import helma.framework.repository.Repository;
 import helma.framework.repository.ResourceTracker;
 import helma.framework.repository.FileResource;
+import helma.scripting.ScriptingEngine;
 
 import java.io.*;
 import java.util.*;
@@ -112,11 +113,20 @@ public final class Prototype {
     /**
      * Adds an repository to the list of repositories
      * @param repository repository to add
+     * @param update indicates whether to immediately update the prototype with the new code
+     * @throws IOException if reading/updating from the repository fails
      */
-    public void addRepository(Repository repository) {
+    public void addRepository(Repository repository, boolean update) throws IOException {
         if (!repositories.contains(repository)) {
             repositories.add(repository);
             props.addResource(repository.getResource("type.properties"));
+            if (update) {
+                RequestEvaluator eval = app.getCurrentRequestEvaluator();
+                Iterator it = repository.getAllResources().iterator();
+                while (it.hasNext()) {
+                    checkResource((Resource) it.next(), eval.scriptingEngine);
+                }
+            }
         }
     }
 
@@ -157,21 +167,7 @@ public final class Prototype {
         Resource[] resources = getResources();
 
         for (int i = 0; i < resources.length; i++) {
-            String name = resources[i].getName();
-            if (!trackers.containsKey(name)) {
-                if (name.endsWith(TypeManager.templateExtension) ||
-                        name.endsWith(TypeManager.scriptExtension) ||
-                        name.endsWith(TypeManager.actionExtension) ||
-                        name.endsWith(TypeManager.skinExtension)) {
-                    updatedResources = true;
-                    if (name.endsWith(TypeManager.skinExtension)) {
-                        skins.add(resources[i]);
-                    } else {
-                        code.add(resources[i]);
-                    }
-                    trackers.put(resources[i].getName(), new ResourceTracker(resources[i]));
-                }
-            }
+            updatedResources |= checkResource(resources[i], null);
         }
 
         if (updatedResources) {
@@ -181,6 +177,28 @@ public final class Prototype {
         }
     }
 
+    private boolean checkResource(Resource res, ScriptingEngine engine) {
+        String name = res.getName();
+        boolean updated = false;
+        if (!trackers.containsKey(name)) {
+            if (name.endsWith(TypeManager.templateExtension) ||
+                    name.endsWith(TypeManager.scriptExtension) ||
+                    name.endsWith(TypeManager.actionExtension) ||
+                    name.endsWith(TypeManager.skinExtension)) {
+                updated = true;
+                if (name.endsWith(TypeManager.skinExtension)) {
+                    skins.add(res);
+                } else {
+                    if (engine != null) {
+                        engine.injectCodeResource(lowerCaseName, res);
+                    }
+                    code.add(res);
+                }
+                trackers.put(res.getName(), new ResourceTracker(res));
+            }
+        }
+        return updated;
+    }
 
     /**
      *  Returns the list of resources in this prototype's repositories. Used
@@ -358,15 +376,21 @@ public final class Prototype {
      *  Return an iterator over this prototype's code resoruces. Synchronized
      *  to not return a collection in a transient state where it is just being
      *  updated by the type manager.
+     *
+     *  @return an iterator of this prototype's code resources
      */
     public synchronized Iterator getCodeResources() {
-        return code.iterator();
+        // we copy over to a new list, because the underlying set may grow
+        // during compilation through use of app.addRepository()
+        return new ArrayList(code).iterator();
     }
 
     /**
      *  Return an iterator over this prototype's skin resoruces. Synchronized
      *  to not return a collection in a transient state where it is just being
      *  updated by the type manager.
+     *
+     *  @return an iterator over this prototype's skin resources
      */
     public Iterator getSkinResources() {
         return skins.iterator();

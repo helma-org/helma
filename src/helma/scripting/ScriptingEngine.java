@@ -17,6 +17,7 @@
 package helma.scripting;
 
 import helma.framework.IPathElement;
+import helma.framework.repository.Resource;
 import helma.framework.core.Application;
 import helma.framework.core.RequestEvaluator;
 import java.io.OutputStream;
@@ -143,4 +144,12 @@ public interface ScriptingEngine {
      * @throws IOException
      */
     public Object deserialize(InputStream in) throws IOException, ClassNotFoundException;
+
+    /**
+     * Add a code resource to a given prototype by immediately compiling and evaluating it.
+     *
+     * @param typename the type this resource belongs to
+     * @param resource a code resource
+     */
+    public void injectCodeResource(String typename, Resource resource);
 }

@@ -25,6 +25,7 @@ import java.util.LinkedList;
 public class SingleFileRepository implements Repository {
 
     final Resource res;
+    final Repository parent;
     final Repository[] repositories;
     final LinkedList resources = new LinkedList();
     final LinkedList allResources = new LinkedList();
@@ -35,7 +36,7 @@ public class SingleFileRepository implements Repository {
      * @param initArgs absolute path to the script file
      */
     public SingleFileRepository(String initArgs) {
-        this(new File(initArgs));
+        this(new File(initArgs), null);
     }
 
     /**
@@ -43,6 +44,16 @@ public class SingleFileRepository implements Repository {
      * @param file the script file
      */
     public SingleFileRepository(File file) {
+        this(file, null);
+    }
+
+    /**
+     * Constructs a SingleFileRepository using the given argument
+     * @param file the script file
+     * @param parent the parent repository, or null
+     */
+    public SingleFileRepository(File file, Repository parent) {
+        this.parent = parent;
         res = new FileResource(file, this);
         allResources.add(res);
         isScriptFile = file.getName().endsWith(".js");
@@ -101,7 +112,7 @@ public class SingleFileRepository implements Repository {
      * @return the parent repository
      */
     public Repository getParentRepository() {
-        return null;
+        return parent;
     }
 
     /**

@@ -84,7 +84,13 @@ public final class RhinoCore implements ScopeProvider {
         this.app = app;
         wrappercache = new WeakCacheMap(500);
         prototypes = new Hashtable();
+    }
 
+    /**
+     *  Initialize the evaluator, making sure the minimum type information
+     *  necessary to bootstrap the rest is parsed.
+     */
+    protected synchronized void initialize() {
         Context context = Context.enter();
 
         context.setCompileFunctionsWithDynamicScope(true);
@@ -144,12 +150,22 @@ public final class RhinoCore implements ScopeProvider {
             Scriptable numberProto = ScriptableObject.getClassPrototype(global, "Number");
             numberProto.put("format", numberProto, new NumberFormat());
 
-            initialize();
+            Collection protos = app.getPrototypes();
+            for (Iterator i = protos.iterator(); i.hasNext();) {
+                Prototype proto = (Prototype) i.next();
+                initPrototype(proto);
+            }
+
+            // always fully initialize global prototype, because
+            // we always need it and there's no chance to trigger
+            // creation on demand.
+            getPrototype("global");
+
         } catch (Exception e) {
             System.err.println("Cannot initialize interpreter");
             System.err.println("Error: " + e);
             e.printStackTrace();
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException(e.getMessage(), e);
         } finally {
             Context.exit();
         }
@@ -170,25 +186,6 @@ public final class RhinoCore implements ScopeProvider {
         } catch (Exception x) {
             x.printStackTrace();
         }
-    }
-
-    /**
-     *  Initialize the evaluator, making sure the minimum type information
-     *  necessary to bootstrap the rest is parsed.
-     */
-    private synchronized void initialize() {
-        Collection protos = app.getPrototypes();
-
-        for (Iterator i = protos.iterator(); i.hasNext();) {
-            Prototype proto = (Prototype) i.next();
-
-            initPrototype(proto);
-        }
-
-        // always fully initialize global prototype, because
-        // we always need it and there's no chance to trigger
-        // creation on demand.
-        getPrototype("global");
     }
 
     /**
@@ -763,6 +760,19 @@ public final class RhinoCore implements ScopeProvider {
         return param;
     }
 
+    /**
+     * Add a code resource to a given prototype by immediately compiling and evaluating it.
+     *
+     * @param typename the type this resource belongs to
+     * @param code a code resource
+     */
+    public void injectCodeResource(String typename, Resource code) {
+        TypeInfo type = (TypeInfo) prototypes.get(typename.toLowerCase());
+        if (type == null || type.lastUpdate == -1)
+            return;
+        evaluate(type, code);
+    }
+
     ////////////////////////////////////////////////
     // private evaluation/compilation methods
     ////////////////////////////////////////////////
@@ -776,6 +786,9 @@ public final class RhinoCore implements ScopeProvider {
 
         String sourceName = code.getName();
         Reader reader = null;
+        
+        Resource previousCurrentResource = app.getCurrentCodeResource();
+        app.setCurrentCodeResource(code);
 
         try {
             Scriptable op = type.objProto;
@@ -809,6 +822,7 @@ public final class RhinoCore implements ScopeProvider {
             }
             // e.printStackTrace();
         } finally {
+            app.setCurrentCodeResource(previousCurrentResource);
             if (reader != null) {
                 try {
                     reader.close();
@@ -877,6 +891,8 @@ public final class RhinoCore implements ScopeProvider {
             if (objProto instanceof PropertyRecorder) {
                 ((PropertyRecorder) objProto).startRecording();
             }
+            // mark this type as updated so injectCodeResource() knows it's initialized
+            lastUpdate = frameworkProto.lastCodeUpdate();
         }
 
         /**
@@ -929,8 +945,9 @@ public final class RhinoCore implements ScopeProvider {
                 compiledProperties = changedProperties;
             }
 
-            // mark this type as updated
-            lastUpdate = frameworkProto.lastCodeUpdate();
+            // mark this type as updated again so it reflects
+            // resources added during compilation
+            // lastUpdate = frameworkProto.lastCodeUpdate();
 
             // If this prototype defines a postCompile() function, call it
             Context cx = Context.getCurrentContext();

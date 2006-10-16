@@ -59,9 +59,9 @@ public class FileRepository extends AbstractRepository {
      * Constructs a FileRepository using the given directory and top-level
      * repository
      * @param dir directory
-     * @param parent top-level repository
+     * @param parent the parent repository, or null
      */
-    protected FileRepository(File dir, FileRepository parent) {
+    public FileRepository(File dir, Repository parent) {
         // make sure our directory has an absolute path,
         // see http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4117557
         if (dir.isAbsolute()) {
