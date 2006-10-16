@@ -123,9 +123,8 @@ public final class Prototype {
             if (update) {
                 RequestEvaluator eval = app.getCurrentRequestEvaluator();
                 Iterator it = repository.getAllResources().iterator();
-                boolean updatedResources = false;
                 while (it.hasNext()) {
-                    updatedResources |= checkResource((Resource) it.next(), eval.scriptingEngine);
+                    checkResource((Resource) it.next(), eval.scriptingEngine);
                 }
             }
         }
