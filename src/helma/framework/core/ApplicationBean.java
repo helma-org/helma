@@ -21,13 +21,11 @@ import helma.objectmodel.db.DbSource;
 import helma.util.CronJob;
 import helma.util.SystemMap;
 import helma.util.WrappedMap;
-import helma.framework.repository.Repository;
-import helma.framework.repository.FileRepository;
-import helma.framework.repository.SingleFileRepository;
-import helma.framework.repository.ZipRepository;
+import helma.framework.repository.*;
 
 import java.io.File;
 import java.io.Serializable;
+import java.io.IOException;
 import java.util.*;
 
 import org.apache.commons.logging.Log;
@@ -137,6 +135,9 @@ public class ApplicationBean implements Serializable {
      * @param obj the repository, relative or absolute path to the library.
      */
     public void addRepository(Object obj) {
+        Resource current = app.getCurrentCodeResource();
+        Repository parent = current == null ?
+                null : current.getRepository().getRootRepository();
         Repository rep;
         if (obj instanceof String) {
             String path = (String) obj;
@@ -151,12 +152,12 @@ public class ApplicationBean implements Serializable {
                 throw new RuntimeException("Repository path does not exist: " + obj);
             }
             if (file.isDirectory()) {
-                rep = new FileRepository(file);
+                rep = new FileRepository(file, parent);
             } else if (file.isFile()) {
                 if (file.getName().endsWith(".zip")) {
-                    rep = new ZipRepository(file);
+                    rep = new ZipRepository(file, parent);
                 } else {
-                    rep = new SingleFileRepository(file);
+                    rep = new SingleFileRepository(file, parent);
                 }
             } else {
                 throw new RuntimeException("Unrecognized file type in addRepository: " + obj);
@@ -167,6 +168,11 @@ public class ApplicationBean implements Serializable {
             throw new RuntimeException("Invalid argument to addRepository: " + obj);
         }
         app.addRepository(rep);
+        try {
+            app.typemgr.checkRepository(rep, true);
+        } catch (IOException iox) {
+            getLogger().error("Error checking repository " + rep, iox);
+        }
     }
 
     /**

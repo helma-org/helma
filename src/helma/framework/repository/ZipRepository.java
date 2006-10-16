@@ -56,8 +56,9 @@ public final class ZipRepository extends AbstractRepository {
      * Constructs a ZipRepository using the given zip file as top-level
      * repository
      * @param file a zip file
+     * @param parent the parent repository, or null
      */
-    protected ZipRepository(File file, Repository parent) {
+    public ZipRepository(File file, Repository parent) {
         this(file, parent, null);
     }
 

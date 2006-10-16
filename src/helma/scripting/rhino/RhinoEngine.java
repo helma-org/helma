@@ -20,6 +20,7 @@ import helma.doc.DocApplication;
 import helma.extensions.ConfigurationException;
 import helma.extensions.HelmaExtension;
 import helma.framework.*;
+import helma.framework.repository.Resource;
 import helma.framework.core.*;
 import helma.main.Server;
 import helma.objectmodel.*;
@@ -40,7 +41,7 @@ import java.lang.ref.WeakReference;
  */
 public class RhinoEngine implements ScriptingEngine {
     // map for Application to RhinoCore binding
-    static Map coreMap;
+    static final Map coreMap = new WeakHashMap();
 
     // the application we're running in
     public Application app;
@@ -81,7 +82,7 @@ public class RhinoEngine implements ScriptingEngine {
     public synchronized void init(Application app, RequestEvaluator reval) {
         this.app = app;
         this.reval = reval;
-        core = getRhinoCore(app);
+        initRhinoCore(app);
         context = Context.enter();
         context.setCompileFunctionsWithDynamicScope(true);
         context.setApplicationClassLoader(app.getClassLoader());
@@ -120,24 +121,23 @@ public class RhinoEngine implements ScriptingEngine {
         }
     }
 
-    static synchronized RhinoCore getRhinoCore(Application app) {
-        RhinoCore core = null;
-
-        if (coreMap == null) {
-            coreMap = new WeakHashMap();
-        } else {
+    /**
+     * Initialize the RhinoCore instance for this engine and application.
+     * @param app the application we belong to
+     */
+    private synchronized void initRhinoCore(Application app) {
+        synchronized (coreMap) {
             WeakReference ref = (WeakReference) coreMap.get(app);
             if (ref != null) {
                 core = (RhinoCore) ref.get();
             }
-        }
 
-        if (core == null) {
-            core = new RhinoCore(app);
-            coreMap.put(app, new WeakReference(core));
+            if (core == null) {
+                core = new RhinoCore(app);
+                core.initialize();
+                coreMap.put(app, new WeakReference(core));
+            }
         }
-
-        return core;
     }
 
     /**
@@ -541,6 +541,16 @@ public class RhinoEngine implements ScriptingEngine {
         } finally {
             Context.exit();
         }
+    }
+
+    /**
+     * Add a code resource to a given prototype by immediately compiling and evaluating it.
+     *
+     * @param typename the type this resource belongs to
+     * @param resource a code resource
+     */
+    public void injectCodeResource(String typename, Resource resource) {
+        core.injectCodeResource(typename, resource);
     }
 
     /**

@@ -19,10 +19,7 @@ package helma.framework.core;
 import helma.extensions.ConfigurationException;
 import helma.extensions.HelmaExtension;
 import helma.framework.*;
-import helma.framework.repository.ResourceComparator;
-import helma.framework.repository.Repository;
-import helma.framework.repository.FileResource;
-import helma.framework.repository.FileRepository;
+import helma.framework.repository.*;
 import helma.main.Server;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
@@ -37,7 +34,7 @@ import java.util.ArrayList;
 
 
 /**
- * The central class of a Helma application. This class keeps a pool of so-called
+ * The central class of a Helma application. This class keeps a pool of 
  * request evaluators (threads with JavaScript interpreters), waits for
  * requests from the Web server or XML-RPC port and dispatches them to
  * the evaluators.
@@ -166,6 +163,8 @@ public final class Application implements IPathElement, Runnable {
     Hashtable customCronJobs = null;
 
     private ResourceComparator resourceComparator;
+
+    private Resource currentCodeResource;
 
     /**
      *  Simple constructor for dead application instances.
@@ -1766,6 +1765,28 @@ public final class Application implements IPathElement, Runnable {
      */
     public List getRepositories() {
         return Collections.unmodifiableList(repositories);
+    }
+
+    /**
+     * Set the code resource currently being evaluated/compiled. This is used
+     * to set the proper parent repository when a new repository is added
+     * via app.addRepository().
+     *
+     * @param resource the resource being currently evaluated/compiled
+     */
+    public void setCurrentCodeResource(Resource resource) {
+        currentCodeResource = resource;
+    }
+
+    /**
+     * Set the code resource currently being evaluated/compiled. This is used
+     * to set the proper parent repository when a new repository is added
+     * via app.addRepository().
+
+     * @return the resource being currently evaluated/compiled
+     */
+    public Resource getCurrentCodeResource() {
+        return currentCodeResource;
     }
 
     /**

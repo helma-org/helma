@@ -126,7 +126,7 @@ public final class TypeManager {
         lastCheck = System.currentTimeMillis();
     }
 
-    private void checkRepository(Repository repository) throws IOException {
+    protected void checkRepository(Repository repository, boolean update) throws IOException {
         Repository[] list = repository.getRepositories();
         for (int i = 0; i < list.length; i++) {
  
@@ -143,7 +143,7 @@ public final class TypeManager {
                 // this is an embedded top-level script repository 
                 if (app.addRepository(list[i])) {
                     // repository is new, check it
-                    checkRepository(list[i]);
+                    checkRepository(list[i], update);
                 }
             } else {
                 // it's an prototype
@@ -156,7 +156,7 @@ public final class TypeManager {
                     if (isValidTypeName(name)) 
                         createPrototype(name, list[i]);
                 } else {
-                    proto.addRepository(list[i]);
+                    proto.addRepository(list[i], update);
                 }
             }
         }
@@ -193,7 +193,7 @@ public final class TypeManager {
                     ((Long) lastRepoScan.get(repository)).longValue() : 0;
             if (repository.lastModified() != lastScan) {
                 lastRepoScan.put(repository, new Long(repository.lastModified()));
-                checkRepository(repository);
+                checkRepository(repository, false);
             }
         }
 
