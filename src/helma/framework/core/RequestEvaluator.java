@@ -79,6 +79,7 @@ public final class RequestEvaluator implements Runnable {
 
     /**
      *  Create a new RequestEvaluator for this application.
+     *  @param app the application
      */
     public RequestEvaluator(Application app) {
         this.app = app;
@@ -89,6 +90,7 @@ public final class RequestEvaluator implements Runnable {
             String engineClassName = app.getProperty("scriptingEngine",
                                                      "helma.scripting.rhino.RhinoEngine");
             try {
+                app.setCurrentRequestEvaluator(this);
                 Class clazz = app.getClassLoader().loadClass(engineClassName);
 
                 scriptingEngine = (ScriptingEngine) clazz.newInstance();
@@ -112,6 +114,8 @@ public final class RequestEvaluator implements Runnable {
                 } else {
                     throw new RuntimeException(t.toString());
                 }
+            } finally {
+                app.setCurrentRequestEvaluator(null);
             }
         }
     }
@@ -151,6 +155,7 @@ public final class RequestEvaluator implements Runnable {
 
                         // initialize scripting engine
                         initScriptingEngine();
+                        app.setCurrentRequestEvaluator(this);
                         // update scripting prototypes
                         scriptingEngine.updatePrototypes();
 
@@ -559,6 +564,8 @@ public final class RequestEvaluator implements Runnable {
                             res.reportError(app.getName(), error);
                             done = true;
                         }
+                    } finally {
+                        app.setCurrentRequestEvaluator(null);
                     }
                 }
 
