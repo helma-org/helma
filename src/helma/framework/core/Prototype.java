@@ -122,9 +122,10 @@ public final class Prototype {
             props.addResource(repository.getResource("type.properties"));
             if (update) {
                 RequestEvaluator eval = app.getCurrentRequestEvaluator();
+                ScriptingEngine engine = eval == null ? null : eval.scriptingEngine;
                 Iterator it = repository.getAllResources().iterator();
                 while (it.hasNext()) {
-                    checkResource((Resource) it.next(), eval.scriptingEngine);
+                    checkResource((Resource) it.next(), engine);
                 }
             }
         }

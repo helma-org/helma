@@ -102,6 +102,9 @@ public final class Application implements IPathElement, Runnable {
     long requestTimeout = 60000;
     ThreadGroup threadgroup;
 
+    // threadlocal variable for the current RequestEvaluator
+    ThreadLocal currentEvaluator = new ThreadLocal();
+
     // Map of requesttrans -> active requestevaluators
     Hashtable activeRequests;
 
@@ -1192,18 +1195,15 @@ public final class Application implements IPathElement, Runnable {
      * @return the RequestEvaluator belonging to the current thread
      */
     public RequestEvaluator getCurrentRequestEvaluator() {
-        Thread thread = Thread.currentThread();
-        int l = allThreads.size();
+        return (RequestEvaluator) currentEvaluator.get();
+    }
 
-        for (int i = 0; i < l; i++) {
-            RequestEvaluator r = (RequestEvaluator) allThreads.get(i);
-
-            if ((r != null) && (r.getThread() == thread)) {
-                return r;
-            }
-        }
-
-        return null;
+    /**
+     * Set the current RequestEvaluator for the calling thread.
+     * @param eval the RequestEvaluator belonging to the current thread
+     */
+    protected void setCurrentRequestEvaluator(RequestEvaluator eval) {
+        currentEvaluator.set(eval);
     }
 
     /**
