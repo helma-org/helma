@@ -887,7 +887,7 @@ public final class Relation {
                             } else if (columnName.equals(dbmap.getNameField())) {
                                 value = nonvirtual.getName();
                             } else if (columnName.equals(dbmap.getPrototypeField())) {
-                                value = nonvirtual.getPrototype();
+                                value = dbmap.getExtensionId();
                             }
                         }
                     }
