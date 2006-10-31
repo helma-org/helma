@@ -27,8 +27,9 @@ import java.util.*;
  */
 public class Logger implements Log {
 
-    // buffer for log items
-    List entries;
+    // buffer for log items; create a synchronized list for log entries since
+    // different threads may attempt to modify the list at the same time
+    List entries = Collections.synchronizedList(new LinkedList());
 
     // Writer for log output
     PrintWriter writer;
@@ -49,7 +50,11 @@ public class Logger implements Log {
     public final static int FATAL = 6;
     
     int logLevel = INFO;    
-    
+
+    // timestamp of last log message, used to close file loggers after longer
+    // periods of inactivity
+    long lastMessage = System.currentTimeMillis();
+
     /**
      * zero argument constructor, only here for FileLogger subclass
      */
@@ -59,15 +64,12 @@ public class Logger implements Log {
 
     /**
      * Create a logger for a PrintStream, such as System.out.
+     * @param out the output stream
      */
     protected Logger(PrintStream out) {
         init();
         writer = new PrintWriter(out);
         canonicalName = out.toString();
-
-        // create a synchronized list for log entries since different threads may
-        // attempt to modify the list at the same time
-        entries = Collections.synchronizedList(new LinkedList());
     }
 
     /**
@@ -115,7 +117,8 @@ public class Logger implements Log {
     }
 
     /**
-     *  Return an object  which identifies  this logger.
+     * Return an object  which identifies  this logger.
+     * @return the canonical name of this logger
      */
     public String getCanonicalName() {
         return canonicalName;
@@ -123,35 +126,45 @@ public class Logger implements Log {
 
     /**
      * Append a message to the log.
+     * @param level a string representing the log level
+     * @param msg the log message
+     * @param exception an exception, or null
      */
-    public void log(String msg) {
+    protected void log(String level, Object msg, Throwable exception) {
+        lastMessage = System.currentTimeMillis();
         // it's enough to render the date every second
-        if ((System.currentTimeMillis() - 1000) > dateLastRendered) {
+        if ((lastMessage - 1000) > dateLastRendered) {
             renderDate();
         }
         // add a safety net so we don't grow indefinitely even if writer thread
         // has gone. the 2000 entries threshold is somewhat arbitrary. 
         if (entries.size() < 2000) {
-            entries.add(dateCache + msg);
+            String message = msg == null ? "null" : msg.toString();
+            entries.add(new Entry(dateCache, level, message, exception));
         }
     }
 
     /**
      * This is called by the runner thread to perform actual output.
      */
-    void write() {
+    protected synchronized void write() {
         if (entries.isEmpty()) {
             return;
         }
 
         try {
+            // make sure we have a valid writer
+            ensureOpen();
+
             int l = entries.size();
-
             for (int i = 0; i < l; i++) {
-                String entry = (String) entries.remove(0);
-                writer.println(entry);
+                Entry entry = (Entry) entries.remove(0);
+                writer.print(entry.date);
+                writer.print(entry.level);
+                writer.println(entry.message);
+                if (entry.exception != null)
+                    entry.exception.printStackTrace(writer);
             }
-
             writer.flush();
 
         } catch (Exception x) {
@@ -168,8 +181,15 @@ public class Logger implements Log {
         }
     }
 
+    /**
+     * This is called by the runner thread to to make sure we have an open writer.
+     */
+    protected void ensureOpen() {
+        // nothing to do for console logger
+    }
+
     // Pre-render the date to use for log messages. Called about once a second.
-    static synchronized void renderDate() {
+    protected static synchronized void renderDate() {
         Date date = new Date();
         dateCache = dformat.format(date);
         dateLastRendered = date.getTime();
@@ -203,68 +223,62 @@ public class Logger implements Log {
 
     public void trace(Object parm1) {
         if (logLevel <= TRACE)
-            log(parm1.toString());
+            log("[TRACE] ", parm1, null);
     }
 
     public void trace(Object parm1, Throwable parm2) {
         if (logLevel <= TRACE)
-            log(parm1.toString() + "\n" + 
-                getStackTrace(parm2));
+            log("[TRACE] ", parm1, parm2);
     }
 
     public void debug(Object parm1) {
         if (logLevel <= DEBUG)
-            log(parm1.toString());
+            log("[DEBUG] ", parm1, null);
     }
 
     public void debug(Object parm1, Throwable parm2) {
         if (logLevel <= DEBUG)
-            log(parm1.toString() + "\n" + 
-                getStackTrace(parm2));
+            log("[DEBUG] ", parm1, parm2);
     }
 
     public void info(Object parm1) {
         if (logLevel <= INFO)
-            log(parm1.toString());
+            log("[INFO] ", parm1, null);
     }
 
     public void info(Object parm1, Throwable parm2) {
         if (logLevel <= INFO)
-            log(parm1.toString() + "\n" + 
-                getStackTrace(parm2));
+            log("[INFO] ", parm1, parm2);
     }
 
     public void warn(Object parm1) {
         if (logLevel <= WARN)
-            log(parm1.toString());
+            log("[WARN] ", parm1, null);
     }
 
     public void warn(Object parm1, Throwable parm2) {
         if (logLevel <= WARN)
-            log(parm1.toString() + "\n" + 
-                getStackTrace(parm2));
+            log("[WARN] ", parm1, parm2);
     }
 
     public void error(Object parm1) {
         if (logLevel <= ERROR)
-            log(parm1.toString());
+            log("[ERROR] ", parm1, null);
     }
 
     public void error(Object parm1, Throwable parm2) {
         if (logLevel <= ERROR)
-            log(parm1.toString() + "\n" + 
-                getStackTrace(parm2));
+            log("[ERROR] ", parm1, parm2);
     }
 
     public void fatal(Object parm1) {
         if (logLevel <= FATAL)
-            log(parm1.toString());
+            log("[FATAL] ", parm1, null);
     }
 
     public void fatal(Object parm1, Throwable parm2) {
         if (logLevel <= FATAL)
-            log(parm1.toString() + "\n" + 
-                getStackTrace(parm2));
+            log("[FATAL] ", parm1, parm2);
     }
 
     // utility method to get the stack trace from a Throwable as string
@@ -274,6 +288,18 @@ public class Logger implements Log {
         t.printStackTrace(writer);
         writer.close();
         return stringWriter.toString();
+    }
+
+    class Entry {
+        final String date, level, message;
+        final Throwable exception;
+
+        Entry(String date, String level, String message, Throwable exception) {
+            this.date = date;
+            this.level = level;
+            this.message = message;
+            this.exception = exception;
+        }
     }
 
 }
