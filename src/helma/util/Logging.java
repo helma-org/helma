@@ -73,6 +73,7 @@ public class Logging extends LogFactory {
 
     /**
      * Get a logger to System.out.
+     * @return a logger that writes to System.out
      */
     public static Log getConsoleLog() {
         ensureRunning();
@@ -81,7 +82,9 @@ public class Logging extends LogFactory {
 
 
     /**
-     *  Get a file logger, creating it if it doesn't exist yet.
+     * Get a file logger, creating it if it doesn't exist yet.
+     * @param logname the base name for the file logger
+     * @return a file logger
      */
     public synchronized Logger getFileLog(String logname) {
         Logger log = (Logger) loggerMap.get(logname);
@@ -101,9 +104,7 @@ public class Logging extends LogFactory {
     }
 
     public void setAttribute(String name, Object value) {
-        if ("logdir".equals(name)) {
-            // FIXME: make log dir changable at runtime
-        }
+        // FIXME: make log dir changeable at runtime
     }
 
     public Object getAttribute(String name) {
@@ -217,6 +218,15 @@ public class Logging extends LogFactory {
     }
 
     /**
+     * Returns the timestamp for the last Midnight
+     *
+     * @return last midnight timestamp in milliseconds
+     */
+    static long lastMidnight() {
+        return nextMidnight() - 86400000;
+    }
+
+    /**
      *  The static runner class that loops through all loggers.
      */
     static class Runner extends Thread {
@@ -255,7 +265,7 @@ public class Logging extends LogFactory {
                 }
 
                 try {
-                    wait(250);
+                    wait(333);
                 } catch (InterruptedException ix) {
                     break;
                 }

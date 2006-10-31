@@ -41,12 +41,11 @@ public class FileLogger extends Logger implements Log {
     DecimalFormat nformat = new DecimalFormat("000");
     DateFormat aformat = new SimpleDateFormat("yyyy-MM-dd");
 
-    // timestamp of last log message
-    long lastMessage;
-
     /**
      * Create a file logger. The actual file names do have numbers appended and are
      * rotated every x bytes.
+     * @param directory the directory
+     * @param name the log file base name
      */
     protected FileLogger(String directory, String name) {
         this.name = name;
@@ -59,21 +58,16 @@ public class FileLogger extends Logger implements Log {
         if (!logdir.exists()) {
             logdir.mkdirs();
         }
-
-        // create a synchronized list for log entries since different threads may
-        // attempt to modify the list at the same time
-        entries = Collections.synchronizedList(new LinkedList());
-
-        lastMessage = System.currentTimeMillis();
     }
 
     /**
-     * Open the file and get a writer to it. This will either rotate the log files
-     * or it will return a writer that appends to an existing file.
+     * Open the file and get a writer to it. If the file already exists, this will
+     * return a writer that appends to an existing file if it is from today, or
+     * otherwise rotate the old log file and start a new one.
      */
     private synchronized void openFile() {
         try {
-            if (logfile.exists() && (logfile.lastModified() < lastMidnight())) {
+            if (logfile.exists() && (logfile.lastModified() < Logging.lastMidnight())) {
                 // rotate if a log file exists and is NOT from today
                 File archive = rotateLogFile();
                 // gzip rotated log file in a separate thread
@@ -105,41 +99,14 @@ public class FileLogger extends Logger implements Log {
     }
 
     /**
-     * This is called by the runner thread to perform actual output.
+     * This is called by the runner thread to to make sure we have an open writer.
      */
-    synchronized void write() {
-        if (entries.isEmpty()) {
-            return;
-        }
-
-        try {
-            int l = entries.size();
-
-            if (writer == null || !logfile.exists()) {
-                // open/create the log file if necessary
-                openFile();
-            }
-
-            for (int i = 0; i < l; i++) {
-                String entry = (String) entries.remove(0);
-                writer.println(entry);
-            }
-
-            writer.flush();
-        } catch (Exception x) {
-            int size = entries.size();
-
-            if (size > 1000) {
-                // more than 1000 entries queued plus exception - something
-                // is definitely wrong with this logger. Write a message to std err and
-                // discard queued log entries.
-                System.err.println("Error writing log file " + this + ": " + x);
-                System.err.println("Discarding " + size + " log entries.");
-                entries.clear();
-            }
+    protected synchronized void ensureOpen() {
+        // open a new writer if writer is null or the log file has been deleted
+        if (writer == null || !logfile.exists()) {
+            openFile();
         }
     }
-
 
     /**
      *  Rotate log files, closing the file writer and renaming the old
@@ -147,6 +114,7 @@ public class FileLogger extends Logger implements Log {
      *  the log file couldn't be rotated.
      *
      *  @return the old renamed log file, or null
+     *  @throws IOException if an i/o error occurred
      */
     protected synchronized File rotateLogFile() throws IOException {
         // if the logger is not file based do nothing.
@@ -197,34 +165,11 @@ public class FileLogger extends Logger implements Log {
     }
 
     /**
-     *  Return an object  which identifies  this logger.
+     *  Return an object  which identifies this logger.
+     *  @return the logger's name
      */
     public String getName() {
         return name;
-    }
-
-
-    /**
-     * Append a message to the log.
-     */
-    public void log(String msg) {
-        lastMessage = System.currentTimeMillis();
-
-        // it's enough to render the date every second
-        if ((lastMessage - 1000) > dateLastRendered) {
-            renderDate();
-        }
-
-        entries.add(dateCache + msg);
-    }
-
-    /**
-     *
-     *
-     * @return the timestamp for last midnight in millis
-     */
-    private static long lastMidnight() {
-        return Logging.nextMidnight() - 86400000;
     }
 
     /**
