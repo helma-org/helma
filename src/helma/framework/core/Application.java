@@ -430,6 +430,17 @@ public final class Application implements IPathElement, Runnable {
     public synchronized void start() {
         starttime = System.currentTimeMillis();
 
+        // as first thing, invoke global onStart() function
+        RequestEvaluator eval = null;
+        try {
+            eval = getEvaluator();
+            eval.invokeInternal(null, "onStart", RequestEvaluator.EMPTY_ARGS);
+        } catch (Exception xcept) {
+            logError("Error in " + name + "onStart()", xcept);
+        } finally {
+            releaseEvaluator(eval);
+        }
+
         worker = new Thread(this, "Worker-" + name);
         worker.setPriority(Thread.NORM_PRIORITY + 1);
         worker.start();
@@ -1455,17 +1466,6 @@ public final class Application implements IPathElement, Runnable {
      * kicking out expired user sessions.
      */
     public void run() {
-
-        // as first thing, invoke global onStart() function
-        RequestEvaluator eval = null;
-        try {
-            eval = getEvaluator();
-            eval.invokeInternal(null, "onStart", RequestEvaluator.EMPTY_ARGS);
-        } catch (Exception xcept) {
-            logError("Error in " + name + "onStart()", xcept);
-        } finally {
-            releaseEvaluator(eval);
-        }
 
         // interval between session cleanups
         long lastSessionCleanup = System.currentTimeMillis();
