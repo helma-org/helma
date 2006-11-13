@@ -17,9 +17,9 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //
-// $Revision: 1.4 $
+// $Revision: 1.5 $
 // $Author: robert $
-// $Date: 2006/09/29 13:49:40 $
+// $Date: 2006/10/23 18:56:36 $
 //
 
 
@@ -487,9 +487,12 @@ helma.Search.Index.prototype.addDocument = function(doc) {
  * @param {java.util.Hashtable | java.util.Vector | Array} docs
  * The documents to add to the index.
  */
-helma.Search.Index.prototype.addDocuments = function(docs) {
+helma.Search.Index.prototype.addDocuments = function(docs, mergeFactor) {
     try {
         var modifier = this.getModifier();
+        if (mergeFactor) {
+            modifier.setMergeFactor(mergeFactor);
+        }
         if (docs instanceof java.util.Hashtable || docs instanceof java.util.Vector) {
             var e = docs.elements();
             while (e.hasMoreElements()) {
@@ -1083,16 +1086,35 @@ helma.Search.Document.prototype.getField = function(name) {
                       indexed: f.isIndexed(),
                       stored: f.isStored(),
                       tokenized: f.isTokenized(),
-                      value: null};
-        try {
-            var pkg = Packages.org.apache.lucene.document.DateTools;
-            result.value = pkg.stringToDate(f.stringValue());
-        } catch (e) {
-            result.value = f.stringValue();
-        }
+                      value: f.stringValue()};
         return result;
    }
    return null;
+};
+
+/**
+ * Returns the value of a single document and converts the value to
+ * a Date object.
+ * @param {String} name The name of the field in this document object.
+ * @return An object containing the following properties:
+ * <ul>
+ * <li>.name (String) The name of the field</li>
+ * <li>.boost (Int) The boost factor</li>
+ * <li>.indexed (Boolean) True if the field is indexed, false otherwise</li>
+ * <li>.stored (Boolean) True if the field is stored, false otherwise</li>
+ * <li>.tokenized (Boolean) True if the field is tokenized, false otherwise</li>
+ * <li>.value (String) The value of the field as Date</li>
+ * </ul>
+ * @type Object
+ * @see #getField
+ */
+helma.Search.Document.prototype.getDateField = function(name) {
+    var result = this.getField(name);
+    if (result != null) {
+        // convert value to Date object
+        result.value = Packages.org.apache.lucene.document.DateTools.stringToDate(result.value);
+    }
+    return result;
 };
 
 /**
