@@ -8,10 +8,10 @@
  *
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
- * $RCSfile: helma.Html.js,v $
+ * $RCSfile: Html.js,v $
  * $Author: czv $
- * $Revision: 1.5 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
 
@@ -434,6 +434,9 @@ helma.Html = function() {
             } else if (options[i].value != null && options[i].display != null) {
                 // option is an object
                 attr.value = options[i].value;
+                if (options[i]["class"] != null) {
+                   attr["class"] = options[i]["class"];
+                }
                 display = options[i].display;
             } else {
                 // assume option is a string
