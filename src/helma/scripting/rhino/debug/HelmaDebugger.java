@@ -16,18 +16,14 @@
 
 package helma.scripting.rhino.debug;
 
-import org.mozilla.javascript.tools.debugger.Main;
 import org.mozilla.javascript.tools.debugger.SwingGui;
 import org.mozilla.javascript.tools.debugger.Dim;
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.debug.DebuggableScript;
 
 import javax.swing.tree.*;
 import javax.swing.*;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.event.TreeSelectionEvent;
-import java.util.Enumeration;
-import java.util.HashMap;
+import java.util.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseAdapter;
@@ -54,30 +50,12 @@ public class HelmaDebugger extends Dim implements TreeSelectionListener {
         gui.setVisible(true);
     }
 
-    public void handleCompilationDone(Context cx, DebuggableScript fnOrScript,
-                                      String source) {
-        String sourceName = fnOrScript.getSourceName();
-        // FileWindow w = (FileWindow) fileWindows.get(sourceName);
-        /* super.(cx, fnOrScript, source);
-        if (!treeNodes.containsKey(sourceName)) {
-            createTreeNode(sourceName);
-        } */
-        /* if (w != null) {
-            // renew existing file window
-            int position = w.textArea.getCaretPosition();
-            // System.err.println("         VISIBLE: " + point);
-            // w.sourceInfo.removeAllBreakpoints();
-            w.sourceInfo = (SourceInfo) sourceNames.get(sourceName);
-            w.updateText();
-            w.textArea.setCaretPosition(position);
-        } */
-    }
-
     void createTreeNode(String sourceName, Dim.SourceInfo sourceInfo) {
         String[] path = StringUtils.split(sourceName, ":/\\");
         DebuggerTreeNode node = treeRoot;
         DebuggerTreeNode newNode = null;
-        for (int i = path.length-2; i < path.length; i++) {
+        int start = Math.max(0, path.length - 3);
+        for (int i = start; i < path.length; i++) {
             DebuggerTreeNode n = node.get(path[i]);
             if (n == null) {
                 n = new DebuggerTreeNode(path[i]);
@@ -102,51 +80,19 @@ public class HelmaDebugger extends Dim implements TreeSelectionListener {
         String sourceName = (String) scriptNames.get(node);
         if (sourceName == null)
             return;
-        SourceInfo sourceInfo = sourceInfo(sourceName);
-        gui.showSourceText(sourceInfo);
-        // display functions for opened script file
-        /*Vector functions = new Vector();
-        Iterator it = functionNames.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry entry = (Map.Entry) it.next();
-            ScriptItem si = (ScriptItem) entry.getValue();
-            if (scriptName.equals(si.getSourceInfo().getUrl())) {
-                functions.add(entry.getKey());
-            }
-        }
-        Collections.sort(functions);
-        list.setListData(functions); */
+        gui.showFileWindow(sourceName, -1);
     }
 
-    void openFunction(String function) {
+    void openFunction(FunctionItem function) {
         if (function == null)
             return;
-        /* ScriptItem item = (ScriptItem) functionNames.get(function);
-        if (item != null) {
-            SourceInfo si = item.getSourceInfo();
-            String url = si.getUrl();
-            int lineNumber = item.getFirstLine();
-            FileWindow w = getFileWindow(url);
-            if (w == null) {
-                CreateFileWindow.action(this, si, lineNumber).run();
-                w = getFileWindow(url);
-                w.setPosition(-1);
-            }
-            int start = w.getPosition(lineNumber - 1);
-            int end = w.getPosition(lineNumber) - 1;
-            w.textArea.select(start);
-            w.textArea.setCaretPosition(start);
-            w.textArea.moveCaretPosition(end);
-            try {
-                if (w.isIcon())
-                    w.setMaximum(true);
-                w.show();
-                requestFocus();
-                w.requestFocus();
-                w.textArea.requestFocus();
-            } catch (Exception exc) {
-            }
-        } */
+        FunctionSource src = function.src;
+        if (src != null) {
+            SourceInfo si = src.sourceInfo();
+            String url = si.url();
+            int lineNumber = src.firstLine();
+            gui.showFileWindow(url, lineNumber);
+        }
     }
 
 
@@ -161,6 +107,10 @@ public class HelmaDebugger extends Dim implements TreeSelectionListener {
         if (script != null) {
             // openScript(script);
         }
+    }
+
+    public void setVisible(boolean visible) {
+        gui.setVisible(visible);
     }
 
     class DebuggerTreeNode extends DefaultMutableTreeNode {
@@ -197,6 +147,9 @@ public class HelmaDebugger extends Dim implements TreeSelectionListener {
     }
 
     class DebugGui extends SwingGui {
+
+        String currentSourceUrl;
+
         public DebugGui(Dim dim, String title) {
             super(dim, title);
             Container contentPane = getContentPane();
@@ -231,13 +184,13 @@ public class HelmaDebugger extends Dim implements TreeSelectionListener {
             list.setFont(list.getFont().deriveFont(Font.PLAIN));
             list.addMouseListener(new MouseAdapter() {
                 public void mouseClicked(MouseEvent evt) {
-                    openFunction((String) list.getSelectedValue());
+                    openFunction((FunctionItem) list.getSelectedValue());
                 }
             });
             list.addKeyListener(new KeyAdapter() {
                 public void keyPressed(KeyEvent evt) {
                     if (evt.getKeyCode() == KeyEvent.VK_ENTER)
-                        openFunction((String) list.getSelectedValue());
+                        openFunction((FunctionItem) list.getSelectedValue());
                 }
             });
             JScrollPane listScroller = new JScrollPane(list);
@@ -256,18 +209,94 @@ public class HelmaDebugger extends Dim implements TreeSelectionListener {
             contentPane.add(split2, BorderLayout.CENTER);
         }
 
-        public void updateSourceText(Dim.SourceInfo sourceInfo) {
+        public void updateSourceText(final Dim.SourceInfo sourceInfo) {
             // super.updateSourceText(sourceInfo);
             String filename = sourceInfo.url();
             if (!treeNodes.containsKey(filename)) {
                 createTreeNode(filename, sourceInfo);
             }
-            // System.err.println("UPDATE SOURCE TEXT CALLED: " + sourceInfo.url());
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    updateFileWindow(sourceInfo);
+                }
+            });
         }
 
-        public void showSourceText(Dim.SourceInfo sourceInfo) {
-            super.updateSourceText(sourceInfo);
+        protected void showFileWindow(String sourceName, int lineNumber) {
+            if (!isVisible())
+                setVisible(true);
+            if (!sourceName.equals(currentSourceUrl)) {
+                updateFunctionList(sourceName);
+                DebuggerTreeNode node = (DebuggerTreeNode) treeNodes.get(sourceName);
+                if (node != null) {
+                    TreePath path = new TreePath(node.getPath());
+                    tree.setSelectionPath(path);
+                    tree.scrollPathToVisible(path);
+                }
+            }
+            super.showFileWindow(sourceName, lineNumber);
         }
+
+        private void updateFunctionList(String sourceName) {
+            // display functions for opened script file
+            currentSourceUrl = sourceName;
+            Vector functions = new Vector();
+            SourceInfo si = sourceInfo(sourceName);
+            String[] lines = si.source().split("\\r\\n|\\r|\\n");
+            int length = si.functionSourcesTop();
+            for (int i = 0; i < length; i++) {
+                FunctionSource src = si.functionSource(i);
+                if (sourceName.equals(src.sourceInfo().url())) {
+                    functions.add(new FunctionItem(src, lines));
+                }
+            }
+            // Collections.sort(functions);
+            list.setListData(functions);
+        }
+    }
+
+    class FunctionItem implements Comparable {
+
+        FunctionSource src;
+        String name;
+        String line = "";
+
+        FunctionItem(FunctionSource src, String[] lines) {
+            this.src = src;
+            name = src.name();
+            if ("".equals(name)) {
+                try {
+                    line = lines[src.firstLine() - 1];
+                    int f = line.indexOf("function") - 1;
+                    StringBuffer b = new StringBuffer();
+                    boolean assignment = false;
+                    while (f-- > 0) {
+                        char c = line.charAt(f);
+                        if (c == ':' || c == '=')
+                            assignment = true;
+                        else if (assignment && Character.isJavaIdentifierPart(c)
+                                || c == '$' || c == '.')
+                            b.append(c);
+                        else if (!Character.isWhitespace(c) || b.length() > 0)
+                            break;
+                    }
+                    name = b.length() > 0 ? b.reverse().toString() : "<anonymous>";
+                } catch (Exception x) {
+                    // fall back to default name
+                    name = "<anonymous>";
+                }
+            }
+        }
+
+        public int compareTo(Object o) {
+            FunctionItem other = (FunctionItem) o;
+            return name.compareTo(other.name);
+        }
+
+        public String toString() {
+            return name;
+        }
+
     }
 }
 
