@@ -485,7 +485,7 @@ public class RhinoEngine implements ScriptingEngine {
                 doc = new DocApplication(app);
                 doc.readApplication();
             } catch (IOException x) {
-                throw new RuntimeException(x.toString());
+                throw new RuntimeException(x.toString(), x);
             }
         }
         return doc;

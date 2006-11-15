@@ -19,25 +19,25 @@ package helma.doc;
 /**
  * 
  */
-public class DocException extends RuntimeException {
-    String str;
+public class DocException extends Exception {
 
     /**
      * Creates a new DocException object.
      *
-     * @param str ...
+     * @param msg ...
      */
-    public DocException(String str) {
-        super(str);
-        this.str = str;
+    public DocException(String msg) {
+        super(msg);
     }
 
     /**
+     * Creates a new DocException object.
      *
-     *
-     * @return ...
+     * @param msg the exception message
+     * @param t the cause
      */
-    public String getMessage() {
-        return str;
+    public DocException(String msg, Throwable t) {
+        super(msg, t);
     }
+
 }

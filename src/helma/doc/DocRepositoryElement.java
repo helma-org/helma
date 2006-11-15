@@ -61,7 +61,7 @@ public abstract class DocRepositoryElement extends DocElement {
     }
 
 
-    private void checkCommentFiles() throws DocException, IOException {
+    private void checkCommentFiles() throws IOException {
         if (repos == null) {
             return;
         }
@@ -70,9 +70,7 @@ public abstract class DocRepositoryElement extends DocElement {
 
             if (res.exists()) {
                 String rawComment = res.getContent();
-
                 parseComment(rawComment);
-
                 return;
             }
         }

@@ -16,11 +16,16 @@
 
 package helma.doc;
 
-import java.awt.Point;
-import java.io.*;
-import java.util.Vector;
-import org.mozilla.javascript.*;
 import helma.framework.repository.Resource;
+import helma.util.StringUtils;
+
+import java.awt.Point;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.util.Vector;
+
+import org.mozilla.javascript.*;
 
 /**
  * 
@@ -42,20 +47,16 @@ public class DocFunction extends DocResourceElement {
     /**
      * creates a new DocFunction object of type ACTION connected to another DocElement
      */
-    public static DocFunction newAction(Resource res, DocElement parent) throws IOException{
+    public static DocFunction newAction(Resource res, DocElement parent) throws IOException {
         String name = res.getBaseName();
+        String[] lines = StringUtils.splitLines(res.getContent());
         DocFunction func = new DocFunction(name, res, parent, ACTION);
         String rawComment = "";
-        try {
-            DockenStream ts = getDockenStream (res);
-            Point p = getPoint (ts);
-            ts.getToken();
-            rawComment = Util.getStringFromFile(res, p, getPoint(ts));
-            rawComment = Util.chopComment (rawComment);
-        } catch (IOException io) {
-            io.printStackTrace();
-            throw new DocException (io.toString());
-        }
+        TokenStreamInjector ts = getTokenStream (res);
+        Point p = getPoint (ts);
+        ts.getToken();
+        rawComment = Util.extractString(lines, p, getPoint(ts));
+        rawComment = Util.chopComment (rawComment);
         func.parseComment(rawComment);
         func.content = res.getContent();
         return func;
@@ -64,7 +65,7 @@ public class DocFunction extends DocResourceElement {
     /**
      * reads a function file and creates independent DocFunction objects of type FUNCTION
      */
-    public static DocFunction[] newFunctions(Resource res) {
+    public static DocFunction[] newFunctions(Resource res) throws IOException {
         return newFunctions(res, null);
     }
 
@@ -73,35 +74,34 @@ public class DocFunction extends DocResourceElement {
      * reads a function file and creates DocFunction objects of type FUNCTION
      * connected to another DocElement.
      */
-    public static DocFunction[] newFunctions(Resource res, DocElement parent) {
+    public static DocFunction[] newFunctions(Resource res, DocElement parent)
+                throws IOException {
 
         Vector vec = new Vector();
 
-        try {
+            String content = res.getContent();
+            String[] lines = StringUtils.splitLines(content);
+            String comment = "";
 
             int token     = Token.EMPTY;
             int lastToken = Token.EMPTY;
-            Point endOfLastToken      = null;
-            Point endOfLastUsedToken  = null;
-            Point startOfFunctionBody = null;
-            Point endOfFunctionBody   = null;
+            Point marker;
 
             String lastNameString = null;
             String functionName   = null;
             String context        = null;
 
-            DockenStream ts = getDockenStream (res);
+            TokenStreamInjector ts = getTokenStream (content);
 
             while (!ts.eof()) {
 
-                // store the position of the last token 
-                endOfLastToken = getPoint (ts);
-
+                // store the position of the last token
+                marker = getPoint (ts);
                 // store last token
                 lastToken = token;
 
                 // now get a new token
-                // regular expression syntax is troublesome for the DockenStream
+                // regular expression syntax is troublesome for the TokenStream
                 // we can safely ignore syntax errors in regular expressions here
                 try {
                     token = ts.getToken();
@@ -109,7 +109,13 @@ public class DocFunction extends DocResourceElement {
                     continue;
                 }
 
-                if (token == Token.LC) {
+                if (token == Token.EOL) {
+
+                    String c = Util.extractString(lines, marker, getPoint(ts));
+                    if (c.startsWith("/**"))
+                        comment = c;
+
+                } else if (token == Token.LC) {
 
                     // when we come across a left brace outside of a function,
                     // we store the current string of the stream, it might be
@@ -134,11 +140,8 @@ public class DocFunction extends DocResourceElement {
 
                         // this may be the start of a name chain declaring a function
                         // e.g. Number.prototype.functionName = function() { }
-                        startOfFunctionBody = getPoint(ts);
-                        startOfFunctionBody.x -= (ts.getString().length() + 1);
-
-                        // set pointer to end of last function to the token before the name
-                        endOfLastUsedToken = endOfLastToken;
+                        marker = getPoint(ts);
+                        marker.x -= (ts.getString().length() + 1);
 
                     } else {
 
@@ -165,17 +168,13 @@ public class DocFunction extends DocResourceElement {
 
                         // set the pointer for the start of the actual function body
                         // to the letter f of the function word
-                        startOfFunctionBody = p;
-                        startOfFunctionBody.x -= 9;
-
-                        // lastToken should be the last thing that didn't belong to this function
-                        endOfLastUsedToken = endOfLastToken;
+                        marker = p;
+                        marker.x -= 9;
 
                         // set stream to next token, so that name of the
                         // function is the stream's current string
                         token = ts.getToken();
                         functionName = ts.getString();
-
                     } else {
 
                         // it's a different kind of function declaration.
@@ -185,14 +184,9 @@ public class DocFunction extends DocResourceElement {
 
                     }
 
-                    // get the comment from the file (unfortunately, the stream simply skips comments) ...
-                    String rawComment = Util.getStringFromFile(res, endOfLastUsedToken, startOfFunctionBody).trim ();
-                    // .. and clean it
-                    rawComment = Util.chopComment (rawComment);
-
                     // create the function object
                     DocFunction theFunction = newFunction (functionName, res, parent);
-                    theFunction.parseComment (rawComment);
+                    theFunction.parseComment (comment);
                     vec.add (theFunction);
 
                     // subloop on the tokenstream: find the parameters of a function
@@ -208,7 +202,7 @@ public class DocFunction extends DocResourceElement {
                     token = ts.getToken();
                     int level = (token == Token.LC) ? 1 : 0;
                     while (!ts.eof() && level > 0) {
-                        // regular expression syntax is troublesome for the DockenStream
+                        // regular expression syntax is troublesome for the TokenStream
                         // we don't need them here, so we just ignore such an error
                         try {
                             token = ts.getToken();
@@ -221,17 +215,14 @@ public class DocFunction extends DocResourceElement {
                             level--;
                         }
                     }
-                    endOfFunctionBody = getPoint(ts);
 
-                    theFunction.content = Util.getStringFromFile(res, startOfFunctionBody, endOfFunctionBody);
+                    theFunction.content = Util.extractString(lines, marker, getPoint(ts));
+                    comment = "";
 
                 } // end if
             } // end while
 
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            throw new DocException (ex.toString());
-        }
+
         return (DocFunction[]) vec.toArray(new DocFunction[0]);
     }
 
@@ -246,37 +237,45 @@ public class DocFunction extends DocResourceElement {
         }
     }
 
-
     /**
-     * creates a rhino token stream for a given file
+     * Creates a rhino token stream for a given file.
+     * @param src the JS source, either as Resource or String object
+     * @return a TokenStream wrapper
+     * @throws IOException if an I/O exception was raised
      */
-    protected static DockenStream getDockenStream (Resource res) throws IOException {
+    protected static TokenStreamInjector getTokenStream (Object src) throws IOException {
+        // TODO the TokenStreamInjector is really just a hack, and we shouldn't
+        // interact with the rhino TokenStream class directly. The proper way to
+        // go would be to use the public Parser class to parse the input, and walk
+        // through the parse tree and extract the comments manually.
+        // As a result of our approach, the TokenStream member in our Parser instance
+        // will be null, resulting in a NullPointerException when an error is
+        // encountered. For the time being, this is something we can live with.
         Reader reader = null;
-        try {
-            reader = new InputStreamReader(res.getInputStream());
-        } catch (FileNotFoundException fnfe) {
-            fnfe.printStackTrace();
-            throw new DocException (fnfe.toString());
+        String content = null;
+        if (src instanceof Resource) {
+            reader = new InputStreamReader(((Resource) src).getInputStream());
+        } else if (src instanceof String) {
+            content = (String) src;
+        } else {
+            throw new IllegalArgumentException("src must be either a Resource or a String");
         }
-        // String name = res.getName();
-        Integer line = new Integer(0);
         CompilerEnvirons compilerEnv = new CompilerEnvirons();
         compilerEnv.initFromContext(Context.getCurrentContext());
         ErrorReporter errorReporter = Context.getCurrentContext().getErrorReporter();
         Parser parser = new Parser(compilerEnv, errorReporter);
-        return new DockenStream (parser, reader, null, line);
+        return new TokenStreamInjector (parser, reader, content, 0);
     }
-
 
     /**
-     * returns a pointer to the current position in the DockenStream
+     * Returns a pointer to the current position in the TokenStream
+     * @param ts the TokenStream
+     * @return the current position
      */
-    protected static Point getPoint (DockenStream ts) {
+    protected static Point getPoint (TokenStreamInjector ts) {
         return new Point (ts.getOffset(), ts.getLineno());
     }
-
-
-
+    
     /**
      * from helma.framework.IPathElement. All macros, templates, actions etc
      * have the same prototype.

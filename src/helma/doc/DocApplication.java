@@ -35,11 +35,8 @@ public class DocApplication extends DocElement {
     /**
      * Creates a new DocApplication object.
      *
-     * @param app
-     *
-     * @throws DocException ...
      */
-    public DocApplication(Application app) throws DocException {
+    public DocApplication(Application app)  {
         super(app.getName(), APPLICATION);
         this.app = app;
         readProps();

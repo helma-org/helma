@@ -52,7 +52,7 @@ public abstract class DocElement implements IPathElement {
     List tags = new Vector();
     List parameters = new Vector();
 
-    protected DocElement(String name, int type) throws DocException {
+    protected DocElement(String name, int type) {
         this.name = name;
         this.type = type;
     }

@@ -48,4 +48,13 @@ public class StringUtils {
         return s;
     }
 
+    /**
+     *  Split a string into an array of lines.
+     *  @param str the string to split
+     *  @return an array of lines
+     */
+    public static String[] splitLines(String str) {
+        return str.split("\\r|\\n|\\r\\n");
+    }
+
 }

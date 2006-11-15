@@ -32,7 +32,7 @@ public class DocProperties extends DocResourceElement {
 
     protected DocProperties(Resource res, ResourceProperties props,
                             int index, DocElement parent)
-                     throws DocException, IOException {
+                     throws IOException {
         super(res.getShortName(), res, PROPERTIES);
 
         this.parent = parent;
