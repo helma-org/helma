@@ -39,4 +39,12 @@ public abstract class DocResourceElement extends DocElement {
     public String toString() {
         return resource.getName();
     }
+
+    /**
+     * Get the line number this element starts in. Defaults to 0.
+     * @return the first line of this element within its resource
+     */
+    public int getStartLine() {
+        return 0;
+    }
 }

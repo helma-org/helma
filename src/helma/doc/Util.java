@@ -88,6 +88,22 @@ public final class Util {
         return buf.toString().trim();
     }
 
+    /**
+     * Extract a part of a file defined by two points from a String array
+     * @param lines an array of lines
+     * @param start of string to extract defined by column x and row y
+     * @param end of string to extract
+     * @return string
+     */
+    public static String extractString (String[] lines, int start, int end) {
+        StringBuffer buf = new StringBuffer();
+        int to = Math.min(end + 1, lines.length);
+        for (int i = start; i < to; i++) {
+            buf.append(lines[i]);
+            buf.append("\n");
+        }
+        return buf.toString().trim();
+    }
 
     /**
      * method to debug file/stream-handling with Point objects. extracts the line p

@@ -479,7 +479,7 @@ public class RhinoEngine implements ScriptingEngine {
     /**
      * Get an introspector to this engine.
      */
-    public IPathElement getIntrospector() {
+    public DocApplication getDoc() {
         if (doc == null) {
             try {
                 doc = new DocApplication(app);

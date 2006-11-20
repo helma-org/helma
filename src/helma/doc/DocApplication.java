@@ -16,7 +16,6 @@
 
 package helma.doc;
 
-import helma.framework.IPathElement;
 import helma.framework.core.Application;
 import helma.framework.core.Prototype;
 import helma.main.Server;
@@ -140,9 +139,9 @@ public class DocApplication extends DocElement {
      * from helma.framework.IPathElement, overridden with
      * Server.getServer() to work in manage-application
      */
-    public IPathElement getParentElement() {
+    public Object getParentElement() {
         Server s = helma.main.Server.getServer();
 
-        return s.getChildElement(this.name);
+        return s.getApplication(this.name);
     }
 }

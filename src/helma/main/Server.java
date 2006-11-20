@@ -40,7 +40,7 @@ import helma.util.ResourceProperties;
 /**
  * Helma server main class.
  */
-public class Server implements IPathElement, Runnable {
+public class Server implements Runnable {
     // version string
     public static final String version = "1.6.x (__builddate__)";
 
@@ -882,35 +882,6 @@ public class Server implements IPathElement, Runnable {
      */
     public void stopApplication(String name) {
         appManager.stop(name);
-    }
-
-    /**
-     * method from helma.framework.IPathElement
-     */
-    public String getElementName() {
-        return "root";
-    }
-
-    /**
-     * method from helma.framework.IPathElement,
-     * returning active applications
-     */
-    public IPathElement getChildElement(String name) {
-        return appManager.getApplication(name);
-    }
-
-    /**
-     * method from helma.framework.IPathElement
-     */
-    public IPathElement getParentElement() {
-        return null;
-    }
-
-    /**
-     * method from helma.framework.IPathElement
-     */
-    public String getPrototype() {
-        return "root";
     }
 
     static class HelmaLogSink implements LogSink {

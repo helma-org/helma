@@ -20,6 +20,8 @@ import helma.framework.IPathElement;
 import helma.framework.repository.Resource;
 import helma.framework.core.Application;
 import helma.framework.core.RequestEvaluator;
+import helma.doc.DocApplication;
+
 import java.io.OutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -121,7 +123,7 @@ public interface ScriptingEngine {
      *  In order to be compatible with the standard Helma management application, this
      *  class should be compatible with helma.doc.DocApplication.
      */
-    public IPathElement getIntrospector();
+    public DocApplication getDoc();
 
     /**
      * Provide object serialization for this engine's scripted objects. If no special

@@ -16,14 +16,12 @@
 
 package helma.doc;
 
-import helma.framework.IPathElement;
-
 import java.util.*;
 
 /**
  * 
  */
-public abstract class DocElement implements IPathElement {
+public abstract class DocElement {
     public static final int APPLICATION = 0;
     public static final int PROTOTYPE = 1;
     public static final int ACTION = 2;
@@ -316,9 +314,9 @@ public abstract class DocElement implements IPathElement {
      * from helma.framework.IPathElement. Retrieves a child from the
      * children map.
      */
-    public IPathElement getChildElement(String name) {
+    public DocElement getChildElement(String name) {
         try {
-            return (IPathElement) children.get(name);
+            return (DocElement) children.get(name);
         } catch (ClassCastException cce) {
             debug(cce.toString());
             cce.printStackTrace();
@@ -331,7 +329,7 @@ public abstract class DocElement implements IPathElement {
      * from helma.framework.IPathElement. Returns the parent object
      * of this instance if assigned.
      */
-    public IPathElement getParentElement() {
+    public Object getParentElement() {
         return parent;
     }
 

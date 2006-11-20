@@ -24,6 +24,8 @@ import helma.main.Server;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.util.*;
+import helma.doc.DocApplication;
+
 import java.io.*;
 import java.lang.reflect.*;
 import java.rmi.*;
@@ -39,7 +41,7 @@ import java.util.ArrayList;
  * requests from the Web server or XML-RPC port and dispatches them to
  * the evaluators.
  */
-public final class Application implements IPathElement, Runnable {
+public final class Application implements Runnable {
     // the name of this application
     private String name;
 
@@ -436,7 +438,7 @@ public final class Application implements IPathElement, Runnable {
             eval = getEvaluator();
             eval.invokeInternal(null, "onStart", RequestEvaluator.EMPTY_ARGS);
         } catch (Exception xcept) {
-            logError("Error in " + name + "onStart()", xcept);
+            logError("Error in " + name + ".onStart()", xcept);
         } finally {
             releaseEvaluator(eval);
         }
@@ -1342,49 +1344,17 @@ public final class Application implements IPathElement, Runnable {
         }
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ///   The following methods are the IPathElement interface for this application.
-    ///   this is useful for scripting and url-building in the base-app.
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////
-    public String getElementName() {
-        return name;
-    }
-
-    /**
-     *
-     *
-     * @param name ...
-     *
-     * @return ...
-     */
-    public IPathElement getChildElement(String name) {
-        // as Prototype and the helma.scripting-classes don't offer enough information
-        // we use the classes from helma.doc-pacakge for introspection.
-        // the first time an url like /appname/api/ is parsed, the application is read again
-        // parsed for comments and exposed as an IPathElement
-        if (name.equals("api") && allThreads.size() > 0) {
-            return ((RequestEvaluator) allThreads.get(0)).scriptingEngine.getIntrospector();
+    public DocApplication getDoc() {
+        RequestEvaluator eval = null;
+        try {
+            eval = getEvaluator();
+            return eval.scriptingEngine.getDoc();
+        } catch (Exception xcept) {
+            logError("Error in getDoc() for " + name, xcept);
+            return null;
+        } finally {
+            releaseEvaluator(eval);
         }
-
-        return null;
-    }
-
-    /**
-     *
-     *
-     * @return ...
-     */
-    public IPathElement getParentElement() {
-        return helma.main.Server.getServer();
-    }
-
-    /**
-     *
-     *
-     * @return ...
-     */
-    public String getPrototype() {
-        return "application";
     }
 
     ////////////////////////////////////////////////////////////////////////
