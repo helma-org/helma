@@ -1,8 +1,8 @@
 /**
-* construct an application object so that we can use
-* skins for non-active applications too
-* @arg name
-*/
+ * construct an application object so that we can use
+ * skins for non-active applications too
+ * @arg name
+ */
 function constructor(name) {
     this.name = name;
 }
