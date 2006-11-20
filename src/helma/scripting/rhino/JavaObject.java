@@ -181,24 +181,26 @@ public class JavaObject extends NativeJavaObject {
      * Get a named property from this object.
      */
     public Object get(String name, Scriptable start) {
-        // System.err.println ("GET: "+name);
-        Object obj;
+        Object value;
 
         // we really are not supposed to walk down the prototype chain in get(),
         // but we break the rule in order to be able to override java methods,
         // which are looked up by super.get() below
         Scriptable proto = getPrototype();
         while (proto != null) {
-            obj = proto.get(name, start);
-            if (obj != NOT_FOUND) {
-                return obj;
+            value = proto.get(name, start);
+            // Skip FunctionObject properties, which represent native wrapped
+            // java host methods. The prototype chain is made of HopObjects, and
+            // we can't invoked these on our wrapped java object.
+            if (value != NOT_FOUND && !(value instanceof FunctionObject)) {
+                return value;
             }
             proto = proto.getPrototype();
         }
 
-        obj = overload.get(name);
-        if (obj != null) {
-            return new FunctionObject(name, (Method) obj, this);
+        value = overload.get(name);
+        if (value != null) {
+            return new FunctionObject(name, (Method) value, this);
         }
 
         if ("_prototype".equals(name) || "__prototype__".equals(name)) {
