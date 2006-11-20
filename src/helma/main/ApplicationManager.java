@@ -262,6 +262,17 @@ public class ApplicationManager implements XmlRpcHandler {
         return mountpoint + "/*";
     }
 
+    private File getAbsoluteFile(String path) {
+        // make sure our directory has an absolute path,
+        // see http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4117557
+        File file = new File(path);
+        if (file.isAbsolute()) {
+            return file;
+        } else {
+            return file.getAbsoluteFile();
+        }
+    }
+
     /**
      *  Inner class that describes an application and its start settings.
      */
@@ -322,9 +333,9 @@ public class ApplicationManager implements XmlRpcHandler {
             debug = conf.getProperty("debug");
             encode = "true".equalsIgnoreCase(conf.getProperty("responseEncoding"));
             String appDirName = conf.getProperty("appdir");
-            appDir = (appDirName == null) ? null : new File(appDirName);
+            appDir = (appDirName == null) ? null : getAbsoluteFile(appDirName);
             String dbDirName = conf.getProperty("dbdir");
-            dbDir = (dbDirName == null) ? null : new File(dbDirName);
+            dbDir = (dbDirName == null) ? null : getAbsoluteFile(dbDirName);
 
             // got ignore dirs
             ignoreDirs = conf.getProperty("ignore");
@@ -485,13 +496,10 @@ public class ApplicationManager implements XmlRpcHandler {
                     context.addHandler(handler);
 
                     if (protectedStaticDir != null) {
-                        File protectedContent = new File(protectedStaticDir);
-                        if (!protectedContent.isAbsolute()) {
-                            protectedContent = new File(server.getHopHome(), protectedStaticDir);
-                        }
-                        context.setResourceBase(protectedContent.getAbsolutePath());
+                        File protectedContent = getAbsoluteFile(protectedStaticDir);
+                        context.setResourceBase(protectedContent.getPath());
                         server.getLogger().info("Serving protected static from " +
-                                       protectedContent.getAbsolutePath());
+                                       protectedContent.getPath());
                         context.addHandler(new ResourceHandler());
                     }
 
@@ -500,20 +508,17 @@ public class ApplicationManager implements XmlRpcHandler {
                     // if there is a static direcory specified, mount it
                     if (staticDir != null) {
 
-                        File staticContent = new File(staticDir);
-                        if (!staticContent.isAbsolute()) {
-                            staticContent = new File(server.getHopHome(), staticDir);
-                        }
+                        File staticContent = getAbsoluteFile(staticDir);
 
                         server.getLogger().info("Serving static from " +
-                                       staticContent.getAbsolutePath());
+                                       staticContent.getPath());
                         server.getLogger().info("Mounting static at " +
                                        staticMountpoint);
 
                         context = server.http.addContext(staticMountpoint);
                         context.setWelcomeFiles(staticHome);
 
-                        context.setResourceBase(staticContent.getAbsolutePath());
+                        context.setResourceBase(staticContent.getPath());
 
                         ResourceHandler rhandler = new ResourceHandler();
                         rhandler.setDirAllowed(staticIndex);
