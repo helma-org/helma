@@ -182,10 +182,7 @@ public class JavaObject extends NativeJavaObject {
      */
     public Object get(String name, Scriptable start) {
         // System.err.println ("GET: "+name);
-        Object obj = overload.get(name);
-        if (obj != null) {
-            return new FunctionObject(name, (Method) obj, this);
-        }
+        Object obj;
 
         // we really are not supposed to walk down the prototype chain in get(),
         // but we break the rule in order to be able to override java methods,
@@ -197,6 +194,11 @@ public class JavaObject extends NativeJavaObject {
                 return obj;
             }
             proto = proto.getPrototype();
+        }
+
+        obj = overload.get(name);
+        if (obj != null) {
+            return new FunctionObject(name, (Method) obj, this);
         }
 
         if ("_prototype".equals(name) || "__prototype__".equals(name)) {
@@ -213,6 +215,7 @@ public class JavaObject extends NativeJavaObject {
 
         return super.get(name, start);
     }
+
     /**
      * Returns a prototype's resource of a given name. Walks up the prototype's
      * inheritance chain if the resource is not found
