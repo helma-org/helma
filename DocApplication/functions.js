@@ -1,6 +1,6 @@
 /**
-* get the prototype of any doc-object (either a prototype, a function or a tag)
-*/
+ * Get the prototype of any doc-object (either a prototype, a function or a tag)
+ */
 function getDocPrototype(obj) {
     var tmp = obj;
     while (tmp != null && tmp.getType() != this.PROTOTYPE) {
@@ -11,12 +11,19 @@ function getDocPrototype(obj) {
 
 
 /**
-  * get a prototype of this docapplication, ie get on of the children of this object
-  */
+ * Get a prototype of this docapplication, ie get on of the children of this object
+ */
 function getPrototype(name) {
     return this.getChildElement("prototype_" + name);
 }
 
+/**
+ * Method used by Helma for URL composition.
+ */
+function href(action) {
+    var base = this.getParentElement().href() + "api/";
+    return action ? base + action : base;
+}
 
 function getDir(dir, obj) {
     dir.mkdir();

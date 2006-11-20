@@ -55,5 +55,11 @@ function getApp(name) {
     return appObj;
 }
 
+/**
+ * Method used by Helma path resolution.
+ */
+function getChildElement(name) {
+    return this.getApp(name);
+}
 
 

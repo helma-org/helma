@@ -129,8 +129,9 @@ function source_macro(param) {
         sourcecode = sourcecode.replace(r, "");
 
         var arr = sourcecode.split("<br />");
+        var line = this.getStartLine ? this.getStartLine() : 1;
         for (var i = 0; i < arr.length; i++) {
-            res.write('<font color="#aaaaaa">' + (i + 1) + ':</font> ');
+            res.write('<font color="#aaaaaa">' + (line++) + ':</font> ');
             if (i < 99) {
                 res.write(' ');
             }

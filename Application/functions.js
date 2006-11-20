@@ -7,14 +7,6 @@ function constructor(name) {
     this.name = name;
 }
 
-
-/**
-  * of no use, just to avoid error message
-  */
-function onRequest() {
-}
-
-
 /**
   * return true/false to determine if application is running
   */
@@ -25,4 +17,19 @@ function isActive() {
         return true;
 }
 
+/**
+ * Method used by Helma for URL composition.
+ */
+function href(action) {
+    var base = root.href() + this.name + "/";
+    return action ? base + action : base;
+}
 
+/**
+ * Method used by Helma request path resolution.
+ */
+function getChildElement(name) {
+    if (name == "api")
+        return this.getDoc();
+    return null;
+}

@@ -1,14 +1,3 @@
-///**
-//  * utility function for head_macro, rendering link to app and to prototype
-//  */
-//function getPath()	{
-//	var appObj = this.getParentElement ();
-//	var str = appObj.getPath();
-//	str += '/<a href="' + this.href("main") + '">' + this.name + '</a>';
-//	return( str );
-//}
-
-
 function translateType(filter) {
     if (filter == "actions")
         return Packages.helma.doc.DocElement.ACTION;
@@ -24,9 +13,18 @@ function translateType(filter) {
         return -1;
 }
 
-
+/**
+ * Get the application we're part of.
+ */
 function getApplication() {
     return this.getParentElement();
 }
 
-
+/**
+ * Method used by Helma for URL composition.
+ */
+function href(action) {
+    var base = this.getParentElement().href() 
+             + this.getElementName() + "/";
+    return action ? base + action : base;
+}
