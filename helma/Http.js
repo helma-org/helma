@@ -8,10 +8,10 @@
  *
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
- * $RCSfile: helma.Http.js,v $
+ * $RCSfile: Http.js,v $
  * $Author: czv $
- * $Revision: 1.11 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
 
@@ -26,6 +26,7 @@ helma.Http = function() {
     var method = "GET";
     var credentials = null;
     var followRedirects = true;
+    var binaryMode = false;
     var headers = {};
     var timeout = {
         "connect": 0,
@@ -160,10 +161,20 @@ helma.Http = function() {
     this.setUserAgent = function(agent) {
         userAgent = agent;
         return true;
-    }
+    };
     this.getUserAgent = function() {
         return userAgent;
-    }
+    };
+
+    /**
+     * switches content text encoding on/off
+     */
+    this.setBinaryMode = function(mode) {
+        binaryMode = mode;
+    };
+    this.getBinaryMode = function() {
+        return binaryMode;
+    };
 
     /**
      * executes a http request
@@ -204,8 +215,8 @@ helma.Http = function() {
         if (content) {
             conn.setRequestProperty("Content-Length", content.length);
             conn.setDoOutput(true);
-            var out = new java.io.DataOutputStream(conn.getOutputStream());
-            out.writeBytes(new java.lang.String(content));
+            var out = new java.io.OutputStreamWriter(conn.getOutputStream());
+            out.write(content);
             out.flush();
             out.close();
         }
@@ -236,7 +247,13 @@ helma.Http = function() {
                 body.write(buf, 0, str);
             }
             input.close();
-            result.content = result.encoding ? body.toString(result.encoding) : body.toString();
+            if (binaryMode) {
+                result.content = body.toByteArray();
+            } else {
+                result.content = result.encoding ?
+                            body.toString(result.encoding) :
+                            body.toString();
+            }
             result.length = result.content.length;
         }
         conn.disconnect();
