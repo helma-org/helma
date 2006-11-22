@@ -17,7 +17,6 @@
 package helma.main;
 
 import helma.framework.core.Application;
-import helma.util.SystemProperties;
 import java.io.File;
 import java.util.*;
 
