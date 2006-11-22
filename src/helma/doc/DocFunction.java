@@ -127,7 +127,8 @@ public class DocFunction extends DocResourceElement {
 
             } else if (token.type == Token.THIS) {
 
-                lastNameString = parent.getName();
+                if (parent instanceof DocFunction)
+                    lastNameString = parent.getName() + ".prototype";
                 // this may be the start of a name chain declaring a function
                 // e.g. Number.prototype.functionName = function() { }
                 // marker = getPoint(token);
