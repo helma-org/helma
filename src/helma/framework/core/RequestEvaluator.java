@@ -674,9 +674,8 @@ public final class RequestEvaluator implements Runnable {
             t.kill();
             t.abort();
             t.closeConnections();
-
-            notifyAll();
         }
+        notifyAll();
     }
 
     /**
