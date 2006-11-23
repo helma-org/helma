@@ -755,8 +755,7 @@ public final class Node implements INode, Serializable {
         // check what's specified in the type.properties for this node.
         ParentInfo[] parentInfo = null;
 
-        if (isRelational() && state != TRANSIENT
-                && lastParentSet <= Math.max(dbmap.getLastTypeChange(), lastmodified)) {
+        if (isRelational() && lastParentSet <= Math.max(dbmap.getLastTypeChange(), lastmodified)) {
             parentInfo = dbmap.getParentInfo();
         }
 
@@ -820,7 +819,7 @@ public final class Node implements INode, Serializable {
                     lastParentSet = System.currentTimeMillis();
                 }
             }
-            if (parentHandle == null && !nmgr.isRootNode(this)) {
+            if (parentHandle == null && !nmgr.isRootNode(this) && state != TRANSIENT) {
                 nmgr.nmgr.app.logEvent("*** Couldn't resolve parent for " + this);
                 nmgr.nmgr.app.logEvent("*** Please check _parent info in type.properties!");
             }
