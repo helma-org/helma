@@ -575,9 +575,9 @@ public final class RhinoCore implements ScopeProvider {
      */
     public Scriptable getElementWrapper(Object e) {
         WeakReference ref = (WeakReference) wrappercache.get(e);
-        Scriptable wrapper = ref == null ? null : (Scriptable) ref.get();
+        Wrapper wrapper = ref == null ? null : (Wrapper) ref.get();
 
-        if (wrapper == null) {
+        if (wrapper == null || wrapper.unwrap() != e) {
             // Gotta find out the prototype name to use for this object...
             String prototypeName = app.getPrototypeName(e);
             Scriptable op = getPrototype(prototypeName);
@@ -592,7 +592,7 @@ public final class RhinoCore implements ScopeProvider {
             wrappercache.put(e, new WeakReference(wrapper));
         }
 
-        return wrapper;
+        return (Scriptable) wrapper;
     }
 
     /**
@@ -603,9 +603,9 @@ public final class RhinoCore implements ScopeProvider {
             return null;
         }
 
-        HopObject esn = (HopObject) wrappercache.get(n);
+        HopObject hobj = (HopObject) wrappercache.get(n);
 
-        if (esn == null) {
+        if (hobj == null) {
 
             String protoname = n.getPrototype();
 
@@ -629,12 +629,12 @@ public final class RhinoCore implements ScopeProvider {
                 }
             }
 
-            esn = new HopObject(protoname, this, n, op);
+            hobj = new HopObject(protoname, this, n, op);
 
-            wrappercache.put(n, esn);
+            wrappercache.put(n, hobj);
         }
 
-        return esn;
+        return hobj;
     }
 
     protected String postProcessHref(Object obj, String protoName, String basicHref)
