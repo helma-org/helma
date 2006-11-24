@@ -1,4 +1,4 @@
-This is the README file for version 1.6.z of the Helma Javascript 
+This is the README file for version 1.6.x of the Helma Javascript 
 Web Application Framework.
 
 ==============
