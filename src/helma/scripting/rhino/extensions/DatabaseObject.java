@@ -259,373 +259,375 @@ public class DatabaseObject {
          }
       return databaseMetaData;
     }
-}
 
+    /**
+      * A RowSet object
+      */
+    public static class RowSet {
 
-/**
-  * A RowSet object
-  */
-class RowSet {
+        private transient String sql = null;
+        private transient Statement statement = null;
+        private transient ResultSet resultSet = null;
+        private transient ResultSetMetaData resultSetMetaData = null;
+        private transient Vector colNames = null;
+        private transient boolean lastRowSeen = false;
+        private transient boolean firstRowSeen = false;
+        private transient Exception lastError = null;
 
-    private transient String sql = null;
-    private transient Statement statement = null;
-    private transient ResultSet resultSet = null;
-    private transient ResultSetMetaData resultSetMetaData = null;
-    private transient Vector colNames = null;
-    private transient boolean lastRowSeen = false;
-    private transient boolean firstRowSeen = false;
-    private transient Exception lastError = null;
+        RowSet(String sql,
+                    DatabaseObject database,
+                    Statement statement,
+                    ResultSet resultSet) throws SQLException {
+            this.sql = sql;
+            this.statement = statement;
+            this.resultSet = resultSet;
 
-    RowSet(String sql,
-                DatabaseObject database,
-                Statement statement,
-                ResultSet resultSet) throws SQLException {
-        this.sql = sql;
-        this.statement = statement;
-        this.resultSet = resultSet;
+            if (sql==null) throw new NullPointerException("sql");
+            if (resultSet==null) throw new NullPointerException("resultSet");
+            if (statement==null) throw new NullPointerException("statement");
+            if (database==null) throw new NullPointerException("database");
 
-        if (sql==null) throw new NullPointerException("sql");
-        if (resultSet==null) throw new NullPointerException("resultSet");
-        if (statement==null) throw new NullPointerException("statement");
-        if (database==null) throw new NullPointerException("database");
-        
-        try {
-            
-            this.resultSetMetaData = resultSet.getMetaData();
-            int numcols = resultSetMetaData.getColumnCount();
-            //IServer.getLogger().log("$$NEXT : " + numcols);
-            colNames = new Vector(numcols);
-            for (int i=0; i<numcols; i++) {
-               String colName = resultSetMetaData.getColumnLabel(i+1);
-               //IServer.getLogger().log("$$COL : " + colName);
-               colNames.addElement(colName);
-            }
-        } catch(SQLException e) {
-            colNames = new Vector(); // An empty one
-            throw new SQLException("Could not get column names: "+e);
-
-            // System.err.println("##Cannot get column names: " + e);
-            // e.printStackTrace();
-        }
-    }
-
-
-    public String getClassName() {
-        return "RowSet";
-    }
-
-    public String toDetailString() {
-        return "ES:[Object: builtin " + this.getClass().getName() + ":" +
-            this.toString() + "]";
-    }
-
-    public int getColumnCount() {
-        return colNames.size();
-    }
-
-    public Object getMetaData()
-    {
-      return resultSetMetaData;
-    }
-
-    public Object getLastError() {
-        if (lastError == null) {
-            return null;
-        } else {
-            return lastError;
-        }
-    }
-
-
-    public void release() {
-        try {
-            if (statement!= null) statement.close();
-            if (resultSet != null) resultSet.close();
-        } catch (SQLException e) {
-            // ignored
-        }
-        statement = null;
-        resultSet = null;
-        resultSetMetaData = null;
-    }
-
-    public boolean hasMoreRows() {
-        return !lastRowSeen;   // Simplistic implementation
-    }
-
-    public String getColumnName(int idx) {
-       if (resultSet == null) {
-            lastError = new SQLException("Attempt to access a released result set");
-            return null;
-       }
-        if (idx>0 && idx <=colNames.size()) {
-            return (String) colNames.elementAt(idx-1); // to base 0
-        } else {
-            lastError = new SQLException("Column index (base 1) " + idx +
-                                        " out of range, max: " +colNames.size());
-            return null;
-        }
-    }
-
-
-    public int getColumnDatatypeNumber(int idx) {
-       if (resultSet == null) {
-            lastError = new SQLException("Attempt to access a released result set");
-            return -1;
-       }
-        if (idx>0 && idx <=colNames.size()) {
             try {
-                return resultSetMetaData.getColumnType(idx);
-            } catch (SQLException e) {
-                lastError = e;
-                return -1;
+
+                this.resultSetMetaData = resultSet.getMetaData();
+                int numcols = resultSetMetaData.getColumnCount();
+                //IServer.getLogger().log("$$NEXT : " + numcols);
+                colNames = new Vector(numcols);
+                for (int i=0; i<numcols; i++) {
+                   String colName = resultSetMetaData.getColumnLabel(i+1);
+                   //IServer.getLogger().log("$$COL : " + colName);
+                   colNames.addElement(colName);
+                }
+            } catch(SQLException e) {
+                colNames = new Vector(); // An empty one
+                throw new SQLException("Could not get column names: "+e);
+
+                // System.err.println("##Cannot get column names: " + e);
+                // e.printStackTrace();
             }
-        } else {
-            lastError = new SQLException("Column index (base 1) " + idx +
-                                        " out of range, max: " +colNames.size());
-            return -1;
         }
-    }
 
 
-    public String getColumnDatatypeName(int idx) {
-       if (resultSet == null) {
-            lastError = new SQLException("Attempt to access a released result set");
-            return null;
-       }
-        if (idx>0 && idx <=colNames.size()) {
-            try {
-                return resultSetMetaData.getColumnTypeName(idx);
-            } catch (SQLException e) {
-                lastError = e;
+        public String getClassName() {
+            return "RowSet";
+        }
+
+        public String toDetailString() {
+            return "ES:[Object: builtin " + this.getClass().getName() + ":" +
+                this.toString() + "]";
+        }
+
+        public int getColumnCount() {
+            return colNames.size();
+        }
+
+        public Object getMetaData()
+        {
+          return resultSetMetaData;
+        }
+
+        public Object getLastError() {
+            if (lastError == null) {
                 return null;
+            } else {
+                return lastError;
             }
-        } else {
-            lastError = new SQLException("Column index (base 1) " + idx +
-                                        " out of range, max: " +colNames.size());
-            return null;
         }
-    }
 
 
-    public Object getColumnItem(String propertyName) {
-       if (resultSet == null) {
-            lastError = new SQLException("Attempt to access a released result set");
-            return null;
-       }
-       if (!firstRowSeen) {
-            lastError = new SQLException("Attempt to access data before the first row is read");
-            return null;
-       }
-       try {
+        public void release() {
             try {
-                int index = Integer.parseInt(propertyName);
-                return getProperty(index);
-            } catch (NumberFormatException e) {
-                int index = resultSet.findColumn(propertyName); 
-                return getProperty(index);
+                if (statement!= null) statement.close();
+                if (resultSet != null) resultSet.close();
+            } catch (SQLException e) {
+                // ignored
             }
-       } catch (SQLException e) {
-          //System.err.println("##Cannot get property '" + propertyName + "' " + e);
-          //e.printStackTrace();
-          lastError = e;
-       }
-       return null;
-    }
+            statement = null;
+            resultSet = null;
+            resultSetMetaData = null;
+        }
 
-    /* FIXME: dunno if this method is still used somewhere
-    public Object getProperty(String propertyName, int hash) {
-        //System.err.println(" &&& Getting property '" + propertyName + "'");
+        public boolean hasMoreRows() {
+            return !lastRowSeen;   // Simplistic implementation
+        }
 
-        // Length property is firsy checked
-
-        // First return system or or prototype properties
-        if (propertyName.equals("length")) {
-             return new Integer(colNames.size());
-        } else {
+        public String getColumnName(int idx) {
            if (resultSet == null) {
                 lastError = new SQLException("Attempt to access a released result set");
                 return null;
            }
+            if (idx>0 && idx <=colNames.size()) {
+                return (String) colNames.elementAt(idx-1); // to base 0
+            } else {
+                lastError = new SQLException("Column index (base 1) " + idx +
+                                            " out of range, max: " +colNames.size());
+                return null;
+            }
+        }
+
+
+        public int getColumnDatatypeNumber(int idx) {
+           if (resultSet == null) {
+                lastError = new SQLException("Attempt to access a released result set");
+                return -1;
+           }
+            if (idx>0 && idx <=colNames.size()) {
+                try {
+                    return resultSetMetaData.getColumnType(idx);
+                } catch (SQLException e) {
+                    lastError = e;
+                    return -1;
+                }
+            } else {
+                lastError = new SQLException("Column index (base 1) " + idx +
+                                            " out of range, max: " +colNames.size());
+                return -1;
+            }
+        }
+
+
+        public String getColumnDatatypeName(int idx) {
+           if (resultSet == null) {
+                lastError = new SQLException("Attempt to access a released result set");
+                return null;
+           }
+            if (idx>0 && idx <=colNames.size()) {
+                try {
+                    return resultSetMetaData.getColumnTypeName(idx);
+                } catch (SQLException e) {
+                    lastError = e;
+                    return null;
+                }
+            } else {
+                lastError = new SQLException("Column index (base 1) " + idx +
+                                            " out of range, max: " +colNames.size());
+                return null;
+            }
+        }
+
+
+        public Object getColumnItem(String propertyName) {
+           if (resultSet == null) {
+                lastError = new SQLException("Attempt to access a released result set");
+                return null;
+           }
+           if (!firstRowSeen) {
+                lastError = new SQLException("Attempt to access data before the first row is read");
+                return null;
+           }
+           try {
+                try {
+                    int index = Integer.parseInt(propertyName);
+                    return getProperty(index);
+                } catch (NumberFormatException e) {
+                    int index = resultSet.findColumn(propertyName);
+                    return getProperty(index);
+                }
+           } catch (SQLException e) {
+              //System.err.println("##Cannot get property '" + propertyName + "' " + e);
+              //e.printStackTrace();
+              lastError = e;
+           }
+           return null;
+        }
+
+        /* FIXME: dunno if this method is still used somewhere
+        public Object getProperty(String propertyName, int hash) {
+            //System.err.println(" &&& Getting property '" + propertyName + "'");
+
+            // Length property is firsy checked
+
+            // First return system or or prototype properties
+            if (propertyName.equals("length")) {
+                 return new Integer(colNames.size());
+            } else {
+               if (resultSet == null) {
+                    lastError = new SQLException("Attempt to access a released result set");
+                    return null;
+               }
+                if (!firstRowSeen) {
+                    lastError = new SQLException("Attempt to access data before the first row is read");
+                    return null;
+                }
+               try {
+                    int index = -1; // indicates not a valid index value
+                    try {
+                        char c = propertyName.charAt(0);
+                        if ('0' <= c && c <= '9') {
+                           index = Integer.parseInt(propertyName);
+                        }
+                    } catch (NumberFormatException e) {
+                    } catch (StringIndexOutOfBoundsException e) { // for charAt
+                    }
+                    if (index>=0) {
+                        return getProperty(index);
+                    }
+                   Object value = resultSet.getObject(propertyName);
+                   // IServer.getLogger().log("&& @VALUE : " + value);
+                   lastError = null;
+                   return value;
+               } catch (SQLException e) {
+                  // System.err.println("##Cannot get property '" + propertyName + "' " + e);
+                  // e.printStackTrace();
+                  lastError = e;
+               }
+            }
+            return null;
+        }
+        */
+
+        public Object getProperty(int index) {
             if (!firstRowSeen) {
                 lastError = new SQLException("Attempt to access data before the first row is read");
                 return null;
             }
-           try {
-                int index = -1; // indicates not a valid index value
-                try {
-                    char c = propertyName.charAt(0);
-                    if ('0' <= c && c <= '9') {
-                       index = Integer.parseInt(propertyName);
-                    }
-                } catch (NumberFormatException e) {
-                } catch (StringIndexOutOfBoundsException e) { // for charAt
-                }
-                if (index>=0) {
-                    return getProperty(index);
-                }
-               Object value = resultSet.getObject(propertyName);
-               // IServer.getLogger().log("&& @VALUE : " + value);
-               lastError = null;
-               return value;
-           } catch (SQLException e) {
-              // System.err.println("##Cannot get property '" + propertyName + "' " + e);
-              // e.printStackTrace();
-              lastError = e;
-           }
-        }
-        return null;
-    }
-    */
-
-    public Object getProperty(int index) {
-        if (!firstRowSeen) {
-            lastError = new SQLException("Attempt to access data before the first row is read");
-            return null;
-        }
-        if (resultSet == null) {
-            lastError = new SQLException("Attempt to access a released result set");
-            return null;
-        }
-
-        lastError = null;
-        try {
-            int type = resultSetMetaData.getColumnType(index);
-            switch (type) {
-                case Types.BIT:
-                    return new Boolean(resultSet.getBoolean(index));
-
-                case Types.TINYINT:
-                case Types.BIGINT:
-                case Types.SMALLINT:
-                case Types.INTEGER:
-                    return new Long(resultSet.getLong(index));
-
-                case Types.REAL:
-                case Types.FLOAT:
-                case Types.DOUBLE:
-                    return new Double(resultSet.getDouble(index));
-
-                case Types.DECIMAL:
-                case Types.NUMERIC:
-                    BigDecimal num = resultSet.getBigDecimal(index);
-                    if (num == null) {
-                        break;
-                    }
-
-                    if (num.scale() > 0) {
-                        return new Double(num.doubleValue());
-                    } else {
-                        return new Long(num.longValue());
-                    }
-
-                case Types.VARBINARY:
-                case Types.BINARY:
-                    return resultSet.getString(index);
-
-                case Types.LONGVARBINARY:
-                case Types.LONGVARCHAR:
-                    try {
-                        return resultSet.getString(index);
-                    } catch (SQLException x) {
-                        Reader in = resultSet.getCharacterStream(index);
-                        char[] buffer = new char[2048];
-                        int read = 0;
-                        int r = 0;
-
-                        while ((r = in.read(buffer, read, buffer.length - read)) > -1) {
-                            read += r;
-
-                            if (read == buffer.length) {
-                                // grow input buffer
-                                char[] newBuffer = new char[buffer.length * 2];
-
-                                System.arraycopy(buffer, 0, newBuffer, 0,
-                                        buffer.length);
-                                buffer = newBuffer;
-                            }
-                        }
-                        return new String(buffer, 0, read);
-                    }
-
-                case Types.DATE:
-                case Types.TIME:
-                case Types.TIMESTAMP:
-                    return resultSet.getTimestamp(index);
-
-                case Types.NULL:
-                    return null;
-
-                case Types.CLOB:
-                    Clob cl = resultSet.getClob(index);
-                    if (cl == null) {
-                        return null;
-                    }
-                    char[] c = new char[(int) cl.length()];
-                    Reader isr = cl.getCharacterStream();
-                    isr.read(c);
-                    return String.copyValueOf(c);
-
-                default:
-                    return resultSet.getString(index);
+            if (resultSet == null) {
+                lastError = new SQLException("Attempt to access a released result set");
+                return null;
             }
-        } catch (SQLException e) {
-            // System.err.println("##Cannot get property: " + e);
-            // e.printStackTrace();
-            lastError = e;
-        } catch (IOException ioe) {
-            lastError = ioe;
-        }
 
-        return null;
-    }
-
-    /*
-     * Returns an enumerator for the key elements of this object.
-     *
-     * @return the enumerator - may have 0 length of coulmn names where not found
-     */
-   public Enumeration getProperties() {
-       if (resultSet == null) {
-            return (new Vector()).elements();
-       }
-       return colNames.elements();
-   }
-
-
-    public String[] getSpecialPropertyNames() {
-        return new String[] {"length"};
-    }
-
-
-    public boolean next() {
-        boolean status = false;
-        if (lastRowSeen) {
-            lastError = new SQLException("Attempt to access a next row after last row has been returned");
-            return false;
-        }
-        if (resultSet == null) {
-            lastError = new SQLException("Attempt to access a released result set");
-            return false;
-        }   
-        try {
-            status = resultSet.next();
             lastError = null;
-        } catch (SQLException e) {
-            // System.err.println("##Cannot do next:" + e); 
-            // e.printStackTrace();
-            lastError = e;
-        } 
-        if (status) firstRowSeen = true;
-        else lastRowSeen = true;
-        return status;
-   }
+            try {
+                int type = resultSetMetaData.getColumnType(index);
+                switch (type) {
+                    case Types.BIT:
+                        return new Boolean(resultSet.getBoolean(index));
 
-    public String toString() {
-        return "[RowSet: '"+sql+"'" +
-               (resultSet==null ? " - released]" :
-                   (lastRowSeen ? " - at end]" :
-                   (firstRowSeen ? "]" : " - at start]")));
+                    case Types.TINYINT:
+                    case Types.BIGINT:
+                    case Types.SMALLINT:
+                    case Types.INTEGER:
+                        return new Long(resultSet.getLong(index));
+
+                    case Types.REAL:
+                    case Types.FLOAT:
+                    case Types.DOUBLE:
+                        return new Double(resultSet.getDouble(index));
+
+                    case Types.DECIMAL:
+                    case Types.NUMERIC:
+                        BigDecimal num = resultSet.getBigDecimal(index);
+                        if (num == null) {
+                            break;
+                        }
+
+                        if (num.scale() > 0) {
+                            return new Double(num.doubleValue());
+                        } else {
+                            return new Long(num.longValue());
+                        }
+
+                    case Types.VARBINARY:
+                    case Types.BINARY:
+                        return resultSet.getString(index);
+
+                    case Types.LONGVARBINARY:
+                    case Types.LONGVARCHAR:
+                        try {
+                            return resultSet.getString(index);
+                        } catch (SQLException x) {
+                            Reader in = resultSet.getCharacterStream(index);
+                            char[] buffer = new char[2048];
+                            int read = 0;
+                            int r = 0;
+
+                            while ((r = in.read(buffer, read, buffer.length - read)) > -1) {
+                                read += r;
+
+                                if (read == buffer.length) {
+                                    // grow input buffer
+                                    char[] newBuffer = new char[buffer.length * 2];
+
+                                    System.arraycopy(buffer, 0, newBuffer, 0,
+                                            buffer.length);
+                                    buffer = newBuffer;
+                                }
+                            }
+                            return new String(buffer, 0, read);
+                        }
+
+                    case Types.DATE:
+                    case Types.TIME:
+                    case Types.TIMESTAMP:
+                        return resultSet.getTimestamp(index);
+
+                    case Types.NULL:
+                        return null;
+
+                    case Types.CLOB:
+                        Clob cl = resultSet.getClob(index);
+                        if (cl == null) {
+                            return null;
+                        }
+                        char[] c = new char[(int) cl.length()];
+                        Reader isr = cl.getCharacterStream();
+                        isr.read(c);
+                        return String.copyValueOf(c);
+
+                    default:
+                        return resultSet.getString(index);
+                }
+            } catch (SQLException e) {
+                // System.err.println("##Cannot get property: " + e);
+                // e.printStackTrace();
+                lastError = e;
+            } catch (IOException ioe) {
+                lastError = ioe;
+            }
+
+            return null;
+        }
+
+        /*
+         * Returns an enumerator for the key elements of this object.
+         *
+         * @return the enumerator - may have 0 length of coulmn names where not found
+         */
+       public Enumeration getProperties() {
+           if (resultSet == null) {
+                return (new Vector()).elements();
+           }
+           return colNames.elements();
+       }
+
+
+        public String[] getSpecialPropertyNames() {
+            return new String[] {"length"};
+        }
+
+
+        public boolean next() {
+            boolean status = false;
+            if (lastRowSeen) {
+                lastError = new SQLException("Attempt to access a next row after last row has been returned");
+                return false;
+            }
+            if (resultSet == null) {
+                lastError = new SQLException("Attempt to access a released result set");
+                return false;
+            }
+            try {
+                status = resultSet.next();
+                lastError = null;
+            } catch (SQLException e) {
+                // System.err.println("##Cannot do next:" + e);
+                // e.printStackTrace();
+                lastError = e;
+            }
+            if (status) firstRowSeen = true;
+            else lastRowSeen = true;
+            return status;
+       }
+
+        public String toString() {
+            return "[RowSet: '"+sql+"'" +
+                   (resultSet==null ? " - released]" :
+                       (lastRowSeen ? " - at end]" :
+                       (firstRowSeen ? "]" : " - at start]")));
+        }
+
     }
 
 }
+
+
