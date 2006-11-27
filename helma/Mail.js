@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Mail.js,v $
- * $Author: czv $
- * $Revision: 1.2 $
- * $Date: 2006/04/24 07:02:17 $
+ * $Author: hannes $
+ * $Revision: 1.3 $
+ * $Date: 2006/06/28 20:06:03 $
  */
 
 
@@ -43,6 +43,7 @@ helma.Mail = function(smtp) {
     var DataHandler         = Packages.javax.activation.DataHandler;
 
     var Address             = MAILPKG.Address;
+    var BodyPart            = MAILPKG.BodyPart;
     var Message             = MAILPKG.Message;
     var Multipart           = MAILPKG.Multipart;
     var Session             = MAILPKG.Session;
@@ -215,17 +216,23 @@ helma.Mail = function(smtp) {
                 obj = obj.unwrap();
             }
 
-            var part = new MimeBodyPart();
-            if (typeof obj == "string") {
-                part.setContent(obj.toString(), "text/plain");
-            } else if (obj instanceof File) {
-                // FIXME: the following line did not work under windows:
-                //var source = new FileDataSource(obj);
-                var source = new FileDataSource(obj.getPath());
-                part.setDataHandler(new DataHandler(source));
-            } else if (obj instanceof MimePart) {
-                var source = new MimePartDataSource(obj);
-                part.setDataHandler(new DataHandler(source));
+            var part;
+            if (obj instanceof BodyPart) {
+                // we already got a body part, no need to convert it
+                part = obj;
+            } else {
+                part = new MimeBodyPart();
+                if (typeof obj == "string") {
+                    part.setContent(obj.toString(), "text/plain");
+                } else if (obj instanceof File) {
+                    // FIXME: the following line did not work under windows:
+                    //var source = new FileDataSource(obj);
+                    var source = new FileDataSource(obj.getPath());
+                    part.setDataHandler(new DataHandler(source));
+                } else if (obj instanceof MimePart) {
+                    var source = new MimePartDataSource(obj);
+                    part.setDataHandler(new DataHandler(source));
+                }
             }
             if (filename != null) {
                 try {
