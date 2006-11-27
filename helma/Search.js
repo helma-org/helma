@@ -17,9 +17,9 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //
-// $Revision: 1.5 $
+// $Revision: 1.6 $
 // $Author: robert $
-// $Date: 2006/10/23 18:56:36 $
+// $Date: 2006/11/13 16:56:45 $
 //
 
 
@@ -842,10 +842,10 @@ helma.Search.BooleanQuery.prototype = new helma.Search.Query;
 /**
  * Adds a term to the wrapped query object. This method can be called
  * with two, three or four arguments, eg.:
- * addTerm("fieldname", "querystring")
+ * <pre>addTerm("fieldname", "querystring")
  * addTerm("fieldname", "querystring", "and")
  * addTerm("fieldname", "querystring", helma.Search.getAnalyzer("de"))
- * addTerm("fieldname", "querystring", "not", helma.Search.getAnalyzer("simple"))
+ * addTerm("fieldname", "querystring", "not", helma.Search.getAnalyzer("simple"))</pre>
  * @param {String | Array} field Either a String or an Array containing Strings
  * that determine the index field(s) to match
  * @param {String} str Query string to match
