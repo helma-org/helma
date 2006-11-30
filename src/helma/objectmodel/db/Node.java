@@ -2314,8 +2314,9 @@ public final class Node implements INode, Serializable {
             throw new RuntimeException("Can't add fixed-transient node to a persistent node");
         }
 
+        boolean isPersistable = isPersistableProperty(propname);
         // if the new node is marked as TRANSIENT and this node is not, mark new node as NEW
-        if (state != TRANSIENT && n.state == TRANSIENT && isPersistableProperty(propname)) {
+        if (state != TRANSIENT && n.state == TRANSIENT && isPersistable) {
             n.makePersistable();
         }
 
@@ -2325,7 +2326,7 @@ public final class Node implements INode, Serializable {
 
         // check if the main identity of this node is as a named property
         // or as an anonymous node in a collection
-        if (n != this && !nmgr.isRootNode(n)) {
+        if (n != this && !nmgr.isRootNode(n) && isPersistable) {
             // avoid calling getParent() because it would return bogus results
             // for the not-anymore transient node
             Node nparent = (n.parentHandle == null) ? null
@@ -2390,7 +2391,7 @@ public final class Node implements INode, Serializable {
 
             propMap.put(p2, prop);
 
-            if (state == CLEAN && isPersistableProperty(propname)) {
+            if (state == CLEAN && isPersistable) {
                 markAs(MODIFIED);
             }
         }
