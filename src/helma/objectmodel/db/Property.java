@@ -513,6 +513,9 @@ public final class Property implements IProperty, Serializable, Cloneable, Compa
             return -1;
         }
         if (type != ptype) {
+            // float/integer sometimes get mixed up in Rhino
+            if ((type == FLOAT && ptype == INTEGER) || (type == INTEGER && ptype == FLOAT))
+                return Double.compare(((Number) value).doubleValue(), ((Number) pvalue).doubleValue());
             throw new ClassCastException("uncomparable values " + this + "(" + type + ") : " + p + "(" + ptype + ")");
 
         }
