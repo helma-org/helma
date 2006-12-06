@@ -1366,8 +1366,13 @@ public final class Application implements Runnable {
         if (eventLog == null) {
             eventLog = getLogger(eventLogName);
         }
-
-        eventLog.error(msg, error);
+        if ("true".equalsIgnoreCase(props.getProperty("jsStackTrace"))) {
+            Exception jsx = new RuntimeException(error);
+            StackUtils.setJavaScriptStack(error, jsx);
+            eventLog.error(msg, jsx);
+        } else {
+            eventLog.error(msg, error);
+        }
     }
 
     /**
