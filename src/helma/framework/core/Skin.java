@@ -581,10 +581,6 @@ public final class Skin {
                 msg = new StringBuffer("Macro error in ").append(fullName)
                         .append(": ").append(msg).toString();
                 reval.getResponse().write(" [" + msg + "] ");
-                // for ScriptingExceptions get the original exception
-                if (x instanceof ScriptingException) {
-                    x = ((ScriptingException) x).getWrappedException();
-                }
                 app.logError(msg, x);
             }
         }

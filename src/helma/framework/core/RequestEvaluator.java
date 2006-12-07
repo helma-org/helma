@@ -544,10 +544,6 @@ public final class RequestEvaluator implements Runnable {
                                 error = "Unspecified error";
                             }
 
-                            if (x instanceof ScriptingException) {
-                                x = ((ScriptingException) x).getWrappedException();
-                            }
-
                             app.logError(txname + ": " + error, x);
 
                             if (req.isXmlRpc()) {
