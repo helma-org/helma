@@ -335,38 +335,18 @@ public class RhinoEngine implements ScriptingEngine {
                 throw new TimeoutException();
             }
 
-            // create and throw a ScriptingException with the right message
-            String msg;
-            if (x instanceof JavaScriptException) {
-                // created by javascript throw statement
-                msg = x.getMessage();
-            } else if (x instanceof WrappedException) {
+            if (x instanceof WrappedException) {
                 // wrapped java excepiton
-                WrappedException wx = (WrappedException) x;
-                Throwable wrapped = wx.getWrappedException();
-                // if this is a wrapped concurrencyException, rethrow it.
+                Throwable wrapped = ((WrappedException) x).getWrappedException();
+                // rethrow if this is a wrapped concurrency or redirect exception
                 if (wrapped instanceof ConcurrencyException) {
                     throw (ConcurrencyException) wrapped;
-                }
-                // also check if this is a wrapped redirect exception
-                if (wrapped instanceof RedirectException) {
+                } else if (wrapped instanceof RedirectException) {
                     throw (RedirectException) wrapped;
                 }
-                // we need to build our own message here, default implementation is broken
-                StringBuffer b = new StringBuffer(wrapped.toString());
-                b.append(" (").append(wx.getSourceName()).append("#")
-                        .append(wx.getLineNumber()).append(")");
-                msg = b.toString();
-                // replace wrapper with original exception
-                if (wrapped instanceof Exception) {
-                    x = (Exception) wrapped;
-                }
-            } else if (x instanceof EcmaError) {
-                msg = x.toString();
-            } else {
-                msg = x.getMessage();
             }
-
+            // create and throw a ScriptingException with the right message
+            String msg = x.getMessage();
             throw new ScriptingException(msg, x);
         }
     }
