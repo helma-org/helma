@@ -16,15 +16,21 @@
 
 package helma.scripting;
 
-import java.util.List;
-import java.util.ArrayList;
+import org.mozilla.javascript.RhinoException;
+
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.FilenameFilter;
+import java.io.File;
 
 /**
- * The base class for exceptions thrown by Helma scripting package
+ * The base class for wrapped exceptions thrown by invocation of the scripting engine.
+ * If the wrapped exception is a RhinoException, the script stack trace will be
+ * prepended to the actual java stack trace in stack dumps. 
  */
 public class ScriptingException extends Exception {
+
+    String scriptStack = null;
 
     /**
      * Construct a ScriptingException given an error message and wrapped exception.
@@ -42,17 +48,16 @@ public class ScriptingException extends Exception {
      * @param cause the original exception
      */
     private void setScriptStack(Throwable cause) {
-        List list = new ArrayList();
-        StackTraceElement[] stack = cause.getStackTrace();
-        for (int i = 0; i < stack.length; i++) {
-            StackTraceElement e = stack[i];
-            String name = e.getFileName();
-            if (e.getLineNumber() > -1 &&
-                    (name.endsWith(".js") || name.endsWith(".hac"))) {
-                list.add(e);
-            }
+        if (cause instanceof RhinoException) {
+            FilenameFilter filter = new FilenameFilter() {
+                public boolean accept(File dir, String name) {
+                    return name.endsWith(".js") ||
+                           name.endsWith(".hac") ||
+                           name.endsWith(".hsp");
+                }
+            };
+            scriptStack = ((RhinoException) cause).getScriptStackTrace(filter);
         }
-        setStackTrace((StackTraceElement[]) list.toArray(new StackTraceElement[list.size()]));
     }
 
 
@@ -61,87 +66,28 @@ public class ScriptingException extends Exception {
      */
     public void printStackTrace(PrintStream s) {
         synchronized (s) {
-            s.println(this);
-            StackTraceElement[] trace = getStackTrace();
-            for (int i=0; i < trace.length; i++)
-                s.println("\tat " + trace[i].getFileName() + ":" +
-                                    trace[i].getLineNumber());
-            Throwable ourCause = getCause();
-            if (ourCause != null)
-                printStackTraceAsCause(ourCause, s, trace);
+            if (scriptStack != null) {
+                s.println(this);
+                s.print(scriptStack);
+                s.print("Full trace: ");
+            }
+            getCause().printStackTrace(s);
         }
     }
 
-    /*
-     * Adaption from Throwable.printTraceAsCause() to be callable from this class.
-     */
-    private static void printStackTraceAsCause(Throwable t, PrintStream s,
-                                        StackTraceElement[] causedTrace)
-    {
-        // assert Thread.holdsLock(s);
-
-        // Compute number of frames in common between this and caused
-        StackTraceElement[] trace = t.getStackTrace();
-        int m = trace.length-1, n = causedTrace.length-1;
-        while (m >= 0 && n >=0 && trace[m].equals(causedTrace[n])) {
-            m--; n--;
-        }
-        int framesInCommon = trace.length - 1 - m;
-
-        s.println("Caused by: " + t);
-        for (int i=0; i <= m; i++)
-            s.println("\tat " + trace[i]);
-        if (framesInCommon != 0)
-            s.println("\t... " + framesInCommon + " more");
-
-        // Recurse if t has a cause
-        Throwable theCause = t.getCause();
-        if (theCause != null)
-            printStackTraceAsCause(theCause, s, trace);
-    }
 
     /*
      * Adaption from Throwable.printStackTrace() to only print Script file stack elements.
      */
     public void printStackTrace(PrintWriter s) {
         synchronized (s) {
-            s.println(this);
-            StackTraceElement[] trace = getStackTrace();
-            for (int i=0; i < trace.length; i++)
-                s.println("\tat " + trace[i].getFileName() + ":" +
-                                    trace[i].getLineNumber());
-            Throwable ourCause = getCause();
-            if (ourCause != null)
-                printStackTraceAsCause(ourCause, s, trace);
+            if (scriptStack != null) {
+                s.println(this);
+                s.print(scriptStack);
+                s.print("Full trace: ");
+            }
+            getCause().printStackTrace(s);
         }
-    }
-
-    /*
-     * Adaption from Throwable.printTraceAsCause() to be callable from this class.
-     */
-    private static void printStackTraceAsCause(Throwable t, PrintWriter s,
-                                        StackTraceElement[] causedTrace)
-    {
-        // assert Thread.holdsLock(s);
-
-        // Compute number of frames in common between this and caused
-        StackTraceElement[] trace = t.getStackTrace();
-        int m = trace.length-1, n = causedTrace.length-1;
-        while (m >= 0 && n >=0 && trace[m].equals(causedTrace[n])) {
-            m--; n--;
-        }
-        int framesInCommon = trace.length - 1 - m;
-
-        s.println("Caused by: " + t);
-        for (int i=0; i <= m; i++)
-            s.println("\tat " + trace[i]);
-        if (framesInCommon != 0)
-            s.println("\t... " + framesInCommon + " more");
-
-        // Recurse if t has a cause
-        Throwable theCause = t.getCause();
-        if (theCause != null)
-            printStackTraceAsCause(theCause, s, trace);
     }
 
 }
