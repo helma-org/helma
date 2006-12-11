@@ -780,9 +780,6 @@ public final class RhinoCore implements ScopeProvider {
     private synchronized void evaluate (TypeInfo type, Resource code) {
         // get the current context
         Context cx = Context.getCurrentContext();
-        // unregister the per-thread scope while evaluating
-        Object threadScope = cx.getThreadLocal("threadscope");
-        cx.removeThreadLocal("threadscope");
 
         String sourceName = code.getName();
         Reader reader = null;
@@ -829,9 +826,6 @@ public final class RhinoCore implements ScopeProvider {
                 } catch (IOException ignore) {
                     // shouldn't happen
                 }
-            }
-            if (threadScope != null) {
-                cx.putThreadLocal("threadscope", threadScope);
             }
         }
     }

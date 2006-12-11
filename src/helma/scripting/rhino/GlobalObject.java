@@ -78,7 +78,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
                                    "wrapJavaMap", "unwrapJavaMap"
                                };
 
-        defineFunctionProperties(globalFuncs, GlobalObject.class, 0);
+        defineFunctionProperties(globalFuncs, GlobalObject.class, DONTENUM | READONLY | PERMANENT);
         put("app", this, Context.toObject(new ApplicationBean(app), this));
         put("Xml", this, Context.toObject(new XmlObject(core), this));
         put("global", this, this);
@@ -127,48 +127,19 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         if (isRecording) {
             changedProperties.add(name);
         }
-        Context cx = Context.getCurrentContext();
-        GlobalObject scope = (GlobalObject) cx.getThreadLocal("threadscope");
-        if (scope != null) {
+        // check if this is a per-thread scope instance
+        if (sharedGlobal != null) {
             // make thread scope accessible as "global"
             if ("global".equals(name)) {
-                return scope;
+                return this;
             }
             // use synchronized get on fast changing per-thread scopes just to be sure
-            Object obj = scope.getSynchronized(name);
-            if (obj != null && obj != NOT_FOUND) {
-                return obj;
+            synchronized(this) {
+                return super.get(name, start);
             }
         }
-        if (sharedGlobal != null) {
-            // we're a per-thread scope
-            return sharedGlobal.getInternal(name);
-        } else {
-            // we are the shared scope
-            return super.get(name, start);
-        }
-    }
-
-    /**
-     * Directly get a property, bypassing the extra stuff in get(String, Scriptable).
-     *
-     * @param name
-     * @return the property for the given name
-     */
-    protected Object getInternal(String name) {
-        return super.get(name, this);
-    }
-
-    /**
-     * Directly get a property, bypassing the extra stuff in get(String, Scriptable),
-     * and synchronizing in order to prevent cache read errors on multiprocessor systems.
-     * TODO: we need extensive testing in order to tell whether this is really necessary.
-     *
-     * @param name
-     * @return the property for the given name
-     */
-    protected synchronized Object getSynchronized(String name) {
-        return super.get(name, this);
+        // we're the shared scope
+        return super.get(name, start);
     }
 
     /**
@@ -749,5 +720,9 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
      */
     public void clearChangeSet() {
         changedProperties = null;
+    }
+
+    public String toString() {
+        return sharedGlobal == null ? "[Shared Scope]" : "[Thread Scope]";
     }
 }
