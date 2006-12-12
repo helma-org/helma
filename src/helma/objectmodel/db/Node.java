@@ -17,7 +17,6 @@
 package helma.objectmodel.db;
 
 import helma.framework.IPathElement;
-import helma.framework.core.RequestEvaluator;
 import helma.objectmodel.ConcurrencyException;
 import helma.objectmodel.INode;
 import helma.objectmodel.IProperty;
@@ -162,25 +161,6 @@ public final class Node implements INode, Serializable {
 
         if (state != CLEAN) {
             markAs(CLEAN);
-        }
-    }
-
-    public void invokeOnInit() {
-        // Invoke onInit() if it is defined by this Node's prototype
-        if (dbmap != null) {
-            // register node with local thread, or else we risk infinite recursion in onInit()
-            if (Thread.currentThread() instanceof Transactor)
-                ((Transactor) Thread.currentThread()).visitCleanNode(this);
-            try {
-                // We need to reach deap into helma.framework.core to invoke onInit(),
-                // but the functionality is neat so we got to be strong here.
-                RequestEvaluator reval = nmgr.nmgr.app.getCurrentRequestEvaluator();
-                if (reval != null) {
-                    reval.invokeDirectFunction(this, "onInit", RequestEvaluator.EMPTY_ARGS);
-                }
-            } catch (Exception x) {
-                nmgr.nmgr.app.logError("Error invoking onInit()", x);
-            }
         }
     }
 

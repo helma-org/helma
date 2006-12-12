@@ -17,6 +17,7 @@
 package helma.objectmodel.db;
 
 import helma.framework.core.Application;
+import helma.framework.core.RequestEvaluator;
 import helma.objectmodel.*;
 import helma.objectmodel.dom.XmlDatabase;
 
@@ -185,24 +186,14 @@ public final class NodeManager {
                 if (rel != null) {
                     return getNode(parent, key.getID(), rel);
                 } else {
-                    node = null;
+                    return null;
                 }
             } else if (key instanceof DbKey) {
                 node = getNodeByKey(tx.txn, (DbKey) key);
             }
 
             if (node != null) {
-                // synchronize with cache
-                synchronized (cache) {
-                    Node oldnode = (Node) cache.put(node.getKey(), node);
-
-                    if ((oldnode != null) && !oldnode.isNullNode() &&
-                            (oldnode.getState() != Node.INVALID)) {
-                        cache.put(node.getKey(), oldnode);
-                        node = oldnode;
-                    }
-                }
-                // end of cache-synchronized section
+                node = registerNewNode(node, null);
             }
         }
 
@@ -290,32 +281,17 @@ public final class NodeManager {
             node = getNodeByRelation(tx.txn, home, kstr, rel);
 
             if (node != null) {
-                Key primKey = node.getKey();
-                boolean keyIsPrimary = primKey.equals(key);
-
-                synchronized (cache) {
-                    // check if node is already in cache with primary key
-                    Node oldnode = (Node) cache.put(primKey, node);
-
-                    // no need to check for oldnode != node because we fetched a new node from db
-                    if ((oldnode != null) && !oldnode.isNullNode() &&
-                            (oldnode.getState() != Node.INVALID)) {
-                        // reset create time of old node, otherwise Relation.checkConstraints
-                        // will reject it under certain circumstances.
-                        oldnode.created = oldnode.lastmodified;
-                        cache.put(primKey, oldnode);
-
-                        if (!keyIsPrimary) {
-                            cache.put(key, oldnode);
-                        }
-
-                        node = oldnode;
-                    } else if (!keyIsPrimary) {
-                        // cache node with secondary key
-                        cache.put(key, node);
-                    }
+                Node newNode = node;
+                if (key.equals(node.getKey())) {
+                    node = registerNewNode(node, null);
+                } else {
+                    node = registerNewNode(node, key);
                 }
-                 // synchronized
+                // reset create time of old node, otherwise Relation.checkConstraints
+                // will reject it under certain circumstances.
+                if (node != newNode) {
+                    node.created = node.lastmodified;
+                }
             } else {
                 // node fetched from db is null, cache result using nullNode
                 synchronized (cache) {
@@ -332,13 +308,13 @@ public final class NodeManager {
             // update primary key in cache to keep it from being flushed, see above
             if (!rel.usesPrimaryKey()) {
                 synchronized (cache) {
-                    Node oldnode = (Node) cache.put(node.getKey(), node);
+                    Node old = (Node) cache.put(node.getKey(), node);
 
-                    if ((oldnode != node) && (oldnode != null) &&
-                            (oldnode.getState() != Node.INVALID)) {
-                        cache.put(node.getKey(), oldnode);
-                        cache.put(key, oldnode);
-                        node = oldnode;
+                    if (old != node && old != null && !old.isNullNode() && 
+                            old.getState() != Node.INVALID) {
+                        cache.put(node.getKey(), old);
+                        cache.put(key, old);
+                        node = old;
                     }
                 }
             }
@@ -348,7 +324,46 @@ public final class NodeManager {
             tx.visitCleanNode(key, node);
         }
 
-        // tx.timer.endEvent ("getNode "+kstr);
+        return node;
+    }
+
+    /**
+     * Register a newly created node in the node cache unless it it is already contained.
+     * If so, the previously registered node is kept and returned. Otherwise, the onInit()
+     * function is called on the new node and it is returned.
+     * @param node the node to register
+     * @return the newly registered node, or the one that was already registered with the node's key
+     */
+    private Node registerNewNode(Node node, Key secondaryKey) {
+        Key key = node.getKey();
+
+        synchronized(cache) {
+            Node old = (Node) cache.put(key, node);
+
+            if (old != null && !old.isNullNode() && old.getState() != INode.INVALID) {
+                cache.put(key, old);
+                if (secondaryKey != null) {
+                    cache.put(secondaryKey, old);
+                }
+                return old;
+            } else if (secondaryKey != null) {
+                cache.put(secondaryKey, node);
+            }
+        }
+        // New node is going ot be used, invoke onInit() on it
+        // Invoke onInit() if it is defined by this Node's prototype
+        if (node.dbmap != null) {
+            try {
+                // We need to reach deap into helma.framework.core to invoke onInit(),
+                // but the functionality is really worth it.
+                RequestEvaluator reval = app.getCurrentRequestEvaluator();
+                if (reval != null) {
+                    reval.invokeDirectFunction(node, "onInit", RequestEvaluator.EMPTY_ARGS);
+                }
+            } catch (Exception x) {
+                app.logError("Error invoking onInit()", x);
+            }
+        }
         return node;
     }
 
@@ -358,7 +373,6 @@ public final class NodeManager {
     public void registerNode(Node node) {
         cache.put(node.getKey(), node);
     }
-
 
     /**
      * Register a node in the node cache using the key argument.
@@ -410,8 +424,6 @@ public final class NodeManager {
      */
     public void insertNode(IDatabase db, ITransaction txn, Node node)
                     throws IOException, SQLException, ClassNotFoundException {
-        // Transactor tx = (Transactor) Thread.currentThread ();
-        // tx.timer.beginEvent ("insertNode "+node);
         DbMapping dbm = node.getDbMapping();
 
         if ((dbm == null) || !dbm.isRelational()) {
@@ -530,8 +542,6 @@ public final class NodeManager {
      */
     public boolean updateNode(IDatabase db, ITransaction txn, Node node)
                     throws IOException, SQLException, ClassNotFoundException {
-        // Transactor tx = (Transactor) Thread.currentThread ();
-        // tx.timer.beginEvent ("updateNode "+node);
         DbMapping dbm = node.getDbMapping();
         boolean markMappingAsUpdated = false;
 
@@ -746,8 +756,6 @@ public final class NodeManager {
      */
     synchronized String generateMaxID(DbMapping map)
                                       throws Exception {
-        // Transactor tx = (Transactor) Thread.currentThread ();
-        // tx.timer.beginEvent ("generateID "+map);
         String retval = null;
         Statement stmt = null;
         long logTimeStart = logSql ? System.currentTimeMillis() : 0;
@@ -794,8 +802,6 @@ public final class NodeManager {
     }
 
     String generateSequenceID(DbMapping map) throws Exception {
-        // Transactor tx = (Transactor) Thread.currentThread ();
-        // tx.timer.beginEvent ("generateID "+map);
         Statement stmt = null;
         String retval = null;
         long logTimeStart = logSql ? System.currentTimeMillis() : 0;
@@ -846,8 +852,6 @@ public final class NodeManager {
      *  loaded later on demand.
      */
     public SubnodeList getNodeIDs(Node home, Relation rel) throws Exception {
-        // Transactor tx = (Transactor) Thread.currentThread ();
-        // tx.timer.beginEvent ("getNodeIDs "+home);
 
         if ((rel == null) || (rel.otherType == null) || !rel.otherType.isRelational()) {
             // this should never be called for embedded nodes
@@ -920,7 +924,6 @@ public final class NodeManager {
                     Key key = (rel.groupby == null)
                               ? (Key) new DbKey(rel.otherType, kstr)
                               : (Key) new SyntheticKey(k, kstr);
-
                     retval.addSorted(new NodeHandle(key));
 
                     // if these are groupby nodes, evict nullNode keys
@@ -961,8 +964,6 @@ public final class NodeManager {
             return getNodeIDs(home, rel);
         }
 
-        // Transactor tx = (Transactor) Thread.currentThread ();
-        // tx.timer.beginEvent ("getNodes "+home);
         if ((rel == null) || (rel.otherType == null) || !rel.otherType.isRelational()) {
             // this should never be called for embedded nodes
             throw new RuntimeException("NodeMgr.getNodes called for non-relational node " +
@@ -1013,14 +1014,7 @@ public final class NodeManager {
 
                     retval.addSorted(new NodeHandle(primKey));
 
-                    // do we need to synchronize on primKey here?
-                    synchronized (cache) {
-                        Node oldnode = (Node) cache.put(primKey, node);
-
-                        if ((oldnode != null) && (oldnode.getState() != INode.INVALID)) {
-                            cache.put(primKey, oldnode);
-                        }
-                    }
+                    registerNewNode(node, null);
 
                     fetchJoinedNodes(rs, joins, columns.length);
                 }
@@ -1167,12 +1161,7 @@ public final class NodeManager {
                             continue;
                         }
                         key = node.getKey();
-                        synchronized (cache) {
-                            Node oldnode = (Node) cache.put(key, node);
-                            if ((oldnode != null) && (oldnode.getState() != INode.INVALID)) {
-                                cache.put(key, oldnode);
-                            }
-                        }
+                        registerNewNode(node, null);
                     } else {
                         key = new DbKey(rel.otherType, kstr);
                     }
@@ -1271,7 +1260,8 @@ public final class NodeManager {
                         if (node == null) {
                             continue;
                         }
-                        Key primKey = node.getKey();
+                        Key key = node.getKey();
+                        Key secondaryKey = null;
 
                         // for grouped nodes, collect subnode lists for the intermediary
                         // group nodes.
@@ -1287,37 +1277,26 @@ public final class NodeManager {
                                 groupbySubnodes.put(groupName, sn);
                             }
 
-                            sn.addSorted(new NodeHandle(primKey));
+                            sn.addSorted(new NodeHandle(key));
                         }
 
-                        // if relation doesn't use primary key as accessName, get accessName value
-                        String accessName = null;
-
+                        // if relation doesn't use primary key as accessName, get secondary key
                         if (accessProp != null) {
-                            accessName = node.getString(accessProp);
+                            String accessName = node.getString(accessProp);
+                            if (accessName != null) {
+                                if (groupName == null) {
+                                    secondaryKey = new SyntheticKey(home.getKey(), accessName);
+                                } else {
+                                    Key groupKey = new SyntheticKey(home.getKey(), groupName);
+                                    secondaryKey = new SyntheticKey(groupKey, accessName);
+                                }
+                            }
+
                         }
 
                         // register new nodes with the cache. If an up-to-date copy
                         // existed in the cache, use that.
-                        synchronized (cache) {
-                            Node oldnode = (Node) cache.put(primKey, node);
-
-                            if ((oldnode != null) &&
-                                    (oldnode.getState() != INode.INVALID)) {
-                                // found an ok version in the cache, use it.
-                                cache.put(primKey, oldnode);
-                            } else if (accessName != null) {
-                                // put the node into cache with its secondary key
-                                if (groupName != null) {
-                                    cache.put(new SyntheticKey(new SyntheticKey(home.getKey(),
-                                                                                groupName),
-                                                               accessName), node);
-                                } else {
-                                    cache.put(new SyntheticKey(home.getKey(), accessName),
-                                              node);
-                                }
-                            }
-                        }
+                        registerNewNode(node, secondaryKey);
 
                         fetchJoinedNodes(rs, joins, columns.length);
                     }
@@ -1363,8 +1342,6 @@ public final class NodeManager {
      * which is defined by Relation rel.
      */
     public int countNodes(Node home, Relation rel) throws Exception {
-        // Transactor tx = (Transactor) Thread.currentThread ();
-        // tx.timer.beginEvent ("countNodes "+home);
         if ((rel == null) || (rel.otherType == null) || !rel.otherType.isRelational()) {
             // this should never be called for embedded nodes
             throw new RuntimeException("NodeMgr.countNodes called for non-relational node " +
@@ -1436,8 +1413,6 @@ public final class NodeManager {
      */
     public Vector getPropertyNames(Node home, Relation rel)
                             throws Exception {
-        // Transactor tx = (Transactor) Thread.currentThread ();
-        // tx.timer.beginEvent ("getNodeIDs "+home);
         if ((rel == null) || (rel.otherType == null) || !rel.otherType.isRelational()) {
             // this should never be called for embedded nodes
             throw new RuntimeException("NodeMgr.getPropertyNames called for non-relational node " +
@@ -1554,7 +1529,6 @@ public final class NodeManager {
                 if (!rs.next()) {
                     return null;
                 }
-
                 node = createNode(dbm, rs, columns, 0);
 
                 fetchJoinedNodes(rs, joins, columns.length);
@@ -1663,16 +1637,6 @@ public final class NodeManager {
 
                 if (rs.next()) {
                     app.logError("Warning: More than one value returned for query " + query);
-                }
-
-                // Check if node is already cached with primary Key.
-                if (!rel.usesPrimaryKey()) {
-                    Key pk = node.getKey();
-                    Node existing = (Node) cache.get(pk);
-
-                    if ((existing != null) && (existing.getState() != Node.INVALID)) {
-                        node = existing;
-                    }
                 }
 
             } finally {
@@ -1889,7 +1853,6 @@ public final class NodeManager {
         }
 
         node.init(dbmap, id, name, protoName, propMap, safe);
-        node.invokeOnInit();
         return node;
     }
 
@@ -1904,18 +1867,7 @@ public final class NodeManager {
             DbMapping jdbm = joins[i].otherType;
             Node node = createNode(jdbm, rs, jdbm.getColumns(), resultSetOffset);
             if (node != null) {
-                Key primKey = node.getKey();
-                // register new nodes with the cache. If an up-to-date copy
-                // existed in the cache, use that.
-                synchronized (cache) {
-                    Node oldnode = (Node) cache.put(primKey, node);
-
-                    if ((oldnode != null) &&
-                            (oldnode.getState() != INode.INVALID)) {
-                        // found an ok version in the cache, use it.
-                        cache.put(primKey, oldnode);
-                    }
-                }
+                registerNewNode(node, null);
             }
             resultSetOffset += jdbm.getColumns().length;
         }
