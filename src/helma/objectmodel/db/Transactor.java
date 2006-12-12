@@ -113,7 +113,7 @@ public class Transactor extends Thread {
     /**
      * Keep a reference to an unmodified Node local to this transaction
      *
-     * @param node ...
+     * @param node the node to register
      */
     public void visitCleanNode(Node node) {
         if (node != null) {
@@ -128,8 +128,8 @@ public class Transactor extends Thread {
     /**
      * Keep a reference to an unmodified Node local to this transaction
      *
-     * @param key ...
-     * @param node ...
+     * @param key the key to register with
+     * @param node the node to register
      */
     public void visitCleanNode(Key key, Node node) {
         if (node != null) {
@@ -227,11 +227,11 @@ public class Transactor extends Thread {
         dirtyNodes.clear();
         cleanNodes.clear();
         parentNodes.clear();
+        testedConnections.clear();
         txn = nmgr.db.beginTransaction();
         active = true;
         tstart = System.currentTimeMillis();
         tname = name;
-        testedConnections.clear();
     }
 
     /**
@@ -353,10 +353,7 @@ public class Transactor extends Thread {
         }
 
         // clear the node collections
-        dirtyNodes.clear();
-        cleanNodes.clear();
-        parentNodes.clear();
-        testedConnections.clear();
+        recycle();
 
         if (active) {
             active = false;
@@ -398,10 +395,7 @@ public class Transactor extends Thread {
         }
 
         // clear the node collections
-        dirtyNodes.clear();
-        cleanNodes.clear();
-        parentNodes.clear();
-        testedConnections.clear();
+        recycle();
 
         // close any JDBC connections associated with this transactor thread
         closeConnections();
@@ -468,6 +462,24 @@ public class Transactor extends Thread {
 
             sqlConnections.clear();
         }
+    }
+
+    /**
+     * Clear collections and throw them away. They may have grown large,
+     * so the benefit of keeping them (less GC) needs to be weighted against
+     * the potential increas in memory usage.
+     */
+    private synchronized void recycle() {
+        // clear the node collections to ease garbage collection
+        dirtyNodes.clear();
+        cleanNodes.clear();
+        parentNodes.clear();
+        testedConnections.clear();
+        // create new collections
+        dirtyNodes = new HashMap();
+        cleanNodes = new HashMap();
+        parentNodes = new HashSet();
+        testedConnections = new HashSet();
     }
 
     /**
