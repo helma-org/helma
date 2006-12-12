@@ -198,9 +198,7 @@ public final class XmlDatabaseReader extends DefaultHandler implements XmlConsta
      */
     public void endElement(String namespaceURI, String localName, String qName)
                     throws SAXException {
-        if ("hopobject".equals(qName) && currentNode != null) {
-            currentNode.invokeOnInit();
-        } else if (elementType != null) {
+        if (elementType != null) {
             Property prop = new Property(elementName, currentNode);
             String charValue = charBuffer.toString();
 
