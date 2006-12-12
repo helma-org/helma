@@ -475,11 +475,6 @@ public class Transactor extends Thread {
         cleanNodes.clear();
         parentNodes.clear();
         testedConnections.clear();
-        // create new collections
-        dirtyNodes = new HashMap();
-        cleanNodes = new HashMap();
-        parentNodes = new HashSet();
-        testedConnections = new HashSet();
     }
 
     /**
