@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Number.js,v $
- * $Author: czv $
- * $Revision: 1.2 $
- * $Date: 2006/04/24 07:02:17 $
+ * $Author: tobi $
+ * $Revision: 1.3 $
+ * $Date: 2006/07/18 08:24:59 $
  */
 
 
@@ -36,12 +36,17 @@ Number.Sorter.DESC = -1;
 /**
  * format a Number to a String
  * @param String Format pattern
+ * @param java.util.Locale An optional Locale instance
  * @return String Number formatted to a String
- * FIXME: this might need some localisation
  */
-Number.prototype.format = function(fmt) {
-    var df = fmt ? new java.text.DecimalFormat(fmt)
-                 : new java.text.DecimalFormat("###,##0.##");
+Number.prototype.format = function(fmt, locale) {
+    var symbols;
+    if (locale != null) {
+        symbols = new java.text.DecimalFormatSymbols(locale);
+    } else {
+        symbols = new java.text.DecimalFormatSymbols();
+    }
+    var df = new java.text.DecimalFormat(fmt || "###,##0.##", symbols);
     return df.format(0 + this); // addition with 0 prevents exception
 };
 
@@ -51,13 +56,14 @@ Number.prototype.format = function(fmt) {
  * according to a given total Number
  * @param Int Total
  * @param String Format Pattern
+ * @param java.util.Locale An optional Locale instance
  * @return Int Percentage
  */
-Number.prototype.toPercent = function(total, fmt) {
+Number.prototype.toPercent = function(total, fmt, locale) {
     if (!total)
-        return (0).format(fmt);
+        return (0).format(fmt, locale);
     var p = this / (total / 100);
-    return p.format(fmt);
+    return p.format(fmt, locale);
 };
 
 
