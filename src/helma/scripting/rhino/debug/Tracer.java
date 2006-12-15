@@ -34,39 +34,32 @@ public class Tracer implements Debugger {
     /**
      *  Implementws handleCompilationDone in interface org.mozilla.javascript.debug.Debugger
      */
-    public void handleCompilationDone(Context cx, DebuggableScript script, 
-                                      String source) {
-
-        // res.debug("CompilationDone: "+toString(script));
-    }
+    public void handleCompilationDone(Context cx, DebuggableScript script, String source) {}
 
     /**
      *  Implementws getFrame in interface org.mozilla.javascript.debug.Debugger
      */
     public DebugFrame getFrame(Context cx, DebuggableScript script) {
-
-        // res.debug("getFrame: "+toString(script));
         if (script.isFunction()) {
-
             return new TracerFrame(script);
         }
-
         return null;
     }
 
+    /**
+     * Get a string representation for the given script
+     * @param script a function or script
+     * @return the file and/or function name of the script
+     */
     static String toString(DebuggableScript script) {
-
         if (script.isFunction()) {
-
             return script.getSourceName() + ": " + script.getFunctionName();
         } else {
-
             return script.getSourceName();
         }
     }
 
-    class TracerFrame
-        implements DebugFrame {
+    class TracerFrame implements DebugFrame {
 
         DebuggableScript script;
 
@@ -107,20 +100,13 @@ public class Tracer implements Debugger {
         /**
          *  Called when the function or script for this frame is about to return.
          */
-        public void onExit(Context cx, boolean byThrow, 
-                           Object resultOrException) {
-
-            // res.debug("Exit: "+Tracer.toString(script));
-        }
+        public void onExit(Context cx, boolean byThrow, Object resultOrException) {}
 
         /**
          *  Called when executed code reaches new line in the source.
          */
-        public void onLineChange(Context cx, int lineNumber) {
-
-            // res.debug("LineChange: "+Tracer.toString(script));
-        }
+        public void onLineChange(Context cx, int lineNumber) {}
 	
-    } // end of class TracerFrame
-} // end of class Tracer
+    }
+}
 
