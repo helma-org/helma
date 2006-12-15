@@ -85,7 +85,7 @@ public final class RequestEvaluator implements Runnable {
         this.app = app;
     }
 
-    protected void initScriptingEngine() {
+    protected synchronized void initScriptingEngine() {
         if (scriptingEngine == null) {
             String engineClassName = app.getProperty("scriptingEngine",
                                                      "helma.scripting.rhino.RhinoEngine");
@@ -108,6 +108,8 @@ public final class RequestEvaluator implements Runnable {
                 app.logEvent("******************************************");
                 app.logError("Error creating scripting engine", t);
 
+                // null out invalid scriptingEngine
+                scriptingEngine = null;
                 // rethrow exception
                 if (t instanceof RuntimeException) {
                     throw((RuntimeException) t);
@@ -566,12 +568,12 @@ public final class RequestEvaluator implements Runnable {
                 }
 
                 // exit execution context
-                scriptingEngine.exitContext();
+                if (scriptingEngine != null)
+                    scriptingEngine.exitContext();
 
                 notifyAndWait();
 
             }
-
         } finally {
             localrtx.closeConnections();
         }
