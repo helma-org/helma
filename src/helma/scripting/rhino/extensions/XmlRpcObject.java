@@ -54,7 +54,7 @@ public class XmlRpcObject extends BaseFunction {
         this.method = method;
     }
 
-        /**
+    /**
      *  This method is used as HopObject constructor from JavaScript.
      */
     public static Object xmlrpcObjectConstructor(Context cx, Object[] args,
@@ -106,20 +106,18 @@ public class XmlRpcObject extends BaseFunction {
             throw new EvaluatorException("Invalid method name");
         }
 
-        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
-        RhinoCore c = engine.getCore();
+        RhinoCore core = RhinoCore.getCore();
         Scriptable retval = null;
 
         try {
-            retval = Context.getCurrentContext().newObject(c.getScope());
+            retval = Context.getCurrentContext().newObject(core.getScope());
             XmlRpcClient client = new XmlRpcClient(url);
 
-            // long now = System.currentTimeMillis ();
             int l = args.length;
             Vector v = new Vector();
 
             for (int i = 0; i < l; i++) {
-                Object arg = c.processXmlRpcResponse(args[i]);
+                Object arg = core.processXmlRpcResponse(args[i]);
                 v.addElement(arg);
             }
 
@@ -129,7 +127,7 @@ public class XmlRpcObject extends BaseFunction {
             if (result instanceof Exception) {
                 throw (Exception) result;
             }
-            retval.put("result", retval, c.processXmlRpcArgument(result));
+            retval.put("result", retval, core.processXmlRpcArgument(result));
 
         } catch (Exception x) {
             String msg = x.getMessage();

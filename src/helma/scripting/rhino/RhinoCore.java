@@ -42,6 +42,9 @@ public final class RhinoCore implements ScopeProvider {
     // the application we're running in
     public final Application app;
 
+    // our context factory
+    ContextFactory contextFactory;
+
     // the global object
     GlobalObject global;
 
@@ -66,16 +69,19 @@ public final class RhinoCore implements ScopeProvider {
     // Any error that may have been found in global code
     String globalError;
 
+    // the debugger, if active
     HelmaDebugger debugger = null;
+
+    // optimization level for rhino engine, ranges from -1 to 9
+    int optLevel = 0;
+
+    // debugger/tracer flags
+    boolean hasDebugger = false;
+    boolean hasTracer = false;
 
     // dynamic portion of the type check sleep that grows
     // as the app remains unchanged
     long updateSnooze = 500;
-
-    static {
-       ContextFactory.initGlobal(new HelmaContextFactory());
-    }
-
 
     /**
      *  Create a Rhino evaluator for the given application and request evaluator.
@@ -84,6 +90,8 @@ public final class RhinoCore implements ScopeProvider {
         this.app = app;
         wrappercache = new WeakCacheMap(500);
         prototypes = new Hashtable();
+        contextFactory = new HelmaContextFactory();
+        contextFactory.initApplicationClassLoader(app.getClassLoader());
     }
 
     /**
@@ -91,31 +99,27 @@ public final class RhinoCore implements ScopeProvider {
      *  necessary to bootstrap the rest is parsed.
      */
     protected synchronized void initialize() {
-        Context context = Context.enter();
 
-        context.setCompileFunctionsWithDynamicScope(true);
-        context.setApplicationClassLoader(app.getClassLoader());
-        wrapper = new WrapMaker();
-        wrapper.setJavaPrimitiveWrap(false);
-        context.setWrapFactory(wrapper);
-
-        // Set up visual debugger if rhino.debug = true
-        if ("true".equals(app.getProperty("rhino.debug"))) {
-            initDebugger(context);
-        }
+        hasDebugger = "true".equalsIgnoreCase(app.getProperty("rhino.debug"));
+        hasTracer = "true".equalsIgnoreCase(app.getProperty("rhino.trace"));
 
         // Set default optimization level according to whether debugger is on
-        int optLevel = debugger == null ? 0 : -1;
-
-        String opt = app.getProperty("rhino.optlevel");
-        if (opt != null) {
-            try {
-                optLevel = Integer.parseInt(opt);
-            } catch (Exception ignore) {
-                app.logError("Invalid rhino optlevel: " + opt);
+        if (hasDebugger || hasTracer) {
+            optLevel = -1;
+        } else {
+            String opt = app.getProperty("rhino.optlevel");
+            if (opt != null) {
+                try {
+                    optLevel = Integer.parseInt(opt);
+                } catch (Exception ignore) {
+                    app.logError("Invalid rhino optlevel: " + opt);
+                }
             }
         }
-        context.setOptimizationLevel(optLevel);
+        wrapper = new WrapMaker();
+        wrapper.setJavaPrimitiveWrap(false);
+
+        Context context = contextFactory.enter();
 
         try {
             // create global object
@@ -162,29 +166,22 @@ public final class RhinoCore implements ScopeProvider {
             getPrototype("global");
 
         } catch (Exception e) {
-            System.err.println("Cannot initialize interpreter");
-            System.err.println("Error: " + e);
-            e.printStackTrace();
+            app.logError("Cannot initialize interpreter", e);
             throw new RuntimeException(e.getMessage(), e);
         } finally {
-            Context.exit();
+            contextFactory.exit();
         }
     }
 
     void initDebugger(Context context) {
         try {
-        if (debugger == null) {
-            debugger = new HelmaDebugger(app.getName());
-            debugger.setScopeProvider(this);
-            // debugger.setScope(global);
-            debugger.attachTo(context.getFactory());
-            // debugger.pack();
-            // debugger.getDebugFrame().setLocation(60, 60);
-        }
-        // if (!debugger.isVisible())
-            // debugger.setVisible(true);
+            if (debugger == null) {
+                debugger = new HelmaDebugger(app.getName());
+                debugger.setScopeProvider(this);
+                debugger.attachTo(contextFactory);
+            }
         } catch (Exception x) {
-            x.printStackTrace();
+            app.logError("Error setting up debugger", x);
         }
     }
 
@@ -235,10 +232,10 @@ public final class RhinoCore implements ScopeProvider {
      *  @param type the info, containing the object proto, last update time and
      *         the set of compiled functions properties
      */
-    private synchronized void evaluatePrototype(TypeInfo type) {
+    private synchronized void evaluatePrototype(final TypeInfo type) {
 
         type.prepareCompilation();
-        Prototype prototype = type.frameworkProto;
+        final Prototype prototype = type.frameworkProto;
 
         // set the parent prototype in case it hasn't been done before
         // or it has changed...
@@ -249,12 +246,16 @@ public final class RhinoCore implements ScopeProvider {
             globalError = null;
         }
 
-        // loop through the prototype's code elements and evaluate them
-        Iterator code = prototype.getCodeResources();
-        while (code.hasNext()) {
-            evaluate(type, (Resource) code.next());
-        }
-
+        contextFactory.call(new ContextAction() {
+            public Object run(Context cx) {
+                // loop through the prototype's code elements and evaluate them
+                Iterator code = prototype.getCodeResources();
+                while (code.hasNext()) {
+                    evaluate(cx, type, (Resource) code.next());
+                }
+                return null;
+            }
+        });
         type.commitCompilation();
     }
 
@@ -470,7 +471,7 @@ public final class RhinoCore implements ScopeProvider {
      *  Convert an input argument from Java to the scripting runtime
      *  representation.
      */
-    public Object processXmlRpcArgument (Object what) throws Exception {
+    public Object processXmlRpcArgument (Object what) {
         if (what == null)
             return null;
         if (what instanceof Vector) {
@@ -506,7 +507,7 @@ public final class RhinoCore implements ScopeProvider {
     /**
      * convert a JavaScript Object object to a generic Java object stucture.
      */
-    public Object processXmlRpcResponse (Object what) throws Exception {
+    public Object processXmlRpcResponse (Object what) {
         // unwrap if argument is a Wrapper
         if (what instanceof Wrapper) {
             what = ((Wrapper) what).unwrap();
@@ -606,9 +607,7 @@ public final class RhinoCore implements ScopeProvider {
         HopObject hobj = (HopObject) wrappercache.get(n);
 
         if (hobj == null) {
-
             String protoname = n.getPrototype();
-
             Scriptable op = getValidPrototype(protoname);
 
             // no prototype found for this node
@@ -630,7 +629,6 @@ public final class RhinoCore implements ScopeProvider {
             }
 
             hobj = new HopObject(protoname, this, n, op);
-
             wrappercache.put(n, hobj);
         }
 
@@ -652,12 +650,11 @@ public final class RhinoCore implements ScopeProvider {
                 if (hasFunction(proto, hrefFunction)) {
 
                     // get the currently active rhino engine and invoke the function
-                    Context cx = Context.getCurrentContext();
-                    RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+                    RhinoEngine eng = RhinoEngine.getRhinoEngine();
                     Object result;
 
                     try {
-                        result = engine.invoke(handler, hrefFunction,
+                        result = eng.invoke(handler, hrefFunction,
                                                new Object[] { basicHref },
                                                ScriptingEngine.ARGS_WRAP_DEFAULT,
                                                false);
@@ -689,14 +686,13 @@ public final class RhinoCore implements ScopeProvider {
             Skin skin = null;
             Object handler = obj;
             // get the currently active rhino engine and render the skin
-            Context cx = Context.getCurrentContext();
-            RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+            RhinoEngine eng = RhinoEngine.getRhinoEngine();
 
             while (handler != null) {
                 Prototype proto = app.getPrototype(handler);
 
                 if (proto != null) {
-                    skin = engine.getSkin(proto.getName(), hrefSkin);
+                    skin = eng.getSkin(proto.getName(), hrefSkin);
                 }
 
                 if (skin != null) {
@@ -707,16 +703,25 @@ public final class RhinoCore implements ScopeProvider {
             }
 
             if (skin != null) {
-                engine.getResponse().pushStringBuffer();
+                eng.getResponse().pushStringBuffer();
                 HashMap param = new HashMap();
                 param.put("path", basicHref);
-                skin.render(engine.getRequestEvaluator(), handler, param);
+                skin.render(eng.getRequestEvaluator(), handler, param);
 
-                basicHref = engine.getResponse().popStringBuffer().trim();
+                basicHref = eng.getResponse().popStringBuffer().trim();
             }
         }
 
         return basicHref;
+    }
+
+    /**
+     * Get the RhinoCore instance associated with the current thread, or null
+     * @return the RhinoCore instance associated with the current thread
+     */
+    public static RhinoCore getCore() {
+        RhinoEngine eng = RhinoEngine.getRhinoEngine();
+        return eng != null ? eng.core : null;
     }
 
     /////////////////////////////////////////////
@@ -766,30 +771,30 @@ public final class RhinoCore implements ScopeProvider {
      * @param typename the type this resource belongs to
      * @param code a code resource
      */
-    public void injectCodeResource(String typename, Resource code) {
-        TypeInfo type = (TypeInfo) prototypes.get(typename.toLowerCase());
+    public void injectCodeResource(String typename, final Resource code) {
+        final TypeInfo type = (TypeInfo) prototypes.get(typename.toLowerCase());
         if (type == null || type.lastUpdate == -1)
             return;
-        evaluate(type, code);
+        contextFactory.call(new ContextAction() {
+            public Object run(Context cx) {
+                evaluate(cx, type, code);
+                return null;
+            }
+        });
     }
 
     ////////////////////////////////////////////////
     // private evaluation/compilation methods
     ////////////////////////////////////////////////
-
-    private synchronized void evaluate (TypeInfo type, Resource code) {
-        // get the current context
-        Context cx = Context.getCurrentContext();
-
+    private synchronized void evaluate(Context cx, TypeInfo type, Resource code) {
         String sourceName = code.getName();
         Reader reader = null;
-        
+
         Resource previousCurrentResource = app.getCurrentCodeResource();
         app.setCurrentCodeResource(code);
 
         try {
             Scriptable op = type.objProto;
-
             // do the update, evaluating the file
             if (sourceName.endsWith(".js")) {
                 reader = new InputStreamReader(code.getInputStream());
@@ -805,11 +810,12 @@ public final class RhinoCore implements ScopeProvider {
             }
 
         } catch (Exception e) {
-            app.logError("Error parsing file " + sourceName,  e);
+            ScriptingException sx = new ScriptingException(e.getMessage(), e);
+            app.logError("Error parsing file " + sourceName, sx);
             // mark prototype as broken
             if (type.error == null) {
                 type.error = e.getMessage();
-                if (type.error == null || e instanceof EcmaError) {
+                if (type.error == null) {
                     type.error = e.toString();
                 }
                 if ("global".equals(type.frameworkProto.getLowerCaseName())) {
@@ -817,7 +823,6 @@ public final class RhinoCore implements ScopeProvider {
                 }
                 wrappercache.clear();
             }
-            // e.printStackTrace();
         } finally {
             app.setCurrentCodeResource(previousCurrentResource);
             if (reader != null) {
@@ -931,7 +936,7 @@ public final class RhinoCore implements ScopeProvider {
                         objProto.setAttributes(key, 0);
                         objProto.delete(key);
                     } catch (Exception px) {
-                        System.err.println("Error unsetting property "+key+" on "+
+                        app.logEvent("Error unsetting property "+key+" on "+
                                            frameworkProto.getName());
                     }
                 }
@@ -1036,7 +1041,6 @@ public final class RhinoCore implements ScopeProvider {
         }
 
         public Scriptable wrapNewObject(Context cx, Scriptable scope, Object obj) {
-            // System.err.println ("N-Wrapping: "+obj);
             if (obj instanceof INode) {
                 return getNodeWrapper((INode) obj);
             }
@@ -1092,13 +1096,30 @@ public final class RhinoCore implements ScopeProvider {
         }
     }
 
-}
+    class HelmaContextFactory extends ContextFactory {
 
-class HelmaContextFactory extends ContextFactory {
-    protected  boolean hasFeature(Context cx, int featureIndex) {
-        if (featureIndex == Context.FEATURE_DYNAMIC_SCOPE) {
-            return true;
+        final boolean strictVars = "true".equalsIgnoreCase(app.getProperty("strictVars"));
+
+        protected void onContextCreated(Context cx) {
+            cx.setWrapFactory(wrapper);
+            cx.setOptimizationLevel(optLevel);
+            // Set up visual debugger if rhino.debug = true
+            if (hasDebugger)
+                initDebugger(cx);
+            super.onContextCreated(cx);
         }
-        return super.hasFeature(cx, featureIndex);
+
+        protected  boolean hasFeature(Context cx, int featureIndex) {
+            switch (featureIndex) {
+                case Context.FEATURE_DYNAMIC_SCOPE:
+                    return true;
+
+                case Context.FEATURE_STRICT_VARS:
+                    return strictVars;
+
+                default:
+                    return super.hasFeature(cx, featureIndex);
+            }
+       }
     }
 }

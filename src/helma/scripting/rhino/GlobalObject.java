@@ -152,9 +152,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
      */
     public boolean renderSkin(Object skinobj, Object paramobj)
             throws UnsupportedEncodingException, IOException {
-        Context cx = Context.getCurrentContext();
-        RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
-        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+        RhinoEngine engine = RhinoEngine.getRhinoEngine();
         Skin skin;
 
         if (skinobj instanceof Wrapper) {
@@ -170,7 +168,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         Map param = RhinoCore.getSkinParam(paramobj);
 
         if (skin != null) {
-            skin.render(reval, null, param);
+            skin.render(engine.reval, null, param);
         }
 
         return true;
@@ -186,9 +184,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
      */
     public String renderSkinAsString(Object skinobj, Object paramobj)
             throws UnsupportedEncodingException, IOException {
-        Context cx = Context.getCurrentContext();
-        RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
-        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+        RhinoEngine engine = RhinoEngine.getRhinoEngine();
         Skin skin;
 
         if (skinobj instanceof Wrapper) {
@@ -204,9 +200,9 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         Map param = RhinoCore.getSkinParam(paramobj);
 
         if (skin != null) {
-            ResponseTrans res = reval.getResponse();
+            ResponseTrans res = engine.getResponse();
             res.pushStringBuffer();
-            skin.render(reval, null, param);
+            skin.render(engine.reval, null, param);
             return res.popStringBuffer();
         }
 

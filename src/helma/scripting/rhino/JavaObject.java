@@ -77,9 +77,7 @@ public class JavaObject extends NativeJavaObject {
      */
     public boolean renderSkin(Object skinobj, Object paramobj)
             throws UnsupportedEncodingException, IOException {
-        Context cx = Context.getCurrentContext();
-        RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
-        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+        RhinoEngine engine = RhinoEngine.getRhinoEngine();
         Skin skin;
 
         if (skinobj instanceof Wrapper) {
@@ -95,7 +93,7 @@ public class JavaObject extends NativeJavaObject {
         Map param = RhinoCore.getSkinParam(paramobj);
 
         if (skin != null) {
-            skin.render(reval, javaObject, param);
+            skin.render(engine.reval, javaObject, param);
         }
 
         return true;
@@ -111,9 +109,7 @@ public class JavaObject extends NativeJavaObject {
      */
     public String renderSkinAsString(Object skinobj, Object paramobj)
             throws UnsupportedEncodingException, IOException {
-        Context cx = Context.getCurrentContext();
-        RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
-        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+        RhinoEngine engine = RhinoEngine.getRhinoEngine();
         Skin skin;
 
         if (skinobj instanceof Wrapper) {
@@ -129,9 +125,9 @@ public class JavaObject extends NativeJavaObject {
         Map param = RhinoCore.getSkinParam(paramobj);
 
         if (skin != null) {
-            ResponseTrans res = reval.getResponse();
+            ResponseTrans res = engine.getResponse();
             res.pushStringBuffer();
-            skin.render(reval, javaObject, param);
+            skin.render(engine.reval, javaObject, param);
             return res.popStringBuffer();
         }
 
@@ -170,11 +166,7 @@ public class JavaObject extends NativeJavaObject {
      * Checks whether the given property is defined in this object.
      */
     public boolean has(String name, Scriptable start) {
-        // System.err.println ("HAS: "+name);
-        if (overload.containsKey(name)) {
-            return true;
-        }
-        return super.has(name, start);
+        return overload.containsKey(name) || super.has(name, start);
     }
 
     /** 
@@ -227,8 +219,7 @@ public class JavaObject extends NativeJavaObject {
      * @return the resource, if found, null otherwise
      */
     public Object getResource(String resourceName) {
-        Context cx = Context.getCurrentContext();
-        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+        RhinoEngine engine = RhinoEngine.getRhinoEngine();
         Prototype prototype = engine.core.app.getPrototypeByName(protoName);
         while (prototype != null) {
             Resource[] resources = prototype.getResources();
@@ -251,8 +242,7 @@ public class JavaObject extends NativeJavaObject {
      * @return an array of resources with the given name
      */
     public Object getResources(String resourceName) {
-        Context cx = Context.getCurrentContext();
-        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+        RhinoEngine engine = RhinoEngine.getRhinoEngine();
         Prototype prototype = engine.core.app.getPrototypeByName(protoName);
         ArrayList a = new ArrayList();
         while (prototype != null) {

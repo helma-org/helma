@@ -54,6 +54,8 @@ public class RhinoEngine implements ScriptingEngine {
 
     // the request evaluator instance owning this fesi evaluator
     RequestEvaluator reval;
+
+    // the rhino core
     RhinoCore core;
 
     // remember global variables from last invokation to be able to
@@ -65,6 +67,9 @@ public class RhinoEngine implements ScriptingEngine {
 
     // the thread currently running this engine
     Thread thread;
+
+    // thread local engine registry
+    static ThreadLocal engines = new ThreadLocal();
 
     // the introspector that provides documentation for this application
     DocApplication doc = null;
@@ -83,9 +88,8 @@ public class RhinoEngine implements ScriptingEngine {
         this.app = app;
         this.reval = reval;
         initRhinoCore(app);
-        context = Context.enter();
-        context.setCompileFunctionsWithDynamicScope(true);
-        context.setApplicationClassLoader(app.getClassLoader());
+
+        context = core.contextFactory.enter();
 
         try {
             global = new GlobalObject(core, app, true);
@@ -105,20 +109,25 @@ public class RhinoEngine implements ScriptingEngine {
                             extensionGlobals.putAll(tmpGlobals);
                         }
                     } catch (ConfigurationException e) {
-                        app.logEvent("Couldn't initialize extension " + ext.getName() + ": " +
-                                 e.getMessage());
+                        app.logError("Couldn't initialize extension " + ext.getName(), e);
                     }
                 }
             }
 
         } catch (Exception e) {
-            System.err.println("Cannot initialize interpreter");
-            System.err.println("Error: " + e);
-            e.printStackTrace();
-            throw new RuntimeException(e.getMessage());
+            app.logError("Cannot initialize interpreter", e);
+            throw new RuntimeException(e.getMessage(), e);
         } finally {
-            Context.exit ();
+            core.contextFactory.exit ();
         }
+    }
+
+    /**
+     * Return the RhinoEngine associated with the current thread, or null.
+     * @return the RhinoEngine assocated with the current thread
+     */
+    public static RhinoEngine getRhinoEngine() {
+        return (RhinoEngine) engines.get();
     }
 
     /**
@@ -145,39 +154,20 @@ public class RhinoEngine implements ScriptingEngine {
      *  engine know it should update its prototype information.
      */
     public void updatePrototypes() throws IOException {
-        // remember the current thread as our thread - we this here so
+        // remember the current thread as our thread - we do this here so
         // the thread is already set when the RequestEvaluator calls
         // Application.getDataRoot(), which may result in a function invocation
         // (chicken and egg problem, kind of)
         thread = Thread.currentThread();
 
-        context = Context.enter();
-        context.setCompileFunctionsWithDynamicScope(true);
-        context.setApplicationClassLoader(app.getClassLoader());
-        context.setWrapFactory(core.wrapper);
+        context = core.contextFactory.enter();
 
-        // if visual debugger is on let it know we're entering a context
-        if (core.debugger != null) {
-            core.initDebugger(context);
-        }
-
-        if ("true".equals(app.getProperty("rhino.trace"))) {
+        if (core.hasTracer) {
             context.setDebugger(new Tracer(getResponse()), null);
         }
 
-        // Set default optimization level according to whether debugger is on
-        int optLevel = core.debugger == null ? 0 : -1;
-
-        try {
-            optLevel = Integer.parseInt(app.getProperty("rhino.optlevel"));
-        } catch (Exception ignore) {
-            // use default opt-level
-        }
-
-        context.setOptimizationLevel(optLevel);
-        // register the per-thread scope with the dynamic scope
-        context.putThreadLocal("reval", reval);
-        context.putThreadLocal("engine", this);
+        // register the engine with the current thread
+        engines.set(this);
         // update prototypes
         core.updatePrototypes();
     }
@@ -224,10 +214,9 @@ public class RhinoEngine implements ScriptingEngine {
      *   execution context has terminated.
      */
     public synchronized void exitContext() {
-        context.removeThreadLocal("reval");
-        context.removeThreadLocal("engine");
-        Context.exit();
-        // core.global.unregisterScope();
+        // unregister the engine threadlocal
+        engines.remove();
+        core.contextFactory.exit();
         thread = null;
 
         // loop through previous globals and unset them, if necessary.
@@ -237,7 +226,7 @@ public class RhinoEngine implements ScriptingEngine {
                 try {
                     global.delete(g);
                 } catch (Exception x) {
-                    System.err.println("Error resetting global property: " + g);
+                    app.logEvent("Error unsetting global property: " + g);
                 }
             }
             lastGlobals = null;
@@ -265,23 +254,7 @@ public class RhinoEngine implements ScriptingEngine {
     public Object invoke(Object thisObject, String functionName, Object[] args,
                          int argsWrapMode, boolean resolve) throws ScriptingException {
         try {
-            for (int i = 0; i < args.length; i++) {
-                switch (argsWrapMode) {
-                    case ARGS_WRAP_DEFAULT:
-                        // convert java objects to JavaScript
-                        if (args[i] != null) {
-                            args[i] = Context.javaToJS(args[i], global);
-                        }
-                        break;
-                    case ARGS_WRAP_XMLRPC:
-                        // XML-RPC requires special argument conversion
-                        args[i] = core.processXmlRpcArgument(args[i]);
-                        break;
-                }
-
-            }
             Scriptable obj = thisObject == null ? global : Context.toObject(thisObject, global);
-
             // if function name should be resolved interpret it as member expression,
             // otherwise replace dots with underscores.
             if (resolve) {
@@ -308,7 +281,23 @@ public class RhinoEngine implements ScriptingEngine {
                 return null;
             }
 
-            Object retval = ((Function) f).call(context, global, obj, args);
+            for (int i = 0; i < args.length; i++) {
+                switch (argsWrapMode) {
+                    case ARGS_WRAP_DEFAULT:
+                        // convert java objects to JavaScript
+                        if (args[i] != null) {
+                            args[i] = Context.javaToJS(args[i], global);
+                        }
+                        break;
+                    case ARGS_WRAP_XMLRPC:
+                        // XML-RPC requires special argument conversion
+                        args[i] = core.processXmlRpcArgument(args[i]);
+                        break;
+                }
+            }
+
+            // use Context.call() in order to set the context's factory
+            Object retval = Context.call(core.contextFactory, (Function)f, global, obj, args);
 
             if (retval instanceof Wrapper) {
                 retval = ((Wrapper) retval).unwrap();
@@ -449,7 +438,6 @@ public class RhinoEngine implements ScriptingEngine {
                 return prop;
             }
         } catch (Exception esx) {
-            // System.err.println ("Error in getProperty: "+esx);
             return null;
         }
     }
@@ -479,7 +467,7 @@ public class RhinoEngine implements ScriptingEngine {
      * @throws java.io.IOException
      */
     public void serialize(Object obj, OutputStream out) throws IOException {
-        Context.enter();
+        core.contextFactory.enter();
         try {
             // use a special ScriptableOutputStream that unwraps Wrappers
             ScriptableOutputStream sout = new ScriptableOutputStream(out, core.global) {
@@ -492,7 +480,7 @@ public class RhinoEngine implements ScriptingEngine {
             sout.writeObject(obj);
             sout.flush();
         } finally {
-            Context.exit();
+            core.contextFactory.exit();
         }
     }
 
@@ -506,12 +494,12 @@ public class RhinoEngine implements ScriptingEngine {
      * @throws java.io.IOException
      */
     public Object deserialize(InputStream in) throws IOException, ClassNotFoundException {
-        Context.enter();
+        core.contextFactory.enter();
         try {
             ObjectInputStream sin = new ScriptableInputStream(in, core.global);
             return sin.readObject();
         } finally {
-            Context.exit();
+            core.contextFactory.exit();
         }
     }
 

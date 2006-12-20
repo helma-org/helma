@@ -65,6 +65,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         this(className, core);
         this.node = node;
         setPrototype(proto);
+        setParentScope(core.global);
     }
 
     /**
@@ -72,10 +73,8 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      *
      * @param core the RhinoCore
      * @return the HopObject prototype
-     * @throws PropertyException
      */
-    public static HopObject init(RhinoCore core)
-            throws PropertyException {
+    public static HopObject init(RhinoCore core) {
         int attributes = DONTENUM | PERMANENT;
 
         // create prototype object
@@ -197,9 +196,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      */
     public boolean jsFunction_renderSkin(Object skinobj, Object paramobj)
             throws UnsupportedEncodingException, IOException {
-        Context cx = Context.getCurrentContext();
-        RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
-        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+        RhinoEngine engine = RhinoEngine.getRhinoEngine();
         Skin skin;
 
         if (skinobj instanceof Wrapper) {
@@ -217,7 +214,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         checkNode();
 
         if (skin != null) {
-            skin.render(reval, node, param);
+            skin.render(engine.reval, node, param);
         }
 
         return true;
@@ -232,9 +229,8 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * @return the resource, if found, null otherwise
      */
     public Object jsFunction_getResource(String resourceName) {
-        Context cx = Context.getCurrentContext();
-        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
-        Prototype prototype = engine.core.app.getPrototypeByName(className);
+        RhinoEngine engine = RhinoEngine.getRhinoEngine();
+        Prototype prototype = engine.app.getPrototypeByName(className);
         while (prototype != null) {
             Resource[] resources = prototype.getResources();
             for (int i = resources.length - 1; i >= 0; i--) {
@@ -256,8 +252,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * @return an array of resources with the given name
      */
     public Object jsFunction_getResources(String resourceName) {
-        Context cx = Context.getCurrentContext();
-        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+        RhinoEngine engine = RhinoEngine.getRhinoEngine();
         Prototype prototype = engine.core.app.getPrototypeByName(className);
         ArrayList a = new ArrayList();
         while (prototype != null) {
@@ -282,9 +277,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      */
     public String jsFunction_renderSkinAsString(Object skinobj, Object paramobj)
             throws UnsupportedEncodingException, IOException {
-        Context cx = Context.getCurrentContext();
-        RequestEvaluator reval = (RequestEvaluator) cx.getThreadLocal("reval");
-        RhinoEngine engine = (RhinoEngine) cx.getThreadLocal("engine");
+        RhinoEngine engine = RhinoEngine.getRhinoEngine();
         Skin skin;
 
         if (skinobj instanceof Wrapper) {
@@ -302,9 +295,9 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         checkNode();
 
         if (skin != null) {
-            ResponseTrans res = reval.getResponse();
+            ResponseTrans res = engine.getResponse();
             res.pushStringBuffer();
-            skin.render(reval, node, param);
+            skin.render(engine.reval, node, param);
             return res.popStringBuffer();
         }
 
@@ -716,6 +709,13 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
             // register property for PropertyRecorder interface
             if (isRecording) {
                 changedProperties.add(name);
+                if (value instanceof Function) {
+                    // reset function's parent scope, needed because of the way we compile
+                    // prototype code, using the prototype objects as scope
+                    Function f = (Function) value;
+                    if (f.getParentScope() == this) 
+                        f.setParentScope(core.global);
+                }
             }
             super.put(name, start, value);
         } else {
