@@ -215,7 +215,7 @@ public class RhinoEngine implements ScriptingEngine {
      */
     public synchronized void exitContext() {
         // unregister the engine threadlocal
-        engines.remove();
+        engines.set(null);
         core.contextFactory.exit();
         thread = null;
 
