@@ -387,12 +387,24 @@ public final class RequestEvaluator implements Runnable {
                                                 ScriptingEngine.ARGS_WRAP_DEFAULT,
                                                 false);
                                     }
+
+                                    // try calling onResponse() function on object before
+                                    // calling the actual action
+                                    scriptingEngine.invoke(currentElement,
+                                            "onResponse",
+                                            EMPTY_ARGS,
+                                            ScriptingEngine.ARGS_WRAP_DEFAULT,
+                                            false);
+
                                 } catch (RedirectException redirect) {
                                     // if there is a message set, save it on the user object for the next request
-                                    session.storeResponseMessages(res);
+                                    if (res.getRedirect() != null)
+                                        session.storeResponseMessages(res);
                                 }
 
-                                // check if we're still the one and only or if the waiting thread has given up on us already
+                                // check if request is still valid, or if the requesting thread has stopped waiting already
+                                if (localrtx != rtx)
+                                    return;
                                 commitTransaction();
                                 done = true;
 
@@ -438,8 +450,14 @@ public final class RequestEvaluator implements Runnable {
                                             functionName, args,
                                             ScriptingEngine.ARGS_WRAP_XMLRPC,
                                             false);
+                                    // check if request is still valid, or if the requesting thread has stopped waiting already
+                                    if (localrtx != rtx)
+                                        return;
                                     commitTransaction();
                                 } catch (Exception x) {
+                                    // check if request is still valid, or if the requesting thread has stopped waiting already
+                                    if (localrtx != rtx)
+                                        return;
                                     abortTransaction();
                                     app.logError(txname + ": " + error, x);
 
@@ -466,8 +484,14 @@ public final class RequestEvaluator implements Runnable {
                                             args,
                                             ScriptingEngine.ARGS_WRAP_DEFAULT,
                                             true);
+                                    // check if request is still valid, or if the requesting thread has stopped waiting already
+                                    if (localrtx != rtx)
+                                        return;
                                     commitTransaction();
                                 } catch (Exception x) {
+                                    // check if request is still valid, or if the requesting thread has stopped waiting already
+                                    if (localrtx != rtx)
+                                        return;
                                     abortTransaction();
                                     app.logError(txname + ": " + error, x);
 
@@ -487,6 +511,9 @@ public final class RequestEvaluator implements Runnable {
                     } catch (AbortException x) {
                         // res.abort() just aborts the transaction and
                         // leaves the response untouched
+                        // check if request is still valid, or if the requesting thread has stopped waiting already
+                        if (localrtx != rtx)
+                            return;
                         abortTransaction();
                         done = true;
                     } catch (ConcurrencyException x) {
@@ -494,6 +521,9 @@ public final class RequestEvaluator implements Runnable {
 
                         if (++tries < 8) {
                             // try again after waiting some period
+                            // check if request is still valid, or if the requesting thread has stopped waiting already
+                            if (localrtx != rtx)
+                                return;
                             abortTransaction();
 
                             try {
@@ -508,6 +538,9 @@ public final class RequestEvaluator implements Runnable {
                                 rtx = null;
                             }
                         } else {
+                            // check if request is still valid, or if the requesting thread has stopped waiting already
+                            if (localrtx != rtx)
+                                return;
                             abortTransaction();
 
                             if (error == null)
@@ -519,6 +552,9 @@ public final class RequestEvaluator implements Runnable {
                         }
                     } catch (Throwable x) {
                         String txname = localrtx.getTransactionName();
+                        // check if request is still valid, or if the requesting thread has stopped waiting already
+                        if (localrtx != rtx)
+                            return;
                         abortTransaction();
 
                         // If the transactor thread has been killed by the invoker thread we don't have to
@@ -581,6 +617,7 @@ public final class RequestEvaluator implements Runnable {
 
     /**
      * Called by the transactor thread when it has successfully fulfilled a request.
+     * @throws Exception transaction couldn't be committed
      */
     synchronized void commitTransaction() throws Exception {
         Transactor localrtx = (Transactor) Thread.currentThread();
@@ -592,11 +629,17 @@ public final class RequestEvaluator implements Runnable {
         }
     }
 
+    /**
+     * Called by the transactor thread when the request didn't terminate successfully.
+     */
     synchronized void abortTransaction() {
         Transactor localrtx = (Transactor) Thread.currentThread();
         localrtx.abort();
     }
 
+    /**
+     * Initialize and start the transactor thread.
+     */
     private synchronized void startTransactor() {
         if (!app.isRunning()) {
             throw new ApplicationStoppedException();
@@ -653,11 +696,10 @@ public final class RequestEvaluator implements Runnable {
      * waiting thread when it times out and stops waiting, or from an outside
      * thread. If currently active kill the request, otherwise just notify.
      */
-    public synchronized void stopTransactor() {
+    synchronized boolean stopTransactor() {
         Transactor t = rtx;
-
         rtx = null;
-
+        boolean stopped = false;
         if (t != null && t.isActive()) {
             // let the scripting engine know that the
             // current transaction is being aborted.
@@ -665,15 +707,17 @@ public final class RequestEvaluator implements Runnable {
                 scriptingEngine.abort();
             }
 
-            app.logEvent("Killing Thread " + t);
+            app.logEvent("Request timeout for thread " + t);
 
             reqtype = NONE;
 
             t.kill();
             t.abort();
             t.closeConnections();
+            stopped = true;
         }
         notifyAll();
+        return stopped;
     }
 
     /**
@@ -694,9 +738,7 @@ public final class RequestEvaluator implements Runnable {
         startTransactor();
         wait(app.requestTimeout);
 
-        if (reqtype != NONE) {
-            app.logEvent("Stopping Thread for Request " + app.getName() + "/" + req.getPath());
-            stopTransactor();
+        if (reqtype != NONE && stopTransactor()) {
             res.reset();
             res.reportError(app.getName(), "Request timed out");
         }
@@ -749,8 +791,7 @@ public final class RequestEvaluator implements Runnable {
         startTransactor();
         wait(app.requestTimeout);
 
-        if (reqtype != NONE) {
-            stopTransactor();
+        if (reqtype != NONE && stopTransactor()) {
             exception = new RuntimeException("Request timed out");
         }
 
@@ -784,8 +825,7 @@ public final class RequestEvaluator implements Runnable {
         startTransactor();
         wait();
 
-        if (reqtype != NONE) {
-            stopTransactor();
+        if (reqtype != NONE && stopTransactor()) {
             exception = new RuntimeException("Request timed out");
         }
 
@@ -853,8 +893,7 @@ public final class RequestEvaluator implements Runnable {
         startTransactor();
         wait(timeout);
 
-        if (reqtype != NONE) {
-            stopTransactor();
+        if (reqtype != NONE && stopTransactor()) {
             exception = new RuntimeException("Request timed out");
         }
 

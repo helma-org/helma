@@ -58,15 +58,11 @@ public class RhinoEngine implements ScriptingEngine {
     // the rhino core
     RhinoCore core;
 
-    // remember global variables from last invokation to be able to
-    // do lazy cleanup
-    Map lastGlobals = null;
-
     // the global vars set by extensions
     HashMap extensionGlobals;
 
     // the thread currently running this engine
-    Thread thread;
+    volatile Thread thread;
 
     // thread local engine registry
     static ThreadLocal engines = new ThreadLocal();
@@ -92,8 +88,6 @@ public class RhinoEngine implements ScriptingEngine {
         context = core.contextFactory.enter();
 
         try {
-            global = new GlobalObject(core, app, true);
-
             extensionGlobals = new HashMap();
 
             if (Server.getServer() != null) {
@@ -153,13 +147,13 @@ public class RhinoEngine implements ScriptingEngine {
      *  This method is called before an execution context is entered to let the
      *  engine know it should update its prototype information.
      */
-    public void updatePrototypes() throws IOException {
+    public synchronized void updatePrototypes() throws IOException {
         // remember the current thread as our thread - we do this here so
         // the thread is already set when the RequestEvaluator calls
         // Application.getDataRoot(), which may result in a function invocation
         // (chicken and egg problem, kind of)
         thread = Thread.currentThread();
-
+        global = new GlobalObject(core, app, true);
         context = core.contextFactory.enter();
 
         if (core.hasTracer) {
@@ -182,30 +176,26 @@ public class RhinoEngine implements ScriptingEngine {
         thread = Thread.currentThread();
 
         // set globals on the global object
-        if (globals != lastGlobals) {
-            // add globals from extensions
-            globals.putAll(extensionGlobals);
-            // loop through global vars and set them
-            for (Iterator i = globals.keySet().iterator(); i.hasNext();) {
-                String k = (String) i.next();
-                Object v = globals.get(k);
-                Scriptable scriptable;
+        // add globals from extensions
+        globals.putAll(extensionGlobals);
+        // loop through global vars and set them
+        for (Iterator i = globals.keySet().iterator(); i.hasNext();) {
+            String k = (String) i.next();
+            Object v = globals.get(k);
+            Scriptable scriptable;
 
-                // create a special wrapper for the path object.
-                // other objects are wrapped in the default way.
-                if (v == null) {
-                    continue;
-                } else if (v instanceof RequestPath) {
-                    scriptable = new PathWrapper((RequestPath) v, core);
-                    scriptable.setPrototype(core.pathProto);
-                } else {
-                    scriptable = Context.toObject(v, global);
-                }
-
-                global.put(k, global, scriptable);
+            // create a special wrapper for the path object.
+            // other objects are wrapped in the default way.
+            if (v == null) {
+                continue;
+            } else if (v instanceof RequestPath) {
+                scriptable = new PathWrapper((RequestPath) v, core);
+                scriptable.setPrototype(core.pathProto);
+            } else {
+                scriptable = Context.toObject(v, global);
             }
-            // remember the globals set on this evaluator
-            lastGlobals = globals;
+
+            global.put(k, global, scriptable);
         }
     }
 
@@ -218,19 +208,7 @@ public class RhinoEngine implements ScriptingEngine {
         engines.set(null);
         core.contextFactory.exit();
         thread = null;
-
-        // loop through previous globals and unset them, if necessary.
-        if (lastGlobals != null) {
-            for (Iterator i = lastGlobals.keySet().iterator(); i.hasNext();) {
-                String g = (String) i.next();
-                try {
-                    global.delete(g);
-                } catch (Exception x) {
-                    app.logEvent("Error unsetting global property: " + g);
-                }
-            }
-            lastGlobals = null;
-        }
+        global = null;
     }
 
     /**
@@ -342,21 +320,17 @@ public class RhinoEngine implements ScriptingEngine {
      *  Let the evaluator know that the current evaluation has been
      *  aborted.
      */
-    public synchronized void abort() {
+    public  void abort() {
         // current request has been aborted.
         Thread t = thread;
+        // set thread to null
+        thread = null;
         if (t != null && t.isAlive()) {
             t.interrupt();
-            if ("true".equals(app.getProperty("requestTimeoutStop", "true"))) {
-                try {
-                    Thread.sleep(5000);
-                    if (t.isAlive()) {
-                        // thread is still running, gotta stop it.
-                        t.stop();
-                    }
-                } catch (InterruptedException i) {
-                    // interrupted, ignore
-                }
+            try {
+                t.join(1000);
+            } catch (InterruptedException ir) {
+                // interrupted by other thread
             }
         }
     }
@@ -550,6 +524,21 @@ public class RhinoEngine implements ScriptingEngine {
      */
     public RhinoCore getCore() {
         return core;
+    }
+
+    /**
+     * Try to get a skin from the parameter object.
+     */
+    public Skin toSkin(Object skinobj, String protoName) throws IOException {
+        if (skinobj instanceof Wrapper) {
+            skinobj = ((Wrapper) skinobj).unwrap();
+        }
+
+        if (skinobj instanceof Skin) {
+            return (Skin) skinobj;
+        } else {
+            return getSkin(protoName, skinobj.toString());
+        }
     }
 
     /**

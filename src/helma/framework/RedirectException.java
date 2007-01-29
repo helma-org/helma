@@ -29,7 +29,7 @@ public class RedirectException extends Error {
     /**
      * Creates a new RedirectException object.
      *
-     * @param url ...
+     * @param url the URL
      */
     public RedirectException(String url) {
         super("Redirection Request to " + url);
@@ -37,29 +37,11 @@ public class RedirectException extends Error {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Return the URL to redirect to.
+     * @return the URL
      */
-    public String getMessage() {
+    public String getUrl() {
         return url;
     }
 
-    /**
-     *
-     *
-     * @param s ...
-     */
-    public void printStackTrace(java.io.PrintStream s) {
-        // do nothing
-    }
-
-    /**
-     *
-     *
-     * @param w ...
-     */
-    public void printStackTrace(java.io.PrintWriter w) {
-        // do nothing
-    }
 }

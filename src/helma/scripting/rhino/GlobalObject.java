@@ -39,7 +39,7 @@ import java.io.*;
 public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     Application app;
     RhinoCore core;
-    GlobalObject sharedGlobal = null;
+    boolean isThreadScope = false;
 
     // fields to implement PropertyRecorder
     private volatile boolean isRecording = false;
@@ -51,12 +51,12 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
      * @param core ...
      * @param app ...
      */
-    public GlobalObject(RhinoCore core, Application app, boolean perThread) {
+    public GlobalObject(RhinoCore core, Application app, boolean isThreadScope) {
         this.core = core;
         this.app = app;
-        if (perThread) {
-            sharedGlobal = core.global;
-            setPrototype(sharedGlobal);
+        this.isThreadScope = isThreadScope;
+        if (isThreadScope) {
+            setPrototype(core.global);
             setParentScope(null);
         }
     }
@@ -64,10 +64,8 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     /**
      * Initializes the global object. This is only done for the shared
      * global objects not the per-thread ones.
-     *
-     * @throws PropertyException ...
      */
-    public void init() throws PropertyException {
+    public void init() {
         String[] globalFuncs = {
                                    "renderSkin", "renderSkinAsString", "getProperty",
                                    "authenticate", "createSkin", "format", "encode",
@@ -127,18 +125,10 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         if (isRecording) {
             changedProperties.add(name);
         }
-        // check if this is a per-thread scope instance
-        if (sharedGlobal != null) {
-            // make thread scope accessible as "global"
-            if ("global".equals(name)) {
-                return this;
-            }
-            // use synchronized get on fast changing per-thread scopes just to be sure
-            synchronized(this) {
-                return super.get(name, start);
-            }
+        // expose thread scope as global variable "global"
+        if (isThreadScope && "global".equals(name)) {
+            return this;
         }
-        // we're the shared scope
         return super.get(name, start);
     }
 
@@ -153,22 +143,11 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     public boolean renderSkin(Object skinobj, Object paramobj)
             throws UnsupportedEncodingException, IOException {
         RhinoEngine engine = RhinoEngine.getRhinoEngine();
-        Skin skin;
-
-        if (skinobj instanceof Wrapper) {
-            skinobj = ((Wrapper) skinobj).unwrap();
-        }
-
-        if (skinobj instanceof Skin) {
-            skin = (Skin) skinobj;
-        } else {
-            skin = engine.getSkin("global", skinobj.toString());
-        }
-
-        Map param = RhinoCore.getSkinParam(paramobj);
+        Skin skin = engine.toSkin(skinobj, "global");
 
         if (skin != null) {
-            skin.render(engine.reval, null, param);
+            skin.render(engine.reval, null, 
+                    (paramobj == Undefined.instance) ? null : paramobj);
         }
 
         return true;
@@ -185,25 +164,11 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     public String renderSkinAsString(Object skinobj, Object paramobj)
             throws UnsupportedEncodingException, IOException {
         RhinoEngine engine = RhinoEngine.getRhinoEngine();
-        Skin skin;
-
-        if (skinobj instanceof Wrapper) {
-            skinobj = ((Wrapper) skinobj).unwrap();
-        }
-
-        if (skinobj instanceof Skin) {
-            skin = (Skin) skinobj;
-        } else {
-            skin = engine.getSkin("global", skinobj.toString());
-        }
-
-        Map param = RhinoCore.getSkinParam(paramobj);
+        Skin skin = engine.toSkin(skinobj, "global");
 
         if (skin != null) {
-            ResponseTrans res = engine.getResponse();
-            res.pushStringBuffer();
-            skin.render(engine.reval, null, param);
-            return res.popStringBuffer();
+            return skin.renderAsString(engine.reval, null,
+                    (paramobj == Undefined.instance) ? null : paramobj);
         }
 
         return "";
@@ -671,7 +636,9 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
             }
             String str = (String) args[i];
             if (obj.has(str, obj)) {
-                obj.setAttributes(str, obj.getAttributes(str) | DONTENUM);
+                int attr = obj.getAttributes(str);
+                if ((attr & PERMANENT) == 0)
+                    obj.setAttributes(str, attr | DONTENUM);
             }
         }
         return null;
@@ -719,6 +686,6 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     }
 
     public String toString() {
-        return sharedGlobal == null ? "[Shared Scope]" : "[Thread Scope]";
+        return isThreadScope ? "[Thread Scope]" : "[Shared Scope]";
     }
 }

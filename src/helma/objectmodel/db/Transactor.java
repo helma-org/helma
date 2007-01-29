@@ -161,19 +161,17 @@ public class Transactor extends Thread {
 
 
     /**
-     *
-     *
-     * @return ...
+     * Returns true if a transaction is currently active.
+     * @return true if currently a transaction is active
      */
     public boolean isActive() {
         return active;
     }
 
     /**
-     *
-     *
-     * @param src ...
-     * @param con ...
+     * Register a db connection with this transactor thread.
+     * @param src the db source
+     * @param con the connection
      */
     public void registerConnection(DbSource src, Connection con) {
         sqlConnections.put(src, con);
@@ -182,11 +180,9 @@ public class Transactor extends Thread {
     }
 
     /**
-     *
-     *
-     * @param src ...
-     *
-     * @return ...
+     * Get a db connection that was previously registered with this transactor thread.
+     * @param src the db source
+     * @return the connection
      */
     public Connection getConnection(DbSource src) {
         Connection con = (Connection) sqlConnections.get(src);
@@ -218,9 +214,7 @@ public class Transactor extends Thread {
     public synchronized void begin(String name) throws Exception {
         if (killed) {
             throw new DatabaseException("Transaction started on killed thread");
-        }
-
-        if (active) {
+        } else if (active) {
             abort();
         }
 
@@ -241,10 +235,10 @@ public class Transactor extends Thread {
      */
     public synchronized void commit() throws Exception {
         if (killed) {
-            abort();
+            throw new DatabaseException("commit() called on killed transactor thread");
+        } else if (!active) {
             return;
         }
-
         int inserted = 0;
         int updated = 0;
         int deleted = 0;
@@ -396,7 +390,6 @@ public class Transactor extends Thread {
 
         // clear the node collections
         recycle();
-
         // close any JDBC connections associated with this transactor thread
         closeConnections();
 
@@ -420,34 +413,39 @@ public class Transactor extends Thread {
      * Kill this transaction thread. Used as last measure only.
      */
     public synchronized void kill() {
-        killed = true;
-
-        // The thread is told to stop by setting the thread flag in the EcmaScript
-        // evaluator, so we can hope that it stops without doing anything else.
-        try {
-            join(500);
-        } catch (InterruptedException ir) {
-            // interrupted by other thread
-        }
+            killed = true;
+            interrupt();
 
         // Interrupt the thread if it has not noticed the flag (e.g. because it is busy
         // reading from a network socket).
         if (isAlive()) {
-            interrupt();
+                interrupt();
+                try {
+                    join(1000);
+                } catch (InterruptedException ir) {
+                    // interrupted by other thread
+                }
+        }
 
-            try {
-                join(1000);
-            } catch (InterruptedException ir) {
-                // interrupted by other thread
-            }
+        if (isAlive() && "true".equals(nmgr.app.getProperty("requestTimeoutStop", "true"))) {
+                // still running - check if we ought to stop() it
+                try {
+                    Thread.sleep(2000);
+                    if (isAlive()) {
+                        // thread is still running, pull emergency break
+                        nmgr.app.logEvent("Stopping Thread for Transactor " + this);
+                        stop();
+                    }
+                } catch (InterruptedException ir) {
+                    // interrupted by other thread
+                }
         }
     }
 
     /**
-     *
+     * Closes all open JDBC connections
      */
     public void closeConnections() {
-        // nmgr.app.logEvent("Cleaning up Transactor thread");
         if (sqlConnections != null) {
             for (Iterator i = sqlConnections.values().iterator(); i.hasNext();) {
                 try {

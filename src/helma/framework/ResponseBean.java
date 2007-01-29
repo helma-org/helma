@@ -60,6 +60,16 @@ public class ResponseBean implements Serializable {
 
     /**
      * Write an object to the response buffer by converting it to a string
+     * and then encoding it for form/text area content use.
+     *
+     * @param obj the object to write to the response buffer
+     */
+    public void encodeForm(Object obj) {
+        res.encodeForm(obj);
+    }
+
+    /**
+     * Write an object to the response buffer by converting it to a string
      * and then HTML-formatting it.
      *
      * @param obj the object to write to the response buffer 
@@ -86,6 +96,15 @@ public class ResponseBean implements Serializable {
      */
     public void forward(String url) throws RedirectException {
         res.forward(url);
+    }
+
+    /**
+     * Immediately stop processing the current request
+     *
+     * @throws RedirectException to immediately terminate the request
+     */
+    public void stop() throws RedirectException {
+        res.redirect(null);
     }
 
     /**
@@ -480,6 +499,15 @@ public class ResponseBean implements Serializable {
     public String popStringBuffer() {
         return res.popStringBuffer();
     }
+
+   /**
+    * Returns the current response buffer as string.
+    *
+    * @return the response buffer as string
+    */
+   public String getBuffer() {
+       return res.getBuffer().toString();
+   }
 
     /**
      * Commit changes made during the course of the current transaction

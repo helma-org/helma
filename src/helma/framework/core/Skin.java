@@ -145,21 +145,44 @@ public final class Skin {
     }
 
     /**
+     * Render this skin and return it as string
+     */
+    public String renderAsString(RequestEvaluator reval, Object thisObject, Object paramObject)
+                throws RedirectException, UnsupportedEncodingException {
+        String result = "";
+        ResponseTrans res = reval.getResponse();
+        res.pushStringBuffer();
+        try {
+            render(reval, thisObject, paramObject);
+        } finally {
+            result = res.popStringBuffer();
+        }
+        return result;
+    }
+
+
+    /**
      * Render this skin
      */
-    public void render(RequestEvaluator reval, Object thisObject, Map paramObject)
+    public void render(RequestEvaluator reval, Object thisObject, Object paramObject)
                 throws RedirectException, UnsupportedEncodingException {
         // check for endless skin recursion
         if (++reval.skinDepth > 50) {
             throw new RuntimeException("Recursive skin invocation suspected");
         }
 
+        ResponseTrans res = reval.getResponse();
+
         if (macros == null) {
-            reval.getResponse().write(source, 0, sourceLength);
+            res.write(source, 0, sourceLength);
             reval.skinDepth--;
 
             return;
         }
+
+        // register param object, remember previous one to reset afterwards
+        Map handlers = res.getMacroHandlers();
+        Object previousParam = handlers.put("param", paramObject);
 
         try {
             int written = 0;
@@ -171,18 +194,23 @@ public final class Skin {
 
             for (int i = 0; i < macros.length; i++) {
                 if (macros[i].start > written) {
-                    reval.getResponse().write(source, written, macros[i].start - written);
+                    res.write(source, written, macros[i].start - written);
                 }
 
-                macros[i].render(reval, thisObject, paramObject, handlerCache);
+                macros[i].render(reval, thisObject, handlerCache);
                 written = macros[i].end;
             }
 
             if (written < sourceLength) {
-                reval.getResponse().write(source, written, sourceLength - written);
+                res.write(source, written, sourceLength - written);
             }
         } finally {
             reval.skinDepth--;
+            if (previousParam == null) {
+                handlers.remove("param");
+            } else {
+                handlers.put("param", previousParam);
+            }
         }
     }
 
@@ -395,8 +423,7 @@ public final class Skin {
         /**
          *  Render the macro given a handler object
          */
-        public void render(RequestEvaluator reval, Object thisObject, Map paramObject,
-                           Map handlerCache)
+        public void render(RequestEvaluator reval, Object thisObject, Map handlerCache)
                 throws RedirectException, UnsupportedEncodingException {
             // immediately return for comment macros
             if (isCommentMacro) {
@@ -413,10 +440,6 @@ public final class Skin {
                 return;
             } else if ("request".equalsIgnoreCase(handler)) {
                 renderFromRequest(reval);
-
-                return;
-            } else if ("param".equalsIgnoreCase(handler)) {
-                renderFromParam(reval, paramObject);
 
                 return;
             } else if ("session".equalsIgnoreCase(handler)) {

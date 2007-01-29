@@ -197,24 +197,13 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     public boolean jsFunction_renderSkin(Object skinobj, Object paramobj)
             throws UnsupportedEncodingException, IOException {
         RhinoEngine engine = RhinoEngine.getRhinoEngine();
-        Skin skin;
-
-        if (skinobj instanceof Wrapper) {
-            skinobj = ((Wrapper) skinobj).unwrap();
-        }
-
-        if (skinobj instanceof Skin) {
-            skin = (Skin) skinobj;
-        } else {
-            skin = engine.getSkin(className, skinobj.toString());
-        }
-
-        Map param = RhinoCore.getSkinParam(paramobj);
+        Skin skin = engine.toSkin(skinobj, className);
 
         checkNode();
 
         if (skin != null) {
-            skin.render(engine.reval, node, param);
+            skin.render(engine.reval, node, 
+                    (paramobj == Undefined.instance) ? null : paramobj);
         }
 
         return true;
@@ -278,27 +267,13 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     public String jsFunction_renderSkinAsString(Object skinobj, Object paramobj)
             throws UnsupportedEncodingException, IOException {
         RhinoEngine engine = RhinoEngine.getRhinoEngine();
-        Skin skin;
-
-        if (skinobj instanceof Wrapper) {
-            skinobj = ((Wrapper) skinobj).unwrap();
-        }
-
-        if (skinobj instanceof Skin) {
-            skin = (Skin) skinobj;
-        } else {
-            skin = engine.getSkin(className, skinobj.toString());
-        }
-
-        Map param = RhinoCore.getSkinParam(paramobj);
-
+        Skin skin = engine.toSkin(skinobj, className);
+        Object param = paramobj == Undefined.instance ? null : paramobj;
         checkNode();
 
         if (skin != null) {
-            ResponseTrans res = engine.getResponse();
-            res.pushStringBuffer();
-            skin.render(engine.reval, node, param);
-            return res.popStringBuffer();
+            return skin.renderAsString(engine.reval, node,
+                    (paramobj == Undefined.instance) ? null : paramobj);
         }
 
         return "";

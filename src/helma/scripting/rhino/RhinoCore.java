@@ -635,7 +635,7 @@ public final class RhinoCore implements ScopeProvider {
         return hobj;
     }
 
-    protected String postProcessHref(Object obj, String protoName, String basicHref)
+    protected String postProcessHref(Object obj, String protoName, String href)
             throws UnsupportedEncodingException, IOException {
         // check if the app.properties specify a href-function to post-process the
         // basic href.
@@ -655,7 +655,7 @@ public final class RhinoCore implements ScopeProvider {
 
                     try {
                         result = eng.invoke(handler, hrefFunction,
-                                               new Object[] { basicHref },
+                                               new Object[] {href},
                                                ScriptingEngine.ARGS_WRAP_DEFAULT,
                                                false);
                     } catch (ScriptingException x) {
@@ -667,7 +667,7 @@ public final class RhinoCore implements ScopeProvider {
                                                        " returned null");
                     }
 
-                    basicHref = result.toString();
+                    href = result.toString();
                     break;
                 }
                 handler = app.getParentElement(handler);
@@ -696,23 +696,17 @@ public final class RhinoCore implements ScopeProvider {
                 }
 
                 if (skin != null) {
+                    Scriptable param = Context.getCurrentContext().newObject(global);
+                    param.put("path", param, href);
+                    href = skin.renderAsString(eng.getRequestEvaluator(), handler, param);
                     break;
                 }
 
                 handler = app.getParentElement(handler);
             }
-
-            if (skin != null) {
-                eng.getResponse().pushStringBuffer();
-                HashMap param = new HashMap();
-                param.put("path", basicHref);
-                skin.render(eng.getRequestEvaluator(), handler, param);
-
-                basicHref = eng.getResponse().popStringBuffer().trim();
-            }
         }
 
-        return basicHref;
+        return href;
     }
 
     /**
@@ -739,30 +733,6 @@ public final class RhinoCore implements ScopeProvider {
             }
         }
         return skinpath;
-    }
-
-    protected static Map getSkinParam(Object paramobj) {
-        Map param = null;
-
-        if ((paramobj != null) && (paramobj != Undefined.instance)) {
-            param = new HashMap();
-
-            if (paramobj instanceof Scriptable) {
-                Scriptable sp = (Scriptable) paramobj;
-                Object[] ids = sp.getIds();
-
-                for (int i = 0; i < ids.length; i++) {
-                    Object obj = sp.get(ids[i].toString(), sp);
-                    if (obj instanceof Wrapper) {
-                        param.put(ids[i], ((Wrapper) obj).unwrap());
-                    } else if (obj != Undefined.instance) {
-                        param.put(ids[i], obj);
-                    }
-                }
-            }
-        }
-
-        return param;
     }
 
     /**

@@ -78,22 +78,11 @@ public class JavaObject extends NativeJavaObject {
     public boolean renderSkin(Object skinobj, Object paramobj)
             throws UnsupportedEncodingException, IOException {
         RhinoEngine engine = RhinoEngine.getRhinoEngine();
-        Skin skin;
-
-        if (skinobj instanceof Wrapper) {
-            skinobj = ((Wrapper) skinobj).unwrap();
-        }
-
-        if (skinobj instanceof Skin) {
-            skin = (Skin) skinobj;
-        } else {
-            skin = engine.getSkin(protoName, skinobj.toString());
-        }
-
-        Map param = RhinoCore.getSkinParam(paramobj);
+        Skin skin = engine.toSkin(skinobj, protoName);
 
         if (skin != null) {
-            skin.render(engine.reval, javaObject, param);
+            skin.render(engine.reval, javaObject, 
+                    (paramobj == Undefined.instance) ? null : paramobj);
         }
 
         return true;
@@ -110,25 +99,11 @@ public class JavaObject extends NativeJavaObject {
     public String renderSkinAsString(Object skinobj, Object paramobj)
             throws UnsupportedEncodingException, IOException {
         RhinoEngine engine = RhinoEngine.getRhinoEngine();
-        Skin skin;
-
-        if (skinobj instanceof Wrapper) {
-            skinobj = ((Wrapper) skinobj).unwrap();
-        }
-
-        if (skinobj instanceof Skin) {
-            skin = (Skin) skinobj;
-        } else {
-            skin = engine.getSkin(protoName, skinobj.toString());
-        }
-
-        Map param = RhinoCore.getSkinParam(paramobj);
+        Skin skin = engine.toSkin(skinobj, protoName);
 
         if (skin != null) {
-            ResponseTrans res = engine.getResponse();
-            res.pushStringBuffer();
-            skin.render(engine.reval, javaObject, param);
-            return res.popStringBuffer();
+            return skin.renderAsString(engine.reval, javaObject,
+                    (paramobj == Undefined.instance) ? null : paramobj);
         }
 
         return "";
