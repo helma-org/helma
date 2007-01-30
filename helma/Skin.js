@@ -8,18 +8,35 @@
  *
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
- * $RCSfile: helma.Skin.js,v $
+ * $RCSfile: Skin.js,v $
  * $Author: czv $
- * $Revision: 1.5 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
 
+/**
+ * @fileoverview Fields and methods of the helma.Skin class.
+ */
+
+
+// define the helma namespace, if not existing
 if (!global.helma) {
     global.helma = {};
 }
 
+/**
+ * Constructs a new instance of helma.Skin
+ * @class Instances of this class represent a Helma skin. In addition
+ * to the standard skin functionality this class allows creation of
+ * a skin based on a Base64 encoded source.
+ * @param {String} source The source of the skin
+ * @param {Boolean} encFlag If true the source will be Base64-decoded.
+ * @constructor
+ * @returns A newly created instance of helma.Skin
+ */
 helma.Skin = function(source, encFlag) {
+    /** @ignore */    
     var Base64 = Packages.helma.util.Base64;
 
     if (!encFlag) {
@@ -31,25 +48,49 @@ helma.Skin = function(source, encFlag) {
         var skin = createSkin(new java.lang.String(bytes, "UTF-8"));
     }
 
+    /** @ignore */
     this.toString = function() {
         return source;
     };
 
+    /**
+     * Returns the source of the skin as Base64 encoded string
+     * @returns The source of the skin as Base64 encoded string
+     * @type String
+     */
     this.valueOf = function() {
-        if (encFlag)
+        if (encFlag) {
             return encoded;
+        }
         var bytes = new java.lang.String(source).getBytes("UTF-8");
         return new java.lang.String(Base64.encode(bytes));
     };
 
+    /**
+     * Renders the skin.
+     * @param {Object} param An optional parameter object to pass to the skin.
+     */
     this.render = function(param) {
         return renderSkin(skin, param);
     };
 
+    /**
+     * Returns the rendered skin.
+     * @param {Object} param An optional parameter object to pass to the skin.
+     */
     this.renderAsString = function(param) {
         return renderSkinAsString(skin, param);
     };
 
+    /**
+     * Returns true if the skin contains a macro with the name
+     * and optional handler passed as argument.
+     * @param {String} name The name of the macro
+     * @param {String} handler An optional macro handler name
+     * @returns True if the skin contains this macro at least once,
+     * false otherwise.
+     * @type Boolean
+     */
     this.containsMacro = function(name, handler) {
         res.push();
         res.write("<% *");
@@ -68,9 +109,6 @@ helma.Skin = function(source, encFlag) {
 
     return this;
 };
-
-
-helma.Skin.BASE64 = true;
 
 
 helma.lib = "Skin";
