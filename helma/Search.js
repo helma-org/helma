@@ -17,9 +17,9 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //
-// $Revision: 1.7 $
-// $Author: hannes $
-// $Date: 2006/11/27 12:32:36 $
+// $Revision: 1.8 $
+// $Author: robert $
+// $Date: 2007/01/30 14:56:51 $
 //
 
 
@@ -44,6 +44,7 @@ if (!global.helma) {
  * creating a fulltext search index based on Apache Lucene.
  * @returns A newly created instance of this prototype.
  * @constructor
+ * @author Robert Gaggl <robert@nomatic.org> 
  */
 helma.Search = function() {
     try {
