@@ -8,24 +8,39 @@
  *
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
- * $RCSfile: helma.Ssh.js,v $
+ * $RCSfile: Ssh.js,v $
  * $Author: czv $
- * $Revision: 1.4 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
+
+/**
+ * @fileoverview Fields and methods of the helma.Ssh class.
+ */
 
 // take care of any dependencies
 app.addRepository('modules/helma/File.js');
 app.addRepository('modules/helma/ganymed-ssh2.jar');
 
-
+// define the helma namespace, if not existing
 if (!global.helma) {
     global.helma = {};
 }
 
 /** 
- * constructor
+ * Creates a new instance of helma.Ssh
+ * @class This class provides methods for connecting to a remote
+ * server via secure shell (ssh) and copying files from/to a remote
+ * server using secure copy (scp). It utilizes "Ganymed SSH-2 for Java"
+ * (see <a href="http://www.ganymed.ethz.ch/ssh2/">http://www.ganymed.ethz.ch/ssh2/</a>).
+ * @param {String} server The server to connect to
+ * @param {helma.File|java.io.File|String} hosts Either a file
+ * containing a list of known hosts, or the path pointing to a
+ * file. This argument is optional.
+ * @constructor
+ * @returns A newly created instance of helma.Ssh
+ * @author Robert Gaggl <robert@nomatic.org> 
  */
 helma.Ssh = function(server, hosts) {
     var SSHPKG = Packages.ch.ethz.ssh2;
@@ -36,6 +51,7 @@ helma.Ssh = function(server, hosts) {
     var verifier = null;
     var knownHosts, connection;
 
+    // check if necessary jar file is in classpath
     try {
         knownHosts = new SSHPKG.KnownHosts();
         connection = new SSHPKG.Connection(server);
@@ -47,6 +63,10 @@ helma.Ssh = function(server, hosts) {
               "[" + SSHPKGURL + "]");
     }
     
+    /**
+     * A simple verifier for verifying host keys
+     * @private
+     */
     var SimpleVerifier = {
         verifyServerHostKey: function(hostname, port, serverHostKeyAlgorithm, serverHostKey) {
             var result = knownHosts.verifyHostkey(hostname, serverHostKeyAlgorithm, serverHostKey);
@@ -75,24 +95,28 @@ helma.Ssh = function(server, hosts) {
     };
     
     /**
-     * private method for creating an instance of
-     * java.io.File based on various argument types
-     * @param a String or an instance of helma.File or java.io.File
+     * Converts the argument into an instance of java.io.File
+     * @param {helma.File|java.io.File|String} file Either a file
+     * object or the path to a file as string
+     * @returns The argument converted into a file object
+     * @type java.io.File
+     * @private
      */
-    var getFile = function(arg) {
-        if (arg instanceof helma.File) {
-            return new java.io.File(arg.getAbsolutePath());
-        } else if (arg instanceof java.io.File) {
-            return arg;
-        } else if (arg.constructor == String) {
-            return new java.io.File(arg);
+    var getFile = function(file) {
+        if (file instanceof helma.File) {
+            return new java.io.File(file.getAbsolutePath());
+        } else if (file instanceof java.io.File) {
+            return file;
+        } else if (file.constructor == String) {
+            return new java.io.File(file);
         }
         return null;
     };
 
     /**
-     * private method that connects to the remote server
+     * Connects to the remote server
      * @return Boolean
+     * @private
      */
     var connect = function() {
         try {
@@ -106,31 +130,37 @@ helma.Ssh = function(server, hosts) {
     };
     
     /**
-     * debug output method
-     * @param String name of method
-     * @param String debug message
+     * Private helper method for debugging output using app.logger
+     * @param {String} methodName The name of the method
+     * @param {String} msg The debug message to write to event log file
+     * @private
      */
     var debug = function(methodName, msg) {
         var msg = msg ? " " + msg : "";
-        app.debug(className + ":" + methodName + msg);
+        app.logger.debug(className + ":" + methodName + msg);
         return;
     };
 
     /**
-     * error output method
-     * @param String name of method
-     * @param String error message
+     * Private helper method for error output using app.logger
+     * @param {String} methodName The name of the method
+     * @param {String} msg The error message to write to event log file
+     * @private
      */
     var error = function(methodName, msg) {
         var tx = java.lang.Thread.currentThread();
         tx.dumpStack();
-        app.log("Error in " + className + ":" + methodName + ": " + msg);
+        app.logger.error(className + ":" + methodName + ": " + msg);
         return;
     };
 
     /**
-     * reads a known hosts file
-     * @param Object String or instance of helma.File or java.io.File
+     * Opens the file passed as argument and adds the known hosts
+     * therein to the list of known hosts for this client.
+     * @param {helma.File|java.io.File|String} file Either a file object
+     * or the path to a file containing a list of known hosts
+     * @returns True if adding the list was successful, false otherwise
+     * @type Boolean
      */
     this.addKnownHosts = function(file) {
         try {
@@ -144,10 +174,11 @@ helma.Ssh = function(server, hosts) {
     };
     
     /**
-     * connects to a remote host with username/password authentication
-     * @param String username
-     * @param String password
-     * @return Boolean
+     * Connects to a remote host using plain username/password authentication.
+     * @param {String} username The username
+     * @param {String} password The password
+     * @returns True in case the connection attempt was successful, false otherwise.
+     * @type Boolean
      */
     this.connect = function(username, password) {
         if (!username || !password) {
@@ -162,11 +193,14 @@ helma.Ssh = function(server, hosts) {
     };
 
     /**
-     * connects to a remote host using private key and passphrase
-     * @param String username
-     * @param String path to keyfile
-     * @param String passphrase (if needed by key)
-     * @return Boolean
+     * Connects to a remote host using a private key and the corresponding
+     * passphrase.
+     * @param {String} username The username
+     * @param {helma.File|java.io.File|String} key Either a file object
+     * representing the private key file, or the path to it.
+     * @param {String} passphrase The passphrase of the private key, if necessary.
+     * @returns True in case the connection attempt was successful, false otherwise.
+     * @type Boolean
      */
     this.connectWithKey = function(username, key, passphrase) {
         var keyFile;
@@ -182,7 +216,7 @@ helma.Ssh = function(server, hosts) {
     };
     
     /**
-     * disconnect a session
+     * Disconnects this client from the remote server.
      */
     this.disconnect = function() {
         connection.close();
@@ -191,22 +225,24 @@ helma.Ssh = function(server, hosts) {
     };
 
     /**
-     * returns true if the ssh client is connected
-     * @return Boolean
+     * Returns true if this client is currently connected.
+     * @returns True in case this client is connected, false otherwise.
+     * @type Boolean
      */
     this.isConnected = function() {
         return (connection != null && connection.isAuthenticationComplete());
     };
 
     /**
-     * copies a file to the remote server
-     * @param String path to local file that should be copied
-     *                    to remote server. If the argument is a
-     *                    String Array, all files specified in the
-     *                    Array are copied to the server
-     * @param String path to remote destination directory
-     * @param String (optional) 4-digit permission mode string (eg. "0755");
-     * @return Boolean
+     * Copies a local file to the remote server
+     * @param {String|Array} localFile Either the path to a single local
+     * file or an array containing multiple file paths that should be
+     * copied to the remote server.
+     * @param {String} remoteDir The path to the remote destination directory
+     * @param {String} mode An optional 4-digit permission mode string (eg.
+     * <code>0755</code>);
+     * @returns True in case the operation was successful, false otherwise.
+     * @type Boolean
      */
     this.put = function(localFile, remoteDir, mode) {
         if (!localFile || !remoteDir) {
@@ -230,13 +266,13 @@ helma.Ssh = function(server, hosts) {
     };
 
     /**
-     * copies a file from the remote server.
-     * @param String path to remote file that should be copied
-     *                    to remote server. If the argument is a
-     *                    String Array, all files specified in the
-     *                    Array are copied from the remote server
-     * @param String path to local destination directory
-     * @return Boolean
+     * Retrieves a file from the remote server and stores it locally.
+     * @param {String|Array} remoteFile Either the path to a single remote
+     * file or an array containing multiple file paths that should be
+     * copied onto the local disk.
+     * @param {String} targetDir The path to the local destination directory
+     * @returns True if the copy process was successful, false otherwise.
+     * @type Boolean
      */
     this.get = function(remoteFile, targetDir) {
         if (!remoteFile || !targetDir) {
@@ -257,10 +293,10 @@ helma.Ssh = function(server, hosts) {
     };
 
     /**
-     * executes a command on the remote server
-     * (scp must be in PATH on the remote server)
-     * @param String the command to execute
-     * @return String result of the command
+     * Executes a single command on the remote server.
+     * @param {String} cmd The command to execute on the remote server.
+     * @return The result of the command execution
+     * @type String
      */
     this.execCommand = function(cmd) {
         if (!this.isConnected()) {
@@ -288,17 +324,21 @@ helma.Ssh = function(server, hosts) {
     };
     
     /**
-     * toggle paranoia mode
-     * @param Boolean
+     * Toggles paranoid mode. If set to true this client tries to
+     * verify the host key against the its list of known hosts
+     * during connection and rejects if the host key is not found
+     * therein or is different.
+     * @param {Boolean} p Either true or false
      */
     this.setParanoid = function(p) {
-        paranoid = (p == true) ? true : false;
+        paranoid = (p === true);
         return;
     };
 
     /**
-     * returns true if in paranoid mode
+     * Returns true if this client is in paranoid mode.
      * @return Boolean
+     * @see #setParanoid
      */
     this.isParanoid = function() {
         return paranoid;
@@ -317,6 +357,7 @@ helma.Ssh = function(server, hosts) {
 };
 
 
+/** @ignore */
 helma.Ssh.toString = function() {
     return "[helma.Ssh]";
 };
