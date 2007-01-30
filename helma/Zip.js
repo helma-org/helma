@@ -9,39 +9,52 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Zip.js,v $
- * $Author: czv $
- * $Revision: 1.2 $
- * $Date: 2006/04/24 07:02:17 $
+ * $Author: hannes $
+ * $Revision: 1.3 $
+ * $Date: 2006/06/02 15:46:20 $
+ */
+
+/**
+ * @fileoverview Fields and methods of the helma.Zip class.
  */
 
 // take care of any dependencies
 app.addRepository('modules/helma/File.js');
 
-
+// define the helma namespace, if not existing
 if (!global.helma) {
     global.helma = {};
 }
 
 /**
- * constructor function for Zip Objects
- * @param either
- *      - (Object) a File object
- *      - (Object) an instance of Helma.File
- *      - (Object) an instance of java.io.File
- *      - (String) the path to the zip file
+ * Constructs a new helma.Zip instance
+ * @class Instances of this class represent a single zip archive
+ * and provide various methods for extracting entries or manipulating
+ * the contents of the archive.
+ * @param {helma.File|java.io.File|String} file Either
+ * a file object representing the .zip file on disk, or the
+ * path to the .zip file as string.
+ * @constructor
+ * @returns A newly created instance of helma.Zip.
+ * @author Robert Gaggl <robert@nomatic.org> 
  */
-helma.Zip = function (file) {
+helma.Zip = function(file) {
 
     /**
-     * private function that extracts the data of a file
-     * in a .zip archive. If a destination Path is given it
+     * Private method that extracts the data of a single file
+     * in a .zip archive. If a destination path is given it
      * writes the extracted data directly to disk using the
      * name of the ZipEntry Object, otherwise it returns the
-     * byte array containing the extracted data
-     * @param Object jAva.util.zip.ZipFile Object
-     * @param Object java.util.zip.ZipEntry Object to extract
-     * @param String destination path to extract ZipEntry Object to
-     * @return Object ByteArray containing the data of the ZipEntry
+     * byte array containing the extracted data.
+     * @param {java.util.zip.ZipFile} zFile The zip archive to extract
+     * the file from.
+     * @param {java.util.zip.ZipEntry} entry The zip entry to extract
+     * @param {String} destPath The destination path where the extracted
+     * file should be stored.
+     * @returns If no destination path is given, this method returns
+     * the contents of the extracted file as ByteArray, otherwise
+     * it returns null.
+     * @private
      */
     var extractEntry = function(zFile, entry, destPath) {
         var size = entry.getSize();
@@ -76,12 +89,16 @@ helma.Zip = function (file) {
     };
 
     /**
-     * private function for adding a single file to the .zip archive
-     * @param Object java.util.zip.ZipOutputStream
-     * @param Object instance of java.io.File representing the file to be added
-     * @param Int compression-level (0-9)
-     * @param String path of the directory in the archive to which the
-     *                    file should be added (optional)
+     * Private method for adding a single file to the Zip archive
+     * represented by this helma.Zip instance
+     * @param {java.util.zip.ZipOutputStream} zOutStream The output
+     * stream to write to
+     * @param {java.io.File} f The file that should be added to the
+     * Zip archive.
+     * @param {Number} level The compression-level between 0-9.
+     * @param {String} pathPrefix The path of the directory within the
+     * Zip archive where the file should be added (optional).
+     * @private
      */
     var addFile = function(zOutStream, f, level, pathPrefix) {
         var fInStream = new java.io.BufferedInputStream(new java.io.FileInputStream(f));
@@ -106,52 +123,60 @@ helma.Zip = function (file) {
         zOutStream.write(buf, 0, buf.length);
         zOutStream.closeEntry();
         fInStream.close();
-        return true;
+        return;
     };
 
     /**
-     * private function that constructs an instance
-     * of java.io.File based on a JS File or Helma.File object
-     * @param Object either a string or an instance of java.io.File, File or Helma.File
-     * @return Object instance of java.io.File
+     * Private helper method that converts the argument into
+     * an instance of java.io.File.
+     * @param {helma.File|java.io.File} f Either a file object or
+     * the path to a file as string
+     * @return The argument converted into a file object
+     * @type java.io.File
+     * @private
      */
     var evalFile = function(f) {
-        if (f instanceof java.io.File)
-            return f;
         var result;
-        if (typeof f == "string")
+        if (f instanceof java.io.File) {
+            result = f;
+        } else if (f instanceof helma.File || typeof(f) == "string") {
             result = new java.io.File(f);
-        else
-            result = new java.io.File(f.getAbsolutePath());
-        if (!result.exists())
-            throw("Error creating Zip Object: File '" + f + "' doesn't exist.");
+        }
+        if (!result.exists()) {
+            throw "Error creating Zip Object: File '" + f + "' doesn't exist.";
+        }
         return result;
     };
     
     /**
-     * returns an array containing the entries of a .zip file as objects
-     * (see Entry for description)
-     * @param Object File object representing the .zip file on disk
-     * @return Object result object
+     * Returns an array containing the entries of the archive
+     * represented by this helma.Zip instance.
+     * @returns The entries stored in the zip archive
+     * @type helma.Zip.Content
      */
     this.list = function() {
         var result = new helma.Zip.Content();
         var zFile = new java.util.zip.ZipFile(file);
         var entries = zFile.entries();
-        while (entries.hasMoreElements())
+        while (entries.hasMoreElements()) {
             result.add(new helma.Zip.Entry(entries.nextElement()));
+        }
         zFile.close();
         return result;
     };
 
     /**
-     * extracts a single file from a .zip archive
-     * if a destination path is given it directly writes
-     * the extracted file to disk
-     * @param Object File object representing the .zip file on disk
-     * @param String Name of the file to extract
-     * @param String (optional) destination path to write file to
-     * @return Object JS Object (see Entry for description)
+     * Extracts a single file from the zip archive represented
+     * by this helma.Zip instance. If a destination path is given it
+     * writes the extracted data directly to disk using the
+     * name of the zip entry, otherwise the resulting entry object
+     * contains the extracted data in the property <code>data</code>.
+     * @param {String} name The name of the file to extract
+     * @param {String} destPath An optional destination path where
+     * the extracted file should be stored.
+     * @returns An object containing the entry's properties
+     * @type helma.Zip.Entry
+     * @see helma.Zip.Entry
      */
     this.extract = function(name, destPath) {
         var zFile = new java.util.zip.ZipFile(file);
@@ -165,13 +190,17 @@ helma.Zip = function (file) {
     };
 
     /**
-     * extracts all files in a .zip archive
-     * if a destination path is given it directly writes
-     * the extracted files to disk (preserves directory structure
-     * of .zip archive if existing!)
-     * @param String (optional) destination path to write file to
-     * @return Object Array containing JS objects for each entry
-     *                     (see Entry for description)
+     * Extracts all files within the zip archive represented by
+     * this helma.Zip instance. If a destination path is given it
+     * stores the files directly on disk, while preserving any directory
+     * structure within the archive. If no destination path is given,
+     * the resulting entry objects will contain the extracted data
+     * in their property <code>data</code>.
+     * @param {String} destPath An optional destination path where the
+     * files in the zip archive should be stored.
+     * @returns An object containing the extracted entries.
+     * @type helma.Zip.Content
+     * @see helma.Zip.Entry
      */
     this.extractAll = function(destPath) {
         var result = new helma.Zip.Content();
@@ -188,15 +217,14 @@ helma.Zip = function (file) {
     };
 
     /**
-     * adds a single file or a whole directory (recursive!) to the .zip archive
-     * @param either
-     *          - (Object) a File object
-     *          - (Object) an instance of java.io.File
-     *          - (String) the path to the file that should be added
-     * @param Int Level to use for compression (default: 9 = best compression)
-     * @param String name of the directory in the archive into which the
-     *                    file should be added (optional)
-     * @return Boolean true
+     * Adds a single file or a whole directory (recursive!) to the zip archive
+     * @param {helma.File|java.io.File|String} f Either a file object
+     * or the path to a file or directory on disk that should be added to the
+     * archive. If the argument represents a directory, its contents will be added
+     * <em>recursively</em> to the archive.
+     * @param {Number} level An optional compression level to use. The argument 
+     * must be between zero and 9 (default: 9 = best compression).
+     * @param {String} pathPrefix An optional path prefix to use within the archive.
      */
     this.add = function (f, level, pathPrefix) {
         var f = evalFile(f);
@@ -228,34 +256,39 @@ helma.Zip = function (file) {
                     addFile(zOutStream, fAdd, level, p);
                 }
             }
-        } else
+        } else {
             addFile(zOutStream, f, level, pathPrefix);
-        return true;
+        }
+        return;
     };
 
     /**
-     * adds a new entry to the zip file
-     * @param Object byte[] containing the data to add
-     * @param String name of the file to add
-     * @param Int compression level (0-9, default: 9)
-     * @return Boolean true
+     * Adds a new entry to the zip file.
+     * @param {ByteArray} buf A byte array containing the data to add
+     * to the archive.
+     * @param {String} name The name of the file to add, containing
+     * an optional path prefix
+     * @param {Number} level The compression level to use (0-9, defaults to 9).
      */
     this.addData = function(buf, name, level) {
         var entry = new java.util.zip.ZipEntry(name);
         entry.setSize(buf.length);
         entry.setTime(new Date());
-        if (level == null || isNaN(level))
+        if (level == null || isNaN(level)) {
             zOutStream.setLevel(9);
-        else
+        } else {
             zOutStream.setLevel(Math.max(0, Math.min(9, parseInt(level, 10))));
+        }
         zOutStream.putNextEntry(entry);
         zOutStream.write(buf, 0, buf.length);
         zOutStream.closeEntry();
-        return true;
+        return;
     };
 
     /**
-     * closes the ZipOutputStream
+     * Closes the zip archive. This method should be called when
+     * all operations have been finished, to ensure that no open
+     * file handles are left.
      */
     this.close = function() {
         zOutStream.close();
@@ -263,17 +296,18 @@ helma.Zip = function (file) {
     };
 
     /**
-     * returns the binary data of the zip file
-     * @return Object ByteArray containing the binary data of the zip file
+     * Returns the binary data of the zip archive.
+     * @returns A ByteArray containing the binary data of the zip archive
+     * @type ByteArray
      */
     this.getData = function() {
         return bOutStream.toByteArray();
      };
     
     /**
-     * saves the archive by closing the output stream
-     * @param String path (including the name) to save the zip file to
-     * @return Boolean true
+     * Saves the archive.
+     * @param {String} dest The full destination path including the name
+     * where the zip archive should be saved.
      */
     this.save = function(dest) {
         if (!dest)
@@ -287,14 +321,16 @@ helma.Zip = function (file) {
         } finally {
             outStream.close();
         }
-        return true;
+        return;
     };
 
+    /** @ignore */
     this.toString = function() {
-        if (file)
-            return "[Zip Object " + file.getAbsolutePath() + "]";
-        else
-            return "[Zip Object]";
+        if (file) {
+            return "[helma.Zip " + file.getAbsolutePath() + "]";
+        } else {
+            return "[helma.Zip]";
+        }
     };
 
     /**
@@ -313,30 +349,45 @@ helma.Zip = function (file) {
 }
 
 /**
- * constructor for Content Objects
+ * Creates a new helma.Zip.Content instance
+ * @class Instances of this class represent the content
+ * of a zip archive.
+ * @constructor
+ * @returns A newly created instance of helma.Zip.Content
  */
 helma.Zip.Content = function() {
+    /**
+     * The table of contents of the archive
+     * @type Array
+     */
     this.toc = [];
+
+    /**
+     * The files contained in the zip archive, where
+     * each directory level is a separate object containing
+     * the entries (files and directories) as properties.
+     */
     this.files = {};
 
     /**
-     * adds a Zip Entry object to the table of contents
+     * Adds a zip entry object to the table of contents
      * and the files collection
-     * @param Object instance of helma.Zip.Entry
+     * @param {helma.Zip.Entry} entry The entry to add to the
+     * zip archive
      */
     this.add = function(entry) {
         // add the file to the table of contents array
-        this.toc.push(entry);
+        this.toc[this.toc.length] = entry;
         // plus add it to the files tree
-        var re = /[\\\/]/;
-        var arr = entry.name.split(re);
+        var arr = entry.name.split(/[\\\/]/);
         var cnt = 0;
         var curr = this.files;
         var propName;
         while (cnt < arr.length-1) {
             propName = arr[cnt++];
-            if (!curr[propName])
-                curr[propName] = new Object();
+            if (!curr[propName]) {
+                curr[propName] = {};
+            }
             curr = curr[propName];
         }
         curr[arr[cnt]] = entry;
@@ -350,32 +401,70 @@ helma.Zip.Content = function() {
 };
 
 
+/** @ignore */
+helma.Zip.Content.prototype.toString = function() {
+    return "[helma.Zip.Content]";
+}
+
+
 /**
- * constructor for Entry objects holding the meta-data of a zip entry:
- *     .name (String) name of the entry
- *     .size (Int) decompressed size of the entry in bytes
- *     .time (Date) last modification timestamp of the entry or null
- *     .isDirectory (Boolean) true in case entry is a directory, false otherwise
- *     .data (ByteArray) ByteArray containing the data of the entry
- * @param Object java.util.zip.ZipEntry Object
+ * Creates a new instance of helma.Zip.Entry
+ * @class Instances of this class represent a single zip archive entry,
+ * containing the (meta)data of the entry.
+ * @param {java.util.zip.ZipEntry} entry The zip entry object whose metadata
+ * should be stored in this instance
+ * @constructor
+ * @returns A newly created helma.Zip.Entry instance.
  */
 helma.Zip.Entry = function(entry) {
+    /**
+     * The name of the zip archive entry
+     * @type String
+     */
     this.name = entry.getName();
+
+    /**
+     * The size of the entry in bytes
+     * @type Number
+     */
     this.size = entry.getSize();
+
+    /**
+     * The file date of the entry
+     * @type Date
+     */
     this.time = entry.getTime() ? new Date(entry.getTime()) : null;
+
+    /**
+     * True if the entry is a directory, false otherwise
+     * @type Boolean
+     */
     this.isDirectory = entry.isDirectory();
+
+    /**
+     * The data of the zip entry
+     * @type ByteArray 
+     */
     this.data = null;
+
     for (var i in this)
         this.dontEnum(i);
     return this;
 };
 
 
+/** @ignore */
+helma.Zip.Entry.prototype.toString = function() {
+    return "[helma.Zip.Entry]";
+}
+
+
 /**
- * extract all files in a ByteArray passed as argument
- * and return them as result Array
- * @param Object ByteArray containing the data of the .zip File
- * @return Object instance of helma.Zip.Content
+ * Extracts all files in the zip archive data passed as argument
+ * and returns them.
+ * @param {ByteArray} zipData A ByteArray containing the data of the zip archive
+ * @returns The entries of the zip archive
+ * @type helma.Zip.Content
  */
 helma.Zip.extractData = function(zipData) {
     var zInStream = new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(zipData));
