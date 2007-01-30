@@ -550,12 +550,15 @@ public final class Application implements Runnable {
         try {
             return (RequestEvaluator) freeThreads.pop();
         } catch (EmptyStackException nothreads) {
-            int maxThreads = 12;
+            int maxThreads = 50;
 
-            try {
-                maxThreads = Integer.parseInt(props.getProperty("maxThreads"));
-            } catch (Exception ignore) {
-                // property not set, use default value
+            String maxThreadsProp = props.getProperty("maxThreads");
+            if (maxThreadsProp != null) {
+                try {
+                    maxThreads = Integer.parseInt(maxThreadsProp);
+                } catch (Exception ignore) {
+                    logEvent("Couldn't parse maxThreads property: " + maxThreadsProp);
+                }
             }
 
             synchronized (this) {
@@ -628,10 +631,7 @@ public final class Application implements Runnable {
                 for (int i = 0; i < toBeDestroyed; i++) {
                     try {
                         RequestEvaluator re = (RequestEvaluator) freeThreads.pop();
-
                         allThreads.removeElement(re);
-
-                        // typemgr.unregisterRequestEvaluator (re);
                         re.stopTransactor();
                     } catch (EmptyStackException empty) {
                         return false;
