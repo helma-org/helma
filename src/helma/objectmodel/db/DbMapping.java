@@ -120,9 +120,6 @@ public final class DbMapping {
     // Set of mappings that depend on us and should be forwarded last data change events
     HashSet dependentMappings = new HashSet();
 
-    // flag that tells us whether this maps to a relational db
-    private boolean relational = false;
-
     /**
      * Create an empty DbMapping
      */
@@ -245,13 +242,9 @@ public final class DbMapping {
                     dbSourceName = null;
                     dbSource = null;
                 }
-                // set/update relational flag
-                relational = dbSourceName != null || parentMapping.isRelational();
             }
         } else {
             parentMapping = null;
-            // set/update relational flag
-            relational = dbSourceName != null;
         }
 
         if (inheritsStorage() && getPrototypeField() == null) {
@@ -924,7 +917,7 @@ public final class DbMapping {
      *  not what we want.
      */
     public boolean isRelational() {
-        return relational;
+        return dbSourceName != null || (parentMapping != null && parentMapping.isRelational());
     }
 
     /**
@@ -1396,7 +1389,7 @@ public final class DbMapping {
         // note: tableName and dbSourceName are nulled out in update() if they
         // are inherited from the parent mapping. This way we know that
         // storage is not inherited if either of them is not null.
-        return relational && parentMapping != null
+        return isRelational() && parentMapping != null
                 && tableName == null && dbSourceName == null;
     }
 
