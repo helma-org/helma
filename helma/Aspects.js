@@ -10,8 +10,8 @@
  *
  * $RCSfile: Aspects.js,v $
  * $Author: czv $
- * $Revision: 1.2 $
- * $Date: 2006/04/24 07:02:17 $
+ * $Revision: 1.3 $
+ * $Date: 2007/02/07 10:27:37 $
  */
 
 
@@ -41,11 +41,13 @@ helma.Aspects = function() {
 };
 
 
+/** @ignore */
 helma.Aspects.toString = function() {
    return "[helma.Aspects]";
 };
 
 
+/** @ignore */
 helma.Aspects.prototype.toString = function() {
    return "[helma.Aspects Object]";
 };
