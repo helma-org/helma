@@ -9,11 +9,17 @@
  * Copyright 1998-2007 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Mail.js,v $
- * $Author: hannes $
- * $Revision: 1.4 $
- * $Date: 2006/11/27 12:47:04 $
+ * $Author: czv $
+ * $Revision: 1.5 $
+ * $Date: 2007/02/07 11:51:47 $
  */
 
+/**
+ * @fileoverview Fields and methods of the helma.Mail class.
+ */
+
+// take care of any dependencies
+app.addRepository('modules/helma/File.js');
 
 /**
  * Define the global namespace if not existing
@@ -25,6 +31,8 @@ if (!global.helma) {
 /**
  * Mail client enabling you to send e-mail via SMTP using Packages.javax.mail.
  * <br /><br />
+ * @class This class provides functionality to sending
+ * Email messages. 
  * A mail client object is created by using the helma.Mail() 
  * constructor. The mail object then can be manipulated and sent 
  * using the methods listed below.
@@ -44,6 +52,7 @@ if (!global.helma) {
  * @constructor
  */
 helma.Mail = function(smtp) {
+    // Error code values for this.status
     var OK          =  0;
     var SUBJECT     = 10;
     var TEXT        = 11;
@@ -66,6 +75,9 @@ helma.Mail = function(smtp) {
     var FileDataSource      = Packages.javax.activation.FileDataSource;
     var DataHandler         = Packages.javax.activation.DataHandler;
 
+    var MimePart            = Packages.helma.util.MimePart;
+    var MimePartDataSource  = Packages.helma.util.MimePartDataSource;
+
     var Address             = MAILPKG.Address;
     var BodyPart            = MAILPKG.BodyPart;
     var Message             = MAILPKG.Message;
@@ -74,14 +86,12 @@ helma.Mail = function(smtp) {
     var Transport           = MAILPKG.Transport;
     var InternetAddress     = MAILPKG.internet.InternetAddress;
     var AddressException    = MAILPKG.internet.AddressException;
-    var MimePart            = MAILPKG.internet.MimePart;
     var MimeBodyPart        = MAILPKG.internet.MimeBodyPart;
     var MimeMessage         = MAILPKG.internet.MimeMessage;
     var MimeUtility         = MAILPKG.internet.MimeUtility;
     var MimeMultipart       = MAILPKG.internet.MimeMultipart;
-    var MimePartDataSource  = MAILPKG.internet.MimePartDataSource;
 
-    var buffer, multipart;
+    var buffer, multipart, multipartType = "mixed";
 
     var props = new Properties();
     System.setProperty(
@@ -123,7 +133,9 @@ helma.Mail = function(smtp) {
     };
 
     /**
-     * The status of this Mail object.
+     * The status of this Mail object. This equals <code>0</code> unless
+     * an error occurred. See  {@link helma.Mail Mail.js} source code for a list of
+     * possible error codes.
      */
     this.status = OK;
     
@@ -133,11 +145,7 @@ helma.Mail = function(smtp) {
      * The first argument specifies the receipient's 
      * e-mail address. The optional second argument 
      * specifies the name of the recipient.
-     * <br /><br />
-     * Example:
-     * <pre>var mail = new helma.Mail();
-     * mail.setFrom("tobi@helma.at", "Tobi Schaefer");</pre>
-     * 
+     *
      * @param {String} addstr as String, sender email address
      * @param {String} name as String, optional sender name
      */
@@ -162,11 +170,7 @@ helma.Mail = function(smtp) {
     
     /**
      * Sets the Reply-To address of an e-mail message.
-     * <br /><br />
-     * Example:
-     * <pre>var mail = new helma.Mail();
-     * mail.setReplyTo("tobi@helma.at");</pre>
-     * 
+     *
      * @param {String} addstr as String, the reply-to email address
      */
     this.setReplyTo = function(addstr) {
@@ -189,11 +193,7 @@ helma.Mail = function(smtp) {
      * The first argument specifies the receipient's 
      * e-mail address. The optional second argument 
      * specifies the name of the recipient.
-     * <br /><br />
-     * Example:
-     * <pre>var mail = new helma.Mail();
-     * mail.setTo("hop@helma.at");</pre>
-     * 
+     *
      * @param {String} addstr as String, receipients email address
      * @param {String} name as String, optional receipients name
      * @see #addTo
@@ -214,13 +214,7 @@ helma.Mail = function(smtp) {
      * The first argument specifies the receipient's 
      * e-mail address. The optional second argument 
      * specifies the name of the recipient.
-     * <br /><br />
-     * Example:
-     * <pre>var mail = new helma.Mail();
-     * mail.setTo("hop@helma.at");
-     * mail.addTo("hopdoc@helma.at");
-     * mail.addTo("tobi@helma.at", "Tobi Schaefer");</pre>
-     * 
+     *
      * @param {String} addstr as String, receipients email address
      * @param {String} name as String, optional receipients name
      * @see setTo
@@ -251,12 +245,7 @@ helma.Mail = function(smtp) {
      * The first argument specifies the receipient's 
      * e-mail address. The optional second argument 
      * specifies the name of the recipient.
-     * <br /><br />
-     * Example:
-     * <pre>var mail = new helma.Mail();
-     * mail.addBCC("hop@helma.at");
-     * mail.addBCC("tobi@helma.at", "Tobi Schaefer");</pre>
-     * 
+     *
      * @param {String} addstr as String, receipients email address
      * @param {String} name as String, optional receipients name
      */
@@ -272,11 +261,7 @@ helma.Mail = function(smtp) {
 
     /**
      * Sets the subject of an e-mail message.
-     * <br /><br />
-     * Example:
-     * <pre>var mail = new helma.Mail();
-     * mail.setSubject("Hello, World!");</pre>
-     * 
+     *
      * @param {String} subject as String, the email subject
      */
     this.setSubject = function(subject) {
@@ -294,10 +279,6 @@ helma.Mail = function(smtp) {
 
     /**
      * Sets the body text of an e-mail message.
-     * <br /><br />
-     * Example:
-     * <pre>var mail = new helma.Mail();
-     * mail.setText("Hello, World!");</pre>
      * 
      * @param {String} text as String, to be appended to the message body
      * @see #addText
@@ -311,11 +292,7 @@ helma.Mail = function(smtp) {
 
     /**
      * Appends a string to the body text of an e-mail message.
-     * <br /><br />
-     * Example:
-     * <pre>var mail = new Mail();
-     * mail.addText("Hello, World!");</pre>
-     * 
+     *
      * @param {String} text as String, to be appended to the message body
      * @see #setText
      */
@@ -329,35 +306,46 @@ helma.Mail = function(smtp) {
     };
 
     /**
+     * Sets the MIME multiparte message subtype. The default value is
+     * "mixed" for messages of type multipart/mixed. A common value
+     * is "alternative" for the multipart/alternative MIME type.
+     * @param {String} messageType the MIME subtype such as "mixed" or "alternative".
+     * @see #setMultipartType
+     * @see #addPart
+     */
+    this.setMultipartType = function(messageType) {
+        multipartType = messageType;
+    }
+
+    /**
+     * Returns the MIME multiparte message subtype. The default value is
+     * "mixed" for messages of type multipart/mixed.
+     * @return the MIME subtype
+     * @type String
+     * @see #getMultipartType
+     * @see #addPart
+     */
+    this.getMultipartType = function(messageType) {
+        return multipartType;
+    }
+
+    /**
      * Adds an attachment to an e-mail message.
      * <br /><br />
-     * The attachment needs to be either a MIME Object or a java.io.file object.
+     * The attachment needs to be either a helma.util.MimePart Object retrieved
+     * through the global getURL function, or a {@link helma.File} object, or a String.
      * <br /><br />
-     * Use the getURL() function to retrieve a MIME object or wrap a 
-     * java.io.File object around a file of the local file system.
-     * <br /><br />
-     * Example:
-     * <pre>var file1 = getURL("http://localhost:8080/static/image.gif");
-     * var file2 = getURL("file:////home/snoopy/woodstock.jpg");
-     * var file3 = new java.io.File("/home/snoopy/woodstock.jpg");
-     * var mail = new Mail();
-     * mail.addPart(file1);
-     * mail.addPart(file2);
-     * mail.addPart(file3);
-     * &nbsp;
-     * mail.setFrom("snoopy@doghouse.com");
-     * mail.setTo("woodstock@birdcage.com");
-     * mail.setSubject("Look at this!");
-     * mail.addText("I took a photograph from you. Neat, isn't it? -Snoop");
-     * mail.send();</pre>
-     * 
-     * @param {fileOrMimeObject} File or Mime object to attach to the email
-     * @param {String} nameString as String, optional name of the attachment
+     * Use the getURL() function to retrieve a MIME object or wrap a
+     * helma.File object around a file of the local file system.
+     *
+     * @param {fileOrMimeObjectOrString} obj File, Mime object or String to attach to the email
+     * @param {String} filename optional name of the attachment
+     * @param {String} contentType optional content type (only if first argument is a string)
      * @see global.getUrl
-     * @see mimePart
-     * @see java.io.File
+     * @see helma.util.MimePart
+     * @see helma.File
      */
-    this.addPart = function(obj, filename) {
+    this.addPart = function(obj, filename, contentType) {
         try {
             if (obj == null) {
                 throw new IOException(
@@ -365,7 +353,7 @@ helma.Mail = function(smtp) {
                 );
             }
             if (multipart == null) {
-                multipart = new MimeMultipart();
+                multipart = new MimeMultipart(multipartType);
             }
             if (obj instanceof Wrapper) {
                 obj = obj.unwrap();
@@ -378,10 +366,8 @@ helma.Mail = function(smtp) {
             } else {
                 part = new MimeBodyPart();
                 if (typeof obj == "string") {
-                    part.setContent(obj.toString(), "text/plain");
-                } else if (obj instanceof File) {
-                    // FIXME: the following line did not work under windows:
-                    //var source = new FileDataSource(obj);
+                    part.setContent(obj.toString(), contentType || "text/plain");
+                } else if (obj instanceof File || obj instanceof helma.File) {
                     var source = new FileDataSource(obj.getPath());
                     part.setDataHandler(new DataHandler(source));
                 } else if (obj instanceof MimePart) {
@@ -393,7 +379,7 @@ helma.Mail = function(smtp) {
                 try {
                     part.setFileName(filename.toString());
                 } catch (x) {}
-            } else if (obj instanceof File) {
+            } else if (obj instanceof File || obj instanceof helma.File) {
                 try {
                     part.setFileName(obj.getName());
                 } catch (x) {}
@@ -409,24 +395,14 @@ helma.Mail = function(smtp) {
     /**
      * Sends an e-mail message.
      * <br /><br />
-     * This function sends the message using the SMTP 
-     * server as specified when the Mail object was 
+     * This function sends the message using the SMTP
+     * server as specified when the Mail object was
      * constructed using helma.Mail.
      * <br /><br />
      * If no smtp hostname was specified when the Mail
-     * object was constructed, the smtp property in either  
-     * the app.properties or server.properties file needs 
+     * object was constructed, the smtp property in either
+     * the app.properties or server.properties file needs
      * to be set in order for this to work.
-     * <br /><br />
-     * Example:
-     * <pre>var mail = new helma.Mail('smtp.example.com');
-     * mail.setTo("watching@michi.tv", "michi");
-     * mail.addCC("franzi@home.at", "franzi");
-     * mail.addBCC("monie@home.at");
-     * mail.setFrom("chef@frischfleisch.at", "Hannes");
-     * mail.setSubject("Registration Conformation");
-     * mail.addText("Thanks for your Registration...");
-     * mail.send();</pre>
      */
     this.send = function() {
         if (this.status > OK) {
@@ -474,7 +450,6 @@ helma.Mail.toString = function() {
 helma.Mail.prototype.toString = function() {
     return "[helma.Mail Object]";
 };
-
 
 helma.Mail.example = function(smtp, sender, addr, subject, text) {
     // var smtp = "smtp.host.dom";
