@@ -17,9 +17,9 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //
-// $Revision: 1.8 $
+// $Revision: 1.9 $
 // $Author: robert $
-// $Date: 2007/01/30 14:56:51 $
+// $Date: 2007/01/30 17:32:17 $
 //
 
 
@@ -760,14 +760,6 @@ helma.Search.HitCollection = function(hits) {
     this.size = function() {
         return (hits != null) ? hits.length() : 0;
     };
-
-    /**
-     * Returns the number of hits in this collection
-     * @returns The number of hits.
-     * @type Number
-     * @deprecated
-     * @see #size
-     */
 
     return this;
 };
