@@ -6,19 +6,40 @@
  * compliance with the License. A copy of the License is available at
  * http://adele.helma.org/download/helma/license.txt
  *
- * Copyright 1998-2006 Helma Software. All Rights Reserved.
+ * Copyright 1998-2007 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Ftp.js,v $
- * $Author: czv $
- * $Revision: 1.2 $
- * $Date: 2006/04/24 07:02:17 $
+ * $Author: hannes $
+ * $Revision: 1.3 $
+ * $Date: 2006/07/25 13:01:02 $
  */
 
 
+/**
+ * @fileoverview Default properties and methods of  
+ * the FtpClient prototype.
+ */
+
+
+/**
+ * Define the global namespace if not existing
+ */
 if (!global.helma) {
     global.helma = {};
 }
 
+/**
+ * Constructor for FTP client objects, to send and receive files from an FTP server.
+ * <br /><br />
+ * @class This class represents a FTP client, providing 
+ * access to an FTP server.
+ * The FTP client needs Daniel Savarese's NetComponents 
+ * library in the classpath in order to work.
+ * 
+ * @example var ftp = new FtpClient("ftp.mydomain.com");
+ * @param {String} server as String, the address of the FTP Server to connect to
+ * @constructor
+ */
 helma.Ftp = function(server) {
    var OK      =  0;
    var SOCKET  =  1;
@@ -80,11 +101,15 @@ helma.Ftp = function(server) {
 
    this.server = server;
    this.status = OK;
-
+   
+   /** @ignore */
    this.toString = function() {
       return "[helma.Ftp " + server + "]";
    };
 
+   /**
+    * Set the default timeout in milliseconds to use when opening a socket.
+    */
    this.setReadTimeout = function(timeout) {
       try {
          ftpclient.setDefaultTimeout(timeout);
@@ -97,6 +122,9 @@ helma.Ftp = function(server) {
       return false;
    };
 
+   /**
+    * Sets the timeout in milliseconds to use when reading from the data connection.
+    */
    this.setTimeout = function(timeout) {
       try {
          ftpclient.setDataTimeout(timeout);
@@ -109,6 +137,14 @@ helma.Ftp = function(server) {
       return false;
    };
 
+   /**
+    * Logs in to the FTP server.
+    * 
+    * @param {String} username as String
+    * @param {String} password as String
+    * @return Boolean true if the login was successful, otherwise false
+    * @type Boolean
+    */
    this.login = function(username, password) {
       try {
          ftpclient.connect(this.server);
@@ -122,6 +158,11 @@ helma.Ftp = function(server) {
       return false;
    };
 
+   /**
+    * Sets transfer mode to binary for transmitting images and other non-text files.
+    * 
+    * @example ftp.binary();
+    */
    this.binary = function() {
       try {
          var result = ftpclient.setFileType(FTP.BINARY_FILE_TYPE);
@@ -134,6 +175,11 @@ helma.Ftp = function(server) {
       return false;
    };
 
+   /**
+    * Sets transfer mode to ascii for transmitting text-based data.
+    * 
+    * @example ftp.ascii();
+    */
    this.ascii = function() {
       try {
          var result = ftpclient.setFileType(FTP.ASCII_FILE_TYPE);
@@ -146,6 +192,11 @@ helma.Ftp = function(server) {
       return false;
    };
 
+   /**
+    * Switches the connection to use active mode.
+    * 
+    * @example ftp.active();
+    */
    this.active = function() {
       try {
          ftpclient.enterLocalActiveMode();
@@ -158,6 +209,11 @@ helma.Ftp = function(server) {
       return false;
    };
 
+   /**
+    * Switches the connection to use passive mode.
+    * 
+    * @example ftp.passive();
+    */
    this.passive = function() {
       try {
          ftpclient.enterLocalPassiveMode();
@@ -170,6 +226,13 @@ helma.Ftp = function(server) {
       return false;
    };
 
+   /**
+    * Returns the path of the current working directory.
+    * 
+    * @example var remotepath = ftp.pwd();
+    * @type String
+    * @return String containing the current working directory path
+    */
    this.pwd = function() {
       try {
          debug("pwd");
@@ -181,6 +244,18 @@ helma.Ftp = function(server) {
       return;
    };
 
+   /**
+    * Returns a listing of the files contained in a directory on the FTP server.
+    * <br /><br />
+    * Lists the files contained in the current working 
+    * directory or, if an alternative path is specified, the
+    * files contained in the specified directory.
+    * 
+    * @example var filelist = ftp.dir();
+    * @param {String} path as String, optional alternative directory
+    * @return Array containing the list of files in that directory
+    * @type Array
+    */
    this.dir = function(path) {
       try {
          debug("dir", path);
@@ -192,6 +267,18 @@ helma.Ftp = function(server) {
       return;
    };
 
+   /**
+    * Creates a new directory on the server.
+    * <br /><br />
+    * The name of the directory is determined as the function's 
+    * string parameter. Returns false when an error occured 
+    * (e.g. due to access restrictions, directory already 
+    * exists etc.), otherwise true.
+    * 
+    * @param {String} dir as String, the name of the directory to be created
+    * @return Boolean true if the directory was successfully created, false if there was an error
+    * @type Boolean
+    */
    this.mkdir = function(dir) {
       try {
          var result = ftpclient.makeDirectory(dir);
@@ -204,6 +291,13 @@ helma.Ftp = function(server) {
       return false;
    };
 
+   /**
+    * Deletes a directory on the FTP server.
+    * 
+    * @param {String} dir as String, the name of the directory to be deleted
+    * @return Boolean true if the deletion was successful, false otherwise
+    * @type Boolean
+    */
    this.rmdir = function(dir) {
       try {
          var result = ftpclient.removeDirectory(dir);
@@ -216,6 +310,14 @@ helma.Ftp = function(server) {
       return false;
    };
 
+   /**
+    * Changes the working directory on the FTP server.
+    * 
+    * @example ftp.cd("/home/users/fred/www"); // use absolute pathname
+    * @example ftp.cd(".."); // change to parent directory
+    * @example ftp.cd("images"); // use relative pathname
+    * @param {String} dir as String, the path that the remote working directory should be changed to
+    */
    this.cd = function(path) {
       try {
          var result = ftpclient.changeWorkingDirectory(path);
@@ -228,6 +330,14 @@ helma.Ftp = function(server) {
       return false;
    };
 
+   /**
+    * Changes the working directory of the local machine when being connected to an FTP server.
+    * 
+    * @example ftp.lcd("/home/users/fred/www"); // use absolute pathname
+    * @example ftp.lcd(".."); // change to parent directory
+    * @example ftp.lcd("images"); // use relative pathname
+    * @param {String} dir as String, the path that the local working directory should be changed to
+    */
    this.lcd = function(dir) {
       try {
          localDir = new File(dir);
@@ -243,6 +353,16 @@ helma.Ftp = function(server) {
       return false;
    };
 
+   /**
+    * Transfers a file from the local file system to the remote server.
+    * <br /><br />
+    * Returns true if the transmission was successful, otherwise false.
+    * 
+    * @param {String} localFile as String, the name of the file to be uploaded
+    * @param {String} remoteFile as String, the name of the remote destination file
+    * @return Boolean true if the file was successfully uploaded, false if there was an error
+    * @type Boolean
+    */
    this.putFile = function(localFile, remoteFile) {
       try {
          if (localFile instanceof File) {
@@ -270,6 +390,16 @@ helma.Ftp = function(server) {
       return false;
    };
 
+   /**
+    * Transfers text from a string to a file on the FTP server.
+    * 
+    * @example ftp.putString("Hello, World!", "message.txt");
+    * @param {String} str as String, the text content that should be uploaded 
+    * @param {String} remoteFile as String, the name of the remote destination file
+    * @param {String} charset as String, optional
+    * @return Boolean true if the file was successfully uploaded, false if there was an error
+    * @type Boolean
+    */
    this.putString = function(str, remoteFile, charset) {
       try {
          str = new java.lang.String(str);
@@ -285,6 +415,15 @@ helma.Ftp = function(server) {
       return false;
    };
 
+   /**
+    * Transfers a file from the FTP server to the local file system.
+    * 
+    * @example ftp.getFile(".htaccess", "htaccess.txt");
+    * @param {String} remoteFile as String, the name of the file that should be downloaded
+    * @param {String} localFile as String, the name which the file should be stored under
+    * @see #cd
+    * @see #lcd
+    */
    this.getFile = function(remoteFile, localFile) {
       try {
          if (localDir == null)
@@ -305,6 +444,15 @@ helma.Ftp = function(server) {
       return false;
    };
 
+   /**
+    * Retrieves a file from the FTP server and returns it as string.
+    * 
+    * @example var str = ftp.getString("messages.txt");
+    * @param {String} remoteFile as String, the name of the file that should be downloaded
+    * @return String containing the data of the downloaded file
+    * @type String
+    * @see #cd
+    */
    this.getString = function(remoteFile) {
       try {
          var stream = ByteArrayOutputStream();
@@ -318,6 +466,14 @@ helma.Ftp = function(server) {
       return;
    };
 
+   /**
+    * Deletes a file on the FTP server.
+    * 
+    * @example var str = ftp.delete("messages.txt");
+    * @param {String} remoteFile as String, the name of the file to be deleted
+    * @return Boolean true if the deletion was successful, false otherwise
+    * @type Boolean
+    */
    this.deleteFile = function(remoteFile) {
       try {
          var result = ftpclient.deleteFile(remoteFile);
@@ -330,6 +486,9 @@ helma.Ftp = function(server) {
       return false;
    };
 
+   /**
+    * Terminates the current FTP session.
+    */
    this.logout = function() {
       try {
          var result = ftpclient.logout();
@@ -350,6 +509,7 @@ helma.Ftp = function(server) {
 }
 
 
+/** @ignore */
 helma.Ftp.toString = function() {
    return "[helma.Ftp]";
 };
