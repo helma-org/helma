@@ -8,28 +8,43 @@
  *
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
- * $RCSfile: helma.Chart.js,v $
+ * $RCSfile: Chart.js,v $
  * $Author: czv $
- * $Revision: 1.6 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
+
+/**
+ * @fileoverview Fields and methods of the helma.Chart prototype
+ */
 
 // take care of any dependencies
 app.addRepository('modules/helma/jxl.jar');
 
-
+/**
+ * Define the global namespace if not existing
+ */
 if (!global.helma) {
     global.helma = {};
 }
 
-//
-// chart package by tobi schaefer
-// needs andy khan's java excel api: download jxl.jar at
-// http://www.andykhan.com/jexcelapi/
-//
-
-
+/**
+ * Creates a new instance of helma.Chart
+ * @class Instances of this class are capable of reading
+ * Excel spreadsheets and rendering them as XHTML table. Internally
+ * helma.Chart uses the <a href="http://www.jexcelapi.org/ ">Java Excel API</a>
+ * by <a href="http://www.andykhan.com/">Andy Khan</a>.
+ * @param {String} fpath The path to the spreadsheet file
+ * @param {String} prefix An optional prefix to use for all
+ * stylesheet classes within the rendered table
+ * @param {String} sheetName The name of the sheet within the
+ * spreadsheet file to render. If this argument is omitted, the
+ * first sheet is rendered.
+ * @returns A newly created helma.Chart instance.
+ * @constructor
+ * @author Tobi Schaefer
+ */
 helma.Chart = function(fpath, prefix, sheetName) {
     var JXLPKG = Packages.jxl.Workbook;
     var JXLPKGNAME = "jxl.jar";
@@ -47,7 +62,7 @@ helma.Chart = function(fpath, prefix, sheetName) {
               "[" + JXLPKGURL + "]");
     }
 
-    function getCellStyle(c) {
+    var getCellStyle = function(c) {
         if (!c)
             return;
         var result = new Object();
@@ -66,15 +81,19 @@ helma.Chart = function(fpath, prefix, sheetName) {
         return result;
     }
 
-    if (sheetName)
+    if (sheetName) {
         var sheet = workbook.getSheet(sheetName);
-    else
+    } else {
         var sheet = workbook.getSheet(0);
+    }
     if (!sheet)
         return;
 
     prefix = prefix ? prefix + "_" : "chart_";
 
+    /**
+     * Renders the Excel spreadsheet as XHTML table.
+     */
     this.render = function() {
         res.write('<table border="0" cellspacing="1" class="' + 
                   prefix + 'table">\n');
@@ -128,12 +147,18 @@ helma.Chart = function(fpath, prefix, sheetName) {
         workbook.close();
     };
 
+    /**
+     * Returns the spreadsheet as rendered XHTML table.
+     * @returns The rendered spreadsheet table
+     * @type String
+     */
     this.renderAsString = function() {
         res.push();
         this.render();
         return res.pop();
     };
 
+    /** @ignore */
     this.toString = function() {
         return "[helma.Chart " + file + "]";
     };
@@ -145,11 +170,17 @@ helma.Chart = function(fpath, prefix, sheetName) {
 }
 
 
+/** @ignore */
 helma.Chart.toString = function() {
     return "[helma.Chart]";
 };
 
 
+/**
+ * A simple example for using helma.Chart that renders
+ * the passed file as XHTML table to response.
+ * @param {String} file The path to the Excel spreadsheet file
+ */
 helma.Chart.example = function(file) {
     // var file = "/path/to/file.xls";
     var chart = new helma.Chart(file);

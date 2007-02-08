@@ -8,54 +8,80 @@
  *
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
- * $RCSfile: helma.Color.js,v $
- * $Author: hannes $
- * $Revision: 1.5 $
- * $Date: 2006/04/18 13:06:58 $
+ * $RCSfile: Color.js,v $
+ * $Author: czv $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
 
+/**
+ * @fileoverview Fields and methods of the helma.Chart prototype
+ */
+
+// take care of any dependencies
+app.addRepository("modules/core/String.js");
+
+/**
+ * Define the global namespace if not existing
+ */
 if (!global.helma) {
     global.helma = {};
 }
 
 /**
- * constructor for a color object
- * @param IntegerOrRgbObject the red fraction or an rgb() object
- * @param Integer the green fraction
- * @param Integer the blue fraction
- * @return the resulting color object
+ * Constructs a new instance of helma.Color.
+ * @class Instances of this class provide methods for
+ * converting HTML color names into their corresponding
+ * RGB values and vice versa, or retrieving single RGB color values.
+ * @param {Number|String} R Either the red fraction of the color,
+ * or the name of the color.
+ * @param {Number} G The green fraction
+ * @param {Number} B The blue fraction
+ * @returns A newly created helma.Color instance
+ * @constructor
  */
 helma.Color = function(R, G, B) {
-    var value = null, name, hex, rgb;
+    var value = null;
+    var name = null;
+    var hex = null;
+    var rgb = null;
 
     /**
-     * return the decimal value of a color object 
-     * @return Integer the decimal value
+     * Returns the decimal value of this color, or of a specified
+     * color channel.
+     * @param {String} channel An optional color channel which
+     * decimal value should be returned. Must be either "red",
+     * "green" or "blue". If no channel is specified this
+     * method returns the decimal value of the color itself.
+     * @returns The decimal value of this color or a single channel.
+     * @type Number
      */
-    this.valueOf = function() {
-    if (arguments.length > 0) {
-        if (!rgb) {
-            var compose = function(n, bits) {
-                var div = Math.pow(2, bits);
-                    remainder = n % div;          
-                    return Math.floor(n/div);
+    this.valueOf = function(channel) {
+        if (channel) {
+            if (!rgb) {
+                var compose = function(n, bits) {
+                    var div = Math.pow(2, bits);
+                        remainder = n % div;          
+                        return Math.floor(n/div);
                 }
                 var remainder = value;
                 rgb = {
                     red: compose(remainder, 16),
                     green: compose(remainder, 8),
                     blue: compose(remainder, 0)
-                }
+                };
             }
-            return rgb[arguments[0]];
+            return rgb[channel];
         }
         return value;
     };
 
     /**
-     * return the hexidecimal value of a color object
-     * @return String the hexidecimal value
+     * Returns the hexidecimal value of this color (without
+     * a leading hash sign).
+     * @returns The hexidecimal value of this color
+     * @type String
      */
     this.toString = function() {
         if (!value)
@@ -65,36 +91,43 @@ helma.Color = function(R, G, B) {
         return hex;
     };
 
+
     /**
-     * return the trivial name of this color
-     * @return String the trivial name
+     * Returns the trivial name of this color
+     * @returns The trivial name of this color
+     * @type String
      */
     this.getName = function() {
         return helma.Color.COLORVALUES[value];
     };
 
-    // the main code
+    /**
+     * Main constructor body
+     */
     if (arguments.length % 2 == 0)
         throw("Insufficient arguments for creating Color");
     if (arguments.length == 1) {
-      if (R.constructor == Number) {
+        if (R.constructor == Number) {
             value = R;
         } else if (R.constructor == String) {
             R = R.toLowerCase();
             if (helma.Color.COLORNAMES[R]) {
                 this.name = R;
-                R = helma.Color.COLORNAMES[R];
-            } else if (helma.Color.COLORVALUES[R]) {
-                this.name = helma.Color.COLORVALUES[R];
-            } else if (R.startsWith("#"))
-                R = R.substring(1);
-            value = parseInt(R, 16);
+                value = helma.Color.COLORNAMES[R];
+            } else {
+                if (R.startsWith("#")) {
+                    R = R.substring(1);
+                }
+                value = parseInt(R, 16);
+                this.name = helma.Color.COLORVALUES[value];
+            }
         }
-    } else
+    } else {
         value = R * Math.pow(2, 16) + G * Math.pow(2, 8) + B;
+    }
 
     if (value == null || isNaN(value))
-        throw("Cannot create Color from " + R);
+        throw("helma.Color: invalid argument " + R);
 
     for (var i in this)
         this.dontEnum(i);
@@ -104,30 +137,28 @@ helma.Color = function(R, G, B) {
 
 
 /**
- * create a helma.Color from trivial name
- * @param String the color's name (like "darkseagreen")
- * @return helma.Color the resulting color object
+ * Creates a new helma.Color instance based on a color name.
+ * @param {String} name The color name (eg. "darkseagreen")
+ * @returns An instance of helma.Color representing the color specified
+ * @type helma.Color
  */
 helma.Color.fromName = function(name) {
     var value = helma.Color.COLORNAMES[name.toLowerCase()];
-    if (!value)
-        value = 0;
-    return new helma.Color(value);
+    return new helma.Color(value || 0);
 };
 
 
 /**
- * transform a hsl representation of a color
- * to the equivalent decimal value
- * @param Integer the hue fraction
- * @param Integer the saturation fraction
- * @param Integer the lightness fraction
- * @return Object the resulting color object
- *
- * note: this function is adapted from the 
- * HSLtoRGB conversion method as described at
- * http://www1.tip.nl/~t876506/ColorDesign.html#hr
- * (thanks!)
+ * Creates a new helma.Color instance based on a HSL color
+ * representation. This method is adapted from the HSLtoRGB
+ * conversion method as described at
+ * <a href="http://www1.tip.nl/~t876506/ColorDesign.html#hr">http://www1.tip.nl/~t876506/ColorDesign.html#hr</a>.
+ * @param {Number} H The hue fraction of the color definition
+ * @param {Number} S The saturation fraction
+ * @param {Number} L The lightness fraction
+ * @returns An instance of helma.Color representing the corresponding
+ * RGB color definition.
+ * @type helma.Color
  */
 helma.Color.fromHsl = function(H,S,L) {
     function H1(H,S,L) {
@@ -182,7 +213,7 @@ helma.Color.fromHsl = function(H,S,L) {
     else if (H < 5/6) rgb = H5(H,S,L);
     else                  rgb = H6(H,S,L);
 
-    return new Color(
+    return new helma.Color(
         Math.round(rgb[0]*255),
         Math.round(rgb[1]*255),
         Math.round(rgb[2]*255)
@@ -191,7 +222,9 @@ helma.Color.fromHsl = function(H,S,L) {
 
 
 /**
- * object containig the hex values of named colors
+ * Contains the hexadecimal values of named colors.
+ * @type Object
+ * @final
  */
 helma.Color.COLORNAMES = {
     black: 0x000000,
@@ -334,14 +367,18 @@ helma.Color.COLORNAMES = {
 
 
 /**
- * object containig the color names for specific hex values
+ * Contains the color names for specific hex values
+ * @type Object
+ * @final
  */
 helma.Color.COLORVALUES = {};
 
-for (var i in helma.Color.COLORNAMES)
+for (var i in helma.Color.COLORNAMES) {
     helma.Color.COLORVALUES[helma.Color.COLORNAMES[i]] = i;
+}
 
 
+/** @ignore */
 helma.Color.toString = function() {
     return "[helma.Color]";
 };
