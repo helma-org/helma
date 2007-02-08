@@ -38,6 +38,8 @@ public class DbSource {
     private boolean isOracle, isMySQL, isPostgreSQL;
     private long lastRead = 0L;
     private Hashtable dbmappings = new Hashtable();
+    // compute hashcode statically because it's expensive and we need it often
+    private int hashcode;
 
     /**
      * Creates a new DbSource object.
@@ -101,6 +103,8 @@ public class DbSource {
         lastRead = (defaultProps == null) ? props.lastModified()
                                           : Math.max(props.lastModified(),
                                                      defaultProps.lastModified());
+        // use properties hashcode for ourselves
+        hashcode = props.hashCode();
         // get JDBC URL and driver class name
         url = props.getProperty(name + ".url");
         driver = props.getProperty(name + ".driver");
@@ -223,5 +227,19 @@ public class DbSource {
      */
     protected DbMapping getDbMapping(String tablename) {
         return (DbMapping) dbmappings.get(tablename.toUpperCase());
+    }
+
+    /**
+     * Returns a hash code value for the object.
+     */
+    public int hashCode() {
+        return hashcode;
+    }
+
+    /**
+     * Indicates whether some other object is "equal to" this one.
+     */
+    public boolean equals(Object obj) {
+        return obj instanceof DbSource && props.equals(((DbSource) obj).props);
     }
 }
