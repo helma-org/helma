@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Database.js,v $
- * $Author: tobi $
- * $Revision: 1.3 $
- * $Date: 2006/07/18 15:09:36 $
+ * $Author: hannes $
+ * $Revision: 1.4 $
+ * $Date: 2007/02/08 15:33:08 $
  */
 
 /**
@@ -163,7 +163,7 @@ helma.Database = function(source) {
             result[result.length] = row;
         }
         try {
-            statement.clase();
+            statement.close();
             resultSet.close();
         } catch (error) {
             // ignore
