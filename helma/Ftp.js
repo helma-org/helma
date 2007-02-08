@@ -9,9 +9,9 @@
  * Copyright 1998-2007 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Ftp.js,v $
- * $Author: hannes $
- * $Revision: 1.3 $
- * $Date: 2006/07/25 13:01:02 $
+ * $Author: czv $
+ * $Revision: 1.4 $
+ * $Date: 2007/02/08 00:41:30 $
  */
 
 
@@ -20,6 +20,8 @@
  * the FtpClient prototype.
  */
 
+// requires helma.File
+app.addRepository("modules/helma/File.js");
 
 /**
  * Define the global namespace if not existing
@@ -340,7 +342,7 @@ helma.Ftp = function(server) {
     */
    this.lcd = function(dir) {
       try {
-         localDir = new File(dir);
+         localDir = new helma.File(dir);
          if (!localDir.exists()) {
             localDir.mkdir();
             debug("lcd", dir);
@@ -365,13 +367,13 @@ helma.Ftp = function(server) {
     */
    this.putFile = function(localFile, remoteFile) {
       try {
-         if (localFile instanceof File) {
+         if (localFile instanceof File || localFile instanceof helma.File) {
             var f = localFile;
          } else if (typeof localFile == "string") {
             if (localDir == null)
-               var f = new File(localFile);
+               var f = new helma.File(localFile);
             else
-               var f = new File(localDir, localFile);
+               var f = new helma.File(localDir, localFile);
          }
          var stream = new BufferedInputStream(
             new FileInputStream(f.getPath())
@@ -427,9 +429,9 @@ helma.Ftp = function(server) {
    this.getFile = function(remoteFile, localFile) {
       try {
          if (localDir == null)
-            var f = new File(localFile);
+            var f = new helma.File(localFile);
          else
-            var f = new File(localDir, localFile);
+            var f = new helma.File(localDir, localFile);
          var stream = new BufferedOutputStream(
             new FileOutputStream(f.getPath())
          );
