@@ -367,8 +367,8 @@ public class ApplicationManager implements XmlRpcHandler {
                                 .newInstance(new Object[] { repositoryArgs });
                         repositoryList.add(newRepository);
                     } catch (Exception ex) {
-                        System.out.println("Adding repository " + repositoryArgs + " failed. " +
-                                           "Will not use that repository. Check your initArgs!");
+                        server.getLogger().error("Adding repository " + repositoryArgs + " failed. " +
+                                           "Will not use that repository. Check your initArgs!", ex);
                     }
                 } else {
                     // we always scan repositories 0-9, beyond that only if defined
