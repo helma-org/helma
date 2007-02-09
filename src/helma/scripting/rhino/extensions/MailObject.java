@@ -54,6 +54,7 @@ public class MailObject extends ScriptableObject implements Serializable {
 
     MimeMessage message;
     Multipart multipart;
+    String multipartType = "mixed";
     StringBuffer buffer;
     int status;
 
@@ -158,7 +159,7 @@ public class MailObject extends ScriptableObject implements Serializable {
         String[] mailFuncs = {
                 "addBCC", "addCC", "addPart", "addText", "addTo",
                 "send", "setFrom", "setSubject", "setText", "setTo",
-                "setReplyTo" };
+                "setReplyTo", "setMultipartType", "getMultipartType" };
         try {
             proto.defineFunctionProperties(mailFuncs, MailObject.class, 0);
             proto.defineProperty("status", MailObject.class, 0);
@@ -213,6 +214,26 @@ public class MailObject extends ScriptableObject implements Serializable {
     }
 
     /**
+     * Returns the MIME multipart message subtype. The default value is
+  	 * "mixed" for messages of type multipart/mixed. A common value
+  	 * is "alternative" for the multipart/alternative MIME type.
+     * @return the MIME subtype such as "mixed" or "alternative"
+     */
+    public String getMultipartType() {
+        return multipartType;
+    }
+
+    /**
+     * Sets the MIME multipart message subtype. The default value is
+  	 * "mixed" for messages of type multipart/mixed. A common value
+  	 * is "alternative" for the multipart/alternative MIME type.
+     * @param subtype the MIME subtype such as "mixed" or "alternative".
+     */
+    public void setMultipartType(String subtype) {
+        multipartType = subtype;
+    }
+
+    /**
      *  Add a MIME message part to a multipart message
      *
      * @param obj the MIME part object. Supported classes are java.lang.String,
@@ -226,7 +247,7 @@ public class MailObject extends ScriptableObject implements Serializable {
             }
 
             if (multipart == null) {
-                multipart = new MimeMultipart();
+                multipart = new MimeMultipart(multipartType);
             }
 
             MimeBodyPart part = new MimeBodyPart();
