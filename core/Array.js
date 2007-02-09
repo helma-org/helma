@@ -10,15 +10,63 @@
  *
  * $RCSfile: Array.js,v $
  * $Author: czv $
- * $Revision: 1.5 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
+
+/**
+ * @fileoverview Adds useful methods to the JavaScript Array type.
+ * @addon
+ */
+
+/**
+ * Return the first index position of a value
+ * contained in an array, or -1 if it isn't contained.
+ * @param {Object} val the value to check
+ * @return {int} the index of the first occurence of val, or -1
+ */
+Array.prototype.indexOf = function(val) {
+   var i = -1;
+   while (i++ < this.length -1) {
+      if (this[i] == val)
+         return i;
+   }
+   return -1;
+};
 
 
 /**
- * retrieve the union set of a bunch of arrays
- * @param Array (Array2, ...) the arrays to unify
- * @return Array the union set
+ * return the last index position of a value 
+ * contained in an array, or -1 if it isn't contained.
+ * @param {Object} val the value to check
+ * @return {int} the index of the first occurence of val, or -1
+ */
+Array.prototype.lastIndexOf = function(val) {
+   var i = 1;
+   while (this.length - i++ >= 0) {
+      if (this[i] == val)
+         return i;
+   }
+   return -1;
+};
+
+
+/**
+ * check if an array passed as argument contains
+ * a specific value (start from end of array)
+ * @param {Object} val the value to check
+ * @return {boolean} true if the value is contained
+ */
+Array.prototype.contains = function(val) {
+   if (this.indexOf(val) > -1)
+      return true;
+   return false;
+};
+
+/**
+ * Retrieve the union set of a bunch of arrays
+ * @param {Array} array1,... the arrays to unify
+ * @return {Array} the union set
  */
 Array.union = function() {
    var result = [];
@@ -35,11 +83,10 @@ Array.union = function() {
    return result;
 };
 
-
 /**
- * retrieve the intersection set of a bunch of arrays
- * @param Array (Array2, ...) the arrays to intersect
- * @return Array the intersection set
+ * Retrieve the intersection set of a bunch of arrays
+ * @param {Array} array1,... the arrays to intersect
+ * @return {Array} the intersection set
  */
 Array.intersection = function() {
    var all = Array.union.apply(this, arguments);
@@ -58,52 +105,6 @@ Array.intersection = function() {
    }
    return result;
 };
-
-
-/**
- * return the first index position of a value 
- * contained in an array
- * @param Object Array to use for checking
- * @param String|Object the String or Object to check
- */
-Array.prototype.indexOf = function(val) {
-   var i = -1;
-   while (i++ < this.length -1) {
-      if (this[i] == val)
-         return i;
-   }
-   return -1;
-};
-
-
-/**
- * return the last index position of a value 
- * contained in an array
- * @param Object Array to use for checking
- * @param String|Object the String or Object to check
- */
-Array.prototype.lastIndexOf = function(val) {
-   var i = 1;
-   while (this.length - i++ >= 0) {
-      if (this[i] == val)
-         return i;
-   }
-   return -1;
-};
-
-
-/**
- * check if an array passed as argument contains
- * a specific value (start from end of array)
- * @param Object Array to use for checking
- * @param String|Object the String or Object to check
- */
-Array.prototype.contains = function(val) {
-   if (this.indexOf(val) > -1)
-      return true;
-   return false;
-};
-
 
 // prevent any newly added properties from being enumerated
 for (var i in Array)
