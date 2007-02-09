@@ -9,29 +9,14 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Number.js,v $
- * $Author: tobi $
- * $Revision: 1.3 $
- * $Date: 2006/07/18 08:24:59 $
+ * $Author: robert $
+ * $Revision: 1.4 $
+ * $Date: 2006/12/14 17:28:43 $
  */
-
 
 /**
- * factory to create functions for sorting objects in an array
- * @param String name of the field each object is compared with
- * @param Number order (ascending or descending)
- * @return Function ready for use in Array.prototype.sort
+ * @fileoverview Adds useful methods to the JavaScript Number type.
  */
-Number.Sorter = function(field, order) {
-    if (!order)
-        order = 1;
-    return function(a, b) {
-        return (a[field] - b[field]) * order;
-    };
-};
-
-Number.Sorter.ASC = 1;
-Number.Sorter.DESC = -1;
-
 
 /**
  * format a Number to a String
@@ -65,6 +50,24 @@ Number.prototype.toPercent = function(total, fmt, locale) {
     var p = this / (total / 100);
     return p.format(fmt, locale);
 };
+
+
+/**
+ * factory to create functions for sorting objects in an array
+ * @param String name of the field each object is compared with
+ * @param Number order (ascending or descending)
+ * @return Function ready for use in Array.prototype.sort
+ */
+Number.Sorter = function(field, order) {
+    if (!order)
+        order = 1;
+    return function(a, b) {
+        return (a[field] - b[field]) * order;
+    };
+};
+
+Number.Sorter.ASC = 1;
+Number.Sorter.DESC = -1;
 
 
 // prevent any newly added properties from being enumerated

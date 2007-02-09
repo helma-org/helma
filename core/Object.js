@@ -10,10 +10,13 @@
  *
  * $RCSfile: Object.js,v $
  * $Author: czv $
- * $Revision: 1.6 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
+/**
+ * @fileoverview Adds useful methods to the JavaScript Object type.
+ */
 
 /**
  * copy the properties of an object into

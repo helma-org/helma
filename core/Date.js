@@ -9,11 +9,14 @@
  * Copyright 1998-2005 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Date.js,v $
- * $Author: czv $
- * $Revision: 1.2 $
- * $Date: 2006/04/24 07:02:17 $
+ * $Author: stefanp $
+ * $Revision: 1.3 $
+ * $Date: 2006/08/21 15:57:05 $
  */
 
+/**
+ * @fileoverview Adds useful methods to the JavaScript Date type.
+ */
 
 Date.ONESECOND    = 1000;
 Date.ONEMINUTE    = 60 * Date.ONESECOND;

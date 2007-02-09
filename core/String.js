@@ -10,8 +10,8 @@
  *
  * $RCSfile: String.js,v $
  * $Author: tobi $
- * $Revision: 1.3 $
- * $Date: 2006/07/24 16:03:57 $
+ * $Revision: 1.4 $
+ * $Date: 2006/08/06 11:27:56 $
  */
 
 
@@ -28,100 +28,9 @@ String.RIGHT          = 1
 String.ISOFORMAT      = "yyyy-MM-dd'T'HH:mm:ssZ";
 String.NULL           = "";
 
-
 /**
- * factory to create functions for sorting objects in an array
- * @param String name of the field each object is compared with
- * @param Number order (ascending or descending)
- * @return Function ready for use in Array.prototype.sort
+ * @fileoverview Adds useful methods to the JavaScript String type.
  */
-String.Sorter = function(field, order) {
-    if (!order)
-        order = 1;
-    var key = field + ":" + order;
-    if (!String.Sorter.cache[key]) {
-        String.Sorter.cache[key] = function(a, b) {
-            var str1 = String(a[field] || String.NULL).toLowerCase();
-            var str2 = String(b[field] || String.NULL).toLowerCase();
-            if (str1 > str2)
-                return order * 1;
-            if (str1 < str2)
-                return order * -1;
-            return 0;
-        };
-    }
-    return String.Sorter.cache[key];
-};
-
-String.Sorter.ASC = 1;
-String.Sorter.DESC = -1;
-String.Sorter.cache = {};
-
-
-/**
- * create a string from a bunch of substrings
- * @param String one or more strings as arguments
- * @return String the resulting string
- */
-String.compose = function() {
-    res.push();
-    for (var i=0; i<arguments.length; i++)
-        res.write(arguments[i]);
-    return res.pop();
-};
-
-
-/**
- * creates a random string (numbers and chars)
- * @param len length of key
- * @param mode determines which letters to use. null or 0 = all letters;
- *      1 = skip 0, 1, l and o which can easily be mixed with numbers;
- *      2 = use numbers only
- * @returns random string
- */
-String.random = function(len, mode) {
-    if (mode == 2) {
-        var x = Math.random() * Math.pow(10,len);
-        return Math.floor(x);
-    }
-    var keystr = String.NULL;
-    for (var i=0; i<len; i++) {
-        var x = Math.floor((Math.random() * 36));
-        if (mode == 1) {
-            // skip 0,1
-            x = (x<2) ? x + 2 : x;
-            // don't use the letters l (charCode 21+87) and o (24+87)
-            x = (x==21) ? 22 : x;
-            x = (x==24) ? 25 : x;
-        }
-        if (x<10) {
-            keystr += String(x);
-        }    else    {
-            keystr += String.fromCharCode(x+87);
-        }
-    }
-    return keystr;
-};
-
-
-/**
- * append one string onto another and add some "glue"
- * if none of the strings is empty or null.
- * @param String the first string
- * @param String the string to be appended onto the first one
- * @param String the "glue" to be inserted between both strings
- * @return String the resulting string
- */
-String.join = function(str1, str2, glue) {
-    if (glue == null)
-        glue = String.NULL;
-    if (str1 && str2)
-        return str1 + glue + str2;
-    else if (str2)
-        return str2;
-    return str1;
-};
-
 
 /**
  * checks if a date format pattern is correct
@@ -383,7 +292,7 @@ String.prototype.tail = function(limit, clipping, delimiter) {
 };
 
 
-/**
+/*
  * set clip method out of compatibility/convenience reason
  * FIXME: we eventually have to get rid of this one...
  * @see String.prototype.head()
@@ -661,6 +570,99 @@ String.prototype.format = function() {
 
 String.prototype.stripTags = function() {
     return stripTags(this);
+};
+
+/**
+ * factory to create functions for sorting objects in an array
+ * @param String name of the field each object is compared with
+ * @param Number order (ascending or descending)
+ * @return Function ready for use in Array.prototype.sort
+ */
+String.Sorter = function(field, order) {
+    if (!order)
+        order = 1;
+    var key = field + ":" + order;
+    if (!String.Sorter.cache[key]) {
+        String.Sorter.cache[key] = function(a, b) {
+            var str1 = String(a[field] || String.NULL).toLowerCase();
+            var str2 = String(b[field] || String.NULL).toLowerCase();
+            if (str1 > str2)
+                return order * 1;
+            if (str1 < str2)
+                return order * -1;
+            return 0;
+        };
+    }
+    return String.Sorter.cache[key];
+};
+
+String.Sorter.ASC = 1;
+String.Sorter.DESC = -1;
+String.Sorter.cache = {};
+
+
+/**
+ * create a string from a bunch of substrings
+ * @param String one or more strings as arguments
+ * @return String the resulting string
+ */
+String.compose = function() {
+    res.push();
+    for (var i=0; i<arguments.length; i++)
+        res.write(arguments[i]);
+    return res.pop();
+};
+
+
+/**
+ * creates a random string (numbers and chars)
+ * @param len length of key
+ * @param mode determines which letters to use. null or 0 = all letters;
+ *      1 = skip 0, 1, l and o which can easily be mixed with numbers;
+ *      2 = use numbers only
+ * @returns random string
+ */
+String.random = function(len, mode) {
+    if (mode == 2) {
+        var x = Math.random() * Math.pow(10,len);
+        return Math.floor(x);
+    }
+    var keystr = String.NULL;
+    for (var i=0; i<len; i++) {
+        var x = Math.floor((Math.random() * 36));
+        if (mode == 1) {
+            // skip 0,1
+            x = (x<2) ? x + 2 : x;
+            // don't use the letters l (charCode 21+87) and o (24+87)
+            x = (x==21) ? 22 : x;
+            x = (x==24) ? 25 : x;
+        }
+        if (x<10) {
+            keystr += String(x);
+        }    else    {
+            keystr += String.fromCharCode(x+87);
+        }
+    }
+    return keystr;
+};
+
+
+/**
+ * append one string onto another and add some "glue"
+ * if none of the strings is empty or null.
+ * @param String the first string
+ * @param String the string to be appended onto the first one
+ * @param String the "glue" to be inserted between both strings
+ * @return String the resulting string
+ */
+String.join = function(str1, str2, glue) {
+    if (glue == null)
+        glue = String.NULL;
+    if (str1 && str2)
+        return str1 + glue + str2;
+    else if (str2)
+        return str2;
+    return str1;
 };
 
 
