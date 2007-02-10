@@ -698,7 +698,7 @@ public final class RhinoCore implements ScopeProvider {
                 if (skin != null) {
                     Scriptable param = Context.getCurrentContext().newObject(global);
                     param.put("path", param, href);
-                    href = skin.renderAsString(eng.getRequestEvaluator(), handler, param);
+                    href = skin.renderAsString(eng.getRequestEvaluator(), handler, param).trim();
                     break;
                 }
 
