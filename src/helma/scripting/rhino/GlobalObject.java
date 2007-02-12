@@ -587,7 +587,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         Object obj = args[0];
         File file = new File(Context.toString(args[1])).getAbsoluteFile();
         FileOutputStream fos = new FileOutputStream(file);
-        Scriptable scope = ScriptableObject.getTopLevelScope(thisObj).getPrototype();
+        Scriptable scope = RhinoCore.getCore().global;
         // use a ScriptableOutputStream that unwraps Wrappers
         ScriptableOutputStream out = new ScriptableOutputStream(fos, scope) {
             protected Object replaceObject(Object obj) throws IOException {
@@ -613,7 +613,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         }
         File file = new File(Context.toString(args[0])).getAbsoluteFile();
         FileInputStream fis = new FileInputStream(file);
-        Scriptable scope = ScriptableObject.getTopLevelScope(thisObj).getPrototype();
+        Scriptable scope = RhinoCore.getCore().global;
         ObjectInputStream in = new ScriptableInputStream(fis, scope);
         Object deserialized = in.readObject();
         in.close();
