@@ -861,6 +861,14 @@ public final class Application implements Runnable {
     }
 
     /**
+     * Return the application's session manager
+     * @return the SessionManager instance used by this app
+     */
+    public SessionManager getSessionManager() {
+        return sessionMgr;
+    }
+
+    /**
      *  Return a transient node that is shared by all evaluators of this application ("app node")
      */
     public INode getCacheNode() {
