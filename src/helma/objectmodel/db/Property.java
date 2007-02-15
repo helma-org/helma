@@ -329,6 +329,7 @@ public final class Property implements IProperty, Serializable, Cloneable, Compa
     public void setJavaObjectValue(Object obj) {
         type = JAVAOBJECT;
         value = obj;
+        dirty = true;
     }
 
 

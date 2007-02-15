@@ -21,10 +21,7 @@ import helma.framework.core.RequestEvaluator;
 import helma.objectmodel.*;
 import helma.objectmodel.dom.XmlDatabase;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
-import java.io.File;
+import java.io.*;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
@@ -493,29 +490,29 @@ public final class NodeManager {
         long logTimeStart = logSql ? System.currentTimeMillis() : 0;
 
         try {
-            int stmtNumber = 1;
+            int columnNumber = 1;
 
             for (int i = 0; i < columns.length; i++) {
                 DbColumn col = columns[i];
                 if (!col.isMapped()) 
                     continue;
                 if (col.isIdField()) {
-                    setStatementValue(stmt, stmtNumber, node.getID(), col);
+                    setStatementValue(stmt, columnNumber, node.getID(), col);
                 } else if (col.isPrototypeField()) {
-                    setStatementValue(stmt, stmtNumber, dbm.getExtensionId(), col);
+                    setStatementValue(stmt, columnNumber, dbm.getExtensionId(), col);
                 } else {
                     Relation rel = col.getRelation();
                     Property p = rel == null ? null : node.getProperty(rel.getPropName());
  
                     if (p != null) {
-                        setStatementValue(stmt, stmtNumber, p, col.getType());
+                        setStatementValue(stmt, columnNumber, p, col.getType());
                     } else if (col.isNameField()) {
-                        stmt.setString(stmtNumber, node.getName());
+                        stmt.setString(columnNumber, node.getName());
                     } else {
-                        stmt.setNull(stmtNumber, col.getType());
+                        stmt.setNull(columnNumber, col.getType());
                     }
                 }
-                stmtNumber += 1;
+                columnNumber += 1;
             }
             stmt.executeUpdate();
 
@@ -572,7 +569,6 @@ public final class NodeManager {
                 if ((props[i] == null) || !props[i].dirty) {
                     // null out clean property so we don't consider it later
                     props[i] = null;
-
                     continue;
                 }
 
@@ -1673,9 +1669,11 @@ public final class NodeManager {
 
         for (int i = 0; i < columns.length; i++) {
 
+            int columnNumber = i + 1 + offset;
+
             // set prototype?
             if (columns[i].isPrototypeField()) {
-                String protoId = rs.getString(i + 1 + offset);
+                String protoId = rs.getString(columnNumber);
                 protoName = dbm.getPrototypeName(protoId);
 
                 if (protoName != null) {
@@ -1693,7 +1691,7 @@ public final class NodeManager {
 
             // set id?
             if (columns[i].isIdField()) {
-                id = rs.getString(i + 1 + offset);
+                id = rs.getString(columnNumber);
                 // if id == null, the object doesn't actually exist - return null
                 if (id == null) {
                     return null;
@@ -1702,14 +1700,14 @@ public final class NodeManager {
 
             // set name?
             if (columns[i].isNameField()) {
-                name = rs.getString(i + 1 + offset);
+                name = rs.getString(columnNumber);
             }
 
             Property newprop = new Property(node);
 
             switch (columns[i].getType()) {
                 case Types.BIT:
-                    newprop.setBooleanValue(rs.getBoolean(i + 1 + offset));
+                    newprop.setBooleanValue(rs.getBoolean(columnNumber));
 
                     break;
 
@@ -1717,21 +1715,21 @@ public final class NodeManager {
                 case Types.BIGINT:
                 case Types.SMALLINT:
                 case Types.INTEGER:
-                    newprop.setIntegerValue(rs.getLong(i + 1 + offset));
+                    newprop.setIntegerValue(rs.getLong(columnNumber));
 
                     break;
 
                 case Types.REAL:
                 case Types.FLOAT:
                 case Types.DOUBLE:
-                    newprop.setFloatValue(rs.getDouble(i + 1 + offset));
+                    newprop.setFloatValue(rs.getDouble(columnNumber));
 
                     break;
 
                 case Types.DECIMAL:
                 case Types.NUMERIC:
 
-                    BigDecimal num = rs.getBigDecimal(i + 1 + offset);
+                    BigDecimal num = rs.getBigDecimal(columnNumber);
 
                     if (num == null) {
                         break;
@@ -1747,33 +1745,39 @@ public final class NodeManager {
 
                 case Types.VARBINARY:
                 case Types.BINARY:
-                    newprop.setStringValue(rs.getString(i + 1 + offset));
+                    newprop.setJavaObjectValue(rs.getBytes(columnNumber));
 
                     break;
 
+                case Types.BLOB:
                 case Types.LONGVARBINARY:
+                    try {
+                        newprop.setJavaObjectValue(rs.getBytes(columnNumber));
+                    } catch (SQLException x) {
+                        InputStream in = rs.getBinaryStream(columnNumber);
+                        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+                        byte[] buffer = new byte[2048];
+                        int read;
+                        while ((read = in.read(buffer)) > -1) {
+                            bout.write(buffer, 0, read);
+                        }
+                        newprop.setJavaObjectValue(bout.toByteArray());
+                    }
+
+                    break;
+
                 case Types.LONGVARCHAR:
                     try {
-                        newprop.setStringValue(rs.getString(i + 1 + offset));
+                        newprop.setStringValue(rs.getString(columnNumber));
                     } catch (SQLException x) {
-                        Reader in = rs.getCharacterStream(i + 1 + offset);
+                        Reader in = rs.getCharacterStream(columnNumber);
+                        StringBuffer out = new StringBuffer();
                         char[] buffer = new char[2048];
-                        int read = 0;
-                        int r;
-
-                        while ((r = in.read(buffer, read, buffer.length - read)) > -1) {
-                            read += r;
-
-                            if (read == buffer.length) {
-                                // grow input buffer
-                                char[] newBuffer = new char[buffer.length * 2];
-
-                                System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
-                                buffer = newBuffer;
-                            }
+                        int read;
+                        while ((read = in.read(buffer)) > -1) {
+                            out.append(buffer, 0, read);
                         }
-
-                        newprop.setStringValue(new String(buffer, 0, read));
+                        newprop.setStringValue(out.toString());
                     }
 
                     break;
@@ -1781,14 +1785,14 @@ public final class NodeManager {
                 case Types.CHAR:
                 case Types.VARCHAR:
                 case Types.OTHER:
-                    newprop.setStringValue(rs.getString(i + 1 + offset));
+                    newprop.setStringValue(rs.getString(columnNumber));
 
                     break;
 
                 case Types.DATE:
                 case Types.TIME:
                 case Types.TIMESTAMP:
-                    newprop.setDateValue(rs.getTimestamp(i + 1 + offset));
+                    newprop.setDateValue(rs.getTimestamp(columnNumber));
 
                     break;
 
@@ -1798,7 +1802,7 @@ public final class NodeManager {
                     break;
 
                 case Types.CLOB:
-                    Clob cl = rs.getClob(i+1+offset);
+                    Clob cl = rs.getClob(columnNumber);
                     if (cl==null) {
                         newprop.setStringValue(null);
                         break;
@@ -1810,7 +1814,7 @@ public final class NodeManager {
                     break;
 
                 default:
-                    newprop.setStringValue(rs.getString(i + 1 + offset));
+                    newprop.setStringValue(rs.getString(columnNumber));
 
                     break;
             }
@@ -2004,14 +2008,14 @@ public final class NodeManager {
         }
     }
 
-    private void setStatementValue(PreparedStatement stmt, int stmtNumber, String value, DbColumn col)
+    private void setStatementValue(PreparedStatement stmt, int columnNumber, String value, DbColumn col)
             throws SQLException {
         if (value == null) {
-            stmt.setNull(stmtNumber, col.getType());
+            stmt.setNull(columnNumber, col.getType());
         } else if (col.needsQuotes()) {
-            stmt.setString(stmtNumber, value);
+            stmt.setString(columnNumber, value);
         } else {
-            stmt.setLong(stmtNumber, Long.parseLong(value));
+            stmt.setLong(columnNumber, Long.parseLong(value));
         }
     }
 
@@ -2039,23 +2043,33 @@ public final class NodeManager {
 
                     break;
 
+                case Types.LONGVARBINARY:
                 case Types.VARBINARY:
                 case Types.BINARY:
                 case Types.BLOB:
-                    stmt.setString(stmtNumber, p.getStringValue());
+                    Object b = p.getJavaObjectValue();
+                    if (b instanceof byte[]) {
+                        byte[] buf = (byte[]) b;
+                        try {
+                            stmt.setBytes(stmtNumber, buf);
+                        } catch (SQLException x) {
+                            ByteArrayInputStream bout = new ByteArrayInputStream(buf);
+                            stmt.setBinaryStream(stmtNumber, bout, buf.length);
+                        }
+                    } else {
+                        throw new SQLException("expected byte[] for binary column '" +
+                                p.getName() + "', found " + b.getClass());
+                    }
 
                     break;
 
-                case Types.LONGVARBINARY:
                 case Types.LONGVARCHAR:
                     try {
                         stmt.setString(stmtNumber, p.getStringValue());
                     } catch (SQLException x) {
                         String str = p.getStringValue();
                         Reader r = new StringReader(str);
-
-                        stmt.setCharacterStream(stmtNumber, r,
-                                                str.length());
+                        stmt.setCharacterStream(stmtNumber, r, str.length());
                     }
 
                     break;
