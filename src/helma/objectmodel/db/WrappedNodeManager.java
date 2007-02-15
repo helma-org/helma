@@ -62,9 +62,6 @@ public final class WrappedNodeManager {
             return null;
         } catch (Exception x) {
             nmgr.app.logError("Error retrieving Node for " + key, x);
-            if (nmgr.app.debug()) {
-                x.printStackTrace();
-            }
             throw new RuntimeException("Error retrieving Node", x);
         }
     }
@@ -84,9 +81,6 @@ public final class WrappedNodeManager {
             return null;
         } catch (Exception x) {
             nmgr.app.logError("Error retrieving Node \"" + id + "\" from " + home, x);
-            if (nmgr.app.debug()) {
-                x.printStackTrace();
-            }
             throw new RuntimeException("Error retrieving Node", x);
         }
     }
@@ -103,9 +97,6 @@ public final class WrappedNodeManager {
         try {
             return nmgr.getNodes(home, rel);
         } catch (Exception x) {
-            if (nmgr.app.debug()) {
-                x.printStackTrace();
-            }
             throw new RuntimeException("Error retrieving Nodes", x);
         }
     }
@@ -122,9 +113,6 @@ public final class WrappedNodeManager {
         try {
             return nmgr.getNodeIDs(home, rel);
         } catch (Exception x) {
-            if (nmgr.app.debug()) {
-                x.printStackTrace();
-            }
             throw new RuntimeException("Error retrieving NodeIDs", x);
         }
     }
@@ -136,9 +124,6 @@ public final class WrappedNodeManager {
         try {
             return nmgr.updateSubnodeList(home, rel);
         } catch (Exception x) {
-            if (nmgr.app.debug()) {
-                x.printStackTrace();
-            }
             throw new RuntimeException("Error retrieving NodeIDs", x);
         }
     }
@@ -155,9 +140,6 @@ public final class WrappedNodeManager {
         try {
             return nmgr.countNodes(home, rel);
         } catch (Exception x) {
-            if (nmgr.app.debug()) {
-                x.printStackTrace();
-            }
             throw new RuntimeException("Error counting Nodes", x);
         }
     }
@@ -171,9 +153,6 @@ public final class WrappedNodeManager {
         try {
             nmgr.deleteNode(node);
         } catch (Exception x) {
-            if (nmgr.app.debug()) {
-                x.printStackTrace();
-            }
             throw new RuntimeException("Error deleting Node", x);
         }
     }
@@ -190,9 +169,6 @@ public final class WrappedNodeManager {
         try {
             return nmgr.getPropertyNames(home, rel);
         } catch (Exception x) {
-            if (nmgr.app.debug()) {
-                x.printStackTrace();
-            }
             throw new RuntimeException("Error retrieving property names ", x);
         }
     }
@@ -252,10 +228,7 @@ public final class WrappedNodeManager {
         try {
             return nmgr.generateID(map);
         } catch (Exception x) {
-            if (nmgr.app.debug()) {
-                x.printStackTrace();
-            }
-            throw new RuntimeException(x.toString());
+            throw new RuntimeException(x.toString(), x);
         }
     }
 
@@ -266,10 +239,7 @@ public final class WrappedNodeManager {
         try {
             return nmgr.getRootNode();
         } catch (Exception x) {
-            if (nmgr.app.debug()) {
-                x.printStackTrace();
-            }
-            throw new RuntimeException(x.toString());
+            throw new RuntimeException(x.toString(), x);
         }
     }
 
