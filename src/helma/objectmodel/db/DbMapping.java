@@ -926,8 +926,9 @@ public final class DbMapping {
     public synchronized DbColumn[] getColumns()
                                        throws ClassNotFoundException, SQLException {
         if (!isRelational()) {
-            throw new SQLException("Can't get columns for non-relational data mapping " +
-                                   this);
+            throw new SQLException("Can't get columns for non-relational data mapping " + this);
+        } else if (inheritsStorage()) {
+            return parentMapping.getColumns();
         }
 
         // Use local variable cols to avoid synchronization (schema may be nulled elsewhere)
@@ -963,8 +964,7 @@ public final class DbMapping {
                 DbColumn col = new DbColumn(colName, meta.getColumnType(i + 1), rel, this);
                 list.add(col);
             }
-            columns = new DbColumn[list.size()];
-            columns = (DbColumn[]) list.toArray(columns);
+            columns = (DbColumn[]) list.toArray(new DbColumn[list.size()]);
         }
 
         return columns;
