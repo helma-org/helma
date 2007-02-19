@@ -10,8 +10,8 @@
  *
  * $RCSfile: Aspects.js,v $
  * $Author: czv $
- * $Revision: 1.3 $
- * $Date: 2007/02/07 10:27:37 $
+ * $Revision: 1.4 $
+ * $Date: 2007/02/07 10:29:20 $
  */
 
 
@@ -35,6 +35,8 @@ if (!global.helma) {
  * Note: Each prototype that uses aspects must implement a method
  * onCodeUpdate() to prevent aspects being lost when the prototype
  * is re-compiled
+ * 
+ * @constructor
  */
 helma.Aspects = function() {
    return this;
