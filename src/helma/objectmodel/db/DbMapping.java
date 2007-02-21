@@ -927,8 +927,6 @@ public final class DbMapping {
                                        throws ClassNotFoundException, SQLException {
         if (!isRelational()) {
             throw new SQLException("Can't get columns for non-relational data mapping " + this);
-        } else if (inheritsStorage()) {
-            return parentMapping.getColumns();
         }
 
         // Use local variable cols to avoid synchronization (schema may be nulled elsewhere)
