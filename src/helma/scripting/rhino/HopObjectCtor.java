@@ -109,7 +109,7 @@ public class HopObjectCtor extends FunctionObject {
     }
 
     public Object get(String name, Scriptable start) {
-        if (!initialized  && !"prototype".equals(name)) {
+        if (!initialized && core.isInitialized()) {
             // trigger prototype compilation on static
             // constructor property access
             initialized = true;

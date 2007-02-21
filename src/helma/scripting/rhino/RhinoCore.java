@@ -78,6 +78,7 @@ public final class RhinoCore implements ScopeProvider {
     // debugger/tracer flags
     boolean hasDebugger = false;
     boolean hasTracer = false;
+    private boolean isInitialized = false;
 
     // dynamic portion of the type check sleep that grows
     // as the app remains unchanged
@@ -170,7 +171,12 @@ public final class RhinoCore implements ScopeProvider {
             throw new RuntimeException(e.getMessage(), e);
         } finally {
             contextFactory.exit();
+            isInitialized = true;
         }
+    }
+
+    boolean isInitialized() {
+        return isInitialized;
     }
 
     void initDebugger(Context context) {
