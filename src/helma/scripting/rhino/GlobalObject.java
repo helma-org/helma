@@ -25,6 +25,7 @@ import helma.util.MimePart;
 import helma.util.XmlUtils;
 import org.mozilla.javascript.*;
 import org.mozilla.javascript.serialize.*;
+import org.xml.sax.SAXException;
 
 import java.util.*;
 import java.net.HttpURLConnection;
@@ -310,8 +311,8 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
             mime.eTag = etag;
 
             return Context.toObject(mime, this);
-        } catch (Exception xcept) {
-            app.logEvent("Error getting URL "+location+": "+xcept);
+        } catch (Exception x) {
+            app.logError("Error getting URL "+location, x);
         }
 
         return null;
@@ -330,8 +331,8 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
             Object doc = XmlUtils.parseXml(p);
 
             return Context.toObject(doc, this);
-        } catch (Exception noluck) {
-            app.logEvent("Error creating XML document: " + noluck);
+        } catch (Exception x) {
+            app.logError("Error creating XML document",  x);
         }
 
         return null;
@@ -350,8 +351,10 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
             Object doc = helma.util.XmlUtils.parseHtml(p);
 
             return Context.toObject(doc, this);
-        } catch (Exception noluck) {
-            app.logEvent("Error creating HTML document: " + noluck);
+        } catch (IOException iox) {
+            app.logError("Error creating HTML document", iox);
+        } catch (SAXException sx) {
+            app.logError("Error creating HTML document", sx);
         }
 
         return null;
