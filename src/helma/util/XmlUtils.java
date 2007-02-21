@@ -17,8 +17,13 @@
 package helma.util;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.html.HTMLDocument;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.helpers.XMLReaderAdapter;
+import org.ccil.cowan.tagsoup.Parser;
+import org.apache.html.dom.HTMLBuilder;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -55,7 +60,7 @@ public class XmlUtils {
         }
 
         DocumentBuilder parser = domBuilderFactory.newDocumentBuilder();
-        Document doc = null;
+        Document doc;
 
         if (obj instanceof String) {
             try {
@@ -71,10 +76,11 @@ public class XmlUtils {
             doc = parser.parse(new InputSource((InputStream) obj));
         } else if (obj instanceof Reader) {
             doc = parser.parse(new InputSource((Reader) obj));
+        } else {
+            throw new RuntimeException("Unrecognized argument to parseXml: " + obj);
         }
 
         doc.normalize();
-
         return doc;
     }
 
@@ -87,36 +93,39 @@ public class XmlUtils {
      *
      * @throws IOException ...
      */
-    public static Document parseHtml(Object obj)
-                              throws IOException {
+    public static HTMLDocument parseHtml(Object obj)
+                              throws IOException, SAXException {
         try {
-            Class.forName("org.apache.html.dom.HTMLBuilder");
+            Class.forName("org.apache.html.dom.HTMLDocumentImpl");
         } catch (Throwable notfound) {
-            throw new IOException("Couldn't load nekohtml/Xerces HTML parser: " +
-                                  notfound);
+            throw new RuntimeException("Couldn't load Xerces HTML DOM classes. " +
+                "Make sure you have xercesImpl.jar and xml-apis.jar in your classpath.");
         }
-
-        Document doc = null;
-        HtmlParser parser = new HtmlParser();
 
         if (obj instanceof String) {
             try {
                 // first try to interpret string as URL
                 URL url = new URL(obj.toString());
-
-                parser.parse(new InputStreamReader(url.openStream()));
+                return getHtmlDocument(new InputStreamReader(url.openStream()));
             } catch (MalformedURLException nourl) {
                 // if not a URL, maybe it is the XML itself
-                parser.parse(new StringReader(obj.toString()));
+                return getHtmlDocument(new StringReader(obj.toString()));
             }
         } else if (obj instanceof InputStream) {
-            parser.parse(new InputStreamReader((InputStream) obj));
+            return getHtmlDocument(new InputStreamReader((InputStream) obj));
         } else if (obj instanceof Reader) {
-            parser.parse((Reader) obj);
+            return getHtmlDocument((Reader) obj);
+        } else {
+            throw new RuntimeException("Unrecognized argument to parseHtml: " + obj);
         }
+    }
 
-        doc = parser.getDocument();
-
-        return doc;
+    private static HTMLDocument getHtmlDocument(Reader reader)
+            throws IOException, SAXException {
+        XMLReaderAdapter parser = new XMLReaderAdapter(new Parser());
+        HTMLBuilder builder = new HTMLBuilder();
+        parser.setDocumentHandler(builder);
+        parser.parse(new InputSource(reader));
+        return builder.getHTMLDocument();
     }
 }
