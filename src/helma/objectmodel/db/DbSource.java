@@ -32,7 +32,7 @@ public class DbSource {
     private static ResourceProperties defaultProps = null;
     private Properties conProps;
     private String name;
-    private ResourceProperties props;
+    private ResourceProperties props, subProps;
     protected String url;
     private String driver;
     private boolean isOracle, isMySQL, isPostgreSQL;
@@ -103,11 +103,13 @@ public class DbSource {
         lastRead = (defaultProps == null) ? props.lastModified()
                                           : Math.max(props.lastModified(),
                                                      defaultProps.lastModified());
+        // refresh sub-properties for this DbSource
+        subProps = props.getSubProperties(name + '.');
         // use properties hashcode for ourselves
-        hashcode = props.hashCode();
+        hashcode = subProps.hashCode();
         // get JDBC URL and driver class name
-        url = props.getProperty(name + ".url");
-        driver = props.getProperty(name + ".driver");
+        url = subProps.getProperty("url");
+        driver = subProps.getProperty("driver");
         // sanity checks
         if (url == null) {
             throw new NullPointerException(name+".url is not defined in db.properties");
@@ -125,25 +127,19 @@ public class DbSource {
 
         // set up driver connection properties
         conProps=new Properties();
-        String prop = props.getProperty(name + ".user");
+        String prop = subProps.getProperty("user");
         if (prop != null) {
             conProps.put("user", prop);
         }
-        prop = props.getProperty(name + ".password");
+        prop = subProps.getProperty("password");
         if (prop != null) {
             conProps.put("password", prop);
         }
 
         // read any remaining extra properties to be passed to the driver
-        for (Enumeration e = props.keys(); e.hasMoreElements(); ) {
-            String fullkey = (String) e.nextElement();
+        for (Enumeration e = subProps.keys(); e.hasMoreElements(); ) {
+            String key = (String) e.nextElement();
 
-            int dot = fullkey.indexOf('.');
-            // filter out properties that don't belong to this data source
-            if (dot < 0 || !fullkey.substring(0, dot).equalsIgnoreCase(name)) {
-                continue;
-            }
-            String key = fullkey.substring(dot+1);
             // filter out properties we alread have
             if ("url".equalsIgnoreCase(key) ||
                 "driver".equalsIgnoreCase(key) ||
@@ -151,7 +147,7 @@ public class DbSource {
                 "password".equalsIgnoreCase(key)) {
                 continue;
             }
-            conProps.setProperty(key, props.getProperty(fullkey));
+            conProps.setProperty(key, subProps.getProperty(key));
         }
     }
 
@@ -240,6 +236,6 @@ public class DbSource {
      * Indicates whether some other object is "equal to" this one.
      */
     public boolean equals(Object obj) {
-        return obj instanceof DbSource && props.equals(((DbSource) obj).props);
+        return obj instanceof DbSource && subProps.equals(((DbSource) obj).subProps);
     }
 }
