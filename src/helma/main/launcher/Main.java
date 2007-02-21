@@ -40,9 +40,8 @@ public class Main {
                                             "crimson.jar", "xmlrpc.jar", "servlet.jar",
                                             "mail.jar", "activation.jar",
                                             "commons-fileupload.jar", "commons-codec.jar",
-                                            "commons-io.jar",
-                                            "netcomponents.jar", "jimi.jar",
-                                            "apache-dom.jar"
+                                            "commons-io.jar", "netcomponents.jar", 
+                                            "tagsoup.jar"
                                         };
 
     /**
@@ -112,13 +111,7 @@ public class Main {
 
         if (files != null) {
             for (int i = 0; i < files.length; i++) {
-                // WORKAROUND: add the files in lib/ext before
-                // lib/apache-dom.jar, since otherwise putting a full version
-                // of Xerces in lib/ext would cause a version conflict with the
-                // xerces classes in lib/apache-dom.jar. Generally, having some pieces
-                // of Xerces in lib/apache-dom.jar is kind of problematic.
-                jarlist.add(jars.length - 3, new URL("file:" +
-                                                     files[i].getAbsolutePath()));
+                jarlist.add(new URL("file:" + files[i].getAbsolutePath()));
                 System.err.println("Adding to classpath: " + files[i].getAbsolutePath());
             }
         }
