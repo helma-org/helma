@@ -10,8 +10,8 @@
  *
  * $RCSfile: Html.js,v $
  * $Author: robert $
- * $Revision: 1.3 $
- * $Date: 2006/11/13 16:59:44 $
+ * $Revision: 1.4 $
+ * $Date: 2007/01/30 14:49:57 $
  */
 
 
@@ -233,7 +233,7 @@ helma.Html.prototype.hidden = function(param) {
         res.write("[Html.hidden: insufficient arguments]");
         return;
     }
-    var attr = Object.clone(param);
+    var attr = param.clone();
     attr.type = "hidden";
     attr.value = (attr.value != null) ? encodeForm(attr.value) : "";
     this.tag("input", attr);
@@ -262,7 +262,7 @@ helma.Html.prototype.input = function(param) {
         res.write("[Html.input: insufficient arguments]");
         return;
     }
-    var attr = Object.clone(param);
+    var attr = param.clone();
     attr.type = "text";
     if (!attr.size)
         attr.size = 20;
@@ -293,7 +293,7 @@ helma.Html.prototype.textArea = function(param) {
         res.write("[Html.textArea: insufficient arguments]");
         return;
     }
-    var attr = Object.clone(param);
+    var attr = param.clone();
     var value = (attr.value != null) ? encodeForm(attr.value) : "";
     delete attr.value;
     this.openTag("textarea", attr);
@@ -324,7 +324,7 @@ helma.Html.prototype.checkBox = function(param) {
         res.write("[Html.checkBox: insufficient arguments]");
         return;
     }
-    var attr = Object.clone(param);
+    var attr = param.clone();
     attr.type = "checkbox";
     if (attr.selectedValue != null) {
         if (helma.Html.isSelected(param.value, param.selectedValue))
@@ -359,7 +359,7 @@ helma.Html.prototype.radioButton = function(param) {
         res.write("[Html.radioButton: insufficient arguments]");
         return;
     }
-    var attr = Object.clone(param);
+    var attr = param.clone();
     attr.type = "radio";
     if (attr.selectedValue != null) {
         if (attr.value == attr.selectedValue)
@@ -394,7 +394,7 @@ helma.Html.prototype.submit = function(param) {
         res.write("[Html.submit: insufficient arguments]");
         return;
     }
-    var attr = Object.clone(param);
+    var attr = param.clone();
     attr.type = "submit";
     if (!attr.name)
         attr.name = attr.type;
@@ -425,7 +425,7 @@ helma.Html.prototype.button = function(param) {
         res.write("[Html.button: insufficient arguments]");
         return;
     }
-    var attr = Object.clone(param);
+    var attr = param.clone();
     attr.type = "button";
     if (!attr.name)
         attr.name = attr.type;
@@ -462,7 +462,7 @@ helma.Html.prototype.dropDown = function(param, options, selectedValue, firstOpt
         res.write("[Html.dropDown: insufficient arguments]");
         return;
     }
-    var attr = Object.clone(param);
+    var attr = param.clone();
     if (!attr.size)
         attr.size = 1;
     this.openTag("select", attr);
@@ -530,8 +530,12 @@ helma.Html.prototype.dropDownAsString = function(attr, options, selectedValue, f
  *  contains the attributes for a single image map entry
  */
 helma.Html.prototype.map = function(name, param) {
+    if (!name || !param) {
+        res.write("[Html.map: insufficient arguments]");
+        return;
+    }
     this.openTag("map", {name: name});
-    var areas = Object.clone(param);
+    var areas = param.clone();
     for (var i in areas) {
         if (!areas[i].alt)
             areas[i].alt = "";
@@ -583,7 +587,7 @@ helma.Html.prototype.table = function(headers, data, param) {
         res.write("[Html.table: insufficient arguments]");
         return;
     }
-    var attr = Object.clone(param);
+    var attr = param.clone();
     if (!attr.trHead) attr.trHead = attr.tr;
     if (!attr.trEven) attr.trEven = attr.tr;
     if (!attr.trOdd)  attr.trOdd = attr.tr;
