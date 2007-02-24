@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Skin.js,v $
- * $Author: czv $
- * $Revision: 1.2 $
- * $Date: 2006/04/24 07:02:17 $
+ * $Author: robert $
+ * $Revision: 1.3 $
+ * $Date: 2007/01/30 17:53:00 $
  */
 
 
@@ -77,6 +77,7 @@ helma.Skin = function(source, encFlag) {
     /**
      * Returns the rendered skin.
      * @param {Object} param An optional parameter object to pass to the skin.
+     * @type String
      */
     this.renderAsString = function(param) {
         return renderSkinAsString(skin, param);
