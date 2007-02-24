@@ -6,19 +6,28 @@
  * compliance with the License. A copy of the License is available at
  * http://adele.helma.org/download/helma/license.txt
  *
- * Copyright 1998-2006 Helma Software. All Rights Reserved.
+ * Copyright 1998-2007 Helma Software. All Rights Reserved.
  *
- * $RCSfile: helma.Url.js,v $
+ * $RCSfile: Url.js,v $
  * $Author: czv $
- * $Revision: 1.4 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
+/**
+ * @fileoverview Fields and methods of the helma.Url class.
+ */
 
 if (!global.helma) {
     global.helma = {};
 }
 
+
+/**
+ * Creates a helma.Url object from a provided url string.
+ * 
+ * @constructor
+ */
 helma.Url = function(str) {
     if (!str || !helma.Url.PATTERN.test(str))
         throw Error("Cannot create helma.Url: insufficient arguments");
