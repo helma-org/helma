@@ -282,10 +282,11 @@
         <!-- create lib/ext directory -->
         <mkdir dir="${build.work}/lib/ext"/>
 
-        <!-- copy the whole licenses-directory -->
+        <!-- copy the license files -->
         <copy todir="${build.work}/licenses">
             <fileset dir="${home.dir}/licenses" excludes="**/CVS**"/>
         </copy>
+        <copy file="${home.dir}/license.txt" todir="${build.work}/licenses"/>
 
         <!-- copy the scripts directory -->
         <copy todir="${build.work}/scripts">
