@@ -122,24 +122,6 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     }
 
     /**
-     * Define a JavaScript property. We override this in order to redirect the
-     * "constructor" property with the scripted constructor function as its value
-     * to "__constructor__"
-     *
-     * @param propertyName the name of the property to define.
-     * @param value the initial value of the property
-     * @param attributes the attributes of the JavaScript property
-     */    public void defineProperty(String propertyName, Object value, int attributes) {
-        // redirect the scripted constructor to __constructor__,
-        // constructor is set to the native constructor method.
-        if (node == null && "constructor".equals(propertyName) &&
-                value instanceof NativeFunction) {
-            propertyName = "__constructor__";
-        }
-        super.defineProperty(propertyName, value, attributes);
-    }
-
-    /**
      *  Return the INode wrapped by this HopObject.
      *
      * @return the wrapped INode instance
@@ -286,7 +268,6 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
             throws UnsupportedEncodingException, IOException {
         RhinoEngine engine = RhinoEngine.getRhinoEngine();
         Skin skin = engine.toSkin(skinobj, className);
-        Object param = paramobj == Undefined.instance ? null : paramobj;
         checkNode();
 
         if (skin != null) {
@@ -694,6 +675,11 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      */
     public void put(String name, Scriptable start, Object value) {
         if (node == null) {
+            // redirect the scripted constructor to __constructor__,
+            // constructor is set to the native constructor method.
+            if ("constructor".equals(name) && value instanceof NativeFunction) {
+                name = "__constructor__";
+            }
             // register property for PropertyRecorder interface
             if (isRecording) {
                 changedProperties.add(name);
