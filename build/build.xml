@@ -211,6 +211,12 @@
     <target name="package" depends="init">
         <mkdir dir="${build.work}"/>
         
+        <!-- checkout the demo apps (and zip manage-app) -->
+        <antcall target="package-apps" />
+
+        <!-- checkout helmaLib and helmaTools modules, zip and build jsdoc -->
+        <antcall target="package-modules" />
+
         <!-- create the main part of helma -->
         <antcall target="package-raw">
             <param name="distribution" value="main" />
@@ -221,13 +227,6 @@
                 <include name="start.sh"/>
             </fileset>
         </chmod>
-
-        <!-- checkout the demo apps (and zip manage-app) -->
-        <antcall target="package-apps" />
-
-        <!-- checkout and zip the default modules -->
-        <antcall target="package-modules" />
-        <antcall target="package-modules-jsdoc" />
 
         <!-- zip up the whole thing -->
         <antcall target="package-zip">
@@ -271,9 +270,9 @@
         <copy file="${home.dir}/README.txt" todir="${build.work}/"/>
 
         <!-- copy the whole docs-directory -->
-        <!-- copy todir="${build.work}/docs">
+        <copy todir="${build.work}/docs">
             <fileset dir="${build.docs}"/>
-        </copy -->
+        </copy>
 
         <!-- copy all libraries except helma-YYYYMMDD.jar -->
         <copy todir="${build.work}/lib">
@@ -343,13 +342,14 @@
     <!-- =================================================================== -->
     <target name="package-modules" depends="init">
         <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="modules" dest="${build.work}" />
+        <antcall target="package-modules-jsdoc" />
         <antcall target="package-helmaTools" />
     </target>
 
     <!-- =================================================================== -->
     <!-- Create JSDoc for modules                                            -->
     <!-- =================================================================== -->
-    <target name="package-modules-jsdoc" depends="package-modules">
+    <target name="package-modules-jsdoc" depends="init">
         <exec executable="${jsdoc}" dir="${build.work}" >
           <arg value="-r"/>
           <arg value="-d"/>
@@ -359,7 +359,7 @@
           <arg value="--globals-name"/>
           <arg value="global"/>
           <arg value="--logo"/>
-          <arg value="../static/helma2.gif"/>
+          <arg value="${home.dir}/static/helma2.gif"/>
           <arg value="modules"/>
         </exec>
     </target>
@@ -389,8 +389,9 @@
             <tarfileset prefix="${filename}" dir="${build.work}">
                 <include name="**"/>
                 <exclude name="start.sh"/>
-                <exclude name="**/jimi.jar"/>
-                <exclude name="**/apache-dom.jar"/>
+                <exclude name="lib/jimi.jar"/>
+                <exclude name="lib/apache-dom.jar"/>
+                <exclude name="docs/api/**"/>
             </tarfileset>
         </tar>
         <gzip zipfile="${build.dist}/${filename}.tar.gz" src="${build.dist}/${filename}.tar"/>
@@ -409,8 +410,9 @@
             <zipfileset dir="${build.work}" prefix="${filename}">
               <include name="**"/>
               <exclude name="start.sh"/>
-              <exclude name="**/jimi.jar"/>
-              <exclude name="**/apache-dom.jar"/>
+              <exclude name="lib/jimi.jar"/>
+              <exclude name="lib/apache-dom.jar"/>
+              <exclude name="docs/api/**"/>
             </zipfileset>
         </zip>
     </target>
@@ -431,6 +433,7 @@
                 <include name="license.txt"/>
                 <include name="lib/jimi.jar"/>
                 <include name="lib/apache-dom.jar"/>
+                <exclude name="docs/modules/**"/>
             </tarfileset>
         </tar>
         <gzip zipfile="${build.dist}/${filename}-src.tar.gz" src="${build.dist}/${filename}-src.tar"/>
@@ -453,6 +456,7 @@
               <include name="license.txt"/>
               <include name="lib/jimi.jar"/>
               <include name="lib/apache-dom.jar"/>
+              <exclude name="docs/modules/**"/>
             </zipfileset>
         </zip>
     </target>
