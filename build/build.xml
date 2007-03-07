@@ -34,6 +34,9 @@
         <property name="optimize" value="on"/>
         <property name="deprecation" value="off"/>
 
+        <property name="build.jsdocs" value="${home.dir}/docs/modules"/>
+        <property name="jsdoc" value="/usr/local/jsdoc/jsdoc.pl"/>
+
         <path id="build.class.path">
             <fileset dir="${home.dir}/lib">
                 <exclude name="**/helma*.jar" />
@@ -224,6 +227,7 @@
 
         <!-- checkout and zip the default modules -->
         <antcall target="package-modules" />
+        <antcall target="package-modules-jsdoc" />
 
         <!-- zip up the whole thing -->
         <antcall target="package-zip">
@@ -342,6 +346,23 @@
         <antcall target="package-helmaTools" />
     </target>
 
+    <!-- =================================================================== -->
+    <!-- Create JSDoc for modules                                            -->
+    <!-- =================================================================== -->
+    <target name="package-modules-jsdoc" depends="package-modules">
+        <exec executable="${jsdoc}" dir="${build.work}" >
+          <arg value="-r"/>
+          <arg value="-d"/>
+          <arg value="${build.jsdocs}"/>
+          <arg value="--project-name"/>
+          <arg value="helmaLib"/>
+          <arg value="--globals-name"/>
+          <arg value="global"/>
+          <arg value="--logo"/>
+          <arg value="../static/helma2.gif"/>
+          <arg value="modules"/>
+        </exec>
+    </target>
 
     <!-- =================================================================== -->
     <!-- Checkout and zip helmaTools                                         -->
