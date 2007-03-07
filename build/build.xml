@@ -356,6 +356,8 @@
           <arg value="${build.jsdocs}"/>
           <arg value="--project-name"/>
           <arg value="helmaLib"/>
+          <arg value="--project-summary"/>
+          <arg value="modules/summary.txt"/>
           <arg value="--globals-name"/>
           <arg value="global"/>
           <arg value="--logo"/>
