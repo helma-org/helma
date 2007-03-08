@@ -350,7 +350,8 @@
     <!-- Create JSDoc for modules                                            -->
     <!-- =================================================================== -->
     <target name="package-modules-jsdoc" depends="init">
-        <exec executable="${jsdoc}" dir="${build.work}" >
+    	<mkdir dir="${build.jsdocs}"/>
+    	<exec executable="${jsdoc}" dir="${build.work}" >
           <arg value="-r"/>
           <arg value="-d"/>
           <arg value="${build.jsdocs}"/>
