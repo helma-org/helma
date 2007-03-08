@@ -72,16 +72,12 @@ public class DbSource {
             con = tx.getConnection(this);
         }
 
-        boolean fileUpdated = props.lastModified() > lastRead;
-        if (!fileUpdated && (defaultProps != null)) {
-            fileUpdated = defaultProps.lastModified() > lastRead;
-        }
+        boolean fileUpdated = props.lastModified() > lastRead ||
+                (defaultProps != null && defaultProps.lastModified() > lastRead);
 
         if (con == null || con.isClosed() || fileUpdated) {
             init();
-            Class.forName(driver);
             con = DriverManager.getConnection(url, conProps);
-            // con = DriverManager.getConnection(url, user, password);
 
             // If we wanted to use SQL transactions, we'd set autoCommit to
             // false here and make commit/rollback invocations in Transactor methods;
@@ -92,6 +88,20 @@ public class DbSource {
         }
 
         return con;
+    }
+
+    /**
+     * Set the db properties to newProps, and return the old properties.
+     * @param newProps the new properties to use for this db source
+     * @return the old properties
+     * @throws ClassNotFoundException if jdbc driver class couldn't be found
+     */
+    public synchronized ResourceProperties switchProperties(ResourceProperties newProps) 
+            throws ClassNotFoundException {
+        ResourceProperties oldProps = props;
+        props = newProps;
+        init();
+        return oldProps;
     }
 
     /**
