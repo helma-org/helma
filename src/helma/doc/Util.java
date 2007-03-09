@@ -79,6 +79,11 @@ public final class Util {
         int to = Math.min(end.y + 1, lines.length);
         for (int i = start.y; i < to; i++) {
             int from = (i == start.y) ? start.x : 0;
+            if (from < 0 || from > lines[i].length()) {
+                System.err.println("Start index " + from + " out of range [0.." + 
+                        lines[i].length() + "]");
+                from = 0;
+            }
             if (i == end.y && end.x < lines[i].length())
                 buf.append(lines[i].substring(from, end.x));
             else
