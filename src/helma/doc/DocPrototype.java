@@ -36,7 +36,8 @@ public class DocPrototype extends DocElement {
      *
      * @param proto
      * @param parent
-     */    protected DocPrototype(Prototype proto, DocElement parent) {
+     */
+    protected DocPrototype(Prototype proto, DocElement parent) {
         super(proto.getName(), PROTOTYPE);
         this.parent = parent;
         this.proto = proto;
