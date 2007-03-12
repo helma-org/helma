@@ -34,7 +34,7 @@
         <property name="optimize" value="on"/>
         <property name="deprecation" value="off"/>
 
-        <property name="build.jsdocs" value="${home.dir}/docs/modules"/>
+        <property name="build.jsdocs" value="${home.dir}/docs/framework"/>
         <property name="jsdoc" value="/usr/local/jsdoc/jsdoc.pl"/>
 
         <path id="build.class.path">
@@ -67,6 +67,7 @@
         <echo message=" compile       --> compiles the source code to ./classes"/>
         <echo message=" jar           --> generates the ./lib/helma-YYYYMMDD.jar file"/>
         <echo message=" javadocs      --> generates the API docs"/>
+        <echo message=" jsdocs        --> generates the framework docs"/>
     <!--<echo message=" docs           -> tries to retrieve the HTML documentation "/>   -->
     <!--<echo message="                   (may need proxy settings in startscript)"/>    -->
         <echo message=" package       --> generates the distribution (zip and tar.gz)"/>
@@ -135,7 +136,7 @@
 
 
     <!-- =================================================================== -->
-    <!-- Creates the API documentation                                       -->
+    <!-- Creates the javadoc API documentation                                       -->
     <!-- =================================================================== -->
     <target name="javadocs" depends="init">
         <mkdir dir="${build.javadocs}"/>
@@ -150,6 +151,33 @@
             bottom="Copyright &#169; ${year} Helma.org. All Rights Reserved."
             classpathref="build.class.path"
         />
+    </target>
+
+
+    <!-- =================================================================== -->
+    <!-- Create the jsdoc Framework documentation                      -->
+    <!-- =================================================================== -->
+    <target name="jsdocs" depends="init, package-modules">
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="reference" dest="${build.work}" />
+    	<mkdir dir="${build.jsdocs}"/>
+    	<exec executable="${jsdoc}" dir="${build.work}" >
+          <arg value="-r"/>
+          <arg value="-d"/>
+          <arg value="${build.jsdocs}"/>
+          <arg value="--no-sources"/>
+          <arg value="--project-name"/>
+          <arg value="helma"/>
+          <arg value="--globals-name"/>
+          <arg value="global"/>
+          <arg value="--template-dir"/>
+          <arg value="${build.work}/reference/templates"/>
+          <arg value="--logo"/>
+          <arg value="${home.dir}/static/helma2.gif"/>
+          <arg value="${build.work}/reference/coreEnvironment" />
+          <arg value="${build.work}/reference/coreExtensions" />
+          <arg value="${build.work}/modules"/>
+        </exec>
+        <delete dir="${build.work}/reference" />
     </target>
 
 
@@ -214,13 +242,16 @@
         <!-- checkout the demo apps (and zip manage-app) -->
         <antcall target="package-apps" />
 
-        <!-- checkout helmaLib and helmaTools modules, zip and build jsdoc -->
+        <!-- checkout the helmaLib modules and add the zipped helmaTools -->
         <antcall target="package-modules" />
 
         <!-- create the main part of helma -->
         <antcall target="package-raw">
             <param name="distribution" value="main" />
         </antcall>
+
+        <!-- generate the framework and modules documentation -->
+        <antcall target="jsdocs" />
 
         <chmod perm="755">
             <fileset dir="${build.work}">
@@ -342,30 +373,9 @@
     <!-- =================================================================== -->
     <target name="package-modules" depends="init">
         <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="modules" dest="${build.work}" />
-        <antcall target="package-modules-jsdoc" />
         <antcall target="package-helmaTools" />
     </target>
 
-    <!-- =================================================================== -->
-    <!-- Create JSDoc for modules                                            -->
-    <!-- =================================================================== -->
-    <target name="package-modules-jsdoc" depends="init">
-    	<mkdir dir="${build.jsdocs}"/>
-    	<exec executable="${jsdoc}" dir="${build.work}" >
-          <arg value="-r"/>
-          <arg value="-d"/>
-          <arg value="${build.jsdocs}"/>
-          <arg value="--project-name"/>
-          <arg value="helmaLib"/>
-          <arg value="--project-summary"/>
-          <arg value="modules/summary.txt"/>
-          <arg value="--globals-name"/>
-          <arg value="global"/>
-          <arg value="--logo"/>
-          <arg value="${home.dir}/static/helma2.gif"/>
-          <arg value="modules"/>
-        </exec>
-    </target>
 
     <!-- =================================================================== -->
     <!-- Checkout and zip helmaTools                                         -->
