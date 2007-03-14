@@ -9,9 +9,9 @@
  * Copyright 1998-2007 Helma Software. All Rights Reserved.
  *
  * $RCSfile: File.js,v $
- * $Author: hannes $
- * $Revision: 1.3 $
- * $Date: 2006/07/25 20:07:59 $
+ * $Author: czv $
+ * $Revision: 1.4 $
+ * $Date: 2007/02/07 23:37:23 $
  */
 
 
@@ -546,11 +546,11 @@ helma.File = function(path) {
    };
 
    /**
-    * This methods reads the rest of the file and returns an 
-    * array with a slot for each line of the file.
+    * This methods reads all the lines contained in the 
+    * file and returns them.
     * 
-    * @returns Array of the remaining unread lines in the file
-    * @type Array
+    * @return String of all the lines in the file
+    * @type String
     */
    this.readAll = function() {
       // Open the file for readAll
