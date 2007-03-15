@@ -54,7 +54,7 @@ public class StringUtils {
      *  @return an array of lines
      */
     public static String[] splitLines(String str) {
-        return str.split("\\r|\\n|\\r\\n");
+        return str.split("\\r\\n|\\r|\\n");
     }
 
 }
