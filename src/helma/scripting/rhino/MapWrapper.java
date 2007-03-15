@@ -43,12 +43,14 @@ public class MapWrapper extends ScriptableObject implements Wrapper {
     /**
      * Creates a new MapWrapper object.
      *
-     * @param map ...
-     * @param core ...
+     * @param map the Map
+     * @param core the RhinoCore instance
      */
     public MapWrapper(Map map, RhinoCore core) {
         this.map = map;
         this.core = core;
+        setParentScope(core.global);
+        setPrototype(ScriptableObject.getObjectPrototype(core.global));
     }
 
     /**
