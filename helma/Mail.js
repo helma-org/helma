@@ -9,9 +9,9 @@
  * Copyright 1998-2007 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Mail.js,v $
- * $Author: czv $
- * $Revision: 1.5 $
- * $Date: 2007/02/07 11:51:47 $
+ * $Author: hannes $
+ * $Revision: 1.6 $
+ * $Date: 2007/02/07 14:55:03 $
  */
 
 /**
@@ -51,7 +51,7 @@ if (!global.helma) {
  * @param {String} smtp as String, the hostname of the mail server
  * @constructor
  */
-helma.Mail = function(smtp) {
+helma.Mail = function(host, port) {
     // Error code values for this.status
     var OK          =  0;
     var SUBJECT     = 10;
@@ -92,20 +92,7 @@ helma.Mail = function(smtp) {
     var MimeMultipart       = MAILPKG.internet.MimeMultipart;
 
     var buffer, multipart, multipartType = "mixed";
-
-    var props = new Properties();
-    System.setProperty(
-        "mail.mime.charset",
-        System.getProperty("mail.charset", "ISO-8859-15")
-    );
-
-    var host = smtp || getProperty("smtp");
-    if (host != null) {
-        props.put("mail.smtp.host", host);
-    }
-
-    var session = Session.getInstance(props);
-    var message = new MimeMessage(session);
+    var username, password;
 
     var setStatus = function(status) {
         if (self.status === OK) {
@@ -130,6 +117,61 @@ helma.Mail = function(smtp) {
         }
         message.addRecipient(type, address);
         return;
+    };
+
+    /**
+     * Adds the content stored in this helma.Mail instance
+     * to the wrapped message.
+     * @private
+     */
+    var setContent = function() {
+        if (buffer != null) {
+            if (multipart != null) {
+                var part = new MimeBodyPart();
+                part.setContent(buffer.toString(), "text/plain");
+                multipart.addBodyPart(part, 0);
+                message.setContent(multipart);
+            } else {
+                message.setText(buffer.toString());
+            }
+        } else if (multipart != null) {
+            message.setContent(multipart);
+        } else {
+            message.setText("");
+        }
+        return;
+    };
+
+    /**
+     * Sets username and password to use for SMTP authentication.
+     * @param {String} uname The username to use
+     * @param {String} pwd The password to use
+     */
+    this.setAuthentication = function(uname, pwd) {
+        if (username && password) {
+            username = uname;
+            password = pwd;
+            // enable smtp authentication
+            props.put("mail.smtp.auth", "true");
+        }
+        return;
+    }
+
+    /**
+     * Returns the wrapped message
+     * @returns The wrapped message
+     * @type javax.mail.internet.MimeMessage
+     */
+    this.getMessage = function() {
+        return message;
+    };
+
+    /**
+     * Switches debug mode on or off.
+     * @param {Boolean} debug If true debug mode is enabled
+     */
+    this.setDebug = function(debug) {
+        session.setDebug(debug === true);
     };
 
     /**
@@ -162,7 +204,7 @@ helma.Mail = function(smtp) {
             }
             message.setFrom(address);
         } catch (mx) {
-            res.debug(errStr + ".setFrom(): " + mx);
+            app.logger.error(errStr + ".setFrom(): " + mx);
             setStatus(FROM);
         }
         return;
@@ -181,7 +223,7 @@ helma.Mail = function(smtp) {
             var address = [new InternetAddress(addstr)];
             message.setReplyTo(address);
         } catch (mx) {
-            res.debug(errStr + ".setReplyTo(): " + mx);
+            app.logger.error(errStr + ".setReplyTo(): " + mx);
             setStatus(REPLYTO);
         }
         return;
@@ -202,7 +244,7 @@ helma.Mail = function(smtp) {
         try {
             addRecipient(addstr, name, Message.RecipientType.TO);
         } catch (mx) {
-            res.debug(errStr + ".setTo(): " + mx);
+            app.logger.error(errStr + ".setTo(): " + mx);
             setStatus(TO);
         }
         return;
@@ -223,17 +265,28 @@ helma.Mail = function(smtp) {
         try {
             addRecipient(addstr, name, Message.RecipientType.TO);
         } catch (mx) {
-            res.debug(errStr + ".addTo(): " + mx);
+            app.logger.error(errStr + ".addTo(): " + mx);
             setStatus(TO);
         }
         return;
     }
 
+    /**
+     * Adds a recipient to the list of addresses to get a "carbon copy"
+     * of an e-mail message.
+     * <br /><br />
+     * The first argument specifies the receipient's 
+     * e-mail address. The optional second argument 
+     * specifies the name of the recipient.
+     *
+     * @param {String} addstr as String, receipients email address
+     * @param {String} name as String, optional receipients name
+     */
     this.addCC = function(addstr, name) {
         try {
             addRecipient(addstr, name, Message.RecipientType.CC);
         } catch (mx) {
-            res.debug(errStr + ".addCC(): " + mx);
+            app.logger.error(errStr + ".addCC(): " + mx);
             setStatus(CC);
         }
         return;
@@ -253,7 +306,7 @@ helma.Mail = function(smtp) {
         try {
             addRecipient(addstr, name, Message.RecipientType.BCC);
         } catch (mx) {
-            res.debug(errStr + ".addBCC(): " + mx);
+            app.logger.error(errStr + ".addBCC(): " + mx);
             setStatus(BCC);
         }
         return;
@@ -271,7 +324,7 @@ helma.Mail = function(smtp) {
         try {
             message.setSubject(MimeUtility.encodeWord(subject.toString()));
         } catch (mx) {
-            res.debug(errStr + ".setSubject(): " + mx);
+            app.logger.error(errStr + ".setSubject(): " + mx);
             setStatus(SUBJECT);
         }
         return;
@@ -315,7 +368,8 @@ helma.Mail = function(smtp) {
      */
     this.setMultipartType = function(messageType) {
         multipartType = messageType;
-    }
+        return;
+    };
 
     /**
      * Returns the MIME multiparte message subtype. The default value is
@@ -327,7 +381,7 @@ helma.Mail = function(smtp) {
      */
     this.getMultipartType = function(messageType) {
         return multipartType;
-    }
+    };
 
     /**
      * Adds an attachment to an e-mail message.
@@ -386,11 +440,62 @@ helma.Mail = function(smtp) {
             }
             multipart.addBodyPart(part);
         } catch (mx) {
-            res.debug(errStr + ".addPart(): " + mx);
+            app.logger.error(errStr + ".addPart(): " + mx);
             setStatus(MIMEPART);
         }
         return;
-    }
+    };
+
+    /**
+     * Saves this mail RFC 822 formatted into a file. The name of the
+     * file is prefixed with "helma.Mail" followed by the current time
+     * in milliseconds and a random number.
+     * @param {helma.File} dir An optional directory where to save
+     * this mail to. If omitted the mail will be saved in the system's
+     * temp directory.
+     */
+    this.writeToFile = function(dir) {
+        if (!dir || !dir.exists() || !dir.canWrite()) {
+            dir = new java.io.File(System.getProperty("java.io.tmpdir"));
+        }
+        var fileName = "helma.Mail." + (new Date()).getTime() +
+                       "." + Math.round(Math.random() * 1000000);
+        var file = new java.io.File(dir, fileName);
+        if (file.exists()) {
+            file["delete"]();
+        }
+        try {
+            setContent();
+            var fos = new java.io.FileOutputStream(file);
+            var os = new java.io.BufferedOutputStream(fos);
+            message.writeTo(os);
+            os.close();
+            app.logger.info("helma.Mail.saveTo(): saved mail to " +
+                            file.getAbsolutePath());
+        } catch (e) {
+            app.logger.error(errStr + ".saveTo(): " + e);
+        }
+        return;
+    };
+
+    /**
+     * Returns the source of this mail as RFC 822 formatted string.
+     * @returns The source of this mail as RFC 822 formatted string
+     * @type String
+     */
+    this.getSource = function() {
+        try {
+            setContent();
+            var buf = new java.io.ByteArrayOutputStream();
+            var os = new java.io.BufferedOutputStream(buf);
+            message.writeTo(os);
+            os.close();
+            return buf.toString();
+        } catch (e) {
+            app.logger.error(errStr + ".getSource(): " + e);
+        }
+        return null;
+    };
 
     /**
      * Sends an e-mail message.
@@ -403,35 +508,61 @@ helma.Mail = function(smtp) {
      * object was constructed, the smtp property in either
      * the app.properties or server.properties file needs
      * to be set in order for this to work.
+     * <br /><br />
+     * As a fallback, the message will then be written to
+     * file using the {@link #writeToFile} method. 
+     * Additionally, the location of the message files can
+     * be determined by setting smtp.dir in app.properties
+     * to the desired file path.
      */
     this.send = function() {
         if (this.status > OK) {
-            res.debug(errStr + ".send(): Status is " + this.status);
+            app.logger.error(errStr + ".send(): Status is " + this.status);
             return;
         }
-        try {
-            if (buffer != null) {
-                if (multipart != null) {
-                    var part = new MimeBodyPart();
-                    part.setContent(buffer.toString(), "text/plain");
-                    multipart.addBodyPart(part, 0);
-                    message.setContent(multipart);
+        if (host != null) {
+            try {
+                setContent();
+                message.setSentDate(new Date());
+                var transport = session.getTransport("smtp");
+                if (username && password) {
+                    transport.connect(host, username, password);
                 } else {
-                    message.setText(buffer.toString());
+                    transport.connect();
                 }
-            } else if (multipart != null) {
-                message.setContent(multipart);
-            } else {
-                message.setText("");
+                message.saveChanges();
+                transport.sendMessage(message, message.getAllRecipients());
+            } catch (mx) {
+                app.logger.error(errStr + ".send(): " + mx);
+                setStatus(SEND);
+            } finally {
+                if (transport != null && transport.isConnected()) {
+                    transport.close();
+                }
             }
-            message.setSentDate(new Date());
-            Transport.send(message);
-        } catch (mx) {
-            res.debug(errStr + ".send(): " + mx);
-            setStatus(SEND);
+        } else {
+            // no smtp host is given, so write the mail to a file
+            this.writeToFile(getProperty("smtp.dir"));
         }
         return;
     };
+
+    /**
+     * Main constructor body
+     */
+    var props = new Properties();
+    if (host || (host = getProperty("smtp"))) {
+        props.put("mail.transport.protocol", "smtp");
+        props.put("mail.smtp.host", String(host));
+        props.put("mail.smtp.port", String(port) || "25")
+        props.put("mail.mime.charset",
+                  System.getProperty("mail.charset", "ISO-8859-15"));
+    }
+
+    this.setAuthentication(getProperty("smtp.username"),
+                           getProperty("smtp.password"));
+    var session = Session.getInstance(props);
+    var message = new MimeMessage(session);
 
     for (var i in this)
         this.dontEnum(i);
@@ -451,13 +582,14 @@ helma.Mail.prototype.toString = function() {
     return "[helma.Mail Object]";
 };
 
-helma.Mail.example = function(smtp, sender, addr, subject, text) {
+helma.Mail.example = function(host, sender, addr, subject, text) {
     // var smtp = "smtp.host.dom";
     // var sender = "sender@host.dom";
     // var addr = "recipient@host.dom";
     // var subject = "Hello, World!";
     // var text = "This is a test.";
-    var msg = new helma.Mail(smtp);
+    var port = 25;
+    var msg = new helma.Mail(host, port);
     msg.setFrom(sender);
     msg.addTo(addr);
     msg.setSubject(subject);
