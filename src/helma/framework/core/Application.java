@@ -168,8 +168,10 @@ public final class Application implements Runnable {
     Hashtable customCronJobs = null;
 
     private ResourceComparator resourceComparator;
-
     private Resource currentCodeResource;
+
+    // Field to cache unmapped java classes
+    private final static String CLASS_NOT_MAPPED = "(unmapped)";
 
     /**
      *  Simple constructor for dead application instances.
@@ -1315,41 +1317,40 @@ public final class Application implements Runnable {
     public String getPrototypeName(Object obj) {
         if (obj == null) {
             return "global";
+        } else if (obj instanceof IPathElement) {
+            // check if e implements the IPathElement interface
+            return ((IPathElement) obj).getPrototype();
         }
 
-        // check if e implements the IPathElement interface
-        if (obj instanceof IPathElement) {
-            // e implements the getPrototype() method
-            return ((IPathElement) obj).getPrototype();
-        } else {
-            // look up prototype name by java class name
-            Class clazz = obj.getClass();
-            String protoname = classMapping.getProperty(clazz.getName());
-            if (protoname != null) {
-                return protoname;
-            }
-            // walk down superclass path
-            while ((clazz = clazz.getSuperclass()) != null) {
-                protoname = classMapping.getProperty(clazz.getName());
-                if (protoname != null) {
-                    // cache the class name for the object so we run faster next time
-                    classMapping.setProperty(obj.getClass().getName(), protoname);
-                    return protoname;
-                }
-            }
-            // check interfaces, too
-            Class[] classes = obj.getClass().getInterfaces();
-            for (int i = 0; i < classes.length; i++) {
-                protoname = classMapping.getProperty(classes[i].getName());
-                if (protoname != null) {
-                    // cache the class name for the object so we run faster next time
-                    classMapping.setProperty(obj.getClass().getName(), protoname);
-                    return protoname;
-                }
-            }
-            // nada
-            return null;
+        Class clazz = obj.getClass();
+        String className = clazz.getName();
+        String protoName = classMapping.getProperty(className);
+        if (protoName != null) {
+            return protoName == CLASS_NOT_MAPPED ? null : protoName;
         }
+
+        // walk down superclass path
+        while ((clazz = clazz.getSuperclass()) != null) {
+            protoName = classMapping.getProperty(clazz.getName());
+            if (protoName != null) {
+                // cache the class name for the object so we run faster next time
+                classMapping.setProperty(className, protoName);
+                return protoName;
+            }
+        }
+        // check interfaces, too
+        Class[] classes = obj.getClass().getInterfaces();
+        for (int i = 0; i < classes.length; i++) {
+            protoName = classMapping.getProperty(classes[i].getName());
+            if (protoName != null) {
+                // cache the class name for the object so we run faster next time
+                classMapping.setProperty(className, protoName);
+                return protoName;
+            }
+        }
+        // not mapped - cache negative result
+        classMapping.setProperty(className, CLASS_NOT_MAPPED);
+        return null;
     }
 
     public DocApplication getDoc() {
