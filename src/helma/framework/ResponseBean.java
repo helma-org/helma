@@ -525,12 +525,17 @@ public class ResponseBean implements Serializable {
     }
 
     /**
-     * Abort the current transaction by throwing an Error
+     * Abort the current transaction and start a new one
      *  
-     * @throws AbortException
+     * @throws Exception
      */
-    public void abort() throws AbortException {
-        throw new AbortException();
+    public void abort() throws Exception {
+        if (Thread.currentThread() instanceof Transactor) {
+            Transactor tx = (Transactor) Thread.currentThread();
+            String tname = tx.getTransactionName();
+            tx.abort();
+            tx.begin(tname);
+        }
     }
 
 }
