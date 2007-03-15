@@ -108,14 +108,35 @@ public interface ScriptingEngine {
     public void abort();
 
     /**
-     *  Get a property on an object
+     * Get a property on an object
+     * @param thisObject the object
+     * @param key the property name
+     * @return true the property value, or null
      */
-    public Object get(Object thisObject, String key);
+    public Object getProperty(Object thisObject, String key);
 
     /**
-     *  Return true if a function by that name is defined for that object.
+     * Return true if a function by that name is defined for that object.
+     * @param thisObject the object
+     * @param functionName the function name
+     * @return true if the function is defined on the object
      */
     public boolean hasFunction(Object thisObject, String functionName);
+
+    /**
+     * Return true if a property by that name is defined for that object.
+     * @param thisObject the object
+     * @param propertyName the property name
+     * @return true if the function is defined on the object
+     */
+    public boolean hasProperty(Object thisObject, String propertyName);
+
+    /**
+     * Return a string representation for the given object
+     * @param obj an object
+     * @return a string representing the object
+     */
+    public String toString(Object obj);
 
     /**
      *  Get an IPathElement that offers introspection services into the application.

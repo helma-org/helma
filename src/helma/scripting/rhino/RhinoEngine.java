@@ -255,7 +255,7 @@ public class RhinoEngine implements ScriptingEngine {
             }
             Object f = ScriptableObject.getProperty(obj, functionName);
 
-            if ((f == ScriptableObject.NOT_FOUND) || !(f instanceof Function)) {
+            if (!(f instanceof Function)) {
                 return null;
             }
 
@@ -275,7 +275,7 @@ public class RhinoEngine implements ScriptingEngine {
             }
 
             // use Context.call() in order to set the context's factory
-            Object retval = Context.call(core.contextFactory, (Function)f, global, obj, args);
+            Object retval = Context.call(core.contextFactory, (Function) f, global, obj, args);
 
             if (retval instanceof Wrapper) {
                 retval = ((Wrapper) retval).unwrap();
@@ -353,67 +353,81 @@ public class RhinoEngine implements ScriptingEngine {
 
         Object func = ScriptableObject.getProperty(op, fname);
 
-        return func instanceof Function;
+        return func instanceof Callable;
+    }
+
+    /**
+     * Check if an object has a value property defined with that name.
+     */
+    public boolean hasProperty(Object obj, String propname) {
+        if ((obj == null) || (propname == null)) {
+            return false;
+        }
+        String prototypeName = app.getPrototypeName(obj);
+        if ("user".equalsIgnoreCase(prototypeName)
+                && "password".equalsIgnoreCase(propname)) {
+            return false;
+        }
+        // if this is a HopObject, check if the property is defined
+        // in the type.properties db-mapping.
+        if (obj instanceof INode && ! "hopobject".equalsIgnoreCase(prototypeName)) {
+            DbMapping dbm = app.getDbMapping(prototypeName);
+            if (dbm != null) {
+                Relation rel = dbm.propertyToRelation(propname);
+                return rel != null && (rel.isPrimitive() || rel.isCollection());
+            }
+        }
+        Scriptable wrapped = Context.toObject(obj, global);
+        return wrapped.has(propname, wrapped);
     }
 
     /**
      * Check if an object has a defined property (public field if it
      * is a java object) with that name.
      */
-    public Object get(Object obj, String propname) {
-        if ((obj == null) || (propname == null)) {
+    public Object getProperty(Object obj, String propname) {
+        if ((obj == null) || (propname == null))
             return null;
-        }
-
-        String prototypeName = app.getPrototypeName(obj);
-
-        if ("user".equalsIgnoreCase(prototypeName) &&
-                "password".equalsIgnoreCase(propname)) {
-            return "[macro access to password property not allowed]";
-        }
-
-        // if this is a HopObject, check if the property is defined
-        // in the type.properties db-mapping.
-        if (obj instanceof INode) {
-            DbMapping dbm = app.getDbMapping(prototypeName);
-
-            if (dbm != null) {
-                Relation rel = dbm.propertyToRelation(propname);
-
-                if ((rel == null) || !rel.isPrimitive()) {
-                    return "[property \"" + propname + "\" is not defined for " +
-                           prototypeName + "]";
-                }
-            }
-        }
 
         Scriptable so = Context.toObject(obj, global);
 
         try {
             Object prop = so.get(propname, so);
 
-            if ((prop == null) || (prop == Undefined.instance)
-	                       || (prop == ScriptableObject.NOT_FOUND)) {
+            if ((prop == null)
+                    || (prop == Undefined.instance)
+	                || (prop == ScriptableObject.NOT_FOUND)) {
                 return null;
             } else if (prop instanceof Wrapper) {
                 return ((Wrapper) prop).unwrap();
             } else {
-                // not all Rhino types convert to a string as expected
-                // when calling toString() - try to do better by using
-                // Rhino's ScriptRuntime.toString(). Note that this
-                // assumes that people always use this method to get
-                // a string representation of the object - which is
-                // currently the case since it's only used in Skin rendering.
-                try {
-                    return ScriptRuntime.toString(prop);
-                } catch (Exception x) {
-                    // just return original property object
-                }
                 return prop;
             }
         } catch (Exception esx) {
+            app.logError("Error getting property " + propname + ": " + esx);
             return null;
         }
+    }
+
+
+    /**
+     * Return a string representation for the given object
+     * @param obj an object
+     * @return a string representing the object
+     */
+    public String toString(Object obj) {
+        // not all Rhino types convert to a string as expected
+        // when calling toString() - try to do better by using
+        // Rhino's ScriptRuntime.toString(). Note that this
+        // assumes that people always use this method to get
+        // a string representation of the object - which is
+        // currently the case since it's only used in Skin rendering.
+        try {
+            return ScriptRuntime.toString(obj);
+        } catch (Exception x) {
+            // just return original property object
+        }
+        return obj.toString();
     }
 
     /**

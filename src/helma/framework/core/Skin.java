@@ -20,7 +20,6 @@ import helma.framework.*;
 import helma.framework.repository.Resource;
 import helma.objectmodel.ConcurrencyException;
 import helma.util.*;
-import helma.scripting.ScriptingException;
 
 import java.util.*;
 import java.io.UnsupportedEncodingException;
@@ -34,16 +33,25 @@ import java.io.IOException;
  * from the RequestEvaluator object to resolve Macro handlers by type name.
  */
 public final class Skin {
-    static final int HANDLER = 0;
-    static final int MACRO = 1;
-    static final int PARAMNAME = 2;
-    static final int PARAMVALUE = 3;
-    static final int ENCODE_NONE = 0;
-    static final int ENCODE_HTML = 1;
-    static final int ENCODE_XML = 2;
-    static final int ENCODE_FORM = 3;
-    static final int ENCODE_URL = 4;
-    static final int ENCODE_ALL = 5;
+    static private final int PARSE_MACRONAME = 0;
+    static private final int PARSE_PARAMNAME = 1;
+    static private final int PARSE_PARAMVALUE = 2;
+
+    static private final int ENCODE_NONE = 0;
+    static private final int ENCODE_HTML = 1;
+    static private final int ENCODE_XML = 2;
+    static private final int ENCODE_FORM = 3;
+    static private final int ENCODE_URL = 4;
+    static private final int ENCODE_ALL = 5;
+
+    static private final int HANDLER_RESPONSE = 0;
+    static private final int HANDLER_REQUEST = 1;
+    static private final int HANDLER_SESSION = 2;
+    static private final int HANDLER_PARAM = 3;
+    static private final int HANDLER_GLOBAL = 4;
+    static private final int HANDLER_THIS = 5;
+    static private final int HANDLER_OTHER = 6;
+
     private Macro[] macros;
     private Application app;
     private char[] source;
@@ -114,22 +122,15 @@ public final class Skin {
     private void parse() {
         ArrayList partBuffer = new ArrayList();
 
+        boolean escape = false;
         for (int i = 0; i < (sourceLength - 1); i++) {
-            if ((source[i] == '<') && (source[i + 1] == '%')) {
+            if (source[i] == '<' && source[i + 1] == '%' && !escape) {
                 // found macro start tag
-                int j = i + 2;
-
-                // search macr end tag
-                while ((j < (sourceLength - 1)) &&
-                           ((source[j] != '%') || (source[j + 1] != '>'))) {
-                    j++;
-                }
-
-                if (j > (i + 2)) {
-                    partBuffer.add(new Macro(i, j + 2));
-                }
-
-                i = j + 1;
+                Macro macro = new Macro(i, 2);
+                partBuffer.add(macro);
+                i = macro.end - 1;
+            } else {
+                escape = source[i] == '\\' && !escape;
             }
         }
 
@@ -222,7 +223,7 @@ public final class Skin {
             if (macros[i] instanceof Macro) {
                 Macro m = macros[i];
 
-                if (macroname.equals(m.fullName)) {
+                if (macroname.equals(m.name)) {
                     return true;
                 }
             }
@@ -242,58 +243,113 @@ public final class Skin {
         sandbox.add(macroname);
     }
 
+    private Object renderMacro(Object value, RequestEvaluator reval,
+                               Object thisObj, Map handlerCache)
+            throws UnsupportedEncodingException {
+        if (value instanceof Macro) {
+            ResponseTrans res = reval.getResponse();
+            res.pushStringBuffer();
+            ((Macro) value).render(reval, thisObj, handlerCache);
+            return res.popStringBuffer();
+        } else {
+            return value;
+        }
+    }
+
+
+
     class Macro {
-        final int start;
-        final int end;
-        String handler;
+        final int start, end;
         String name;
-        String fullName;
+        String[] path;
+        int handler = HANDLER_OTHER;
         int encoding = ENCODE_NONE;
+        boolean hasNestedMacros = false;
 
         // default render parameters - may be overridden if macro changes
         // param.prefix/suffix/default
-        RenderParameters defaultRenderParams = new RenderParameters();
+        StandardParams standardParams = new StandardParams();
         Map params = null;
+        // filters defined via <% foo | bar %>
+        Macro filterChain;
 
         // comment macros are silently dropped during rendering
         boolean isCommentMacro = false;
 
-        public Macro(int start, int end) {
+        /**
+         * Create and parse a new macro.
+         * @param start the start of the macro within the skin source
+         * @param offset offset of the macro content from the start index
+         */
+        public Macro(int start, int offset) {
             this.start = start;
-            this.end = end;
 
-            int state = HANDLER;
+            int state = PARSE_MACRONAME;
             boolean escape = false;
             char quotechar = '\u0000';
             String lastParamName = null;
             StringBuffer b = new StringBuffer();
+            int i;
 
-            for (int i = start + 2; i < (end - 2); i++) {
+            loop:
+            for (i = start + offset; i < sourceLength - 1; i++) {
+
                 switch (source[i]) {
+
+                    case '<':
+
+                        if (state == PARSE_PARAMVALUE && quotechar == '\u0000' && source[i + 1] == '%') {
+                            Macro macro = new Macro(i, 2);
+                            hasNestedMacros = true;
+                            addParameter(lastParamName, macro);
+                            lastParamName = null;
+                            b.setLength(0);
+                            state = PARSE_PARAMNAME;
+                            i = macro.end - 1;
+                        } else {
+                            b.append(source[i]);
+                            escape = false;
+                        }
+                        break;
+
+                    case '%':
+
+                        if ((state != PARSE_PARAMVALUE || quotechar == '\u0000') && source[i + 1] == '>') {
+                            break loop;
+                        }
+                        b.append(source[i]);
+                        escape = false;
+                        break;
 
                     case '/':
 
                         b.append(source[i]);
                         escape = false;
 
-                        if (state == HANDLER && "//".equals(b.toString())) {
+                        if (state == PARSE_MACRONAME && "//".equals(b.toString())) {
                             isCommentMacro = true;
-                            return;
+                            // search macro end tag
+                            while (i < sourceLength - 1 &&
+                                       (source[i] != '%' || source[i + 1] != '>')) {
+                                i++;
+                            }
+
+                            break loop;
                         }
 
                         break;
 
-                    case '.':
+                    case '|':
 
-                        if (state == HANDLER) {
-                            handler = b.toString().trim();
+                        if (state == PARSE_PARAMNAME) {
+                            filterChain = new Macro(i, 1);
+                            i = filterChain.end - 2;
+                            lastParamName = null;
                             b.setLength(0);
-                            state = MACRO;
-                        } else {
-                            b.append(source[i]);
-                            escape = false;
+                            break loop;
                         }
-
+                        b.append(source[i]);
+                        escape = false;
                         break;
 
                     case '\\':
@@ -309,13 +365,13 @@ public final class Skin {
                     case '"':
                     case '\'':
 
-                        if (!escape && (state == PARAMVALUE)) {
+                        if (!escape && (state == PARSE_PARAMVALUE)) {
                             if (quotechar == source[i]) {
                                 // add parameter
                                 addParameter(lastParamName, b.toString());
                                 lastParamName = null;
                                 b.setLength(0);
-                                state = PARAMNAME;
+                                state = PARSE_PARAMNAME;
                                 quotechar = '\u0000';
                             } else if (quotechar == '\u0000') {
                                 quotechar = source[i];
@@ -337,17 +393,17 @@ public final class Skin {
                     case '\r':
                     case '\f':
 
-                        if ((state == MACRO) || ((state == HANDLER) && (b.length() > 0))) {
+                        if (state == PARSE_MACRONAME && b.length() > 0) {
                             name = b.toString().trim();
                             b.setLength(0);
-                            state = PARAMNAME;
-                        } else if ((state == PARAMVALUE) && (quotechar == '\u0000')) {
+                            state = PARSE_PARAMNAME;
+                        } else if ((state == PARSE_PARAMVALUE) && (quotechar == '\u0000')) {
                             // add parameter
                             addParameter(lastParamName, b.toString());
                             lastParamName = null;
                             b.setLength(0);
-                            state = PARAMNAME;
-                        } else if (state == PARAMVALUE) {
+                            state = PARSE_PARAMNAME;
+                        } else if (state == PARSE_PARAMVALUE) {
                             b.append(source[i]);
                             escape = false;
                         } else {
@@ -358,10 +414,10 @@ public final class Skin {
 
                     case '=':
 
-                        if (state == PARAMNAME) {
+                        if (state == PARSE_PARAMNAME) {
                             lastParamName = b.toString().trim();
                             b.setLength(0);
-                            state = PARAMVALUE;
+                            state = PARSE_PARAMVALUE;
                         } else {
                             b.append(source[i]);
                             escape = false;
@@ -375,42 +431,65 @@ public final class Skin {
                 }
             }
 
+            this.end = Math.min(sourceLength, i + 2);
+
             if (b.length() > 0) {
                 if (lastParamName != null) {
                     // add parameter
                     addParameter(lastParamName, b.toString());
-                } else if (state <= MACRO) {
+                } else if (state == PARSE_MACRONAME) {
                     name = b.toString().trim();
                 }
             }
 
-            if (handler == null) {
-                fullName = name;
+            path = StringUtils.split(name, ".");
+            if (path.length <= 1) {
+                handler = HANDLER_GLOBAL;
             } else {
-                fullName = handler + "." + name;
+                String handlerName = path[0];
+                if ("this".equalsIgnoreCase(handlerName)) {
+                    handler = HANDLER_THIS;
+                } else if ("response".equalsIgnoreCase(handlerName)) {
+                    handler = HANDLER_RESPONSE;
+                } else if ("request".equalsIgnoreCase(handlerName)) {
+                    handler = HANDLER_REQUEST;
+                } else if ("session".equalsIgnoreCase(handlerName)) {
+                    handler = HANDLER_SESSION;
+                } else if ("param".equalsIgnoreCase(handlerName)) {
+                    handler = HANDLER_PARAM;
+                }
+            }
+            // Set default failmode unless explicitly set:
+            // silent for default handlers, verbose
+            if (params == null || !params.containsKey("failmode")) {
+                standardParams.silentFailMode = (handler < HANDLER_GLOBAL);
             }
         }
 
-        private void addParameter(String name, String value) {
+        private void addParameter(String name, Object value) {
             // check if this is parameter is relevant to us
             if ("prefix".equals(name)) {
-                defaultRenderParams.prefix = value;
+                standardParams.prefix = value;
             } else if ("suffix".equals(name)) {
-                defaultRenderParams.suffix = value;
+                standardParams.suffix = value;
             } else if ("encoding".equals(name)) {
-                if ("html".equalsIgnoreCase(value)) {
+                if ("html".equals(value)) {
                     encoding = ENCODE_HTML;
-                } else if ("xml".equalsIgnoreCase(value)) {
+                } else if ("xml".equals(value)) {
                     encoding = ENCODE_XML;
-                } else if ("form".equalsIgnoreCase(value)) {
+                } else if ("form".equals(value)) {
                     encoding = ENCODE_FORM;
-                } else if ("url".equalsIgnoreCase(value)) {
+                } else if ("url".equals(value)) {
                     encoding = ENCODE_URL;
-                } else if ("all".equalsIgnoreCase(value)) {
+                } else if ("all".equals(value)) {
                     encoding = ENCODE_ALL;
+                } else {
+                    app.logEvent("Unrecognized encoding in skin macro: " + value);
                 }
             } else if ("default".equals(name)) {
-                defaultRenderParams.defaultValue = value;
+                standardParams.defaultValue = value;
+            } else if ("failmode".equals(name)) {
+                standardParams.setFailMode(value);
             }
 
             // Add parameter to parameter map
@@ -430,94 +509,29 @@ public final class Skin {
                 return;
             }
 
-            if ((sandbox != null) && !sandbox.contains(fullName)) {
-                reval.getResponse().write("[Macro " + fullName + " not allowed in sandbox]");
-
-                return;
-            } else if ("response".equalsIgnoreCase(handler)) {
-                renderFromResponse(reval);
-
-                return;
-            } else if ("request".equalsIgnoreCase(handler)) {
-                renderFromRequest(reval);
-
-                return;
-            } else if ("session".equalsIgnoreCase(handler)) {
-                renderFromSession(reval);
-
-                return;
+            if ((sandbox != null) && !sandbox.contains(name)) {
+                throw new RuntimeException("Macro " + name + " not allowed in sandbox");
             }
 
+            Object handlerObject = null;
+
             try {
-                Object handlerObject = null;
 
-                // flag to tell whether we found our invocation target object
-                boolean objectFound = true;
-
-                if (handler != null) {
-                    // try to get handler from handlerCache first
-                    if (handlerCache != null) {
-                        handlerObject = handlerCache.get(handler);
-                    }
-
-                    if (handlerObject == null) {
-                        // if handler object wasn't found in cache retrieve it
-                        if ((handlerObject == null) && (thisObject != null)) {
-                            // not a global macro - need to find handler object
-                            // was called with this object - check it or its parents for matching prototype
-                            if (!handler.equals("this") &&
-                                    !handler.equalsIgnoreCase(app.getPrototypeName(thisObject))) {
-                                // the handler object is not what we want
-                                Object n = thisObject;
-
-                                // walk down parent chain to find handler object
-                                while (n != null) {
-                                    Prototype proto = app.getPrototype(n);
-
-                                    if ((proto != null) && proto.isInstanceOf(handler)) {
-                                        handlerObject = n;
-
-                                        break;
-                                    }
-
-                                    n = app.getParentElement(n);
-                                }
-                            } else {
-                                // we already have the right handler object
-                                handlerObject = thisObject;
-                            }
-                        }
-
-                        if (handlerObject == null) {
-                            // eiter because thisObject == null or the right object wasn't found
-                            // in the object's parent path. Check if a matching macro handler
-                            // is registered with the response object (res.handlers).
-                            handlerObject = reval.getResponse().getMacroHandlers().get(handler);
-                        }
-
-                        // the macro handler object couldn't be found
-                        if (handlerObject == null) {
-                            objectFound = false;
-                        }
-                        // else put the found handler object into the cache so we don't have to look again
-                        else if (handlerCache != null) {
-                            handlerCache.put(handler, handlerObject);
-                        }
-                    }
-                } else {
-                    // this is a global macro with no handler specified
-                    handlerObject = null;
+                if (handler != HANDLER_GLOBAL) {
+                    handlerObject = resolveHandler(thisObject, reval, handlerCache);
+                    handlerObject = resolvePath(handlerObject, reval);
                 }
 
-                if (objectFound) {
+                if (handler == HANDLER_GLOBAL || handlerObject != null) {
                     // check if a function called name_macro is defined.
                     // if so, the macro evaluates to the function. Otherwise,
                     // a property/field with the name is used, if defined.
-                    String funcName = name + "_macro";
+                    String propName = path[path.length - 1];
+                    String funcName = propName + "_macro";
 
                     if (reval.scriptingEngine.hasFunction(handlerObject, funcName)) {
                         StringBuffer buffer = reval.getResponse().getBuffer();
-                        RenderParameters renderParams = defaultRenderParams;
+                        StandardParams stdParams = standardParams;
 
                         // remember length of response buffer before calling macro
                         int bufLength = buffer.length();
@@ -528,67 +542,100 @@ public final class Skin {
 
                         if (params == null) {
                             arguments = new Object[] { new SystemMap(4) };
+                        } else if (hasNestedMacros) {
+                            SystemMap map = new SystemMap((int) (params.size() * 1.5));
+                            ResponseTrans res = reval.getResponse();
+                            for (Iterator it = params.entrySet().iterator(); it.hasNext(); ) {
+                                Map.Entry entry = (Map.Entry) it.next();
+                                Object value = entry.getValue();
+                                map.put(entry.getKey(), renderMacro(value, reval, thisObject, handlerCache));
+                            }
+                            if (standardParams.containsMacros())
+                                stdParams = new StandardParams(map);
+                            arguments = new Object[] { map };
                         } else {
                             wrappedParams = new CopyOnWriteMap(params);
                             arguments = new Object[] { wrappedParams };
                         }
-
                         Object value = reval.invokeDirectFunction(handlerObject,
                                                                   funcName,
                                                                   arguments);
 
                         // if parameter map was modified create new renderParams to override defaults
                         if (wrappedParams != null && wrappedParams.wasModified()) {
-                            renderParams = new RenderParameters(wrappedParams);
+                            stdParams = new StandardParams(wrappedParams);
+                        }
+
+                        // check if this macro has a filter chain
+                        if (filterChain != null) {
+                            if (value == null && buffer.length() > bufLength) {
+                                value = buffer.substring(bufLength);
+                                buffer.setLength(bufLength);
+                            }
                         }
 
                         // check if macro wrote out to response buffer
                         if (buffer.length() == bufLength) {
                             // If the macro function didn't write anything to the response itself,
                             // we interpret its return value as macro output.
-                            writeResponse(value, buffer, renderParams, true);
+                            writeResponse(value, reval, thisObject, handlerCache, stdParams, true);
                         } else {
                             // if an encoding is specified, re-encode the macro's output
                             if (encoding != ENCODE_NONE) {
                                 String output = buffer.substring(bufLength);
 
                                 buffer.setLength(bufLength);
-                                writeResponse(output, buffer, renderParams, false);
+                                writeResponse(output, reval, thisObject, handlerCache, stdParams, false);
                             } else {
                                 // insert prefix,
-                                if (renderParams.prefix != null) {
-                                    buffer.insert(bufLength, renderParams.prefix);
+                                if (stdParams.prefix != null) {
+                                    buffer.insert(bufLength, stdParams.prefix);
                                 }
                                 // append suffix
-                                if (renderParams.suffix != null) {
-                                    buffer.append(renderParams.suffix);
+                                if (stdParams.suffix != null) {
+                                    buffer.append(stdParams.suffix);
                                 }
                             }
 
                             // Append macro return value even if it wrote something to the response,
                             // but don't render default value in case it returned nothing.
                             // We do this for the sake of consistency.
-                            writeResponse(value, buffer, renderParams, false);
+                            writeResponse(value, reval, thisObject, handlerCache, stdParams, false);
                         }
                     } else {
-                        // for unhandled global macros display error message,
-                        // otherwise try property lookup
-                        if (handlerObject == null) {
-                            String msg = "[Macro unhandled: " + fullName + "]";
-                            reval.getResponse().write(" " + msg + " ");
-                            app.logEvent(msg);                            
+                        if (handler == HANDLER_RESPONSE) {
+                            // some special handling for response handler
+                            Object value = null;
+                            if ("message".equals(propName)) {
+                                value = reval.getResponse().getMessage();
+                            } else if ("error".equals(propName)) {
+                                value = reval.getResponse().getError();
+                            }
+                            if (value != null) {
+                                writeResponse(value, reval, thisObject, handlerCache, standardParams, true);
+                                return;                                
+                            }
+                        }
+                        // display error message unless silent failmode is on
+                        if (handlerObject == null || !hasProperty(handlerObject, propName, reval)) {
+                            if (!standardParams.silentFailMode) {
+                                String msg = "[Macro unhandled: " + name + "]";
+                                reval.getResponse().write(" " + msg + " ");
+                                app.logEvent(msg);
+                            }
 
                         } else {
-                            Object value = reval.scriptingEngine.get(handlerObject, name);
-                            writeResponse(value, reval.getResponse().getBuffer(), defaultRenderParams, true);
+                            Object value = getProperty(handlerObject, propName, reval);
+                            writeResponse(value, reval, thisObject, handlerCache, standardParams, true);
                         }
                     }
 
                 } else {
-                    String msg = "[Macro unhandled: " + fullName + "]";
-                    reval.getResponse().write(" " + msg + " ");
-                    app.logEvent(msg);
-
+                    if (!standardParams.silentFailMode) {
+                        String msg = "[Macro unhandled: " + name + "]";
+                        reval.getResponse().write(" " + msg + " ");
+                        app.logEvent(msg);
+                    }
                 }
             } catch (RedirectException redir) {
                 throw redir;
@@ -601,98 +648,176 @@ public final class Skin {
                 if ((msg == null) || (msg.length() < 10)) {
                     msg = x.toString();
                 }
-                msg = new StringBuffer("Macro error in ").append(fullName)
+                msg = new StringBuffer("Macro error in ").append(name)
                         .append(": ").append(msg).toString();
                 reval.getResponse().write(" [" + msg + "] ");
                 app.logError(msg, x);
             }
         }
 
-        private void renderFromResponse(RequestEvaluator reval)
-                throws UnsupportedEncodingException {
-            Object value = null;
+        private Object invokeFilter(RequestEvaluator reval, Object returnValue,
+                                    Object thisObject, Map handlerCache)
+                throws Exception {
 
-            if ("message".equals(name)) {
-                value = reval.getResponse().getMessage();
-            } else if ("error".equals(name)) {
-                value = reval.getResponse().getError();
+            if ((sandbox != null) && !sandbox.contains(name)) {
+                throw new RuntimeException("Macro " + name + " not allowed in sandbox");
+            }
+            Object handlerObject = null;
+
+            if (handler != HANDLER_GLOBAL) {
+                handlerObject = resolveHandler(thisObject, reval, handlerCache);
+                handlerObject = resolvePath(handlerObject, reval);
             }
 
-            if (value == null) {
-                value = reval.getResponse().get(name);
-            }
+            String funcName = name + "_filter";
 
-            writeResponse(value, reval.getResponse().getBuffer(), defaultRenderParams, true);
-        }
+            if (reval.scriptingEngine.hasFunction(handlerObject, funcName)) {
+                // pass a clone/copy of the parameter map so if the script changes it,
+                CopyOnWriteMap wrappedParams = null;
+                Object[] arguments;
 
-        private void renderFromRequest(RequestEvaluator reval)
-                throws UnsupportedEncodingException {
-            if (reval.getRequest() == null) {
-                return;
-            }
-
-            Object value = reval.getRequest().get(name);
-
-            writeResponse(value, reval.getResponse().getBuffer(), defaultRenderParams, true);
-        }
-
-        private void renderFromSession(RequestEvaluator reval)
-                throws UnsupportedEncodingException {
-            if (reval.getSession() == null) {
-                return;
-            }
-
-            Object value = reval.getSession().getCacheNode().getString(name);
-
-            writeResponse(value, reval.getResponse().getBuffer(), defaultRenderParams, true);
-        }
-
-        private void renderFromParam(RequestEvaluator reval, Map paramObject)
-                throws UnsupportedEncodingException {
-            if (paramObject == null) {
-                reval.getResponse().write("[Macro error: Skin requires a parameter object]");
+                if (params == null) {
+                    arguments = new Object[] { returnValue, new SystemMap(4) };
+                } else if (hasNestedMacros) {
+                    SystemMap map = new SystemMap((int) (params.size() * 1.5));
+                    ResponseTrans res = reval.getResponse();
+                    for (Iterator it = params.entrySet().iterator(); it.hasNext(); ) {
+                        Map.Entry entry = (Map.Entry) it.next();
+                        Object value = entry.getValue();
+                        map.put(entry.getKey(), renderMacro(value, reval, thisObject, handlerCache));
+                    }
+                    arguments = new Object[] { map };
+                } else {
+                    wrappedParams = new CopyOnWriteMap(params);
+                    arguments = new Object[] { returnValue, wrappedParams };
+                }
+                Object retval = reval.invokeDirectFunction(handlerObject,
+                                                           funcName,
+                                                           arguments);
+                if (filterChain == null) {
+                    return retval;
+                }
+                return filterChain.invokeFilter(reval, retval, thisObject, handlerCache);
             } else {
-                Object value = paramObject.get(name);
+                throw new RuntimeException("[Undefined Filter: " + name + "]");
+            }
+        }
 
-                writeResponse(value, reval.getResponse().getBuffer(), defaultRenderParams, true);
+        private Object resolveHandler(Object thisObject, RequestEvaluator reval, Map handlerCache) {
+            if (path.length < 2)
+                throw new RuntimeException("resolveHandler called on global macro");
+
+            switch (handler) {
+                case HANDLER_THIS:
+                    return thisObject;
+                case HANDLER_RESPONSE:
+                    return reval.getResponse().getResponseData();
+                case HANDLER_REQUEST:
+                    return reval.getRequest().getRequestData();
+                case HANDLER_SESSION:
+                    return reval.getSession().getCacheNode();
+            }
+
+            String handlerName = path[0];
+            // try to get handler from handlerCache first
+            if (handlerCache != null && handlerCache.containsKey(handlerName)) {
+                return handlerCache.get(handlerName);
+            }
+
+            // if handler object wasn't found in cache retrieve it
+            if (thisObject != null) {
+                // not a global macro - need to find handler object
+                // was called with this object - check it or its parents for matching prototype
+                if (handlerName.equalsIgnoreCase(app.getPrototypeName(thisObject))) {
+                    // we already have the right handler object
+                    // put the found handler object into the cache so we don't have to look again
+                    if (handlerCache != null)
+                        handlerCache.put(handlerName, thisObject);
+                    return thisObject;
+                } else {
+                    // the handler object is not what we want
+                    Object obj = thisObject;
+
+                    // walk down parent chain to find handler object
+                    while (obj != null) {
+                        Prototype proto = app.getPrototype(obj);
+
+                        if ((proto != null) && proto.isInstanceOf(handlerName)) {
+                            if (handlerCache != null)
+                                handlerCache.put(handlerName, obj);
+                            return obj;
+                        }
+
+                        obj = app.getParentElement(obj);
+                    }
+                }
+            }
+
+            Map macroHandlers = reval.getResponse().getMacroHandlers();
+            Object obj = macroHandlers.get(handlerName);
+            if (handlerCache != null && obj != null) {
+                handlerCache.put(handlerName, obj);
+            }
+            return obj;
+        }
+
+        private Object resolvePath(Object handler, RequestEvaluator reval) {
+            for (int i = 1; i < path.length - 1; i++) {
+                handler = getProperty(handler, path[i], reval);
+                if (handler == null) {
+                    break;
+                }
+            }
+            return handler;
+        }
+
+        private Object getProperty(Object obj, String name,
+                                   RequestEvaluator reval) {
+            if (obj instanceof Map) {
+                return ((Map) obj).get(name);
+            } else {
+                return reval.getScriptingEngine().getProperty(obj, name);
+            }
+        }
+
+        private boolean hasProperty(Object obj, String name, RequestEvaluator reval) {
+            if (obj instanceof Map) {
+                return ((Map) obj).containsKey(name);
+            } else {
+                return reval.getScriptingEngine().hasProperty(obj, name);
             }
         }
 
         /**
          * Utility method for writing text out to the response object.
          */
-        void writeResponse(Object value, StringBuffer buffer,
-                           RenderParameters renderParams, boolean useDefault)
-                throws UnsupportedEncodingException {
+        void writeResponse(Object value, RequestEvaluator reval,
+                           Object thisObject, Map handlerCache,
+                           StandardParams stdParams, boolean useDefault)
+                throws Exception {
             String text;
+            StringBuffer buffer = reval.getResponse().getBuffer();
+
+            // invoke filter chain if defined
+            if (filterChain != null) {
+                value = filterChain.invokeFilter(reval, value, thisObject, handlerCache);
+            }
 
             if (value == null) {
                 if (useDefault) {
-                    text = renderParams.defaultValue;
+                    text = (String) stdParams.defaultValue;
                 } else {
                     return;
                 }
             } else {
-                // do not render doubles as doubles unless
-                // they actually have a decimal place. This is necessary because
-                // all numbers are handled as Double in JavaScript.
-                if (value instanceof Double) {
-                    Double d = (Double) value;
-                    if (d.longValue() == d.doubleValue()) {
-                        text = Long.toString(d.longValue());
-                    } else {
-                        text = d.toString();
-                    }
-                } else {
-                    text = value.toString();
-                }
+                text = reval.getScriptingEngine().toString(value);
             }
 
             if ((text != null) && (text.length() > 0)) {
                 // only write prefix/suffix if value is not null, if we write the default
                 // value provided by the macro tag, we assume it's already complete
-                if (renderParams.prefix != null && value != null) {
-                    buffer.append(renderParams.prefix);
+                if (stdParams.prefix != null && value != null) {
+                    buffer.append(stdParams.prefix);
                 }
 
                 switch (encoding) {
@@ -727,36 +852,65 @@ public final class Skin {
                         break;
                 }
 
-                if (renderParams.suffix != null && value != null) {
-                    buffer.append(renderParams.suffix);
+                if (stdParams.suffix != null && value != null) {
+                    buffer.append(stdParams.suffix);
                 }
             }
         }
 
         public String toString() {
-            return "[Macro: " + fullName + "]";
+            return "[Macro: " + name + "]";
         }
 
         /**
          * Return the full name of the macro in handler.name notation
+         * @return the macro name
          */
-        public String getFullName() {
-            return fullName;
+        public String getName() {
+            return name;
         }
     }
 
-    class RenderParameters {
-        String prefix = null;
-        String suffix = null;
-        String defaultValue = null;
+    class StandardParams {
+        Object prefix = null;
+        Object suffix = null;
+        Object defaultValue = null;
+        boolean silentFailMode = false;
 
-        RenderParameters() {
+        StandardParams() {}
+
+        StandardParams(Map map) {
+            prefix = map.get("prefix");
+            suffix = map.get("suffix");
+            defaultValue = map.get("default");
+            silentFailMode = "silent".equals(map.get("failmode"));
         }
 
-        RenderParameters(Map map) {
-            prefix = (String) map.get("prefix");
-            suffix = (String) map.get("suffix");
-            defaultValue = (String) map.get("default");
+        boolean containsMacros() {
+            return prefix instanceof Macro
+                || suffix instanceof Macro
+                || defaultValue instanceof Macro;
         }
+
+        void setFailMode(Object value) {
+            if ("silent".equals(value))
+                silentFailMode = true;
+            else if ("verbose".equals(value))
+                silentFailMode = false;
+            else
+                app.logEvent("unrecognized failmode value: " + value);
+        }
+
+        StandardParams render(RequestEvaluator reval, Object thisObj, Map handlerCache)
+                throws UnsupportedEncodingException {
+            if (!containsMacros())
+                return this;
+            StandardParams stdParams = new StandardParams();
+            stdParams.prefix = renderMacro(prefix, reval, thisObj, handlerCache);
+            stdParams.suffix = renderMacro(suffix, reval, thisObj, handlerCache);
+            stdParams.defaultValue = renderMacro(defaultValue, reval, thisObj, handlerCache);
+            return stdParams;
+        }
+
     }
 }
