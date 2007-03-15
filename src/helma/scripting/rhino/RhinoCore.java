@@ -988,6 +988,12 @@ public final class RhinoCore implements ScopeProvider {
     class WrapMaker extends WrapFactory {
 
         public Object wrap(Context cx, Scriptable scope, Object obj, Class staticType) {
+            // taking a shortcut here on things normally defined by setJavaPrimitivesWrap()
+            if (obj == null || obj == Undefined.instance
+                    || obj instanceof Scriptable || obj instanceof String
+                    || obj instanceof Number || obj instanceof Boolean) {
+                return obj;
+            }
             // Wrap Nodes
             if (obj instanceof INode) {
                 return getNodeWrapper((INode) obj);
@@ -1017,6 +1023,9 @@ public final class RhinoCore implements ScopeProvider {
         }
 
         public Scriptable wrapNewObject(Context cx, Scriptable scope, Object obj) {
+            if (obj instanceof Scriptable) {
+                return (Scriptable) obj;
+            }
             if (obj instanceof INode) {
                 return getNodeWrapper((INode) obj);
             }
