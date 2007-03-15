@@ -22,6 +22,7 @@ import helma.util.CronJob;
 import helma.util.SystemMap;
 import helma.util.WrappedMap;
 import helma.framework.repository.*;
+import helma.main.Server;
 
 import java.io.File;
 import java.io.Serializable;
@@ -489,6 +490,18 @@ public class ApplicationBean implements Serializable {
      */
     public DbSource getDbSource(String name) {
         return app.getDbSource(name);
+    }
+
+    /**
+     * Get a wrapper around the app's apps.properties
+     *
+     * @return a readonly wrapper around the application's apps.properties
+     */
+    public Map getAppsProperties() {
+        Server server = Server.getServer();
+        if (server == null)
+            return new SystemMap();
+        return new WrappedMap(server.getAppsProperties(app.getName()), true);
     }
 
     /**
