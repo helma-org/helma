@@ -809,21 +809,28 @@ public class Server implements Runnable {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Return the server.properties for this server
+     * @return the server.properties
      */
     public ResourceProperties getProperties() {
         return sysProps;
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Return the server-wide db.properties
+     * @return the server-wide db.properties
      */
     public ResourceProperties getDbProperties() {
         return dbProps;
+    }
+
+    /**
+     * Return the apps.properties entries for a given application
+     * @param appName the app name
+     * @return the apps.properties subproperties for the given app
+     */
+    public ResourceProperties getAppsProperties(String appName) {
+        return appsProps.getSubProperties(appName + ".");
     }
 
     /**
