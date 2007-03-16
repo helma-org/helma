@@ -669,7 +669,7 @@ public final class Skin {
                 handlerObject = resolvePath(handlerObject, reval);
             }
 
-            String funcName = name + "_filter";
+            String funcName = path[path.length - 1] + "_filter";
 
             if (reval.scriptingEngine.hasFunction(handlerObject, funcName)) {
                 // pass a clone/copy of the parameter map so if the script changes it,
