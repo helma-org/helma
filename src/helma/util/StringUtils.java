@@ -57,4 +57,15 @@ public class StringUtils {
         return str.split("\\r\\n|\\r|\\n");
     }
 
+    /**
+     * Get the character array for a string. Useful for use from
+     * Rhino, where the Java String methods are not readily available
+     * without constructing a new String instance.
+     * @param str a string
+     * @return the char array
+     */
+    public static char[] toCharArray(String str) {
+        return str == null ? new char[0] : str.toCharArray();
+    }
+
 }
