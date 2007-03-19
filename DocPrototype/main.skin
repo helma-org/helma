@@ -36,35 +36,35 @@
 		filter="actions"
 		skin="asLargeListItem"
 		prefix="<tr><td class='headline'>Actions<a name='actions'><!-- --></a></td></tr>"
-		suffix="<tr><td height='8'>&nbsp;</td></tr>
+		suffix="<tr><td height='8'>&nbsp;</td></tr>"
 	%>
 
 	<% this.methods separator="<tr><td class='mainbox'><img src='' width=0 height=0></td></tr>"
 		filter="functions"
 		skin="asLargeListItem"
 		prefix="<tr><td class='headline'>Functions<a name='functions'><!-- --></a></td></tr>"
-		suffix="<tr><td height='8'>&nbsp;</td></tr>
+		suffix="<tr><td height='8'>&nbsp;</td></tr>"
 	%>
 
 	<% this.methods separator="<tr><td class='mainbox'><img src='' width=0 height=0></td></tr>"
 		filter="macros"
 		skin="asLargeListItem"
 		prefix="<tr><td class='headline'>Macros<a name='macros'><!-- --></a></td></tr>"
-		suffix="<tr><td height='8'>&nbsp;</td></tr>
+		suffix="<tr><td height='8'>&nbsp;</td></tr>"
 	%>
 
 	<% this.methods separator="<tr><td class='mainbox'><img src='' width=0 height=0></td></tr>"
 		filter="skins"
 		skin="asLargeListItemSkin"
 		prefix="<tr><td class='headline'>Skins<a name='skins'><!-- --></a></td></tr>"
-		suffix="<tr><td height='8'>&nbsp;</td></tr>
+		suffix="<tr><td height='8'>&nbsp;</td></tr>"
 	%>
 
 	<% this.methods separator="<tr><td class='mainbox'><img src='' width=0 height=0></td></tr>"
 		filter="properties"
 		skin="asLargeListItemSkin"
 		prefix="<tr><td class='headline'>type.properties<a name='typeproperties'><!-- --></a></td></tr>"
-		suffix="<tr><td height='8'>&nbsp;</td></tr>
+		suffix="<tr><td height='8'>&nbsp;</td></tr>"
 	%>
 
 	<% this.parentPrototype skin="asParentList" %>
