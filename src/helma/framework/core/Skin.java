@@ -34,8 +34,7 @@ import java.io.IOException;
  */
 public final class Skin {
     static private final int PARSE_MACRONAME = 0;
-    static private final int PARSE_PARAMNAME = 1;
-    static private final int PARSE_PARAMVALUE = 2;
+    static private final int PARSE_PARAM = 1;
 
     static private final int ENCODE_NONE = 0;
     static private final int ENCODE_HTML = 1;
@@ -269,7 +268,8 @@ public final class Skin {
         // default render parameters - may be overridden if macro changes
         // param.prefix/suffix/default
         StandardParams standardParams = new StandardParams();
-        Map params = null;
+        Map namedParams = null;
+        List positionalParams = null;
         // filters defined via <% foo | bar %>
         Macro filterChain;
 
@@ -298,13 +298,12 @@ public final class Skin {
 
                     case '<':
 
-                        if (state == PARSE_PARAMVALUE && quotechar == '\u0000' && source[i + 1] == '%') {
+                        if (state == PARSE_PARAM && quotechar == '\u0000' && source[i + 1] == '%') {
                             Macro macro = new Macro(i, 2);
                             hasNestedMacros = true;
                             addParameter(lastParamName, macro);
                             lastParamName = null;
                             b.setLength(0);
-                            state = PARSE_PARAMNAME;
                             i = macro.end - 1;
                         } else {
                             b.append(source[i]);
@@ -314,7 +313,7 @@ public final class Skin {
 
                     case '%':
 
-                        if ((state != PARSE_PARAMVALUE || quotechar == '\u0000') && source[i + 1] == '>') {
+                        if ((state != PARSE_PARAM || quotechar == '\u0000') && source[i + 1] == '>') {
                             break loop;
                         }
                         b.append(source[i]);
@@ -341,7 +340,7 @@ public final class Skin {
 
                     case '|':
 
-                        if (state == PARSE_PARAMNAME) {
+                        if (!escape && quotechar == '\u0000') {
                             filterChain = new Macro(i, 1);
                             i = filterChain.end - 2;
                             lastParamName = null;
@@ -365,13 +364,12 @@ public final class Skin {
                     case '"':
                     case '\'':
 
-                        if (!escape && (state == PARSE_PARAMVALUE)) {
+                        if (!escape && state == PARSE_PARAM) {
                             if (quotechar == source[i]) {
                                 // add parameter
                                 addParameter(lastParamName, b.toString());
                                 lastParamName = null;
                                 b.setLength(0);
-                                state = PARSE_PARAMNAME;
                                 quotechar = '\u0000';
                             } else if (quotechar == '\u0000') {
                                 quotechar = source[i];
@@ -396,28 +394,28 @@ public final class Skin {
                         if (state == PARSE_MACRONAME && b.length() > 0) {
                             name = b.toString().trim();
                             b.setLength(0);
-                            state = PARSE_PARAMNAME;
-                        } else if ((state == PARSE_PARAMVALUE) && (quotechar == '\u0000')) {
-                            // add parameter
-                            addParameter(lastParamName, b.toString());
-                            lastParamName = null;
-                            b.setLength(0);
-                            state = PARSE_PARAMNAME;
-                        } else if (state == PARSE_PARAMVALUE) {
-                            b.append(source[i]);
-                            escape = false;
-                        } else {
-                            b.setLength(0);
+                            state = PARSE_PARAM;
+                        } else if (state == PARSE_PARAM) {
+                            if (quotechar == '\u0000') {
+                                if (b.length() > 0) {
+                                    // add parameter
+                                    addParameter(lastParamName, b.toString());
+                                    lastParamName = null;
+                                    b.setLength(0);
+                                }
+                            } else {
+                                b.append(source[i]);
+                                escape = false;
+                            }
                         }
 
                         break;
 
                     case '=':
 
-                        if (state == PARSE_PARAMNAME) {
+                        if (!escape && quotechar == '\u0000' && state == PARSE_PARAM && lastParamName == null) {
                             lastParamName = b.toString().trim();
                             b.setLength(0);
-                            state = PARSE_PARAMVALUE;
                         } else {
                             b.append(source[i]);
                             escape = false;
@@ -461,12 +459,20 @@ public final class Skin {
             }
             // Set default failmode unless explicitly set:
             // silent for default handlers, verbose
-            if (params == null || !params.containsKey("failmode")) {
+            if (namedParams == null || !namedParams.containsKey("failmode")) {
                 standardParams.silentFailMode = (handler < HANDLER_GLOBAL);
             }
         }
 
         private void addParameter(String name, Object value) {
+            if (name == null) {
+                // take shortcut for positional parameters
+                if (positionalParams == null) {
+                    positionalParams = new ArrayList();
+                }
+                positionalParams.add(value);
+                return;
+            }
             // check if this is parameter is relevant to us
             if ("prefix".equals(name)) {
                 standardParams.prefix = value;
@@ -493,10 +499,10 @@ public final class Skin {
             }
 
             // Add parameter to parameter map
-            if (params == null) {
-                params = new HashMap();
+            if (namedParams == null) {
+                namedParams = new HashMap();
             }
-            params.put(name, value);
+            namedParams.put(name, value);
         }
 
         /**
@@ -531,42 +537,21 @@ public final class Skin {
 
                     if (reval.scriptingEngine.hasFunction(handlerObject, funcName)) {
                         StringBuffer buffer = reval.getResponse().getBuffer();
-                        StandardParams stdParams = standardParams;
-
                         // remember length of response buffer before calling macro
                         int bufLength = buffer.length();
 
-                        // pass a clone/copy of the parameter map so if the script changes it,
-                        CopyOnWriteMap wrappedParams = null;
-                        Object[] arguments;
-
-                        if (params == null) {
-                            arguments = new Object[] { new SystemMap(4) };
-                        } else if (hasNestedMacros) {
-                            SystemMap map = new SystemMap((int) (params.size() * 1.5));
-                            ResponseTrans res = reval.getResponse();
-                            for (Iterator it = params.entrySet().iterator(); it.hasNext(); ) {
-                                Map.Entry entry = (Map.Entry) it.next();
-                                Object value = entry.getValue();
-                                map.put(entry.getKey(), renderMacro(value, reval, thisObject, handlerCache));
-                            }
-                            if (standardParams.containsMacros())
-                                stdParams = new StandardParams(map);
-                            arguments = new Object[] { map };
-                        } else {
-                            wrappedParams = new CopyOnWriteMap(params);
-                            arguments = new Object[] { wrappedParams };
-                        }
+                        Object[] arguments = prepareArguments(0, reval, thisObject, handlerCache);
+                        // get reference to rendered named params for after invocation
+                        Map params = (Map) arguments[0];
                         Object value = reval.invokeDirectFunction(handlerObject,
                                                                   funcName,
                                                                   arguments);
 
-                        // if parameter map was modified create new renderParams to override defaults
-                        if (wrappedParams != null && wrappedParams.wasModified()) {
-                            stdParams = new StandardParams(wrappedParams);
-                        }
+                        // create new renderParams to override defaults in case the macro changed anything
+                        StandardParams stdParams = new StandardParams(params);
 
-                        // check if this macro has a filter chain
+                        // if macro has a filter chain and didn't return anything, use output
+                        // as filter argument.
                         if (filterChain != null) {
                             if (value == null && buffer.length() > bufLength) {
                                 value = buffer.substring(bufLength);
@@ -622,8 +607,9 @@ public final class Skin {
                                 String msg = "[Macro unhandled: " + name + "]";
                                 reval.getResponse().write(" " + msg + " ");
                                 app.logEvent(msg);
+                            } else {
+                                writeResponse(null, reval, thisObject, handlerCache, standardParams, true);
                             }
-
                         } else {
                             Object value = getProperty(handlerObject, propName, reval);
                             writeResponse(value, reval, thisObject, handlerCache, standardParams, true);
@@ -635,6 +621,8 @@ public final class Skin {
                         String msg = "[Macro unhandled: " + name + "]";
                         reval.getResponse().write(" " + msg + " ");
                         app.logEvent(msg);
+                    } else {
+                        writeResponse(null, reval, thisObject, handlerCache, standardParams, true);
                     }
                 }
             } catch (RedirectException redir) {
@@ -672,25 +660,8 @@ public final class Skin {
             String funcName = path[path.length - 1] + "_filter";
 
             if (reval.scriptingEngine.hasFunction(handlerObject, funcName)) {
-                // pass a clone/copy of the parameter map so if the script changes it,
-                CopyOnWriteMap wrappedParams = null;
-                Object[] arguments;
-
-                if (params == null) {
-                    arguments = new Object[] { returnValue, new SystemMap(4) };
-                } else if (hasNestedMacros) {
-                    SystemMap map = new SystemMap((int) (params.size() * 1.5));
-                    ResponseTrans res = reval.getResponse();
-                    for (Iterator it = params.entrySet().iterator(); it.hasNext(); ) {
-                        Map.Entry entry = (Map.Entry) it.next();
-                        Object value = entry.getValue();
-                        map.put(entry.getKey(), renderMacro(value, reval, thisObject, handlerCache));
-                    }
-                    arguments = new Object[] { map };
-                } else {
-                    wrappedParams = new CopyOnWriteMap(params);
-                    arguments = new Object[] { returnValue, wrappedParams };
-                }
+                Object[] arguments = prepareArguments(1, reval, thisObject, handlerCache);
+                arguments[0] = returnValue;
                 Object retval = reval.invokeDirectFunction(handlerObject,
                                                            funcName,
                                                            arguments);
@@ -699,8 +670,40 @@ public final class Skin {
                 }
                 return filterChain.invokeFilter(reval, retval, thisObject, handlerCache);
             } else {
-                throw new RuntimeException("[Undefined Filter: " + name + "]");
+                throw new RuntimeException("Undefined Filter " + name);
             }
+        }
+
+        private Object[] prepareArguments(int offset, RequestEvaluator reval,
+                                          Object thisObject, Map handlerCache)
+                throws UnsupportedEncodingException {
+            int nPosArgs = (positionalParams == null) ? 0 : positionalParams.size();
+            Object[] arguments = new Object[offset + 1 + nPosArgs];
+
+            if (namedParams == null) {
+                arguments[offset] = new SystemMap(4);
+            } else if (hasNestedMacros) {
+                SystemMap map = new SystemMap((int) (namedParams.size() * 1.5));
+                for (Iterator it = namedParams.entrySet().iterator(); it.hasNext(); ) {
+                    Map.Entry entry = (Map.Entry) it.next();
+                    Object value = entry.getValue();
+                    map.put(entry.getKey(), renderMacro(value, reval, thisObject, handlerCache));
+                }
+                arguments[offset] = map;
+            } else {
+                // pass a clone/copy of the parameter map so if the script changes it,
+                arguments[offset] = new CopyOnWriteMap(namedParams);
+            }
+            if (positionalParams != null) {
+                for (int i = 0; i < nPosArgs; i++) {
+                    Object param = positionalParams.get(i);
+                    if (param instanceof Macro)
+                        arguments[offset + 1 + i] = renderMacro(param, reval, thisObject, handlerCache);
+                    else
+                        arguments[offset + 1 + i] = param;
+                }
+            }
+            return arguments;
         }
 
         private Object resolveHandler(Object thisObject, RequestEvaluator reval, Map handlerCache) {
@@ -803,7 +806,7 @@ public final class Skin {
                 value = filterChain.invokeFilter(reval, value, thisObject, handlerCache);
             }
 
-            if (value == null) {
+            if (value == null || "".equals(value)) {
                 if (useDefault) {
                     text = (String) stdParams.defaultValue;
                 } else {
