@@ -173,6 +173,8 @@ public final class Application implements Runnable {
     // Field to cache unmapped java classes
     private final static String CLASS_NOT_MAPPED = "(unmapped)";
 
+    protected boolean allowDeepMacros = false;
+
     /**
      *  Simple constructor for dead application instances.
      */
@@ -1870,6 +1872,8 @@ public final class Application implements Runnable {
             if (eventLog instanceof Logger) {
                 ((Logger) eventLog).setLogLevel(debug ? Logger.DEBUG : Logger.INFO);
             }
+
+            allowDeepMacros = "true".equalsIgnoreCase(props.getProperty("allowDeepMacros"));
 
             // set prop read timestamp
             lastPropertyRead = props.lastModified();

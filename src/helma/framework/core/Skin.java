@@ -35,6 +35,7 @@ import java.io.IOException;
 public final class Skin {
     static private final int PARSE_MACRONAME = 0;
     static private final int PARSE_PARAM = 1;
+    static private final int PARSE_DONE = 2;
 
     static private final int ENCODE_NONE = 0;
     static private final int ENCODE_HTML = 1;
@@ -314,6 +315,7 @@ public final class Skin {
                     case '%':
 
                         if ((state != PARSE_PARAM || quotechar == '\u0000') && source[i + 1] == '>') {
+                            state = PARSE_DONE;
                             break loop;
                         }
                         b.append(source[i]);
@@ -332,10 +334,9 @@ public final class Skin {
                                        (source[i] != '%' || source[i + 1] != '>')) {
                                 i++;
                             }
-
+                            state = PARSE_DONE;
                             break loop;
                         }
-
                         break;
 
                     case '|':
@@ -345,6 +346,7 @@ public final class Skin {
                             i = filterChain.end - 2;
                             lastParamName = null;
                             b.setLength(0);
+                            state = PARSE_DONE;
                             break loop;
                         }
                         b.append(source[i]);
@@ -432,12 +434,15 @@ public final class Skin {
             this.end = Math.min(sourceLength, i + 2);
 
             if (b.length() > 0) {
-                if (lastParamName != null) {
-                    // add parameter
-                    addParameter(lastParamName, b.toString());
-                } else if (state == PARSE_MACRONAME) {
+                if (name == null) {
                     name = b.toString().trim();
+                } else {
+                    addParameter(lastParamName, b.toString());
                 }
+            }
+
+            if (state != PARSE_DONE) {
+                app.logError("Unterminated Macro Tag: " +this);
             }
 
             path = StringUtils.split(name, ".");
@@ -765,6 +770,10 @@ public final class Skin {
         }
 
         private Object resolvePath(Object handler, RequestEvaluator reval) {
+            if (!app.allowDeepMacros && path.length > 2) {
+                throw new RuntimeException("allowDeepMacros property must be true " +
+                        "in order to enable deep macro paths.");
+            }
             for (int i = 1; i < path.length - 1; i++) {
                 handler = getProperty(handler, path[i], reval);
                 if (handler == null) {
