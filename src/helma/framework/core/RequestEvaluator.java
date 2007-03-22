@@ -60,22 +60,22 @@ public final class RequestEvaluator implements Runnable {
     private volatile int reqtype;
 
     // the object on which to invoke a function, if specified
-    private Object thisObject;
+    private volatile Object thisObject;
 
     // the method to be executed
-    private String functionName;
+    private volatile String functionName;
 
     // the session object associated with the current request
-    private Session session;
+    private volatile Session session;
 
     // arguments passed to the function
-    private Object[] args;
+    private volatile Object[] args;
 
     // the result of the operation
-    private Object result;
+    private volatile Object result;
 
     // the exception thrown by the evaluator, if any.
-    private Exception exception;
+    private volatile Exception exception;
 
     /**
      *  Create a new RequestEvaluator for this application.
@@ -179,6 +179,7 @@ public final class RequestEvaluator implements Runnable {
                             // If function doesn't exist, return immediately
                             if (functionName.indexOf('.') < 0 &&
                                     !scriptingEngine.hasFunction(thisObject, functionName)) {
+                                app.logEvent(missingFunctionMessage(thisObject, functionName));
                                 done = true;
                                 reqtype = NONE;
                                 break;
@@ -445,7 +446,9 @@ public final class RequestEvaluator implements Runnable {
 
                                     // reset skin recursion detection counter
                                     skinDepth = 0;
-
+                                    if (!scriptingEngine.hasFunction(currentElement, functionName)) {
+                                        throw new FrameworkException(missingFunctionMessage(currentElement, functionName));
+                                    }
                                     result = scriptingEngine.invoke(currentElement,
                                             functionName, args,
                                             ScriptingEngine.ARGS_WRAP_XMLRPC,
@@ -478,6 +481,10 @@ public final class RequestEvaluator implements Runnable {
                                 try {
                                     // reset skin recursion detection counter
                                     skinDepth = 0;
+
+                                    if (!scriptingEngine.hasFunction(thisObject, functionName)) {
+                                        throw new FrameworkException(missingFunctionMessage(thisObject, functionName));
+                                    }
 
                                     result = scriptingEngine.invoke(thisObject,
                                             functionName,
@@ -1090,5 +1097,12 @@ public final class RequestEvaluator implements Runnable {
      */
     public synchronized Session getSession() {
         return session;
+    }
+
+    private String missingFunctionMessage(Object obj, String funcName) {
+        if (obj == null)
+            return "Function " + funcName + " not defined in global scope";
+        else
+            return "Function " + funcName + " not defined for " + obj;
     }
 }
