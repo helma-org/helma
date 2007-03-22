@@ -21,7 +21,7 @@ import java.net.URL;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-public final class ZipResource implements Resource {
+public final class ZipResource extends AbstractResource {
 
     private String entryName;
     private ZipRepository repository;

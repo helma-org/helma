@@ -110,10 +110,10 @@ public interface ScriptingEngine {
     /**
      * Get a property on an object
      * @param thisObject the object
-     * @param key the property name
+     * @param propertyName the property name
      * @return true the property value, or null
      */
-    public Object getProperty(Object thisObject, String key);
+    public Object getProperty(Object thisObject, String propertyName);
 
     /**
      * Return true if a function by that name is defined for that object.
@@ -130,6 +130,13 @@ public interface ScriptingEngine {
      * @return true if the function is defined on the object
      */
     public boolean hasProperty(Object thisObject, String propertyName);
+
+    /**
+     * Determine if the given object is mapped to a type of the scripting engine
+     * @param obj an object
+     * @return true if the object is mapped to a type
+     */
+    public boolean isTypedObject(Object obj);
 
     /**
      * Return a string representation for the given object

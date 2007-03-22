@@ -346,28 +346,31 @@ public class RhinoEngine implements ScriptingEngine {
         // references/child objects just to check for function properties.
         if (obj instanceof INode) {
             String protoname = ((INode) obj).getPrototype();
-            return core.hasFunction(protoname, fname);
+            if (protoname != null && core.hasFunction(protoname, fname))
+                return true;
         }
 
         Scriptable op = obj == null ? global : Context.toObject(obj, global);
-
-        Object func = ScriptableObject.getProperty(op, fname);
-
-        return func instanceof Callable;
+        return ScriptableObject.getProperty(op, fname) instanceof Callable;
     }
 
     /**
      * Check if an object has a value property defined with that name.
      */
     public boolean hasProperty(Object obj, String propname) {
-        if ((obj == null) || (propname == null)) {
+        if (obj == null || propname == null) {
             return false;
+        } else if (obj instanceof Map) {
+            return ((Map) obj).containsKey(propname);
         }
+
         String prototypeName = app.getPrototypeName(obj);
+
         if ("user".equalsIgnoreCase(prototypeName)
                 && "password".equalsIgnoreCase(propname)) {
             return false;
         }
+
         // if this is a HopObject, check if the property is defined
         // in the type.properties db-mapping.
         if (obj instanceof INode && ! "hopobject".equalsIgnoreCase(prototypeName)) {
@@ -386,22 +389,36 @@ public class RhinoEngine implements ScriptingEngine {
      * is a java object) with that name.
      */
     public Object getProperty(Object obj, String propname) {
-        if ((obj == null) || (propname == null))
+        if (obj == null || propname == null) {
             return null;
+        } else if (obj instanceof Map) {
+            Object prop = ((Map) obj).get(propname);
+            // Do not return functions as properties as this
+            // is a potential security problem
+            return (prop instanceof Function) ? null : prop;
+        } else if (obj instanceof INode) {
+            IProperty prop = ((INode) obj).get(propname);
+            if (prop == null) return null;
+            Object value = prop.getValue();
+            return (value instanceof Function) ? null : value;
+        }
 
+        // use Rhino wrappers and methods to get property
         Scriptable so = Context.toObject(obj, global);
 
         try {
             Object prop = so.get(propname, so);
 
-            if ((prop == null)
-                    || (prop == Undefined.instance)
-	                || (prop == ScriptableObject.NOT_FOUND)) {
+            if (prop == null
+                    || prop == Undefined.instance
+	                || prop == ScriptableObject.NOT_FOUND) {
                 return null;
             } else if (prop instanceof Wrapper) {
                 return ((Wrapper) prop).unwrap();
             } else {
-                return prop;
+                // Do not return functions as properties as this
+                // is a potential security problem
+                return (prop instanceof Function) ? null : prop;
             }
         } catch (Exception esx) {
             app.logError("Error getting property " + propname + ": " + esx);
@@ -409,6 +426,22 @@ public class RhinoEngine implements ScriptingEngine {
         }
     }
 
+
+    /**
+     * Determine if the given object is mapped to a type of the scripting engine
+     * @param obj an object
+     * @return true if the object is mapped to a type
+     */
+    public boolean isTypedObject(Object obj) {
+        if (obj == null || obj instanceof Map || obj instanceof NativeObject)
+            return false;
+        if (obj instanceof INode) {
+            String protoName = app.getPrototypeName(obj);
+            return protoName != null && !"hopobject".equalsIgnoreCase(protoName);
+        }
+        // assume java object is typed
+        return true;
+    }
 
     /**
      * Return a string representation for the given object
@@ -544,7 +577,9 @@ public class RhinoEngine implements ScriptingEngine {
      * Try to get a skin from the parameter object.
      */
     public Skin toSkin(Object skinobj, String protoName) throws IOException {
-        if (skinobj instanceof Wrapper) {
+        if (skinobj == null) {
+            return null;
+        } else if (skinobj instanceof Wrapper) {
             skinobj = ((Wrapper) skinobj).unwrap();
         }
 

@@ -324,10 +324,36 @@ public final class Prototype {
     /**
      *  Get a skin for this prototype. This only works for skins
      *  residing in the prototype directory, not for skins files in
-     *  other locations or database stored skins.
+     *  other locations or database stored skins. If parentName and
+     *  subName are defined, the skin may be a subskin of another skin.
      */
-    public Skin getSkin(String skinName) throws IOException {
-        return skinMap.getSkin(skinName);
+    public Skin getSkin(String skinName, String parentName, String subName)
+            throws IOException {
+        Skin skin = null;
+        Resource res = skinMap.getResource(skinName);
+        while (res != null) {
+            skin = Skin.getSkin(res, app);
+            if (skin.hasMainskin())
+                break;
+            res = res.getOverloadedResource();
+        }
+        if (parentName != null) {
+            Skin parentSkin = null;
+            Resource parent = skinMap.getResource(parentName);
+            while (parent != null) {
+                parentSkin = Skin.getSkin(parent, app);
+                if (parentSkin.hasSubskin(subName))
+                    break;
+                parent = parent.getOverloadedResource();
+            }
+            if (parent != null) {
+                if (res != null && app.getResourceComparator().compare(res, parent) > 0)
+                    return skin;
+                else
+                    return parentSkin.getSubskin(subName);
+            }
+        }
+        return skin;
     }
 
     /**
@@ -494,6 +520,10 @@ public final class Prototype {
             }
         }
 
+        public Resource getResource(Object key) {
+            return (Resource) get(key);
+        }
+
         public Object get(Object key) {
             checkForUpdates();
             return super.get(key);
@@ -559,7 +589,8 @@ public final class Prototype {
             // load Skins
             for (Iterator i = skins.iterator(); i.hasNext();) {
                 Resource res = (Resource) i.next();
-                super.put(res.getBaseName(), res);
+                Resource prev = (Resource) super.put(res.getBaseName(), res);
+                res.setOverloadedResource(prev);
             }
 
             // if skinpath is not null, overload/add skins from there
@@ -594,7 +625,9 @@ public final class Prototype {
                 String name = skinNames[i].substring(0, skinNames[i].length() - 5);
                 File file = new File(dir, skinNames[i]);
 
-                super.put(name, (new FileResource(file)));
+                Resource res = new FileResource(file);
+                Resource prev = (Resource) super.put(name, res);
+                res.setOverloadedResource(prev);
             }
 
         }

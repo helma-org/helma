@@ -19,7 +19,7 @@ package helma.framework.repository;
 import java.net.*;
 import java.io.*;
 
-public class FileResource implements Resource {
+public class FileResource extends AbstractResource {
 
     File file;
     Repository repository;

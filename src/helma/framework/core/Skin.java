@@ -33,6 +33,15 @@ import java.io.IOException;
  * from the RequestEvaluator object to resolve Macro handlers by type name.
  */
 public final class Skin {
+
+    private Macro[] macros;
+    private Application app;
+    private char[] source;
+    private int offset, length; // start and end index of skin content
+    private HashSet sandbox;
+    private HashMap subskins;
+    private Skin parentSkin = this;
+
     static private final int PARSE_MACRONAME = 0;
     static private final int PARSE_PARAM = 1;
     static private final int PARSE_DONE = 2;
@@ -52,20 +61,19 @@ public final class Skin {
     static private final int HANDLER_THIS = 5;
     static private final int HANDLER_OTHER = 6;
 
-    private Macro[] macros;
-    private Application app;
-    private char[] source;
-    private int sourceLength;
-    private HashSet sandbox;
+    static private final int FAIL_DEFAULT = 0;
+    static private final int FAIL_SILENT = 1;
+    static private final int FAIL_VERBOSE = 2;
 
     /**
      * Create a skin without any restrictions on which macros are allowed to be called from it
      */
     public Skin(String content, Application app) {
         this.app = app;
-        sandbox = null;
-        source = content.toCharArray();
-        sourceLength = source.length;
+        this.sandbox = null;
+        this.source = content.toCharArray();
+        this.offset = 0;
+        this.length = source.length;
         parse();
     }
 
@@ -75,8 +83,9 @@ public final class Skin {
     public Skin(String content, Application app, HashSet sandbox) {
         this.app = app;
         this.sandbox = sandbox;
-        source = content.toCharArray();
-        sourceLength = source.length;
+        this.source = content.toCharArray();
+        this.offset = 0;
+        length = source.length;
         parse();
     }
 
@@ -86,8 +95,23 @@ public final class Skin {
     public Skin(char[] content, int length, Application app) {
         this.app = app;
         this.sandbox = null;
-        source = content;
-        sourceLength = length;
+        this.source = content;
+        this.offset = 0;
+        this.length = length;
+        parse();
+    }
+
+    /**
+     *  Subskin constructor.
+     */
+    private Skin(Skin parentSkin, Macro anchorMacro) {
+        this.parentSkin = parentSkin;
+        this.app = parentSkin.app;
+        this.sandbox = parentSkin.sandbox;
+        this.source = parentSkin.source;
+        this.offset = anchorMacro.end;
+        this.length = parentSkin.length;
+        parentSkin.addSubskin(anchorMacro.name, this);
         parse();
     }
 
@@ -113,7 +137,7 @@ public final class Skin {
         } finally {
             reader.close();
         }
-        return new Skin(characterBuffer, length, app);
+        return new Skin(characterBuffer, read, app);
     }
 
     /**
@@ -123,11 +147,17 @@ public final class Skin {
         ArrayList partBuffer = new ArrayList();
 
         boolean escape = false;
-        for (int i = 0; i < (sourceLength - 1); i++) {
+        for (int i = offset; i < (length - 1); i++) {
             if (source[i] == '<' && source[i + 1] == '%' && !escape) {
                 // found macro start tag
                 Macro macro = new Macro(i, 2);
-                partBuffer.add(macro);
+                if (macro.isSubskinMacro) {
+                    new Skin(parentSkin, macro);
+                    length = i;
+                    break;
+                } else {
+                    partBuffer.add(macro);
+                }
                 i = macro.end - 1;
             } else {
                 escape = source[i] == '\\' && !escape;
@@ -138,11 +168,54 @@ public final class Skin {
         partBuffer.toArray(macros);
     }
 
+    private void addSubskin(String name, Skin subskin) {
+        if (subskins == null) {
+            subskins = new HashMap();
+        }
+        subskins.put(name, subskin);
+    }
+
+    /**
+     * Check if this skin has a main skin, as opposed to consisting just of subskins
+     * @return true if this skin contains a main skin
+     */
+    public boolean hasMainskin() {
+        return length - offset > 0;
+    }
+
+    /**
+     * Check if this skin contains a subskin with the given name
+     * @param name a subskin name
+     * @return true if the given subskin exists
+     */
+    public boolean hasSubskin(String name) {
+        return subskins != null && subskins.containsKey(name);
+    }
+
+    /**
+     * Get a subskin by name
+     * @param name the subskin name
+     * @return the subskin
+     */
+    public Skin getSubskin(String name) {
+        return subskins == null ? null : (Skin) subskins.get(name);
+    }
+
+    /**
+     * Return an array of subskin names defined in this skin
+     * @return a string array containing this skin's substrings
+     */
+    public String[] getSubskinNames() {
+        return subskins == null ?
+                new String[0] :
+                (String[]) subskins.keySet().toArray(new String[0]);
+    }
+
     /**
      * Get the raw source text this skin was parsed from
      */
     public String getSource() {
-        return new String(source, 0, sourceLength);
+        return new String(source, offset, length - offset);
     }
 
     /**
@@ -175,9 +248,8 @@ public final class Skin {
         ResponseTrans res = reval.getResponse();
 
         if (macros == null) {
-            res.write(source, 0, sourceLength);
+            res.write(source, offset, length - offset);
             reval.skinDepth--;
-
             return;
         }
 
@@ -186,7 +258,7 @@ public final class Skin {
         Object previousParam = handlers.put("param", paramObject);
 
         try {
-            int written = 0;
+            int written = offset;
             Map handlerCache = null;
 
             if (macros.length > 3) {
@@ -202,8 +274,8 @@ public final class Skin {
                 written = macros[i].end;
             }
 
-            if (written < sourceLength) {
-                res.write(source, written, sourceLength - written);
+            if (written < length) {
+                res.write(source, written, length - written);
             }
         } finally {
             reval.skinDepth--;
@@ -276,6 +348,8 @@ public final class Skin {
 
         // comment macros are silently dropped during rendering
         boolean isCommentMacro = false;
+        // subskin macros delimits the beginning of a new subskin
+        boolean isSubskinMacro = false;
 
         /**
          * Create and parse a new macro.
@@ -293,7 +367,7 @@ public final class Skin {
             int i;
 
             loop:
-            for (i = start + offset; i < sourceLength - 1; i++) {
+            for (i = start + offset; i < length - 1; i++) {
 
                 switch (source[i]) {
 
@@ -330,7 +404,7 @@ public final class Skin {
                         if (state == PARSE_MACRONAME && "//".equals(b.toString())) {
                             isCommentMacro = true;
                             // search macro end tag
-                            while (i < sourceLength - 1 &&
+                            while (i < length - 1 &&
                                        (source[i] != '%' || source[i + 1] != '>')) {
                                 i++;
                             }
@@ -338,6 +412,16 @@ public final class Skin {
                             break loop;
                         }
                         break;
+
+                    case '#':
+
+                        if (state == PARSE_MACRONAME && b.length() == 0) {
+                            // this is a subskin/skinlet
+                            isSubskinMacro = true;
+                            break;
+                        }
+                        b.append(source[i]);
+                        escape = false;
 
                     case '|':
 
@@ -431,7 +515,17 @@ public final class Skin {
                 }
             }
 
-            this.end = Math.min(sourceLength, i + 2);
+            i += 2;
+            if (isSubskinMacro) {
+                if (i + 1 < length && source[i] == '\r' && source[i + 1] == '\n')
+                    end = Math.min(length, i + 2);
+                else if (i < length && (source[i] == '\r' || source[i] == '\n'))
+                    end = Math.min(length, i + 1);
+                else
+                    end = Math.min(length, i);
+            } else {
+                end = Math.min(length, i);
+            }
 
             if (b.length() > 0) {
                 if (name == null) {
@@ -461,11 +555,6 @@ public final class Skin {
                 } else if ("param".equalsIgnoreCase(handlerName)) {
                     handler = HANDLER_PARAM;
                 }
-            }
-            // Set default failmode unless explicitly set:
-            // silent for default handlers, verbose
-            if (namedParams == null || !namedParams.containsKey("failmode")) {
-                standardParams.silentFailMode = (handler < HANDLER_GLOBAL);
             }
         }
 
@@ -607,8 +696,8 @@ public final class Skin {
                             }
                         }
                         // display error message unless silent failmode is on
-                        if (handlerObject == null || !hasProperty(handlerObject, propName, reval)) {
-                            if (!standardParams.silentFailMode) {
+                        if (handlerObject == null || !reval.scriptingEngine.hasProperty(handlerObject, propName)) {
+                            if (standardParams.verboseFailmode(handlerObject,  reval)) {
                                 String msg = "[Macro unhandled: " + name + "]";
                                 reval.getResponse().write(" " + msg + " ");
                                 app.logEvent(msg);
@@ -616,13 +705,13 @@ public final class Skin {
                                 writeResponse(null, reval, thisObject, handlerCache, standardParams, true);
                             }
                         } else {
-                            Object value = getProperty(handlerObject, propName, reval);
+                            Object value = reval.scriptingEngine.getProperty(handlerObject, propName);
                             writeResponse(value, reval, thisObject, handlerCache, standardParams, true);
                         }
                     }
 
                 } else {
-                    if (!standardParams.silentFailMode) {
+                    if (standardParams.verboseFailmode(handlerObject, reval)) {
                         String msg = "[Macro unhandled: " + name + "]";
                         reval.getResponse().write(" " + msg + " ");
                         app.logEvent(msg);
@@ -770,34 +859,17 @@ public final class Skin {
         }
 
         private Object resolvePath(Object handler, RequestEvaluator reval) {
-            if (!app.allowDeepMacros && path.length > 2) {
+            if (path.length > 2 && !app.allowDeepMacros) {
                 throw new RuntimeException("allowDeepMacros property must be true " +
                         "in order to enable deep macro paths.");
             }
             for (int i = 1; i < path.length - 1; i++) {
-                handler = getProperty(handler, path[i], reval);
+                handler = reval.scriptingEngine.getProperty(handler, path[i]);
                 if (handler == null) {
                     break;
                 }
             }
             return handler;
-        }
-
-        private Object getProperty(Object obj, String name,
-                                   RequestEvaluator reval) {
-            if (obj instanceof Map) {
-                return ((Map) obj).get(name);
-            } else {
-                return reval.getScriptingEngine().getProperty(obj, name);
-            }
-        }
-
-        private boolean hasProperty(Object obj, String name, RequestEvaluator reval) {
-            if (obj instanceof Map) {
-                return ((Map) obj).containsKey(name);
-            } else {
-                return reval.getScriptingEngine().hasProperty(obj, name);
-            }
         }
 
         /**
@@ -822,7 +894,7 @@ public final class Skin {
                     return;
                 }
             } else {
-                text = reval.getScriptingEngine().toString(value);
+                text = reval.scriptingEngine.toString(value);
             }
 
             if ((text != null) && (text.length() > 0)) {
@@ -887,7 +959,7 @@ public final class Skin {
         Object prefix = null;
         Object suffix = null;
         Object defaultValue = null;
-        boolean silentFailMode = false;
+        int failmode = FAIL_DEFAULT;
 
         StandardParams() {}
 
@@ -895,7 +967,6 @@ public final class Skin {
             prefix = map.get("prefix");
             suffix = map.get("suffix");
             defaultValue = map.get("default");
-            silentFailMode = "silent".equals(map.get("failmode"));
         }
 
         boolean containsMacros() {
@@ -906,11 +977,16 @@ public final class Skin {
 
         void setFailMode(Object value) {
             if ("silent".equals(value))
-                silentFailMode = true;
+                failmode = FAIL_SILENT;
             else if ("verbose".equals(value))
-                silentFailMode = false;
-            else
+                failmode = FAIL_VERBOSE;
+            else if (value != null)
                 app.logEvent("unrecognized failmode value: " + value);
+        }
+
+        boolean verboseFailmode(Object handler, RequestEvaluator reval) {
+            return (failmode == FAIL_VERBOSE) ||
+                   (failmode == FAIL_DEFAULT && reval.scriptingEngine.isTypedObject(handler));
         }
 
         StandardParams render(RequestEvaluator reval, Object thisObj, Map handlerCache)

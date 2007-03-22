@@ -41,25 +41,29 @@ public interface Resource {
     /**
      * Returns the lengh of the resource's content
      * @return content length
+     * @throws IOException I/O related problem
      */
     public long getLength() throws IOException;
 
     /**
      * Returns an input stream to the content of the resource
      * @return content input stream
+     * @throws IOException I/O related problem
      */
     public InputStream getInputStream() throws IOException;
 
     /**
      * Returns the content of the resource in a given encoding
-     * @param encoding
+     * @param encoding the character encoding
      * @return content
+     * @throws IOException I/O related problem
      */
     public String getContent(String encoding) throws IOException;
 
     /**
      * Returns the content of the resource
      * @return content
+     * @throws IOException I/O related problem
      */
     public String getContent() throws IOException;
 
@@ -88,8 +92,21 @@ public interface Resource {
      * Returns an url to the resource if the repository of this resource is
      * able to provide urls
      * @return url to the resource
+     * @throws UnsupportedOperationException if resource does not support URL schema
      */
     public URL getUrl() throws UnsupportedOperationException;
+
+    /**
+     * Get a Resource this Resource is overloading
+     * @return the overloaded resource
+     */
+    public Resource getOverloadedResource();
+
+    /**
+     * Method for registering a Resource this Resource is overloading
+     * @param res the overloaded resource
+     */
+    public void setOverloadedResource(Resource res);
 
     /**
      * Returns the repository the resource does belong to
