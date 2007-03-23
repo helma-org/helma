@@ -317,14 +317,11 @@ public final class Skin {
         sandbox.add(macroname);
     }
 
-    private Object renderMacro(Object value, RequestEvaluator reval,
+    private Object invokeMacro(Object value, RequestEvaluator reval,
                                Object thisObj, Map handlerCache)
-            throws UnsupportedEncodingException {
+            throws Exception {
         if (value instanceof Macro) {
-            ResponseTrans res = reval.getResponse();
-            res.pushStringBuffer();
-            ((Macro) value).render(reval, thisObj, handlerCache);
-            return res.popStringBuffer();
+            return ((Macro) value).invokeAsMacro(reval, thisObj, handlerCache, null);
         } else {
             return value;
         }
@@ -602,14 +599,13 @@ public final class Skin {
             namedParams.put(name, value);
         }
 
-        /**
-         *  Render the macro given a handler object
-         */
-        public void render(RequestEvaluator reval, Object thisObject, Map handlerCache)
-                throws RedirectException, UnsupportedEncodingException {
+        private Object invokeAsMacro(RequestEvaluator reval, Object thisObject,
+                                 Map handlerCache, StandardParams stdParams)
+                throws Exception {
+
             // immediately return for comment macros
             if (isCommentMacro) {
-                return;
+                return null;
             }
 
             if ((sandbox != null) && !sandbox.contains(name)) {
@@ -617,117 +613,122 @@ public final class Skin {
             }
 
             Object handlerObject = null;
+            Object value = null;
 
-            try {
+            if (handler != HANDLER_GLOBAL) {
+                handlerObject = resolveHandler(thisObject, reval, handlerCache);
+                handlerObject = resolvePath(handlerObject, reval);
+            }
 
-                if (handler != HANDLER_GLOBAL) {
-                    handlerObject = resolveHandler(thisObject, reval, handlerCache);
-                    handlerObject = resolvePath(handlerObject, reval);
-                }
+            if (handler == HANDLER_GLOBAL || handlerObject != null) {
+                // check if a function called name_macro is defined.
+                // if so, the macro evaluates to the function. Otherwise,
+                // a property/field with the name is used, if defined.
+                String propName = path[path.length - 1];
+                String funcName = propName + "_macro";
 
-                if (handler == HANDLER_GLOBAL || handlerObject != null) {
-                    // check if a function called name_macro is defined.
-                    // if so, the macro evaluates to the function. Otherwise,
-                    // a property/field with the name is used, if defined.
-                    String propName = path[path.length - 1];
-                    String funcName = propName + "_macro";
+                if (reval.scriptingEngine.hasFunction(handlerObject, funcName)) {
+                    StringBuffer buffer = reval.getResponse().getBuffer();
+                    // remember length of response buffer before calling macro
+                    int bufLength = buffer.length();
 
-                    if (reval.scriptingEngine.hasFunction(handlerObject, funcName)) {
-                        StringBuffer buffer = reval.getResponse().getBuffer();
-                        // remember length of response buffer before calling macro
-                        int bufLength = buffer.length();
+                    Object[] arguments = prepareArguments(0, reval, thisObject, handlerCache);
+                    // get reference to rendered named params for after invocation
+                    Map params = (Map) arguments[0];
+                    value = reval.invokeDirectFunction(handlerObject,
+                            funcName,
+                            arguments);
 
-                        Object[] arguments = prepareArguments(0, reval, thisObject, handlerCache);
-                        // get reference to rendered named params for after invocation
-                        Map params = (Map) arguments[0];
-                        Object value = reval.invokeDirectFunction(handlerObject,
-                                                                  funcName,
-                                                                  arguments);
+                    // update StandardParams to override defaults in case the macro changed anything
+                    if (stdParams != null) stdParams.readFrom(params);
 
-                        // create new renderParams to override defaults in case the macro changed anything
-                        StandardParams stdParams = new StandardParams(params);
-
-                        // if macro has a filter chain and didn't return anything, use output
-                        // as filter argument.
-                        if (filterChain != null) {
-                            if (value == null && buffer.length() > bufLength) {
-                                value = buffer.substring(bufLength);
-                                buffer.setLength(bufLength);
-                            }
-                        }
-
-                        // check if macro wrote out to response buffer
-                        if (buffer.length() == bufLength) {
-                            // If the macro function didn't write anything to the response itself,
-                            // we interpret its return value as macro output.
-                            writeResponse(value, reval, thisObject, handlerCache, stdParams, true);
-                        } else {
-                            // if an encoding is specified, re-encode the macro's output
-                            if (encoding != ENCODE_NONE) {
-                                String output = buffer.substring(bufLength);
-
-                                buffer.setLength(bufLength);
-                                writeResponse(output, reval, thisObject, handlerCache, stdParams, false);
-                            } else {
-                                // insert prefix,
-                                if (stdParams.prefix != null) {
-                                    buffer.insert(bufLength, stdParams.prefix);
-                                }
-                                // append suffix
-                                if (stdParams.suffix != null) {
-                                    buffer.append(stdParams.suffix);
-                                }
-                            }
-
-                            // Append macro return value even if it wrote something to the response,
-                            // but don't render default value in case it returned nothing.
-                            // We do this for the sake of consistency.
-                            writeResponse(value, reval, thisObject, handlerCache, stdParams, false);
-                        }
-                    } else {
-                        if (handler == HANDLER_RESPONSE) {
-                            // some special handling for response handler
-                            Object value = null;
-                            if ("message".equals(propName)) {
-                                value = reval.getResponse().getMessage();
-                            } else if ("error".equals(propName)) {
-                                value = reval.getResponse().getError();
-                            }
-                            if (value != null) {
-                                writeResponse(value, reval, thisObject, handlerCache, standardParams, true);
-                                return;                                
-                            }
-                        }
-                        // display error message unless silent failmode is on
-                        if (handlerObject == null || !reval.scriptingEngine.hasProperty(handlerObject, propName)) {
-                            if (standardParams.verboseFailmode(handlerObject,  reval)) {
-                                String msg = "[Macro unhandled: " + name + "]";
-                                reval.getResponse().write(" " + msg + " ");
-                                app.logEvent(msg);
-                            } else {
-                                writeResponse(null, reval, thisObject, handlerCache, standardParams, true);
-                            }
-                        } else {
-                            Object value = reval.scriptingEngine.getProperty(handlerObject, propName);
-                            writeResponse(value, reval, thisObject, handlerCache, standardParams, true);
+                    // if macro has a filter chain and didn't return anything, use output
+                    // as filter argument.
+                    if (filterChain != null) {
+                        if (value == null && buffer.length() > bufLength) {
+                            value = buffer.substring(bufLength);
+                            buffer.setLength(bufLength);
                         }
                     }
 
+                    return filter(reval, value, thisObject, handlerCache);
                 } else {
-                    if (standardParams.verboseFailmode(handlerObject, reval)) {
-                        String msg = "[Macro unhandled: " + name + "]";
-                        reval.getResponse().write(" " + msg + " ");
-                        app.logEvent(msg);
-                    } else {
-                        writeResponse(null, reval, thisObject, handlerCache, standardParams, true);
+                    if (handler == HANDLER_RESPONSE) {
+                        // some special handling for response handler
+                        if ("message".equals(propName)) {
+                            value = reval.getResponse().getMessage();
+                        } else if ("error".equals(propName)) {
+                            value = reval.getResponse().getError();
+                        }
+                        if (value != null) {
+                            return filter(reval, value, thisObject, handlerCache);
+                        }
                     }
+                    // display error message unless silent failmode is on
+                    if ((handlerObject == null || !reval.scriptingEngine.hasProperty(handlerObject, propName)) &&
+                                standardParams.verboseFailmode(handlerObject,  reval)) {
+                            throw new MacroUnhandledException(name);
+                    }
+                    value = reval.scriptingEngine.getProperty(handlerObject, propName);
+                    return filter(reval, value, thisObject, handlerCache);
                 }
+            } else if (standardParams.verboseFailmode(handlerObject, reval)) {
+                throw new MacroUnhandledException(name);
+            }
+            return filter(reval, null, thisObject, handlerCache);
+        }
+
+        /**
+         *  Render the macro given a handler object
+         */
+        public void render(RequestEvaluator reval, Object thisObject, Map handlerCache)
+                throws RedirectException, UnsupportedEncodingException {
+            StringBuffer buffer = reval.getResponse().getBuffer();
+            // remember length of response buffer before calling macro
+            int bufLength = buffer.length();
+            try {
+                StandardParams stdParams = standardParams.render(reval, thisObject, handlerCache);
+                Object value = invokeAsMacro(reval, thisObject, handlerCache, stdParams);
+
+                // check if macro wrote out to response buffer
+                if (buffer.length() == bufLength) {
+                    // If the macro function didn't write anything to the response itself,
+                    // we interpret its return value as macro output.
+                    writeResponse(value, reval, stdParams, true);
+                } else {
+                    // if an encoding is specified, re-encode the macro's output
+                    if (encoding != ENCODE_NONE) {
+                        String output = buffer.substring(bufLength);
+
+                        buffer.setLength(bufLength);
+                        writeResponse(output, reval, stdParams, false);
+                    } else {
+                        // insert prefix,
+                        if (stdParams.prefix != null) {
+                            buffer.insert(bufLength, stdParams.prefix);
+                        }
+                        // append suffix
+                        if (stdParams.suffix != null) {
+                            buffer.append(stdParams.suffix);
+                        }
+                    }
+
+                    // Append macro return value even if it wrote something to the response,
+                    // but don't render default value in case it returned nothing.
+                    // We do this for the sake of consistency.
+                    writeResponse(value, reval, stdParams, false);
+                }
+
             } catch (RedirectException redir) {
                 throw redir;
             } catch (ConcurrencyException concur) {
                 throw concur;
             } catch (TimeoutException timeout) {
                 throw timeout;
+            } catch (MacroUnhandledException unhandled) {
+                String msg = "Macro unhandled: " + unhandled.getMessage();
+                reval.getResponse().write(" [" + msg + "] ");
+                app.logError(msg);
             } catch (Exception x) {
                 String msg = x.getMessage();
                 if ((msg == null) || (msg.length() < 10)) {
@@ -740,8 +741,19 @@ public final class Skin {
             }
         }
 
-        private Object invokeFilter(RequestEvaluator reval, Object returnValue,
-                                    Object thisObject, Map handlerCache)
+        private Object filter(RequestEvaluator reval, Object returnValue,
+                                      Object thisObject, Map handlerCache)
+                throws Exception {
+            // invoke filter chain if defined
+            if (filterChain != null) {
+                return filterChain.invokeAsFilter(reval, returnValue, thisObject, handlerCache);
+            } else {
+                return returnValue;
+            }
+        }
+
+        private Object invokeAsFilter(RequestEvaluator reval, Object returnValue,
+                                      Object thisObject, Map handlerCache)
                 throws Exception {
 
             if ((sandbox != null) && !sandbox.contains(name)) {
@@ -762,10 +774,8 @@ public final class Skin {
                 Object retval = reval.invokeDirectFunction(handlerObject,
                                                            funcName,
                                                            arguments);
-                if (filterChain == null) {
-                    return retval;
-                }
-                return filterChain.invokeFilter(reval, retval, thisObject, handlerCache);
+
+                return filter(reval, retval, thisObject, handlerCache);
             } else {
                 throw new RuntimeException("Undefined Filter " + name);
             }
@@ -773,7 +783,7 @@ public final class Skin {
 
         private Object[] prepareArguments(int offset, RequestEvaluator reval,
                                           Object thisObject, Map handlerCache)
-                throws UnsupportedEncodingException {
+                throws Exception {
             int nPosArgs = (positionalParams == null) ? 0 : positionalParams.size();
             Object[] arguments = new Object[offset + 1 + nPosArgs];
 
@@ -784,7 +794,7 @@ public final class Skin {
                 for (Iterator it = namedParams.entrySet().iterator(); it.hasNext(); ) {
                     Map.Entry entry = (Map.Entry) it.next();
                     Object value = entry.getValue();
-                    map.put(entry.getKey(), renderMacro(value, reval, thisObject, handlerCache));
+                    map.put(entry.getKey(), invokeMacro(value, reval, thisObject, handlerCache));
                 }
                 arguments[offset] = map;
             } else {
@@ -795,7 +805,7 @@ public final class Skin {
                 for (int i = 0; i < nPosArgs; i++) {
                     Object param = positionalParams.get(i);
                     if (param instanceof Macro)
-                        arguments[offset + 1 + i] = renderMacro(param, reval, thisObject, handlerCache);
+                        arguments[offset + 1 + i] = invokeMacro(param, reval, thisObject, handlerCache);
                     else
                         arguments[offset + 1 + i] = param;
                 }
@@ -879,16 +889,10 @@ public final class Skin {
          * Utility method for writing text out to the response object.
          */
         void writeResponse(Object value, RequestEvaluator reval,
-                           Object thisObject, Map handlerCache,
                            StandardParams stdParams, boolean useDefault)
                 throws Exception {
             String text;
             StringBuffer buffer = reval.getResponse().getBuffer();
-
-            // invoke filter chain if defined
-            if (filterChain != null) {
-                value = filterChain.invokeFilter(reval, value, thisObject, handlerCache);
-            }
 
             if (value == null || "".equals(value)) {
                 if (useDefault) {
@@ -967,6 +971,10 @@ public final class Skin {
         StandardParams() {}
 
         StandardParams(Map map) {
+            readFrom(map);
+        }
+
+        void readFrom(Map map) {
             prefix = map.get("prefix");
             suffix = map.get("suffix");
             defaultValue = map.get("default");
@@ -993,15 +1001,21 @@ public final class Skin {
         }
 
         StandardParams render(RequestEvaluator reval, Object thisObj, Map handlerCache)
-                throws UnsupportedEncodingException {
+                throws Exception {
             if (!containsMacros())
                 return this;
             StandardParams stdParams = new StandardParams();
-            stdParams.prefix = renderMacro(prefix, reval, thisObj, handlerCache);
-            stdParams.suffix = renderMacro(suffix, reval, thisObj, handlerCache);
-            stdParams.defaultValue = renderMacro(defaultValue, reval, thisObj, handlerCache);
+            stdParams.prefix = invokeMacro(prefix, reval, thisObj, handlerCache);
+            stdParams.suffix = invokeMacro(suffix, reval, thisObj, handlerCache);
+            stdParams.defaultValue = invokeMacro(defaultValue, reval, thisObj, handlerCache);
             return stdParams;
         }
 
+    }
+}
+
+class MacroUnhandledException extends Exception {
+    MacroUnhandledException(String name) {
+        super(name);
     }
 }
