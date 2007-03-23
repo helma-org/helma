@@ -20,6 +20,7 @@ import helma.framework.*;
 import helma.framework.repository.Resource;
 import helma.objectmodel.ConcurrencyException;
 import helma.util.*;
+import helma.scripting.ScriptingEngine;
 
 import java.util.*;
 import java.io.UnsupportedEncodingException;
@@ -614,10 +615,11 @@ public final class Skin {
 
             Object handlerObject = null;
             Object value = null;
+            ScriptingEngine engine = reval.scriptingEngine;
 
             if (handler != HANDLER_GLOBAL) {
                 handlerObject = resolveHandler(thisObject, reval, handlerCache);
-                handlerObject = resolvePath(handlerObject, reval);
+                handlerObject = resolvePath(handlerObject, engine);
             }
 
             if (handler == HANDLER_GLOBAL || handlerObject != null) {
@@ -627,7 +629,7 @@ public final class Skin {
                 String propName = path[path.length - 1];
                 String funcName = propName + "_macro";
 
-                if (reval.scriptingEngine.hasFunction(handlerObject, funcName)) {
+                if (engine.hasFunction(handlerObject, funcName)) {
                     StringBuffer buffer = reval.getResponse().getBuffer();
                     // remember length of response buffer before calling macro
                     int bufLength = buffer.length();
@@ -665,21 +667,21 @@ public final class Skin {
                         }
                     }
                     // display error message unless silent failmode is on
-                    if ((handlerObject == null || !reval.scriptingEngine.hasProperty(handlerObject, propName)) &&
-                                standardParams.verboseFailmode(handlerObject,  reval)) {
-                            throw new MacroUnhandledException(name);
+                    if ((handlerObject == null || !engine.hasProperty(handlerObject, propName))
+                            && standardParams.verboseFailmode(handlerObject, engine)) {
+                        throw new MacroUnhandledException(name);
                     }
-                    value = reval.scriptingEngine.getProperty(handlerObject, propName);
+                    value = engine.getProperty(handlerObject, propName);
                     return filter(reval, value, thisObject, handlerCache);
                 }
-            } else if (standardParams.verboseFailmode(handlerObject, reval)) {
+            } else if (standardParams.verboseFailmode(handlerObject, engine)) {
                 throw new MacroUnhandledException(name);
             }
             return filter(reval, null, thisObject, handlerCache);
         }
 
         /**
-         *  Render the macro given a handler object
+         *  Render the macro given a handler object.
          */
         public void render(RequestEvaluator reval, Object thisObject, Map handlerCache)
                 throws RedirectException, UnsupportedEncodingException {
@@ -763,7 +765,7 @@ public final class Skin {
 
             if (handler != HANDLER_GLOBAL) {
                 handlerObject = resolveHandler(thisObject, reval, handlerCache);
-                handlerObject = resolvePath(handlerObject, reval);
+                handlerObject = resolvePath(handlerObject, reval.scriptingEngine);
             }
 
             String funcName = path[path.length - 1] + "_filter";
@@ -871,13 +873,13 @@ public final class Skin {
             return obj;
         }
 
-        private Object resolvePath(Object handler, RequestEvaluator reval) {
+        private Object resolvePath(Object handler, ScriptingEngine engine) {
             if (path.length > 2 && !app.allowDeepMacros) {
                 throw new RuntimeException("allowDeepMacros property must be true " +
                         "in order to enable deep macro paths.");
             }
             for (int i = 1; i < path.length - 1; i++) {
-                handler = reval.scriptingEngine.getProperty(handler, path[i]);
+                handler = engine.getProperty(handler, path[i]);
                 if (handler == null) {
                     break;
                 }
@@ -995,9 +997,11 @@ public final class Skin {
                 app.logEvent("unrecognized failmode value: " + value);
         }
 
-        boolean verboseFailmode(Object handler, RequestEvaluator reval) {
+        boolean verboseFailmode(Object handler, ScriptingEngine engine) {
             return (failmode == FAIL_VERBOSE) ||
-                   (failmode == FAIL_DEFAULT && reval.scriptingEngine.isTypedObject(handler));
+                   (failmode == FAIL_DEFAULT &&
+                       (handler == null ||
+                        engine.isTypedObject(handler)));
         }
 
         StandardParams render(RequestEvaluator reval, Object thisObj, Map handlerCache)
