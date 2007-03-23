@@ -396,11 +396,6 @@ public class RhinoEngine implements ScriptingEngine {
             // Do not return functions as properties as this
             // is a potential security problem
             return (prop instanceof Function) ? null : prop;
-        } else if (obj instanceof INode) {
-            IProperty prop = ((INode) obj).get(propname);
-            if (prop == null) return null;
-            Object value = prop.getValue();
-            return (value instanceof Function) ? null : value;
         }
 
         // use Rhino wrappers and methods to get property
@@ -411,7 +406,7 @@ public class RhinoEngine implements ScriptingEngine {
 
             if (prop == null
                     || prop == Undefined.instance
-	                || prop == ScriptableObject.NOT_FOUND) {
+                    || prop == ScriptableObject.NOT_FOUND) {
                 return null;
             } else if (prop instanceof Wrapper) {
                 return ((Wrapper) prop).unwrap();
