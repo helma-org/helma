@@ -596,10 +596,17 @@ public class RhinoEngine implements ScriptingEngine {
      *  caching.
      */
     public Skin getSkin(String protoName, String skinName) throws IOException {
-        SkinKey key = new SkinKey(protoName, skinName);
+        Skin skin;
         ResponseTrans res = getResponse();
+        if (skinName.startsWith("#")) {
+            // evaluate relative subskin name against currently rendering skin
+            skin = res.getActiveSkin();
+            return skin == null ?
+                    null : skin.getSubskin(skinName.substring(1));
+        }
 
-        Skin skin = res.getCachedSkin(key);
+        SkinKey key = new SkinKey(protoName, skinName);
+        skin = res.getCachedSkin(key);
 
         if (skin == null) {
             // retrieve res.skinpath, an array of objects that tell us where to look for skins

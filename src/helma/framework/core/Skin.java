@@ -256,6 +256,7 @@ public final class Skin {
         // register param object, remember previous one to reset afterwards
         Map handlers = res.getMacroHandlers();
         Object previousParam = handlers.put("param", paramObject);
+        Skin previousSkin = res.switchActiveSkin(parentSkin);
 
         try {
             int written = offset;
@@ -279,6 +280,7 @@ public final class Skin {
             }
         } finally {
             reval.skinDepth--;
+            res.switchActiveSkin(previousSkin);
             if (previousParam == null) {
                 handlers.remove("param");
             } else {
@@ -422,6 +424,7 @@ public final class Skin {
                         }
                         b.append(source[i]);
                         escape = false;
+                        break;
 
                     case '|':
 

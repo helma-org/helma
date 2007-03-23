@@ -113,6 +113,9 @@ public final class ResponseTrans extends Writer implements Serializable {
     // the message digest used to generate composed digests for ETag headers
     private transient MessageDigest digest;
 
+    // the skin current or last rendered skin
+    private transient volatile Skin activeSkin;
+
     // the application
     Application app;
 
@@ -821,6 +824,25 @@ public final class ResponseTrans extends Writer implements Serializable {
         }
 
         skincache.put(id, skin);
+    }
+
+    /**
+     * Set the skin currently being rendered, returning the previously active skin.
+     * @param skin the new active skin
+     * @return the previously active skin
+     */
+    public Skin switchActiveSkin(Skin skin) {
+        Skin previousSkin = activeSkin;
+        activeSkin = skin;
+        return previousSkin;
+    }
+
+    /**
+     * Return the skin currently being rendered, or none.
+     * @return the currently active skin
+     */
+    public Skin getActiveSkin() {
+        return activeSkin;
     }
 
     /**
