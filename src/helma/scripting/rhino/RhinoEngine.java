@@ -526,7 +526,16 @@ public class RhinoEngine implements ScriptingEngine {
      * @param resource a code resource
      */
     public void injectCodeResource(String typename, Resource resource) {
-        core.injectCodeResource(typename, resource);
+        // we activate recording on thread scope to make it forward
+        // property puts to the shared scope (bug 504)
+        if (global != null)
+            global.startRecording();
+        try {
+            core.injectCodeResource(typename, resource);
+        } finally {
+            if (global != null)
+                global.stopRecording();
+        }
     }
 
     /**

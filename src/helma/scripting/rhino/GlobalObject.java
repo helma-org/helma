@@ -108,7 +108,14 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     public void put(String name, Scriptable start, Object value) {
         // register property for PropertyRecorder interface
         if (isRecording) {
-            changedProperties.add(name);
+            // if during compilation a property is set on the thread scope
+            // forward it to the shared scope (bug 504)
+            if (isThreadScope) {
+                core.global.put(name, core.global, value);
+                return;
+            } else {
+                changedProperties.add(name);
+            }
         }
         super.put(name, start, value);
     }
