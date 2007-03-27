@@ -185,20 +185,17 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Return the number of currently active sessions
+     * @return the current number of active sessions
      */
     public int countSessions() {
         return app.countSessions();
     }
 
     /**
-     *
-     *
-     * @param sessionID ...
-     *
-     * @return ...
+     * Get a session object for the specified session id
+     * @param sessionID the session id
+     * @return the session belonging to the session id, or null
      */
     public SessionBean getSession(String sessionID) {
         if (sessionID == null) {
@@ -215,11 +212,9 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     *
-     *
-     * @param sessionID ...
-     *
-     * @return ...
+     * Create a new session with the given session id
+     * @param sessionID the session id
+     * @return the newly created session
      */
     public SessionBean createSession(String sessionID) {
         if (sessionID == null) {
@@ -236,9 +231,8 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get an array of all active sessions
+     * @return an array of session beans
      */
     public SessionBean[] getSessions() {
         Map sessions = app.getSessions();
@@ -254,12 +248,11 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     *
-     *
-     * @param username ...
-     * @param password ...
-     *
-     * @return ...
+     * Register a user with the given name and password using the
+     * database mapping of the User prototype
+     * @param username the user name
+     * @param password the user password
+     * @return the newly registered user, or null if we failed
      */
     public INode registerUser(String username, String password) {
         if ((username == null) || (password == null) || "".equals(username.trim()) ||
@@ -271,11 +264,9 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     *
-     *
-     * @param username ...
-     *
-     * @return ...
+     * Get a user object with the given name
+     * @param username the user name
+     * @return the user object, or null
      */
     public INode getUser(String username) {
         if ((username == null) || "".equals(username.trim())) {
@@ -286,9 +277,8 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get an array of currently active registered users
+     * @return an array of user nodes
      */
     public INode[] getActiveUsers() {
         List activeUsers = app.getActiveUsers();
@@ -297,9 +287,8 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get an array of all registered users
+     * @return an array containing all registered users
      */
     public INode[] getRegisteredUsers() {
         List registeredUsers = app.getRegisteredUsers();
@@ -308,11 +297,9 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     *
-     *
-     * @param usernode ...
-     *
-     * @return ...
+     * Get an array of all currently active sessions for a given user node
+     * @param usernode the user node
+     * @return an array of sessions for the given user
      */
     public SessionBean[] getSessionsForUser(INode usernode) {
         if (usernode == null) {
@@ -323,11 +310,9 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     *
-     *
-     * @param username ...
-     *
-     * @return ...
+     * Get an array of all currently active sessions for a given user name
+     * @param username the user node
+     * @return an array of sessions for the given user
      */
     public SessionBean[] getSessionsForUser(String username) {
         if ((username == null) || "".equals(username.trim())) {
@@ -340,9 +325,8 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     *
-     *
-     * @param functionName ...
+     * Add a cron job that will run once a minute
+     * @param functionName the function name
      */
     public void addCronJob(String functionName) {
         CronJob job = new CronJob(functionName);
@@ -352,15 +336,15 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
+     * Add a cron job that will run at the specified time intervals
      *
-     *
-     * @param functionName ...
-     * @param year ...
-     * @param month ...
-     * @param day ...
-     * @param weekday ...
-     * @param hour ...
-     * @param minute ...
+     * @param functionName the function name
+     * @param year comma separated list of years, or *
+     * @param month comma separated list of months, or *
+     * @param day comma separated list of days, or *
+     * @param weekday comma separated list of weekdays, or *
+     * @param hour comma separated list of hours, or *
+     * @param minute comma separated list of minutes, or *
      */
     public void addCronJob(String functionName, String year, String month, String day,
                            String weekday, String hour, String minute) {
@@ -370,9 +354,8 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     *
-     *
-     * @param functionName ...
+     * Unregister a previously registered cron job
+     * @param functionName the function name
      */
     public void removeCronJob(String functionName) {
         app.customCronJobs.remove(functionName);
@@ -524,36 +507,32 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get the number of currently available threads/request evaluators
+     * @return the currently available threads
      */
     public int getFreeThreads() {
         return app.countFreeEvaluators();
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get the number of currently active request threads
+     * @return the number of currently active threads
      */
     public int getActiveThreads() {
         return app.countActiveEvaluators();
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get the maximal thread number for this application
+     * @return the maximal number of threads/request evaluators
      */
     public int getMaxThreads() {
         return app.countEvaluators();
     }
 
     /**
-     *
-     *
-     * @param n ...
+     * Set the maximal thread number for this application
+     * @param n the maximal number of threads/request evaluators
      */
     public void setMaxThreads(int n) {
         // add one to the number to compensate for the internal scheduler.
@@ -573,9 +552,9 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
+     * Return a map of skin resources
      *
-     *
-     * @return ...
+     * @return a map containing the skin resources
      */
     public Map getSkinfiles() {
         Map skinz = new SystemMap();
@@ -592,11 +571,10 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
+     * Return a map of skin resources including the app-specific skinpath
      *
-     *
-     * @param skinpath ...
-     *
-     * @return ...
+     * @param skinpath an array of directory paths or HopObjects to search for skins
+     * @return a map containing the skin resources
      */
     public Map getSkinfilesInPath(Object[] skinpath) {
         Map skinz = new SystemMap();
@@ -613,18 +591,17 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Return the absolute application directory (appdir property
+     * in apps.properties file)
+     * @return the app directory as absolute path
      */
     public String getAppDir() {
         return app.getAppDir().getAbsolutePath();
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Return the absolute server directory
+     * @return the server directory as absolute path
      */
     public String getServerDir() {
         File f = app.getServerDir();
@@ -637,9 +614,16 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Return the app's default charset/encoding.
+     * @return the app's charset
+     */
+    public String getCharset() {
+        return app.getCharset();
+    }
+
+    /**
+     * Return a string presentation of this AppBean
+     * @return string description of this app bean object
      */
     public String toString() {
         return "[Application " + app.getName() + "]";
