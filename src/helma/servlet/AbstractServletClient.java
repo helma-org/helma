@@ -840,7 +840,7 @@ public abstract class AbstractServletClient extends HttpServlet {
         t = new StringTokenizer(uri, "/");
 
         int uriTokens = t.countTokens();
-        StringBuffer pathbuffer = new StringBuffer("/");
+        StringBuffer pathbuffer = new StringBuffer();
 
         String encoding = getApplication().getCharset();
 
