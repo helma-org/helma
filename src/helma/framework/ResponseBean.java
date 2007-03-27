@@ -471,7 +471,7 @@ public class ResponseBean implements Serializable {
      * writes will be redirected to this buffer.
      */
     public void push() {
-        res.pushStringBuffer();
+        res.pushBuffer(null);
     }
 
     /**
@@ -481,23 +481,40 @@ public class ResponseBean implements Serializable {
      * @return ...
      */
     public String pop() {
-        return res.popStringBuffer();
+        return res.popString();
     }
 
     /**
      * Old version for push() kept for compatibility
+     * @deprecated
      */
     public void pushStringBuffer() {
-        res.pushStringBuffer();
+        res.pushBuffer(null);
     }
 
     /**
      * Old version for pop() kept for compatibility
-     *
+     * @deprecated
      * @return ...
      */
     public String popStringBuffer() {
-        return res.popStringBuffer();
+        return res.popString();
+    }
+
+    /**
+     * Push a string buffer on the response object. All further
+     * writes will be redirected to this buffer.
+     * @param buffer the string buffer
+     */
+    public void pushBuffer(StringBuffer buffer) {
+        res.pushBuffer(buffer);
+    }
+
+   /**
+    * Pops the current response buffer without converting it to a string
+    */
+   public StringBuffer popBuffer() {
+        return res.popBuffer();
     }
 
    /**

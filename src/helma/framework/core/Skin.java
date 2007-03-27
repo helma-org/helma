@@ -226,11 +226,11 @@ public final class Skin {
                 throws RedirectException, UnsupportedEncodingException {
         String result = "";
         ResponseTrans res = reval.getResponse();
-        res.pushStringBuffer();
+        res.pushBuffer(null);
         try {
             render(reval, thisObject, paramObject);
         } finally {
-            result = res.popStringBuffer();
+            result = res.popString();
         }
         return result;
     }
@@ -657,14 +657,12 @@ public final class Skin {
                 } else {
                     if (handler == HANDLER_RESPONSE) {
                         // some special handling for response handler
-                        if ("message".equals(propName)) {
+                        if ("message".equals(propName))
                             value = reval.getResponse().getMessage();
-                        } else if ("error".equals(propName)) {
+                        else if ("error".equals(propName))
                             value = reval.getResponse().getError();
-                        }
-                        if (value != null) {
+                        if (value != null)
                             return filter(reval, value, thisObject, handlerCache);
-                        }
                     }
                     // display error message unless silent failmode is on
                     if ((handlerObject == null || !engine.hasProperty(handlerObject, propName))
@@ -1018,6 +1016,9 @@ public final class Skin {
     }
 }
 
+/**
+ * Exception type for unhandled macros
+ */
 class MacroUnhandledException extends Exception {
     MacroUnhandledException(String name) {
         super(name);

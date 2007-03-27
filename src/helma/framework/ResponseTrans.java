@@ -199,10 +199,13 @@ public final class ResponseTrans extends Writer implements Serializable {
     }
 
     /**
-     * This is called before a skin is rendered as string (renderSkinAsString) to redirect the output
-     * to a new string buffer.
+     * This is called before a skin is rendered as string
+     * (renderSkinAsString) to redirect the output to a new
+     * string buffer.
+     * @param buf the StringBuffer to use, or null
+     * @return the new StringBuffer instance
      */
-    public synchronized void pushStringBuffer() {
+    public synchronized StringBuffer pushBuffer(StringBuffer buf) {
         if (buffers == null) {
             buffers = new Stack();
         }
@@ -211,33 +214,40 @@ public final class ResponseTrans extends Writer implements Serializable {
             buffers.push(buffer);
         }
 
-        if (cachedBuffer != null) {
+        if (buf != null) {
+            buffer = buf;
+        } else if (cachedBuffer != null) {
             buffer = cachedBuffer;
             cachedBuffer = null;
         } else {
             buffer = new StringBuffer(64);
         }
+        return buffer;
     }
 
     /**
      * Returns the content of the current string buffer and switches back to the previos one.
      */
-    public synchronized String popStringBuffer() {
+    public synchronized String popString() {
+        StringBuffer buf = popBuffer();
+        String str = buf.toString();
+        // store stringbuffer for later reuse
+        buf.setLength(0);
+        cachedBuffer = buf;
+        return str;
+    }
+
+    public synchronized StringBuffer popBuffer() {
         if (buffer == null) {
             throw new RuntimeException("Can't pop string buffer: buffer is null");
         } else if (buffers == null) {
             throw new RuntimeException("Can't pop string buffer: buffer stack is empty");
         }
-
-        String str = buffer.toString();
-
-        buffer.setLength(0);
-        cachedBuffer = buffer;
-
+        // get local reference
+        StringBuffer buf = buffer;
         // restore the previous buffer, which may be null
         buffer = buffers.empty() ? null : (StringBuffer) buffers.pop();
-
-        return str;
+        return buf;
     }
 
     /**
