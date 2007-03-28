@@ -653,7 +653,11 @@ public class ApplicationBean implements Serializable {
                          Object[] args, long timeout)
             throws Exception {
         RequestEvaluator reval = app.getEvaluator();
-        return reval.invokeInternal(thisObject, function, args, timeout);
+        try {
+            return reval.invokeInternal(thisObject, function, args, timeout);
+        } finally {
+            app.releaseEvaluator(reval);
+        }
     }
 
     /**
@@ -704,17 +708,18 @@ public class ApplicationBean implements Serializable {
                               final Object function,
                               final Object[] args,
                               final long timeout) {
-        final RequestEvaluator reval = app.getEvaluator();
         final SystemMap map = new SystemMap();
-        map.put("running", Boolean.TRUE);
         new Thread() {
             public void run() {
+                RequestEvaluator reval = app.getEvaluator();
+                map.put("running", Boolean.TRUE);
                 try {
                     map.put("result", reval.invokeInternal(thisObject, function, args, timeout));
                 } catch (Exception x) {
                     map.put("exception", x);
                 } finally {
                     map.put("running", Boolean.FALSE);
+                    app.releaseEvaluator(reval);
                 }
             }
         }.start();
