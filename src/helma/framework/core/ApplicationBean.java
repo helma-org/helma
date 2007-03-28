@@ -622,6 +622,106 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
+     * Trigger a synchronous Helma invocation with a default timeout of 30 seconds.
+     *
+     * @param thisObject the object to invoke the function on,
+     * or null for global invokation
+     * @param function the function or function name to invoke
+     * @param args an array of arguments
+     * @return the value returned by the function
+     * @throws Exception exception thrown by the function
+     */
+    public Object invoke(Object thisObject, Object function, Object[] args)
+            throws Exception {
+        // default timeout of 30 seconds
+        return invoke(thisObject, function, args, 30000L);
+    }
+
+    /**
+     * Trigger a synchronous Helma invocation.
+     *
+     * @param thisObject the object to invoke the function on,
+     * or null for global invokation
+     * @param function the function or function name to invoke
+     * @param args an array of arguments
+     * @param timeout the timeout in milliseconds. After waiting
+     * this long, we will try to interrupt the invocation
+     * @return the value returned by the function
+     * @throws Exception exception thrown by the function
+     */
+    public Object invoke(Object thisObject, Object function,
+                         Object[] args, long timeout)
+            throws Exception {
+        RequestEvaluator reval = app.getEvaluator();
+        return reval.invokeInternal(thisObject, function, args, timeout);
+    }
+
+    /**
+     * Trigger an asynchronous Helma invocation. This method returns
+     * immedately with an object that allows to track the result of the
+     * function invocation with the following properties:
+     *
+     * <ul>
+     * <li>running - true while the function is running, false afterwards</li>
+     * <li>result - the value returned by the function, if any</li>
+     * <li>exception - the exception thrown by the function, if any</li>
+     * </ul>
+     *
+     * @param thisObject the object to invoke the function on,
+     * or null for global invokation
+     * @param function the function or function name to invoke
+     * @param args an array of arguments
+     * this long, we will try to interrupt the invocation
+     * @return an object with the properties described above
+     */
+    public Object invokeAsync(Object thisObject,
+                              final Object function,
+                              final Object[] args) {
+        // default timeout of 15 minutes
+        return invokeAsync(thisObject, function, args, 60000L * 15);
+    }
+
+    /**
+     * Trigger an asynchronous Helma invocation. This method returns
+     * immedately with an object that allows to track the result of the
+     * function invocation with the following properties:
+     *
+     * <ul>
+     * <li>running - true while the function is running, false afterwards</li>
+     * <li>result - the value returned by the function, if any</li>
+     * <li>exception - the exception thrown by the function, if any</li>
+     * </ul>
+     *
+     * @param thisObject the object to invoke the function on,
+     * or null for global invokation
+     * @param function the function or function name to invoke
+     * @param args an array of arguments
+     * @param timeout the timeout in milliseconds. After waiting
+     * this long, we will try to interrupt the invocation
+     * @return an object with the properties described above
+     */
+    public Object invokeAsync(final Object thisObject,
+                              final Object function,
+                              final Object[] args,
+                              final long timeout) {
+        final RequestEvaluator reval = app.getEvaluator();
+        final SystemMap map = new SystemMap();
+        map.put("running", Boolean.TRUE);
+        new Thread() {
+            public void run() {
+                try {
+                    map.put("result", reval.invokeInternal(thisObject, function, args, timeout));
+                } catch (Exception x) {
+                    map.put("exception", x);
+                } finally {
+                    map.put("running", Boolean.FALSE);
+                }
+            }
+        }.start();
+        return map;
+    }
+
+    /**
      * Return a string presentation of this AppBean
      * @return string description of this app bean object
      */
