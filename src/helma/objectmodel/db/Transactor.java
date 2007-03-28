@@ -427,7 +427,7 @@ public class Transactor extends Thread {
                 }
         }
 
-        if (isAlive() && "true".equals(nmgr.app.getProperty("requestTimeoutStop", "true"))) {
+        if (isAlive() && "true".equals(nmgr.app.getProperty("requestTimeoutStop"))) {
                 // still running - check if we ought to stop() it
                 try {
                     Thread.sleep(2000);
