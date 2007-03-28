@@ -709,10 +709,10 @@ public class ApplicationBean implements Serializable {
                               final Object[] args,
                               final long timeout) {
         final SystemMap map = new SystemMap();
+        map.put("running", Boolean.TRUE);
         new Thread() {
             public void run() {
                 RequestEvaluator reval = app.getEvaluator();
-                map.put("running", Boolean.TRUE);
                 try {
                     map.put("result", reval.invokeInternal(thisObject, function, args, timeout));
                 } catch (Exception x) {
