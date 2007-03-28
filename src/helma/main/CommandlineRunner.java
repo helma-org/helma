@@ -105,9 +105,8 @@ public class CommandlineRunner {
             }
         }
 
-        // stop the application
-        server.stopApplication(appName);
-
+        // stop the application and server
+        server.stop();
     }
 
     
