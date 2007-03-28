@@ -85,7 +85,7 @@ public interface ScriptingEngine {
      *
      * @param thisObject the object to invoke the function on, or null for
      *                   global functions
-     * @param functionName the name of the function to be invoked
+     * @param function the name of the function to be invoked
      * @param args array of argument objects
      * @param argsWrapMode indicated the way to process the arguments. Must be
      *                   one of <code>ARGS_WRAP_NONE</code>,
@@ -97,7 +97,7 @@ public interface ScriptingEngine {
      * @throws ScriptingException to indicate something went wrong
      *                   with the invocation
      */
-    public Object invoke(Object thisObject, String functionName,
+    public Object invoke(Object thisObject, Object function,
                          Object[] args, int argsWrapMode, boolean resolve)
             throws ScriptingException;
 

@@ -217,7 +217,7 @@ public class RhinoEngine implements ScriptingEngine {
      *
      * @param thisObject the object to invoke the function on, or null for
      *                   global functions
-     * @param functionName the name of the function to be invoked
+     * @param function the function or name of the function to be invoked
      * @param args array of argument objects
      * @param argsWrapMode indicated the way to process the arguments. Must be
      *                   one of <code>ARGS_WRAP_NONE</code>,
@@ -229,35 +229,47 @@ public class RhinoEngine implements ScriptingEngine {
      * @throws ScriptingException to indicate something went wrong
      *                   with the invocation
      */
-    public Object invoke(Object thisObject, String functionName, Object[] args,
+    public Object invoke(Object thisObject, Object function, Object[] args,
                          int argsWrapMode, boolean resolve) throws ScriptingException {
         try {
             Scriptable obj = thisObject == null ? global : Context.toObject(thisObject, global);
-            // if function name should be resolved interpret it as member expression,
-            // otherwise replace dots with underscores.
-            if (resolve) {
-                if (functionName.indexOf('.') > 0) {
-                    StringTokenizer st = new StringTokenizer(functionName, ".");
-                    for (int i=0; i<st.countTokens()-1; i++) {
-                        String propName = st.nextToken();
-                        Object propValue = ScriptableObject.getProperty(obj, propName);
-                        if (propValue instanceof Scriptable) {
-                            obj = (Scriptable) propValue;
-                        } else {
-                            throw new RuntimeException("Can't resolve function name " +
-                                    functionName + " in " + thisObject);
+            Function func;
+            if (function instanceof String) {
+                String funcName = (String) function;
+                // if function name should be resolved interpret it as member expression,
+                // otherwise replace dots with underscores.
+                if (resolve) {
+                    if (funcName.indexOf('.') > 0) {
+                        StringTokenizer st = new StringTokenizer(funcName, ".");
+                        for (int i=0; i<st.countTokens()-1; i++) {
+                            String propName = st.nextToken();
+                            Object propValue = ScriptableObject.getProperty(obj, propName);
+                            if (propValue instanceof Scriptable) {
+                                obj = (Scriptable) propValue;
+                            } else {
+                                throw new RuntimeException("Can't resolve function name " +
+                                        funcName + " in " + thisObject);
+                            }
                         }
+                        funcName = st.nextToken();
                     }
-                    functionName = st.nextToken();
+                } else {
+                    funcName = funcName.replace('.', '_');
                 }
-            } else {
-                functionName = functionName.replace('.', '_');
-            }
-            Object f = ScriptableObject.getProperty(obj, functionName);
+                Object funcvalue = ScriptableObject.getProperty(obj, funcName);
 
-            if (!(f instanceof Function)) {
-                return null;
+                if (!(funcvalue instanceof Function))
+                    return null;
+                func = (Function) funcvalue;
+
+            } else {
+                if (function instanceof Wrapper)
+                    function = ((Wrapper) function).unwrap();
+                if (!(function instanceof Function))
+                    throw new IllegalArgumentException("Not a function or function name: " + function);
+                func = (Function) function;
             }
+
 
             for (int i = 0; i < args.length; i++) {
                 switch (argsWrapMode) {
@@ -275,7 +287,7 @@ public class RhinoEngine implements ScriptingEngine {
             }
 
             // use Context.call() in order to set the context's factory
-            Object retval = Context.call(core.contextFactory, (Function) f, global, obj, args);
+            Object retval = Context.call(core.contextFactory, func, global, obj, args);
 
             if (retval instanceof Wrapper) {
                 retval = ((Wrapper) retval).unwrap();

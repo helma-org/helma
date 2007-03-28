@@ -62,8 +62,11 @@ public final class RequestEvaluator implements Runnable {
     // the object on which to invoke a function, if specified
     private volatile Object thisObject;
 
-    // the method to be executed
+    // the function to be executed
     private volatile String functionName;
+
+    // the function or function name to be executed
+    private volatile Object function;
 
     // the session object associated with the current request
     private volatile Session session;
@@ -165,7 +168,7 @@ public final class RequestEvaluator implements Runnable {
                         // avoid going into transaction if called function doesn't exist.
                         // this only works for the (common) case that method is a plain
                         // method name, not an obj.method path
-                        if (reqtype == INTERNAL) {
+                        if (reqtype == INTERNAL && functionName != null) {
                             // if object is an instance of NodeHandle, get the node object itself.
                             if (thisObject instanceof NodeHandle) {
                                 thisObject = ((NodeHandle) thisObject).getNode(app.nmgr.safe);
@@ -482,12 +485,12 @@ public final class RequestEvaluator implements Runnable {
                                     // reset skin recursion detection counter
                                     skinDepth = 0;
 
-                                    if (!scriptingEngine.hasFunction(thisObject, functionName)) {
+                                    if (functionName != null && !scriptingEngine.hasFunction(thisObject, functionName)) {
                                         throw new FrameworkException(missingFunctionMessage(thisObject, functionName));
                                     }
 
                                     result = scriptingEngine.invoke(thisObject,
-                                            functionName,
+                                            function,
                                             args,
                                             ScriptingEngine.ARGS_WRAP_DEFAULT,
                                             true);
@@ -850,14 +853,14 @@ public final class RequestEvaluator implements Runnable {
      * Invoke a function internally and directly, using the thread we're running on.
      *
      * @param obj the object to invoke the function on
-     * @param functionName the name of the function to invoke
+     * @param function the function or name of the function to invoke
      * @param args the arguments
      * @return the result returned by the invocation
      * @throws Exception any exception thrown by the invocation
      */
-    public Object invokeDirectFunction(Object obj, String functionName, Object[] args)
+    public Object invokeDirectFunction(Object obj, Object function, Object[] args)
                                 throws Exception {
-        return scriptingEngine.invoke(obj, functionName, args,
+        return scriptingEngine.invoke(obj, function, args,
                 ScriptingEngine.ARGS_WRAP_DEFAULT, false);
     }
 
@@ -866,16 +869,16 @@ public final class RequestEvaluator implements Runnable {
      * and waits for it to finish.
      *
      * @param object the object to invoke the function on
-     * @param functionName the name of the function to invoke
+     * @param function the function or name of the function to invoke
      * @param args the arguments
      * @return the result returned by the invocation
      * @throws Exception any exception thrown by the invocation
      */
-    public synchronized Object invokeInternal(Object object, String functionName,
+    public synchronized Object invokeInternal(Object object, Object function,
                                               Object[] args)
                                        throws Exception {
         // give internal call more time (15 minutes) to complete
-        return invokeInternal(object, functionName, args, 60000L * 15);
+        return invokeInternal(object, function, args, 60000L * 15);
     }
 
     /**
@@ -883,22 +886,28 @@ public final class RequestEvaluator implements Runnable {
      * and waits for it to finish.
      *
      * @param object the object to invoke the function on
-     * @param functionName the name of the function to invoke
+     * @param function the function or name of the function to invoke
      * @param args the arguments
-     * @param timeout the time in milliseconds to wait for the function to return
+     * @param timeout the time in milliseconds to wait for the function to return, or
+     * -1 to wait indefinitely
      * @return the result returned by the invocation
      * @throws Exception any exception thrown by the invocation
      */
-    public synchronized Object invokeInternal(Object object, String functionName,
+    public synchronized Object invokeInternal(Object object, Object function,
                                               Object[] args, long timeout)
                                        throws Exception {
         initObjects(functionName, INTERNAL, RequestTrans.INTERNAL);
         thisObject = object;
-        this.functionName = functionName;
+        if (function instanceof String)
+            this.functionName = (String) function;
+        this.function = function;
         this.args = args;
 
         startTransactor();
-        wait(timeout);
+        if (timeout < 0)
+            wait();
+        else
+            wait(timeout);
 
         if (reqtype != NONE && stopTransactor()) {
             exception = new RuntimeException("Request timed out");
@@ -997,6 +1006,8 @@ public final class RequestEvaluator implements Runnable {
         res = null;
         req = null;
         session = null;
+        functionName = null;
+        function = null;
         args = null;
         result = null;
         exception = null;
