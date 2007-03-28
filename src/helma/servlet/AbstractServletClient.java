@@ -86,7 +86,7 @@ public abstract class AbstractServletClient extends HttpServlet {
         try {
             uploadLimit = (upstr == null) ? 1024 : Integer.parseInt(upstr);
         } catch (NumberFormatException x) {
-            System.err.println("Bad number format for uploadLimit: " + upstr);
+            log("Bad number format for uploadLimit: " + upstr);
             uploadLimit = 1024;
         }
 
@@ -198,7 +198,7 @@ public abstract class AbstractServletClient extends HttpServlet {
 
                 }
             } catch (Exception upx) {
-                System.err.println("Error in file upload: " + upx);
+                log("Error in file upload", upx);
                 if (uploadSoftfail) {
                     String msg = upx.getMessage();
                     if (msg == null || msg.length() == 0) {
@@ -345,9 +345,9 @@ public abstract class AbstractServletClient extends HttpServlet {
                               "Please check back later.");
                 }
 
-                log("Exception in execute: " + x);
-            } catch (IOException io_e) {
-                log("Exception in sendError: " + io_e);
+                log("Exception in execute", x);
+            } catch (IOException iox) {
+                log("Exception in sendError", iox);
             }
         }
     }
@@ -406,8 +406,8 @@ public abstract class AbstractServletClient extends HttpServlet {
 
                 out.write(hopres.getContent());
                 out.flush();
-            } catch (Exception io_e) {
-                log("Exception in writeResponse: " + io_e);
+            } catch (Exception iox) {
+                log("Exception in writeResponse: " + iox);
             }
         }
     }
@@ -694,13 +694,16 @@ public abstract class AbstractServletClient extends HttpServlet {
             try {
                 parseParameters(parameters, queryString.getBytes(), encoding);
             } catch (Exception e) {
-                System.err.println("Error parsing query string: "+e);
+                log("Error parsing query string", e);
             }
         }
 
         // Parse any posted parameters in the input stream
-        if ("POST".equals(request.getMethod()) &&
-                "application/x-www-form-urlencoded".equals(request.getContentType())) {
+        String contentType = request.getContentType();
+        if ("post".equals(request.getMethod().toLowerCase()) 
+                && contentType != null
+                && contentType.toLowerCase()
+                        .startsWith("application/x-www-form-urlencoded")) {
             try {
                 int max = request.getContentLength();
                 int len = 0;
@@ -719,8 +722,8 @@ public abstract class AbstractServletClient extends HttpServlet {
                 
                 // is.close();
                 parseParameters(parameters, buf, encoding);
-            } catch (IllegalArgumentException e) {
             } catch (IOException e) {
+                log("Error reading POST body", e);
             }
         }
 
