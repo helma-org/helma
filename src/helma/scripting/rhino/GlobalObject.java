@@ -74,7 +74,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
                                    "getXmlDocument", "getHtmlDocument", "seal",
                                    "getDBConnection", "getURL", "write", "writeln",
                                    "serialize", "deserialize", "defineLibraryScope",
-                                   "wrapJavaMap", "unwrapJavaMap"
+                                   "wrapJavaMap", "unwrapJavaMap", "asJavaObject"
                                };
 
         defineFunctionProperties(globalFuncs, GlobalObject.class, DONTENUM | READONLY | PERMANENT);
@@ -424,6 +424,33 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         }
         obj = ((MapWrapper) obj).unwrap();
         return new NativeJavaObject(core.global, obj, Map.class);
+    }
+
+    /**
+     * Convert an object into a wrapper that exposes the java
+     * methods of the object to JavaScript. This is useful for
+     * treating native numbers, strings, etc as their java
+     * counterpart such as java.lang.Double, java.lang.String etc.
+     * @param obj a java object that is wrapped in a special way
+     * Rhino
+     * @return the object wrapped as NativeJavaObject, exposing
+     * the public methods of the underlying class.
+     */
+    public Object asJavaObject(Object obj) {
+        if (obj == null || obj instanceof NativeJavaObject
+                || obj == Undefined.instance) {
+            return obj;
+        }
+        if (obj instanceof Wrapper) {
+            obj = ((Wrapper) obj).unwrap();
+        } else if (obj instanceof Scriptable) {
+            String className = ((Scriptable) obj).getClassName();
+            if ("Date".equals(className)) {
+                return new NativeJavaObject(this,
+                        new Date((long) ScriptRuntime.toNumber(obj)), null);
+            }
+        }
+        return new NativeJavaObject(this, obj, null);
     }
 
     /**
