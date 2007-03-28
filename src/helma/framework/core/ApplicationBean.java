@@ -712,8 +712,9 @@ public class ApplicationBean implements Serializable {
         map.put("running", Boolean.TRUE);
         new Thread() {
             public void run() {
-                RequestEvaluator reval = app.getEvaluator();
+                RequestEvaluator reval = null;
                 try {
+                    reval = app.getEvaluator();
                     map.put("result", reval.invokeInternal(thisObject, function, args, timeout));
                 } catch (Exception x) {
                     map.put("exception", x);
