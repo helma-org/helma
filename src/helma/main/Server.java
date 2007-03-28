@@ -17,7 +17,6 @@
 package helma.main;
 
 import helma.extensions.HelmaExtension;
-import helma.framework.*;
 import helma.framework.repository.FileResource;
 import helma.framework.core.*;
 import helma.objectmodel.db.DbSource;
@@ -568,10 +567,7 @@ public class Server implements Runnable {
         try {
             if ((websrvPort != null) || (ajp13Port != null)) {
                 http = new HttpServer();
-
-                // disable Jetty logging  FIXME: seems to be a jetty bug; as soon
-                // as the logging is disabled, the more is logged
-                org.mortbay.util.Log.instance().disableLog();
+                // plug helma server logger into Jetty
                 org.mortbay.util.Log.instance().add(new HelmaLogSink());
             }
 
@@ -891,16 +887,21 @@ public class Server implements Runnable {
         appManager.stop(name);
     }
 
-    static class HelmaLogSink implements LogSink {
-                        
+    /**
+     * Adapter class to use Helma Logging as Jetty LogSkin
+     */
+    class HelmaLogSink implements LogSink {
+
         public String getOptions() {
             return null;
         }
 
         public void log(String formattedLog) {
+            getLogger().info(formattedLog);
         }
 
         public void log(String tag, Object msg, Frame frame, long time) {
+            getLogger().info(msg);
         }
 
         public void setOptions(String options) {
