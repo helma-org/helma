@@ -1681,8 +1681,9 @@ public final class NodeManager {
 
                     if (dbmap == null) {
                         // invalid prototype name!
-                        app.logError("Warning: Invalid prototype name: " + protoName +
-                                       " - using default");
+                        app.logError("No prototype defined for prototype mapping \""
+                                + protoName + "\" - Using default prototype \""
+                                + dbm.getTypeName() + "\".");
                         dbmap = dbm;
                         protoName = dbmap.getTypeName();
                     }
