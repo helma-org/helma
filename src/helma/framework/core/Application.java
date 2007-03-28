@@ -462,7 +462,7 @@ public final class Application implements Runnable {
             eval = getEvaluator();
             eval.invokeInternal(null, "onStop", RequestEvaluator.EMPTY_ARGS);
         } catch (Exception x) {
-            logError("Error in " + name + "onStop()", x);
+            logError("Error in " + name + ".onStop()", x);
         }
 
         // mark app as stopped
