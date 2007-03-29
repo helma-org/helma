@@ -231,6 +231,12 @@ public class RhinoEngine implements ScriptingEngine {
      */
     public Object invoke(Object thisObject, Object function, Object[] args,
                          int argsWrapMode, boolean resolve) throws ScriptingException {
+        if (function == null) {
+            throw new IllegalArgumentException("Function argument must not be null");
+        }
+        if (args == null) {
+            throw new IllegalArgumentException("Arguments array must not be null");
+        }
         try {
             Scriptable obj = thisObject == null ? global : Context.toObject(thisObject, global);
             Function func;
