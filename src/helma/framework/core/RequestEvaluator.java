@@ -794,9 +794,7 @@ public final class RequestEvaluator implements Runnable {
      */
     public synchronized Object invokeXmlRpc(String functionName, Object[] args)
                                      throws Exception {
-        initObjects(functionName, XMLRPC, RequestTrans.XMLRPC);
-        this.functionName = functionName;
-        this.args = args;
+        initObjects(functionName, args, XMLRPC, RequestTrans.XMLRPC);
 
         startTransactor();
         wait(app.requestTimeout);
@@ -828,9 +826,7 @@ public final class RequestEvaluator implements Runnable {
      */
     public synchronized Object invokeExternal(String functionName, Object[] args)
                                      throws Exception {
-        initObjects(functionName, EXTERNAL, RequestTrans.EXTERNAL);
-        this.functionName = functionName;
-        this.args = args;
+        initObjects(functionName, args, EXTERNAL, RequestTrans.EXTERNAL);
 
         startTransactor();
         wait();
@@ -896,12 +892,11 @@ public final class RequestEvaluator implements Runnable {
     public synchronized Object invokeInternal(Object object, Object function,
                                               Object[] args, long timeout)
                                        throws Exception {
-        initObjects(functionName, INTERNAL, RequestTrans.INTERNAL);
+        String funcName = function instanceof String ?
+                (String) function : null;
+        initObjects(funcName, args, INTERNAL, RequestTrans.INTERNAL);
         thisObject = object;
-        if (function instanceof String)
-            this.functionName = (String) function;
         this.function = function;
-        this.args = args;
 
         startTransactor();
         if (timeout < 0)
@@ -943,15 +938,22 @@ public final class RequestEvaluator implements Runnable {
      * Init this evaluator's objects for an internal, external or XML-RPC type
      * request.
      *
-     * @param functionName
-     * @param reqtype
-     * @param reqtypeName
+     * @param funcName the function name, may be null
+     * @param args the argument array
+     * @param reqtype the request type
+     * @param reqtypeName the request type name
      */
-    private synchronized void initObjects(String functionName, int reqtype, String reqtypeName) {
-        this.functionName = functionName;
+    private synchronized void initObjects(String funcName, Object[] args,
+                                          int reqtype, String reqtypeName) {
+        this.functionName = funcName;
+        this.args = args;
         this.reqtype = reqtype;
-        req = new RequestTrans(reqtypeName, functionName);
-        session = new Session(functionName, app);
+        // if function name is null, use a placeholder for req, session etc,
+        // but make sure functionName field remains null.
+        if (funcName == null)
+            funcName = "<function>";
+        req = new RequestTrans(reqtypeName, funcName);
+        session = new Session(funcName, app);
         res = new ResponseTrans(app, req);
         result = null;
         exception = null;
@@ -1002,7 +1004,7 @@ public final class RequestEvaluator implements Runnable {
     /**
      *  Null out some fields, mostly for the sake of garbage collection.
      */
-    public synchronized void recycle() {
+    synchronized void recycle() {
         res = null;
         req = null;
         session = null;
