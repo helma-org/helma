@@ -669,6 +669,10 @@ public class ApplicationBean implements Serializable {
      * <li>running - true while the function is running, false afterwards</li>
      * <li>result - the value returned by the function, if any</li>
      * <li>exception - the exception thrown by the function, if any</li>
+     * <li>waitForResult() - wait indefinitely until invocation terminates
+     * and return the result</li>
+     * <li>waitForResult(t) - wait for the specified number of milliseconds
+     * for invocation to terminate and return the result</li>
      * </ul>
      *
      * @param thisObject the object to invoke the function on,
@@ -688,12 +692,16 @@ public class ApplicationBean implements Serializable {
     /**
      * Trigger an asynchronous Helma invocation. This method returns
      * immedately with an object that allows to track the result of the
-     * function invocation with the following properties:
+     * function invocation with the following methods and properties:
      *
      * <ul>
      * <li>running - true while the function is running, false afterwards</li>
      * <li>result - the value returned by the function, if any</li>
      * <li>exception - the exception thrown by the function, if any</li>
+     * <li>waitForResult() - wait indefinitely until invocation terminates
+     * and return the result</li>
+     * <li>waitForResult(t) - wait for the specified number of milliseconds
+     * for invocation to terminate and return the result</li>
      * </ul>
      *
      * @param thisObject the object to invoke the function on,
@@ -708,23 +716,72 @@ public class ApplicationBean implements Serializable {
                               final Object function,
                               final Object[] args,
                               final long timeout) {
-        final SystemMap map = new SystemMap();
-        map.put("running", Boolean.TRUE);
-        new Thread() {
+        Thread thread = new Thread() {
+
+            private Object result;
+            private Exception exception;
+            private boolean running = true;
+
             public void run() {
                 RequestEvaluator reval = null;
                 try {
                     reval = app.getEvaluator();
-                    map.put("result", reval.invokeInternal(thisObject, function, args, timeout));
+                    setResult(reval.invokeInternal(thisObject, function, args, timeout));
                 } catch (Exception x) {
-                    map.put("exception", x);
+                    setException(x);
                 } finally {
-                    map.put("running", Boolean.FALSE);
+                    running = false;
                     app.releaseEvaluator(reval);
                 }
             }
-        }.start();
-        return map;
+
+            public synchronized boolean getRunning() {
+                return running;
+            }
+
+            private synchronized void setResult(Object obj) {
+                result = obj;
+                running = false;
+                notifyAll();
+            }
+
+            public synchronized Object getResult() {
+                return result;
+            }
+
+            public synchronized Object waitForResult() throws InterruptedException {
+                if (!running)
+                    return result;
+                wait();
+                return result;
+            }
+
+            public synchronized Object waitForResult(long timeout)
+                    throws InterruptedException {
+                if (!running)
+                    return result;
+                wait(timeout);
+                return result;
+            }
+
+            private synchronized void setException(Exception x) {
+                exception = x;
+                running = false;
+                notifyAll();
+            }
+
+            public synchronized Exception getException() {
+                return exception;
+            }
+
+            public String toString() {
+                return new StringBuffer("AsyncInvokeThread{running: ").append(running)
+                        .append(", result: ").append(result).append(", exception: ")
+                        .append(exception).append("}").toString();
+            }
+        };
+        thread.start();
+        return thread;
     }
 
     /**
