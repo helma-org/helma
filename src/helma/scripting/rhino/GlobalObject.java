@@ -74,7 +74,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
                                    "getXmlDocument", "getHtmlDocument", "seal",
                                    "getDBConnection", "getURL", "write", "writeln",
                                    "serialize", "deserialize", "defineLibraryScope",
-                                   "wrapJavaMap", "unwrapJavaMap", "asJavaObject"
+                                   "wrapJavaMap", "unwrapJavaMap", "toJava"
                                };
 
         defineFunctionProperties(globalFuncs, GlobalObject.class, DONTENUM | READONLY | PERMANENT);
@@ -436,7 +436,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
      * @return the object wrapped as NativeJavaObject, exposing
      * the public methods of the underlying class.
      */
-    public Object asJavaObject(Object obj) {
+    public Object toJava(Object obj) {
         if (obj == null || obj instanceof NativeJavaObject
                 || obj == Undefined.instance) {
             return obj;
