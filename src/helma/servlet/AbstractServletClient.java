@@ -334,18 +334,16 @@ public abstract class AbstractServletClient extends HttpServlet {
             // write response
             writeResponse(request, response, reqtrans, restrans);
         } catch (Exception x) {
+            log("Exception in execute", x);
             try {
                 if (debug) {
                     sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                               "Server error: " + x);
-                    x.printStackTrace();
                 } else {
                     sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                               "The server encountered an error while processing your request. " +
                               "Please check back later.");
                 }
-
-                log("Exception in execute", x);
             } catch (IOException iox) {
                 log("Exception in sendError", iox);
             }
