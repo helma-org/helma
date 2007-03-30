@@ -373,7 +373,8 @@ public final class Skin {
 
                     case '<':
 
-                        if (state == PARSE_PARAM && quotechar == '\u0000' && source[i + 1] == '%') {
+                        if (state == PARSE_PARAM && quotechar == '\u0000'
+                                && b.length() == 0 && source[i + 1] == '%') {
                             Macro macro = new Macro(i, 2);
                             hasNestedMacros = true;
                             addParameter(lastParamName, macro);
@@ -605,7 +606,7 @@ public final class Skin {
                 throws Exception {
 
             // immediately return for comment macros
-            if (isCommentMacro) {
+            if (isCommentMacro || name == null) {
                 return null;
             }
 
@@ -665,7 +666,7 @@ public final class Skin {
                             return filter(reval, value, thisObject, handlerCache);
                     }
                     // display error message unless silent failmode is on
-                    if ((handlerObject == null || !engine.hasProperty(handlerObject, propName))
+                    if (!engine.hasProperty(handlerObject, propName)
                             && standardParams.verboseFailmode(handlerObject, engine)) {
                         throw new MacroUnhandledException(name);
                     }
@@ -756,7 +757,9 @@ public final class Skin {
                                       Object thisObject, Map handlerCache)
                 throws Exception {
 
-            if ((sandbox != null) && !sandbox.contains(name)) {
+            if (name == null) {
+                throw new RuntimeException("Empty macro filter");
+            } else if (sandbox != null && !sandbox.contains(name)) {
                 throw new RuntimeException("Macro " + name + " not allowed in sandbox");
             }
             Object handlerObject = null;
