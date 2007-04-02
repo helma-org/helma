@@ -266,13 +266,14 @@ public final class Skin {
             if (macros.length > 3) {
                 handlerCache = new HashMap();
             }
+            RenderContext cx = new RenderContext(reval, thisObject, handlerCache);
 
             for (int i = 0; i < macros.length; i++) {
                 if (macros[i].start > written) {
                     res.write(source, written, macros[i].start - written);
                 }
 
-                macros[i].render(reval, thisObject, handlerCache);
+                macros[i].render(cx);
                 written = macros[i].end;
             }
 
@@ -318,11 +319,10 @@ public final class Skin {
         sandbox.add(macroname);
     }
 
-    private Object invokeMacro(Object value, RequestEvaluator reval,
-                               Object thisObj, Map handlerCache)
+    private Object invokeMacro(Object value, RenderContext cx)
             throws Exception {
         if (value instanceof Macro) {
-            return ((Macro) value).invokeAsMacro(reval, thisObj, handlerCache, null);
+            return ((Macro) value).invokeAsMacro(cx, null);
         } else {
             return value;
         }
@@ -334,7 +334,7 @@ public final class Skin {
         final int start, end;
         String name;
         String[] path;
-        int handler = HANDLER_OTHER;
+        int handlerType = HANDLER_OTHER;
         int encoding = ENCODE_NONE;
         boolean hasNestedMacros = false;
 
@@ -543,19 +543,19 @@ public final class Skin {
 
             path = StringUtils.split(name, ".");
             if (path.length <= 1) {
-                handler = HANDLER_GLOBAL;
+                handlerType = HANDLER_GLOBAL;
             } else {
                 String handlerName = path[0];
                 if ("this".equalsIgnoreCase(handlerName)) {
-                    handler = HANDLER_THIS;
+                    handlerType = HANDLER_THIS;
                 } else if ("response".equalsIgnoreCase(handlerName)) {
-                    handler = HANDLER_RESPONSE;
+                    handlerType = HANDLER_RESPONSE;
                 } else if ("request".equalsIgnoreCase(handlerName)) {
-                    handler = HANDLER_REQUEST;
+                    handlerType = HANDLER_REQUEST;
                 } else if ("session".equalsIgnoreCase(handlerName)) {
-                    handler = HANDLER_SESSION;
+                    handlerType = HANDLER_SESSION;
                 } else if ("param".equalsIgnoreCase(handlerName)) {
-                    handler = HANDLER_PARAM;
+                    handlerType = HANDLER_PARAM;
                 }
             }
         }
@@ -601,8 +601,7 @@ public final class Skin {
             namedParams.put(name, value);
         }
 
-        private Object invokeAsMacro(RequestEvaluator reval, Object thisObject,
-                                 Map handlerCache, StandardParams stdParams)
+        private Object invokeAsMacro(RenderContext cx, StandardParams stdParams)
                 throws Exception {
 
             // immediately return for comment macros
@@ -616,14 +615,14 @@ public final class Skin {
 
             Object handlerObject = null;
             Object value = null;
-            ScriptingEngine engine = reval.scriptingEngine;
+            ScriptingEngine engine = cx.reval.scriptingEngine;
 
-            if (handler != HANDLER_GLOBAL) {
-                handlerObject = resolveHandler(thisObject, reval, handlerCache);
+            if (handlerType != HANDLER_GLOBAL) {
+                handlerObject = cx.resolveHandler(path[0], handlerType);
                 handlerObject = resolvePath(handlerObject, engine);
             }
 
-            if (handler == HANDLER_GLOBAL || handlerObject != null) {
+            if (handlerType == HANDLER_GLOBAL || handlerObject != null) {
                 // check if a function called name_macro is defined.
                 // if so, the macro evaluates to the function. Otherwise,
                 // a property/field with the name is used, if defined.
@@ -631,14 +630,14 @@ public final class Skin {
                 String funcName = propName + "_macro";
 
                 if (engine.hasFunction(handlerObject, funcName)) {
-                    StringBuffer buffer = reval.getResponse().getBuffer();
+                    StringBuffer buffer = cx.reval.getResponse().getBuffer();
                     // remember length of response buffer before calling macro
                     int bufLength = buffer.length();
 
-                    Object[] arguments = prepareArguments(0, reval, thisObject, handlerCache);
+                    Object[] arguments = prepareArguments(0, cx);
                     // get reference to rendered named params for after invocation
                     Map params = (Map) arguments[0];
-                    value = reval.invokeDirectFunction(handlerObject,
+                    value = cx.reval.invokeDirectFunction(handlerObject,
                             funcName,
                             arguments);
 
@@ -647,23 +646,21 @@ public final class Skin {
 
                     // if macro has a filter chain and didn't return anything, use output
                     // as filter argument.
-                    if (filterChain != null) {
-                        if (value == null && buffer.length() > bufLength) {
-                            value = buffer.substring(bufLength);
-                            buffer.setLength(bufLength);
-                        }
+                    if (filterChain != null && value == null && buffer.length() > bufLength) {
+                        value = buffer.substring(bufLength);
+                        buffer.setLength(bufLength);
                     }
 
-                    return filter(reval, value, thisObject, handlerCache);
+                    return filter(value, cx);
                 } else {
-                    if (handler == HANDLER_RESPONSE) {
+                    if (handlerType == HANDLER_RESPONSE) {
                         // some special handling for response handler
                         if ("message".equals(propName))
-                            value = reval.getResponse().getMessage();
+                            value = cx.reval.getResponse().getMessage();
                         else if ("error".equals(propName))
-                            value = reval.getResponse().getError();
+                            value = cx.reval.getResponse().getError();
                         if (value != null)
-                            return filter(reval, value, thisObject, handlerCache);
+                            return filter(value, cx);
                     }
                     // display error message unless silent failmode is on
                     if (!engine.hasProperty(handlerObject, propName)
@@ -671,38 +668,38 @@ public final class Skin {
                         throw new MacroUnhandledException(name);
                     }
                     value = engine.getProperty(handlerObject, propName);
-                    return filter(reval, value, thisObject, handlerCache);
+                    return filter(value, cx);
                 }
             } else if (standardParams.verboseFailmode(handlerObject, engine)) {
                 throw new MacroUnhandledException(name);
             }
-            return filter(reval, null, thisObject, handlerCache);
+            return filter(null, cx);
         }
 
         /**
          *  Render the macro given a handler object.
          */
-        public void render(RequestEvaluator reval, Object thisObject, Map handlerCache)
+        public void render(RenderContext cx)
                 throws RedirectException, UnsupportedEncodingException {
-            StringBuffer buffer = reval.getResponse().getBuffer();
+            StringBuffer buffer = cx.reval.getResponse().getBuffer();
             // remember length of response buffer before calling macro
             int bufLength = buffer.length();
             try {
-                StandardParams stdParams = standardParams.render(reval, thisObject, handlerCache);
-                Object value = invokeAsMacro(reval, thisObject, handlerCache, stdParams);
+                StandardParams stdParams = standardParams.render(cx);
+                Object value = invokeAsMacro(cx, stdParams);
 
                 // check if macro wrote out to response buffer
                 if (buffer.length() == bufLength) {
                     // If the macro function didn't write anything to the response itself,
                     // we interpret its return value as macro output.
-                    writeResponse(value, reval, stdParams, true);
+                    writeResponse(value, cx.reval, stdParams, true);
                 } else {
                     // if an encoding is specified, re-encode the macro's output
                     if (encoding != ENCODE_NONE) {
                         String output = buffer.substring(bufLength);
 
                         buffer.setLength(bufLength);
-                        writeResponse(output, reval, stdParams, false);
+                        writeResponse(output, cx.reval, stdParams, false);
                     } else {
                         // insert prefix,
                         if (stdParams.prefix != null) {
@@ -717,7 +714,7 @@ public final class Skin {
                     // Append macro return value even if it wrote something to the response,
                     // but don't render default value in case it returned nothing.
                     // We do this for the sake of consistency.
-                    writeResponse(value, reval, stdParams, false);
+                    writeResponse(value, cx.reval, stdParams, false);
                 }
 
             } catch (RedirectException redir) {
@@ -728,7 +725,7 @@ public final class Skin {
                 throw timeout;
             } catch (MacroUnhandledException unhandled) {
                 String msg = "Macro unhandled: " + unhandled.getMessage();
-                reval.getResponse().write(" [" + msg + "] ");
+                cx.reval.getResponse().write(" [" + msg + "] ");
                 app.logError(msg);
             } catch (Exception x) {
                 String msg = x.getMessage();
@@ -737,24 +734,22 @@ public final class Skin {
                 }
                 msg = new StringBuffer("Macro error in ").append(name)
                         .append(": ").append(msg).toString();
-                reval.getResponse().write(" [" + msg + "] ");
+                cx.reval.getResponse().write(" [" + msg + "] ");
                 app.logError(msg, x);
             }
         }
 
-        private Object filter(RequestEvaluator reval, Object returnValue,
-                                      Object thisObject, Map handlerCache)
+        private Object filter(Object returnValue, RenderContext cx)
                 throws Exception {
             // invoke filter chain if defined
             if (filterChain != null) {
-                return filterChain.invokeAsFilter(reval, returnValue, thisObject, handlerCache);
+                return filterChain.invokeAsFilter(returnValue, cx);
             } else {
                 return returnValue;
             }
         }
 
-        private Object invokeAsFilter(RequestEvaluator reval, Object returnValue,
-                                      Object thisObject, Map handlerCache)
+        private Object invokeAsFilter(Object returnValue, RenderContext cx)
                 throws Exception {
 
             if (name == null) {
@@ -764,28 +759,27 @@ public final class Skin {
             }
             Object handlerObject = null;
 
-            if (handler != HANDLER_GLOBAL) {
-                handlerObject = resolveHandler(thisObject, reval, handlerCache);
-                handlerObject = resolvePath(handlerObject, reval.scriptingEngine);
+            if (handlerType != HANDLER_GLOBAL) {
+                handlerObject = cx.resolveHandler(path[0], handlerType);
+                handlerObject = resolvePath(handlerObject, cx.reval.scriptingEngine);
             }
 
             String funcName = path[path.length - 1] + "_filter";
 
-            if (reval.scriptingEngine.hasFunction(handlerObject, funcName)) {
-                Object[] arguments = prepareArguments(1, reval, thisObject, handlerCache);
+            if (cx.reval.scriptingEngine.hasFunction(handlerObject, funcName)) {
+                Object[] arguments = prepareArguments(1, cx);
                 arguments[0] = returnValue;
-                Object retval = reval.invokeDirectFunction(handlerObject,
+                Object retval = cx.reval.invokeDirectFunction(handlerObject,
                                                            funcName,
                                                            arguments);
 
-                return filter(reval, retval, thisObject, handlerCache);
+                return filter(retval, cx);
             } else {
                 throw new RuntimeException("Undefined Filter " + name);
             }
         }
 
-        private Object[] prepareArguments(int offset, RequestEvaluator reval,
-                                          Object thisObject, Map handlerCache)
+        private Object[] prepareArguments(int offset, RenderContext cx)
                 throws Exception {
             int nPosArgs = (positionalParams == null) ? 0 : positionalParams.size();
             Object[] arguments = new Object[offset + 1 + nPosArgs];
@@ -797,7 +791,7 @@ public final class Skin {
                 for (Iterator it = namedParams.entrySet().iterator(); it.hasNext(); ) {
                     Map.Entry entry = (Map.Entry) it.next();
                     Object value = entry.getValue();
-                    map.put(entry.getKey(), invokeMacro(value, reval, thisObject, handlerCache));
+                    map.put(entry.getKey(), invokeMacro(value, cx));
                 }
                 arguments[offset] = map;
             } else {
@@ -808,70 +802,12 @@ public final class Skin {
                 for (int i = 0; i < nPosArgs; i++) {
                     Object param = positionalParams.get(i);
                     if (param instanceof Macro)
-                        arguments[offset + 1 + i] = invokeMacro(param, reval, thisObject, handlerCache);
+                        arguments[offset + 1 + i] = invokeMacro(param, cx);
                     else
                         arguments[offset + 1 + i] = param;
                 }
             }
             return arguments;
-        }
-
-        private Object resolveHandler(Object thisObject, RequestEvaluator reval, Map handlerCache) {
-            if (path.length < 2)
-                throw new RuntimeException("resolveHandler called on global macro");
-
-            switch (handler) {
-                case HANDLER_THIS:
-                    return thisObject;
-                case HANDLER_RESPONSE:
-                    return reval.getResponse().getResponseData();
-                case HANDLER_REQUEST:
-                    return reval.getRequest().getRequestData();
-                case HANDLER_SESSION:
-                    return reval.getSession().getCacheNode();
-            }
-
-            String handlerName = path[0];
-            // try to get handler from handlerCache first
-            if (handlerCache != null && handlerCache.containsKey(handlerName)) {
-                return handlerCache.get(handlerName);
-            }
-
-            // if handler object wasn't found in cache retrieve it
-            if (thisObject != null) {
-                // not a global macro - need to find handler object
-                // was called with this object - check it or its parents for matching prototype
-                if (handlerName.equalsIgnoreCase(app.getPrototypeName(thisObject))) {
-                    // we already have the right handler object
-                    // put the found handler object into the cache so we don't have to look again
-                    if (handlerCache != null)
-                        handlerCache.put(handlerName, thisObject);
-                    return thisObject;
-                } else {
-                    // the handler object is not what we want
-                    Object obj = thisObject;
-
-                    // walk down parent chain to find handler object
-                    while (obj != null) {
-                        Prototype proto = app.getPrototype(obj);
-
-                        if ((proto != null) && proto.isInstanceOf(handlerName)) {
-                            if (handlerCache != null)
-                                handlerCache.put(handlerName, obj);
-                            return obj;
-                        }
-
-                        obj = app.getParentElement(obj);
-                    }
-                }
-            }
-
-            Map macroHandlers = reval.getResponse().getMacroHandlers();
-            Object obj = macroHandlers.get(handlerName);
-            if (handlerCache != null && obj != null) {
-                handlerCache.put(handlerName, obj);
-            }
-            return obj;
         }
 
         private Object resolvePath(Object handler, ScriptingEngine engine) {
@@ -1005,17 +941,83 @@ public final class Skin {
                         engine.isTypedObject(handler)));
         }
 
-        StandardParams render(RequestEvaluator reval, Object thisObj, Map handlerCache)
+        StandardParams render(RenderContext cx)
                 throws Exception {
             if (!containsMacros())
                 return this;
             StandardParams stdParams = new StandardParams();
-            stdParams.prefix = invokeMacro(prefix, reval, thisObj, handlerCache);
-            stdParams.suffix = invokeMacro(suffix, reval, thisObj, handlerCache);
-            stdParams.defaultValue = invokeMacro(defaultValue, reval, thisObj, handlerCache);
+            stdParams.prefix = invokeMacro(prefix, cx);
+            stdParams.suffix = invokeMacro(suffix, cx);
+            stdParams.defaultValue = invokeMacro(defaultValue, cx);
             return stdParams;
         }
 
+    }
+
+    class RenderContext {
+        final RequestEvaluator reval;
+        final Object thisObject;
+        final Map handlerCache;
+
+        RenderContext(RequestEvaluator reval, Object thisObject, Map handlerCache) {
+            this.reval = reval;
+            this.thisObject = thisObject;
+            this.handlerCache = handlerCache;
+        }
+
+        private Object resolveHandler(String handlerName, int handlerType) {
+            switch (handlerType) {
+                case HANDLER_THIS:
+                    return thisObject;
+                case HANDLER_RESPONSE:
+                    return reval.getResponse().getResponseData();
+                case HANDLER_REQUEST:
+                    return reval.getRequest().getRequestData();
+                case HANDLER_SESSION:
+                    return reval.getSession().getCacheNode();
+            }
+
+            // try to get handler from handlerCache first
+            if (handlerCache != null && handlerCache.containsKey(handlerName)) {
+                return handlerCache.get(handlerName);
+            }
+
+            // if handler object wasn't found in cache retrieve it
+            if (thisObject != null) {
+                // not a global macro - need to find handler object
+                // was called with this object - check it or its parents for matching prototype
+                if (handlerName.equalsIgnoreCase(app.getPrototypeName(thisObject))) {
+                    // we already have the right handler object
+                    // put the found handler object into the cache so we don't have to look again
+                    if (handlerCache != null)
+                        handlerCache.put(handlerName, thisObject);
+                    return thisObject;
+                } else {
+                    // the handler object is not what we want
+                    Object obj = thisObject;
+
+                    // walk down parent chain to find handler object
+                    while (obj != null) {
+                        Prototype proto = app.getPrototype(obj);
+
+                        if ((proto != null) && proto.isInstanceOf(handlerName)) {
+                            if (handlerCache != null)
+                                handlerCache.put(handlerName, obj);
+                            return obj;
+                        }
+
+                        obj = app.getParentElement(obj);
+                    }
+                }
+            }
+
+            Map macroHandlers = reval.getResponse().getMacroHandlers();
+            Object obj = macroHandlers.get(handlerName);
+            if (handlerCache != null && obj != null) {
+                handlerCache.put(handlerName, obj);
+            }
+            return obj;
+        }
     }
 }
 
