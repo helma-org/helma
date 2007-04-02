@@ -22,6 +22,7 @@ import helma.util.CronJob;
 import helma.util.SystemMap;
 import helma.util.WrappedMap;
 import helma.framework.repository.*;
+import helma.framework.FutureResult;
 import helma.main.Server;
 
 import java.io.File;
@@ -33,7 +34,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- *
+ * Application bean that provides a handle to the scripting environment to
+ * application specific functionality.
  */
 public class ApplicationBean implements Serializable {
     Application app;
@@ -682,11 +684,11 @@ public class ApplicationBean implements Serializable {
      * this long, we will try to interrupt the invocation
      * @return an object with the properties described above
      */
-    public Object invokeAsync(Object thisObject,
+    public FutureResult invokeAsync(Object thisObject,
                               final Object function,
                               final Object[] args) {
         // default timeout of 15 minutes
-        return invokeAsync(thisObject, function, args, 60000L * 15);
+        return new AsyncInvoker(thisObject, function, args, 60000L * 15);
     }
 
     /**
@@ -712,76 +714,9 @@ public class ApplicationBean implements Serializable {
      * this long, we will try to interrupt the invocation
      * @return an object with the properties described above
      */
-    public Object invokeAsync(final Object thisObject,
-                              final Object function,
-                              final Object[] args,
-                              final long timeout) {
-        Thread thread = new Thread() {
-
-            private Object result;
-            private Exception exception;
-            private boolean running = true;
-
-            public void run() {
-                RequestEvaluator reval = null;
-                try {
-                    reval = app.getEvaluator();
-                    setResult(reval.invokeInternal(thisObject, function, args, timeout));
-                } catch (Exception x) {
-                    setException(x);
-                } finally {
-                    running = false;
-                    app.releaseEvaluator(reval);
-                }
-            }
-
-            public synchronized boolean getRunning() {
-                return running;
-            }
-
-            private synchronized void setResult(Object obj) {
-                result = obj;
-                running = false;
-                notifyAll();
-            }
-
-            public synchronized Object getResult() {
-                return result;
-            }
-
-            public synchronized Object waitForResult() throws InterruptedException {
-                if (!running)
-                    return result;
-                wait();
-                return result;
-            }
-
-            public synchronized Object waitForResult(long timeout)
-                    throws InterruptedException {
-                if (!running)
-                    return result;
-                wait(timeout);
-                return result;
-            }
-
-            private synchronized void setException(Exception x) {
-                exception = x;
-                running = false;
-                notifyAll();
-            }
-
-            public synchronized Exception getException() {
-                return exception;
-            }
-
-            public String toString() {
-                return new StringBuffer("AsyncInvokeThread{running: ").append(running)
-                        .append(", result: ").append(result).append(", exception: ")
-                        .append(exception).append("}").toString();
-            }
-        };
-        thread.start();
-        return thread;
+    public FutureResult invokeAsync(Object thisObject, Object function,
+                              Object[] args, long timeout) {
+        return new AsyncInvoker(thisObject, function, args, timeout);
     }
 
     /**
@@ -790,5 +725,84 @@ public class ApplicationBean implements Serializable {
      */
     public String toString() {
         return "[Application " + app.getName() + "]";
+    }
+
+    class AsyncInvoker extends Thread implements FutureResult {
+
+        private Object thisObject;
+        private Object function;
+        private Object[] args;
+        private long timeout;
+
+        private Object result;
+        private Exception exception;
+        private boolean running = true;
+
+        private AsyncInvoker(Object thisObj, Object func, Object[] args, long timeout) {
+            thisObject = thisObj;
+            function = func;
+            this.args = args;
+            this.timeout = timeout;
+            start();
+        }
+
+        public void run() {
+            RequestEvaluator reval = null;
+            try {
+                reval = app.getEvaluator();
+                setResult(reval.invokeInternal(thisObject, function, args, timeout));
+            } catch (Exception x) {
+                setException(x);
+            } finally {
+                running = false;
+                app.releaseEvaluator(reval);
+            }
+        }
+
+        public synchronized boolean getRunning() {
+            return running;
+        }
+
+        private synchronized void setResult(Object obj) {
+            result = obj;
+            running = false;
+            notifyAll();
+        }
+
+        public synchronized Object getResult() {
+            return result;
+        }
+
+        public synchronized Object waitForResult() throws InterruptedException {
+            if (!running)
+                return result;
+            wait();
+            return result;
+        }
+
+        public synchronized Object waitForResult(long timeout)
+                throws InterruptedException {
+            if (!running)
+                return result;
+            wait(timeout);
+            return result;
+        }
+
+        private synchronized void setException(Exception x) {
+            exception = x;
+            running = false;
+            notifyAll();
+        }
+
+        public synchronized Exception getException() {
+            return exception;
+        }
+
+        public String toString() {
+            return new StringBuffer("AsyncInvokeThread{running: ").append(running)
+                    .append(", result: ").append(result).append(", exception: ")
+                    .append(exception).append("}").toString();
+        }
+
     }
 }
