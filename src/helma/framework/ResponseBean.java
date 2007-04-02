@@ -117,6 +117,7 @@ public class ResponseBean implements Serializable {
     /**
      * Returns the ServletResponse instance for this Response.
      * Returns null for internal and XML-RPC requests.
+     * @return the servlet response
      */
     public HttpServletResponse getServletResponse() {
         return res.getServletResponse();
@@ -505,13 +506,24 @@ public class ResponseBean implements Serializable {
      * Push a string buffer on the response object. All further
      * writes will be redirected to this buffer.
      * @param buffer the string buffer
+     * @return the new stringBuffer
      */
-    public void pushBuffer(StringBuffer buffer) {
-        res.pushBuffer(buffer);
+    public StringBuffer pushBuffer(StringBuffer buffer) {
+        return res.pushBuffer(buffer);
+    }
+
+    /**
+     * Push a string buffer on the response object. All further
+     * writes will be redirected to this buffer.
+     * @return the new stringBuffer
+     */
+    public StringBuffer pushBuffer() {
+        return res.pushBuffer(null);
     }
 
    /**
     * Pops the current response buffer without converting it to a string
+    * @return the stringBuffer
     */
    public StringBuffer popBuffer() {
         return res.popBuffer();
@@ -530,7 +542,7 @@ public class ResponseBean implements Serializable {
      * Commit changes made during the course of the current transaction
      * and start a new one
      *
-     * @throws Exception
+     * @throws Exception thrown if commit fails
      */
     public void commit() throws Exception {
         if (Thread.currentThread() instanceof Transactor) {
@@ -542,17 +554,27 @@ public class ResponseBean implements Serializable {
     }
 
     /**
-     * Abort the current transaction and start a new one
-     *  
-     * @throws Exception
+     * Rollback the current transaction and start a new one.
+     *
+     * @throws Exception thrown if rollback fails
      */
-    public void abort() throws Exception {
+    public void rollback() throws Exception {
         if (Thread.currentThread() instanceof Transactor) {
             Transactor tx = (Transactor) Thread.currentThread();
             String tname = tx.getTransactionName();
             tx.abort();
             tx.begin(tname);
         }
+    }
+
+    /**
+     * Rollback the current database transaction and abort execution.
+     * This has the same effect as calling rollback() and then stop().
+     *
+     * @throws AbortException thrown to exit the the current execution
+     */
+    public void abort() throws AbortException {
+        throw new AbortException();
     }
 
 }
