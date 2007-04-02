@@ -62,10 +62,7 @@ public final class RequestEvaluator implements Runnable {
     // the object on which to invoke a function, if specified
     private volatile Object thisObject;
 
-    // the function to be executed
-    private volatile String functionName;
-
-    // the function or function name to be executed
+    // the method to be executed
     private volatile Object function;
 
     // the session object associated with the current request
@@ -117,7 +114,7 @@ public final class RequestEvaluator implements Runnable {
                 if (t instanceof RuntimeException) {
                     throw((RuntimeException) t);
                 } else {
-                    throw new RuntimeException(t.toString());
+                    throw new RuntimeException(t.toString(), t);
                 }
             } finally {
                 app.setCurrentRequestEvaluator(null);
@@ -153,6 +150,8 @@ public final class RequestEvaluator implements Runnable {
                 int tries = 0;
                 boolean done = false;
                 String error = null;
+                String functionName = function instanceof String ?
+                        (String) function : null;
 
                 while (!done && localrtx == rtx) {
                     // catch errors in path resolution and script execution
@@ -168,7 +167,7 @@ public final class RequestEvaluator implements Runnable {
                         // avoid going into transaction if called function doesn't exist.
                         // this only works for the (common) case that method is a plain
                         // method name, not an obj.method path
-                        if (reqtype == INTERNAL && functionName != null) {
+                        if (reqtype == INTERNAL) {
                             // if object is an instance of NodeHandle, get the node object itself.
                             if (thisObject instanceof NodeHandle) {
                                 thisObject = ((NodeHandle) thisObject).getNode(app.nmgr.safe);
@@ -180,13 +179,16 @@ public final class RequestEvaluator implements Runnable {
                                 }
                             }
                             // If function doesn't exist, return immediately
-                            if (functionName.indexOf('.') < 0 &&
+                            if (functionName != null && functionName.indexOf('.') < 0 &&
                                     !scriptingEngine.hasFunction(thisObject, functionName)) {
                                 app.logEvent(missingFunctionMessage(thisObject, functionName));
                                 done = true;
                                 reqtype = NONE;
                                 break;
                             }
+                        } else if (function != null && functionName == null) {
+                            // only internal requests may pass a function instead of a function name
+                            throw new IllegalStateException("No function name in non-internal request ");
                         }
 
                         // Transaction name is used for logging etc.
@@ -407,8 +409,9 @@ public final class RequestEvaluator implements Runnable {
                                 }
 
                                 // check if request is still valid, or if the requesting thread has stopped waiting already
-                                if (localrtx != rtx)
+                                if (localrtx != rtx) {
                                     return;
+                                }
                                 commitTransaction();
                                 done = true;
 
@@ -426,15 +429,12 @@ public final class RequestEvaluator implements Runnable {
 
                                         for (int i = 1; i < cnt; i++) {
                                             String next = st.nextToken();
-
-                                            currentElement = getChildElement(currentElement,
-                                                    next);
+                                            currentElement = getChildElement(currentElement, next);
                                         }
 
                                         if (currentElement == null) {
                                             throw new FrameworkException("Method name \"" +
-                                                    functionName +
-                                                    "\" could not be resolved.");
+                                                    function + "\" could not be resolved.");
                                         }
 
                                         functionName = st.nextToken();
@@ -443,7 +443,6 @@ public final class RequestEvaluator implements Runnable {
                                     if (reqtype == XMLRPC) {
                                         // check XML-RPC access permissions
                                         String proto = app.getPrototypeName(currentElement);
-
                                         app.checkXmlRpcAccess(proto, functionName);
                                     }
 
@@ -457,13 +456,15 @@ public final class RequestEvaluator implements Runnable {
                                             ScriptingEngine.ARGS_WRAP_XMLRPC,
                                             false);
                                     // check if request is still valid, or if the requesting thread has stopped waiting already
-                                    if (localrtx != rtx)
+                                    if (localrtx != rtx) {
                                         return;
+                                    }
                                     commitTransaction();
                                 } catch (Exception x) {
                                     // check if request is still valid, or if the requesting thread has stopped waiting already
-                                    if (localrtx != rtx)
+                                    if (localrtx != rtx) {
                                         return;
+                                    }
                                     abortTransaction();
                                     app.logError(txname + ": " + error, x);
 
@@ -495,13 +496,15 @@ public final class RequestEvaluator implements Runnable {
                                             ScriptingEngine.ARGS_WRAP_DEFAULT,
                                             true);
                                     // check if request is still valid, or if the requesting thread has stopped waiting already
-                                    if (localrtx != rtx)
+                                    if (localrtx != rtx) {
                                         return;
+                                    }
                                     commitTransaction();
                                 } catch (Exception x) {
                                     // check if request is still valid, or if the requesting thread has stopped waiting already
-                                    if (localrtx != rtx)
+                                    if (localrtx != rtx) {
                                         return;
+                                    }
                                     abortTransaction();
                                     app.logError(txname + ": " + error, x);
 
@@ -522,8 +525,9 @@ public final class RequestEvaluator implements Runnable {
                         // res.abort() just aborts the transaction and
                         // leaves the response untouched
                         // check if request is still valid, or if the requesting thread has stopped waiting already
-                        if (localrtx != rtx)
+                        if (localrtx != rtx) {
                             return;
+                        }
                         abortTransaction();
                         done = true;
                     } catch (ConcurrencyException x) {
@@ -532,8 +536,9 @@ public final class RequestEvaluator implements Runnable {
                         if (++tries < 8) {
                             // try again after waiting some period
                             // check if request is still valid, or if the requesting thread has stopped waiting already
-                            if (localrtx != rtx)
+                            if (localrtx != rtx) {
                                 return;
+                            }
                             abortTransaction();
 
                             try {
@@ -549,8 +554,9 @@ public final class RequestEvaluator implements Runnable {
                             }
                         } else {
                             // check if request is still valid, or if the requesting thread has stopped waiting already
-                            if (localrtx != rtx)
+                            if (localrtx != rtx) {
                                 return;
+                            }
                             abortTransaction();
 
                             if (error == null)
@@ -563,8 +569,9 @@ public final class RequestEvaluator implements Runnable {
                     } catch (Throwable x) {
                         String txname = localrtx.getTransactionName();
                         // check if request is still valid, or if the requesting thread has stopped waiting already
-                        if (localrtx != rtx)
+                        if (localrtx != rtx) {
                             return;
+                        }
                         abortTransaction();
 
                         // If the transactor thread has been killed by the invoker thread we don't have to
@@ -794,7 +801,9 @@ public final class RequestEvaluator implements Runnable {
      */
     public synchronized Object invokeXmlRpc(String functionName, Object[] args)
                                      throws Exception {
-        initObjects(functionName, args, XMLRPC, RequestTrans.XMLRPC);
+        initObjects(functionName, XMLRPC, RequestTrans.XMLRPC);
+        this.function = functionName;
+        this.args = args;
 
         startTransactor();
         wait(app.requestTimeout);
@@ -826,7 +835,9 @@ public final class RequestEvaluator implements Runnable {
      */
     public synchronized Object invokeExternal(String functionName, Object[] args)
                                      throws Exception {
-        initObjects(functionName, args, EXTERNAL, RequestTrans.EXTERNAL);
+        initObjects(functionName, EXTERNAL, RequestTrans.EXTERNAL);
+        this.function = functionName;
+        this.args = args;
 
         startTransactor();
         wait();
@@ -892,11 +903,10 @@ public final class RequestEvaluator implements Runnable {
     public synchronized Object invokeInternal(Object object, Object function,
                                               Object[] args, long timeout)
                                        throws Exception {
-        String funcName = function instanceof String ?
-                (String) function : null;
-        initObjects(funcName, args, INTERNAL, RequestTrans.INTERNAL);
+        initObjects(function, INTERNAL, RequestTrans.INTERNAL);
         thisObject = object;
         this.function = function;
+        this.args = args;
 
         startTransactor();
         if (timeout < 0)
@@ -938,22 +948,16 @@ public final class RequestEvaluator implements Runnable {
      * Init this evaluator's objects for an internal, external or XML-RPC type
      * request.
      *
-     * @param funcName the function name, may be null
-     * @param args the argument array
+     * @param function the function name or object
      * @param reqtype the request type
      * @param reqtypeName the request type name
      */
-    private synchronized void initObjects(String funcName, Object[] args,
-                                          int reqtype, String reqtypeName) {
-        this.functionName = funcName;
-        this.args = args;
+    private synchronized void initObjects(Object function, int reqtype, String reqtypeName) {
         this.reqtype = reqtype;
-        // if function name is null, use a placeholder for req, session etc,
-        // but make sure functionName field remains null.
-        if (funcName == null)
-            funcName = "<function>";
-        req = new RequestTrans(reqtypeName, funcName);
-        session = new Session(funcName, app);
+        String functionName = function instanceof String ?
+                (String) function : "<function>";
+        req = new RequestTrans(reqtypeName, functionName);
+        session = new Session(functionName, app);
         res = new ResponseTrans(app, req);
         result = null;
         exception = null;
@@ -1008,7 +1012,6 @@ public final class RequestEvaluator implements Runnable {
         res = null;
         req = null;
         session = null;
-        functionName = null;
         function = null;
         args = null;
         result = null;
