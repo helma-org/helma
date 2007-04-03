@@ -31,7 +31,7 @@ import java.util.*;
  * applications and updates the evaluators if anything has changed.
  */
 public final class TypeManager {
-    final static String[] standardTypes = { "User", "Global", "Root", "HopObject" };
+    final static String[] standardTypes = { "User", "Global", "Root", "HopObject", "JavaObject" };
     final static String templateExtension = ".hsp";
     final static String scriptExtension = ".js";
     final static String actionExtension = ".hac";

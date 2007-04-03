@@ -17,14 +17,10 @@
 package helma.scripting.rhino;
 
 import helma.framework.core.*;
-import helma.framework.ResponseTrans;
 import helma.framework.repository.Resource;
 import org.mozilla.javascript.*;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.ArrayList;
-import java.io.UnsupportedEncodingException;
 import java.io.IOException;
 
 /**
@@ -36,20 +32,36 @@ public class JavaObject extends NativeJavaObject {
     String protoName;
     NativeJavaObject unscriptedJavaObj;
 
-    static HashMap overload;
+    /**
+     * Initialize JavaObject prototype for Rhino scope.
+     *
+     * @param core the RhinoCore
+     * @return the JavaObject prototype
+     */
+    public static ScriptableObject init(RhinoCore core) {
+        // create prototype object
+        int attributes = ScriptableObject.DONTENUM | ScriptableObject.PERMANENT;
 
-    static {
-        overload = new HashMap();
-        Method[] m = JavaObject.class.getMethods();
-        for (int i=0; i<m.length; i++) {
-            if ("href".equals(m[i].getName()) ||
-                "renderSkin".equals(m[i].getName()) ||
-                "renderSkinAsString".equals(m[i].getName()) ||
-                "getResource".equals(m[i].getName()) ||
-                "getResources".equals(m[i].getName())) {
-                overload.put(m[i].getName(), m[i]);
+        // create prototype object
+        HopObject proto = new HopObject("HopObject", core);
+        proto.setPrototype(ScriptableObject.getObjectPrototype(core.global));
+
+        // install JavaScript methods and properties
+        Method[] methods = JavaObject.class.getMethods();
+        for (int i = 0; i < methods.length; i++) {
+            Method meth = methods[i];
+            String name = meth.getName();
+            if ("href".equals(name) ||
+                "renderSkin".equals(name) ||
+                "renderSkinAsString".equals(name) ||
+                "getResource".equals(name) ||
+                "getResources".equals(name)) {
+                FunctionObject func = new FunctionObject(name, meth, proto);
+                proto.defineProperty(name, func, attributes);
             }
         }
+
+        return proto;
     }
 
     /**
@@ -61,7 +73,6 @@ public class JavaObject extends NativeJavaObject {
         this.javaObject = obj;
         this.protoName = protoName;
         this.core = core;
-        staticType = obj.getClass();
         unscriptedJavaObj = new NativeJavaObject(scope, obj, staticType);
         setPrototype(prototype);
         initMembers();
@@ -76,7 +87,7 @@ public class JavaObject extends NativeJavaObject {
      * @return ...
      */
     public boolean renderSkin(Object skinobj, Object paramobj)
-            throws UnsupportedEncodingException, IOException {
+            throws IOException {
         RhinoEngine engine = RhinoEngine.getRhinoEngine();
         Skin skin = engine.toSkin(skinobj, protoName);
 
@@ -97,7 +108,7 @@ public class JavaObject extends NativeJavaObject {
      * @return ...
      */
     public String renderSkinAsString(Object skinobj, Object paramobj)
-            throws UnsupportedEncodingException, IOException {
+            throws IOException {
         RhinoEngine engine = RhinoEngine.getRhinoEngine();
         Skin skin = engine.toSkin(skinobj, protoName);
 
@@ -116,8 +127,7 @@ public class JavaObject extends NativeJavaObject {
      *
      * @return ...
      */
-    public Object href(Object action) throws UnsupportedEncodingException, 
-                                             IOException {
+    public Object href(Object action) throws IOException {
         if (javaObject == null) {
             return null;
         }
@@ -141,7 +151,7 @@ public class JavaObject extends NativeJavaObject {
      * Checks whether the given property is defined in this object.
      */
     public boolean has(String name, Scriptable start) {
-        return overload.containsKey(name) || super.has(name, start);
+        return super.has(name, start);
     }
 
     /** 
@@ -156,29 +166,17 @@ public class JavaObject extends NativeJavaObject {
         Scriptable proto = getPrototype();
         while (proto != null) {
             value = proto.get(name, start);
-            // Skip FunctionObject properties, which represent native wrapped
-            // java host methods. The prototype chain is made of HopObjects, and
-            // we can't invoked these on our wrapped java object.
-            if (value != NOT_FOUND && !(value instanceof FunctionObject)) {
+            if (value != NOT_FOUND) {
                 return value;
             }
             proto = proto.getPrototype();
         }
 
-        value = overload.get(name);
-        if (value != null) {
-            return new FunctionObject(name, (Method) value, this);
-        }
-
         if ("_prototype".equals(name) || "__prototype__".equals(name)) {
             return protoName;
-        }
-
-        if ("__proto__".equals(name)) {
+        } else if ("__proto__".equals(name)) {
             return getPrototype();
-        }
-
-        if ("__javaObject__".equals(name)) {
+        } else if ("__javaObject__".equals(name)) {
             return unscriptedJavaObj;
         }
 

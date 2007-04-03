@@ -262,14 +262,19 @@ public final class DbMapping {
         // the TypeManager.
         if (typename != null &&
                 !"global".equalsIgnoreCase(typename) &&
-                !"hopobject".equalsIgnoreCase(typename)) {
+                !"hopobject".equalsIgnoreCase(typename) &&
+                !"javaobject".equalsIgnoreCase(typename)) {
             Prototype proto = app.getPrototypeByName(typename);
             if (proto != null) {
+                Prototype parent;
                 if (extendsProto != null) {
-                    proto.setParentPrototype(app.getPrototypeByName(extendsProto));
-                } else if (!app.isJavaPrototype(typename)) {
-                    proto.setParentPrototype(app.getPrototypeByName("hopobject"));
+                    parent = app.getPrototypeByName(extendsProto);
+                } else if (app.isJavaPrototype(typename)) {
+                    parent = app.getPrototypeByName("javaobject");
+                } else {
+                    parent = app.getPrototypeByName("hopobject");
                 }
+                proto.setParentPrototype(parent);
             }
         }
 

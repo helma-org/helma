@@ -258,7 +258,9 @@ public final class Prototype {
      */
     public void setParentPrototype(Prototype parent) {
         // this is not allowed for the hopobject and global prototypes
-        if ("hopobject".equals(lowerCaseName) || "global".equals(lowerCaseName)) {
+        if ("hopobject".equals(lowerCaseName)
+                || "javaobject".equals(lowerCaseName)
+                || "global".equals(lowerCaseName)) {
             return;
         }
 
