@@ -358,7 +358,7 @@ public final class Skin {
          * @param start the start of the macro within the skin source
          * @param macroOffset offset of the macro content from the start index
          */
-        public Macro(int start, int macroOffset) {
+        Macro(int start, int macroOffset) {
             this.start = start;
 
             int i = parse(macroOffset, false);
@@ -489,6 +489,12 @@ public final class Skin {
 
                         if (!escape && state == PARSE_PARAM) {
                             if (quotechar == source[i]) {
+                                if (source[i + 1] != '%' && !Character.isWhitespace(source[i + 1]) && !lenient) {
+                                    // closing quotes and next character is not space or end tag -
+                                    // switch to lenient mode
+                                    reset();
+                                    return parse(macroOffset, true);
+                                }
                                 // add parameter
                                 addParameter(lastParamName, parseParameter(b.toString()));
                                 lastParamName = null;
@@ -553,11 +559,8 @@ public final class Skin {
 
                 if (i == length - 2 && !lenient &&
                         (state != PARSE_DONE ||quotechar != '\u0000')) {
-                    filterChain = null;
-                    name = null;
-                    standardParams = new StandardParams();
-                    namedParams = null;
-                    positionalParams = null;
+                    // macro tag is not properly terminated, switch to lenient mode                    
+                    reset();
                     return parse(macroOffset, true);
                 }
             }
@@ -575,6 +578,14 @@ public final class Skin {
             }
 
             return i + 2;
+        }
+
+        private void reset() {
+            filterChain = null;
+            name = null;
+            standardParams = new StandardParams();
+            namedParams = null;
+            positionalParams = null;
         }
 
         private Object parseParameter(String str) {
@@ -694,12 +705,12 @@ public final class Skin {
                         if (value != null)
                             return filter(value, cx);
                     }
-                    // display error message unless unhandledMacro is defined or silent failmode is on
+                    // display error message unless onUnhandledMacro is defined or silent failmode is on
                     if (!engine.hasProperty(handler, propName)) {
-                        if (engine.hasFunction(handler, "unhandledMacro", false)) {
+                        if (engine.hasFunction(handler, "onUnhandledMacro", false)) {
                             Object[] arguments = prepareArguments(1, cx);
                             arguments[0] = propName;
-                            value = cx.reval.invokeDirectFunction(handler,  "unhandledMacro", arguments);
+                            value = cx.reval.invokeDirectFunction(handler,  "onUnhandledMacro", arguments);
                             // if macro has a filter chain and didn't return anything, use output
                             // as filter argument.
                             if (filterChain != null && value == null && buffer.length() > bufLength) {
@@ -723,7 +734,7 @@ public final class Skin {
         /**
          *  Render the macro given a handler object.
          */
-        public void render(RenderContext cx)
+        void render(RenderContext cx)
                 throws RedirectException, UnsupportedEncodingException {
             StringBuffer buffer = cx.reval.getResponse().getBuffer();
             // remember length of response buffer before calling macro
@@ -968,7 +979,7 @@ public final class Skin {
          * Return the full name of the macro in handler.name notation
          * @return the macro name
          */
-        public String getName() {
+        String getName() {
             return name;
         }
     }
