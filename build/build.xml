@@ -74,6 +74,7 @@
         <echo message=" app [name]    --> gets an application from the cvs and zips it"/>
         <echo message=" module [name] --> gets a module from the cvs and zips it"/>
         <echo message=" core          --> generates core for production updates (zip and tar.gz)"/>
+        <echo message=" clean         --> clean up temporary build directories and files"/>
         <echo message=""/>
         <echo message=" usage         --> provides help on using the build tool (default)"/>
         <echo message=""/>
@@ -136,7 +137,7 @@
 
 
     <!-- =================================================================== -->
-    <!-- Creates the javadoc API documentation                                       -->
+    <!-- Creates the javadoc API documentation                               -->
     <!-- =================================================================== -->
     <target name="javadocs" depends="init">
         <mkdir dir="${build.javadocs}"/>
@@ -155,7 +156,7 @@
 
 
     <!-- =================================================================== -->
-    <!-- Create the jsdoc Framework documentation                      -->
+    <!-- Create the jsdoc Framework documentation                            -->
     <!-- =================================================================== -->
     <target name="jsdocs" depends="init, package-modules">
         <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="reference" dest="${build.work}" />
@@ -241,9 +242,6 @@
         
         <!-- checkout the demo apps (and zip manage-app) -->
         <antcall target="package-apps" />
-
-        <!-- checkout the helmaLib modules and add the zipped helmaTools -->
-        <antcall target="package-modules" />
 
         <!-- create the main part of helma -->
         <antcall target="package-raw">
@@ -474,6 +472,13 @@
         </zip>
     </target>
 
+    <!-- =================================================================== -->
+    <!-- Cleans up temporary build directories                               -->
+    <!-- =================================================================== -->
+    <target name="clean" depends="init">
+        <delete dir="${build.work}" />
+        <delete dir="${build.classes}" />
+    </target>
 
     <!-- =================================================================== -->
     <!-- Gets an application from the cvs and zips/targzs it                 -->
@@ -503,7 +508,7 @@
 
 
     <!-- =================================================================== -->
-    <!-- Checkout and zip a module                                       -->
+    <!-- Checkout and zip a module                                           -->
     <!-- =================================================================== -->
     <target name="module" depends="init">
         <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="${application}" dest="${build.work}" />
