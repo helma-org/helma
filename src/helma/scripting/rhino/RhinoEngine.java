@@ -28,6 +28,7 @@ import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Relation;
 import helma.scripting.*;
 import helma.scripting.rhino.debug.Tracer;
+import helma.util.StringUtils;
 import org.mozilla.javascript.*;
 import org.mozilla.javascript.serialize.ScriptableOutputStream;
 import org.mozilla.javascript.serialize.ScriptableInputStream;
@@ -246,10 +247,9 @@ public class RhinoEngine implements ScriptingEngine {
                 // otherwise replace dots with underscores.
                 if (resolve) {
                     if (funcName.indexOf('.') > 0) {
-                        StringTokenizer st = new StringTokenizer(funcName, ".");
-                        for (int i=0; i<st.countTokens()-1; i++) {
-                            String propName = st.nextToken();
-                            Object propValue = ScriptableObject.getProperty(obj, propName);
+                        String[] path = StringUtils.split(funcName, ".");
+                        for (int i = 0; i < path.length - 1; i++) {
+                            Object propValue = ScriptableObject.getProperty(obj, path[i]);
                             if (propValue instanceof Scriptable) {
                                 obj = (Scriptable) propValue;
                             } else {
@@ -257,7 +257,7 @@ public class RhinoEngine implements ScriptingEngine {
                                         funcName + " in " + thisObject);
                             }
                         }
-                        funcName = st.nextToken();
+                        funcName = path[path.length - 1];
                     }
                 } else {
                     funcName = funcName.replace('.', '_');
@@ -357,9 +357,26 @@ public class RhinoEngine implements ScriptingEngine {
      * Check if an object has a function property (public method if it
      * is a java object) with that name.
      */
-    public boolean hasFunction(Object obj, String fname) {
-        // Convert '.' to '_' in function name
-        fname = fname.replace('.', '_');
+    public boolean hasFunction(Object obj, String fname, boolean resolve) {
+        if (resolve) {
+            if (fname.indexOf('.') > 0) {
+                Scriptable op = obj == null ? global : Context.toObject(obj, global);
+                String[] path = StringUtils.split(fname, ".");
+                for (int i = 0; i < path.length; i++) {
+                    Object value = ScriptableObject.getProperty(op, path[i]);
+                    if (value instanceof Scriptable) {
+                        op = (Scriptable) value;
+                    } else {
+                        return false;
+                    }
+                }
+                return (op instanceof Function);
+            }
+        } else {
+            // Convert '.' to '_' in function name
+            fname = fname.replace('.', '_');
+        }
+        
         // Treat HopObjects separately - otherwise we risk to fetch database
         // references/child objects just to check for function properties.
         if (obj instanceof INode) {
@@ -395,7 +412,8 @@ public class RhinoEngine implements ScriptingEngine {
             DbMapping dbm = app.getDbMapping(prototypeName);
             if (dbm != null) {
                 Relation rel = dbm.propertyToRelation(propname);
-                return rel != null && (rel.isPrimitive() || rel.isCollection());
+                if (rel != null && (rel.isPrimitive() || rel.isCollection()))
+                    return true;
             }
         }
         Scriptable wrapped = Context.toObject(obj, global);
@@ -448,8 +466,8 @@ public class RhinoEngine implements ScriptingEngine {
     public boolean isTypedObject(Object obj) {
         if (obj == null || obj instanceof Map || obj instanceof NativeObject)
             return false;
-        if (obj instanceof INode) {
-            String protoName = app.getPrototypeName(obj);
+        if (obj instanceof IPathElement) {
+            String protoName = ((IPathElement) obj).getPrototype();
             return protoName != null && !"hopobject".equalsIgnoreCase(protoName);
         }
         // assume java object is typed

@@ -173,7 +173,16 @@ public final class Application implements Runnable {
     // Field to cache unmapped java classes
     private final static String CLASS_NOT_MAPPED = "(unmapped)";
 
-    protected boolean allowDeepMacros = false;
+
+    /**
+     * Function object for macro processing callback
+     */
+    Object processMacroParameter = null;
+
+    /**
+     * Namespace search path for global macros
+     */
+    String[] globalMacroPath = null;
 
     /**
      *  Simple constructor for dead application instances.
@@ -1641,15 +1650,7 @@ public final class Application implements Runnable {
      * for it in the class.properties file.
      */
     public boolean isJavaPrototype(String typename) {
-        for (Enumeration en = classMapping.elements(); en.hasMoreElements();) {
-            String value = (String) en.nextElement();
-
-            if (typename.equals(value)) {
-                return true;
-            }
-        }
-
-        return false;
+        return classMapping.contains(typename);
     }
 
     /**
@@ -1872,8 +1873,6 @@ public final class Application implements Runnable {
             if (eventLog instanceof Logger) {
                 ((Logger) eventLog).setLogLevel(debug ? Logger.DEBUG : Logger.INFO);
             }
-
-            allowDeepMacros = "true".equalsIgnoreCase(props.getProperty("allowDeepMacros"));
 
             // set prop read timestamp
             lastPropertyRead = props.lastModified();

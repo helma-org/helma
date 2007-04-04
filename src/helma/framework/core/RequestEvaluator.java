@@ -179,8 +179,7 @@ public final class RequestEvaluator implements Runnable {
                                 }
                             }
                             // If function doesn't exist, return immediately
-                            if (functionName != null && functionName.indexOf('.') < 0 &&
-                                    !scriptingEngine.hasFunction(thisObject, functionName)) {
+                            if (functionName != null && !scriptingEngine.hasFunction(thisObject, functionName, true)) {
                                 app.logEvent(missingFunctionMessage(thisObject, functionName));
                                 done = true;
                                 reqtype = NONE;
@@ -448,7 +447,7 @@ public final class RequestEvaluator implements Runnable {
 
                                     // reset skin recursion detection counter
                                     skinDepth = 0;
-                                    if (!scriptingEngine.hasFunction(currentElement, functionName)) {
+                                    if (!scriptingEngine.hasFunction(currentElement, functionName, false)) {
                                         throw new FrameworkException(missingFunctionMessage(currentElement, functionName));
                                     }
                                     result = scriptingEngine.invoke(currentElement,
@@ -485,10 +484,6 @@ public final class RequestEvaluator implements Runnable {
                                 try {
                                     // reset skin recursion detection counter
                                     skinDepth = 0;
-
-                                    if (functionName != null && !scriptingEngine.hasFunction(thisObject, functionName)) {
-                                        throw new FrameworkException(missingFunctionMessage(thisObject, functionName));
-                                    }
 
                                     result = scriptingEngine.invoke(thisObject,
                                             function,
@@ -868,7 +863,7 @@ public final class RequestEvaluator implements Runnable {
     public Object invokeDirectFunction(Object obj, Object function, Object[] args)
                                 throws Exception {
         return scriptingEngine.invoke(obj, function, args,
-                ScriptingEngine.ARGS_WRAP_DEFAULT, false);
+                ScriptingEngine.ARGS_WRAP_DEFAULT, true);
     }
 
     /**
@@ -993,7 +988,7 @@ public final class RequestEvaluator implements Runnable {
      * @throws ScriptingException
      */
     private Object getChildElement(Object obj, String name) throws ScriptingException {
-        if (scriptingEngine.hasFunction(obj, "getChildElement")) {
+        if (scriptingEngine.hasFunction(obj, "getChildElement", false)) {
             return scriptingEngine.invoke(obj, "getChildElement", new Object[] {name},
                                           ScriptingEngine.ARGS_WRAP_DEFAULT, false);
         }
@@ -1037,7 +1032,7 @@ public final class RequestEvaluator implements Runnable {
         if (req.checkXmlRpc()) {
             // append _methodname
             buffer.append("_xmlrpc");
-            if (scriptingEngine.hasFunction(obj, buffer.toString())) {
+            if (scriptingEngine.hasFunction(obj, buffer.toString(), false)) {
                 // handle as XML-RPC request
                 req.setMethod(RequestTrans.XMLRPC);
                 return buffer.toString();
@@ -1051,7 +1046,7 @@ public final class RequestEvaluator implements Runnable {
         if (method != null) {
             // append _methodname
             buffer.append('_').append(method.toLowerCase());
-            if (scriptingEngine.hasFunction(obj, buffer.toString()))
+            if (scriptingEngine.hasFunction(obj, buffer.toString(), false))
                 return buffer.toString();
 
             // cut off method in case it has been appended
@@ -1062,7 +1057,7 @@ public final class RequestEvaluator implements Runnable {
         if (method == null || "GET".equalsIgnoreCase(method) ||
                               "POST".equalsIgnoreCase(method) ||
                               "HEAD".equalsIgnoreCase(method)) {
-            if (scriptingEngine.hasFunction(obj, buffer.toString()))
+            if (scriptingEngine.hasFunction(obj, buffer.toString(), false))
                 return buffer.toString();
         }
 

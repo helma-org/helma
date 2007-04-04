@@ -319,10 +319,12 @@ public final class Skin {
         sandbox.add(macroname);
     }
 
-    private Object invokeMacro(Object value, RenderContext cx)
+    private Object processParameter(Object value, RenderContext cx)
             throws Exception {
         if (value instanceof Macro) {
             return ((Macro) value).invokeAsMacro(cx, null);
+        } else if (value instanceof ProcessedParameter) {
+            return ((ProcessedParameter) value).process(cx.reval);
         } else {
             return value;
         }
@@ -376,7 +378,6 @@ public final class Skin {
                         if (state == PARSE_PARAM && quotechar == '\u0000'
                                 && b.length() == 0 && source[i + 1] == '%') {
                             Macro macro = new Macro(i, 2);
-                            hasNestedMacros = true;
                             addParameter(lastParamName, macro);
                             lastParamName = null;
                             b.setLength(0);
@@ -455,7 +456,7 @@ public final class Skin {
                         if (!escape && state == PARSE_PARAM) {
                             if (quotechar == source[i]) {
                                 // add parameter
-                                addParameter(lastParamName, b.toString());
+                                addParameter(lastParamName, parseParameter(b.toString()));
                                 lastParamName = null;
                                 b.setLength(0);
                                 quotechar = '\u0000';
@@ -487,7 +488,7 @@ public final class Skin {
                             if (quotechar == '\u0000') {
                                 if (b.length() > 0) {
                                     // add parameter
-                                    addParameter(lastParamName, b.toString());
+                                    addParameter(lastParamName, parseParameter(b.toString()));
                                     lastParamName = null;
                                     b.setLength(0);
                                 }
@@ -533,7 +534,7 @@ public final class Skin {
                 if (name == null) {
                     name = b.toString().trim();
                 } else {
-                    addParameter(lastParamName, b.toString());
+                    addParameter(lastParamName, parseParameter(b.toString()));
                 }
             }
 
@@ -560,7 +561,21 @@ public final class Skin {
             }
         }
 
+        private Object parseParameter(String str) {
+            int length = str.length();
+            if (length > 3 && str.charAt(0) == '$') {
+                if (str.charAt(1) == '[' && str.charAt(length - 1) == ']')
+                    return new ProcessedParameter(str.substring(2, str.length()-1), 0);
+                else if (str.charAt(1) == '(' && str.charAt(length - 1) == ')')
+                    return new ProcessedParameter(str.substring(2, str.length()-1), 1);
+            }
+            return str;
+        }
+
         private void addParameter(String name, Object value) {
+            if (!(value instanceof String)) {
+                hasNestedMacros = true;                
+            }
             if (name == null) {
                 // take shortcut for positional parameters
                 if (positionalParams == null) {
@@ -613,31 +628,32 @@ public final class Skin {
                 throw new RuntimeException("Macro " + name + " not allowed in sandbox");
             }
 
-            Object handlerObject = null;
+            Object handler = null;
             Object value = null;
             ScriptingEngine engine = cx.reval.scriptingEngine;
 
             if (handlerType != HANDLER_GLOBAL) {
-                handlerObject = cx.resolveHandler(path[0], handlerType);
-                handlerObject = resolvePath(handlerObject, engine);
+                handler = cx.resolveHandler(path[0], handlerType);
+                handler = resolvePath(handler, cx.reval);
             }
 
-            if (handlerType == HANDLER_GLOBAL || handlerObject != null) {
+            if (handlerType == HANDLER_GLOBAL || handler != null) {
                 // check if a function called name_macro is defined.
                 // if so, the macro evaluates to the function. Otherwise,
                 // a property/field with the name is used, if defined.
                 String propName = path[path.length - 1];
-                String funcName = propName + "_macro";
+                String funcName = resolveFunctionName(handler, propName + "_macro", engine);
 
-                if (engine.hasFunction(handlerObject, funcName)) {
-                    StringBuffer buffer = cx.reval.getResponse().getBuffer();
-                    // remember length of response buffer before calling macro
-                    int bufLength = buffer.length();
+                // remember length of response buffer before calling macro
+                StringBuffer buffer = cx.reval.getResponse().getBuffer();
+                int bufLength = buffer.length();
+
+                if (funcName != null) {
 
                     Object[] arguments = prepareArguments(0, cx);
                     // get reference to rendered named params for after invocation
                     Map params = (Map) arguments[0];
-                    value = cx.reval.invokeDirectFunction(handlerObject,
+                    value = cx.reval.invokeDirectFunction(handler,
                             funcName,
                             arguments);
 
@@ -662,16 +678,28 @@ public final class Skin {
                         if (value != null)
                             return filter(value, cx);
                     }
-                    // display error message unless silent failmode is on
-                    if (!engine.hasProperty(handlerObject, propName)
-                            && standardParams.verboseFailmode(handlerObject, engine)) {
-                        throw new MacroUnhandledException(name);
+                    // display error message unless unhandledMacro is defined or silent failmode is on
+                    if (!engine.hasProperty(handler, propName)) {
+                        if (engine.hasFunction(handler, "unhandledMacro", false)) {
+                            Object[] arguments = prepareArguments(1, cx);
+                            arguments[0] = propName;
+                            value = cx.reval.invokeDirectFunction(handler,  "unhandledMacro", arguments);
+                            // if macro has a filter chain and didn't return anything, use output
+                            // as filter argument.
+                            if (filterChain != null && value == null && buffer.length() > bufLength) {
+                                value = buffer.substring(bufLength);
+                                buffer.setLength(bufLength);
+                            }
+                        } else if (standardParams.verboseFailmode(handler, engine)) {
+                            throw new UnhandledMacroException(name);
+                        }
+                    } else {
+                        value = engine.getProperty(handler, propName);
                     }
-                    value = engine.getProperty(handlerObject, propName);
                     return filter(value, cx);
                 }
-            } else if (standardParams.verboseFailmode(handlerObject, engine)) {
-                throw new MacroUnhandledException(name);
+            } else if (standardParams.verboseFailmode(handler, engine)) {
+                throw new UnhandledMacroException(name);
             }
             return filter(null, cx);
         }
@@ -723,8 +751,8 @@ public final class Skin {
                 throw concur;
             } catch (TimeoutException timeout) {
                 throw timeout;
-            } catch (MacroUnhandledException unhandled) {
-                String msg = "Macro unhandled: " + unhandled.getMessage();
+            } catch (UnhandledMacroException unhandled) {
+                String msg = "Unhandled Macro: " + unhandled.getMessage();
                 cx.reval.getResponse().write(" [" + msg + "] ");
                 app.logError(msg);
             } catch (Exception x) {
@@ -761,12 +789,14 @@ public final class Skin {
 
             if (handlerType != HANDLER_GLOBAL) {
                 handlerObject = cx.resolveHandler(path[0], handlerType);
-                handlerObject = resolvePath(handlerObject, cx.reval.scriptingEngine);
+                handlerObject = resolvePath(handlerObject, cx.reval);
             }
 
-            String funcName = path[path.length - 1] + "_filter";
+            String propName = path[path.length - 1] + "_filter";
+            String funcName = resolveFunctionName(handlerObject, propName,
+                    cx.reval.scriptingEngine);
 
-            if (cx.reval.scriptingEngine.hasFunction(handlerObject, funcName)) {
+            if (funcName != null) {
                 Object[] arguments = prepareArguments(1, cx);
                 arguments[0] = returnValue;
                 Object retval = cx.reval.invokeDirectFunction(handlerObject,
@@ -791,7 +821,9 @@ public final class Skin {
                 for (Iterator it = namedParams.entrySet().iterator(); it.hasNext(); ) {
                     Map.Entry entry = (Map.Entry) it.next();
                     Object value = entry.getValue();
-                    map.put(entry.getKey(), invokeMacro(value, cx));
+                    if (!(value instanceof String))
+                        value = processParameter(value, cx);
+                    map.put(entry.getKey(), value);
                 }
                 arguments[offset] = map;
             } else {
@@ -800,28 +832,52 @@ public final class Skin {
             }
             if (positionalParams != null) {
                 for (int i = 0; i < nPosArgs; i++) {
-                    Object param = positionalParams.get(i);
-                    if (param instanceof Macro)
-                        arguments[offset + 1 + i] = invokeMacro(param, cx);
-                    else
-                        arguments[offset + 1 + i] = param;
+                    Object value = positionalParams.get(i);
+                    if (!(value instanceof String))
+                        value = processParameter(value, cx);
+                    arguments[offset + 1 + i] = value;
                 }
             }
             return arguments;
         }
 
-        private Object resolvePath(Object handler, ScriptingEngine engine) {
-            if (path.length > 2 && !app.allowDeepMacros) {
-                throw new RuntimeException("allowDeepMacros property must be true " +
-                        "in order to enable deep macro paths.");
-            }
+        private Object resolvePath(Object handler, RequestEvaluator reval) throws Exception {
             for (int i = 1; i < path.length - 1; i++) {
-                handler = engine.getProperty(handler, path[i]);
-                if (handler == null) {
-                    break;
+                Object[] arguments = {path[i]};
+                Object next = reval.invokeDirectFunction(handler, "getMacroHandler", arguments);
+                if (next != null) {
+                    handler = next;
+                } else if (!reval.scriptingEngine.isTypedObject(handler)) {
+                    handler = reval.scriptingEngine.getProperty(handler, path[i]);
+                    if (handler == null) {
+                        break;
+                    }
                 }
             }
             return handler;
+        }
+
+        private String resolveFunctionName(Object handler, String functionName,
+                                           ScriptingEngine engine) {
+            if (handlerType == HANDLER_GLOBAL) {
+                String[] macroPath = app.globalMacroPath;
+                if (macroPath == null || macroPath.length == 0) {
+                    if (engine.hasFunction(null, functionName, false))
+                        return functionName;
+                } else {
+                    for (int i = 0; i < macroPath.length; i++) {
+                        String path = macroPath[i];
+                        String funcName = path == null || path.length() == 0 ?
+                                functionName : path + "." + functionName;
+                        if (engine.hasFunction(null, funcName, true))
+                            return funcName;
+                    }
+                }
+            } else {
+                if (engine.hasFunction(handler, functionName, false))
+                    return functionName;
+            }
+            return null;
         }
 
         /**
@@ -920,9 +976,9 @@ public final class Skin {
         }
 
         boolean containsMacros() {
-            return prefix instanceof Macro
-                || suffix instanceof Macro
-                || defaultValue instanceof Macro;
+            return !(prefix instanceof String)
+                || !(suffix instanceof String)
+                || !(defaultValue instanceof String);
         }
 
         void setFailMode(Object value) {
@@ -946,9 +1002,9 @@ public final class Skin {
             if (!containsMacros())
                 return this;
             StandardParams stdParams = new StandardParams();
-            stdParams.prefix = invokeMacro(prefix, cx);
-            stdParams.suffix = invokeMacro(suffix, cx);
-            stdParams.defaultValue = invokeMacro(defaultValue, cx);
+            stdParams.prefix = processParameter(prefix, cx);
+            stdParams.suffix = processParameter(suffix, cx);
+            stdParams.defaultValue = processParameter(defaultValue, cx);
             return stdParams;
         }
 
@@ -1019,13 +1075,39 @@ public final class Skin {
             return obj;
         }
     }
-}
 
-/**
- * Exception type for unhandled macros
- */
-class MacroUnhandledException extends Exception {
-    MacroUnhandledException(String name) {
-        super(name);
+    /**
+     * Processed macro parameter
+     */
+    class ProcessedParameter {
+        String value;
+        int type;
+
+        ProcessedParameter(String value, int type) {
+            this.value = value;
+            this.type = type;
+        }
+
+        Object process(RequestEvaluator reval) throws Exception {
+            switch (type) {
+                case 1:
+                    Object function = app.processMacroParameter;
+                    Object[] args = {value};
+                    return reval.invokeDirectFunction(null, function, args);
+                case 0:
+                default:
+                    return reval.getResponse().getMacroHandlers().get(value);
+            }
+        }
+    }
+
+    /**
+     * Exception type for unhandled macros
+     */
+    class UnhandledMacroException extends Exception {
+        UnhandledMacroException(String name) {
+            super(name);
+        }
     }
 }
+

@@ -119,9 +119,10 @@ public interface ScriptingEngine {
      * Return true if a function by that name is defined for that object.
      * @param thisObject the object
      * @param functionName the function name
+     * @param resolve if member path in function name should be resolved
      * @return true if the function is defined on the object
      */
-    public boolean hasFunction(Object thisObject, String functionName);
+    public boolean hasFunction(Object thisObject, String functionName, boolean resolve);
 
     /**
      * Return true if a property by that name is defined for that object.
