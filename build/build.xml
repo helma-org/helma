@@ -173,7 +173,7 @@
           <arg value="--template-dir"/>
           <arg value="${build.work}/reference/templates"/>
           <arg value="--logo"/>
-          <arg value="${home.dir}/static/helma2.gif"/>
+          <arg value="${home.dir}/static/helma.gif"/>
           <arg value="${build.work}/reference/coreEnvironment" />
           <arg value="${build.work}/reference/coreExtensions" />
           <arg value="${build.work}/modules"/>
