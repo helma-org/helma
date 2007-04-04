@@ -349,17 +349,15 @@ public final class NodeManager {
         }
         // New node is going ot be used, invoke onInit() on it
         // Invoke onInit() if it is defined by this Node's prototype
-        if (node.dbmap != null) {
-            try {
-                // We need to reach deap into helma.framework.core to invoke onInit(),
-                // but the functionality is really worth it.
-                RequestEvaluator reval = app.getCurrentRequestEvaluator();
-                if (reval != null) {
-                    reval.invokeDirectFunction(node, "onInit", RequestEvaluator.EMPTY_ARGS);
-                }
-            } catch (Exception x) {
-                app.logError("Error invoking onInit()", x);
+        try {
+            // We need to reach deap into helma.framework.core to invoke onInit(),
+            // but the functionality is really worth it.
+            RequestEvaluator reval = app.getCurrentRequestEvaluator();
+            if (reval != null) {
+                reval.invokeDirectFunction(node, "onInit", RequestEvaluator.EMPTY_ARGS);
             }
+        } catch (Exception x) {
+            app.logError("Error invoking onInit()", x);
         }
         return node;
     }
@@ -421,6 +419,7 @@ public final class NodeManager {
      */
     public void insertNode(IDatabase db, ITransaction txn, Node node)
                     throws IOException, SQLException, ClassNotFoundException {
+        invokeOnPersist(node);
         DbMapping dbm = node.getDbMapping();
 
         if ((dbm == null) || !dbm.isRelational()) {
@@ -531,6 +530,22 @@ public final class NodeManager {
     }
 
     /**
+     *  calls onPersist function for the HopObject
+     */
+    private void invokeOnPersist(Node node) {
+        try {
+            // We need to reach deap into helma.framework.core to invoke onPersist(),
+            // but the functionality is really worth it.
+            RequestEvaluator reval = app.getCurrentRequestEvaluator();
+            if (reval != null) {
+                reval.invokeDirectFunction(node, "onPersist", RequestEvaluator.EMPTY_ARGS);
+            }
+        } catch (Exception x) {
+            app.logError("Error invoking onPersist()", x);
+        }
+    }
+    
+    /**
      *  Updates a modified node in the embedded db or an external relational database, depending
      * on its database mapping.
      *
@@ -539,6 +554,8 @@ public final class NodeManager {
      */
     public boolean updateNode(IDatabase db, ITransaction txn, Node node)
                     throws IOException, SQLException, ClassNotFoundException {
+        
+        invokeOnPersist(node);
         DbMapping dbm = node.getDbMapping();
         boolean markMappingAsUpdated = false;
 
