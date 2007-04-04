@@ -181,7 +181,7 @@ public final class Skin {
      * @return true if this skin contains a main skin
      */
     public boolean hasMainskin() {
-        return length - offset > 0;
+        return length - offset > 0 || subskins == null;
     }
 
     /**
@@ -356,11 +356,44 @@ public final class Skin {
         /**
          * Create and parse a new macro.
          * @param start the start of the macro within the skin source
-         * @param offset offset of the macro content from the start index
+         * @param macroOffset offset of the macro content from the start index
          */
-        public Macro(int start, int offset) {
+        public Macro(int start, int macroOffset) {
             this.start = start;
 
+            int i = parse(macroOffset, false);
+
+            if (isSubskinMacro) {
+                if (i + 1 < length && source[i] == '\r' && source[i + 1] == '\n')
+                    end = Math.min(length, i + 2);
+                else if (i < length && (source[i] == '\r' || source[i] == '\n'))
+                    end = Math.min(length, i + 1);
+                else
+                    end = Math.min(length, i);
+            } else {
+                end = Math.min(length, i);
+            }
+
+            path = StringUtils.split(name, ".");
+            if (path.length <= 1) {
+                handlerType = HANDLER_GLOBAL;
+            } else {
+                String handlerName = path[0];
+                if ("this".equalsIgnoreCase(handlerName)) {
+                    handlerType = HANDLER_THIS;
+                } else if ("response".equalsIgnoreCase(handlerName)) {
+                    handlerType = HANDLER_RESPONSE;
+                } else if ("request".equalsIgnoreCase(handlerName)) {
+                    handlerType = HANDLER_REQUEST;
+                } else if ("session".equalsIgnoreCase(handlerName)) {
+                    handlerType = HANDLER_SESSION;
+                } else if ("param".equalsIgnoreCase(handlerName)) {
+                    handlerType = HANDLER_PARAM;
+                }
+            }
+        }
+
+        private int parse(int macroOffset, boolean lenient) {
             int state = PARSE_MACRONAME;
             boolean escape = false;
             char quotechar = '\u0000';
@@ -369,7 +402,7 @@ public final class Skin {
             int i;
 
             loop:
-            for (i = start + offset; i < length - 1; i++) {
+            for (i = start + macroOffset; i < length - 1; i++) {
 
                 switch (source[i]) {
 
@@ -390,7 +423,8 @@ public final class Skin {
 
                     case '%':
 
-                        if ((state != PARSE_PARAM || quotechar == '\u0000') && source[i + 1] == '>') {
+                        if ((state != PARSE_PARAM || quotechar == '\u0000' || lenient)
+                                && source[i + 1] == '>') {
                             state = PARSE_DONE;
                             break loop;
                         }
@@ -516,18 +550,16 @@ public final class Skin {
                         b.append(source[i]);
                         escape = false;
                 }
-            }
 
-            i += 2;
-            if (isSubskinMacro) {
-                if (i + 1 < length && source[i] == '\r' && source[i + 1] == '\n')
-                    end = Math.min(length, i + 2);
-                else if (i < length && (source[i] == '\r' || source[i] == '\n'))
-                    end = Math.min(length, i + 1);
-                else
-                    end = Math.min(length, i);
-            } else {
-                end = Math.min(length, i);
+                if (i == length - 2 && !lenient &&
+                        (state != PARSE_DONE ||quotechar != '\u0000')) {
+                    filterChain = null;
+                    name = null;
+                    standardParams = new StandardParams();
+                    namedParams = null;
+                    positionalParams = null;
+                    return parse(macroOffset, true);
+                }
             }
 
             if (b.length() > 0) {
@@ -542,23 +574,7 @@ public final class Skin {
                 app.logError("Unterminated Macro Tag: " +this);
             }
 
-            path = StringUtils.split(name, ".");
-            if (path.length <= 1) {
-                handlerType = HANDLER_GLOBAL;
-            } else {
-                String handlerName = path[0];
-                if ("this".equalsIgnoreCase(handlerName)) {
-                    handlerType = HANDLER_THIS;
-                } else if ("response".equalsIgnoreCase(handlerName)) {
-                    handlerType = HANDLER_RESPONSE;
-                } else if ("request".equalsIgnoreCase(handlerName)) {
-                    handlerType = HANDLER_REQUEST;
-                } else if ("session".equalsIgnoreCase(handlerName)) {
-                    handlerType = HANDLER_SESSION;
-                } else if ("param".equalsIgnoreCase(handlerName)) {
-                    handlerType = HANDLER_PARAM;
-                }
-            }
+            return i + 2;
         }
 
         private Object parseParameter(String str) {
