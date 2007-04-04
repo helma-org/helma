@@ -381,7 +381,7 @@
     <!-- Checkout and zip helmaTools                                         -->
     <!-- =================================================================== -->
     <target name="package-helmaTools" depends="init">
-        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="helmaTools" dest="${build.work}" />
+        <cvs cvsRoot="${cvs.root.apps}" command="export" tag="helma_1_6" package="helmaTools" dest="${build.work}" />
         <mkdir dir="${build.work}/modules"/>
         <zip zipfile="${build.work}/modules/helmaTools.zip" basedir="${build.work}/helmaTools/" includes="**" excludes="**/*.txt, **/*.html, **/*.bat, **/*.sh" />
         <delete dir="${build.work}/helmaTools" />
