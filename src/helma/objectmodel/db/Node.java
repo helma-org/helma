@@ -1691,9 +1691,6 @@ public final class Node implements INode, Serializable {
 
         // sorry, no properties for this Node
         return new EmptyEnumeration();
-
-        // NOTE: we don't enumerate node properties here
-        // return propMap == null ? new Vector ().elements () : propMap.elements ();
     }
 
     /**
