@@ -877,8 +877,10 @@ public final class Skin {
                 } else if (!reval.scriptingEngine.isTypedObject(handler)) {
                     handler = reval.scriptingEngine.getProperty(handler, path[i]);
                     if (handler == null) {
-                        break;
+                        return null;
                     }
+                } else {
+                    return null;
                 }
             }
             return handler;
