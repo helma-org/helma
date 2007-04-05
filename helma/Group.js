@@ -8,10 +8,10 @@
  *
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
- * $RCSfile: Html.js,v $
- * $Author: robert $
- * $Revision: 1.4 $
- * $Date: 2007/01/30 14:49:57 $
+ * $RCSfile: Group.js,v $
+ * $Author: tobi $
+ * $Revision: 1.1 $
+ * $Date: 2007/04/05 15:33:58 $
  */
 
 /**
@@ -32,7 +32,7 @@ if (!global.helma) {
  */
 helma.Group = function(javaGroup) {
     // private variable containing the wrapper object
-    var groupRoot = new helma.Group.Wrapper(javaGroup.getRoot());
+    var groupRoot = new helma.Group.GroupObject(javaGroup.getRoot());
 
     /**
      * @returns the wrapped java object Group
@@ -67,28 +67,28 @@ helma.Group = function(javaGroup) {
     };
 
     /**
-     * @see helma.Group.Wrapper.listChildren
+     * @see helma.Group.GroupObject.listChildren
      */   
     this.listChildren = function() {
         return groupRoot.listChildren();
     };
 
     /**
-     * @see helma.Group.Wrapper.listProperties
+     * @see helma.Group.GroupObject.listProperties
      */   
     this.listProperties = function() {
         return groupRoot.listProperties();
     };
    
     /**
-     * @see helma.Group.Wrapper.countChildren
+     * @see helma.Group.GroupObject.countChildren
      */   
     this.countChildren = function() {
         return groupRoot.countChildren();
     };
 
     /**
-     * @see helma.Group.Wrapper.countProperties
+     * @see helma.Group.GroupObject.countProperties
      */   
     this.countProperties = function() {
         return groupRoot.countProperties();
@@ -101,13 +101,13 @@ helma.Group = function(javaGroup) {
      * is called as root.test(), stories.137.render
      * is called as root.stories.get("137").render() etc etc.
      * @param argArr array of arguments to the remote method
-     * @param sendMode as defined for helma.Group.Wrapper
+     * @param sendMode as defined for helma.Group.GroupObject
      * @returns array of result objects
      */
     this.callFunction = function(method, argArr, sendMode) {
         groups.checkWriteAccess(javaGroup);
         if (sendMode == null) {
-            sendMode = helma.Group.Wrapper.DEFAULT_GET;
+            sendMode = helma.Group.GroupObject.DEFAULT_GET;
         }
         var argVec = new java.util.Vector();
         for (var i=0; i<argArr.length; i++) {
@@ -130,11 +130,11 @@ helma.Group = function(javaGroup) {
 };
 
 /**
- * Constructs a new helma.Group.Wrapper. This class wraps the java GroupObject
+ * Constructs a new helma.Group.GroupObject. This class wraps the java GroupObject
  * and provides several methods for retrieving and manipulating properties.
  * @param {Object} Instance of helma.extensions.helmagroups.GroupObject
  */
-helma.Group.Wrapper = function(javaGroupObject) {
+helma.Group.GroupObject = function(javaGroupObject) {
     var helmagroups = Packages.helma.extensions.helmagroups;
 
     if (!javaGroupObject) {
@@ -202,7 +202,7 @@ helma.Group.Wrapper = function(javaGroupObject) {
             // loop down until end of array
             for (var i=0; i<key.length-1; i++) {
                 var nextObj = obj.get(key[i]);
-                if (nextObj == null || !(nextObj instanceof GroupObject)) {
+                if (nextObj == null || !(nextObj instanceof helma.Group.GroupObject)) {
                     return null;
                 }
                 obj = nextObj;
@@ -215,7 +215,7 @@ helma.Group.Wrapper = function(javaGroupObject) {
     /**
      * if key is a path, walks through the path and returns the lowest GroupObject.
      * if tree ends somewhere in the path, function creates the missing GroupObjects.
-     * @returns helma.Group.Wrapper
+     * @returns helma.Group.GroupObject
      */
     var createPath = function(obj, key) {
         var separator = helmagroups.GroupObject.SEPARATOR;
@@ -229,8 +229,8 @@ helma.Group.Wrapper = function(javaGroupObject) {
             // loop down until end of array
             for (var i=0; i<key.length-1; i++) {
                 var nextObj = obj.get(key[i]);
-                if (nextObj == null || !(nextObj instanceof helma.Group.Wrapper)) {
-                    nextObj = new helma.Group.Wrapper();
+                if (nextObj == null || !(nextObj instanceof helma.Group.GroupObject)) {
+                    nextObj = new helma.Group.GroupObject();
                     obj.set(key[i], nextObj);
                 }
                 obj = nextObj;
@@ -267,7 +267,7 @@ helma.Group.Wrapper = function(javaGroupObject) {
      */
     this.set = function(key, val, sendMode) {
         if (!key) {
-            throw "helma.Group.Wrapper.set(): key can't be null";
+            throw "helma.Group.GroupObject.set(): key can't be null";
         }
         checkWriteAccess();
         // check content type of value:
@@ -282,13 +282,13 @@ helma.Group.Wrapper = function(javaGroupObject) {
             ok = true;
         else if (val instanceof Date)
             ok = true;
-        else if (val instanceof helma.Group.Wrapper)
+        else if (val instanceof helma.Group.GroupObject)
             ok = true;
         if (ok == false) {   
-            throw "only primitive values, Date and helma.Group.Wrapper allowed in helma.Group.Wrapper.set()";
+            throw "only primitive values, Date and helma.Group.GroupObject allowed in helma.Group.GroupObject.set()";
         }
         if (sendMode == null) {
-            sendMode = helma.Group.Wrapper.DEFAULT_GET;
+            sendMode = helma.Group.GroupObject.DEFAULT_GET;
         }
         
         if (keyIsPath(key)) {
@@ -302,12 +302,12 @@ helma.Group.Wrapper = function(javaGroupObject) {
                 // null values aren't permitted in the group,
                 // setting a property to null is the same as deleting it
                 this.remove(key, sendMode);
-            } else if (val instanceof helma.Group.Wrapper) {
-                // replicate helma.Group.Wrapper
+            } else if (val instanceof helma.Group.GroupObject) {
+                // replicate helma.Group.GroupObject
                 javaGroupObject.put(key, val.getJavaObject(), sendMode);
             } else {
                 // put the primitive property (or maybe replicate,
-                // decision's up to helma.Group.Wrapper)
+                // decision's up to helma.Group.GroupObject)
                 if (val instanceof Date) {
                     // convert javascript dates to java dates
                     val = new java.util.Date(val.getTime());
@@ -338,7 +338,7 @@ helma.Group.Wrapper = function(javaGroupObject) {
     this.remove = function(key, sendMode) {
         checkWriteAccess();
         if (sendMode == null) {
-            sendMode = helma.Group.Wrapper.DEFAULT_GET;
+            sendMode = helma.Group.GroupObject.DEFAULT_GET;
         }
         if (keyIsPath(key)) {
             var obj = walkPath(this, key);
@@ -367,7 +367,7 @@ helma.Group.Wrapper = function(javaGroupObject) {
      * <li>an Array containing String keys</li>
      * </ul>
      * @return Depending on the argument either the appropriate property
-     * value or a helma.Group.Wrapper
+     * value or a helma.Group.GroupObject
      * @type Object
      */
     this.get = function(key) {
@@ -391,7 +391,7 @@ helma.Group.Wrapper = function(javaGroupObject) {
            return val;
         } else if (javaGroupObject.hasChild(key)) {
             // we got a child object
-            return new helma.Group.Wrapper(javaGroupObject.getChild(key));
+            return new helma.Group.GroupObject(javaGroupObject.getChild(key));
         }
         return null;
     };
@@ -435,10 +435,10 @@ helma.Group.Wrapper = function(javaGroupObject) {
     this.wrap = function(newGroupObject) {
         checkWriteAccess();
         if (javaGroupObject.getState() != helmagroups.GroupObject.REPLICATED) {
-            throw "helma.Group.Wrapper.wrap() may only be called on replicated GroupObjects";
+            throw "helma.Group.GroupObject.wrap() may only be called on replicated GroupObjects";
         }
-        if (newGroupObject == null || !(newGroupObject instanceof helma.Group.Wrapper)) {
-            throw "helma.Group.Wrapper.wrap() requires a helma.Group.Wrapper as an argument";
+        if (newGroupObject == null || !(newGroupObject instanceof helma.Group.GroupObject)) {
+            throw "helma.Group.GroupObject.wrap() requires a helma.Group.GroupObject as an argument";
         }
         javaGroupObject.wrap(newGroupObject.getJavaObject());
         return this;
@@ -460,7 +460,7 @@ helma.Group.Wrapper = function(javaGroupObject) {
         javaGroupObjectClone.setChildren(new java.util.Hashtable());
         javaGroupObjectClone.setState(helmagroups.GroupObject.LOCAL);
         javaGroupObjectClone.setPath(null);
-        return new helma.Group.Wrapper(javaGroupObjectClone);
+        return new helma.Group.GroupObject(javaGroupObjectClone);
     };
  
     /**
@@ -510,7 +510,7 @@ helma.Group.Wrapper = function(javaGroupObject) {
     /**
      * Returns the number of child GroupObjects
      * @returns The number of child GroupObjects of this
-     * helma.Group.Wrapper instance
+     * helma.Group.GroupObject instance
      * @type Number
      */
     this.countChildren = function() {
@@ -558,17 +558,17 @@ helma.Group.Wrapper = function(javaGroupObject) {
  * for further comments see the sourcecode of that class
  */
 // wait just for the first response
-helma.Group.Wrapper.GET_FIRST = 1;
+helma.Group.GroupObject.GET_FIRST = 1;
 // wait until all members have responded
-helma.Group.Wrapper.GET_ALL = 2;
+helma.Group.GroupObject.GET_ALL = 2;
 // wait for majority (50% + 1) to respond
-helma.Group.Wrapper.GET_MAJORITY = 3;
+helma.Group.GroupObject.GET_MAJORITY = 3;
 // wait for majority of all members (may block!)
-helma.Group.Wrapper.GET_ABS_MAJORITY = 4;
+helma.Group.GroupObject.GET_ABS_MAJORITY = 4;
 // don't wait for any response (fire & forget)
-helma.Group.Wrapper.GET_NONE = 6;
+helma.Group.GroupObject.GET_NONE = 6;
 // default: wait for all responses
-helma.Group.Wrapper.DEFAULT_GET = helma.Group.Wrapper.GET_ALL;
+helma.Group.GroupObject.DEFAULT_GET = helma.Group.GroupObject.GET_ALL;
 
 /**
  * this is mounted as "groups". the root for all groups started in this application
