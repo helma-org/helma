@@ -322,7 +322,7 @@ public final class Skin {
     private Object processParameter(Object value, RenderContext cx)
             throws Exception {
         if (value instanceof Macro) {
-            return ((Macro) value).invokeAsMacro(cx, null);
+            return ((Macro) value).invokeAsMacro(cx, null, true);
         } else if (value instanceof ProcessedParameter) {
             return ((ProcessedParameter) value).process(cx.reval);
         } else {
@@ -643,7 +643,7 @@ public final class Skin {
             namedParams.put(name, value);
         }
 
-        private Object invokeAsMacro(RenderContext cx, StandardParams stdParams)
+        private Object invokeAsMacro(RenderContext cx, StandardParams stdParams, boolean asObject)
                 throws Exception {
 
             // immediately return for comment macros
@@ -689,7 +689,7 @@ public final class Skin {
 
                     // if macro has a filter chain and didn't return anything, use output
                     // as filter argument.
-                    if (filterChain != null && value == null && buffer.length() > bufLength) {
+                    if (asObject && value == null && buffer.length() > bufLength) {
                         value = buffer.substring(bufLength);
                         buffer.setLength(bufLength);
                     }
@@ -713,7 +713,7 @@ public final class Skin {
                             value = cx.reval.invokeDirectFunction(handler,  "onUnhandledMacro", arguments);
                             // if macro has a filter chain and didn't return anything, use output
                             // as filter argument.
-                            if (filterChain != null && value == null && buffer.length() > bufLength) {
+                            if (asObject && value == null && buffer.length() > bufLength) {
                                 value = buffer.substring(bufLength);
                                 buffer.setLength(bufLength);
                             }
@@ -741,7 +741,8 @@ public final class Skin {
             int bufLength = buffer.length();
             try {
                 StandardParams stdParams = standardParams.render(cx);
-                Object value = invokeAsMacro(cx, stdParams);
+                boolean asObject = filterChain != null;
+                Object value = invokeAsMacro(cx, stdParams, asObject);
 
                 // check if macro wrote out to response buffer
                 if (buffer.length() == bufLength) {
