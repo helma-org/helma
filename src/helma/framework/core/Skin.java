@@ -322,7 +322,7 @@ public final class Skin {
     private Object processParameter(Object value, RenderContext cx)
             throws Exception {
         if (value instanceof Macro) {
-            return ((Macro) value).invokeAsMacro(cx, null, true);
+            return ((Macro) value).invokeAsParameter(cx);
         } else if (value instanceof ProcessedParameter) {
             return ((ProcessedParameter) value).process(cx.reval);
         } else {
@@ -729,6 +729,26 @@ public final class Skin {
                 throw new UnhandledMacroException(name);
             }
             return filter(null, cx);
+        }
+
+        /**
+         * Render this macro as nested macro, only converting to string
+         * if necessary.
+         */
+        Object invokeAsParameter(RenderContext cx) throws Exception {
+            StandardParams stdParams = standardParams.render(cx);            
+            Object value = invokeAsMacro(cx, stdParams, true);
+            if (stdParams.prefix != null || stdParams.suffix != null) {
+                ResponseTrans res = cx.reval.getResponse();
+                res.pushBuffer(null);
+                writeResponse(value, cx.reval, stdParams, true);
+                return res.popString();
+            } else if (stdParams.defaultValue != null &&
+                    (value == null || "".equals(value))) {
+                return stdParams.defaultValue;
+            } else {
+                return value;
+            }
         }
 
         /**
