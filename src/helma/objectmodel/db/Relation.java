@@ -882,11 +882,11 @@ public final class Relation {
                             }
                         }
                         if (value == null) {
-                            if (columnName.equals(dbmap.getIDField())) {
+                            if (columnName.equalsIgnoreCase(dbmap.getIDField())) {
                                 value = nonvirtual.getID();
-                            } else if (columnName.equals(dbmap.getNameField())) {
+                            } else if (columnName.equalsIgnoreCase(dbmap.getNameField())) {
                                 value = nonvirtual.getName();
-                            } else if (columnName.equals(dbmap.getPrototypeField())) {
+                            } else if (columnName.equalsIgnoreCase(dbmap.getPrototypeField())) {
                                 value = dbmap.getExtensionId();
                             }
                         }
@@ -1209,7 +1209,7 @@ public final class Relation {
     public Map getKeyParts(INode home) {
         Map map = new HashMap();
         for (int i=0; i<constraints.length; i++) {
-            if (ownType.getIDField().equals(constraints[i].localName)) {
+            if (ownType.getIDField().equalsIgnoreCase(constraints[i].localName)) {
                 map.put(constraints[i].foreignName, home.getID());
             } else {
                 map.put(constraints[i].foreignName, home.getString(constraints[i].localProperty()));

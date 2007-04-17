@@ -245,7 +245,7 @@ public class UpdateableSubnodeList extends OrderedSubnodeList {
      */
     private Node updateBorder(int idx, NodeHandle nh, Node node) {
         String cret = updateCriteria[idx];
-        if (rel.otherType.getIDField().equals(cret)) {
+        if (rel.otherType.getIDField().equalsIgnoreCase(cret)) {
             String nid = nh.getID();
             if (updateTypeDesc[idx]
                     && OrderedSubnodeList.compareNumericString(nid, (String) lowestValues[idx]) < 0) {
@@ -282,7 +282,7 @@ public class UpdateableSubnodeList extends OrderedSubnodeList {
         Node node = nh.getNode(rel.otherType.getWrappedNodeManager());
         for (int i = 0; i < updateCriteria.length; i++) {
             String cret = updateCriteria[i];
-            if (cret.equals(rel.otherType.getIDField())) {
+            if (cret.equalsIgnoreCase(rel.otherType.getIDField())) {
                 check[i] = (updateTypeDesc[i]
                                 && nh.getID().equals(lowestValues[i]))
                         || (!updateTypeDesc[i]
