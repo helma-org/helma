@@ -118,6 +118,15 @@ public class HopObjectCtor extends FunctionObject {
         return super.get(name, start);
     }
 
+    public void put(String name, Scriptable start, Object value) {
+        if (value instanceof Function) {
+            // reset static function's parent scope, needed because of the way we compile
+            // prototype code, using the prototype objects as scope
+            ((Function) value).setParentScope(core.global);
+        }
+        super.put(name, start, value);
+    }
+
     class GetById extends BaseFunction {
 
         /**
