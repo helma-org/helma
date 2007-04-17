@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: all.js,v $
- * $Author: czv $
- * $Revision: 1.4 $
- * $Date: 2006/05/30 18:34:31 $
+ * $Author: tobi $
+ * $Revision: 1.5 $
+ * $Date: 2006/08/06 11:27:56 $
  */
 
 // convenience SingleFileRepository to load all the 
@@ -24,3 +24,5 @@ app.addRepository('modules/core/Object.js');
 app.addRepository('modules/core/String.js');
 app.addRepository('modules/core/HopObject.js');
 app.addRepository('modules/core/Global.js');
+app.addRepository('modules/core/JSON.js');
+app.addRepository('modules/core/Filters.js');
