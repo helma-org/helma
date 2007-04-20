@@ -137,6 +137,13 @@ public final class Node implements INode, Serializable {
         this.name = (name == null) ? "" : name;
         created = lastmodified = System.currentTimeMillis();
         state = TRANSIENT;
+
+        if (prototype != null && dbmap != null) {
+            String protoProperty = dbmap.columnNameToProperty(dbmap.getPrototypeField());
+            if (protoProperty != null) {
+                setString(protoProperty, prototype);
+            }
+        }
     }
 
     /**
