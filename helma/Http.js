@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Http.js,v $
- * $Author: hannes $
- * $Revision: 1.3 $
- * $Date: 2006/11/21 10:42:25 $
+ * $Author: robert $
+ * $Revision: 1.4 $
+ * $Date: 2007/01/30 14:55:39 $
  */
 
 
@@ -220,6 +220,21 @@ helma.Http = function() {
     };
 
     /**
+     * Adds the cookies passed as argument to the list of cookies to send
+     * to the remote server.
+     * @param {Array} cookies An array containing objects with the properties
+     * "name" (the name of the cookie) and "value" (the value of the cookie) set. 
+     */
+    this.setCookies = function(cookies) {
+        if (cookies != null) {
+            for (var i=0; i<cookies.length; i++) {
+                this.setCookie(cookies[i].name, cookies[i].value);
+            }
+        }
+        return;
+    };
+
+    /**
      * Returns all cookies set for this client
      * @return An object containing all cookies, where the property
      * name is the name of the cookie, and the value is the cookie value
@@ -418,14 +433,29 @@ helma.Http = function() {
             type: conn.getContentType(),
             encoding: conn.getContentEncoding(),
             lastModified: null,
-            eTag: null,
-            cookie: helma.Http.Cookie.parse(conn.getHeaderField("Set-Cookie")),
-            content: null
+            eTag: conn.getHeaderField("ETag"),
+            cookies: null,
+            content: null,
         }
+        // parse all "Set-Cookie" header fields into an array of
+        // helma.Http.Cookie instances
+        var cookies = conn.getHeaderFields().get("Set-Cookie");
+        if (cookies != null) {
+            var arr = [];
+            var cookie;
+            for (var i=0; i<cookies.size(); i++) {
+                if ((cookie = helma.Http.Cookie.parse(cookies.get(i))) != null) {
+                    arr.push(cookie);
+                }
+            }
+            if (arr.length > 0) {
+                result.cookies = arr;
+            }
+        }
+
         var lastmod = conn.getLastModified();
         if (lastmod)
             result.lastModified = new Date(lastmod);
-        result.eTag = conn.getHeaderField("ETag");
     
         if (result.length != 0 && result.code == 200) {
             var body = new java.io.ByteArrayOutputStream();
