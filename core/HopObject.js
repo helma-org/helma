@@ -8,15 +8,33 @@
  *
  * Copyright 1998-2005 Helma Software. All Rights Reserved.
  *
- * $RCSfile: Date.js,v $
- * $Author: czv $
- * $Revision: 1.2 $
- * $Date: 2006/04/24 07:02:17 $
+ * $RCSfile: HopObject.js,v $
+ * $Author: tobi $
+ * $Revision: 1.1 $
+ * $Date: 2006/08/06 11:27:56 $
  */
 
 
 app.addRepository("modules/core/Number.js");
 app.addRepository("modules/core/String.js");
+
+
+/**
+ * Iterates over each child node of the HopObject.
+ * @param {Function} callback The callback function to be
+ * called for each child node. On every call the first
+ * argument of this function is set to the current value
+ * of the counter variable <code>i</code>.
+ */
+HopObject.prototype.forEach = function(callback) {
+   if (!callback || callback instanceof Function == false) {
+      return;
+   }
+   for (var i=0; i<this.size(); i+=1) {
+      callback.call(this.get(i), i);
+   }
+   return;
+};
 
 
 /**
@@ -122,4 +140,41 @@ HopObject.prototype.loop_macro = function(param) {
         itemlist[i].renderSkin(param.skin, skinParam);
     }
     return;
+};
+
+
+/**
+ * Render the number of child nodes of the HopObject. 
+ * Three cases are distinguished which can be customized
+ * by setting param.verbose to "true" and defining the
+ * corresponding field of the <code>param</code>
+ * argument:
+ * <ol>
+ * <li>param.none - not a single child node</li>
+ * <li>param.one - exactly one child node</li>
+ * <li>param.many - more than one child node</li>
+ * </ol>
+ * @param {Object} param The default macro parameter
+ * @param {String} name The default name for a child node
+ */
+HopObject.prototype.size_macro = function(param, name) {
+   var EMPTYSTR = "";
+   var n = this.size();
+   if (name) {
+      var text;
+      var plural = (name.lastIndexOf("s") < name.length-1) ? "s" : "es";
+      if (n > 0) {
+         if (n > 1) {
+            text = n + " " + name + plural;
+         } else {
+            text = (param.one !== null) ? param.one : "one " + name;
+         }
+      } else {
+         text = (param.none !== null) ? param.none : "no " + name + plural;
+      }
+      res.write(text);
+   } else {
+      res.write(n);
+   }
+   return;
 };
