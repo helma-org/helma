@@ -10,8 +10,8 @@
  *
  * $RCSfile: HopObject.js,v $
  * $Author: tobi $
- * $Revision: 1.1 $
- * $Date: 2006/08/06 11:27:56 $
+ * $Revision: 1.2 $
+ * $Date: 2007/04/23 14:59:34 $
  */
 
 
@@ -162,7 +162,7 @@ HopObject.prototype.size_macro = function(param, name) {
    var n = this.size();
    if (name) {
       var text;
-      var plural = (name.lastIndexOf("s") < name.length-1) ? "s" : "es";
+      var plural = name.endsWith("s") ? "s" : "es";
       if (n > 0) {
          if (n > 1) {
             text = n + " " + name + plural;
