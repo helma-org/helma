@@ -23,6 +23,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.util.*;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 /**
  * A Transmitter for a request from the servlet client. Objects of this
@@ -75,6 +77,8 @@ public class RequestTrans implements Serializable {
     private String httpUsername;
     private String httpPassword;
 
+    static private final Pattern paramPattern = Pattern.compile("\\[(.+?)\\]");
+
     /**
      *  Create a new Request transmitter with an empty data map.
      */
@@ -119,10 +123,35 @@ public class RequestTrans implements Serializable {
     }
 
     /**
-     *  Set a parameter value in this request transmitter.
+     * Set a parameter value in this request transmitter. This
+     * parses foo[bar][baz] as nested objects/maps.
      */
     public void set(String name, Object value) {
-        values.put(name, value);
+        int bracket = name.indexOf('[');
+        if (bracket > -1 && name.endsWith("]")) {
+            Matcher m = paramPattern.matcher(name);
+            String partName = name.substring(0, bracket);
+            Map map = values;
+            while (m.find()) {
+                Object previousValue = map.get(partName);
+                Map partMap;
+                if (previousValue == null) {
+                    partMap = new SystemMap();
+                    map.put(partName, partMap);
+                } else if (previousValue instanceof Map) {
+                    partMap = (Map) previousValue;
+                } else {
+                    throw new RuntimeException("Conflicting HTTP Parameters for '" + name + "'");
+                }
+                partName = m.group(1);
+                map = partMap;
+            }
+            if (map.put(partName, value) != null)
+                throw new RuntimeException("Conflicting HTTP Parameters for '" + name + "'");;
+        } else {
+            if (values.put(name, value) != null)
+                throw new RuntimeException("Conflicting HTTP Parameters for '" + name + "'");;
+        }
     }
 
     /**
