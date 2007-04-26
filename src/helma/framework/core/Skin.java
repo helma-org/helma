@@ -323,8 +323,6 @@ public final class Skin {
             throws Exception {
         if (value instanceof Macro) {
             return ((Macro) value).invokeAsParameter(cx);
-        } else if (value instanceof ProcessedParameter) {
-            return ((ProcessedParameter) value).process(cx.reval);
         } else {
             return value;
         }
@@ -496,7 +494,7 @@ public final class Skin {
                                     return parse(macroOffset, true);
                                 }
                                 // add parameter
-                                addParameter(lastParamName, parseParameter(b.toString()));
+                                addParameter(lastParamName, b.toString());
                                 lastParamName = null;
                                 b.setLength(0);
                                 quotechar = '\u0000';
@@ -528,7 +526,7 @@ public final class Skin {
                             if (quotechar == '\u0000') {
                                 if (b.length() > 0) {
                                     // add parameter
-                                    addParameter(lastParamName, parseParameter(b.toString()));
+                                    addParameter(lastParamName, b.toString());
                                     lastParamName = null;
                                     b.setLength(0);
                                 }
@@ -569,7 +567,7 @@ public final class Skin {
                 if (name == null) {
                     name = b.toString().trim();
                 } else {
-                    addParameter(lastParamName, parseParameter(b.toString()));
+                    addParameter(lastParamName, b.toString());
                 }
             }
 
@@ -586,17 +584,6 @@ public final class Skin {
             standardParams = new StandardParams();
             namedParams = null;
             positionalParams = null;
-        }
-
-        private Object parseParameter(String str) {
-            int length = str.length();
-            if (length > 3 && str.charAt(0) == '$') {
-                if (str.charAt(1) == '[' && str.charAt(length - 1) == ']')
-                    return new ProcessedParameter(str.substring(2, str.length()-1), 0);
-                else if (str.charAt(1) == '(' && str.charAt(length - 1) == ')')
-                    return new ProcessedParameter(str.substring(2, str.length()-1), 1);
-            }
-            return str;
         }
 
         private void addParameter(String name, Object value) {
@@ -1052,10 +1039,20 @@ public final class Skin {
             if (!containsMacros())
                 return this;
             StandardParams stdParams = new StandardParams();
-            stdParams.prefix = processParameter(prefix, cx);
-            stdParams.suffix = processParameter(suffix, cx);
-            stdParams.defaultValue = processParameter(defaultValue, cx);
+            stdParams.prefix = renderToString(prefix, cx);
+            stdParams.suffix = renderToString(suffix, cx);
+            stdParams.defaultValue = renderToString(defaultValue, cx);
             return stdParams;
+        }
+
+        String renderToString(Object obj, RenderContext cx) throws Exception {
+            Object value = processParameter(obj, cx);
+            if (value == null)
+                return null;
+            else if (value instanceof String)
+                return (String) value;
+            else
+                return cx.reval.scriptingEngine.toString(value);
         }
 
     }
@@ -1123,31 +1120,6 @@ public final class Skin {
                 handlerCache.put(handlerName, obj);
             }
             return obj;
-        }
-    }
-
-    /**
-     * Processed macro parameter
-     */
-    class ProcessedParameter {
-        String value;
-        int type;
-
-        ProcessedParameter(String value, int type) {
-            this.value = value;
-            this.type = type;
-        }
-
-        Object process(RequestEvaluator reval) throws Exception {
-            switch (type) {
-                case 1:
-                    Object function = app.processMacroParameter;
-                    Object[] args = {value};
-                    return reval.invokeDirectFunction(null, function, args);
-                case 0:
-                default:
-                    return reval.getResponse().getMacroHandlers().get(value);
-            }
         }
     }
 
