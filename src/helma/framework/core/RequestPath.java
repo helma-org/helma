@@ -135,12 +135,25 @@ public class RequestPath {
     }
     
     /**
-     * Checks if the given object is contained in the request path
+     * Checks if the given object is contained in the request path.
+     * Itreturns the zero-based index position, or -1 if it isn't contained.
+     *
+     * @param obj the element to check
+     * @return the index of the element, or -1 if it isn't contained
+     * @deprecated use {@link #indexOf(Object)} instead.
+     */
+    public int contains(Object obj) {
+        return objects.indexOf(obj);
+    }
+
+    /**
+     * Checks if the given object is contained in the request path.
+     * Itreturns the zero-based index position, or -1 if it isn't contained.
      *
      * @param obj the element to check
      * @return the index of the element, or -1 if it isn't contained
      */
-    public int contains(Object obj) {
+    public int indexOf(Object obj) {
         return objects.indexOf(obj);
     }
 

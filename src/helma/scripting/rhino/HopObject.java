@@ -651,9 +651,10 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     }
 
     /**
-     *  Check if node is contained in subnodes
+     * Check if node is contained in the subnode collection.
+     * Return its index position if it is, and -1 otherwise.
      */
-    public int jsFunction_contains(Object obj) {
+    public int jsFunction_indexOf(Object obj) {
 
         checkNode();
 
@@ -664,6 +665,15 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         }
 
         return -1;
+    }
+
+    /**
+     * Check if node is contained in the subnode collection.
+     * Return its index position if it is, and -1 otherwise.
+     * @deprecated use indexOf(Object) instead.
+     */
+    public int jsFunction_contains(Object obj) {
+        return jsFunction_indexOf(obj);
     }
 
     /**
