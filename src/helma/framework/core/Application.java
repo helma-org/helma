@@ -173,12 +173,6 @@ public final class Application implements Runnable {
     // Field to cache unmapped java classes
     private final static String CLASS_NOT_MAPPED = "(unmapped)";
 
-
-    /**
-     * Function object for macro processing callback
-     */
-    Object processMacroParameter = null;
-
     /**
      * Namespace search path for global macros
      */

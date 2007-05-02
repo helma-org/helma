@@ -640,26 +640,6 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     * Set a function for processing macro parameters formatted as $(value).
-     * The function is expected to take the parameter value as string argument,
-     * and return the processed parameter
-     * @param obj a callback function
-     */
-    public void setProcessMacroParameter(Object obj) {
-        app.processMacroParameter = obj;
-    }
-
-    /**
-     * Get the function for processing macro parameters formatted as $(value).
-     * The function is expected to take the parameter value as string argument,
-     * and return the processed parameter
-     * @return the current macro processor callback function or null
-     */
-    public Object getProcessMacroParameter() {
-        return app.processMacroParameter;
-    }
-
-    /**
      * Trigger a synchronous Helma invocation with a default timeout of 30 seconds.
      *
      * @param thisObject the object to invoke the function on,
