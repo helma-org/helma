@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: String.js,v $
- * $Author: tobi $
- * $Revision: 1.4 $
- * $Date: 2006/08/06 11:27:56 $
+ * $Author: hannes $
+ * $Revision: 1.5 $
+ * $Date: 2007/02/09 11:00:07 $
  */
 
 
@@ -26,7 +26,9 @@ String.LEFT           = -1
 String.BALANCE        = 0
 String.RIGHT          = 1
 String.ISOFORMAT      = "yyyy-MM-dd'T'HH:mm:ssZ";
-String.NULL           = "";
+String.SPACE          = " ";
+String.EMPTY          = "";
+String.NULL           = String.EMPTY; // to be deprecated?
 
 /**
  * @fileoverview Adds useful methods to the JavaScript String type.
