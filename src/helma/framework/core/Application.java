@@ -1452,42 +1452,51 @@ public final class Application implements Runnable {
         // interval between session cleanups
         long lastSessionCleanup = System.currentTimeMillis();
 
-        // logEvent ("Starting scheduler for "+name);
-
         while (Thread.currentThread() == worker) {
 
-            // purge sessions
             try {
-                lastSessionCleanup = cleanupSessions(lastSessionCleanup);
-            } catch (Exception x) {
-                logError("Error in session cleanup", x);
-            }
+                // interval between scheduler runs
+                long sleepInterval = 60000;
 
-            // execute cron jobs
-            try {
-                executeCronJobs();
-            } catch (Exception x) {
-                logError("Error in cron job execution", x);
-            }
-
-            long sleepInterval = 60000;
-            try {
-                String sleepProp = props.getProperty("schedulerInterval");
-                if (sleepProp != null) {
-                    sleepInterval = Math.max(1000, Integer.parseInt(sleepProp) * 1000);
-                } else {
-                    sleepInterval = CronJob.millisToNextFullMinute();
+                try {
+                    String sleepProp = props.getProperty("schedulerInterval");
+                    if (sleepProp != null) {
+                        sleepInterval = Math.max(1000, Integer.parseInt(sleepProp) * 1000);
+                    } else {
+                        sleepInterval = CronJob.millisToNextFullMinute();
+                    }
+                } catch (Exception ignore) {
+                    // we'll use the default interval
                 }
-            } catch (Exception ignore) {
-                // we'll use the default interval
-            }
 
-            // sleep until the next full minute
-            try {
-                Thread.sleep(sleepInterval);
-            } catch (InterruptedException x) {
-                worker = null;
-                break;
+                // sleep until the next full minute
+                try {
+                    Thread.sleep(sleepInterval);
+                } catch (InterruptedException x) {
+                    worker = null;
+                    break;
+                }
+
+                // purge sessions
+                try {
+                    lastSessionCleanup = cleanupSessions(lastSessionCleanup);
+                } catch (Exception x) {
+                    logError("Error in session cleanup: " + x, x);
+                } catch (LinkageError x) {
+                    logError("Error in session cleanup: " + x, x);
+                }
+
+                // execute cron jobs
+                try {
+                    executeCronJobs();
+                } catch (Exception x) {
+                    logError("Error in cron job execution: " + x, x);
+                } catch (LinkageError x) {
+                    logError("Error in cron job execution: " + x, x);
+                }
+
+            } catch (VirtualMachineError error) {
+                logError("Error in scheduler loop: " + error, error);
             }
         }
 
