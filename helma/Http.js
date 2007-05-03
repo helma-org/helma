@@ -10,8 +10,8 @@
  *
  * $RCSfile: Http.js,v $
  * $Author: robert $
- * $Revision: 1.4 $
- * $Date: 2007/01/30 14:55:39 $
+ * $Revision: 1.5 $
+ * $Date: 2007/04/23 12:10:07 $
  */
 
 
@@ -469,8 +469,13 @@ helma.Http = function() {
             if (binaryMode) {
                 result.content = body.toByteArray();
             } else {
-                result.content = result.encoding ?
-                            body.toString(result.encoding) :
+                var charset;
+                if (result.type && result.type.indexOf("charset=") != -1) {
+                    charset = result.type.substring(result.type.indexOf("charset=") + 8);
+                    charset = charset.replace('"', ' ').trim();
+                }
+                result.content = charset ?
+                            body.toString(charset) :
                             body.toString();
             }
             result.length = result.content.length;
