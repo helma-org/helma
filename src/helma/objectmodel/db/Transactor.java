@@ -413,32 +413,32 @@ public class Transactor extends Thread {
      * Kill this transaction thread. Used as last measure only.
      */
     public synchronized void kill() {
-            killed = true;
-            interrupt();
+        killed = true;
+        interrupt();
 
         // Interrupt the thread if it has not noticed the flag (e.g. because it is busy
         // reading from a network socket).
         if (isAlive()) {
-                interrupt();
-                try {
-                    join(1000);
-                } catch (InterruptedException ir) {
-                    // interrupted by other thread
-                }
+            interrupt();
+            try {
+                join(1000);
+            } catch (InterruptedException ir) {
+                // interrupted by other thread
+            }
         }
 
         if (isAlive() && "true".equals(nmgr.app.getProperty("requestTimeoutStop"))) {
-                // still running - check if we ought to stop() it
-                try {
-                    Thread.sleep(2000);
-                    if (isAlive()) {
-                        // thread is still running, pull emergency break
-                        nmgr.app.logEvent("Stopping Thread for Transactor " + this);
-                        stop();
-                    }
-                } catch (InterruptedException ir) {
-                    // interrupted by other thread
+            // still running - check if we ought to stop() it
+            try {
+                Thread.sleep(2000);
+                if (isAlive()) {
+                    // thread is still running, pull emergency break
+                    nmgr.app.logEvent("Stopping Thread for Transactor " + this);
+                    stop();
                 }
+            } catch (InterruptedException ir) {
+                // interrupted by other thread
+            }
         }
     }
 
