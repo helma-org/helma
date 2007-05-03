@@ -445,8 +445,8 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
 
         try {
             ((helma.objectmodel.db.Node) node).prefetchChildren(start, length);
-        } catch (Exception ignore) {
-            System.err.println("Error in HopObject.prefetchChildren(): "+ignore);
+        } catch (Exception x) {
+            core.app.logError("Error in HopObject.prefetchChildren: " + x, x);
         }
     }
 
