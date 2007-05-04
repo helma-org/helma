@@ -9,9 +9,9 @@
  * Copyright 1998-2007 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Mail.js,v $
- * $Author: hannes $
- * $Revision: 1.6 $
- * $Date: 2007/02/07 14:55:03 $
+ * $Author: tobi $
+ * $Revision: 1.7 $
+ * $Date: 2007/03/15 09:54:56 $
  */
 
 /**
@@ -554,7 +554,7 @@ helma.Mail = function(host, port) {
     if (host || (host = getProperty("smtp"))) {
         props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.host", String(host));
-        props.put("mail.smtp.port", String(port) || "25")
+        props.put("mail.smtp.port", String(port || 25));
         props.put("mail.mime.charset",
                   System.getProperty("mail.charset", "ISO-8859-15"));
     }
