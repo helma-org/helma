@@ -17,9 +17,9 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //
-// $Revision: 1.10 $
+// $Revision: 1.11 $
 // $Author: robert $
-// $Date: 2007/02/07 17:04:51 $
+// $Date: 2007/02/07 18:11:01 $
 //
 
 
@@ -280,6 +280,8 @@ helma.Search.Index = function(directory, analyzer) {
      * index is currently locked this method will try for the next
      * two seconds to create the IndexModifier, otherwise it will
      * throw an error.
+     * @param {Boolean} create True to create the index (overwriting an
+     * existing index), false to append to an existing index.
      * @returns An IndexModifier instance.
      * @type org.apache.lucene.index.IndexModifier
      */
@@ -293,6 +295,8 @@ helma.Search.Index = function(directory, analyzer) {
      * If the index is currently locked this method will try for the next
      * two seconds to create the IndexWriter, otherwise it will
      * throw an error.
+     * @param {Boolean} create True to create the index (overwriting an
+     * existing index), false to append to an existing index.
      * @returns An IndexWriter instance.
      * @type org.apache.lucene.index.IndexWriter
      */
@@ -382,23 +386,25 @@ helma.Search.Index.prototype.addIndexes = function(dir /* [, dir[, dir...] */) {
  * @type Boolean
  */
 helma.Search.Index.prototype.create = function() {
-    try {
+    var dir = this.getDirectory();
+    if (dir instanceof Packages.org.apache.lucene.store.FSDirectory) {
         // FIXME: IndexWriter is supposed to remove files
         // if instantiated with create == true, but for some reason
         // it doesn't, so instead use FSDirectory.getDirectory()
         // for deletion and then re-create the index segments file
-        var dir = this.getDirectory().getFile();
-        Packages.org.apache.lucene.store.FSDirectory.getDirectory(dir, true);
+        Packages.org.apache.lucene.store.FSDirectory.getDirectory(dir.getFile(), true);
+    }
+    try {
         var writer = this.getWriter(true);
         return true;
     } catch (e) {
         app.logger.warn("Unable to create the index " + this.getDirectory());
-        return false;
     } finally {
         if (writer != null) {
             writer.close();
         }
     }
+    return false;
 };
 
 /**
@@ -516,9 +522,9 @@ helma.Search.Index.prototype.addDocuments = function(docs, mergeFactor) {
             while (e.hasMoreElements()) {
                 modifier.addDocument(e.nextElement().getDocument());
             }
-        } else if (doc instanceof Array) {
+        } else if (docs instanceof Array) {
             for (var i=0;i<docs.length;i++) {
-                modifier.addDocument(docs[i]);
+                modifier.addDocument(docs[i].getDocument());
             }
         }
     } finally {
@@ -1145,13 +1151,12 @@ helma.Search.Document.prototype.addField = function(name, value, param) {
 helma.Search.Document.prototype.getField = function(name) {
     var f = this.getDocument().getField(name);
     if (f != null) {
-        var result = {name: name,
-                      boost: f.getBoost(),
-                      indexed: f.isIndexed(),
-                      stored: f.isStored(),
-                      tokenized: f.isTokenized(),
-                      value: f.stringValue()};
-        return result;
+        return {name: name,
+                boost: f.getBoost(),
+                indexed: f.isIndexed(),
+                stored: f.isStored(),
+                tokenized: f.isTokenized(),
+                value: f.stringValue()};
    }
    return null;
 };
