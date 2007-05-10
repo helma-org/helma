@@ -769,19 +769,23 @@ public final class RhinoCore implements ScopeProvider {
         Resource previousCurrentResource = app.getCurrentCodeResource();
         app.setCurrentCodeResource(code);
 
+        String encoding = app.getProperty("sourceCharset");
+
         try {
             Scriptable op = type.objProto;
             // do the update, evaluating the file
             if (sourceName.endsWith(".js")) {
-                reader = new InputStreamReader(code.getInputStream());
+                reader = encoding == null ?
+                        new InputStreamReader(code.getInputStream()) :
+                        new InputStreamReader(code.getInputStream(), encoding);
                 cx.evaluateReader(op, reader, sourceName, 1, null);
             } else if (sourceName.endsWith(".hac")) {
-                reader = new StringReader(HacHspConverter.convertHac(code));
+                reader = new StringReader(HacHspConverter.convertHac(code, encoding));
                 cx.evaluateReader(op, reader, sourceName, 0, null);
             } else if (sourceName.endsWith(".hsp")) {
-                reader = new StringReader(HacHspConverter.convertHsp(code));
+                reader = new StringReader(HacHspConverter.convertHsp(code, encoding));
                 cx.evaluateReader(op, reader, sourceName, 0, null);
-                reader = new StringReader(HacHspConverter.convertHspAsString(code));
+                reader = new StringReader(HacHspConverter.convertHspAsString(code, encoding));
                 cx.evaluateReader(op, reader, sourceName, 0, null);
             }
 
