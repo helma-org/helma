@@ -62,8 +62,8 @@ public final class DbMapping {
     private HashMap prop2db;
 
     // Map of db columns to Relations objects.
-    // Case insensitive, keys are stored in upper case so
-    // lookups must do a toUpperCase().
+    // Case insensitive, keys are stored in lower case so
+    // lookups must do a toLowerCase().
     private HashMap db2prop;
     
     // list of columns to fetch from db
@@ -303,24 +303,21 @@ public final class DbMapping {
                     // (ResourceProperties now preserve key capitalization!)
                     p2d.put(propName.toLowerCase(), rel);
 
-                    if ((rel.columnName != null) &&
-                            ((rel.reftype == Relation.PRIMITIVE) ||
-                            (rel.reftype == Relation.REFERENCE))) {
-                        Relation old = (Relation) d2p.put(rel.columnName.toUpperCase(), rel);
+                    if ((rel.columnName != null) && rel.isPrimitiveOrReference()) {
+                        Relation old = (Relation) d2p.put(rel.columnName.toLowerCase(), rel);
                         // check if we're overwriting another relation
                         // if so, primitive relations get precendence to references
                         if (old != null) {
-                            app.logEvent("*** Duplicate mapping for "+typename+"."+rel.columnName);
-                            if (old.reftype == Relation.PRIMITIVE) {
-                                d2p.put(old.columnName.toUpperCase(), old);
+                            app.logEvent("*** Duplicate mapping for " + typename + "." + rel.columnName);
+                            if (old.isPrimitive()) {
+                                d2p.put(old.columnName.toLowerCase(), old);
                             }
                         }
                     }
 
                     // check if a reference is aggressively fetched
-                    if ((rel.reftype == Relation.REFERENCE ||
-                             rel.reftype == Relation.COMPLEX_REFERENCE) &&
-                             rel.aggressiveLoading) {
+                    if (rel.aggressiveLoading &&
+                            (rel.isReference() || rel.isComplexReference())) {
                         joinList.add(rel);
                     }
 
@@ -413,6 +410,9 @@ public final class DbMapping {
             return parentMapping.getPrototypeName(id);
         }
         // fallback to base-prototype if the proto isn't recogniced
+        if (id == null) {
+            return typename;
+        }
         return extensionMap.getProperty(id, typename);
     }
 
@@ -581,7 +581,7 @@ public final class DbMapping {
             columnName = columnName.substring(open + 1, close);
         }
 
-        return _columnNameToProperty(columnName.toUpperCase());
+        return _columnNameToProperty(columnName.toLowerCase());
     }
 
     private String _columnNameToProperty(final String columnName) {
@@ -591,9 +591,7 @@ public final class DbMapping {
             return parentMapping._columnNameToProperty(columnName);
         }
 
-        if ((rel != null) &&
-                ((rel.reftype == Relation.PRIMITIVE) ||
-                (rel.reftype == Relation.REFERENCE))) {
+        if ((rel != null) && rel.isPrimitiveOrReference()) {
             return rel.propName;
         }
 
@@ -601,15 +599,16 @@ public final class DbMapping {
     }
 
     /**
-     * Translate an object property name to a database column name according to this mapping.
+     * Translate an object property name to a database column name according
+     * to this mapping. If no mapping is found, the property name is returned,
+     * assuming property and column names are equal.
      */
     public String propertyToColumnName(String propName) {
         if (propName == null) {
             return null;
         }
 
-        // FIXME: prop2db stores keys in lower case, because it gets them
-        // from a SystemProperties object which converts keys to lower case.
+        // prop2db stores keys in lower case
         return _propertyToColumnName(propName.toLowerCase());
     }
 
@@ -620,9 +619,7 @@ public final class DbMapping {
             return parentMapping._propertyToColumnName(propName);
         }
 
-        if ((rel != null) &&
-                ((rel.reftype == Relation.PRIMITIVE) ||
-                (rel.reftype == Relation.REFERENCE))) {
+        if ((rel != null) && (rel.isPrimitiveOrReference())) {
             return rel.columnName;
         }
 
@@ -637,7 +634,7 @@ public final class DbMapping {
             return null;
         }
 
-        return _columnNameToRelation(columnName.toUpperCase());
+        return _columnNameToRelation(columnName.toLowerCase());
     }
 
     private Relation _columnNameToRelation(final String columnName) {
@@ -697,28 +694,6 @@ public final class DbMapping {
 
         if (parentMapping != null) {
             return parentMapping.getSubnodeMapping();
-        }
-
-        return null;
-    }
-
-    /**
-     *
-     *
-     * @param propname ...
-     *
-     * @return ...
-     */
-    public DbMapping getExactPropertyMapping(String propname) {
-        Relation rel = getExactPropertyRelation(propname);
-
-        if (rel != null) {
-            // if this is a virtual node, it doesn't have a dbmapping
-            if (rel.virtual && (rel.prototype == null)) {
-                return null;
-            } else {
-                return rel.otherType;
-            }
         }
 
         return null;

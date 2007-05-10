@@ -223,15 +223,16 @@ public final class Relation {
                 } else {
                     boolean rprim = false;
                     for (int i=0; i<constraints.length; i++) {
-                        if (constraints[0].foreignKeyIsPrimary()) {
+                        if (constraints[i].foreignKeyIsPrimary()) {
                             rprim = true;
+                            break;
                         }
                     }
                     referencesPrimaryKey = rprim;
                 }
 
                 // check if this is a non-trivial reference
-                if (constraints.length > 0 && !usesPrimaryKey()) {
+                if (constraints.length > 1 || !usesPrimaryKey()) {
                     reftype = COMPLEX_REFERENCE;
                 } else {
                     reftype = REFERENCE;
@@ -455,6 +456,14 @@ public final class Relation {
      */
     public boolean isReference() {
         return reftype == REFERENCE;
+    }
+
+    /**
+     *  Returns true if this Relation describes either a primitive value
+     *  or an object reference.
+     */
+    public boolean isPrimitiveOrReference() {
+        return reftype == PRIMITIVE || reftype == REFERENCE;
     }
 
     /**
@@ -743,6 +752,18 @@ public final class Relation {
     }
 
     /**
+     * Return the db mapping for a propery relation.
+     * @return the target mapping of this property relation
+     */
+    public DbMapping getPropertyMapping() {
+        // if this is an untyped virtual node, it doesn't have a dbmapping
+        if (!virtual || prototype != null) {
+            return otherType;
+        }
+        return null;
+    }
+
+    /**
      * Return a Relation that defines the subnodes of a virtual node.
      */
     Relation getVirtualSubnodeRelation() {
@@ -812,8 +833,18 @@ public final class Relation {
      *  Build the second half of an SQL select statement according to this relation
      *  and a local object.
      */
-    public String buildQuery(INode home, INode nonvirtual, String kstr, String pre,
-                             boolean useOrder)
+    public String buildQuery(INode home, INode nonvirtual,
+                             String kstr, String pre, boolean useOrder)
+            throws SQLException, ClassNotFoundException {
+        return buildQuery(home, nonvirtual, otherType, kstr, pre, useOrder);
+    }
+
+    /**
+     *  Build the second half of an SQL select statement according to this relation
+     *  and a local object.
+     */
+    public String buildQuery(INode home, INode nonvirtual, DbMapping otherDbm,
+                             String kstr, String pre, boolean useOrder)
             throws SQLException, ClassNotFoundException {
         StringBuffer q = new StringBuffer();
         String prefix = pre;
@@ -822,14 +853,14 @@ public final class Relation {
             q.append(prefix);
 
             String accessColumn = (accessName == null) ?
-                    otherType.getIDField() : accessName;
-            otherType.appendCondition(q, accessColumn, kstr);
+                    otherDbm.getIDField() : accessName;
+            otherDbm.appendCondition(q, accessColumn, kstr);
 
             prefix = " AND ";
         }
 
         // render the constraints and filter
-        renderConstraints(q, home, nonvirtual, prefix);
+        renderConstraints(q, home, nonvirtual, otherDbm, prefix);
 
         // add joined fetch constraints
         ownType.addJoinConstraints(q, prefix);
@@ -906,17 +937,36 @@ public final class Relation {
     }
 
     /**
-     * Render contraints and filter conditions to an SQL query string buffer
+     * Render contraints and filter conditions to an SQL query string buffer.
      *
      * @param q the query string
      * @param home our home node
      * @param nonvirtual our non-virtual home node
      * @param prefix the prefix to use to append to the existing query (e.g. " AND ")
      *
-     * @throws SQLException ...
+     * @throws SQLException sql related exception
+     * @throws ClassNotFoundException driver class not found
      */
-    public void renderConstraints(StringBuffer q, INode home,
-                                  INode nonvirtual, String prefix)
+    public void renderConstraints(StringBuffer q, INode home, INode nonvirtual,
+                                  String prefix)
+                             throws SQLException, ClassNotFoundException {
+        renderConstraints(q, home, nonvirtual, otherType, prefix);
+    }
+
+    /**
+     * Render contraints and filter conditions to an SQL query string buffer.
+     *
+     * @param q the query string
+     * @param home our home node
+     * @param nonvirtual our non-virtual home nod
+     * @param otherDbm the DbMapping of the remote Node
+     * @param prefix the prefix to use to append to the existing query (e.g. " AND ")
+     *
+     * @throws SQLException sql related exception
+     * @throws ClassNotFoundException driver class not found
+     */
+    public void renderConstraints(StringBuffer q, INode home, INode nonvirtual,
+                                  DbMapping otherDbm, String prefix)
                              throws SQLException, ClassNotFoundException {
 
         if (constraints.length > 1 && logicalOperator != AND) {
@@ -926,8 +976,13 @@ public final class Relation {
         }
 
         for (int i = 0; i < constraints.length; i++) {
+            if (constraints[i].foreignKeyIsPrototype()) {
+                // if foreign key is $prototype we already have this constraint
+                // covered by doing the select on the proper table
+                continue;
+            }
             q.append(prefix);
-            constraints[i].addToQuery(q, home, nonvirtual);
+            constraints[i].addToQuery(q, home, nonvirtual, otherDbm);
             prefix = logicalOperator;
         }
 
@@ -935,20 +990,20 @@ public final class Relation {
             q.append(")");
             prefix = " AND ";
         }
-        
+
         // also take the prototype into consideration if someone
         // specifies an extension of an prototype inside the brakets of
         // a type.properties's collection, only nodes having this proto
         // sould appear inside the collection
-        if (otherType.inheritsStorage()) {
-            String protoField = otherType.getPrototypeField();
-            String[] extensions = otherType.getExtensions();
+        if (otherDbm.inheritsStorage()) {
+            String protoField = otherDbm.getPrototypeField();
+            String[] extensions = otherDbm.getExtensions();
 
             // extensions should never be null for extension- and
             // extended prototypes. nevertheless we check it here
             if (extensions != null && protoField != null) {
                 q.append(prefix);
-                otherType.appendCondition(q, protoField, extensions);
+                otherDbm.appendCondition(q, protoField, extensions);
                 prefix = " AND ";
             }
         }
@@ -969,12 +1024,12 @@ public final class Relation {
         for (int i = 0; i < constraints.length; i++) {
             select.append(ownType.getTableName());
             select.append(".");
-            select.append(constraints[i].localName);
+            select.append(constraints[i].localKey);
             select.append(" = ");
             select.append(JOIN_PREFIX);
             select.append(propName);
             select.append(".");
-            select.append(constraints[i].foreignName);
+            select.append(constraints[i].foreignKey);
             if (isOracle) {
                 // create old oracle style join - see
                 // http://www.praetoriate.com/oracle_tips_outer_joins.htm
@@ -1034,21 +1089,28 @@ public final class Relation {
         int satisfied = 0;
 
         INode nonvirtual = parent.getNonVirtualParent();
+        DbMapping otherDbm = child.getDbMapping();
+        if (otherDbm == null) {
+            otherDbm = otherType;
+        }
 
         for (int i = 0; i < constraints.length; i++) {
-            String propname = constraints[i].foreignProperty();
+            Constraint cnst = constraints[i];
+            String propname = cnst.foreignProperty(otherDbm);
 
             if (propname != null) {
-                INode home = constraints[i].isGroupby ? parent
-                                                      : nonvirtual;
+                INode home = cnst.isGroupby ? parent
+                                            : nonvirtual;
                 String value = null;
 
-                if (constraints[i].localKeyIsPrimary(home.getDbMapping())) {
+                if (cnst.localKeyIsPrimary(home.getDbMapping())) {
                     value = home.getID();
+                } else if (cnst.localKeyIsPrototype()) {
+                    value = home.getDbMapping().getStorageTypeName();
                 } else if (ownType.isRelational()) {
-                    value = home.getString(constraints[i].localProperty());
+                    value = home.getString(cnst.localProperty());
                 } else {
-                    value = home.getString(constraints[i].localName);
+                    value = home.getString(cnst.localKey);
                 }
 
                 count++;
@@ -1084,32 +1146,40 @@ public final class Relation {
         Node home = parent.getNonVirtualParent();
 
         for (int i = 0; i < constraints.length; i++) {
+            Constraint cnst = constraints[i];
             // don't set groupby constraints since we don't know if the
             // parent node is the base node or a group node
-            if (constraints[i].isGroupby) {
+            if (cnst.isGroupby) {
                 continue;
             }
 
             // check if we update the local or the other object, depending on
             // whether the primary key of either side is used.
-
-            if (constraints[i].foreignKeyIsPrimary()) {
-                String localProp = constraints[i].localProperty();
+            boolean foreignIsPrimary = cnst.foreignKeyIsPrimary();
+            if (foreignIsPrimary || cnst.foreignKeyIsPrototype()) {
+                String localProp = cnst.localProperty();
                 if (localProp == null) {
-                    System.err.println ("Error: column "+constraints[i].localName+
+                    ownType.app.logError("Error: column " + cnst.localKey +
                        " must be mapped in order to be used as constraint in "+
                        Relation.this);
                 } else {
-                    home.setString(localProp, child.getID());
+                    String value = foreignIsPrimary ?
+                            child.getID() : child.getDbMapping().getStorageTypeName();
+                    home.setString(localProp, value);
                 }
                 continue;
             }
 
-            Relation crel = otherType.columnNameToRelation(constraints[i].foreignName);
-            if (crel != null) {
-                // INode home = constraints[i].isGroupby ? parent : nonVirtual;
+            DbMapping otherDbm = child.getDbMapping();
+            if (otherDbm == null) {
+                otherDbm = otherType;
+            }
 
-                if (constraints[i].localKeyIsPrimary(home.getDbMapping())) {
+            Relation crel = otherDbm.columnNameToRelation(cnst.foreignKey);
+
+            if (crel != null) {
+
+                if (cnst.localKeyIsPrimary(home.getDbMapping())) {
                     // only set node if property in child object is defined as reference.
                     if (crel.reftype == REFERENCE) {
                         INode currentValue = child.getNode(crel.propName);
@@ -1131,16 +1201,13 @@ public final class Relation {
                         child.setString(crel.propName, home.getID());
                     }
                 } else if (crel.reftype == PRIMITIVE) {
-                    Property prop = null;
-
-                    if (ownType.isRelational()) {
-                        prop = home.getProperty(constraints[i].localProperty());
+                    if (cnst.localKeyIsPrototype()) {
+                        child.setString(crel.propName, home.getDbMapping().getStorageTypeName());
                     } else {
-                        prop = home.getProperty(constraints[i].localName);
-                    }
-
-                    if (prop != null) {
-                        child.set(crel.propName, prop.getValue(), prop.getType());
+                        Property prop = home.getProperty(cnst.localProperty());
+                        if (prop != null) {
+                            child.set(crel.propName, prop.getValue(), prop.getType());
+                        }
                     }
                 }
             }
@@ -1154,28 +1221,33 @@ public final class Relation {
         Node home = parent.getNonVirtualParent();
 
         for (int i = 0; i < constraints.length; i++) {
+            Constraint cnst = constraints[i];
             // don't set groupby constraints since we don't know if the
             // parent node is the base node or a group node
-            if (constraints[i].isGroupby) {
+            if (cnst.isGroupby) {
                 continue;
             }
 
             // check if we update the local or the other object, depending on
             // whether the primary key of either side is used.
 
-            if (constraints[i].foreignKeyIsPrimary()) {
-                String localProp = constraints[i].localProperty();
+            if (cnst.foreignKeyIsPrimary() || cnst.foreignKeyIsPrototype()) {
+                String localProp = cnst.localProperty();
                 if (localProp != null) {
                     home.setString(localProp, null);
                 }
                 continue;
             }
 
-            Relation crel = otherType.columnNameToRelation(constraints[i].foreignName);
-            if (crel != null) {
-                // INode home = constraints[i].isGroupby ? parent : nonVirtual;
+            DbMapping otherDbm = child.getDbMapping();
+            if (otherDbm == null) {
+                otherDbm = otherType;
+            }
 
-                if (constraints[i].localKeyIsPrimary(home.getDbMapping())) {
+            Relation crel = otherDbm.columnNameToRelation(cnst.foreignKey);
+
+            if (crel != null) {
+                if (cnst.localKeyIsPrimary(home.getDbMapping())) {
                     // only set node if property in child object is defined as reference.
                     if (crel.reftype == REFERENCE) {
                         INode currentValue = child.getNode(crel.propName);
@@ -1187,17 +1259,7 @@ public final class Relation {
                         child.setString(crel.propName, null);
                     }
                 } else if (crel.reftype == PRIMITIVE) {
-                    Property prop = null;
-
-                    if (ownType.isRelational()) {
-                        prop = home.getProperty(constraints[i].localProperty());
-                    } else {
-                        prop = home.getProperty(constraints[i].localName);
-                    }
-
-                    if (prop != null) {
-                        child.setString(crel.propName, null);
-                    }
+                    child.setString(crel.propName, null);
                 }
             }
         }
@@ -1209,10 +1271,13 @@ public final class Relation {
     public Map getKeyParts(INode home) {
         Map map = new HashMap();
         for (int i=0; i<constraints.length; i++) {
-            if (ownType.getIDField().equalsIgnoreCase(constraints[i].localName)) {
-                map.put(constraints[i].foreignName, home.getID());
+            Constraint cnst = constraints[i];
+            if (cnst.localKeyIsPrimary(ownType)) {
+                map.put(cnst.foreignKey, home.getID());
+            } else if (cnst.localKeyIsPrototype()) {
+                map.put(cnst.foreignKey, home.getDbMapping().getStorageTypeName());
             } else {
-                map.put(constraints[i].foreignName, home.getString(constraints[i].localProperty()));
+                map.put(cnst.foreignKey, home.getString(cnst.localProperty()));
             }
         }
         return map;
@@ -1246,53 +1311,77 @@ public final class Relation {
      * establish a relation between database mapped objects.
      */
     class Constraint {
-        String localName;
-        String foreignName;
+        String localKey;
+        String foreignKey;
         boolean isGroupby;
 
         Constraint(String local, String foreign, boolean groupby) {
-            localName = local;
-            foreignName = foreign;
+            localKey = local;
+            foreignKey = foreign;
             isGroupby = groupby;
         }
 
-        public void addToQuery(StringBuffer q, INode home, INode nonvirtual)
+        public void addToQuery(StringBuffer q, INode home, INode nonvirtual, DbMapping otherDbm)
                         throws SQLException, ClassNotFoundException {
-            String local = null;
+            String local;
             INode ref = isGroupby ? home : nonvirtual;
 
-            if ((localName == null) ||
-                    localName.equalsIgnoreCase(ref.getDbMapping().getIDField())) {
+            if (localKeyIsPrimary(ref.getDbMapping())) {
                 local = ref.getID();
+            } else if (localKeyIsPrototype()) {
+                local = ref.getDbMapping().getStorageTypeName();
             } else {
-                String homeprop = ownType.columnNameToProperty(localName);
-
+                String homeprop = ownType.columnNameToProperty(localKey);
+                if (homeprop == null) {
+                    throw new SQLException("Invalid local name '" + localKey +
+                            "' on " + ownType);
+                }
                 local = ref.getString(homeprop);
             }
 
-            otherType.appendCondition(q, foreignName, local);
+            String columnName;
+            if (foreignKeyIsPrimary()) {
+                columnName = otherDbm.getIDField();
+            } else {
+                columnName = foreignKey;
+            }
+            otherDbm.appendCondition(q, columnName, local);
         }
 
         public boolean foreignKeyIsPrimary() {
-            return (foreignName == null) ||
-                   foreignName.equalsIgnoreCase(otherType.getIDField());
+            return (foreignKey == null) ||
+                    "$id".equalsIgnoreCase(foreignKey) ||
+                   foreignKey.equalsIgnoreCase(otherType.getIDField());
+        }
+
+        public boolean foreignKeyIsPrototype() {
+            return "$prototype".equalsIgnoreCase(foreignKey);
         }
 
         public boolean localKeyIsPrimary(DbMapping homeMapping) {
-            return (homeMapping == null) || (localName == null) ||
-                   localName.equalsIgnoreCase(homeMapping.getIDField());
+            return (homeMapping == null) || (localKey == null) ||
+                   "$id".equalsIgnoreCase(localKey) ||
+                   localKey.equalsIgnoreCase(homeMapping.getIDField());
         }
 
-        public String foreignProperty() {
-            return otherType.columnNameToProperty(foreignName);
+        public boolean localKeyIsPrototype() {
+            return "$prototype".equalsIgnoreCase(localKey);
+        }
+
+        public String foreignProperty(DbMapping otherDbm) {
+            if (otherDbm.isRelational())
+                return otherDbm.columnNameToProperty(foreignKey);
+            return foreignKey;
         }
 
         public String localProperty() {
-            return ownType.columnNameToProperty(localName);
+            if (ownType.isRelational())
+                return ownType.columnNameToProperty(localKey);
+            return localKey;
         }
 
         public String toString() {
-            return localName + "=" + otherType.getTypeName() + "." + foreignName;
+            return localKey + "=" + otherType.getTypeName() + "." + foreignKey;
         }
     }
 }

@@ -97,7 +97,7 @@ public final class DbColumn {
         // Note: not sure if check for primitive or reference relation is really
         // needed, but we did it before, so we leave it in for safety.
         return isId || isPrototype || isName || 
-               (relation != null && (relation.isPrimitive() || relation.isReference()));
+               (relation != null && relation.isPrimitiveOrReference());
     }
 
     /**

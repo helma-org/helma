@@ -46,11 +46,31 @@ public final class MultiKey implements Key, Serializable {
 
 
     /**
-     * make a key for a persistent Object, describing its datasource and key parts.
+     * Make a key for a persistent Object, describing its datasource and key parts.
      */
     public MultiKey(DbMapping dbmap, Map parts) {
         this.parts = parts;
-        this.storageName = (dbmap == null) ? null : dbmap.getStorageTypeName();
+        this.storageName = getStorageNameFromParts(dbmap, parts);
+    }
+
+    /**
+     * Get the actual dbmapping prototype name out of the parts map if possible.
+     * This is necessary to implement references to unspecified prototype targets.
+     * @param dbmap the nominal/static dbmapping
+     * @param parts the parts map
+     * @return the actual dbmapping name
+     */
+    private String getStorageNameFromParts(DbMapping dbmap, Map parts) {
+        if (dbmap == null)
+            return null;
+        String protoName = (String) parts.get("$prototype");
+        if (protoName != null) {
+            DbMapping dynamap = dbmap.app.getDbMapping(protoName);
+            if (dynamap != null) {
+                return (dynamap.getStorageTypeName());
+            }
+        }
+        return dbmap.getStorageTypeName();
     }
 
     /**

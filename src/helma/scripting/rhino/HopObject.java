@@ -118,7 +118,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * @return the default value for the object
      */
     public Object getDefaultValue(Class hint) {
-        return toString();
+        return node == null ? toString() : node.toString();
     }
 
     /**
@@ -981,12 +981,15 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     }
 
     /**
-     * Return a string representation of this object
-     *
-     * @return ...
+     * Return a string representation of this HopObject.
+     * @return a string representing this HopObject
      */
     public String toString() {
-        return (className != null) ? ("[HopObject " + className + "]") : "[HopObject]";
+        if (node == null) {
+            return "[HopObject prototype " + className + "]";
+        } else {
+            return "[HopObject " + node.getName() + "]";
+        }
     }
 
     /**

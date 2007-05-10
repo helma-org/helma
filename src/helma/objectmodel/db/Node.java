@@ -17,6 +17,8 @@
 package helma.objectmodel.db;
 
 import helma.framework.IPathElement;
+import helma.framework.core.RequestEvaluator;
+import helma.framework.core.Application;
 import helma.objectmodel.ConcurrencyException;
 import helma.objectmodel.INode;
 import helma.objectmodel.IProperty;
@@ -761,9 +763,7 @@ public final class Node implements INode, Serializable {
                 // see if there is an explicit relation defined for this parent info
                 // we only try to fetch a node if an explicit relation is specified for the prop name
                 Relation rel = dbmap.propertyToRelation(pinfo.propname);
-
-                if ((rel != null) && (rel.reftype == Relation.REFERENCE ||
-                                      rel.reftype == Relation.COMPLEX_REFERENCE)) {
+                if ((rel != null) && (rel.isReference() || rel.isComplexReference())) {
                     pn = (Node) getNode(pinfo.propname);
                 }
 
@@ -776,10 +776,17 @@ public final class Node implements INode, Serializable {
                 if (pn != null) {
                     // see if dbmapping specifies anonymity for this node
                     if (pinfo.virtualname != null) {
-                        pn = (Node) pn.getNode(pinfo.virtualname);
-                        if (pn == null)
-                            nmgr.nmgr.app.logError("Error: Can't retrieve parent node " +
+                        Node pn2 = (Node) pn.getNode(pinfo.virtualname);
+                        if (pn2 == null) {
+                            getApp().logError("Error: Can't retrieve parent node " +
                                                    pinfo + " for " + this);
+                        } else if (pn2.equals(this)) {
+                            setParent(pn);
+                            name = pinfo.virtualname;
+                            anonymous = false;
+                            return pn;
+                        }
+                        pn = pn2;                        
                     }
 
                     DbMapping dbm = (pn == null) ? null : pn.getDbMapping();
@@ -798,7 +805,7 @@ public final class Node implements INode, Serializable {
                             return pn;
                         }
                     } catch (Exception x) {
-                        nmgr.nmgr.app.logError("Error retrieving parent node " +
+                        getApp().logError("Error retrieving parent node " +
                                                    pinfo + " for " + this, x);
                     }
                 }
@@ -810,8 +817,8 @@ public final class Node implements INode, Serializable {
                 }
             }
             if (parentHandle == null && !nmgr.isRootNode(this) && state != TRANSIENT) {
-                nmgr.nmgr.app.logEvent("*** Couldn't resolve parent for " + this);
-                nmgr.nmgr.app.logEvent("*** Please check _parent info in type.properties!");
+                getApp().logEvent("*** Couldn't resolve parent for " + this);
+                getApp().logEvent("*** Please check _parent info in type.properties!");
             }
         }
 
@@ -1317,7 +1324,8 @@ public final class Node implements INode, Serializable {
 
     /**
      * "Locally" remove a subnode from the subnodes table.
-     *  The logical stuff necessary for keeping data consistent is done in removeNode().
+     * The logical stuff necessary for keeping data consistent is done in
+     * {@link #removeNode(INode)}.
      */
     protected void releaseNode(Node node) {
         INode parent = node.getParent();
@@ -1325,35 +1333,40 @@ public final class Node implements INode, Serializable {
         checkWriteLock();
         node.checkWriteLock();
 
-        boolean removed = false;
-
         // load subnodes in case they haven't been loaded.
         // this is to prevent subsequent access to reload the
         // index which would potentially still contain the removed child
         loadNodes();
 
         if (subnodes != null) {
+            boolean removed = false;
             synchronized (subnodes) {
                 removed = subnodes.remove(node.getHandle());
             }
+            if (removed) {
+                registerSubnodeChange();
+            }
         }
 
-        if (removed)
-            registerSubnodeChange();
 
         // check if subnodes are also accessed as properties. If so, also unset the property
         if ((dbmap != null) && (node.dbmap != null)) {
             Relation prel = dbmap.getSubnodeRelation();
 
-            if ((prel != null) && (prel.accessName != null)) {
-                Relation localrel = node.dbmap.columnNameToRelation(prel.accessName);
+            if (prel != null) {
+                if (prel.accessName != null) {
+                    Relation localrel = node.dbmap.columnNameToRelation(prel.accessName);
 
-                // if no relation from db column to prop name is found, assume that both are equal
-                String propname = (localrel == null) ? prel.accessName : localrel.propName;
-                String prop = node.getString(propname);
+                    // if no relation from db column to prop name is found, assume that both are equal
+                    String propname = (localrel == null) ? prel.accessName : localrel.propName;
+                    String prop = node.getString(propname);
 
-                if ((prop != null) && (getNode(prop) == node)) {
-                    unset(prop);
+                    if ((prop != null) && (getNode(prop) == node)) {
+                        unset(prop);
+                    }
+                }
+                if (prel.countConstraints() > 1) {
+                    prel.unsetConstraints(this, node);
                 }
             }
         }
@@ -1370,7 +1383,6 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        // nmgr.logEvent ("released node "+node +" from "+this+"     oldobj = "+what);
         if (state == CLEAN) {
             markAs(MODIFIED);
         }
@@ -2276,12 +2288,15 @@ public final class Node implements INode, Serializable {
     public void setNode(String propname, INode value) {
         // nmgr.logEvent ("setting node prop");
         // check if types match, otherwise throw exception
-        DbMapping nmap = (dbmap == null) ? null : dbmap.getExactPropertyMapping(propname);
+        Relation rel = (dbmap == null) ?
+                null : dbmap.getExactPropertyRelation(propname);
+        DbMapping nmap = (rel == null) ? null : rel.getPropertyMapping();
+        DbMapping vmap = value.getDbMapping();
 
-        if ((nmap != null) && (nmap != value.getDbMapping())) {
-            if (value.getDbMapping() == null) {
+        if ((nmap != null) && (nmap != vmap)) {
+            if (vmap == null) {
                 value.setDbMapping(nmap);
-            } else if (!nmap.isStorageCompatible(value.getDbMapping())) {
+            } else if (!nmap.isStorageCompatible(vmap) && !rel.isComplexReference()) {
                 throw new RuntimeException("Can't set " + propname +
                                            " to object with prototype " +
                                            value.getPrototype() + ", was expecting " +
@@ -2333,7 +2348,10 @@ public final class Node implements INode, Serializable {
 
         String p2 = propname.toLowerCase();
 
-        Relation rel = (dbmap == null) ? null : dbmap.getPropertyRelation(propname);
+        if (rel == null && dbmap != null) {
+            // widen relation to non-exact (collection) mapping
+            rel = dbmap.getPropertyRelation(propname);
+        }
 
         if (rel != null && (rel.countConstraints() > 1 || rel.isComplexReference())) {
             rel.setConstraints(this, n);
@@ -2367,7 +2385,7 @@ public final class Node implements INode, Serializable {
         prop.setNodeValue(n);
 
         if ((rel == null) ||
-                rel.reftype == Relation.REFERENCE ||
+                rel.isReference() ||
                 state == TRANSIENT ||
                 rel.otherType == null ||
                 !rel.otherType.isRelational()) {
@@ -2417,20 +2435,19 @@ public final class Node implements INode, Serializable {
      * specified via property relation.
      */
     public void unset(String propname) {
-        if (propMap == null) {
-            return;
-        }
 
         try {
             // if node is relational, leave a null property so that it is
             // updated in the DB. Otherwise, remove the property.
-            Property p;
+            Property p = null;
             boolean relational = (dbmap != null) && dbmap.isRelational();
 
-            if (relational) {
-                p = (Property) propMap.get(propname.toLowerCase());
-            } else {
-                p = (Property) propMap.remove(propname.toLowerCase());
+            if (propMap != null) {
+                if (relational) {
+                    p = (Property) propMap.get(propname.toLowerCase());
+                } else {
+                    p = (Property) propMap.remove(propname.toLowerCase());
+                }
             }
 
             if (p != null) {
@@ -2456,7 +2473,8 @@ public final class Node implements INode, Serializable {
                     rel.unsetConstraints(this, p.getNodeValue());
                 }
             }
-        } catch (Exception ignore) {
+        } catch (Exception x) {
+            getApp().logError("Error unsetting property", x);
         }
     }
 
@@ -2479,11 +2497,23 @@ public final class Node implements INode, Serializable {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Return a string representation for this node. This tries to call the
+     * javascript implemented toString() if it is defined.
+     * @return a string representing this node.
      */
     public String toString() {
+        try {
+            // We need to reach deap into helma.framework.core to invoke onInit(),
+            // but the functionality is really worth it.
+            RequestEvaluator reval = getApp().getCurrentRequestEvaluator();
+            if (reval != null) {
+                Object str = reval.invokeDirectFunction(this, "toString", RequestEvaluator.EMPTY_ARGS);
+                if (str instanceof String)
+                    return (String) str;
+            }
+        } catch (Exception x) {
+            // fall back to default representation
+        }
         return "HopObject " + name;
     }
 
@@ -2670,11 +2700,19 @@ public final class Node implements INode, Serializable {
         // FIXME: what do we do if this.dbmap is null
         if (this.dbmap == null) {
             throw new RuntimeException (this + " doesn't have a DbMapping");
-}
+        }
         Relation rel = this.dbmap.getSubnodeRelation();
         synchronized (this) {
             lastSubnodeFetch = System.currentTimeMillis();
             return this.nmgr.updateSubnodeList(this, rel);
         }
+    }
+
+    /**
+     * Get the application this node belongs to.
+     * @return the app we belong to
+     */
+    private Application getApp() {
+        return nmgr.nmgr.app;
     }
 }

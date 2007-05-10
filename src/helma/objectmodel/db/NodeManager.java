@@ -112,7 +112,7 @@ public final class NodeManager {
      * Checks if the given node is the application's root node.
      */
     public boolean isRootNode(Node node) {
-        return app.getRootId().equals(node.getID()) &&
+        return node.getState() != Node.TRANSIENT && app.getRootId().equals(node.getID()) &&
                DbMapping.areStorageCompatible(app.getRootMapping(), node.getDbMapping());
     }
 
@@ -215,11 +215,12 @@ public final class NodeManager {
         Transactor tx = (Transactor) Thread.currentThread();
 
         Key key;
-
+        DbMapping otherDbm = rel == null ? null : rel.otherType;
         // check what kind of object we're looking for and make an apropriate key
         if (rel.isComplexReference()) {
             // a key for a complex reference
             key = new MultiKey(rel.otherType, rel.getKeyParts(home));
+            otherDbm = app.getDbMapping(key.getStorageName());
         } else if (rel.createOnDemand()) {
             // a key for a virtually defined object that's never actually  stored in the db
             // or a key for an object that represents subobjects grouped by some property,
@@ -275,7 +276,7 @@ public final class NodeManager {
             // The requested node isn't in the shared cache.
             // Synchronize with key to make sure only one version is fetched
             // from the database.
-            node = getNodeByRelation(tx.txn, home, kstr, rel);
+            node = getNodeByRelation(tx.txn, home, kstr, rel, otherDbm);
 
             if (node != null) {
                 Node newNode = node;
@@ -433,7 +434,7 @@ public final class NodeManager {
      *  Insert a node into a different (relational) database than its default one.
      */
     public void exportNode(Node node, DbSource dbs) 
-                    throws IOException, SQLException, ClassNotFoundException {
+                    throws SQLException, ClassNotFoundException {
         if (node == null) {
             throw new IllegalArgumentException("Node can't be null in exportNode");
         }
@@ -453,7 +454,7 @@ public final class NodeManager {
      *  Insert a node into a different (relational) database than its default one.
      */
     public void exportNode(Node node, DbMapping dbm)
-                    throws IOException, SQLException, ClassNotFoundException {
+                    throws SQLException, ClassNotFoundException {
         if (node == null) {
             throw new IllegalArgumentException("Node can't be null in exportNode");
         }
@@ -593,7 +594,7 @@ public final class NodeManager {
 
                 // skip readonly, virtual and collection relations
                 if ((rel == null) || rel.readonly || rel.virtual ||
-                        (!rel.isReference() && !rel.isPrimitive())) {
+                        (!rel.isPrimitiveOrReference())) {
                     // null out property so we don't consider it later
                     props[i] = null;
                     continue;
@@ -1568,7 +1569,7 @@ public final class NodeManager {
         return node;
     }
 
-    private Node getNodeByRelation(ITransaction txn, Node home, String kstr, Relation rel)
+    private Node getNodeByRelation(ITransaction txn, Node home, String kstr, Relation rel, DbMapping dbm)
                             throws Exception {
         Node node = null;
 
@@ -1582,25 +1583,22 @@ public final class NodeManager {
             // set prototype and dbmapping on the newly created virtual/collection node
             node.setPrototype(rel.prototype);
             node.setDbMapping(rel.getVirtualMapping());
-        } else if ((rel != null) && (rel.groupby != null)) {
+        } else if (rel != null && rel.groupby != null) {
             node = home.getGroupbySubnode(kstr, false);
 
-            if ((node == null) &&
-                    ((rel.otherType == null) || !rel.otherType.isRelational())) {
+            if (node == null && (dbm == null || !dbm.isRelational())) {
                 node = (Node) db.getNode(txn, kstr);
                 node.nmgr = safe;
             }
 
             return node;
-        } else if ((rel == null) || (rel.otherType == null) ||
-                       !rel.otherType.isRelational()) {
+        } else if (rel == null || dbm == null || !dbm.isRelational()) {
             node = (Node) db.getNode(txn, kstr);
             node.nmgr = safe;
-            node.setDbMapping(rel.otherType);
+            node.setDbMapping(dbm);
 
             return node;
         } else {
-            DbMapping dbm = rel.otherType;
             Statement stmt = null;
             String query = null;
             long logTimeStart = logSql ? System.currentTimeMillis() : 0;
@@ -1629,6 +1627,7 @@ public final class NodeManager {
                 } else {
                     b.append(rel.buildQuery(home,
                                             home.getNonVirtualParent(),
+                                            dbm,
                                             kstr,
                                             " WHERE ",
                                             false));
@@ -1644,7 +1643,7 @@ public final class NodeManager {
                     return null;
                 }
 
-                node = createNode(rel.otherType, rs, columns, 0);
+                node = createNode(dbm, rs, columns, 0);
 
                 fetchJoinedNodes(rs, joins, columns.length);
 
@@ -1855,8 +1854,7 @@ public final class NodeManager {
         DbColumn[] columns2 = dbmap.getColumns();
         for (int i=0; i<columns2.length; i++) {
             Relation rel = columns2[i].getRelation();
-            if (rel != null && (rel.reftype == Relation.PRIMITIVE ||
-                                rel.reftype == Relation.REFERENCE)) {
+            if (rel != null && rel.isPrimitiveOrReference()) {
                 Property prop = (Property) propBuffer.get(columns2[i].getName());
 
                 if (prop == null) {
@@ -1866,7 +1864,7 @@ public final class NodeManager {
                 prop.setName(rel.propName);
 
                 // if the property is a pointer to another node, change the property type to NODE
-                if ((rel.reftype == Relation.REFERENCE) && rel.usesPrimaryKey()) {
+                if (rel.isReference() && rel.usesPrimaryKey()) {
                     // FIXME: References to anything other than the primary key are not supported
                     prop.convertToNodeReference(rel.otherType);
                 }
