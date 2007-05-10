@@ -10,8 +10,8 @@
  *
  * $RCSfile: HopObject.js,v $
  * $Author: tobi $
- * $Revision: 1.3 $
- * $Date: 2007/04/23 15:00:56 $
+ * $Revision: 1.4 $
+ * $Date: 2007/04/23 15:03:47 $
  */
 
 
@@ -97,6 +97,8 @@ HopObject.prototype.switch_macro = function(param) {
  *              (req.data.page determines the page number)
  *        sort: property name to use for sorting
  *        order: sort order (either "asc" or "desc")
+ *        itemPrefix: text to prepend to each items skin render
+ *        itemSuffix: text to append to each items skin render
  */
 HopObject.prototype.loop_macro = function(param) {
     if (!param.skin) {
@@ -135,9 +137,13 @@ HopObject.prototype.loop_macro = function(param) {
         var itemlist = items.list(min, max);
     }
     var skinParam = {};
+    var itemPrefix = param.itemPrefix || "";
+    var itemSuffix = param.itemSuffix || "";
     for (var i=0; i<itemlist.length; i+=1) {
         skinParam.index = pagenr * pagesize + i + 1;
+        res.write(itemPrefix);
         itemlist[i].renderSkin(param.skin, skinParam);
+        res.write(itemSuffix);
     }
     return;
 };
