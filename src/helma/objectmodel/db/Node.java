@@ -1365,9 +1365,11 @@ public final class Node implements INode, Serializable {
                         unset(prop);
                     }
                 }
-                if (prel.countConstraints() > 1) {
-                    prel.unsetConstraints(this, node);
-                }
+                // TODO: We should unset constraints to actually remove subnodes here,
+                // but omit it by convention and to keep backwards compatible.
+                // if (prel.countConstraints() > 1) {
+                //    prel.unsetConstraints(this, node);
+                // }
             }
         }
 
