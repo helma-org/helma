@@ -422,7 +422,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
         write("<");
         write((name == null) ? "hopobject" : name);
         write(" id=\"");
-        write(getNodeIdentifier(node));
+        write(node.getID());
 
         if (propName != null) {
             write("\" propertyname=\"");
@@ -466,7 +466,7 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
         write("<");
         write((name == null) ? "hopobject" : name);
         write(" idref=\"");
-        write(getNodeIdentifier(node));
+        write(node.getID());
 
         if (propName != null) {
             write("\" propertyname=\"");
@@ -487,20 +487,6 @@ public class XmlWriter extends OutputStreamWriter implements XmlConstants {
             return "hopobject";
         } else {
             return node.getPrototype();
-        }
-    }
-
-    /**
-     * TransientNode produces a different ID each time we call the getID()-method
-     * this is a workaround and uses hashCode if INode stands for a TransientNode.
-     */
-    private String getNodeIdentifier(INode node) {
-        try {
-            TransientNode tmp = (TransientNode) node;
-
-            return Integer.toString(tmp.hashCode());
-        } catch (ClassCastException e) {
-            return node.getID();
         }
     }
 
