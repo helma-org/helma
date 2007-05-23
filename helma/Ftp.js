@@ -9,9 +9,9 @@
  * Copyright 1998-2007 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Ftp.js,v $
- * $Author: czv $
- * $Revision: 1.4 $
- * $Date: 2007/02/08 00:41:30 $
+ * $Author: hannes $
+ * $Revision: 1.5 $
+ * $Date: 2007/02/08 09:12:21 $
  */
 
 
@@ -412,6 +412,26 @@ helma.Ftp = function(server) {
          return result;
       } catch(x) {
          error("putString", x);
+         setStatus(PUT);
+      }
+      return false;
+   };
+
+   /**
+    * Transfers a byte array to a file on the FTP server.
+    * @param {Array} bytes The byte array that should be uploaded 
+    * @param {String} remoteFile The name of the remote destination file
+    * @return Boolean True if the file was successfully uploaded, false if there was an error
+    * @type Boolean
+    */
+   this.putBytes = function(bytes, remoteFile) {
+      try {
+         var stream = ByteArrayInputStream(bytes);
+         var result = ftpclient.storeFile(remoteFile, stream);
+         debug("putBytes", remoteFile);
+         return result;
+      } catch(x) {
+         error("putBytes", x);
          setStatus(PUT);
       }
       return false;
