@@ -464,6 +464,8 @@ public class RhinoEngine implements ScriptingEngine {
      * @return true if the object is mapped to a type
      */
     public boolean isTypedObject(Object obj) {
+        if (obj instanceof Wrapper)
+            obj = ((Wrapper) obj).unwrap();
         if (obj == null || obj instanceof Map || obj instanceof NativeObject)
             return false;
         if (obj instanceof IPathElement) {
