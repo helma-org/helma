@@ -251,8 +251,7 @@ public final class NodeManager {
         if ((node != null) && (node.getState() != Node.INVALID)) {
             // check if node is null node (cached null)
             if (node.isNullNode()) {
-                if ((node.created < rel.otherType.getLastDataChange()) ||
-                        (node.created < rel.ownType.getLastTypeChange())) {
+                if (node.created != home.getLastSubnodeChange(rel)) {
                     node = null; //  cached null not valid anymore
                 }
             } else if (!rel.virtual) {
@@ -293,7 +292,7 @@ public final class NodeManager {
             } else {
                 // node fetched from db is null, cache result using nullNode
                 synchronized (cache) {
-                    cache.put(key, new Node());
+                    cache.put(key, new Node(home.getLastSubnodeChange(rel)));
 
                     // we ignore the case that onother thread has created the node in the meantime
                     return null;
@@ -669,7 +668,7 @@ public final class NodeManager {
             Node parent = node.getCachedParent();
 
             if (parent != null) {
-                parent.setLastSubnodeChange(System.currentTimeMillis());
+                parent.markSubnodesChanged();
             }
         }
 
@@ -1329,7 +1328,8 @@ public final class NodeManager {
                             Node groupnode = home.getGroupbySubnode(groupname, true);
 
                             groupnode.setSubnodes((SubnodeList) groupbySubnodes.get(groupname));
-                            groupnode.lastSubnodeFetch = System.currentTimeMillis();
+                            groupnode.lastSubnodeFetch = 
+                                    groupnode.getLastSubnodeChange(groupnode.dbmap.getSubnodeRelation());
                         }
                     }
                 } catch (Exception x) {
@@ -1977,14 +1977,14 @@ public final class NodeManager {
         }
 
         synchronized (cache) {
-            long now = System.currentTimeMillis();
+            // long now = System.currentTimeMillis();
 
             for (Enumeration en = add.elements(); en.hasMoreElements();) {
                 Node n = (Node) en.nextElement();
                 DbMapping dbm = app.getDbMapping(n.getPrototype());
 
                 if (dbm != null) {
-                    dbm.setLastDataChange(now);
+                    dbm.setLastDataChange();
                 }
 
                 n.setDbMapping(dbm);
@@ -2009,7 +2009,7 @@ public final class NodeManager {
                 DbMapping dbm = app.getDbMapping(n.getPrototype());
 
                 if (dbm != null) {
-                    dbm.setLastDataChange(now);
+                    dbm.setLastDataChange();
                 }
 
                 n.setDbMapping(dbm);

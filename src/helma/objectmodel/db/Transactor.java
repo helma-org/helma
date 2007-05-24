@@ -319,11 +319,11 @@ public class Transactor extends Thread {
             }
 
             // set last data change times in db-mappings
-            long now = System.currentTimeMillis();
+            // long now = System.currentTimeMillis();
             for (Iterator i = dirtyDbMappings.iterator(); i.hasNext(); ) {
                 DbMapping dbm = (DbMapping) i.next();
                 if (dbm != null) {
-                    dbm.setLastDataChange(now);
+                    dbm.setLastDataChange();
                 }
             }
         }
@@ -334,7 +334,7 @@ public class Transactor extends Thread {
             // set last subnode change times in parent nodes
             for (Iterator i = parentNodes.iterator(); i.hasNext(); ) {
                 Node node = (Node) i.next();
-                node.setLastSubnodeChange(now);
+                node.markSubnodesChanged();
                 if (hasListeners) {
                     modifiedParentNodes.add(node);
                 }
@@ -385,7 +385,7 @@ public class Transactor extends Thread {
         // set last subnode change times in parent nodes
         for (Iterator i = parentNodes.iterator(); i.hasNext(); ) {
             Node node = (Node) i.next();
-            node.setLastSubnodeChange(now);
+            node.markSubnodesChanged();
         }
 
         // clear the node collections

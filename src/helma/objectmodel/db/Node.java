@@ -83,6 +83,15 @@ public final class Node implements INode, Serializable {
     }
 
     /**
+     * Creates an empty, uninitialized Node with the given create and modify time.
+     * This is used for null-node references in the node cache.
+     * @param timestamp
+     */
+    protected Node(long timestamp) {
+        created = lastmodified = timestamp;
+    }
+
+    /**
      * Creates a new Node with the given name. Used by NodeManager for creating "root nodes"
      * outside of a Transaction context, which is why we can immediately mark it as CLEAN.
      * Also used by embedded database to re-create an existing Node.
@@ -357,8 +366,8 @@ public final class Node implements INode, Serializable {
      * Called by the transactor on registered parent nodes to mark the
      * child index as changed
      */
-    public void setLastSubnodeChange(long t) {
-        lastSubnodeChange = t;
+    public void markSubnodesChanged() {
+        lastSubnodeChange += 1;
     }
 
     /**
@@ -1508,9 +1517,9 @@ public final class Node implements INode, Serializable {
         // If the subnodes are loaded aggressively, we really just
         // do a count statement, otherwise we just return the size of the id index.
         // (after loading it, if it's coming from a relational data source).
-        DbMapping smap = (dbmap == null) ? null : dbmap.getSubnodeMapping();
+        DbMapping subMap = (dbmap == null) ? null : dbmap.getSubnodeMapping();
 
-        if ((smap != null) && smap.isRelational()) {
+        if ((subMap != null) && subMap.isRelational()) {
             // check if subnodes need to be rechecked
             Relation subRel = dbmap.getSubnodeRelation();
 
@@ -1520,20 +1529,16 @@ public final class Node implements INode, Serializable {
                     (((state != TRANSIENT) && (state != NEW)) ||
                     (subnodeRelation != null))) {
                 // we don't want to load *all* nodes if we just want to count them
-                long lastChange = subRel.aggressiveCaching ? lastSubnodeChange
-                                                           : smap.getLastDataChange();
+                long lastChange = getLastSubnodeChange(subRel);
 
-                // also reload if the type mapping has changed.
-                lastChange = Math.max(lastChange, dbmap.getLastTypeChange());
-
-                if ((lastChange < lastSubnodeFetch) && (subnodes != null)) {
+                if ((lastChange == lastSubnodeFetch) && (subnodes != null)) {
                     // we can use the nodes vector to determine number of subnodes
                     subnodeCount = subnodes.size();
-                    lastSubnodeCount = System.currentTimeMillis();
-                } else if ((lastChange >= lastSubnodeCount) || (subnodeCount < 0)) {
+                    lastSubnodeCount = lastChange;
+                } else if ((lastChange != lastSubnodeCount) || (subnodeCount < 0)) {
                     // count nodes in db without fetching anything
                     subnodeCount = nmgr.countNodes(this, subRel);
-                    lastSubnodeCount = System.currentTimeMillis();
+                    lastSubnodeCount = lastChange;
                 }
                 return subnodeCount;
             }
@@ -1555,21 +1560,17 @@ public final class Node implements INode, Serializable {
             return;
         }
 
-        DbMapping smap = (dbmap == null) ? null : dbmap.getSubnodeMapping();
+        DbMapping subMap = (dbmap == null) ? null : dbmap.getSubnodeMapping();
 
-        if ((smap != null) && smap.isRelational()) {
+        if ((subMap != null) && subMap.isRelational()) {
             // check if subnodes need to be reloaded
             Relation subRel = dbmap.getSubnodeRelation();
 
             synchronized (this) {
-                long lastChange = subRel.aggressiveCaching ? lastSubnodeChange
-                                                           : smap.getLastDataChange();
-
                 // also reload if the type mapping has changed.
-                lastChange = Math.max(lastChange, dbmap.getLastTypeChange());
+                long lastChange = getLastSubnodeChange(subRel);
 
-                if ((lastChange >= lastSubnodeFetch && !subRel.autoSorted) ||
-                        (subnodes == null)) {
+                if ((lastChange != lastSubnodeFetch && !subRel.autoSorted) || (subnodes == null)) {
                     if (subRel.updateCriteria!=null) {
                         // updateSubnodeList is setting the subnodes directly returning an integer
                         nmgr.updateSubnodeList(this, subRel);
@@ -1579,7 +1580,7 @@ public final class Node implements INode, Serializable {
                         subnodes = nmgr.getNodeIDs(this, subRel);
                     }
 
-                    lastSubnodeFetch = System.currentTimeMillis();
+                    lastSubnodeFetch = lastChange;
                 }
             }
         }
@@ -1600,6 +1601,18 @@ public final class Node implements INode, Serializable {
             subnodes = new SubnodeList(nmgr, rel);
         }
         return subnodes;
+    }
+
+    /**
+     * Compute a serial number indicating the last change in subnode collection
+     * @param subRel the subnode relation
+     * @return a serial number that increases with each subnode change
+     */
+    long getLastSubnodeChange(Relation subRel) {
+        // include dbmap.getLastTypeChange to also reload if the type mapping has changed.
+        return subRel.aggressiveCaching ?
+                        lastSubnodeChange + dbmap.getLastTypeChange() :
+                        subRel.otherType.getLastDataChange() + dbmap.getLastTypeChange();
     }
 
     /**
@@ -1701,8 +1714,8 @@ public final class Node implements INode, Serializable {
 
         Relation prel = (dbmap == null) ? null : dbmap.getSubnodeRelation();
 
-        if ((prel != null) && prel.hasAccessName() && (prel.otherType != null) &&
-                prel.otherType.isRelational()) {
+        if (state != TRANSIENT && prel != null && prel.hasAccessName() &&
+                prel.otherType != null && prel.otherType.isRelational()) {
             // return names of objects from a relational db table
             return nmgr.getPropertyNames(this, prel).elements();
         } else if (propMap != null) {
@@ -2079,9 +2092,9 @@ public final class Node implements INode, Serializable {
 
                     if (((oldStorage == null) && (newStorage == null)) ||
                             ((oldStorage != null) && oldStorage.equals(newStorage))) {
-                        long now = System.currentTimeMillis();
-                        dbmap.setLastDataChange(now);
-                        newmap.setLastDataChange(now);
+                        // long now = System.currentTimeMillis();
+                        dbmap.setLastDataChange();
+                        newmap.setLastDataChange();
                         this.dbmap = newmap;
                         this.prototype = value;
                     }
@@ -2699,14 +2712,14 @@ public final class Node implements INode, Serializable {
      * @return the number of loaded nodes within this collection update
      */
     public int updateSubnodes () {
-        // FIXME: what do we do if this.dbmap is null
-        if (this.dbmap == null) {
+        // FIXME: what do we do if dbmap is null
+        if (dbmap == null) {
             throw new RuntimeException (this + " doesn't have a DbMapping");
         }
-        Relation rel = this.dbmap.getSubnodeRelation();
+        Relation subRel = dbmap.getSubnodeRelation();
         synchronized (this) {
-            lastSubnodeFetch = System.currentTimeMillis();
-            return this.nmgr.updateSubnodeList(this, rel);
+            lastSubnodeFetch = getLastSubnodeChange(subRel);
+            return nmgr.updateSubnodeList(this, subRel);
         }
     }
 

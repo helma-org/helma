@@ -112,7 +112,7 @@ public final class DbMapping {
     long lastTypeChange = -1;
 
     // timestamp of last modification of an object of this type
-    long lastDataChange;
+    long lastDataChange = 0;
 
     // evict objects of this type when received via replication
     private boolean evictOnReplication;
@@ -1251,18 +1251,18 @@ public final class DbMapping {
      * Set the last time something changed in the data, propagating the event
      * to mappings that depend on us through an additionalTables switch.
      */
-    public void setLastDataChange(long t) {
+    public void setLastDataChange() {
         // forward data change timestamp to storage-compatible parent mapping
         if (inheritsStorage()) {
-            parentMapping.setLastDataChange(t);
+            parentMapping.setLastDataChange();
         } else {
-            lastDataChange = t;
+            lastDataChange += 1;
             // propagate data change timestamp to mappings that depend on us
             if (!dependentMappings.isEmpty()) {
                 Iterator it = dependentMappings.iterator();
                 while(it.hasNext()) {
                     DbMapping dbmap = (DbMapping) it.next();
-                    dbmap.setIndirectDataChange(t);
+                    dbmap.setIndirectDataChange();
                 }
             }
         }
@@ -1273,12 +1273,12 @@ public final class DbMapping {
      * data change triggered by a mapping we depend on, so we don't propagate it to
      * mappings that depend on us through an additionalTables switch.
      */
-    protected void setIndirectDataChange(long t) {
+    protected void setIndirectDataChange() {
         // forward data change timestamp to storage-compatible parent mapping
         if (inheritsStorage()) {
-            parentMapping.setIndirectDataChange(t);
+            parentMapping.setIndirectDataChange();
         } else {
-            lastDataChange = t;
+            lastDataChange += 1;
         }
     }
 
