@@ -152,7 +152,7 @@ public final class Node implements INode, Serializable {
         if (prototype != null && dbmap != null) {
             String protoProperty = dbmap.columnNameToProperty(dbmap.getPrototypeField());
             if (protoProperty != null) {
-                setString(protoProperty, prototype);
+                setString(protoProperty, dbmap.getExtensionId());
             }
         }
     }
