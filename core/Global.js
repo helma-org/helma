@@ -8,10 +8,10 @@
  *
  * Copyright 1998-2005 Helma Software. All Rights Reserved.
  *
- * $RCSfile: Date.js,v $
- * $Author: czv $
- * $Revision: 1.2 $
- * $Date: 2006/04/24 07:02:17 $
+ * $RCSfile: Global.js,v $
+ * $Author: tobi $
+ * $Revision: 1.1 $
+ * $Date: 2006/08/06 11:27:56 $
  */
 
 
@@ -22,8 +22,8 @@ app.addRepository("modules/core/String.js");
  * write out a property contained in app.properties
  * @param Object containing the name of the property
  */
-function property_macro(param) {
-    res.write(app.properties[param.name] || String.NULL);
+function property_macro(param, name) {
+    res.write(getProperty(name || param.name) || String.NULL);
     return;
 }
 
@@ -33,8 +33,8 @@ function property_macro(param) {
  * just to be able to use different encodings
  * @param Object containing the string as text property
  */
-function write_macro(param) {
-    res.write(param.text || String.NULL);
+function write_macro(param, text) {
+    res.write(param.text || text || String.NULL);
     return;
 }
 
@@ -59,9 +59,11 @@ function now_macro(param) {
 /**
  * renders a global skin
  */
-function skin_macro(param) {
-    if (param.name) {
-        renderSkin(param.name);
+var skin_macro = function(param, name) {
+    var skinName = name || param.name;
+    if (skinName) {
+        renderSkin(skinName);
     }
     return;
 }
+

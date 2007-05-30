@@ -9,9 +9,9 @@
  * Copyright 1998-2005 Helma Software. All Rights Reserved.
  *
  * $RCSfile: HopObject.js,v $
- * $Author: tobi $
- * $Revision: 1.4 $
- * $Date: 2007/04/23 15:03:47 $
+ * $Author: hannes $
+ * $Revision: 1.5 $
+ * $Date: 2007/05/10 13:45:34 $
  */
 
 
@@ -40,7 +40,7 @@ HopObject.prototype.forEach = function(callback) {
 /**
  * macro returns the id of a HopObject
  */
-HopObject.prototype.id_macro = function(param) {
+HopObject.prototype.id_macro = function() {
     res.write(this._id);
     return;
 };
@@ -49,8 +49,8 @@ HopObject.prototype.id_macro = function(param) {
 /**
  * macro returns the url for any hopobject
  */
-HopObject.prototype.href_macro = function(param) {
-    res.write(this.href(param.action || String.NULLSTR));
+HopObject.prototype.href_macro = function(param, action) {
+    res.write(this.href(action || param.action || String.NULLSTR));
     return;
 };
 
@@ -59,15 +59,16 @@ HopObject.prototype.href_macro = function(param) {
  * macro rendering a skin or displaying
  * its source (param.as == "source")
  */
-HopObject.prototype.skin_macro = function(param) {
-    if (param.name) {
+HopObject.prototype.skin_macro = function(param, name) {
+    var skinName = name || param.name;
+    if (skinName) {
         if (param.as == "source") {
-            var str = app.skinfiles[this._prototype][param.name];
+            var str = app.skinfiles[this._prototype][skinName];
             if (str && param.unwrap == "true") {
                 str = str.unwrap();
             }
         } else {
-            var str = this.renderSkinAsString(param.name, param);
+            var str = this.renderSkinAsString(skinName, param);
         }
         res.write(str);
     }
@@ -100,11 +101,14 @@ HopObject.prototype.switch_macro = function(param) {
  *        itemPrefix: text to prepend to each items skin render
  *        itemSuffix: text to append to each items skin render
  */
-HopObject.prototype.loop_macro = function(param) {
+HopObject.prototype.loop_macro = function(param, collection) {
     if (!param.skin) {
         return;
     }
-    var items = param.collection ? this[param.collection] : this;
+    if (!collection) {
+       collection = param.collection;
+    }
+    var items = collection ? this[collection] : this;
     if (!items || !items.size || items.size() < 1) {
         return;
     }
