@@ -10,8 +10,8 @@
  *
  * $RCSfile: Global.js,v $
  * $Author: tobi $
- * $Revision: 1.1 $
- * $Date: 2006/08/06 11:27:56 $
+ * $Revision: 1.2 $
+ * $Date: 2007/05/30 12:33:51 $
  */
 
 
@@ -62,7 +62,7 @@ function now_macro(param) {
 var skin_macro = function(param, name) {
     var skinName = name || param.name;
     if (skinName) {
-        renderSkin(skinName);
+        renderSkin(skinName, param);
     }
     return;
 }
