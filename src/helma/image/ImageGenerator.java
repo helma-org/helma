@@ -18,10 +18,10 @@ package helma.image;
 
 import helma.main.Server;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.*;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -137,6 +137,18 @@ public abstract class ImageGenerator {
     }
 
     /**
+     * @param input ...
+     * @return ...
+     * @throws IOException
+     */
+    public ImageWrapper createImage(InputStream input)
+        throws IOException {
+        Image img = read(input);
+        return img != null ? new ImageWrapper(img, this) : null;
+    }
+
+
+    /**
      * @param iw ...
      * @param filter ...
      * 
@@ -167,38 +179,42 @@ public abstract class ImageGenerator {
 
     /**
      * @param filename the filename of the image to create
-     * 
+     *
      * @return the newly created image
      * @throws IOException
      */
     public Image read(String filename) throws IOException {
-        return ImageWaiter.waitForImage(
-            Toolkit.getDefaultToolkit().createImage(filename)
-        );
+        return ImageIO.read(new File(filename));
     }
 
     /**
      * @param url the URL of the image to create
-     * 
+     *
      * @return the newly created image
      * @throws IOException
      */
     public Image read(URL url) throws IOException {
-        return ImageWaiter.waitForImage(
-            Toolkit.getDefaultToolkit().createImage(url)
-        );
+        return ImageIO.read(url);
     }
 
     /**
      * @param src the data of the image to create
-     * 
+     *
      * @return the newly created image
      * @throws IOException
      */
     public Image read(byte[] src) throws IOException {
-        return ImageWaiter.waitForImage(
-            Toolkit.getDefaultToolkit().createImage(src)
-        );
+        return ImageIO.read(new ByteArrayInputStream(src));
+    }
+
+    /**
+     * @param input the data of the image to create
+     *
+     * @return the newly created image
+     * @throws IOException
+     */
+    public Image read(InputStream input) throws IOException {
+        return ImageIO.read(input);
     }
 
     /**

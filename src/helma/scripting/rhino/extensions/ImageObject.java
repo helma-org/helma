@@ -93,9 +93,11 @@ public class ImageObject {
                 } else if (arg instanceof MimePart) {
                     img = generator.createImage(((MimePart) arg).getContent());
                 } else if (arg instanceof File) {
-                    img = generator.createImage(((File) arg).getPath());
+                    img = generator.createImage(((File) arg).getAbsolutePath());
                 } else if (arg instanceof FileObject) {
-                    img = generator.createImage(((FileObject) arg).getFile().getPath());
+                    img = generator.createImage(((FileObject) arg).getFile().getAbsolutePath());
+                } else if (arg instanceof InputStream) {
+                    img = generator.createImage((InputStream) arg);
                 } else {
                     Image image = null;
                     if (arg instanceof BufferedImage) {

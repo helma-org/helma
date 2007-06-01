@@ -38,38 +38,6 @@ import helma.image.*;
  * A wrapper for an image that uses the ImageIO Framework.
  */
 public class ImageIOGenerator extends ImageGenerator {
-    /**
-     * @param filename the filename of the image to create
-     *
-     * @return the newly created image
-     * @throws IOException
-     */
-    public Image read(String filename)
-    throws IOException {
-        return ImageIO.read(new File(filename));
-    }
-    
-    /**
-     * @param url the URL the filename of the image to create
-     *
-     * @return the newly created image
-     * @throws IOException
-     */
-    public Image read(URL url)
-    throws IOException {
-        return ImageIO.read(url);
-    }
-    
-    /**
-     * @param src the data of the image to create
-     *
-     * @return the newly created image
-     * @throws IOException
-     */
-    public Image read(byte[] src)
-    throws IOException {
-        return ImageIO.read(new ByteArrayInputStream(src));
-    }
 
     protected void write(ImageWrapper wrapper, ImageWriter writer, float quality, boolean alpha) throws IOException {
         BufferedImage bi = wrapper.getBufferedImage();
@@ -111,9 +79,10 @@ public class ImageIOGenerator extends ImageGenerator {
     /**
      * Saves the image. Image format is deduced from filename.
      *
-     * @param filename ...
-     * @param quality ...
-     * @param alpha ...
+     * @param wrapper the image to write
+     * @param filename the file to write to
+     * @param quality image quality
+     * @param alpha to enable alpha
      * @throws IOException
      * @see helma.image.ImageGenerator#write(helma.image.ImageWrapper, java.lang.String, float, boolean)
      */
@@ -150,10 +119,11 @@ public class ImageIOGenerator extends ImageGenerator {
     /**
      * Saves the image. Image format is deduced from type.
      *
-     * @param out ...
-     * @param type ...
-     * @param quality ...
-     * @param alpha ...
+     * @param wrapper the image to write
+     * @param out the outputstream to write to
+     * @param mimeType the mime type
+     * @param quality image quality
+     * @param alpha to enable alpha
      * @throws IOException
      * @see helma.image.ImageGenerator#write(helma.image.ImageWrapper, java.io.OutputStream, java.lang.String, float, boolean)
      */
