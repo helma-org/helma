@@ -50,8 +50,11 @@ public abstract class AbstractServletClient extends HttpServlet {
     // RMI url of Helma app
     String hopUrl;
 
-    // limit to HTTP uploads in kB
+    // limit to HTTP uploads per file in kB
     int uploadLimit = 1024;
+
+    // limit to HTTP upload
+    int totalUploadLimit = 1024;
 
     // cookie domain to use
     String cookieDomain;
@@ -83,7 +86,7 @@ public abstract class AbstractServletClient extends HttpServlet {
     public void init(ServletConfig init) throws ServletException {
         super.init(init);
 
-        // get max size for file uploads
+        // get max size for file uploads per file
         String upstr = init.getInitParameter("uploadLimit");
         try {
             uploadLimit = (upstr == null) ? 1024 : Integer.parseInt(upstr);
@@ -91,7 +94,14 @@ public abstract class AbstractServletClient extends HttpServlet {
             log("Bad number format for uploadLimit: " + upstr);
             uploadLimit = 1024;
         }
-
+        // get max total upload size
+        upstr = init.getInitParameter("totalUploadLimit");
+        try {
+            totalUploadLimit = (upstr == null) ? uploadLimit : Integer.parseInt(upstr);
+        } catch (NumberFormatException x) {
+            log("Bad number format for totalUploadLimit: " + upstr);
+            totalUploadLimit = uploadLimit;
+        }
         // soft fail mode for upload errors
         uploadSoftfail = ("true".equalsIgnoreCase(init.getInitParameter("uploadSoftfail")));
 
@@ -275,7 +285,7 @@ public abstract class AbstractServletClient extends HttpServlet {
                     FileUpload upload = new FileUpload(factory);
                     // use upload limit for individual file size, but also set a limit on overall size
                     upload.setFileSizeMax(uploadLimit * 1024);
-                    upload.setSizeMax(uploadLimit * 1024 * 10);
+                    upload.setSizeMax(totalUploadLimit * 1024);
 
                     // register upload tracker with user's session
                     if (uploadStatus != null) {
