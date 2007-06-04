@@ -128,12 +128,13 @@ public class RequestTrans implements Serializable {
      */
     public void set(String name, Object value) {
         int bracket = name.indexOf('[');
+        Object previousValue;
         if (bracket > -1 && name.endsWith("]")) {
             Matcher m = paramPattern.matcher(name);
             String partName = name.substring(0, bracket);
             Map map = values;
             while (m.find()) {
-                Object previousValue = map.get(partName);
+                previousValue = map.get(partName);
                 Map partMap;
                 if (previousValue == null) {
                     partMap = new SystemMap();
@@ -146,11 +147,15 @@ public class RequestTrans implements Serializable {
                 partName = m.group(1);
                 map = partMap;
             }
-            if (map.put(partName, value) != null)
-                throw new RuntimeException("Conflicting HTTP Parameters for '" + name + "'");;
+            previousValue = map.put(partName, value);
+            if (previousValue != null &&
+                    (!(previousValue instanceof Object[]) || ! partName.endsWith("_array")))
+                throw new RuntimeException("Conflicting HTTP Parameters for '" + name + "'");
         } else {
-            if (values.put(name, value) != null)
-                throw new RuntimeException("Conflicting HTTP Parameters for '" + name + "'");;
+            previousValue = values.put(name, value);
+            if (previousValue != null &&
+                    (!(previousValue instanceof Object[]) || !name.endsWith("_array")))
+                throw new RuntimeException("Conflicting HTTP Parameters for '" + name + "'");
         }
     }
 
