@@ -16,6 +16,8 @@
 
 package helma.util;
 
+import org.apache.commons.fileupload.FileItem;
+
 import java.io.*;
 import java.util.Date;
 import java.util.StringTokenizer;
@@ -24,19 +26,19 @@ import java.util.StringTokenizer;
  * This represents a MIME part of a HTTP file upload
  */
 public class MimePart implements Serializable {
-    public final String name;
-    public int contentLength;
-    public String contentType;
+    private final String name;
+    private int contentLength;
+    private String contentType;
     private byte[] content;
-    public Date lastModified;
-    public String eTag;
+    private Date lastModified;
+    private String eTag;
+    private FileItem fileItem;
 
     /**
      * Creates a new MimePart object.
-     *
-     * @param name ...
-     * @param content ...
-     * @param contentType ...
+     * @param name the file name
+     * @param content the mime part content
+     * @param contentType the content type
      */
     public MimePart(String name, byte[] content, String contentType) {
         this.name = normalizeFilename(name);
@@ -46,50 +48,95 @@ public class MimePart implements Serializable {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Creates a new MimePart object from a file upload.
+     * @param fileItem a commons fileupload file item
+     */
+    public MimePart(FileItem fileItem) {
+        name = fileItem.getName();
+        contentType = fileItem.getContentType();
+        contentLength = (int) fileItem.getSize();
+        if (fileItem.isInMemory()) {
+            content = fileItem.get();
+        } else {
+            this.fileItem = fileItem;
+        }
+    }
+
+    /**
+     * @return the content type
      */
     public String getContentType() {
         return contentType;
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get the number of bytes in the mime part's content
+     * @return the content length
      */
     public int getContentLength() {
         return contentLength;
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get the mime part's name
+     * @return the file name
      */
     public String getName() {
         return name;
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Return the content of the mime part as byte array.
+     * @return the mime part content as byte array
      */
     public byte[] getContent() {
+        if (content == null && fileItem != null) {
+            loadContent();
+        }
         return content;
     }
 
+    private synchronized void loadContent() {
+        content = new byte[contentLength];
+        try {
+            InputStream in = fileItem.getInputStream();
+            int read = 0;
+            while (read < contentLength) {
+                int r = in.read(content, read, contentLength - read);
+                if (r == -1)
+                    break;
+                read += r;
+            }
+            in.close();
+        } catch (IOException iox) {
+            content = new byte[0];
+        }
+    }
+
     /**
+     * Return an InputStream to read the content of the mime part
+     * @return an InputStream for the mime part content
+     * @throws IOException an I/O related error occurred
+     */
+    public InputStream getInputStream() throws IOException {
+        if (fileItem != null) {
+            return fileItem.getInputStream();
+        } else {
+            return new ByteArrayInputStream(getContent());
+        }
+    }
+
+    /**
+     * Return the content of the mime part as string, if its content type is
+     * null, text/* or application/text. Otherwise, return null.
      *
-     *
-     * @return ...
+     * @return the content of the mime part as string
      */
     public String getText() {
         if ((contentType == null) || contentType.startsWith("text/")
                                   || contentType.startsWith("application/text")) {
             String charset = getSubHeader(contentType, "charset");
+            byte[] content = getContent();
             if (charset != null) {
                 try {
                     return new String(content, charset);
@@ -104,24 +151,54 @@ public class MimePart implements Serializable {
         }
     }
 
+
     /**
+     * Get the last modified date
+     * @return the last modified date
+     */
+    public Date getLastModified() {
+        return lastModified;
+    }
+
+    /**
+     * Set the last modified date
+     * @param lastModified the last modified date
+     */
+    public void setLastModified(Date lastModified) {
+        this.lastModified = lastModified;
+    }
+
+    /**
+     * Get the ETag of the mime part
+     * @return the ETag
+     */
+    public String getETag() {
+        return eTag;
+    }
+
+    /**
+     * Set the ETag for the mime part
+     * @param eTag the ETag
+     */
+    public void setETag(String eTag) {
+        this.eTag = eTag;
+    }
+
+    /**
+     * Write the mimepart to a directory, using its name as file name.
      *
-     *
-     * @param dir ...
-     *
-     * @return ...
+     * @param dir the directory to write the file to
+     * @return the absolute path name of the file written, or null if an error occurred
      */
     public String writeToFile(String dir) {
         return writeToFile(dir, null);
     }
 
     /**
+     * Write the mimepart to a file.
      *
-     *
-     * @param dir ...
-     * @param fname ...
-     *
-     * @return ...
+     * @param dir the directory to write the file to
+     * @return the absolute path name of the file written, or null if an error occurred
      */
     public String writeToFile(String dir, String fname) {
         try {
@@ -150,10 +227,14 @@ public class MimePart implements Serializable {
             }
 
             File file = new File(base, filename);
-            FileOutputStream fout = new FileOutputStream(file);
 
-            fout.write(getContent());
-            fout.close();
+            if (fileItem != null) {
+                fileItem.write(file);
+            } else {
+                FileOutputStream fout = new FileOutputStream(file);
+                fout.write(getContent());
+                fout.close();
+            }
 
             return filename;
         } catch (Exception x) {

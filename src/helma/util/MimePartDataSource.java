@@ -75,7 +75,7 @@ public class MimePartDataSource implements DataSource {
      * @return ...
      */
     public String getContentType() {
-        return part.contentType;
+        return part.getContentType();
     }
 
     /**

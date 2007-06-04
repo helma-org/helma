@@ -312,10 +312,10 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
             MimePart mime = new MimePart(filename, body.toByteArray(), contentType);
 
             if (lastmod > 0) {
-                mime.lastModified = new Date(lastmod);
+                mime.setLastModified(new Date(lastmod));
             }
 
-            mime.eTag = etag;
+            mime.setETag(etag);
 
             return Context.toObject(mime, this);
         } catch (Exception x) {
