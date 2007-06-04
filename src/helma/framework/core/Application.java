@@ -1549,6 +1549,7 @@ public final class Application implements Runnable {
                 while (it.hasNext()) {
                     Session session = (Session) it.next();
 
+                    session.pruneUploads();
                     if ((now - session.lastTouched()) > (sessionTimeout * 60000)) {
                         NodeHandle userhandle = session.userHandle;
 
@@ -1791,6 +1792,25 @@ public final class Application implements Runnable {
 
         return proto.getDbMapping();
     }
+
+    /**
+     * Return the current upload status.
+     * @param req the upload RequestTrans
+     * @return the current upload status.
+     */
+    public UploadStatus getUploadStatus(RequestTrans req) {
+        String uploadId = (String) req.get("upload_id");
+        if (uploadId == null)
+            return null;
+
+        String sessionId = req.getSession();
+        Session session = getSession(sessionId);
+        if (session == null)
+            return null;
+        return session.createUpload(uploadId);
+    }
+
+
 
     private synchronized void updateProperties() {
         // if so property file has been updated, re-read props.

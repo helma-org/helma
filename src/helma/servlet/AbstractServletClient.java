@@ -30,6 +30,8 @@ import javax.servlet.http.*;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadBase;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.FileUpload;
+import org.apache.commons.fileupload.ProgressListener;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.fileupload.servlet.ServletRequestContext;
 
@@ -146,76 +148,6 @@ public abstract class AbstractServletClient extends HttpServlet {
                 encoding = getApplication().getCharset();
             }
 
-            // read and set http parameters
-            Map parameters = parseParameters(request, encoding);
-
-            for (Iterator i = parameters.entrySet().iterator(); i.hasNext();) {
-                Map.Entry entry = (Map.Entry) i.next();
-                String key = (String) entry.getKey();
-                String[] values = (String[]) entry.getValue();
-
-                if ((values != null) && (values.length > 0)) {
-                    reqtrans.set(key, values[0]); // set to single string value
-
-                    if (values.length > 1) {
-                        reqtrans.set(key + "_array", values); // set string array
-                    }
-                }
-            }
-
-            try {
-                ServletRequestContext reqcx = new ServletRequestContext(request);
-                if (ServletFileUpload.isMultipartContent(reqcx)) {
-                    // File Upload
-                    ServletFileUpload upload = new ServletFileUpload(new DiskFileItemFactory());
-
-                    upload.setSizeMax(uploadLimit * 1024);
-                    upload.setHeaderEncoding(encoding);
-
-                    List uploads = upload.parseRequest(request);
-                    Iterator it = uploads.iterator();
-
-                    while (it.hasNext()) {
-                        FileItem item = (FileItem) it.next();
-                        String name = item.getFieldName();
-                        Object value = null;
-                        // check if this is an ordinary HTML form element or a file upload
-                        if (item.isFormField()) {
-                            value =  item.getString(encoding);
-                        } else {
-                            value = new MimePart(item.getName(),
-                                    item.get(),
-                                    item.getContentType());
-                        }
-                        item.delete();
-                        // if multiple values exist for this name, append to _array
-                        if (reqtrans.get(name) != null) {
-                            appendFormValue(reqtrans, name, value);
-                        } else {
-                            reqtrans.set(name, value);
-                        }
-                    }
-
-                }
-            } catch (Exception upx) {
-                log("Error in file upload", upx);
-                if (uploadSoftfail) {
-                    String msg = upx.getMessage();
-                    if (msg == null || msg.length() == 0) {
-                        msg = upx.toString();
-                    }
-                    reqtrans.set("helma_upload_error", msg);
-                } else if (upx instanceof FileUploadBase.SizeLimitExceededException) {
-                    sendError(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
-                            "File upload size exceeds limit of " + uploadLimit + "kB");
-                    return;
-                } else {
-                    sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                            "Error in file upload: " + upx);
-                    return;
-                }
-            }
-
             // read cookies
             Cookie[] reqCookies = request.getCookies();
 
@@ -310,7 +242,108 @@ public abstract class AbstractServletClient extends HttpServlet {
                 reqtrans.set("authorization", authorization);
             }
 
+            // read and set http parameters
+            Map parameters = parseParameters(request, encoding);
+
+            if (parameters != null) {
+                for (Iterator i = parameters.entrySet().iterator(); i.hasNext();) {
+                    Map.Entry entry = (Map.Entry) i.next();
+                    String key = (String) entry.getKey();
+                    String[] values = (String[]) entry.getValue();
+
+                    if ((values != null) && (values.length > 0)) {
+                        // set to single string value
+                        reqtrans.set(key, values[0]);
+
+                        if (values.length > 1) {
+                            // set string array
+                            reqtrans.set(key + "_array", values);
+                        }
+                    }
+                }
+            }
+
+            List uploads = null;
+            ServletRequestContext reqcx = new ServletRequestContext(request);
+
+            if (ServletFileUpload.isMultipartContent(reqcx)) {
+                // get session for upload progress monitoring
+                final UploadStatus uploadStatus = getApplication().getUploadStatus(reqtrans);
+                try {
+                    // handle file upload
+                    DiskFileItemFactory factory = new DiskFileItemFactory();
+                    FileUpload upload = new FileUpload(factory);
+                    // use upload limit for individual file size, but also set a limit on overall size
+                    upload.setFileSizeMax(uploadLimit * 1024);
+                    upload.setSizeMax(uploadLimit * 1024 * 10);
+
+                    // register upload tracker with user's session
+                    if (uploadStatus != null) {
+                        upload.setProgressListener(new ProgressListener() {
+                            public void update(long bytesRead, long contentLength, int itemsRead) {
+                                uploadStatus.update(bytesRead, contentLength, itemsRead);
+                            }
+                        });
+                    }
+
+                    uploads = upload.parseRequest(reqcx);
+                    Iterator it = uploads.iterator();
+
+                    while (it.hasNext()) {
+                        FileItem item = (FileItem) it.next();
+                        String name = item.getFieldName();
+                        Object value;
+                        // check if this is an ordinary HTML form element or a file upload
+                        if (item.isFormField()) {
+                            value =  item.getString(encoding);
+                        } else {
+                            value = new MimePart(item);
+                        }
+                        // if multiple values exist for this name, append to _array
+                        if (reqtrans.get(name) != null) {
+                            appendFormValue(reqtrans, name, value);
+                        } else {
+                            reqtrans.set(name, value);
+                        }
+                    }
+
+                } catch (Exception upx) {
+                    log("Error in file upload", upx);
+                    String message;
+                    if (upx instanceof FileUploadBase.SizeLimitExceededException) {
+                        message = "File upload size exceeds limit of " + uploadLimit + " kB";
+                    } else {
+                        message = upx.getMessage();
+                        if (message == null || message.length() == 0) {
+                            message = upx.toString();
+                        }
+                    }
+                    if (uploadStatus != null) {
+                        uploadStatus.setError(message);
+                    }
+
+                    if (uploadSoftfail || uploadStatus != null) {
+                        reqtrans.set("helma_upload_error", message);
+                    } else if (upx instanceof FileUploadBase.SizeLimitExceededException) {
+                        sendError(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                                "Error in file upload: " + message);
+                        return;
+                    } else {
+                        sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                                "Error in file upload: " + message);
+                        return;
+                    }
+                }
+            }
+
             ResponseTrans restrans = getApplication().execute(reqtrans);
+
+            // delete uploads if any
+            if (uploads != null) {
+                for (int i = 0; i < uploads.size(); i++) {
+                    ((FileItem) uploads.get(i)).delete();
+                }
+            }
 
             // if the response was already written and committed by the application
             // we can skip this part and return
@@ -511,7 +544,7 @@ public abstract class AbstractServletClient extends HttpServlet {
             byte buffer[] = new byte[bufferSize];
             int l;
     
-            while (length>0) {
+            while (length > 0) {
                 if (length < bufferSize)
                     l = in.read(buffer, 0, length);
                 else
@@ -683,46 +716,45 @@ public abstract class AbstractServletClient extends HttpServlet {
         map.put(name, newValues);
     }
 
-    protected Map parseParameters(HttpServletRequest request, String encoding) {
+    protected Map parseParameters(HttpServletRequest request, String encoding)
+            throws IOException {
+        // check if there are any parameters before we get started
+        String queryString = request.getQueryString();
+        String contentType = request.getContentType();
+        boolean isFormPost = "post".equals(request.getMethod().toLowerCase())
+                && contentType != null
+                && contentType.toLowerCase().startsWith("application/x-www-form-urlencoded");
+
+        if (queryString == null && !isFormPost) {
+            return null;
+        }
+
         HashMap parameters = new HashMap();
 
         // Parse any query string parameters from the request
-        String queryString = request.getQueryString();
         if (queryString != null) {
-            try {
-                parseParameters(parameters, queryString.getBytes(), encoding);
-            } catch (Exception e) {
-                log("Error parsing query string", e);
-            }
+            parseParameters(parameters, queryString.getBytes(), encoding, false);
         }
 
         // Parse any posted parameters in the input stream
-        String contentType = request.getContentType();
-        if ("post".equals(request.getMethod().toLowerCase()) 
-                && contentType != null
-                && contentType.toLowerCase()
-                        .startsWith("application/x-www-form-urlencoded")) {
-            try {
-                int max = request.getContentLength();
-                int len = 0;
-                byte[] buf = new byte[max];
-                ServletInputStream is = request.getInputStream();
+        if (isFormPost) {
+            int max = request.getContentLength();
+            int len = 0;
+            byte[] buf = new byte[max];
+            ServletInputStream is = request.getInputStream();
 
-                while (len < max) {
-                    int next = is.read(buf, len, max - len);
+            while (len < max) {
+                int next = is.read(buf, len, max - len);
 
-                    if (next < 0) {
-                        break;
-                    }
-
-                    len += next;
+                if (next < 0) {
+                    break;
                 }
-                
-                // is.close();
-                parseParameters(parameters, buf, encoding);
-            } catch (IOException e) {
-                log("Error reading POST body", e);
+
+                len += next;
             }
+
+            // is.close();
+            parseParameters(parameters, buf, encoding, true);
         }
 
         return parameters;
@@ -747,7 +779,7 @@ public abstract class AbstractServletClient extends HttpServlet {
      *
      * @exception UnsupportedEncodingException if the data is malformed
      */
-    public static void parseParameters(Map map, byte[] data, String encoding)
+    public static void parseParameters(Map map, byte[] data, String encoding, boolean isPost)
                                 throws UnsupportedEncodingException {
         if ((data != null) && (data.length > 0)) {
             int ix = 0;
@@ -793,10 +825,18 @@ public abstract class AbstractServletClient extends HttpServlet {
                 }
             }
 
-            //The last value does not end in '&'.  So save it now.
             if (key != null) {
+                // The last value does not end in '&'.  So save it now.
                 value = new String(data, 0, ox, encoding);
                 putMapEntry(map, key, value);
+            } else if (ox > 0) {
+                // Store any residual bytes in req.data.http_post_remainder
+                value = new String(data, 0, ox, encoding);
+                if (isPost) {
+                    putMapEntry(map, "http_post_remainder", value);
+                } else {
+                    putMapEntry(map, "http_get_remainder", value);
+                }
             }
         }
     }

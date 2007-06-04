@@ -19,6 +19,7 @@ package helma.framework.core;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.framework.ResponseTrans;
+import helma.framework.UploadStatus;
 
 import java.io.*;
 import java.util.*;
@@ -50,6 +51,8 @@ public class Session implements Serializable {
     // used to remember messages to the user between requests, mainly between redirects.
     protected String message;
     protected StringBuffer debugBuffer;
+
+    protected HashMap uploads = null;
 
     /**
      * Creates a new Session object.
@@ -321,5 +324,39 @@ public class Session implements Serializable {
      */
     public void setDebugBuffer(StringBuffer buffer) {
         debugBuffer = buffer;
+    }
+
+    protected UploadStatus createUpload(String uploadId) {
+        if (uploads == null) {
+            uploads = new HashMap();
+        }
+        UploadStatus status = new UploadStatus();
+        uploads.put(uploadId, status);
+        return status;
+    }
+
+    protected UploadStatus getUpload(String uploadId) {
+        UploadStatus status = null;
+        if (uploads == null) {
+            uploads = new HashMap();
+        } else {
+            status = (UploadStatus) uploads.get(uploadId);
+        }
+        if (status == null) {
+            status = new UploadStatus();
+            uploads.put(uploadId, status);
+        }
+        return status;
+    }
+
+    protected void pruneUploads() {
+        if (uploads == null || uploads.isEmpty())
+            return;
+        for (Iterator it = uploads.values().iterator(); it.hasNext();) {
+            UploadStatus status = (UploadStatus) it.next();
+            if (status.isDisposable()) {
+                it.remove();
+            }
+        }
     }
 }

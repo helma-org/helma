@@ -17,6 +17,8 @@
 package helma.framework.core;
 
 import helma.objectmodel.INode;
+import helma.framework.UploadStatus;
+
 import java.io.Serializable;
 import java.util.Date;
 
@@ -202,6 +204,15 @@ public class SessionBean implements Serializable {
      */
     public void setMessage(String msg) {
         session.message = msg;
+    }
+
+    /**
+     * Get an upload status for the current user session.
+     * @param uploadId the upload id
+     * @return the upload status
+     */
+    public UploadStatus getUploadStatus(String uploadId) {
+        return session.getUpload(uploadId);
     }
 
 }
