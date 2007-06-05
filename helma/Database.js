@@ -10,8 +10,8 @@
  *
  * $RCSfile: Database.js,v $
  * $Author: hannes $
- * $Revision: 1.4 $
- * $Date: 2007/02/08 15:33:08 $
+ * $Revision: 1.5 $
+ * $Date: 2007/02/08 21:01:56 $
  */
 
 /**
@@ -122,20 +122,20 @@ helma.Database = function(source) {
             for (var i=1; i<=max; i+=1) {
                 switch (types[i]) {
                     case Types.BIT:
-                        row[metaData.getColumnName(i)] = resultSet.getBoolean(i);
+                        row[metaData.getColumnLabel(i)] = resultSet.getBoolean(i);
                         break;
                     case Types.TINYINT:
                     case Types.BIGINT:
                     case Types.SMALLINT:
                     case Types.INTEGER:
-                        row[metaData.getColumnName(i)] = resultSet.getLong(i);
+                        row[metaData.getColumnLabel(i)] = resultSet.getLong(i);
                         break;
                     case Types.REAL:
                     case Types.FLOAT:
                     case Types.DOUBLE:
                     case Types.DECIMAL:
                     case Types.NUMERIC:
-                        row[metaData.getColumnName(i)] = resultSet.getDouble(i);
+                        row[metaData.getColumnLabel(i)] = resultSet.getDouble(i);
                         break;
                     case Types.VARBINARY:
                     case Types.BINARY:
@@ -145,18 +145,18 @@ helma.Database = function(source) {
                     case Types.VARCHAR:
                     case Types.CLOB:
                     case Types.OTHER:
-                        row[metaData.getColumnName(i)] = resultSet.getString(i);
+                        row[metaData.getColumnLabel(i)] = resultSet.getString(i);
                         break;
                     case Types.DATE:
                     case Types.TIME:
                     case Types.TIMESTAMP:
-                        row[metaData.getColumnName(i)] = resultSet.getTimestamp(i);
+                        row[metaData.getColumnLabel(i)] = resultSet.getTimestamp(i);
                         break;
                     case Types.NULL:
-                        row[metaData.getColumnName(i)] = null;
+                        row[metaData.getColumnLabel(i)] = null;
                         break;
                     default:
-                        row[metaData.getColumnName(i)] = resultSet.getString(i);
+                        row[metaData.getColumnLabel(i)] = resultSet.getString(i);
                         break;
                 }
             }
