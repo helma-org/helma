@@ -1747,11 +1747,9 @@ public final class NodeManager {
                 case Types.NUMERIC:
 
                     BigDecimal num = rs.getBigDecimal(columnNumber);
-
                     if (num == null) {
                         break;
                     }
-
                     if (num.scale() > 0) {
                         newprop.setFloatValue(num.doubleValue());
                     } else {
@@ -1768,10 +1766,11 @@ public final class NodeManager {
 
                 case Types.BLOB:
                 case Types.LONGVARBINARY:
-                    try {
-                        newprop.setJavaObjectValue(rs.getBytes(columnNumber));
-                    } catch (SQLException x) {
+                    {
                         InputStream in = rs.getBinaryStream(columnNumber);
+                        if (in == null) {
+                            break;
+                        }
                         ByteArrayOutputStream bout = new ByteArrayOutputStream();
                         byte[] buffer = new byte[2048];
                         int read;
@@ -1788,6 +1787,10 @@ public final class NodeManager {
                         newprop.setStringValue(rs.getString(columnNumber));
                     } catch (SQLException x) {
                         Reader in = rs.getCharacterStream(columnNumber);
+                        if (in == null) {
+                            newprop.setStringValue(null);
+                            break;
+                        }
                         StringBuffer out = new StringBuffer();
                         char[] buffer = new char[2048];
                         int read;
@@ -1820,7 +1823,7 @@ public final class NodeManager {
 
                 case Types.CLOB:
                     Clob cl = rs.getClob(columnNumber);
-                    if (cl==null) {
+                    if (cl == null) {
                         newprop.setStringValue(null);
                         break;
                     }
