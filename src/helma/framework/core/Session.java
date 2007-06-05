@@ -336,17 +336,11 @@ public class Session implements Serializable {
     }
 
     protected UploadStatus getUpload(String uploadId) {
-        UploadStatus status = null;
         if (uploads == null) {
-            uploads = new HashMap();
+            return null;
         } else {
-            status = (UploadStatus) uploads.get(uploadId);
+            return (UploadStatus) uploads.get(uploadId);
         }
-        if (status == null) {
-            status = new UploadStatus();
-            uploads.put(uploadId, status);
-        }
-        return status;
     }
 
     protected void pruneUploads() {
