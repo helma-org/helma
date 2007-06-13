@@ -522,7 +522,7 @@ public final class Application implements Runnable {
      *
      * @return true if the app is running
      */
-    public synchronized boolean isRunning() {
+    public boolean isRunning() {
         return running;
     }
 
