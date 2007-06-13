@@ -47,6 +47,9 @@ public final class DbMapping {
     // name of db table
     private String tableName;
 
+    // the verbatim, unparsed _parent specification
+    private String parentSetting;
+
     // list of properties to try for parent
     private ParentInfo[] parentInfo;
 
@@ -203,16 +206,15 @@ public final class DbMapping {
         protoField = props.getProperty("_prototype");
         evictOnReplication = "true".equals(props.getProperty("_evictOnReplication"));
 
-        String parentSpec = props.getProperty("_parent");
-
-        if (parentSpec != null) {
+        parentSetting = props.getProperty("_parent");
+        if (parentSetting != null) {
             // comma-separated list of properties to be used as parent
-            StringTokenizer st = new StringTokenizer(parentSpec, ",;");
-
+            StringTokenizer st = new StringTokenizer(parentSetting, ",;");
             parentInfo = new ParentInfo[st.countTokens()];
 
-            for (int i = 0; i < parentInfo.length; i++)
+            for (int i = 0; i < parentInfo.length; i++) {
                 parentInfo[i] = new ParentInfo(st.nextToken().trim());
+            }
         } else {
             parentInfo = null;
         }
@@ -671,7 +673,17 @@ public final class DbMapping {
     }
 
     /**
-     * This returns the parent info array, which tells an object of this type how to
+     * @return the parent info as unparsed string.
+     */
+    public String getParentSetting() {
+        if ((parentSetting == null) && (parentMapping != null)) {
+            return parentMapping.getParentSetting();
+        }
+        return parentSetting;
+    }
+
+    /**
+     * @return the parent info array, which tells an object of this type how to
      * determine its parent object.
      */
     public synchronized ParentInfo[] getParentInfo() {
