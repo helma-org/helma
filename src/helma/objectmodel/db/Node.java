@@ -2597,7 +2597,7 @@ public final class Node implements INode, Serializable {
                 // check if this property actually needs to be persisted.
                 Node n = (Node) next.getNodeValue();
 
-                if (n == null) {
+                if (n == null || n == this) {
                     continue;
                 }
 
