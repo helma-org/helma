@@ -485,6 +485,50 @@ public final class ResponseTrans extends Writer implements Serializable {
     }
 
     /**
+     * Proxy to HttpServletResponse.addHeader()
+     * @param name the header name
+     * @param value the header value
+     */
+    public void addHeader(String name, String value) {
+        HttpServletResponse res = getServletResponse();
+        if (res != null)
+            res.addHeader(name, value);
+    }
+
+    /**
+     * Proxy to HttpServletResponse.addDateHeader()
+     * @param name the header name
+     * @param value the header value
+     */
+    public void addDateHeader(String name, Date value) {
+        HttpServletResponse res = getServletResponse();
+        if (res != null)
+            res.addDateHeader(name, value.getTime());
+    }
+
+    /**
+     * Proxy to HttpServletResponse.setHeader()
+     * @param name the header name
+     * @param value the header value
+     */
+    public void setHeader(String name, String value) {
+        HttpServletResponse res = getServletResponse();
+        if (res != null)
+            res.setHeader(name, value);
+    }
+
+    /**
+     * Proxy to HttpServletResponse.setDateHeader()
+     * @param name the header name
+     * @param value the header value
+     */
+    public void setDateHeader(String name, Date value) {
+        HttpServletResponse res = getServletResponse();
+        if (res != null)
+            res.setDateHeader(name, value.getTime());
+    }
+
+    /**
      * Write a vanilla error report. Callers should make sure the ResponeTrans is
      * new or has been reset.
      *

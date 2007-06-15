@@ -82,59 +82,114 @@ public class RequestBean implements Serializable {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Proxy to HttpServletRequest.getHeader().
+     * @param name the header name
+     * @return the header value, or null
+     */
+    public String getHeader(String name) {
+        return req.getHeader(name);        
+    }
+
+    /**
+     * Proxy to HttpServletRequest.getHeaders(), returns header values as string array.
+     * @param name the header name
+     * @return the header values as string array
+     */
+    public String[] getHeaders(String name) {
+        return req.getHeaders(name);
+    }
+
+    /**
+     * Proxy to HttpServletRequest.getIntHeader(), fails silently by returning -1.
+     * @param name the header name
+     * @return the header parsed as integer or -1
+     */
+    public int getIntHeader(String name) {
+        return req.getIntHeader(name);
+    }
+
+    /**
+     * Proxy to HttpServletRequest.getDateHeader(), fails silently by returning -1.
+     * @param name the header name
+     * @return the date in milliseconds, or -1
+     */
+    public long getDateHeader(String name) {
+        return req.getDateHeader(name);
+    }
+
+    /**
+     * @return A string representation of this request
      */
     public String toString() {
         return "[Request]";
     }
 
-    // property related methods:
+    /**
+     * @return the invoked action
+     */
     public String getAction() {
         return req.getAction();
     }
 
     /**
-     *
-     *
-     * @return ...
+     * @return The req.data map containing request parameters, cookies and
+     * assorted HTTP headers
      */
     public Map getData() {
         return req.getRequestData();
     }
 
     /**
-     *
-     *
-     * @return ...
+     * @return the req.params map containing combined query and post parameters
+     */
+    public Map getParams() {
+        return req.getParams();
+    }
+
+    /**
+     * @return the req.queryParams map containing parameters parsed from the query string
+     */
+    public Map getQueryParams() {
+        return req.getQueryParams();
+    }
+
+    /**
+     * @return the req.postParams map containing params parsed from post data
+     */
+    public Map getPostParams() {
+        return req.getPostParams();
+    }
+
+    /**
+     * @return the req.cookies map containing request cookies
+     */
+    public Map getCookies() {
+        return req.getCookies();
+    }
+
+    /**
+     * @return the time this request has been running, in milliseconds
      */
     public long getRuntime() {
         return (System.currentTimeMillis() - req.getStartTime());
     }
 
     /**
-     *
-     *
-     * @return ...
+     * @return the password if using HTTP basic authentication
      */
     public String getPassword() {
         return req.getPassword();
     }
 
     /**
-     *
-     *
-     * @return ...
+     * @return the request path
      */
     public String getPath() {
         return req.getPath();
     }
 
     /**
-     *
-     *
-     * @return ...
+     * @return the username if using HTTP basic authentication
      */
     public String getUsername() {
         return req.getUsername();

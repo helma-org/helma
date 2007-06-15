@@ -18,9 +18,11 @@ package helma.framework;
 
 import helma.util.Base64;
 import helma.util.SystemMap;
+import helma.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Cookie;
 import java.io.*;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -58,7 +60,9 @@ public class RequestTrans implements Serializable {
     private String session;
 
     // the map of form and cookie data
-    private final Map values = new SystemMap();
+    private final Map values = new DataComboMap();
+
+    private Map params, queryParams, postParams, cookies;
     
     // the HTTP request method
     private String method;
@@ -100,6 +104,51 @@ public class RequestTrans implements Serializable {
         this.response = response;
         this.path = path;
         startTime = System.currentTimeMillis();
+
+        // do standard HTTP variables
+        String header = request.getHeader("Host");
+        if (header != null) {
+            values.put("http_host", header.toLowerCase());
+        }
+
+        header = request.getHeader("Referer");
+        if (header != null) {
+            values.put("http_referer", header);
+        }
+
+        try {
+            long ifModifiedSince = request.getDateHeader("If-Modified-Since");
+            if (ifModifiedSince > -1) {
+               setIfModifiedSince(ifModifiedSince);
+            }
+        } catch (IllegalArgumentException ignore) {
+            // not a date header
+        }
+
+        header = request.getHeader("If-None-Match");
+        if (header != null) {
+            setETags(header);
+        }
+
+        header = request.getRemoteAddr();
+        if (header != null) {
+            values.put("http_remotehost", header);
+        }
+
+        header = request.getHeader("User-Agent");
+        if (header != null) {
+            values.put("http_browser", header);
+        }
+
+        header = request.getHeader("Accept-Language");
+        if (header != null) {
+            values.put("http_language", header);
+        }
+
+        header = request.getHeader("authorization");
+        if (header != null) {
+            values.put("authorization", header);
+        }
     }
 
     /**
@@ -123,40 +172,95 @@ public class RequestTrans implements Serializable {
     }
 
     /**
+     * Set a cookie
+     * @param name the cookie name
+     * @param cookie the cookie
+     */
+    public void setCookie(String name, Cookie cookie) {
+        if (cookies == null) {
+            cookies = new ParameterMap();
+        }
+        cookies.put(name, cookie);
+    }
+
+    /**
+     * @return a map containing the cookies sent with this request
+     */
+    public Map getCookies() {
+        if (cookies == null) {
+            cookies = new ParameterMap();
+        }
+        return cookies;
+    }
+
+    /**
+     * @return the combined query and post parameters for this request
+     */
+    public Map getParams() {
+        if (params == null) {
+            params = new ParamComboMap();
+        }
+        return params;
+    }
+
+    /**
+     * @return get the query parameters for this request
+     */
+    public Map getQueryParams() {
+        if (queryParams == null) {
+            queryParams = new ParameterMap();
+        }
+        return queryParams;
+    }
+
+    /**
+     * @return get the post parameters for this request
+     */
+    public Map getPostParams() {
+        if (postParams == null) {
+            postParams = new ParameterMap();
+        }
+        return postParams;
+    }
+
+    /**
+     * set the request parameters
+     */
+    public void setParameters(Map parameters, boolean isPost) {
+        if (isPost) {
+            postParams = new ParameterMap(parameters);
+        } else {
+            queryParams = new ParameterMap(parameters);
+        }
+    }
+
+    /**
+     * Add a post parameter to the request
+     * @param name the parameter name
+     * @param value the parameter value
+     */
+    public void addPostParam(String name, Object value) {
+        if (postParams == null) {
+            postParams = new ParameterMap();
+        }
+        Object previous = postParams.get(name);
+        if (previous instanceof Object[]) {
+            Object[] array = (Object[]) previous;
+            Object[] values = new Object[array.length + 1];
+            System.arraycopy(array, 0, values, 0, array.length);
+            values[array.length] = value;
+            postParams.put(name, values);
+        } else if (previous == null) {
+            postParams.put(name, new Object[] {value});
+        }
+    }
+
+    /**
      * Set a parameter value in this request transmitter. This
      * parses foo[bar][baz] as nested objects/maps.
      */
     public void set(String name, Object value) {
-        int bracket = name.indexOf('[');
-        Object previousValue;
-        if (bracket > -1 && name.endsWith("]")) {
-            Matcher m = paramPattern.matcher(name);
-            String partName = name.substring(0, bracket);
-            Map map = values;
-            while (m.find()) {
-                previousValue = map.get(partName);
-                Map partMap;
-                if (previousValue == null) {
-                    partMap = new SystemMap();
-                    map.put(partName, partMap);
-                } else if (previousValue instanceof Map) {
-                    partMap = (Map) previousValue;
-                } else {
-                    throw new RuntimeException("Conflicting HTTP Parameters for '" + name + "'");
-                }
-                partName = m.group(1);
-                map = partMap;
-            }
-            previousValue = map.put(partName, value);
-            if (previousValue != null &&
-                    (!(previousValue instanceof Object[]) || ! partName.endsWith("_array")))
-                throw new RuntimeException("Conflicting HTTP Parameters for '" + name + "'");
-        } else {
-            previousValue = values.put(name, value);
-            if (previousValue != null &&
-                    (!(previousValue instanceof Object[]) || !name.endsWith("_array")))
-                throw new RuntimeException("Conflicting HTTP Parameters for '" + name + "'");
-        }
+        values.put(name, value);
     }
 
     /**
@@ -183,6 +287,51 @@ public class RequestTrans implements Serializable {
      */
     public HttpServletRequest getServletRequest() {
         return request;
+    }
+
+    /**
+     * Proxy to HttpServletRequest.getHeader().
+     * @param name the header name
+     * @return the header value, or null
+     */
+    public String getHeader(String name) {
+        return request == null ? null : request.getHeader(name);
+    }
+
+    /**
+     * Proxy to HttpServletRequest.getHeaders(), returns header values as string array.
+     * @param name the header name
+     * @return the header values as string array
+     */
+    public String[] getHeaders(String name) {
+        return request == null ?
+                null : StringUtils.collect(request.getHeaders(name));
+    }
+
+    /**
+     * Proxy to HttpServletRequest.getIntHeader(), fails silently by returning -1.
+     * @param name the header name
+     * @return the header parsed as integer or -1
+     */
+    public int getIntHeader(String name) {
+        try {
+            return request == null ? -1 : getIntHeader(name);
+        } catch (NumberFormatException nfe) {
+            return -1;
+        }
+    }
+
+    /**
+     * Proxy to HttpServletRequest.getDateHeader(), fails silently by returning -1.
+     * @param name the header name
+     * @return the date in milliseconds, or -1
+     */
+    public long getDateHeader(String name) {
+        try {
+            return request == null ? -1 : getDateHeader(name);
+        } catch (NumberFormatException nfe) {
+            return -1;
+        }
     }
 
     /**
@@ -423,6 +572,144 @@ public class RequestTrans implements Serializable {
             httpPassword = tok.nextToken();
         } catch (NoSuchElementException e) {
             httpPassword = null;
+        }
+    }
+
+    class ParameterMap extends SystemMap {
+
+        public ParameterMap() {
+            super();
+        }
+
+        public ParameterMap(Map map) {
+            super((int) (map.size() / 0.75f) + 1);
+            for (Iterator i = map.entrySet().iterator(); i.hasNext(); ) {
+                Map.Entry e = (Map.Entry) i.next();
+                put(e.getKey(), e.getValue());
+            }
+        }
+
+        public Object put(Object key, Object value) {
+            if (key instanceof String) {
+                String name = (String) key;
+                int bracket = name.indexOf('[');
+                if (bracket > -1 && name.endsWith("]")) {
+                    Matcher matcher = paramPattern.matcher(name);
+                    String partName = name.substring(0, bracket);
+                    return putInternal(partName, matcher, value);
+                }
+            }
+            Object previous = super.get(key);
+            if (previous != null && (!(previous instanceof Object[]) || !(value instanceof Object[])))
+                throw new RuntimeException("Conflicting HTTP Parameters for '" + key + "'");
+            return super.put(key, value);
+        }
+
+        private Object putInternal(String name, Matcher matcher, Object value) {
+            Object previous = super.get(name);
+            if (matcher.find()) {
+                ParameterMap map = null;
+                if (previous instanceof ParameterMap) {
+                    map = (ParameterMap) previous;
+                } else if (previous == null) {
+                    map = new ParameterMap();
+                    super.put(name, map);
+                } else {
+                    throw new RuntimeException("Conflicting HTTP Parameters for '" + name + "'");
+                }
+                String partName = matcher.group(1);
+                return map.putInternal(partName, matcher, value);
+            }
+            if (previous != null && (!(previous instanceof Object[]) || !(value instanceof Object[])))
+                throw new RuntimeException("Conflicting HTTP Parameters for '" + name + "'");
+            return super.put(name, value);
+        }
+
+        public Object get(Object key) {
+            if (key instanceof String) {
+                Object value = super.get(key);
+                String name = (String) key;
+                if (name.endsWith("_array") && value == null) {
+                    value = super.get(name.substring(0, name.length() - 6));
+                    return value instanceof Object[] ? value : null;
+                } else if (name.endsWith("_cookie") && value == null) {
+                    System.err.println(" *** *** *** " + name.substring(0, name.length() - 7));
+                    value = super.get(name.substring(0, name.length() - 7));
+                    return value instanceof Cookie ? value : null;
+                } else if (value instanceof Object[]) {
+                    Object[] values = ((Object[]) value);
+                    return values.length > 0 ? values[0] : null;
+                } else if (value instanceof Cookie) {
+                    Cookie cookie = (Cookie) value;
+                    return cookie.getValue();
+                }
+            }
+            return super.get(key);
+        }
+    }
+
+    class DataComboMap extends SystemMap {
+
+        public Object get(Object key) {
+            Object value = super.get(key);
+            if (value != null)
+                return value;
+            if (postParams != null && (value = postParams.get(key)) != null)
+                return value;
+            if (queryParams != null && (value = queryParams.get(key)) != null)
+                return value;
+            if (cookies != null && (value = cookies.get(key)) != null)
+                return value;
+            return null;
+        }
+
+        public boolean containsKey(Object key) {
+            return get(key) != null;
+        }
+
+        public Set entrySet() {
+            Set entries = new HashSet(super.entrySet());
+            if (postParams != null) entries.addAll(postParams.entrySet());
+            if (queryParams != null) entries.addAll(queryParams.entrySet());
+            if (cookies != null) entries.addAll(cookies.entrySet());
+            return entries;
+        }
+
+        public Set keySet() {
+            Set keys = new HashSet(super.keySet());
+            if (postParams != null) keys.addAll(postParams.keySet());
+            if (queryParams != null) keys.addAll(queryParams.keySet());
+            if (cookies != null) keys.addAll(cookies.keySet());
+            return keys;
+        }
+    }
+
+    class ParamComboMap extends SystemMap {
+        public Object get(Object key) {
+            Object value;
+            if (postParams != null && (value = postParams.get(key)) != null)
+                return value;
+            if (queryParams != null && (value = queryParams.get(key)) != null)
+                return value;
+            return null;
+        }
+
+        public boolean containsKey(Object key) {
+            return get(key) != null;
+        }
+
+        public Set entrySet() {
+            Set entries = new HashSet();
+            if (postParams != null) entries.addAll(postParams.entrySet());
+            if (queryParams != null) entries.addAll(queryParams.entrySet());
+            return entries;
+        }
+
+        public Set keySet() {
+            Set keys = new HashSet();
+            if (postParams != null) keys.addAll(postParams.keySet());
+            if (queryParams != null) keys.addAll(queryParams.keySet());
+            return keys;
         }
     }
 }

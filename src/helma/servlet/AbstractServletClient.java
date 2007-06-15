@@ -27,11 +27,8 @@ import java.util.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileUploadBase;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.FileUpload;
-import org.apache.commons.fileupload.ProgressListener;
+import org.apache.commons.fileupload.*;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.fileupload.servlet.ServletRequestContext;
 
@@ -162,55 +159,20 @@ public abstract class AbstractServletClient extends HttpServlet {
             Cookie[] reqCookies = request.getCookies();
 
             if (reqCookies != null) {
-                for (int i = 0; i < reqCookies.length; i++)
+                for (int i = 0; i < reqCookies.length; i++) {
                     try {
                         // get Cookies
-                        String nextKey = reqCookies[i].getName();
-                        String nextPart = reqCookies[i].getValue();
+                        String key = reqCookies[i].getName();
 
-                        if (sessionCookieName.equals(nextKey)) {
-                            reqtrans.setSession(nextPart);
+                        if (sessionCookieName.equals(key)) {
+                            reqtrans.setSession(reqCookies[i].getValue());
                         } else {
-                            reqtrans.set(nextKey, nextPart);
+                            reqtrans.setCookie(key, reqCookies[i]);
                         }               
                     } catch (Exception badCookie) {
-                        // ignore
+                        log("Error setting cookie", badCookie);
                     }
-            }
-
-            // do standard HTTP variables
-            String host = request.getHeader("Host");
-
-            if (host != null) {
-                host = host.toLowerCase();
-                reqtrans.set("http_host", host);
-            }
-
-            String referer = request.getHeader("Referer");
-
-            if (referer != null) {
-                reqtrans.set("http_referer", referer);
-            }
-
-            try {
-                long ifModifiedSince = request.getDateHeader("If-Modified-Since");
-
-                if (ifModifiedSince > -1) {
-                    reqtrans.setIfModifiedSince(ifModifiedSince);
                 }
-            } catch (IllegalArgumentException ignore) {
-            }
-
-            String ifNoneMatch = request.getHeader("If-None-Match");
-
-            if (ifNoneMatch != null) {
-                reqtrans.setETags(ifNoneMatch);
-            }
-
-            String remotehost = request.getRemoteAddr();
-
-            if (remotehost != null) {
-                reqtrans.set("http_remotehost", remotehost);
             }
 
             // get the cookie domain to use for this response, if any.
@@ -222,11 +184,11 @@ public abstract class AbstractServletClient extends HttpServlet {
                 // check for x-forwarded-for header, fix for bug 443
                 String proxiedHost = request.getHeader("x-forwarded-host");
                 if (proxiedHost != null) {
-                    if (proxiedHost.toLowerCase().indexOf(cookieDomain) == -1) {
+                    if (proxiedHost.toLowerCase().indexOf(resCookieDomain) == -1) {
                         resCookieDomain = null;
                     }
                 } else if ((host != null) &&
-                        host.toLowerCase().indexOf(cookieDomain) == -1) {
+                        host.toLowerCase().indexOf(resCookieDomain) == -1) {
                     resCookieDomain = null;
                 }
             }
@@ -234,93 +196,23 @@ public abstract class AbstractServletClient extends HttpServlet {
             // check if session cookie is present and valid, creating it if not.
             checkSessionCookie(request, response, reqtrans, resCookieDomain);
 
-            String browser = request.getHeader("User-Agent");
-
-            if (browser != null) {
-                reqtrans.set("http_browser", browser);
-            }
-           
-            String language = request.getHeader("Accept-Language");
-            
-            if (language != null) {
-                reqtrans.set("http_language", language);
-            } 
-            
-            String authorization = request.getHeader("authorization");
-
-            if (authorization != null) {
-                reqtrans.set("authorization", authorization);
-            }
-
             // read and set http parameters
-            Map parameters = parseParameters(request, encoding);
+            parseParameters(request, reqtrans, encoding);
 
-            if (parameters != null) {
-                for (Iterator i = parameters.entrySet().iterator(); i.hasNext();) {
-                    Map.Entry entry = (Map.Entry) i.next();
-                    String key = (String) entry.getKey();
-                    String[] values = (String[]) entry.getValue();
-
-                    if ((values != null) && (values.length > 0)) {
-                        // set to single string value
-                        reqtrans.set(key, values[0]);
-
-                        if (values.length > 1) {
-                            // set string array
-                            reqtrans.set(key + "_array", values);
-                        }
-                    }
-                }
-            }
-
+            // read file uploads
             List uploads = null;
             ServletRequestContext reqcx = new ServletRequestContext(request);
 
             if (ServletFileUpload.isMultipartContent(reqcx)) {
                 // get session for upload progress monitoring
-                final UploadStatus uploadStatus = getApplication().getUploadStatus(reqtrans);
+                UploadStatus uploadStatus = getApplication().getUploadStatus(reqtrans);
                 try {
-                    // handle file upload
-                    DiskFileItemFactory factory = new DiskFileItemFactory();
-                    FileUpload upload = new FileUpload(factory);
-                    // use upload limit for individual file size, but also set a limit on overall size
-                    upload.setFileSizeMax(uploadLimit * 1024);
-                    upload.setSizeMax(totalUploadLimit * 1024);
-
-                    // register upload tracker with user's session
-                    if (uploadStatus != null) {
-                        upload.setProgressListener(new ProgressListener() {
-                            public void update(long bytesRead, long contentLength, int itemsRead) {
-                                uploadStatus.update(bytesRead, contentLength, itemsRead);
-                            }
-                        });
-                    }
-
-                    uploads = upload.parseRequest(reqcx);
-                    Iterator it = uploads.iterator();
-
-                    while (it.hasNext()) {
-                        FileItem item = (FileItem) it.next();
-                        String name = item.getFieldName();
-                        Object value;
-                        // check if this is an ordinary HTML form element or a file upload
-                        if (item.isFormField()) {
-                            value =  item.getString(encoding);
-                        } else {
-                            value = new MimePart(item);
-                        }
-                        // if multiple values exist for this name, append to _array
-                        if (reqtrans.get(name) != null) {
-                            appendFormValue(reqtrans, name, value);
-                        } else {
-                            reqtrans.set(name, value);
-                        }
-                    }
-
+                    uploads = parseUploads(reqcx, reqtrans, uploadStatus, encoding);
                 } catch (Exception upx) {
                     log("Error in file upload", upx);
                     String message;
-                    if (upx instanceof FileUploadBase.SizeLimitExceededException) {
+                    boolean tooLarge = (upx instanceof FileUploadBase.SizeLimitExceededException);
+                    if (tooLarge) {
                         message = "File upload size exceeds limit of " + uploadLimit + " kB";
                     } else {
                         message = upx.getMessage();
@@ -334,13 +226,11 @@ public abstract class AbstractServletClient extends HttpServlet {
 
                     if (uploadSoftfail || uploadStatus != null) {
                         reqtrans.set("helma_upload_error", message);
-                    } else if (upx instanceof FileUploadBase.SizeLimitExceededException) {
-                        sendError(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
-                                "Error in file upload: " + message);
-                        return;
                     } else {
-                        sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                                "Error in file upload: " + message);
+                        int errorCode = tooLarge ?
+                                HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE:
+                                HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+                        sendError(response, errorCode, "Error in file upload: " + message);
                         return;
                     }
                 }
@@ -412,13 +302,15 @@ public abstract class AbstractServletClient extends HttpServlet {
         } else {
             if (!hopres.isCacheable() || !caching) {
                 // Disable caching of response.
-                // for HTTP 1.0
-                res.setDateHeader("Expires", System.currentTimeMillis() - 10000);
-                res.setHeader("Pragma", "no-cache");
-
-                // for HTTP 1.1
-                res.setHeader("Cache-Control",
-                              "no-cache, no-store, must-revalidate, max-age=0");
+                if (isOneDotOne(req.getProtocol())) {
+                    // for HTTP 1.1
+                    res.setHeader("Cache-Control",
+                                  "no-cache, no-store, must-revalidate, max-age=0");
+                } else {
+                    // for HTTP 1.0
+                    res.setDateHeader("Expires", System.currentTimeMillis() - 10000);
+                    res.setHeader("Pragma", "no-cache");
+                }
             }
 
             if (hopres.getRealm() != null) {
@@ -609,30 +501,6 @@ public abstract class AbstractServletClient extends HttpServlet {
         return false;
     }
 
-    /**
-     * Used to build the form value array when a multipart (file upload) form has
-     * multiple values for one form element name.
-     * 
-     * @param reqtrans
-     * @param name
-     * @param value
-     */
-    private void appendFormValue(RequestTrans reqtrans, String name, Object value) {
-        String arrayName = name + "_array";
-        try {
-            Object[] values = (Object[]) reqtrans.get(arrayName);
-            if (values == null) {
-                reqtrans.set(arrayName, new Object[] {reqtrans.get(name), value});
-            } else {
-                Object[] newValues = new Object[values.length + 1];
-                System.arraycopy(values, 0, newValues, 0, values.length);
-                newValues[values.length] = value;
-                reqtrans.set(arrayName, newValues);
-            }
-        } catch (ClassCastException x) {
-            // name_array is defined as something else in the form - don't overwrite it
-        }
-    }
 
     /**
      *  Check if the session cookie is set and valid for this request.
@@ -726,7 +594,46 @@ public abstract class AbstractServletClient extends HttpServlet {
         map.put(name, newValues);
     }
 
-    protected Map parseParameters(HttpServletRequest request, String encoding)
+    protected List parseUploads(ServletRequestContext reqcx, RequestTrans reqtrans,
+                                final UploadStatus uploadStatus, String encoding)
+            throws FileUploadException, UnsupportedEncodingException {
+        // handle file upload
+        DiskFileItemFactory factory = new DiskFileItemFactory();
+        FileUpload upload = new FileUpload(factory);
+        // use upload limit for individual file size, but also set a limit on overall size
+        upload.setFileSizeMax(uploadLimit * 1024);
+        upload.setSizeMax(totalUploadLimit * 1024);
+
+        // register upload tracker with user's session
+        if (uploadStatus != null) {
+            upload.setProgressListener(new ProgressListener() {
+                public void update(long bytesRead, long contentLength, int itemsRead) {
+                    uploadStatus.update(bytesRead, contentLength, itemsRead);
+                }
+            });
+        }
+
+        List uploads = upload.parseRequest(reqcx);
+        Iterator it = uploads.iterator();
+
+        while (it.hasNext()) {
+            FileItem item = (FileItem) it.next();
+            String name = item.getFieldName();
+            Object value;
+            // check if this is an ordinary HTML form element or a file upload
+            if (item.isFormField()) {
+                value =  item.getString(encoding);
+            } else {
+                value = new MimePart(item);
+            }
+            // if multiple values exist for this name, append to _array
+            reqtrans.addPostParam(name, value);
+        }
+        return uploads;
+    }
+
+    protected void parseParameters(HttpServletRequest request, RequestTrans reqtrans,
+                                  String encoding)
             throws IOException {
         // check if there are any parameters before we get started
         String queryString = request.getQueryString();
@@ -736,7 +643,7 @@ public abstract class AbstractServletClient extends HttpServlet {
                 && contentType.toLowerCase().startsWith("application/x-www-form-urlencoded");
 
         if (queryString == null && !isFormPost) {
-            return null;
+            return;
         }
 
         HashMap parameters = new HashMap();
@@ -744,6 +651,10 @@ public abstract class AbstractServletClient extends HttpServlet {
         // Parse any query string parameters from the request
         if (queryString != null) {
             parseParameters(parameters, queryString.getBytes(), encoding, false);
+            if (!parameters.isEmpty()) {
+                reqtrans.setParameters(parameters, false);
+                parameters.clear();
+            }
         }
 
         // Parse any posted parameters in the input stream
@@ -765,9 +676,11 @@ public abstract class AbstractServletClient extends HttpServlet {
 
             // is.close();
             parseParameters(parameters, buf, encoding, true);
+            if (!parameters.isEmpty()) {
+                reqtrans.setParameters(parameters, true);
+                parameters.clear();
+            }
         }
-
-        return parameters;
     }
 
     /**

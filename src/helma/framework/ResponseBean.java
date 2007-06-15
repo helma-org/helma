@@ -297,6 +297,43 @@ public class ResponseBean implements Serializable {
     }
 
     /**
+     * Proxy to HttpServletResponse.addHeader()
+     * @param name the header name
+     * @param value the header value
+     */
+    public void addHeader(String name, String value) {
+        res.addHeader(name, value);
+    }
+
+    /**
+     * Proxy to HttpServletResponse.addDateHeader()
+     * @param name the header name
+     * @param value the header value
+     */
+    public void addDateHeader(String name, Date value) {
+        res.addDateHeader(name, value);
+    }
+
+    /**
+     * Proxy to HttpServletResponse.setHeader()
+     * @param name the header name
+     * @param value the header value
+     */
+    public void setHeader(String name, String value) {
+        res.setHeader(name, value);
+    }
+
+    /**
+     * Proxy to HttpServletResponse.setDateHeader()
+     * @param name the header name
+     * @param value the header value
+     */
+    public void setDateHeader(String name, Date value) {
+        res.setDateHeader(name, value);
+    }
+
+
+    /**
      * Get the data map for the response
      *
      * @return the data object
