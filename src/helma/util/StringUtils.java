@@ -73,13 +73,13 @@ public class StringUtils {
 
     /**
      * Collect items of a string enumeration into a String array.
-     * @param enum an enumeration of strings
+     * @param en an enumeration of strings
      * @return the enumeration values as string array
      */
-    public static String[] collect(Enumeration enum) {
+    public static String[] collect(Enumeration en) {
         List list = new ArrayList();
-        while (enum.hasMoreElements()) {
-            list.add(enum.nextElement());
+        while (en.hasMoreElements()) {
+            list.add(en.nextElement());
         }
         return (String[]) list.toArray(new String[list.size()]);
     }
