@@ -48,4 +48,58 @@ public class SystemMap extends HashMap {
         super(map);
     }
 
+    /**
+     * @return A String representation of this map. The returned string is similar to
+     * the one returned by java.util.HashMap.toString(), but additionally displays
+     * Object arrays in a human friendly way.
+     */
+    public String toString() {
+        StringBuffer buf = new StringBuffer();
+        buf.append("{");
+
+        Iterator i = entrySet().iterator();
+            boolean hasNext = i.hasNext();
+            while (hasNext) {
+            Map.Entry e = (Map.Entry) (i.next());
+                Object key = e.getKey();
+                Object value = e.getValue();
+                append(buf, key);
+                buf.append("=");
+                append(buf, value);
+
+                hasNext = i.hasNext();
+                if (hasNext)
+                    buf.append(", ");
+            }
+
+        buf.append("}");
+        return buf.toString();
+    }
+
+    /**
+     * Display an object in a human friendly way, paying attention to avoid
+     * infinite recursion.
+     */
+    protected void append(StringBuffer buf, Object obj) {
+        if (obj == this) {
+            buf.append("(this Map)");
+        } else if (obj instanceof Object[]) {
+            Object[] array = (Object[]) obj;
+            if (array.length == 1) {
+                append(buf, array[0]);
+            } else {
+                buf.append("[");
+                for (int i = 0; i < array.length; i++) {
+                    append(buf, array[i]);
+                    if (i < array.length - 1)
+                        buf.append(",");
+                }
+                buf.append("]");
+            }
+        } else {
+            buf.append(obj);
+        }
+    }
+
+
 }
