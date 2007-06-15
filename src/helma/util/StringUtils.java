@@ -18,6 +18,9 @@ package helma.util;
 
 
 import java.util.StringTokenizer;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Utility class for String manipulation.
@@ -66,6 +69,19 @@ public class StringUtils {
      */
     public static char[] toCharArray(String str) {
         return str == null ? new char[0] : str.toCharArray();
+    }
+
+    /**
+     * Collect items of a string enumeration into a String array.
+     * @param enum an enumeration of strings
+     * @return the enumeration values as string array
+     */
+    public static String[] collect(Enumeration enum) {
+        List list = new ArrayList();
+        while (enum.hasMoreElements()) {
+            list.add(enum.nextElement());
+        }
+        return (String[]) list.toArray(new String[list.size()]);
     }
 
 }
