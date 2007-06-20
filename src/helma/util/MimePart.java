@@ -52,7 +52,7 @@ public class MimePart implements Serializable {
      * @param fileItem a commons fileupload file item
      */
     public MimePart(FileItem fileItem) {
-        name = fileItem.getName();
+        name = normalizeFilename(fileItem.getName());
         contentType = fileItem.getContentType();
         contentLength = (int) fileItem.getSize();
         if (fileItem.isInMemory()) {
