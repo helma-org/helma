@@ -73,7 +73,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
                                    "encodeXml", "encodeForm", "stripTags", "formatParagraphs",
                                    "getXmlDocument", "getHtmlDocument", "seal",
                                    "getDBConnection", "getURL", "write", "writeln",
-                                   "serialize", "deserialize",
+                                   "serialize", "deserialize", "defineLibraryScope",
                                    "wrapJavaMap", "unwrapJavaMap", "toJava"
                                };
 
@@ -365,6 +365,29 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         }
 
         return null;
+    }
+
+    /**
+     * Creates a libary namespace in the global scope.
+     *
+     * @param name the name of the libary namespace
+     * @deprecated should be implemented in JavaScript instead
+     */
+    public void defineLibraryScope(final String name) {
+        Object obj = get(name, this);
+        if (obj != NOT_FOUND) {
+            // put the property again to fool PropertyRecorder
+            // into believing it has been renewed
+            put(name, this, obj);
+            return;
+        }
+        ScriptableObject scope = new NativeObject() {
+            public String getClassName() {
+                return name;
+            }
+        };
+        scope.setPrototype(ScriptableObject.getObjectPrototype(this));
+        put(name, this, scope);
     }
 
     /**
