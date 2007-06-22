@@ -10,8 +10,8 @@
  *
  * $RCSfile: Html.js,v $
  * $Author: robert $
- * $Revision: 1.5 $
- * $Date: 2007/02/22 14:48:34 $
+ * $Revision: 1.6 $
+ * $Date: 2007/02/22 18:08:41 $
  */
 
 
@@ -86,7 +86,7 @@ helma.Html.isSelected = function(value, selectedValue) {
     if (selectedValue == null || value == null)
         return false;
     if (selectedValue instanceof Array)
-        return Array.contains(selectedValue, value);
+        return selectedValue.contains(value);
     return value == selectedValue;
 };
 
