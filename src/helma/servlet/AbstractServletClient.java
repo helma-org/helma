@@ -38,15 +38,6 @@ import org.apache.commons.fileupload.servlet.ServletRequestContext;
  */
 public abstract class AbstractServletClient extends HttpServlet {
 
-    // host on which Helma app is running
-    String host = null;
-
-    // port of Helma RMI server
-    int port = 0;
-
-    // RMI url of Helma app
-    String hopUrl;
-
     // limit to HTTP uploads per file in kB
     int uploadLimit = 1024;
 
@@ -187,9 +178,12 @@ public abstract class AbstractServletClient extends HttpServlet {
                     if (proxiedHost.toLowerCase().indexOf(resCookieDomain) == -1) {
                         resCookieDomain = null;
                     }
-                } else if ((host != null) &&
-                        host.toLowerCase().indexOf(resCookieDomain) == -1) {
-                    resCookieDomain = null;
+                } else {
+                    String host = (String) reqtrans.get("http_host");
+                    // http_host is guaranteed to be lower case 
+                    if (host != null && host.indexOf(resCookieDomain) == -1) {
+                        resCookieDomain = null;
+                    }
                 }
             }
 
