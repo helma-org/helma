@@ -8,10 +8,10 @@
  *
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
- * $RCSfile: helma.Image.js,v $
+ * $RCSfile: Image.js,v $
  * $Author: czv $
- * $Revision: 1.6 $
- * $Date: 2006/04/18 13:06:58 $
+ * $Revision: 1.2 $
+ * $Date: 2006/04/24 07:02:17 $
  */
 
 
@@ -41,8 +41,8 @@ helma.Image.getInfo = function(arg) {
 
     var inp, result;
     var info = new Packages.helma.image.ImageInfo();
-    // FIXME: we need a byte object for comparison
-    var b = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 1024);
+    // FIXME: we need a byte array for class comparison
+    var b = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 0);
 
     try {
         if (arg instanceof java.io.InputStream) {
