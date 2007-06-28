@@ -21,6 +21,7 @@ import helma.util.ResourceProperties;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Hashtable;
@@ -40,6 +41,8 @@ public class DbSource {
     private Hashtable dbmappings = new Hashtable();
     // compute hashcode statically because it's expensive and we need it often
     private int hashcode;
+    // thread local connection holder for non-transactor threads
+    private ThreadLocal connection;
 
     /**
      * Creates a new DbSource object.
@@ -65,11 +68,13 @@ public class DbSource {
      */
     public synchronized Connection getConnection()
             throws ClassNotFoundException, SQLException {
-        Connection con = null;
+        Connection con;
         Transactor tx = null;
         if (Thread.currentThread() instanceof Transactor) {
             tx = (Transactor) Thread.currentThread();
             con = tx.getConnection(this);
+        } else {
+            con = getThreadLocalConnection();
         }
 
         boolean fileUpdated = props.lastModified() > lastRead ||
@@ -84,9 +89,37 @@ public class DbSource {
             // System.err.println ("Created new Connection to "+url);
             if (tx != null) {
                 tx.registerConnection(this, con);
+            } else {
+                connection.set(con);
             }
         }
 
+        return con;
+    }
+
+    /**
+     * Used for connections not managed by a Helma transactor
+     * @return a thread local tested connection, or null
+     */
+    private Connection getThreadLocalConnection() {
+        if (connection == null) {
+            connection = new ThreadLocal();
+            return null;
+        }
+        Connection con = (Connection) connection.get();
+        if (con != null) {
+            // test if connection is still ok
+            try {
+                Statement stmt = con.createStatement();
+                stmt.execute("SELECT 1");
+                stmt.close();
+            } catch (SQLException sx) {
+                try {
+                    con.close();
+                } catch (SQLException ignore) {/* nothing to do */}
+                return null;
+            }
+        }
         return con;
     }
 
