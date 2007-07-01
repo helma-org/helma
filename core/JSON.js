@@ -10,8 +10,8 @@
  *
  * $RCSfile: JSON.js,v $
  * $Author: tobi $
- * $Revision: 1.1 $
- * $Date: 2006/07/24 17:09:23 $
+ * $Revision: 1.2 $
+ * $Date: 2006/07/24 17:18:52 $
  */
 
 
@@ -124,10 +124,18 @@
         }
     };
 
+    /**
+     * This method produces a JSON text from an object. 
+     * The object must not contain any cyclical references.
+     */
     Object.prototype.toJSON = function () {
         return s.object(this);
     };
 
+    /**
+     * This method produces a JSON text from an array. 
+     * The array must not contain any cyclical references.
+     */
     Array.prototype.toJSON = function () {
         return s.array(this);
     };
@@ -136,8 +144,12 @@
     Array.prototype.dontEnum("toJSON");
     return;
 })();
-   
 
+
+/**
+ * This method parses a JSON text to produce an object or
+ * array. It will return false if there is an error.
+ */
 String.prototype.parseJSON = function () {
     try {
         return !(/[^,:{}\[\]0-9.\-+Eaeflnr-u \n\r\t]/.test(this.replace(/"(\\.|[^"\\])*"/g, ''))) && eval('(' + this + ')');

@@ -10,8 +10,8 @@
  *
  * $RCSfile: Group.js,v $
  * $Author: tobi $
- * $Revision: 1.1 $
- * $Date: 2007/04/05 15:33:58 $
+ * $Revision: 1.2 $
+ * $Date: 2007/04/05 15:53:09 $
  */
 
 /**
@@ -26,9 +26,10 @@ if (!global.helma) {
 
 /**
  * Constructs a new helma.Group Object.
- * This is what is retrieved through groups.get(groupName),
+ * @class This is what is retrieved through groups.get(groupName),
  * wrapping the root object of each group tree.
  * @param {FIXME} javaGroup FIXME
+ * @constructor
  */
 helma.Group = function(javaGroup) {
     // private variable containing the wrapper object
@@ -130,9 +131,11 @@ helma.Group = function(javaGroup) {
 };
 
 /**
- * Constructs a new helma.Group.GroupObject. This class wraps the java GroupObject
+ * Constructs a new helma.Group.GroupObject. 
+ * @class This class wraps the java GroupObject
  * and provides several methods for retrieving and manipulating properties.
  * @param {Object} Instance of helma.extensions.helmagroups.GroupObject
+ * @constructor
  */
 helma.Group.GroupObject = function(javaGroupObject) {
     var helmagroups = Packages.helma.extensions.helmagroups;
@@ -571,7 +574,9 @@ helma.Group.GroupObject.GET_NONE = 6;
 helma.Group.GroupObject.DEFAULT_GET = helma.Group.GroupObject.GET_ALL;
 
 /**
- * this is mounted as "groups". the root for all groups started in this application
+ * This is mounted as "groups". 
+ * @class The root for all groups started in this application
+ * @constructor
  */
 helma.Group.Manager = function() {
     var helmagroups = Packages.helma.extensions.helmagroups;
