@@ -600,7 +600,7 @@ public class RequestTrans implements Serializable {
                 }
             }
             Object previous = super.get(key);
-            if (previous != null && (!(previous instanceof Object[]) || !(value instanceof Object[])))
+            if (previous != null && (previous instanceof Map || value instanceof Map))
                 throw new RuntimeException("Conflicting HTTP Parameters for '" + key + "'");
             return super.put(key, value);
         }
@@ -620,7 +620,7 @@ public class RequestTrans implements Serializable {
                 String partName = matcher.group(1);
                 return map.putInternal(partName, matcher, value);
             }
-            if (previous != null && (!(previous instanceof Object[]) || !(value instanceof Object[])))
+            if (previous != null && (previous instanceof Map || value instanceof Map))
                 throw new RuntimeException("Conflicting HTTP Parameters for '" + name + "'");
             return super.put(name, value);
         }
@@ -633,7 +633,6 @@ public class RequestTrans implements Serializable {
                     value = super.get(name.substring(0, name.length() - 6));
                     return value instanceof Object[] ? value : null;
                 } else if (name.endsWith("_cookie") && value == null) {
-                    System.err.println(" *** *** *** " + name.substring(0, name.length() - 7));
                     value = super.get(name.substring(0, name.length() - 7));
                     return value instanceof Cookie ? value : null;
                 } else if (value instanceof Object[]) {
