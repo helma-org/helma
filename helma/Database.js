@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Database.js,v $
- * $Author: hannes $
- * $Revision: 1.5 $
- * $Date: 2007/02/08 21:01:56 $
+ * $Author: michi $
+ * $Revision: 1.6 $
+ * $Date: 2007/06/05 13:20:28 $
  */
 
 /**
@@ -122,6 +122,7 @@ helma.Database = function(source) {
             for (var i=1; i<=max; i+=1) {
                 switch (types[i]) {
                     case Types.BIT:
+                    case Types.BOOLEAN:
                         row[metaData.getColumnLabel(i)] = resultSet.getBoolean(i);
                         break;
                     case Types.TINYINT:
