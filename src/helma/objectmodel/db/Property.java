@@ -455,7 +455,7 @@ public final class Property implements IProperty, Serializable, Cloneable, Compa
             return ((Boolean) value).booleanValue();
         }
 
-        if (type == INTEGER) {
+        if (type == INTEGER || type == FLOAT) {
             return !(0 == getIntegerValue());
         }
 
