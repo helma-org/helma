@@ -491,7 +491,8 @@ public class DatabaseObject {
                 int type = resultSetMetaData.getColumnType(index);
                 switch (type) {
                     case Types.BIT:
-                        return new Boolean(resultSet.getBoolean(index));
+                    case Types.BOOLEAN:
+                        return resultSet.getBoolean(index) ? Boolean.TRUE : Boolean.FALSE;
 
                     case Types.TINYINT:
                     case Types.BIGINT:

@@ -1724,6 +1724,7 @@ public final class NodeManager {
 
             switch (columns[i].getType()) {
                 case Types.BIT:
+                case Types.BOOLEAN:
                     newprop.setBooleanValue(rs.getBoolean(columnNumber));
 
                     break;
@@ -2045,6 +2046,7 @@ public final class NodeManager {
         } else {
             switch (columnType) {
                 case Types.BIT:
+                case Types.BOOLEAN:
                 case Types.TINYINT:
                 case Types.BIGINT:
                 case Types.SMALLINT:

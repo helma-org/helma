@@ -171,6 +171,7 @@ public class UpdateableSubnodeList extends OrderedSubnodeList {
                 return;
 
             case Types.BIT:
+            case Types.BOOLEAN:
             case Types.TINYINT:
             case Types.BIGINT:
             case Types.SMALLINT:
