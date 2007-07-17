@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Http.js,v $
- * $Author: robert $
- * $Revision: 1.5 $
- * $Date: 2007/04/23 12:10:07 $
+ * $Author: michi $
+ * $Revision: 1.6 $
+ * $Date: 2007/05/03 11:09:05 $
  */
 
 
@@ -39,6 +39,7 @@ if (!global.helma) {
  * @constructor
  */
 helma.Http = function() {
+    var self = this;
     var proxy = null;
     var content = "";
     var userAgent = "Helma Http Client";
@@ -51,6 +52,31 @@ helma.Http = function() {
     var timeout = {
         "connect": 0,
         "socket": 0
+    };
+    var maxResponseSize = null;
+
+    var responseHandler = function(connection, result) {
+       var input = new java.io.BufferedInputStream(connection.getInputStream());
+       var body = new java.io.ByteArrayOutputStream();
+       var buf = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 1024);
+       var len;
+       var currentSize = 0;
+       var maxResponseSize = self.getMaxResponseSize();
+       while ((len = input.read(buf)) > -1) {
+          body.write(buf, 0, len);
+          currentSize += len;
+          if (maxResponseSize && currentSize > maxResponseSize) {
+             throw new Error("Maximum allowed response size is exceeded");
+          }
+       }
+       input.close();
+       if (binaryMode) {
+          result.content = body.toByteArray();
+       } else {
+          result.content = result.charset ?
+                      body.toString(result.charset) :
+                      body.toString();
+       }
     };
 
     /** @private */
@@ -352,6 +378,36 @@ helma.Http = function() {
     };
 
     /**
+     * Sets the max allowed size for the response stream
+     * @param {Integer} Size in Byte
+     */
+    this.setMaxResponseSize = function(size) {
+        maxResponseSize = size;
+        return;
+     };
+
+    /**
+     * Returns the currently set max response size
+     * @returns The max responsesize
+     * @type Integer
+     * @see #setMaxResponseSize
+     */
+    this.getMaxResponseSize = function() {
+       return maxResponseSize;
+    };
+
+    /**
+     * Overloads the default response handler
+     * Use this do implement your own response handling, like storing the response directly to the harddisk
+     * The handler function gets two parameter, first is the Connection and second is the result object
+     * @param {function} Response handler function
+     */
+    this.setResponseHandler = function(callback) {
+       responseHandler = callback;
+       return;
+    };
+
+    /**
      * Executes a http request
      * @param {String} url The url to request
      * @param {Date|String} opt If this argument is a string, it is used
@@ -365,11 +421,13 @@ helma.Http = function() {
      * <li><code>message</code>: (String) An optional HTTP response message</li>
      * <li><code>length</code>: (Number) The content length of the response</li>
      * <li><code>type</code>: (String) The mimetype of the response</li>
+     * <li><code>charset</code>: (String) The character set of the response</li>
      * <li><code>encoding</code>: (String) An optional encoding to use with the response</li>
      * <li><code>lastModified</code>: (String) The value of the lastModified response header field</li>
      * <li><code>eTag</code>: (String) The eTag as received from the remote server</li>
      * <li><code>cookie</code>: (helma.Http.Cookie) An object containing the cookie parameters, if the remote
            server has set the "Set-Cookie" header field</li>
+     * <li><code>headers</code>: (java.util.Map) A map object containing the headers, access them using get("headername")
      * <li><code>content</code>: (String|ByteArray) The response received from the server. Can be either
            a string or a byte array (see #setBinaryMode)</li>
      * </ul>
@@ -393,6 +451,12 @@ helma.Http = function() {
                 conn.setIfModifiedSince(opt.getTime());
             else if ((typeof opt == "string") && (opt.length > 0))
                 conn.setRequestProperty("If-None-Match", opt);
+        }
+
+        var userinfo;
+        if (userinfo = url.getUserInfo()) {
+           userinfo = userinfo.split(/:/, 2);
+           this.setCredentials(userinfo[0], userinfo[1]);
         }
         if (credentials != null) {
             conn.setRequestProperty("Authorization", "Basic " + credentials);
@@ -435,16 +499,18 @@ helma.Http = function() {
             lastModified: null,
             eTag: conn.getHeaderField("ETag"),
             cookies: null,
+            headers: conn.getHeaderFields(),
             content: null,
         }
+
         // parse all "Set-Cookie" header fields into an array of
         // helma.Http.Cookie instances
-        var cookies = conn.getHeaderFields().get("Set-Cookie");
-        if (cookies != null) {
+        var setCookies = conn.getHeaderFields().get("Set-Cookie");
+        if (setCookies != null) {
             var arr = [];
             var cookie;
-            for (var i=0; i<cookies.size(); i++) {
-                if ((cookie = helma.Http.Cookie.parse(cookies.get(i))) != null) {
+            for (var i=0; i<setCookies.size(); i++) {
+                if ((cookie = helma.Http.Cookie.parse(setCookies.get(i))) != null) {
                     arr.push(cookie);
                 }
             }
@@ -454,31 +520,25 @@ helma.Http = function() {
         }
 
         var lastmod = conn.getLastModified();
-        if (lastmod)
+        if (lastmod) {
             result.lastModified = new Date(lastmod);
-    
+        }
+
+        if (maxResponseSize && result.length > maxResponseSize) {
+           throw new Error("Maximum allowed response size is exceeded");
+        }
+
+        if (result.type && result.type.indexOf("charset=") != -1) {
+           var charset = result.type.substring(result.type.indexOf("charset=") + 8);
+           charset = charset.replace('"', ' ').trim();
+           result.charset = charset;
+        }
+
         if (result.length != 0 && result.code == 200) {
-            var body = new java.io.ByteArrayOutputStream();
-            var input = new java.io.BufferedInputStream(conn.getInputStream());
-            var buf = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 1024);
-            var str;
-            while ((str = input.read(buf)) > -1) {
-                body.write(buf, 0, str);
+            responseHandler(conn, result);
+            if (result.content) {
+               result.length = result.content.length;
             }
-            input.close();
-            if (binaryMode) {
-                result.content = body.toByteArray();
-            } else {
-                var charset;
-                if (result.type && result.type.indexOf("charset=") != -1) {
-                    charset = result.type.substring(result.type.indexOf("charset=") + 8);
-                    charset = charset.replace('"', ' ').trim();
-                }
-                result.content = charset ?
-                            body.toString(charset) :
-                            body.toString();
-            }
-            result.length = result.content.length;
         }
         conn.disconnect();
         return result;
