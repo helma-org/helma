@@ -10,8 +10,8 @@
  *
  * $RCSfile: Http.js,v $
  * $Author: michi $
- * $Revision: 1.6 $
- * $Date: 2007/05/03 11:09:05 $
+ * $Revision: 1.7 $
+ * $Date: 2007/07/17 16:12:09 $
  */
 
 
@@ -149,6 +149,8 @@ helma.Http = function() {
      * @param {String|Object} stringOrObject The content of the request, which
      * can be either a string or an object. In the latter case all properties
      * and their values are concatenated into a single string.
+     * If a property is an array, then for each value the propertyname and value pair is added.
+     * If the name of an array property ends with "_array" then the _array part is removed.  
      */
     this.setContent = function(stringOrObject) {
         if (stringOrObject != null) {
@@ -157,11 +159,22 @@ helma.Http = function() {
                 var value;
                 for (var key in stringOrObject) {
                     value = stringOrObject[key];
-                    res.write(encodeURIComponent(key));
-                    res.write("=");
-                    res.write(encodeURIComponent(value));
-                    res.write("&");
-                }
+                    if (value instanceof Array) {
+                        if (key.substring(key.length - 6) == "_array") 
+                            key = key.substring(0,key.length - 6); 
+                        for (var i = 0; i < value.length; i++) {
+                            res.write(encodeURIComponent(key));
+                            res.write("=");
+                            res.write(encodeURIComponent(value[i]));
+                            res.write("&");
+                        }        
+                    } else {
+                       res.write(encodeURIComponent(key));
+                       res.write("=");
+                       res.write(encodeURIComponent(value));
+                       res.write("&");
+                    }
+                }               
                 content = res.pop();
                 content = content.substring(0, content.length-1);
             } else {
