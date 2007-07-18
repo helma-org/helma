@@ -30,6 +30,7 @@ public class HopObjectCtor extends FunctionObject {
     // static constructor property access
     boolean initialized;
     RhinoCore core;
+    Scriptable protoProperty;
 
     static Method hopObjCtor;
 
@@ -52,6 +53,7 @@ public class HopObjectCtor extends FunctionObject {
     public HopObjectCtor(String protoName, RhinoCore core, Scriptable prototype) {
         super(protoName, hopObjCtor, core.global);
         this.core = core;
+        this.protoProperty = prototype;
         // Scriptable ps = prototype.getParentScope();
         addAsConstructor(core.global, prototype);
         // prototype.setParentScope(ps);
@@ -122,7 +124,15 @@ public class HopObjectCtor extends FunctionObject {
         if (value instanceof Function) {
             // reset static function's parent scope, needed because of the way we compile
             // prototype code, using the prototype objects as scope
-            ((Function) value).setParentScope(core.global);
+            Scriptable scriptable = (Scriptable) value;
+            while (scriptable != null) {
+                Scriptable scope = scriptable.getParentScope();
+                if (scope == protoProperty) {
+                    scriptable.setParentScope(core.global);
+                    break;
+                }
+                scriptable = scope;
+            }
         }
         super.put(name, start, value);
     }

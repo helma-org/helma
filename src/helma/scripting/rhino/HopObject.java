@@ -696,9 +696,15 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
                 if (value instanceof Function) {
                     // reset function's parent scope, needed because of the way we compile
                     // prototype code, using the prototype objects as scope
-                    Function f = (Function) value;
-                    if (f.getParentScope() == this) 
-                        f.setParentScope(core.global);
+                    Scriptable scriptable = (Scriptable) value;
+                    while (scriptable != null) {
+                        Scriptable scope = scriptable.getParentScope();
+                        if (scope == this) {
+                            scriptable.setParentScope(core.global);
+                            break;
+                        }
+                        scriptable = scope;
+                    }
                 }
             }
             super.put(name, start, value);
