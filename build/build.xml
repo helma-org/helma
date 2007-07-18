@@ -243,13 +243,13 @@
         <!-- checkout the demo apps (and zip manage-app) -->
         <antcall target="package-apps" />
 
+        <!-- generate the framework and modules documentation -->
+        <antcall target="jsdocs" />
+
         <!-- create the main part of helma -->
         <antcall target="package-raw">
             <param name="distribution" value="main" />
         </antcall>
-
-        <!-- generate the framework and modules documentation -->
-        <antcall target="jsdocs" />
 
         <chmod perm="755">
             <fileset dir="${build.work}">
