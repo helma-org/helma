@@ -9,9 +9,9 @@
  * Copyright 1998-2005 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Date.js,v $
- * $Author: stefanp $
- * $Revision: 1.3 $
- * $Date: 2006/08/21 15:57:05 $
+ * $Author: hannes $
+ * $Revision: 1.4 $
+ * $Date: 2007/02/09 11:00:07 $
  */
 
 /**
@@ -29,7 +29,10 @@ Date.ISOFORMAT    = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
 
 /**
- * format a Date to a string
+ * Format a Date to a string.
+ * For details on the format pattern, see 
+ * http://java.sun.com/j2se/1.4.2/docs/api/java/text/SimpleDateFormat.html
+ * 
  * @param String Format pattern
  * @param Object Java Locale Object (optional)
  * @param Object Java TimeZone Object (optional)
