@@ -10,8 +10,8 @@
  *
  * $RCSfile: File.js,v $
  * $Author: czv $
- * $Revision: 1.5 $
- * $Date: 2007/03/14 10:11:24 $
+ * $Revision: 1.6 $
+ * $Date: 2007/07/31 19:50:05 $
  */
 
 
@@ -270,10 +270,12 @@ helma.File = function(path) {
     * List of all files within the directory represented by this File object.
     * <br /><br />
     * You may pass a RegExp Pattern to return just files matching this pattern.
+    * <br /><br />
+    * Example: var xmlFiles = dir.list(/.*\.xml/);
     * 
-    * @example var xmlFiles = dir.list(/.*\.xml/);
     * @param {RegExp} pattern as RegExp, optional pattern to test each file name against
     * @returns Array the list of file names
+    * @type Array
     */
    this.list = function(pattern) {
       if (self.isOpened())
