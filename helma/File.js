@@ -10,8 +10,8 @@
  *
  * $RCSfile: File.js,v $
  * $Author: czv $
- * $Revision: 1.4 $
- * $Date: 2007/02/07 23:37:23 $
+ * $Revision: 1.5 $
+ * $Date: 2007/03/14 10:11:24 $
  */
 
 
@@ -494,7 +494,7 @@ helma.File = function(path) {
     * value should always be checked to make sure that the 
     * rename operation was successful. 
     * 
-    * @param {String} toFile as String, new pathname for the named file
+    * @param {FileObject} toFile as FileObject of the new path
     * @returns true if the renaming succeeded; false otherwise
     * @type Boolean
     */
