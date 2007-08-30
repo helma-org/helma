@@ -10,8 +10,8 @@
  *
  * $RCSfile: File.js,v $
  * $Author: czv $
- * $Revision: 1.6 $
- * $Date: 2007/07/31 19:50:05 $
+ * $Revision: 1.7 $
+ * $Date: 2007/07/31 21:24:08 $
  */
 
 
@@ -68,7 +68,7 @@ helma.File = function(path) {
    var lastLine = null;
 
    var setError = function(e) {
-      this.lastError = e;
+      self.lastError = e;
    };
 
    this.lastError = null;
