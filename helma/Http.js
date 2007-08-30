@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Http.js,v $
- * $Author: michi $
- * $Revision: 1.7 $
- * $Date: 2007/07/17 16:12:09 $
+ * $Author: hannes $
+ * $Revision: 1.8 $
+ * $Date: 2007/07/18 12:05:12 $
  */
 
 
@@ -546,12 +546,25 @@ helma.Http = function() {
            charset = charset.replace('"', ' ').trim();
            result.charset = charset;
         }
-
         if (result.length != 0 && result.code == 200) {
             responseHandler(conn, result);
             if (result.content) {
                result.length = result.content.length;
             }
+            result.length = result.content.length;
+        } else {
+           var errorStream = conn.getErrorStream();
+           if (errorStream) {
+              var body = new java.io.ByteArrayOutputStream();
+              var input = new java.io.BufferedInputStream(errorStream);
+              var buf = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 1024);
+              var str;
+              while ((str = input.read(buf)) > -1) {
+                 body.write(buf, 0, str);
+              }
+              input.close();
+              result.error = body.toString();
+           }
         }
         conn.disconnect();
         return result;
