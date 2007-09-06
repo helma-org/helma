@@ -17,9 +17,9 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //
-// $Revision: 1.11 $
+// $Revision: 1.12 $
 // $Author: robert $
-// $Date: 2007/02/07 18:11:01 $
+// $Date: 2007/05/07 14:58:52 $
 //
 
 
@@ -50,11 +50,15 @@ helma.Search = function() {
     try {
         var c = java.lang.Class.forName("org.apache.lucene.analysis.Analyzer",
                                         true, app.getClassLoader());
-       // FIXME: add additional check for version, since we need >= 1.9
+        var pkg = Packages.org.apache.lucene.LucenePackage.get();
+        var version = parseFloat(pkg.getSpecificationVersion());
+        if (version < 2.2) {
+            throw "Incompatible version";
+        }
     } catch (e) {
-        throw("helma.Search needs lucene.jar in version > 1.9 \
+        throw "helma.Search needs lucene.jar in version >= 2.2 \
                in lib/ext or application directory \
-               [http://lucene.apache.org/]");
+               [http://lucene.apache.org/]";
     }
     return this;
 };
@@ -125,23 +129,24 @@ helma.Search.getAnalyzer = function(key) {
  * @constructor
  */
 helma.Search.QueryFilter = function(q) {
-    var wrappedFilter = new Packages.org.apache.lucene.search.QueryFilter(q.getQuery());
+    var filter = new Packages.org.apache.lucene.search.QueryFilter(q.getQuery());
 
     /**
      * Returns the wrapped filter instance
      * @type org.apache.lucene.search.QueryFilter
      */
     this.getFilter = function() {
-        return wrappedFilter;
-    };
-
-    /** @ignore */
-    this.toString = function() {
-        return wrappedFilter.toString();
+        return filter;
     };
 
     return this;
 };
+
+/** @ignore */
+helma.Search.QueryFilter.prototype.toString = function() {
+    return this.getFilter().toString();
+};
+
 
 
 /*********************************************
@@ -166,7 +171,7 @@ helma.Search.prototype.toString = function() {
  */
 helma.Search.prototype.getDirectory = function(dir, create) {
     if (!dir) {
-        throw("helma.Search.getDirectory(): insufficient arguments.");
+        throw "helma.Search.getDirectory(): insufficient arguments.";
     }
     var d;
     if (dir.constructor == String) {
@@ -174,10 +179,10 @@ helma.Search.prototype.getDirectory = function(dir, create) {
     } else if (dir.constructor == File || dir.constructor == helma.File) {
         d = new java.io.File(dir.getAbsolutePath());
     } else if (!((d = dir) instanceof java.io.File)) {
-        throw("helma.Search.getDirectory(): " + dir + " is not a valid argument.");
+        throw "helma.Search.getDirectory(): " + dir + " is not a valid argument.";
     }
     return Packages.org.apache.lucene.store.FSDirectory.getDirectory(d,
-               create == true ? true : !d.exists());
+               create === true || !d.exists());
 };
 
 /**
@@ -195,10 +200,10 @@ helma.Search.prototype.getRAMDirectory = function(dir) {
         } else if (dir.constructor == File || dir.constructor == helma.File) {
             d = new java.io.File(dir.getAbsolutePath());
         } else if (!((d = dir) instanceof java.io.File)) {
-            throw("helma.Search.getRAMDirectory(): " + dir + " is not a valid argument.");
+            throw "helma.Search.getRAMDirectory(): " + dir + " is not a valid argument.";
         }
         if (!d.exists()) {
-            throw("helma.Search.getRAMDirectory(): " + dir + " does not exist.");
+            throw "helma.Search.getRAMDirectory(): " + dir + " does not exist.";
         }
         return Packages.org.apache.lucene.store.RAMDirectory(d);
     }
@@ -220,7 +225,7 @@ helma.Search.prototype.getRAMDirectory = function(dir) {
  */
 helma.Search.prototype.createIndex = function(dir, analyzer) {
     if (!dir || !(dir instanceof Packages.org.apache.lucene.store.Directory)) {
-        throw("Index directory missing or invalid.");
+        throw "Index directory missing or invalid.";
     } else if (!analyzer) {
         // no analyzer given, use a StandardAnalyzer
         analyzer = helma.Search.getAnalyzer();
@@ -252,56 +257,26 @@ helma.Search.prototype.createIndex = function(dir, analyzer) {
 helma.Search.Index = function(directory, analyzer) {
 
     /**
-     * Tries to create a new IndexWriter or IndexModifier for up to the
-     * number of milliseconds defined in helma.Search.Index.LOCK_TIMEOUT.
-     * @private
-     */
-    var getWriterModifier = function(what, create) {
-        var waitFor, elapsed = 0;
-        while (elapsed < helma.Search.Index.LOCK_TIMEOUT) {
-            if (!this.isLocked()) {
-                return new Packages.org.apache.lucene.index[what](directory,
-                                   analyzer, create == true ? true : false);
-            } else {
-                waitFor = Math.round(Math.random() * 100) + 50;
-                java.lang.Thread.sleep(waitFor);
-                elapsed += waitFor;
-                app.logger.debug("[Thread " + java.lang.Thread.currentThread().getId()
-                                 + "] waiting for " + elapsed + "ms");
-            }
-        }
-        throw("Failed to create " + what + " due to active lock (Thread "
-              + java.lang.Thread.currentThread().getId() + ")");
-    };
-
-    /**
-     * Returns an IndexModifier instance for adding or deleting
-     * documents to resp. from the underlying index. If the
-     * index is currently locked this method will try for the next
-     * two seconds to create the IndexModifier, otherwise it will
-     * throw an error.
-     * @param {Boolean} create True to create the index (overwriting an
-     * existing index), false to append to an existing index.
-     * @returns An IndexModifier instance.
-     * @type org.apache.lucene.index.IndexModifier
-     */
-    this.getModifier = function(create) {
-        return getWriterModifier.call(this, "IndexModifier", create);
-    };
-
-    /**
      * Returns an IndexWriter instance that can be used to add documents to
      * the underlying index or to perform various other modifying operations.
      * If the index is currently locked this method will try for the next
      * two seconds to create the IndexWriter, otherwise it will
      * throw an error.
      * @param {Boolean} create True to create the index (overwriting an
-     * existing index), false to append to an existing index.
+     * existing index), false to append to an existing index. Defaults to false
+     * @param {Boolean} autoCommit Enables or disables auto commit (defaults to
+     * false)
      * @returns An IndexWriter instance.
      * @type org.apache.lucene.index.IndexWriter
      */
-    this.getWriter = function(create) {
-        return getWriterModifier.call(this, "IndexWriter", create);
+    this.getWriter = function(create, autoCommit) {
+        try {
+            return new Packages.org.apache.lucene.index.IndexWriter(directory,
+                               (autoCommit === true), analyzer, (create === true));
+        } catch (e) {
+            throw "Failed to get IndexWriter due to active lock (Thread "
+                  + java.lang.Thread.currentThread().getId() + ")";
+        }
     };
 
     /**
@@ -350,21 +325,14 @@ helma.Search.Index = function(directory, analyzer) {
 };
 
 /**
- * Constant containing the number of milliseconds
- * the index will try to create an IndexModifier or IndexWriter
- * in case it is currently locked.
- * @type Number
- */
-helma.Search.Index.LOCK_TIMEOUT = 2000;
-
-/**
  * Merges the indexes passed as argument into this one.
  * @param {org.apache.lucene.store.Directory} dir At least one
  * index director to add to this index.
  */
 helma.Search.Index.prototype.addIndexes = function(dir /* [, dir[, dir...] */) {
-    var dirs = java.lang.reflect.Array.newInstance(helma.Search.PKG.store.Directory,
-  	                                               arguments.length);
+    var dirs = java.lang.reflect.Array.newInstance(
+                    Packages.org.apache.lucene.store.Directory,
+  	                arguments.length);
     for (var i=0;i<arguments.length;i++) {
         dirs[i] = arguments[i];
     }
@@ -451,7 +419,7 @@ helma.Search.Index.prototype.getFieldNames = function() {
         // convert java array into javascript array
         var result = [];
         for (var i in coll) {
-            result[i] = coll[i];
+            result.push(coll[i]);
         }
         return result;
     } finally {
@@ -496,11 +464,11 @@ helma.Search.Index.prototype.close = function() {
  */
 helma.Search.Index.prototype.addDocument = function(doc) {
     try {
-        var modifier = this.getModifier();
-        modifier.addDocument(doc.getDocument());
+        var writer = this.getWriter();
+        writer.addDocument(doc.getDocument());
     } finally {
-        if (modifier != null) {
-            modifier.close();
+        if (writer != null) {
+            writer.close();
         }
     }
     return;
@@ -513,45 +481,43 @@ helma.Search.Index.prototype.addDocument = function(doc) {
  */
 helma.Search.Index.prototype.addDocuments = function(docs, mergeFactor) {
     try {
-        var modifier = this.getModifier();
+        var writer = this.getWriter();
         if (mergeFactor) {
-            modifier.setMergeFactor(mergeFactor);
+            writer.setMergeFactor(mergeFactor);
         }
         if (docs instanceof java.util.Hashtable || docs instanceof java.util.Vector) {
             var e = docs.elements();
             while (e.hasMoreElements()) {
-                modifier.addDocument(e.nextElement().getDocument());
+                writer.addDocument(e.nextElement().getDocument());
             }
         } else if (docs instanceof Array) {
-            for (var i=0;i<docs.length;i++) {
-                modifier.addDocument(docs[i].getDocument());
+            for (var i=0; i<docs.length; i+=1) {
+                writer.addDocument(docs[i].getDocument());
             }
         }
     } finally {
-        if (modifier != null) {
-            modifier.close();
+        if (writer != null) {
+            writer.close();
         }
     }
     return;
 };
 
 /**
- * Remove those documents from the index whose field-value
+ * Remove all documents from the index whose field-value
  * with the given name matches the passed value argument.
  * @param {String} fieldName The name of the field
  * @param {String} fieldValue The value of the field.
- * @returns The number of documents that have been deleted.
- * @type Number
  */
 helma.Search.Index.prototype.removeDocument = function(fieldName, fieldValue) {
     try {
-        var modifier = this.getModifier();
-        var term;
-        term = new Packages.org.apache.lucene.index.Term(fieldName, fieldValue);
-        return modifier.deleteDocuments(term);
+        var writer = this.getWriter();
+        var term = new Packages.org.apache.lucene.index.Term(fieldName,
+                           helma.Search.Document.Field.valueToString(fieldValue));
+        writer.deleteDocuments(term);
     } finally {
-        if (modifier != null) {
-            modifier.close();
+        if (writer != null) {
+            writer.close();
         }
     }
     return;
@@ -564,31 +530,31 @@ helma.Search.Index.prototype.removeDocument = function(fieldName, fieldValue) {
  * @param {java.util.Hashtable|java.util.Vector|Array} values
  * The values that define the documents that should be removed from
  * the index.
- * @returns An array containing the numbers of deleted documents
- * for each field value.
- * @type Array
  */
 helma.Search.Index.prototype.removeDocuments = function(fieldName, values) {
     try {
-        var modifier = this.getModifier();
-        var term, result = [];
+        var writer = this.getWriter();
+        var term, value;
         if (values instanceof java.util.Hashtable ||
                 values instanceof java.util.Vector) {
             var e = values.elements();
             while (e.hasMoreElements()) {
-                term = new Packages.org.apache.lucene.index.Term(fieldName, e.nextElement());
-                result.push(modifier.deleteDocuments(term));
+                value = e.nextElement();
+                term = new Packages.org.apache.lucene.index.Term(fieldName,
+                               helma.Search.Document.Field.valueToString(value));
+                writer.deleteDocuments(term);
             }
-            return result;
         } else if (values instanceof Array) {
             for (var i=0;i<values.length;i++) {
-                term = new Packages.org.apache.lucene.index.Term(fieldName, values[i]);
-                result.push(modifier.deleteDocuments(term));
+                value = values[i];
+                term = new Packages.org.apache.lucene.index.Term(fieldName,
+                               helma.Search.Document.Field.valueToString(value));
+                writer.deleteDocuments(term);
             }
         }
     } finally {
-        if (modifier != null) {
-            modifier.close();
+        if (writer != null) {
+            writer.close();
         }
     }
     return;
@@ -605,14 +571,13 @@ helma.Search.Index.prototype.removeDocuments = function(fieldName, values) {
  */
 helma.Search.Index.prototype.updateDocument = function(docObj, fieldName) {
     try {
-        var modifier = this.getModifier();
+        var writer = this.getWriter();
         var doc = docObj.getDocument();
         var term = new Packages.org.apache.lucene.index.Term(fieldName, doc.get(fieldName));
-        modifier.deleteDocuments(term);
-        modifier.addDocument(doc);
+        writer.updateDocument(term, doc);
     } finally {
-        if (modifier != null) {
-            modifier.close();
+        if (writer != null) {
+            writer.close();
         }
     }
     return;
@@ -670,20 +635,27 @@ helma.Search.Searcher.prototype.toString = function() {
  * @type Number
  */
 helma.Search.Searcher.prototype.search = function(query, filter) {
-    var PKG = Packages.org.apache.lucene.search;
+    var pkg = Packages.org.apache.lucene.search;
+    var searcher = this.getSearcher();
     var hits;
+    if (query instanceof helma.Search.Query) {
+       query = query.getQuery();
+    }
+    if (filter != null && filter instanceof helma.Search.QueryFilter) {
+       filter = filter.getFilter();
+    }
     if (this.sortFields != null && this.sortFields.size() > 0) {
-        var arr = java.lang.reflect.Array.newInstance(PKG.SortField, this.sortFields.size());
-        var sort = PKG.Sort(this.sortFields.toArray(arr));
+        var arr = java.lang.reflect.Array.newInstance(pkg.SortField, this.sortFields.size());
+        var sort = pkg.Sort(this.sortFields.toArray(arr));
         if (filter) {
-            hits = this.getSearcher().search(query.getQuery(), filter.getFilter(), sort);
+            hits = searcher.search(query, filter, sort);
         } else {
-            hits = this.getSearcher().search(query.getQuery(), sort);
+            hits = searcher.search(query, sort);
         }
     } else if (filter) {
-        hits = this.getSearcher().search(query.getQuery(), filter.getFilter());
+        hits = searcher.search(query, filter);
     } else {
-        hits = this.getSearcher().search(query.getQuery());
+        hits = searcher.search(query);
     }
     this.hits = new helma.Search.HitCollection(hits);
     return this.hits.length();
@@ -704,23 +676,23 @@ helma.Search.Searcher.prototype.search = function(query, filter) {
  * for an explanation.
  */
 helma.Search.Searcher.prototype.sortBy = function(fieldName /** type, reverse */) {
-    var PKG = Packages.org.apache.lucene.search;
+    var pkg = Packages.org.apache.lucene.search;
     if (!this.sortFields)
         this.sortFields = new java.util.Vector();
     var f = fieldName;
-    var t = PKG.SortField.AUTO;
+    var t = pkg.SortField.AUTO;
     var r = false;
     if (arguments.length == 3) {
-        t = PKG.SortField[arguments[1].toUpperCase()];
+        t = pkg.SortField[arguments[1].toUpperCase()];
         r = arguments[2];
     } else if (arguments.length == 2) {
         if (arguments[1].constructor == Boolean) {
             r = arguments[1];
         } else {
-            t = PKG.SortField[arguments[1].toUpperCase()];
+            t = pkg.SortField[arguments[1].toUpperCase()];
         }
     }
-    this.sortFields.add(new PKG.SortField(f, t, r));
+    this.sortFields.add(new pkg.SortField(f, t, r));
     return;
 };
 
@@ -753,6 +725,7 @@ helma.Search.HitCollection = function(hits) {
      */
     this.get = function(idx) {
         var doc = new helma.Search.Document(hits.doc(idx));
+        doc.id = hits.id(idx);
         doc.score = hits.score(idx);
         doc.rank = idx +1;
         return doc;
@@ -782,6 +755,10 @@ helma.Search.HitCollection = function(hits) {
     return this;
 };
 
+/** @ignore */
+helma.Search.HitCollection.prototype.toString = function() {
+   return "[HitCollection]";
+};
 
 /***********************************************
  ***** Q U E R Y   C O N S T R U C T O R S *****
@@ -901,7 +878,8 @@ helma.Search.BooleanQuery.prototype = new helma.Search.Query;
  * @param {org.apache.lucene.analysis.Analyzer} analyzer An analyzer to use
  */
 helma.Search.BooleanQuery.prototype.addTerm = function(field, str, clause, analyzer) {
-    if (arguments.length == 3 && arguments[2] instanceof Packages.org.apache.lucene.analysis.Analyzer) {
+    var pkg = Packages.org.apache.lucene;
+    if (arguments.length == 3 && arguments[2] instanceof pkg.analysis.Analyzer) {
         analyzer = arguments[2];
         clause = "or";
     }
@@ -909,22 +887,9 @@ helma.Search.BooleanQuery.prototype.addTerm = function(field, str, clause, analy
         analyzer = helma.Search.getAnalyzer();
     }
 
-    var q;
-    if (field instanceof Array) {
-        q = Packages.org.apache.lucene.queryParser.MultiFieldQueryParser.parse(str, field, analyzer);
-    } else {
-        q = Packages.org.apache.lucene.queryParser.QueryParser.parse(str, field, analyzer);
-    }
-    switch (clause) {
-        case "or":
-            this.getQuery().add(q, false, false);
-            break;
-        case "not":
-            this.getQuery().add(q, false, true);
-            break;
-        default:
-            this.getQuery().add(q, true, false);
-    }
+    var fields = (field instanceof Array) ? field : [field];
+    var parser = new pkg.queryParser.MultiFieldQueryParser(fields, analyzer);
+    this.addQuery(parser.parse(str), clause);
     return;
 };
 
@@ -934,16 +899,23 @@ helma.Search.BooleanQuery.prototype.addTerm = function(field, str, clause, analy
  * @param {String} clause Boolean clause ("or", "not", or "and", default is "and")
  */
 helma.Search.BooleanQuery.prototype.addQuery = function(q, clause) {
+    var pkg = Packages.org.apache.lucene;
+    var booleanClause;
+    if (q instanceof helma.Search.Query) {
+        q = q.getQuery();
+    }
     switch (clause) {
-        case "or":
-            this.getQuery().add(q.getQuery(), false, false);
+        case "and":
+            booleanClause = pkg.search.BooleanClause.Occur.MUST;
             break;
         case "not":
-            this.getQuery().add(q.getQuery(), false, true);
+            booleanClause = pkg.search.BooleanClause.Occur.MUST_NOT;
             break;
         default:
-            this.getQuery().add(q.getQuery(), true, false);
+            booleanClause = pkg.search.BooleanClause.Occur.SHOULD;
+            break;
     }
+    this.getQuery().add(q, booleanClause);
     return;
 };
 
@@ -994,7 +966,7 @@ helma.Search.PhraseQuery.prototype = new helma.Search.Query;
  */
 helma.Search.RangeQuery = function(field, from, to, inclusive) {
     if (!field)
-        throw("Missing field name in RangeQuery()");
+        throw "Missing field name in RangeQuery()";
     if (arguments.length < 4)
         inclusive = true;
     var t1 = from ? new Packages.org.apache.lucene.index.Term(field, from) : null;
@@ -1069,6 +1041,7 @@ helma.Search.WildcardQuery = function(field, str) {
 helma.Search.WildcardQuery.prototype = new helma.Search.Query;
 
 
+
 /***************************
  ***** D O C U M E N T *****
  ***************************/
@@ -1084,8 +1057,9 @@ helma.Search.WildcardQuery.prototype = new helma.Search.Query;
  * @constructor
  */
 helma.Search.Document = function(document) {
-    if (!document)
+    if (!document) {
         document = new Packages.org.apache.lucene.document.Document();
+    }
 
     /**
      * Returns the wrapped Lucene Document object
@@ -1101,90 +1075,65 @@ helma.Search.Document = function(document) {
 
 /**
  * Adds a field to this document.
- * @param {String} name The name of the field
+ * @param {String|helma.Search.Document.Field} name The name of the field, or
+ * an instance of {@link helma.Search.Document.Field}, in which case the other
+ * arguments are ignored.
  * @param {String} value The value of the field
- * @param {Object} param Optional parameter object containing the following properties:
+ * @param {Object} options Optional object containing the following properties
+ * (each of them is optional too):
  * <ul>
- * <li><code>store</code> (Boolean) defaults to true</li>
- * <li><code>index</code> (Boolean) defaults to true</li>
- * <li><code>tokenize</code> (Boolean) defaults to true</li>
+ * <li><code>store</code> (String) Defines whether and how the value is stored
+ * in the field. Accepted values are "no", "yes" and "compress" (defaults to "yes")</li>
+ * <li><code>index</code> (String) Defines whether and how the value is indexed
+ * in the field. Accepted values are "no", "tokenized", "unTokenized" and
+ * "noNorms" (defaults to "tokenized")</li>
+ * <li><code>termVector</code> (String) Defines if and how the fiels should have
+ * term vectors. Accepted values are "no", "yes", "withOffsets", "withPositions"
+ * and "withPositionsAndOffsets" (defaults to "no")</li>
  * </ul>
  */
-helma.Search.Document.prototype.addField = function(name, value, param) {
-    if (!param) {
-        param = {};
-    }
-    if (value != null) {
-        var pkg = Packages.org.apache.lucene.document;
-        if (value.constructor == Date) {
-            // Convert the value 
-            value = pkg.DateTools.timeToString(value.getTime(),
-                            pkg.DateTools.Resolution.MINUTE);
-        } else if (value.constructor != String) {
-            value = String(value);
+helma.Search.Document.prototype.addField = function(name, value, options) {
+    if (!name) {
+        throw "helma.Search: missing arguments to Document.addField";
+    } else if (arguments.length == 1) {
+        if (arguments[0] instanceof Packages.org.apache.lucene.document.Field) {
+            this.getDocument().add(arguments[0]);
+        } else if (arguments[0] instanceof helma.Search.Document.Field) {
+            this.getDocument().add(arguments[0].getField());
         }
-        var f = new pkg.Field(String(name),
-                              value,
-                              typeof(param.store) == "boolean" ? param.store : true,
-                              typeof(param.index) == "boolean" ? param.index : true,
-                              typeof(param.tokenize) == "boolean" ? param.tokenize : true);
-        this.getDocument().add(f);
+        return;
     }
+
+    // for backwards compatibility only
+    if (options != null) {
+        if (typeof(options.store) === "boolean") {
+            options.store = (options.store === true) ? "yes" : "no";
+        }
+        if (typeof(options.index) === "boolean") {
+            if (options.index === true) {
+                options.index = (options.tokenize === true) ? "tokenized" : "unTokenized";
+            } else {
+                options.index = "no";
+            }
+            delete options.tokenize;
+        }
+    }
+    this.addField(new helma.Search.Document.Field(name, value, options));
     return;
 };
 
 /**
- * Returns a single document field containing a value other than
- * a date object, for which you should use {@link #getDateField}.
+ * Returns a single document field.
  * @param {String} name The name of the field in this document object.
- * @returns An object containing the following properties:
- * <ul>
- * <li><code>name</code> (String) The name of the field</li>
- * <li><code>boost</code> (Int) The boost factor</li>
- * <li><code>indexed</code> (Boolean) True if the field is indexed, false otherwise</li>
- * <li><code>stored</code> (Boolean) True if the field is stored, false otherwise</li>
- * <li><code>tokenized</code> (Boolean) True if the field is tokenized, false otherwise</li>
- * <li><code>value</code> (String) The value of the field</li>
- * </ul>
- * @type Object
+ * @returns The field with the given name
+ * @type helma.Search.Document.Field
  */
 helma.Search.Document.prototype.getField = function(name) {
     var f = this.getDocument().getField(name);
     if (f != null) {
-        return {name: name,
-                boost: f.getBoost(),
-                indexed: f.isIndexed(),
-                stored: f.isStored(),
-                tokenized: f.isTokenized(),
-                value: f.stringValue()};
+        return new helma.Search.Document.Field(f);
    }
    return null;
-};
-
-/**
- * Returns the value of a single document field converted into a
- * Date object. For retrieving a value without this conversion
- * see {@link #getField}.
- * @param {String} name The name of the field in this document object.
- * @returns An object containing the following properties:
- * <ul>
- * <li><code>name</code> (String) The name of the field</li>
- * <li><code>boost</code> (Int) The boost factor</li>
- * <li><code>indexed</code> (Boolean) True if the field is indexed, false otherwise</li>
- * <li><code>stored</code> (Boolean) True if the field is stored, false otherwise</li>
- * <li><code>tokenized</code> (Boolean) True if the field is tokenized, false otherwise</li>
- * <li><code>value</code> (String) The value of the field as Date</li>
- * </ul>
- * @type Object
- * @see #getField
- */
-helma.Search.Document.prototype.getDateField = function(name) {
-    var result = this.getField(name);
-    if (result != null) {
-        // convert value to Date object
-        result.value = Packages.org.apache.lucene.document.DateTools.stringToDate(result.value);
-    }
-    return result;
 };
 
 /**
@@ -1193,12 +1142,22 @@ helma.Search.Document.prototype.getDateField = function(name) {
  * @type Array
  */
 helma.Search.Document.prototype.getFields = function() {
-    var e = this.getDocument().fields();
-    var result = [];
-    while (e.hasMoreElements()) {
-        result.push(this.getField(e.nextElement().name()));
+    var fields = this.getDocument().getFields();
+    var size = fields.size();
+    var result = new Array(size);
+    for (var i=0; i<size; i+=1) {
+        result[i] = this.getField(fields.get(i).name());
     }
     return result;
+};
+
+/**
+ * Removes all fields with the given name from this document
+ * @param {String} name The name of the field(s) to remove
+ */
+helma.Search.Document.prototype.removeField = function(name) {
+    this.getDocument().removeFields(name);
+    return;
 };
 
 /**
@@ -1221,7 +1180,223 @@ helma.Search.Document.prototype.setBoost = function(boost) {
 
 /** @ignore */
 helma.Search.Document.prototype.toString = function() {
-    return "[Document Object]";
+    return "[Document]";
+};
+
+
+/*********************
+ ***** F I E L D *****
+ *********************/
+
+
+/**
+ * Creates a new Field instance
+ * @class Instances of this class represent a single field
+ * @param {Object} name The name of the field
+ * @param {Object} value The value of the field
+ * @param {Object} options Optional object containing the following properties
+ * (each of them is optional too):
+ * <ul>
+ * <li><code>store</code> (String) Defines whether and how the value is stored
+ * in the field. Accepted values are "no", "yes" and "compress" (defaults to "yes")</li>
+ * <li><code>index</code> (String) Defines whether and how the value is indexed
+ * in the field. Accepted values are "no", "tokenized", "unTokenized" and
+ * "noNorms" (defaults to "tokenized")</li>
+ * <li><code>termVector</code> (String) Defines if and how the fiels should have
+ * term vectors. Accepted values are "no", "yes", "withOffsets", "withPositions"
+ * and "withPositionsAndOffsets" (defaults to "no")</li>
+ * </ul>
+ */
+helma.Search.Document.Field = function(name, value, options) {
+    var field;
+
+    /**
+     * Contains the name of the field
+     * @type String
+     */
+    this.name = undefined; // for documentation purposes only
+    this.__defineGetter__("name", function() {
+        return field.name();
+    });
+
+    /**
+     * Contains the string value of the field
+     * @type String
+     */
+    this.value = undefined; // for documentation purposes only
+    this.__defineGetter__("value", function() {
+        return field.stringValue();
+    });
+
+    /**
+     * Contains the value of the field converted into a date object.
+     * @type String
+     */
+    this.dateValue = undefined; // for documentation purposes only
+    this.__defineGetter__("dateValue", function() {
+        return Packages.org.apache.lucene.document.DateTools.stringToDate(this.value);
+    });
+
+    /**
+     * Returns the wrapped field instance
+     * @returns The wrapped field
+     * @type org.apache.lucene.document.Field
+     */
+    this.getField = function() {
+        return field;
+    };
+
+    /**
+     * Main constructor body
+     */
+    if (arguments.length == 1 && arguments[0] instanceof Packages.org.apache.lucene.document.Field) {
+        // calling the constructor with a single field argument is
+        // only used internally (eg. in Document.getFields())
+        field = arguments[0];
+    } else {
+        var pkg = Packages.org.apache.lucene.document.Field;
+        // default options
+        var store = pkg.Store.YES;
+        var index = pkg.Index.TOKENIZED;
+        var termVector = pkg.TermVector.NO;
+    
+        var opt;
+        if (options != null) {
+            if (options.store != null) {
+                opt = options.store.toUpperCase();
+                if (opt == "YES" || opt == "NO" || opt == "COMPRESS") {
+                    store = pkg.Store[opt];
+                } else {
+                    app.logger.warn("helma.Search: unknown field storage option '" +
+                                    options.store + "'");
+                }
+            }
+            if (options.index != null) {
+                opt = options.index.toUpperCase();
+                if (opt == "TOKENIZED" || opt == "NO") {
+                    index = pkg.Index[opt];
+                } else if (opt == "UNTOKENIZED") {
+                    index = pkg.Index.UN_TOKENIZED;
+                } else if (opt == "NONORMS") {
+                    index = pkg.Index.NO_NORMS;
+                } else {
+                    app.logger.warn("helma.Search: unknown field indexing option '" +
+                                    options.index + "'");
+                }
+            }
+            if (options.termVector != null) {
+                opt = options.termVector.toUpperCase();
+                if (opt == "NO" || opt == "YES") {
+                    termVector = pkg.TermVector[opt];
+                } else if (opt == "WITHOFFSETS") {
+                    termVector = pkg.TermVector.WITH_OFFSETS;
+                } else if (opt == "WITHPOSITIONS") {
+                    termVector = pkg.TermVector.WITH_POSITIONS;
+                } else if (opt == "WITHPOSITIONSANDOFFSETS") {
+                    termVector = pkg.TermVector.WITH_POSITIONS_OFFSETS;
+                } else {
+                    app.logger.warn("helma.Search: unknown field term vector option '" +
+                                    options.termVector + "'");
+                }
+            }
+        }
+
+        // construct the field instance and add it to this document
+        field = new Packages.org.apache.lucene.document.Field(
+                            name, helma.Search.Document.Field.valueToString(value),
+                            store, index, termVector);
+    }
+
+    return this;
+};
+
+/**
+ * Converts the value passed as argument to the appropriate string value. For
+ * null values this method returns an empty string.
+ * @param {Object} value The value to convert into a string
+ * @returns The value converted into a string
+ * @type String
+ */
+helma.Search.Document.Field.valueToString = function(value) {
+    var pkg = Packages.org.apache.lucene.document;
+    if (value != null) {
+        if (value.constructor === Date) {
+            return pkg.DateTools.timeToString(value.getTime(), pkg.DateTools.Resolution.MINUTE);
+        } else if (value.constructor !== String) {
+            return String(value);
+        }
+        return value;
+    }
+    return "";
+};
+
+/** @ignore */
+helma.Search.Document.Field.prototype.toString = function() {
+   return "[Field '" + this.name + "' (" + this.getField().toString() + ")]";
+};
+
+/**
+ * Returns the boost factor of this field.
+ * @returns The boost factor of this field
+ * @type Number
+ */
+helma.Search.Document.Field.prototype.getBoost = function() {
+    return this.getField().getBoost();
+};
+
+/**
+ * Sets the boost factor of this field.
+ * @param {Number} boost The boost factor of this field
+ */
+helma.Search.Document.Field.prototype.setBoost = function(boost) {
+    this.getField().setBoost(boost);
+    app.logger.debug("boost is now: " + this.getField().getBoost());
+    return;
+};
+
+/**
+ * Returns true if this field is indexed
+ * @returns True if this field's value is indexed, false otherwise
+ * @type Boolean
+ */
+helma.Search.Document.Field.prototype.isIndexed = function() {
+    return this.getField().isIndexed();
+};
+
+/**
+ * Returns true if this field's value is stored in compressed form in the index
+ * @returns True if this field's value is compressed, false otherwise
+ * @type Boolean
+ */
+helma.Search.Document.Field.prototype.isCompressed = function() {
+    return this.getField().isCompressed();
+};
+
+/**
+ * Returns true if this field's value is stored in the index
+ * @returns True if this field's value is stored, false otherwise
+ * @type Boolean
+ */
+helma.Search.Document.Field.prototype.isStored = function() {
+    return this.getField().isStored();
+};
+
+/**
+ * Returns true if this field's value is tokenized
+ * @returns True if this field's value is tokenized, false otherwise
+ * @type Boolean
+ */
+helma.Search.Document.Field.prototype.isTokenized = function() {
+    return this.getField().isTokenized();
+};
+
+/**
+ * Returns true if this field's term vector is stored in the index
+ * @returns True if this field's term vector is stored, false otherwise
+ * @type Boolean
+ */
+helma.Search.Document.Field.prototype.isTermVectorStored = function() {
+    return this.getField().isTermVectorStored();
 };
 
 
