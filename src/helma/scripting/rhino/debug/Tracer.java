@@ -8,7 +8,7 @@
  *
  * Copyright 1998-2003 Helma Software. All Rights Reserved.
  *
- * $RCSfile$
+ * $RCSfile: Tracer.java,v $
  * $Author$
  * $Revision$
  * $Date$
@@ -17,12 +17,16 @@
 package helma.scripting.rhino.debug;
 
 import helma.framework.ResponseTrans;
+import helma.util.HtmlEncoder;
 import org.mozilla.javascript.*;
 import org.mozilla.javascript.debug.*;
+import java.util.Stack;
+import java.util.ArrayList;
 
 public class Tracer implements Debugger {
 
     ResponseTrans res;
+    TracerFrame frame = null;
 
     /**
      *  Create a tracer that writes to this response object
@@ -37,11 +41,12 @@ public class Tracer implements Debugger {
     public void handleCompilationDone(Context cx, DebuggableScript script, String source) {}
 
     /**
-     *  Implementws getFrame in interface org.mozilla.javascript.debug.Debugger
+     *  Implements getFrame() in interface org.mozilla.javascript.debug.Debugger
      */
     public DebugFrame getFrame(Context cx, DebuggableScript script) {
         if (script.isFunction()) {
-            return new TracerFrame(script);
+            frame = new TracerFrame(script, frame);
+            return frame;
         }
         return null;
     }
@@ -61,10 +66,19 @@ public class Tracer implements Debugger {
 
     class TracerFrame implements DebugFrame {
 
+        TracerFrame parent;
+        ArrayList children = new ArrayList();
         DebuggableScript script;
+        int currentLine, depth = 0;
+        long time;
 
-        TracerFrame(DebuggableScript script) {
+        TracerFrame(DebuggableScript script, TracerFrame parent) {
             this.script = script;
+            this.parent = parent;
+            if (parent != null) {
+                parent.children.add(this);
+                depth = parent.depth + 1;
+            }
         }
 
         /**
@@ -74,20 +88,7 @@ public class Tracer implements Debugger {
         public void onEnter(Context cx, Scriptable activation, 
                             Scriptable thisObj, Object[] args) {
 
-            StringBuffer b = new StringBuffer("Trace: ");
-            b.append(Tracer.toString(script));
-            b.append("(");
-
-            for (int i = 0; i < args.length; i++) {
-                b.append(args[i]);
-
-                if (i < args.length - 1) {
-                    b.append(", ");
-                }
-            }
-
-            b.append(")");
-            res.debug(b.toString());
+            time = System.currentTimeMillis();
         }
 
         /**
@@ -100,13 +101,50 @@ public class Tracer implements Debugger {
         /**
          *  Called when the function or script for this frame is about to return.
          */
-        public void onExit(Context cx, boolean byThrow, Object resultOrException) {}
+        public void onExit(Context cx, boolean byThrow, Object resultOrException) {
+            time = System.currentTimeMillis() - time;
+            frame = parent;
+            if (parent == null)
+                render();
+        }
 
         /**
          *  Called when executed code reaches new line in the source.
          */
-        public void onLineChange(Context cx, int lineNumber) {}
-	
+        public void onLineChange(Context cx, int lineNumber) {
+            currentLine = lineNumber;
+        }
+
+        public void render() {
+            // Simplify Trace by dropping fast invocations. May be useful when looking
+            // looking for bottlenecks, but not when trying to find out wtf is going on
+            // if (time <= 1)
+            //     return;            
+            StringBuffer b = new StringBuffer("Trace: ");
+            for (int i = 0; i < depth; i++)
+                b.append(".&nbsp;");
+            b.append(Tracer.toString(script));
+            b.append("(");
+
+            /* for (int i = 0; i < args.length; i++) {
+               b.append(HtmlEncoder.encodeAll(ScriptRuntime.toString(args[i])));
+
+               if (i < args.length - 1) {
+                   b.append(", ");
+               }
+           } */
+
+            b.append(")");
+
+            b.append(" <b>");
+            b.append(time);
+            b.append(" millis</b>");
+
+            res.debug(b);
+
+            for (int i = 0; i < children.size(); i++)
+                ((TracerFrame) children.get(i)).render();
+        }
     }
 }
 
