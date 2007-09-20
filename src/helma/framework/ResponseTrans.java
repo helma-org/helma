@@ -362,13 +362,19 @@ public final class ResponseTrans extends Writer implements Serializable {
     public void debug(Object message) {
         if (debugBuffer == null) {
             debugBuffer = new StringBuffer();
+            debugBuffer.append("<a href=\"#helma-debug-area\" name=\"helma-debug-area\" ");
+            debugBuffer.append("class=\"helma-debug-link\" style=\"font-size: small;\" onclick=\"");
+            debugBuffer.append("var s = this.nextSibling.style; s.display = s.display == 'none' ?  '' : 'none'; return true;");
+            debugBuffer.append("\">[toggle debug info]</a>");
+            debugBuffer.append("<div id=\"helma-debug-area\" style=\"display: none; border-top: 1px solid black;\">");
         }
 
         String str = (message == null) ? "null" : message.toString();
 
-        debugBuffer.append("<p><span style=\"background: yellow; color: black\">");
+        debugBuffer.append("<div class=\"helma-debug-line\" style=\"background: yellow; ");
+        debugBuffer.append("color: black; border-bottom: 1px solid black;\">");
         debugBuffer.append(str);
-        debugBuffer.append("</span></p>");
+        debugBuffer.append("</div>");
     }
 
     /**
@@ -611,7 +617,10 @@ public final class ResponseTrans extends Writer implements Serializable {
         // only close if the response hasn't been closed yet
         if (response == null) {
             // if debug buffer exists, append it to main buffer
-            if (debugBuffer != null) {
+            if (contentType != null &&
+                    contentType.startsWith("text/html") && 
+                    debugBuffer != null) {
+                debugBuffer.append("</div>");
                 if (buffer == null) {
                     buffer = debugBuffer;
                 } else {
