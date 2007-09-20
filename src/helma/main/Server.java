@@ -8,7 +8,7 @@
  *
  * Copyright 1998-2003 Helma Software. All Rights Reserved.
  *
- * $RCSfile$
+ * $RCSfile: Server.java,v $
  * $Author$
  * $Revision$
  * $Date$
@@ -27,9 +27,7 @@ import org.apache.xmlrpc.*;
 import org.mortbay.http.*;
 import org.mortbay.http.ajp.*;
 import org.mortbay.util.InetAddrPort;
-import org.mortbay.util.LogSink;
-import org.mortbay.util.MultiException;
-import org.mortbay.util.Frame;
+
 import java.io.*;
 import java.rmi.registry.*;
 import java.rmi.server.*;
@@ -567,8 +565,6 @@ public class Server implements Runnable {
         try {
             if ((websrvPort != null) || (ajp13Port != null)) {
                 http = new HttpServer();
-                // plug helma server logger into Jetty
-                org.mortbay.util.Log.instance().add(new HelmaLogSink());
             }
 
             // start embedded web server if port is specified
@@ -690,7 +686,7 @@ public class Server implements Runnable {
         if (http != null) {
             try {
                 http.start();
-            } catch (MultiException m) {
+            } catch (Exception m) {
                 throw new RuntimeException("Error starting embedded web server", m);
             }
         }
@@ -885,37 +881,6 @@ public class Server implements Runnable {
      */
     public void stopApplication(String name) {
         appManager.stop(name);
-    }
-
-    /**
-     * Adapter class to use Helma Logging as Jetty LogSkin
-     */
-    class HelmaLogSink implements LogSink {
-
-        public String getOptions() {
-            return null;
-        }
-
-        public void log(String formattedLog) {
-            getLogger().info(formattedLog);
-        }
-
-        public void log(String tag, Object msg, Frame frame, long time) {
-            getLogger().info(msg);
-        }
-
-        public void setOptions(String options) {
-        }
-
-        public boolean isStarted() {
-            return true;
-        }
-
-        public void start() {
-        }
-
-        public void stop() {
-        }
     }
 }
 
