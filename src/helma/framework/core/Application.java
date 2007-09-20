@@ -1588,7 +1588,7 @@ public final class Application implements Runnable {
      */
     private void executeCronJobs() {
         // loop-local cron job data
-        List jobs = CronJob.parse(props);
+        List jobs = CronJob.parse(props.getSubProperties("cron."));
         Date date = new Date();
 
         jobs.addAll(customCronJobs.values());
