@@ -311,11 +311,15 @@ public final class Property implements IProperty, Serializable, Cloneable, Compa
     /**
      *
      *
-     * @param dbm ...
+     * @param rel the Relation
      */
-    public void convertToNodeReference(DbMapping dbm) {
+    public void convertToNodeReference(Relation rel) {
         if ((value != null) && !(value instanceof NodeHandle)) {
-            value = new NodeHandle(new DbKey(dbm, value.toString()));
+            if (rel.usesPrimaryKey()) {
+                value = new NodeHandle(new DbKey(rel.otherType, value.toString()));
+            } else {
+                value = new NodeHandle(new MultiKey(rel.otherType, rel.getKeyParts(node)));
+            }
         }
 
         type = NODE;

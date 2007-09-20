@@ -1207,6 +1207,11 @@ public final class Relation {
                         Property prop = home.getProperty(cnst.localProperty());
                         if (prop != null) {
                             child.set(crel.propName, prop.getValue(), prop.getType());
+                        } else {
+                            prop = child.getProperty(cnst.foreignProperty(child.getDbMapping()));
+                            if (prop != null) {
+                                home.set(cnst.localProperty(), prop.getValue(), prop.getType());
+                            }
                         }
                     }
                 }

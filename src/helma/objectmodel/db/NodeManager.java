@@ -303,7 +303,7 @@ public final class NodeManager {
             return null;
         } else {
             // update primary key in cache to keep it from being flushed, see above
-            if (!rel.usesPrimaryKey()) {
+            if (!rel.usesPrimaryKey() && node.getState() != Node.TRANSIENT) {
                 synchronized (cache) {
                     Node old = (Node) cache.put(node.getKey(), node);
 
@@ -1870,7 +1870,7 @@ public final class NodeManager {
                 // if the property is a pointer to another node, change the property type to NODE
                 if (rel.isReference() && rel.usesPrimaryKey()) {
                     // FIXME: References to anything other than the primary key are not supported
-                    prop.convertToNodeReference(rel.otherType);
+                    prop.convertToNodeReference(rel);
                 }
                 propMap.put(rel.propName.toLowerCase(), prop);
             }

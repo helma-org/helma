@@ -1781,7 +1781,7 @@ public final class Node implements INode, Serializable {
             if (rel != null) {
                 // Is a relational node stored by id but things it's a string or int. Fix it.
                 if (rel.otherType != null && prop.getType() != Property.NODE) {
-                    prop.convertToNodeReference(rel.otherType);
+                    prop.convertToNodeReference(rel);
                 }
                 if (rel.isVirtual()) {
                     // property was found in propMap and is a collection - this is
