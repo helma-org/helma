@@ -187,11 +187,8 @@ public class CronJob {
       Enumeration e = props.keys ();
       while (e.hasMoreElements ()) {
          String key = (String) e.nextElement ();
-         if (!key.startsWith ("cron."))
-            continue;
          try {
             StringTokenizer st = new StringTokenizer (key.trim(), ".");
-            st.nextElement ();
             String jobName = st.nextToken ();
              if (jobName == null || jobName.equals(""))
                 continue;
@@ -264,7 +261,7 @@ public class CronJob {
       if (value.equals("*")) {
          setAllYears(true);
       } else {
-         StringTokenizer st = new StringTokenizer(value.trim(), ",");
+         StringTokenizer st = new StringTokenizer(value.trim(), ", \t\r\n");
          while (st.hasMoreTokens()) {
             String s = st.nextToken();
             if (s.indexOf("-") != -1) {
@@ -285,7 +282,7 @@ public class CronJob {
       if (value.equals("*")) {
          setAllMonths(true);
       } else {
-         StringTokenizer st = new StringTokenizer(value.trim(), ",");
+         StringTokenizer st = new StringTokenizer(value.trim(), ", \t\r\n");
          while (st.hasMoreTokens()) {
             String m = st.nextToken();
             if (m.equalsIgnoreCase("january"))
@@ -320,7 +317,7 @@ public class CronJob {
       if (day.equals("*")) {
          setAllDays(true);
       } else {
-         StringTokenizer st = new StringTokenizer(day.trim(), ",");
+         StringTokenizer st = new StringTokenizer(day.trim(), ", \t\r\n");
          while (st.hasMoreTokens()) {
             String s = st.nextToken();
             if (s.indexOf("-") != -1) {
@@ -342,7 +339,7 @@ public class CronJob {
       if (weekday.equals("*")) {
          setAllWeekdays(true);
       } else {
-         StringTokenizer st = new StringTokenizer(weekday.trim(), ",");
+         StringTokenizer st = new StringTokenizer(weekday.trim(), ", \t\r\n");
          while (st.hasMoreTokens()) {
             String d = st.nextToken();
             if (d.equalsIgnoreCase("monday"))
@@ -368,7 +365,7 @@ public class CronJob {
       if (hour.equals("*")) {
          setAllHours(true);
       } else {
-         StringTokenizer st = new StringTokenizer(hour.trim (), ",");
+         StringTokenizer st = new StringTokenizer(hour.trim (), ", \t\r\n\"");
          while (st.hasMoreTokens()) {
             String s = st.nextToken();
             if (s.indexOf("-") != -1) {
@@ -390,7 +387,7 @@ public class CronJob {
       if (minute.equals("*")) {
          setAllMinutes(true);
       } else {
-         StringTokenizer st = new StringTokenizer(minute.trim (), ",");
+         StringTokenizer st = new StringTokenizer(minute.trim (), ", \t\r\n");
          while (st.hasMoreTokens()) {
             String s = st.nextToken();
             if (s.indexOf("-") != -1) {
