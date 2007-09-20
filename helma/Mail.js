@@ -143,12 +143,32 @@ helma.Mail = function(host, port) {
     };
 
     /**
+     * Returns the text buffer of this mail message
+     * @returns The text buffer of this mail message
+     * @type java.lang.StringBuffer
+     * @private
+     */
+    this.getBuffer = function() {
+        return buffer;
+    };
+
+    /**
+     * Returns the mime multipart object of this mail message
+     * @returns The mime multipart object of this mail message
+     * @type javax.mail.internet.MimeMultipart
+     * @private
+     */
+    this.getMultipart = function() {
+        return multipart;
+    };
+
+    /**
      * Sets username and password to use for SMTP authentication.
      * @param {String} uname The username to use
      * @param {String} pwd The password to use
      */
     this.setAuthentication = function(uname, pwd) {
-        if (username && password) {
+        if (uname && pwd) {
             username = uname;
             password = pwd;
             // enable smtp authentication
