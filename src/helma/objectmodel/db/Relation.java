@@ -906,11 +906,11 @@ public final class Relation {
                     if (columnName != null) {
                         DbMapping dbmap = nonvirtual.getDbMapping();
                         String propertyName = dbmap.columnNameToProperty(columnName);
-                        if (propertyName != null) {
-                            IProperty property = nonvirtual.get(propertyName);
-                            if (property != null) {
-                                value = property.getStringValue();
-                            }
+                        if (propertyName == null)
+                            propertyName = columnName;
+                        IProperty property = nonvirtual.get(propertyName);
+                        if (property != null) {
+                            value = property.getStringValue();
                         }
                         if (value == null) {
                             if (columnName.equalsIgnoreCase(dbmap.getIDField())) {
