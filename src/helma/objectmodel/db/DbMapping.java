@@ -310,9 +310,16 @@ public final class DbMapping {
                         // check if we're overwriting another relation
                         // if so, primitive relations get precendence to references
                         if (old != null) {
-                            app.logEvent("*** Duplicate mapping for " + typename + "." + rel.columnName);
-                            if (old.isPrimitive()) {
+                            if (rel.isPrimitive() && old.isPrimitive()) {
+                                app.logEvent("*** Duplicate mapping for " + typename + "." + rel.columnName);
+                            } else if (rel.isReference() && old.isPrimitive()) {
+                                // if a column is used both in a primitive and a reference mapping,
+                                // use primitive mapping as primary one and mark reference as
+                                // complex so it will be fetched separately
                                 d2p.put(old.columnName.toLowerCase(), old);
+                                rel.reftype = Relation.COMPLEX_REFERENCE;
+                            } else if (rel.isPrimitive() && old.isReference()) {
+                                old.reftype = Relation.COMPLEX_REFERENCE;
                             }
                         }
                     }
@@ -738,11 +745,11 @@ public final class DbMapping {
      * db-mapping with the right relations to create the group-by nodes
      */
     public synchronized DbMapping getGroupbyMapping() {
-        if ((subRelation == null) || (subRelation.groupby == null)) {
+        if ((subRelation == null)  && (parentMapping != null)) {
+            return parentMapping.getGroupbyMapping();
+        } else if (subRelation.groupby == null) {
             return null;
-        }
-
-        if (groupbyMapping == null) {
+        } else if (groupbyMapping == null) {
             initGroupbyMapping();
         }
 
