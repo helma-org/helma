@@ -33,6 +33,7 @@ public class MimePart implements Serializable {
     private Date lastModified;
     private String eTag;
     private FileItem fileItem;
+    private File file;
 
     /**
      * Creates a new MimePart object.
@@ -90,7 +91,7 @@ public class MimePart implements Serializable {
      * @return the mime part content as byte array
      */
     public byte[] getContent() {
-        if (content == null && fileItem != null) {
+        if (content == null && (fileItem != null || file != null)) {
             loadContent();
         }
         return content;
@@ -99,7 +100,7 @@ public class MimePart implements Serializable {
     private synchronized void loadContent() {
         content = new byte[contentLength];
         try {
-            InputStream in = fileItem.getInputStream();
+            InputStream in = getInputStream();
             int read = 0;
             while (read < contentLength) {
                 int r = in.read(content, read, contentLength - read);
@@ -108,7 +109,8 @@ public class MimePart implements Serializable {
                 read += r;
             }
             in.close();
-        } catch (IOException iox) {
+        } catch (Exception x) {
+            System.err.println("Error in MimePart.loadContent(): " + x);
             content = new byte[0];
         }
     }
@@ -119,10 +121,14 @@ public class MimePart implements Serializable {
      * @throws IOException an I/O related error occurred
      */
     public InputStream getInputStream() throws IOException {
-        if (fileItem != null) {
+        if (file != null && file.canRead()) {
+            return new FileInputStream(file);
+        } else if (fileItem != null) {
             return fileItem.getInputStream();
+        } else if (content != null) {
+            return new ByteArrayInputStream(content);
         } else {
-            return new ByteArrayInputStream(getContent());
+            return null;
         }
     }
 
@@ -202,7 +208,7 @@ public class MimePart implements Serializable {
      */
     public String writeToFile(String dir, String fname) {
         try {
-            File base = new File(dir);
+            File base = new File(dir).getAbsoluteFile();
 
             // make directories if they don't exist
             if (!base.exists()) {
@@ -226,18 +232,22 @@ public class MimePart implements Serializable {
                 }
             }
 
-            File file = new File(base, filename);
+            // set instance variable to the new file
+            file = new File(base, filename);
 
             if (fileItem != null) {
                 fileItem.write(file);
+                // null out fileItem, since calling write() may have moved the temp file
+                fileItem = null;
             } else {
                 FileOutputStream fout = new FileOutputStream(file);
                 fout.write(getContent());
                 fout.close();
             }
-
-            return filename;
+            // return absolute file path
+            return file.getPath();
         } catch (Exception x) {
+            System.err.println("Error in MimePart.writeToFile(): " + x);            
             return null;
         }
     }
