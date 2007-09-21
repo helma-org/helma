@@ -577,7 +577,7 @@ public class ImageWrapper {
      */
     public void saveAs(String filename, float quality, boolean alpha)
         throws IOException {
-        generator.write(this, filename, quality, alpha);
+        generator.write(this, checkFilename(filename), quality, alpha);
     }
     
     /**
@@ -659,5 +659,21 @@ public class ImageWrapper {
             return bi.getRaster().getSample(x, y, 0);
         else
             return bi.getRGB(x, y);
+    }
+
+    /**
+     * Utility method to be used by write().
+     * Converts file name to absolute path and creates parent directories.
+     * @param filename the file name
+     * @return the absolute path for the file name
+     * @throws IOException if missing directories could not be created
+     */
+    String checkFilename(String filename) throws IOException {
+        File file = new File(filename).getAbsoluteFile();
+        File parent = file.getParentFile();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            throw new IOException("Error creating directories for " + filename);
+        }
+        return file.getPath();
     }
 }
