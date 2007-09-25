@@ -17,6 +17,7 @@ package helma.framework.core;
 
 import helma.objectmodel.INode;
 import helma.objectmodel.db.Node;
+import helma.objectmodel.db.NodeHandle;
 import helma.scripting.ScriptingEngine;
 
 import java.util.*;
@@ -260,5 +261,74 @@ public class SessionManager {
             app.logError("error loading session data.", e);
         }
     }
+
+    /**
+     * Purge sessions that have not been used for a certain amount of time.
+     * This is called by run().
+     *
+     * @param lastSessionCleanup the last time sessions were purged
+     * @return the updated lastSessionCleanup value
+     */
+    protected long cleanupSessions(long lastSessionCleanup) {
+
+        long now = System.currentTimeMillis();
+        long sessionCleanupInterval = 60000;
+
+        // check if we should clean up user sessions
+        if ((now - lastSessionCleanup) > sessionCleanupInterval) {
+
+            // get session timeout
+            int sessionTimeout = 30;
+
+            try {
+                sessionTimeout = Math.max(0,
+                        Integer.parseInt(app.getProperty("sessionTimeout", "30")));
+            } catch (NumberFormatException nfe) {
+                app.logEvent("Invalid sessionTimeout setting: " + app.getProperty("sessionTimeout"));
+            }
+
+            RequestEvaluator thisEvaluator = null;
+
+            try {
+
+                thisEvaluator = app.getEvaluator();
+
+                Session[] sessionArray = (Session[]) sessions.values().toArray(new Session[0]);
+
+                for (int i = 0; i < sessionArray.length; i++) {
+                    Session session = sessionArray[i];
+
+                    session.pruneUploads();
+                    if ((now - session.lastTouched()) > (sessionTimeout * 60000)) {
+                        NodeHandle userhandle = session.userHandle;
+
+                        if (userhandle != null) {
+                            try {
+                                Object[] param = {session.getSessionId()};
+
+                                thisEvaluator.invokeInternal(userhandle, "onLogout", param);
+                            } catch (Exception x) {
+                                // errors should already be logged by requestevaluator, but you never know
+                                app.logError("Error in onLogout", x);
+                            }
+                        }
+
+                        discardSession(session);
+                    }
+                }
+            } catch (Exception cx) {
+                app.logEvent("Error cleaning up sessions: " + cx);
+                cx.printStackTrace();
+            } finally {
+                if (thisEvaluator != null) {
+                    app.releaseEvaluator(thisEvaluator);
+                }
+            }
+            return now;
+        } else {
+            return lastSessionCleanup;
+        }
+    }
+
 
 }

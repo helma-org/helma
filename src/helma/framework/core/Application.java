@@ -1479,7 +1479,7 @@ public final class Application implements Runnable {
 
                 // purge sessions
                 try {
-                    lastSessionCleanup = cleanupSessions(lastSessionCleanup);
+                    lastSessionCleanup = sessionMgr.cleanupSessions(lastSessionCleanup);
                 } catch (Exception x) {
                     logError("Error in session cleanup: " + x, x);
                 } catch (LinkageError x) {
@@ -1509,76 +1509,6 @@ public final class Application implements Runnable {
         }
 
         logEvent("Scheduler for " + name + " exiting");
-    }
-
-    /**
-     * Purge sessions that have not been used for a certain amount of time.
-     * This is called by run().
-     *
-     * @param lastSessionCleanup the last time sessions were purged
-     * @return the updated lastSessionCleanup value
-     */
-    private long cleanupSessions(long lastSessionCleanup) {
-
-        long now = System.currentTimeMillis();
-        long sessionCleanupInterval = 60000;
-
-        // check if we should clean up user sessions
-        if ((now - lastSessionCleanup) > sessionCleanupInterval) {
-
-            // get session timeout
-            int sessionTimeout = 30;
-
-            try {
-                sessionTimeout = Math.max(0,
-                        Integer.parseInt(props.getProperty("sessionTimeout",
-                                "30")));
-            } catch (NumberFormatException nfe) {
-                logEvent("Invalid sessionTimeout setting: " + props.getProperty("sessionTimeout"));
-            }
-
-            RequestEvaluator thisEvaluator = null;
-
-            try {
-
-                thisEvaluator = getEvaluator();
-
-                Map sessions = sessionMgr.getSessions();
-
-                Iterator it = sessions.values().iterator();
-                while (it.hasNext()) {
-                    Session session = (Session) it.next();
-
-                    session.pruneUploads();
-                    if ((now - session.lastTouched()) > (sessionTimeout * 60000)) {
-                        NodeHandle userhandle = session.userHandle;
-
-                        if (userhandle != null) {
-                            try {
-                                Object[] param = {session.getSessionId()};
-
-                                thisEvaluator.invokeInternal(userhandle, "onLogout", param);
-                            } catch (Exception x) {
-                                // errors should already be logged by requestevaluator, but you never know
-                                logError("Error in onLogout", x);
-                            }
-                        }
-
-                        sessionMgr.discardSession(session);
-                    }
-                }
-            } catch (Exception cx) {
-                logEvent("Error cleaning up sessions: " + cx);
-                cx.printStackTrace();
-            } finally {
-                if (thisEvaluator != null) {
-                    releaseEvaluator(thisEvaluator);
-                }
-            }
-            return now;
-        } else {
-            return lastSessionCleanup;
-        }
     }
 
     /**
