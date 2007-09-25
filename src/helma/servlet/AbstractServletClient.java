@@ -24,6 +24,8 @@ import helma.framework.core.Application;
 import helma.util.*;
 import java.io.*;
 import java.util.*;
+import java.security.SecureRandom;
+import java.security.NoSuchAlgorithmException;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
@@ -63,6 +65,11 @@ public abstract class AbstractServletClient extends HttpServlet {
     // soft fail on file upload errors by setting flag "helma_upload_error" in RequestTrans
     // if fals, an error response is written to the client immediately without entering helma
     boolean uploadSoftfail = false;
+
+    // Random number generator for session ids
+    Random random;
+    // whether the random number generator is secure
+    boolean secureRandom;
 
     /**
      * Init this servlet.
@@ -113,6 +120,20 @@ public abstract class AbstractServletClient extends HttpServlet {
 
         // generally disable response caching for clients?
         caching = !("false".equalsIgnoreCase(init.getInitParameter("caching")));
+
+        // Get random number generator for session ids
+        try {
+            random = SecureRandom.getInstance("SHA1PRNG");
+            secureRandom = true;
+        } catch (NoSuchAlgorithmException nsa) {
+            random = new Random();
+            secureRandom = false;
+        }
+        random.setSeed(random.nextLong() ^ System.currentTimeMillis()
+                                         ^ hashCode()
+                                         ^ Runtime.getRuntime().freeMemory());
+        random.nextLong();
+
     }
 
     /**
@@ -157,9 +178,8 @@ public abstract class AbstractServletClient extends HttpServlet {
 
                         if (sessionCookieName.equals(key)) {
                             reqtrans.setSession(reqCookies[i].getValue());
-                        } else {
-                            reqtrans.setCookie(key, reqCookies[i]);
-                        }               
+                        }
+                        reqtrans.setCookie(key, reqCookies[i]);
                     } catch (Exception badCookie) {
                         log("Error setting cookie", badCookie);
                     }
@@ -254,7 +274,8 @@ public abstract class AbstractServletClient extends HttpServlet {
                         Cookie c = resCookies[i].getCookie("/", resCookieDomain);
 
                         response.addCookie(c);
-                    } catch (Exception ignore) {
+                    } catch (Exception x) {
+                        getApplication().logEvent("Error adding cookie: " + x);
                     }
             }
 
@@ -351,7 +372,9 @@ public abstract class AbstractServletClient extends HttpServlet {
         writer.write("Error in application ");
         try {
             writer.write(getApplication().getName());
-        } catch (Exception besafe) {}
+        } catch (Exception besafe) {
+            // ignore
+        }
         writer.write("</h3>");
         writer.write(message);
         writer.write("</body></html>");
@@ -508,40 +531,46 @@ public abstract class AbstractServletClient extends HttpServlet {
         if (protectedSessionCookie) {
             // If protected session cookies are enabled we also force a new session
             // if the existing session id doesn't match the client's ip address
-            StringBuffer b = new StringBuffer();
-            addIPAddress(b, request.getRemoteAddr());
-            addIPAddress(b, request.getHeader("X-Forwarded-For"));
-            addIPAddress(b, request.getHeader("Client-ip"));
-            if (reqtrans.getSession() == null || !reqtrans.getSession().startsWith(b.toString())) {
-                response.addCookie(createSessionCookie(b, reqtrans, domain));
+            StringBuffer buffer = new StringBuffer();
+            addIPAddress(buffer, request.getRemoteAddr());
+            addIPAddress(buffer, request.getHeader("X-Forwarded-For"));
+            addIPAddress(buffer, request.getHeader("Client-ip"));
+            if (reqtrans.getSession() == null || !reqtrans.getSession().startsWith(buffer.toString())) {
+                response.addCookie(createSession(buffer.toString(), reqtrans, domain));
             }
         } else if (reqtrans.getSession() == null) {
-            response.addCookie(createSessionCookie(new StringBuffer(), reqtrans, domain));
+            response.addCookie(createSession("", reqtrans, domain));
         }
     }
 
     /**
      * Create a new session cookie.
      *
-     * @param b
-     * @param reqtrans
-     * @param domain
+     * @param prefix the session id prefix
+     * @param reqtrans the request object
+     * @param domain the cookie domain
      * @return the session cookie
      */
-    private Cookie createSessionCookie(StringBuffer b,
-                                       RequestTrans reqtrans,
-                                       String domain) {
-        b.append (Long.toString(Math.round(Math.random() * Long.MAX_VALUE) -
-                    System.currentTimeMillis(), 36));
-
-        reqtrans.setSession(b.toString());
-        Cookie cookie = new Cookie(sessionCookieName, reqtrans.getSession());
-
-        cookie.setPath("/");
-
-        if (domain != null) {
-            cookie.setDomain(domain);
+    private Cookie createSession(String prefix,
+                                 RequestTrans reqtrans,
+                                 String domain) {
+        Application app = getApplication();
+        String id = null;
+        while (id == null || app.getSession(id) != null) {
+            long l = secureRandom ?
+                    random.nextLong() : 
+                    random.nextLong() + Runtime.getRuntime().freeMemory() ^ hashCode();
+            if (l < 0)
+                l = -l;
+            id = prefix + Long.toString(l, 36);
         }
+
+        reqtrans.setSession(id);
+        Cookie cookie = new Cookie(sessionCookieName, id);
+        cookie.setPath("/");
+        if (domain != null)
+            cookie.setDomain(domain);
+
         return cookie;
     }
 
