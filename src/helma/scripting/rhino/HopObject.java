@@ -17,7 +17,6 @@
 package helma.scripting.rhino;
 
 import helma.framework.core.*;
-import helma.framework.ResponseTrans;
 import helma.framework.repository.Resource;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
@@ -33,7 +32,7 @@ import java.io.IOException;
  */
 public class HopObject extends ScriptableObject implements Wrapper, PropertyRecorder {
 
-    String className;
+    final String className;
     INode node;
     RhinoCore core;
 
@@ -48,9 +47,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * @param core the RhinoCore
      */
     protected HopObject(String className, RhinoCore core) {
-        this.className = className;
-        this.core = core;
-        setParentScope(core.global);
+        this(className, core, null, null);
     }
 
 
@@ -58,13 +55,17 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * Creates a new HopObject.
      *
      * @param className the className
+     * @param core the RhinoCore
+     * @param node the wrapped node
      * @param proto the object's prototype
      */
     protected HopObject(String className, RhinoCore core,
                         INode node, Scriptable proto) {
-        this(className, core);
+        this.className = className;
+        this.core = core;
         this.node = node;
-        setPrototype(proto);
+        if (proto != null)
+            setPrototype(proto);
         setParentScope(core.global);
     }
 
