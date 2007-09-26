@@ -889,40 +889,43 @@ public final class RhinoCore implements ScopeProvider {
 
                 recorder.stopRecording();
                 Set changedProperties = recorder.getChangeSet();
-                recorder.clearChangeSet();
 
-                // ignore all  properties that were defined before we started
-                // compilation. We won't manage these properties, even
-                // if they were set during compilation.
-                changedProperties.removeAll(predefinedProperties);
+                if (changedProperties != null) {
+                    recorder.clearChangeSet();
 
-                // remove all renewed properties from the previously compiled
-                // property names so we can remove those properties that were not
-                // renewed in this compilation
-                compiledProperties.removeAll(changedProperties);
+                    // ignore all  properties that were defined before we started
+                    // compilation. We won't manage these properties, even
+                    // if they were set during compilation.
+                    changedProperties.removeAll(predefinedProperties);
 
-                boolean isGlobal = "global".equals(frameworkProto.getLowerCaseName());
+                    // remove all renewed properties from the previously compiled
+                    // property names so we can remove those properties that were not
+                    // renewed in this compilation
+                    compiledProperties.removeAll(changedProperties);
 
-                Iterator it = compiledProperties.iterator();
-                while (it.hasNext()) {
-                    String key = (String) it.next();
-                    if (isGlobal && (prototypes.containsKey(key.toLowerCase())
-                            || "JavaPackage".equals(key))) {
-                        // avoid removing HopObject constructor
-                        predefinedProperties.add(key);
-                        continue;
+                    boolean isGlobal = "global".equals(frameworkProto.getLowerCaseName());
+
+                    Iterator it = compiledProperties.iterator();
+                    while (it.hasNext()) {
+                        String key = (String) it.next();
+                        if (isGlobal && (prototypes.containsKey(key.toLowerCase())
+                                || "JavaPackage".equals(key))) {
+                            // avoid removing HopObject constructor
+                            predefinedProperties.add(key);
+                            continue;
+                        }
+                        try {
+                            objProto.setAttributes(key, 0);
+                            objProto.delete(key);
+                        } catch (Exception px) {
+                            app.logEvent("Error unsetting property "+key+" on "+
+                                    frameworkProto.getName());
+                        }
                     }
-                    try {
-                        objProto.setAttributes(key, 0);
-                        objProto.delete(key);
-                    } catch (Exception px) {
-                        app.logEvent("Error unsetting property "+key+" on "+
-                                           frameworkProto.getName());
-                    }
+
+                    // update compiled properties
+                    compiledProperties = changedProperties;
                 }
-
-                // update compiled properties
-                compiledProperties = changedProperties;
             }
 
             // mark this type as updated again so it reflects
