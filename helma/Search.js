@@ -17,9 +17,9 @@
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //
-// $Revision: 1.12 $
-// $Author: robert $
-// $Date: 2007/05/07 14:58:52 $
+// $Revision$
+// $Author$
+// $Date$
 //
 
 

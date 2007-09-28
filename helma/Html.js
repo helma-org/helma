@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Html.js,v $
- * $Author: robert $
- * $Revision: 1.6 $
- * $Date: 2007/02/22 18:08:41 $
+ * $Author$
+ * $Revision$
+ * $Date$
  */
 
 

@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Group.js,v $
- * $Author: tobi $
- * $Revision: 1.2 $
- * $Date: 2007/04/05 15:53:09 $
+ * $Author$
+ * $Revision$
+ * $Date$
  */
 
 /**

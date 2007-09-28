@@ -9,9 +9,9 @@
  * Copyright 1998-2007 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Ftp.js,v $
- * $Author: hannes $
- * $Revision: 1.5 $
- * $Date: 2007/02/08 09:12:21 $
+ * $Author$
+ * $Revision$
+ * $Date$
  */
 
 

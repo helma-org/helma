@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Array.js,v $
- * $Author: czv $
- * $Revision: 1.2 $
- * $Date: 2006/04/24 07:02:17 $
+ * $Author$
+ * $Revision$
+ * $Date$
  */
 
 /**

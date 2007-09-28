@@ -9,9 +9,9 @@
  * Copyright 1998-2007 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Mail.js,v $
- * $Author: tobi $
- * $Revision: 1.7 $
- * $Date: 2007/03/15 09:54:56 $
+ * $Author$
+ * $Revision$
+ * $Date$
  */
 
 /**

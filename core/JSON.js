@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: JSON.js,v $
- * $Author: tobi $
- * $Revision: 1.2 $
- * $Date: 2006/07/24 17:18:52 $
+ * $Author$
+ * $Revision$
+ * $Date$
  */
 
 

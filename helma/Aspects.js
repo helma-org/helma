@@ -9,9 +9,9 @@
  * Copyright 1998-2007 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Aspects.js,v $
- * $Author: czv $
- * $Revision: 1.4 $
- * $Date: 2007/02/07 10:29:20 $
+ * $Author$
+ * $Revision$
+ * $Date$
  */
 
 

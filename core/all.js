@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: all.js,v $
- * $Author: tobi $
- * $Revision: 1.5 $
- * $Date: 2006/08/06 11:27:56 $
+ * $Author$
+ * $Revision$
+ * $Date$
  */
 
 // convenience SingleFileRepository to load all the 

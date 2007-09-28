@@ -9,9 +9,9 @@
  * Copyright 1998-2005 Helma Software. All Rights Reserved.
  *
  * $RCSfile: HopObject.js,v $
- * $Author: hannes $
- * $Revision: 1.5 $
- * $Date: 2007/05/10 13:45:34 $
+ * $Author$
+ * $Revision$
+ * $Date$
  */
 
 

@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Skin.js,v $
- * $Author: robert $
- * $Revision: 1.3 $
- * $Date: 2007/01/30 17:53:00 $
+ * $Author$
+ * $Revision$
+ * $Date$
  */
 
 

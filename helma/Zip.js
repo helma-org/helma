@@ -9,9 +9,9 @@
  * Copyright 1998-2006 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Zip.js,v $
- * $Author: hannes $
- * $Revision: 1.3 $
- * $Date: 2006/06/02 15:46:20 $
+ * $Author$
+ * $Revision$
+ * $Date$
  */
 
 /**
