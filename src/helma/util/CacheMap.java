@@ -286,14 +286,24 @@ public class CacheMap implements ObjectCache {
     /// Set the application to use for debug and profiling output
     public void init(Application app) {
         this.app = app;
-        int cacheSize = Integer.parseInt(app.getProperty("cachesize", "1000"));
-        setCapacity(cacheSize);
+        if (app != null) {
+            updateProperties(app.getProperties());
+        }
     }
 
     /// The app properties have been modified, reload settings
     public void updateProperties(Properties props) {
-        int cacheSize = Integer.parseInt(props.getProperty("cachesize", "1000"));
-        setCapacity(cacheSize);
+        try {
+            int cacheSize = Integer.parseInt(props.getProperty("cachesize", "1000"));
+            setCapacity(cacheSize);
+        } catch (Exception x) {
+            String message = "Invalid cachesize setting: " + props.getProperty("cachesize");
+            if (app != null) {
+                app.logError(message);
+            } else {
+                System.err.println(message);
+            }
+        }
     }
 
     public synchronized Object[] getCachedObjects() {
