@@ -39,7 +39,7 @@ public class CommandlineRunner {
      */
     public static void main(String[] args) throws Exception {
 
-        Config config = new Config();
+        ServerConfig config = new ServerConfig();
         String commandStr = null;
         Vector funcArgs = new Vector();
     

@@ -92,7 +92,7 @@ public class Server implements Runnable {
     /**
      * Constructs a new Server instance with an array of command line options.
      */
-    public Server(Config config) {
+    public Server(ServerConfig config) {
         server = this;
         starttime = System.currentTimeMillis();
 
@@ -114,7 +114,7 @@ public class Server implements Runnable {
     public static void main(String[] args) {
         checkJavaVersion();
 
-        Config config = null;
+        ServerConfig config = null;
         try {
             config = getConfig(args);
         } catch (Exception cex) {
@@ -162,12 +162,12 @@ public class Server implements Runnable {
     /**
       * parse the command line arguments, read a given server.properties file
       * and check the values given for server ports
-      * @return Config if successfull
+      * @return ServerConfig if successfull
       * @throws Exception on any configuration error
       */
-    public static Config getConfig(String[] args) throws Exception {
+    public static ServerConfig getConfig(String[] args) throws Exception {
 
-        Config config = new Config();
+        ServerConfig config = new ServerConfig();
 
         // get possible environment setting for helma home
         if (System.getProperty("helma.home")!=null) {
@@ -220,11 +220,11 @@ public class Server implements Runnable {
 
     /**
       * parse argument list from command line and store values
-      * in given Config object
+      * in given ServerConfig object
       * @throws Exception when argument can't be parsed into an InetAddrPort
       * or invalid token is given.
       */
-    public static void parseArgs(Config config, String[] args) throws Exception {
+    public static void parseArgs(ServerConfig config, String[] args) throws Exception {
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("-h") && ((i + 1) < args.length)) {
                 config.homeDir = new File(args[++i]);
@@ -268,7 +268,7 @@ public class Server implements Runnable {
       * get main property file from home dir or vice versa,
       * depending on what we have
       */
-    public static void guessConfig(Config config) throws Exception {
+    public static void guessConfig(ServerConfig config) throws Exception {
         // get property file from hopHome:
         if (config.propFile == null) {
             if (config.homeDir != null) {
@@ -347,7 +347,7 @@ public class Server implements Runnable {
      *  Check wheter a server is already running on any of the given ports
      *  - otherwise exit with an error message
      */
-    public static void checkRunning(Config config) {
+    public static void checkRunning(ServerConfig config) {
         // check if any of the specified server ports is in use already
         try {
             if (config.websrvPort != null) {
@@ -420,8 +420,7 @@ public class Server implements Runnable {
         // set the current working directory to the helma home dir.
         // note that this is not a real cwd, which is not supported
         // by java. It makes sure relative to absolute path name
-        // conversion is done right, so for Helma code, this should
-        // work.
+        // conversion is done right, so for Helma code, this should work.
         System.setProperty("user.dir", hopHome.getPath());
 
         // from now on it's safe to call getLogger() because hopHome is set up

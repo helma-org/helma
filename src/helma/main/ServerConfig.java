@@ -23,7 +23,7 @@ import java.io.File;
  * Utility class for server config
  */
  
-public class Config {
+public class ServerConfig {
 
     InetAddrPort rmiPort    = null;
     InetAddrPort xmlrpcPort = null;
