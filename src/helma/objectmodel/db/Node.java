@@ -789,13 +789,18 @@ public final class Node implements INode, Serializable {
                         if (pn2 == null) {
                             getApp().logError("Error: Can't retrieve parent node " +
                                                    pinfo + " for " + this);
+                        } else if (pinfo.collectionname != null) {
+                            pn2 = (Node) pn2.getNode(pinfo.collectionname);
                         } else if (pn2.equals(this)) {
+                            // a special case we want to support: virtualname is actually
+                            // a reference to this node, not a collection containint this node.
                             setParent(pn);
                             name = pinfo.virtualname;
                             anonymous = false;
                             return pn;
                         }
-                        pn = pn2;                        
+
+                        pn = pn2;
                     }
 
                     DbMapping dbm = (pn == null) ? null : pn.getDbMapping();
@@ -952,11 +957,11 @@ public final class Node implements INode, Serializable {
             }
 
             // check if subnode accessname is set. If so, check if another node
-            // uses the same access name and remove it
-            if ((dbmap != null) && (node.dbmap != null)) {
+            // uses the same access name, throwing an exception if so.
+            if (dbmap != null && node.dbmap != null) {
                 Relation prel = dbmap.getSubnodeRelation();
 
-                if ((prel != null) && (prel.accessName != null)) {
+                if (prel != null && prel.accessName != null) {
                     Relation localrel = node.dbmap.columnNameToRelation(prel.accessName);
 
                     // if no relation from db column to prop name is found,
@@ -965,15 +970,14 @@ public final class Node implements INode, Serializable {
                                                          : localrel.propName;
                     String prop = node.getString(propname);
 
-                    if ((prop != null) && (prop.length() > 0)) {
+                    if (prop != null && prop.length() > 0) {
                         INode old = (INode) getChildElement(prop);
 
-                        if ((old != null) && (old != node)) {
-                            // FIXME: we delete the existing node here,
-                            // but actually the app developer should prevent this from
-                            // happening, so it might be better to throw an exception.
-                            old.remove();
-                            this.removeNode(old);
+                        if (old != null && old != node) {
+                            // A node with this name already exists. This is a
+                            // programming error, throw an exception.
+                            throw new RuntimeException("An object named \"" + prop +
+                                "\" is already contained in the collection.");
                         }
 
                         if (state != TRANSIENT) {
@@ -2714,7 +2718,7 @@ public final class Node implements INode, Serializable {
      * @return the number of loaded nodes within this collection update
      */
     public int updateSubnodes () {
-        // FIXME: what do we do if dbmap is null
+        // TODO: what do we do if dbmap is null
         if (dbmap == null) {
             throw new RuntimeException (this + " doesn't have a DbMapping");
         }

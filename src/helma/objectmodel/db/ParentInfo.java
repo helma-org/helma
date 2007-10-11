@@ -16,6 +16,8 @@
 
 package helma.objectmodel.db;
 
+import helma.util.StringUtils;
+
 
 /**
  *  This class describes a parent relation between releational nodes.
@@ -23,38 +25,38 @@ package helma.objectmodel.db;
 public class ParentInfo {
     public final String propname;
     public final String virtualname;
+    public final String collectionname;
     public final boolean isroot;
 
     /**
      * Creates a new ParentInfo object.
      *
-     * @param desc ...
+     * @param desc a single parent info descriptor
      */
     public ParentInfo(String desc) {
 
         // [named] isn't used anymore, we just want to keep the parsing compatible.
         int n = desc.indexOf("[named]");
-        String d = n>-1 ? desc.substring(0, n) : desc;
+        desc = n > -1 ? desc.substring(0, n) : desc;
 
-        int dot = d.indexOf(".");
+        String[] parts = StringUtils.split(desc, ".");
 
-        if (dot > -1) {
-            propname = d.substring(0, dot).trim();
-            virtualname = d.substring(dot + 1).trim();
-        } else {
-            propname = d.trim();
-            virtualname = null;
-        }
+        propname = parts.length > 0 ? parts[0].trim() : null;
+        virtualname = parts.length > 1 ? parts[1].trim() : null;
+        collectionname = parts.length > 2 ? parts[2].trim() : null;
 
         isroot = "root".equalsIgnoreCase(propname);
     }
 
     /**
-     *
-     *
-     * @return ...
+     * @return a string representation of the parent info
      */
     public String toString() {
-        return "ParentInfo[" + propname + "," + virtualname + "]";
+        StringBuffer b = new StringBuffer("ParentInfo[").append(propname);
+        if (virtualname != null)
+            b.append(".").append(virtualname);
+        if (collectionname != null)
+            b.append(".").append(collectionname);
+        return b.append("]").toString();
     }
 }
