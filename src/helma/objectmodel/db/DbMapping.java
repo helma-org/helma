@@ -1231,6 +1231,21 @@ public final class DbMapping {
     }
 
     /**
+     * Is the database behind this a H2 db?
+     *
+     * @return true if the dbsource is using a H2 JDBC driver
+     */
+    public boolean isH2() {
+        if (dbSource != null) {
+            return dbSource.isH2();
+        }
+        if (parentMapping != null) {
+            return parentMapping.isH2();
+        }
+        return false;
+    }
+
+    /**
      * Return a string representation for this DbMapping
      *
      * @return a string representation

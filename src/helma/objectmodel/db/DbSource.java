@@ -36,7 +36,7 @@ public class DbSource {
     private ResourceProperties props, subProps;
     protected String url;
     private String driver;
-    private boolean isOracle, isMySQL, isPostgreSQL;
+    private boolean isOracle, isMySQL, isPostgreSQL, isH2;
     private long lastRead = 0L;
     private Hashtable dbmappings = new Hashtable();
     // compute hashcode statically because it's expensive and we need it often
@@ -165,6 +165,7 @@ public class DbSource {
         isMySQL = driver.startsWith("com.mysql.jdbc") ||
                   driver.startsWith("org.gjt.mm.mysql");
         isPostgreSQL = driver.equals("org.postgresql.Driver");
+        isH2 = driver.equals("org.h2.Driver");
         // test if driver class is available
         Class.forName(driver);
 
@@ -247,6 +248,16 @@ public class DbSource {
     public boolean isPostgreSQL() {
         return isPostgreSQL;
     }
+
+    /**
+     * Check if this DbSource represents a H2 database
+     *
+     * @return true if we're using a H2 JDBC driver
+     */
+    public boolean isH2() {
+        return isH2;
+    }
+
     /**
      * Register a dbmapping by its table name.
      *

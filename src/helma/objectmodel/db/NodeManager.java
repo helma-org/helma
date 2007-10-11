@@ -822,7 +822,7 @@ public final class NodeManager {
         if (map.isOracle()) {
             q = new StringBuffer("SELECT ").append(map.getIDgen())
                     .append(".nextval FROM dual").toString();
-        } else if (map.isPostgreSQL()) {
+        } else if (map.isPostgreSQL() || map.isH2()) {
             q = new StringBuffer("SELECT nextval('")
                     .append(map.getIDgen()).append("')").toString();
         } else {
