@@ -901,7 +901,9 @@ public final class Node implements INode, Serializable {
             markAs(MODIFIED);
         }
 
-        if ((node.state == CLEAN) || (node.state == DELETED)) {
+        // TODO this is a rather minimal fix for bug http://helma.org/bugs/show_bug.cgi?id=554
+        // - eventually we want to get rid of this code as a whole.
+        if (state != TRANSIENT && (node.state == CLEAN || node.state == DELETED)) {
             node.markAs(MODIFIED);
         }
 
