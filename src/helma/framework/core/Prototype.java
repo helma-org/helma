@@ -89,6 +89,7 @@ public final class Prototype {
         props = new ResourceProperties(app);
         if (repository != null) {
             props.addResource(repository.getResource("type.properties"));
+            props.addResource(repository.getResource(name + ".properties"));
         }
         dbmap = new DbMapping(app, name, props);
         // we don't need to put the DbMapping into proto.updatables, because
@@ -120,6 +121,7 @@ public final class Prototype {
         if (!repositories.contains(repository)) {
             repositories.add(repository);
             props.addResource(repository.getResource("type.properties"));
+            props.addResource(repository.getResource(name + ".properties"));
             if (update) {
                 RequestEvaluator eval = app.getCurrentRequestEvaluator();
                 ScriptingEngine engine = eval == null ? null : eval.scriptingEngine;
