@@ -20,7 +20,6 @@ import helma.framework.ResponseTrans;
 import helma.util.HtmlEncoder;
 import org.mozilla.javascript.*;
 import org.mozilla.javascript.debug.*;
-import java.util.Stack;
 import java.util.ArrayList;
 
 public class Tracer implements Debugger {
@@ -30,6 +29,7 @@ public class Tracer implements Debugger {
 
     /**
      *  Create a tracer that writes to this response object
+     * @param res the response object to write to
      */
     public Tracer(ResponseTrans res) {
         this.res = res;
@@ -106,6 +106,15 @@ public class Tracer implements Debugger {
             frame = parent;
             if (parent == null)
                 render();
+        }
+
+        /**
+         * Called when the function or script executes a 'debugger' statement.
+         *
+         * @param cx current Context for this thread
+         */
+        public void onDebuggerStatement(Context cx) {
+            // not implemented
         }
 
         /**
