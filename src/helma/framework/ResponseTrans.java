@@ -541,12 +541,14 @@ public final class ResponseTrans extends Writer implements Serializable {
             writeXmlRpcError(new RuntimeException(message));
         } else {
             status = 500;
-            write("<html><body><h3>");
-            write("Error in application ");
-            write(appName);
-            write("</h3>");
-            write(message);
-            write("</body></html>");
+            if (!"true".equalsIgnoreCase(app.getProperty("suppressErrorPage"))) {
+                write("<html><body><h3>");
+                write("Error in application ");
+                write(appName);
+                write("</h3>");
+                write(message);
+                write("</body></html>");
+            }
         }
     }
 

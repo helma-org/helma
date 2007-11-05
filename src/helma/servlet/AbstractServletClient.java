@@ -366,19 +366,21 @@ public abstract class AbstractServletClient extends HttpServlet {
         response.setStatus(code);
         response.setContentType("text/html");
 
-        Writer writer = response.getWriter();
+        if (!"true".equalsIgnoreCase(getApplication().getProperty("suppressErrorPage"))) {
+            Writer writer = response.getWriter();
 
-        writer.write("<html><body><h3>");
-        writer.write("Error in application ");
-        try {
-            writer.write(getApplication().getName());
-        } catch (Exception besafe) {
-            // ignore
+            writer.write("<html><body><h3>");
+            writer.write("Error in application ");
+            try {
+                writer.write(getApplication().getName());
+            } catch (Exception besafe) {
+                // ignore
+            }
+            writer.write("</h3>");
+            writer.write(message);
+            writer.write("</body></html>");
+            writer.flush();
         }
-        writer.write("</h3>");
-        writer.write(message);
-        writer.write("</body></html>");
-        writer.flush();
     }
 
     void sendRedirect(HttpServletRequest req, HttpServletResponse res, String url) {
