@@ -204,7 +204,7 @@ public class MimePart implements Serializable {
      * Write the mimepart to a file.
      *
      * @param dir the directory to write the file to
-     * @return the absolute path name of the file written, or null if an error occurred
+     * @return the name of the file written, or null if an error occurred
      */
     public String writeToFile(String dir, String fname) {
         try {
@@ -244,8 +244,8 @@ public class MimePart implements Serializable {
                 fout.write(getContent());
                 fout.close();
             }
-            // return absolute file path
-            return file.getPath();
+            // return file name
+            return filename;
         } catch (Exception x) {
             System.err.println("Error in MimePart.writeToFile(): " + x);            
             return null;
