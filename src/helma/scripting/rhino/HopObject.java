@@ -112,6 +112,23 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     }
 
     /**
+     * Overwritten to not define constructor property as constant -
+     * we need to have the constructor property resettable in Helma.
+     * @param propertyName the property name
+     * @param value the proeprty value
+     * @param attributes the property attributs
+     */
+    public void defineProperty(String propertyName, Object value,
+                               int attributes)
+    {
+        if ("constructor".equals(propertyName))
+            put(propertyName, this, value);
+        else
+            super.defineProperty(propertyName, value, attributes);
+    }
+
+
+    /**
      * Return a primitive representation for this object.
      * FIXME: We always return a string representation.
      *
