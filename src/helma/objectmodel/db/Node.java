@@ -812,7 +812,7 @@ public final class Node implements INode, Serializable {
                             pn = (Node) pn.getChildElement(getString(rel.propName));
                         }
 
-                        if (pn != null && pn.isParentOf(this)) {
+                        if (pn != null) {
                             setParent(pn);
                             lastParentSet = System.currentTimeMillis();
 
