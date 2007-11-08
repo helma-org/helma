@@ -16,12 +16,14 @@
 
 package helma.scripting.rhino.extensions;
 
-import helma.scripting.rhino.*;
+import helma.framework.core.Application;
+import helma.scripting.rhino.RhinoCore;
+import org.apache.xmlrpc.XmlRpcClient;
 import org.mozilla.javascript.*;
-import org.apache.xmlrpc.*;
-import java.util.*;
+
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+import java.util.Vector;
 
 /**
  * An extension to transparently call and serve XML-RPC from Rhino.
@@ -136,6 +138,9 @@ public class XmlRpcObject extends BaseFunction {
                 msg = x.toString();
             }
             retval.put("error", retval, msg);
+
+            Application app = RhinoCore.getCore().getApplication(); 
+            app.logError(msg, x);
         }
 
         return retval;
