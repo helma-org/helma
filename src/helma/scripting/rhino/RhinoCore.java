@@ -477,49 +477,49 @@ public final class RhinoCore implements ScopeProvider {
      *  Convert an input argument from Java to the scripting runtime
      *  representation.
      */
-    public Object processXmlRpcArgument (Object what) {
-        if (what == null)
+    public Object processXmlRpcArgument (Object arg) {
+        if (arg == null)
             return null;
-        if (what instanceof Vector) {
-            Vector v = (Vector) what;
+        if (arg instanceof Vector) {
+            Vector v = (Vector) arg;
             Object[] a = v.toArray();
             for (int i=0; i<a.length; i++) {
                 a[i] = processXmlRpcArgument(a[i]);
             }
             return Context.getCurrentContext().newArray(global, a);
         }
-        if (what instanceof Hashtable) {
-            Hashtable t = (Hashtable) what;
+        if (arg instanceof Hashtable) {
+            Hashtable t = (Hashtable) arg;
             for (Enumeration e=t.keys(); e.hasMoreElements(); ) {
                 Object key = e.nextElement();
                 t.put(key, processXmlRpcArgument(t.get(key)));
             }
             return Context.toObject(new SystemMap(t), global);
         }
-        if (what instanceof String)
-            return what;
-        if (what instanceof Number)
-            return what;
-        if (what instanceof Boolean)
-            return what;
-        if (what instanceof Date) {
-            Date d = (Date) what;
+        if (arg instanceof String)
+            return arg;
+        if (arg instanceof Number)
+            return arg;
+        if (arg instanceof Boolean)
+            return arg;
+        if (arg instanceof Date) {
+            Date d = (Date) arg;
             Object[] args = { new Long(d.getTime()) };
             return Context.getCurrentContext().newObject(global, "Date", args);
         }
-        return Context.toObject(what, global);
+        return Context.toObject(arg, global);
     }
 
     /**
      * convert a JavaScript Object object to a generic Java object stucture.
      */
-    public Object processXmlRpcResponse (Object what) {
+    public Object processXmlRpcResponse (Object arg) {
         // unwrap if argument is a Wrapper
-        if (what instanceof Wrapper) {
-            what = ((Wrapper) what).unwrap();
+        if (arg instanceof Wrapper) {
+            arg = ((Wrapper) arg).unwrap();
         }
-        if (what instanceof NativeObject) {
-            NativeObject no = (NativeObject) what;
+        if (arg instanceof NativeObject) {
+            NativeObject no = (NativeObject) arg;
             Object[] ids = no.getIds();
             Hashtable ht = new Hashtable(ids.length*2);
             for (int i=0; i<ids.length; i++) {
@@ -531,39 +531,52 @@ public final class RhinoCore implements ScopeProvider {
                     }
                 }
             }
-            what = ht;
-        } else if (what instanceof NativeArray) {
-            NativeArray na = (NativeArray) what;
+            return ht;
+        } else if (arg instanceof NativeArray) {
+            NativeArray na = (NativeArray) arg;
             Number n = (Number) na.get("length", na);
             int l = n.intValue();
             Vector retval = new Vector(l);
             for (int i=0; i<l; i++) {
                 retval.add(i, processXmlRpcResponse(na.get(i, na)));
             }
-            what = retval;
-        } else if (what instanceof Map) {
-            Map map = (Map) what;
+            return retval;
+        } else if (arg instanceof Map) {
+            Map map = (Map) arg;
             Hashtable ht = new Hashtable(map.size()*2);
             for (Iterator it=map.entrySet().iterator(); it.hasNext();) {
                 Map.Entry entry = (Map.Entry) it.next();
                 ht.put(entry.getKey().toString(),
                        processXmlRpcResponse(entry.getValue()));
             }
-            what = ht;
-        } else if (what instanceof Number) {
-            Number n = (Number) what;
-            if (what instanceof Float || what instanceof Long) {
-                what = new Double(n.doubleValue());
-            } else if (!(what instanceof Double)) {
-                what = new Integer(n.intValue());
+            return ht;
+        } else if (arg instanceof Number) {
+            Number n = (Number) arg;
+            if (arg instanceof Float || arg instanceof Long) {
+                return new Double(n.doubleValue());
+            } else if (!(arg instanceof Double)) {
+                return new Integer(n.intValue());
             }
-        } else if (what instanceof Scriptable) {
-            Scriptable s = (Scriptable) what;
+        } else if (arg instanceof INode) {
+            // interpret HopObject as object/dict
+            INode n = (INode) arg;
+            Hashtable ht = new Hashtable();
+            Enumeration props = n.properties();
+            while (props.hasMoreElements()) {
+                String key = (String) props.nextElement();
+                IProperty prop = n.get(key);
+                if (prop != null) {
+                    ht.put(key, processXmlRpcResponse(prop.getValue()));
+                }
+            }
+            return ht;
+        } else if (arg instanceof Scriptable) {
+            Scriptable s = (Scriptable) arg;
             if ("Date".equals(s.getClassName())) {
-                what = new Date((long) ScriptRuntime.toNumber(s));
+                return new Date((long) ScriptRuntime.toNumber(s));
             }
         }
-        return what;
+        return arg;
     }
 
 
