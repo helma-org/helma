@@ -2063,8 +2063,8 @@ public final class Node implements INode, Serializable {
                         INode n = (INode) parent.getChildElement(value);
 
                         if ((n != null) && (n != this)) {
-                            parent.unset(value);
-                            parent.removeNode(n);
+                            throw new RuntimeException(this +
+                                    " already contains an object named " + value);
                         }
 
                         // check if this node is already registered with the old name;
