@@ -1099,8 +1099,10 @@ public final class Skin {
                     // the handler object is not what we want
                     Object obj = thisObject;
 
-                    // walk down parent chain to find handler object
-                    while (obj != null) {
+                    // walk down parent chain to find handler object,
+                    // limiting to 50 passes to avoid infinite loops
+                    int maxloop = 50;
+                    while (obj != null && maxloop-- > 0) {
                         Prototype proto = app.getPrototype(obj);
 
                         if ((proto != null) && proto.isInstanceOf(handlerName)) {
