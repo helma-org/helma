@@ -442,8 +442,9 @@ public final class ResponseTrans extends Writer implements Serializable {
      * @throws RedirectException ...
      */
     public void redirect(String url) throws RedirectException {
-        redir = url;
-        throw new RedirectException(url);
+        redir = url == null ?
+                null : url.replaceAll("[\r\n]", "");
+        throw new RedirectException(redir);
     }
 
     /**
@@ -463,8 +464,9 @@ public final class ResponseTrans extends Writer implements Serializable {
      * @throws RedirectException ...
      */
     public void forward(String url) throws RedirectException {
-        forward = url;
-        throw new RedirectException(url);
+        forward = url == null ?
+                null : url.replaceAll("[\r\n]", "");
+        throw new RedirectException(forward);
     }
 
     /**
