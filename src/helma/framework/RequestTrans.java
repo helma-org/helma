@@ -62,7 +62,8 @@ public class RequestTrans implements Serializable {
     // the map of form and cookie data
     private final Map values = new DataComboMap();
 
-    private Map params, queryParams, postParams, cookies;
+    private ParamComboMap params;
+    private ParameterMap queryParams, postParams, cookies;
     
     // the HTTP request method
     private String method;
@@ -243,7 +244,7 @@ public class RequestTrans implements Serializable {
         if (postParams == null) {
             postParams = new ParameterMap();
         }
-        Object previous = postParams.get(name);
+        Object previous = postParams.getRaw(name);
         if (previous instanceof Object[]) {
             Object[] array = (Object[]) previous;
             Object[] values = new Object[array.length + 1];
@@ -643,6 +644,10 @@ public class RequestTrans implements Serializable {
                     return cookie.getValue();
                 }
             }
+            return super.get(key);
+        }
+
+        protected Object getRaw(Object key) {
             return super.get(key);
         }
     }
