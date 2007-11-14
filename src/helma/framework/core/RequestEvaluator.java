@@ -580,7 +580,9 @@ public final class RequestEvaluator implements Runnable {
                         // check if we tried to process the error already,
                         // or if this is an XML-RPC request
                         if (error == null) {
-                            app.errorCount += 1;
+                            if (!(x instanceof FrameworkException)) {
+                                app.errorCount += 1;
+                            }
 
                             // set done to false so that the error will be processed
                             done = false;
