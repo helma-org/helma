@@ -64,7 +64,7 @@ public class Logging extends LogFactory {
             throw new LogConfigurationException("No logname specified!");
         }
 
-        if ("console".equals(logdir)) {
+        if ("console".equals(logdir) && !logname.startsWith("org.mortbay.")) {
             return getConsoleLog();
         } else {
             return getFileLog(logname);
