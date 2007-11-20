@@ -285,7 +285,7 @@ public final class Node implements INode, Serializable {
                                            " from two threads at the same time.");
         }
 
-        current.visitNode(this);
+        current.visitDirtyNode(this);
         lock = current;
     }
 
@@ -311,9 +311,9 @@ public final class Node implements INode, Serializable {
 
             if (s == CLEAN) {
                 clearWriteLock();
-                tx.dropNode(this);
+                tx.dropDirtyNode(this);
             } else {
-                tx.visitNode(this);
+                tx.visitDirtyNode(this);
 
                 if (s == NEW) {
                     clearWriteLock();
@@ -2580,7 +2580,7 @@ public final class Node implements INode, Serializable {
 
         // register node with the transactor
         Transactor current = (Transactor) Thread.currentThread();
-        current.visitNode(this);
+        current.visitDirtyNode(this);
         current.visitCleanNode(this);
 
         // recursively make children persistable

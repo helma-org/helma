@@ -87,7 +87,7 @@ public class Transactor extends Thread {
      *
      * @param node ...
      */
-    public void visitNode(Node node) {
+    public void visitDirtyNode(Node node) {
         if (node != null) {
             Key key = node.getKey();
 
@@ -102,12 +102,21 @@ public class Transactor extends Thread {
      *
      * @param node ...
      */
-    public void dropNode(Node node) {
+    public void dropDirtyNode(Node node) {
         if (node != null) {
             Key key = node.getKey();
 
             dirtyNodes.remove(key);
         }
+    }
+
+    /**
+     * Get a dirty Node from this transaction.
+     * @param key the key
+     * @return the dirty node associated with the key, or null
+     */
+    public Node getDirtyNode(Key key) {
+        return (Node) dirtyNodes.get(key);
     }
 
     /**
@@ -154,7 +163,7 @@ public class Transactor extends Thread {
      *
      * @return ...
      */
-    public Node getVisitedNode(Object key) {
+    public Node getCleanNode(Object key) {
         return (key == null) ? null : (Node) cleanNodes.get(key);
     }
 

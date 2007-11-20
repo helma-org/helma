@@ -165,7 +165,7 @@ public final class NodeManager {
         Transactor tx = (Transactor) Thread.currentThread();
 
         // See if Transactor has already come across this node
-        Node node = tx.getVisitedNode(key);
+        Node node = tx.getCleanNode(key);
 
         if ((node != null) && (node.getState() != Node.INVALID)) {
             return node;
@@ -232,7 +232,7 @@ public final class NodeManager {
         }
 
         // See if Transactor has already come across this node
-        Node node = tx.getVisitedNode(key);
+        Node node = tx.getCleanNode(key);
 
         if ((node != null) && (node.getState() != Node.INVALID)) {
             // we used to refresh the node in the main cache here to avoid the primary key
@@ -277,7 +277,7 @@ public final class NodeManager {
             // from the database.
             node = getNodeByRelation(tx.txn, home, kstr, rel, otherDbm);
 
-            if (node != null) {
+            if (node != null && node.getState() != Node.DELETED) {
                 Node newNode = node;
                 if (key.equals(node.getKey())) {
                     node = registerNewNode(node, null);
@@ -1856,6 +1856,14 @@ public final class NodeManager {
 
         if (id == null) {
             return null;
+        } else if (Thread.currentThread() instanceof Transactor) {
+            // Check if the node is already registered with the transactor -
+            // it may be in the process of being DELETED.
+            DbKey key = new DbKey(dbmap, id);
+            Node dirtyNode = ((Transactor) Thread.currentThread()).getDirtyNode(key);
+            if (dirtyNode != null) {
+                return dirtyNode;
+            }
         }
 
         Hashtable propMap = new Hashtable();
