@@ -793,7 +793,7 @@ public final class Node implements INode, Serializable {
                             pn2 = (Node) pn2.getNode(pinfo.collectionname);
                         } else if (pn2.equals(this)) {
                             // a special case we want to support: virtualname is actually
-                            // a reference to this node, not a collection containint this node.
+                            // a reference to this node, not a collection containing this node.
                             setParent(pn);
                             name = pinfo.virtualname;
                             anonymous = false;
@@ -1376,8 +1376,14 @@ public final class Node implements INode, Serializable {
                     String propname = (localrel == null) ? prel.accessName : localrel.propName;
                     String prop = node.getString(propname);
 
-                    if ((prop != null) && (getNode(prop) == node)) {
-                        unset(prop);
+                    if (prop != null) {
+                        if (getNode(prop) == node) {
+                            unset(prop);
+                        }
+                        // let the node cache know this key's not for this node anymore.
+                        if (state != TRANSIENT) {
+                            nmgr.evictKey(new SyntheticKey(getKey(), prop));
+                        }
                     }
                 }
                 // TODO: We should unset constraints to actually remove subnodes here,

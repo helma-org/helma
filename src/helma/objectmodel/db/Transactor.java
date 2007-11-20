@@ -140,6 +140,14 @@ public class Transactor extends Thread {
     }
 
     /**
+     * Drop a reference to an unmodified Node previously registered with visitCleanNode().
+     * @param key the key
+     */
+    public void dropCleanNode(Key key) {
+        cleanNodes.remove(key);
+    }
+
+    /**
      * Get a reference to an unmodified Node local to this transaction
      *
      * @param key ...

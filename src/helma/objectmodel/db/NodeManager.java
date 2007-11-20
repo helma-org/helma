@@ -407,6 +407,10 @@ public final class NodeManager {
      */
     public void evictKey(Key key) {
         cache.remove(key);
+        // also drop key from thread-local transactor cache
+        if (Thread.currentThread() instanceof Transactor) {
+            ((Transactor) Thread.currentThread()).dropCleanNode(key);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////
