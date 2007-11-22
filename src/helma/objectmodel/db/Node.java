@@ -2093,7 +2093,7 @@ public final class Node implements INode, Serializable {
             }
 
             // check if the property we're setting specifies the prototype of this object.
-            if (dbmap.getPrototypeField() != null &&
+            if (state != TRANSIENT &&
                     propname.equals(dbmap.columnNameToProperty(dbmap.getPrototypeField()))) {
                 DbMapping newmap = nmgr.getDbMapping(value);
 
@@ -2557,7 +2557,12 @@ public final class Node implements INode, Serializable {
      * Public method to make a node persistent.
      */
     public void persist() {
-        makePersistable();
+        if (state == TRANSIENT) {
+            makePersistable();
+        } else if (state == CLEAN) {
+            markAs(MODIFIED);
+        }
+
     }
 
     /**
