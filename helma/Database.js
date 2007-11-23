@@ -107,6 +107,8 @@ helma.Database = function(source) {
      * @return {Array} an Array containing the result set
      */
     this.query = function(sql) {
+        var isLogSqlEnabled = (getProperty("logSQL", "false").toLowerCase() == "true");
+        var logTimeStart = isLogSqlEnabled ? java.lang.System.currentTimeMillis() : 0;
         connection.setReadOnly(true);
         var statement = connection.createStatement();
         var resultSet = statement.executeQuery(sql);
@@ -169,6 +171,11 @@ helma.Database = function(source) {
         } catch (error) {
             // ignore
         }
+        var logTimeStop = isLogSqlEnabled ? java.lang.System.currentTimeMillis() : 0;
+        if (isLogSqlEnabled) {
+            var tableName = metaData.getColumnCount() > 0 ? metaData.getTableName(1) : null;
+            app.getLogger("helma." + app.name + ".sql").info("SQL DIRECT_QUERY " + (tableName || "-") + " " + (logTimeStop - logTimeStart) + ": " + sql);
+        }
         return result;
     };
 
@@ -182,10 +189,13 @@ helma.Database = function(source) {
      * DELETE statements, or 0 for SQL statements that return nothing
      */
     this.execute = function(sql) {
+        var isLogSqlEnabled = (getProperty("logSQL", "false").toLowerCase() == "true");
+        var logTimeStart = isLogSqlEnabled ? java.lang.System.currentTimeMillis() : 0;
         connection.setReadOnly(false);
         var statement = connection.createStatement();
+        var result;
         try {
-            return statement.executeUpdate(sql);
+            result = statement.executeUpdate(sql);
         } finally {
             try {
                 statement.close();
@@ -193,6 +203,11 @@ helma.Database = function(source) {
                 // ignore
             }
         }
+        var logTimeStop = isLogSqlEnabled ? java.lang.System.currentTimeMillis() : 0;
+        if (isLogSqlEnabled) {
+            app.getLogger("helma." + app.name + ".sql").info("SQL DIRECT_EXECUTE - " + (logTimeStop - logTimeStart) + ": " + sql);
+        }
+        return result;
     };
 
     /**
