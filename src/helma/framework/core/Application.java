@@ -1415,9 +1415,11 @@ public final class Application implements Runnable {
             eventLog = getLogger(eventLogName);
             // set log level for event log in case it is a helma.util.Logger
             if (eventLog instanceof Logger) {
-                ((Logger) eventLog).setLogLevel(debug ? Logger.DEBUG : Logger.INFO);
+                if (debug && !eventLog.isDebugEnabled())
+                    ((Logger) eventLog).setLogLevel(Logger.DEBUG);
+                else if (!eventLog.isInfoEnabled())
+                    ((Logger) eventLog).setLogLevel(Logger.INFO);
             }
-
         }
         return eventLog;
     }
@@ -1824,7 +1826,10 @@ public final class Application implements Runnable {
 
             // set log level for event log in case it is a helma.util.Logger
             if (eventLog instanceof Logger) {
-                ((Logger) eventLog).setLogLevel(debug ? Logger.DEBUG : Logger.INFO);
+                if (debug && !eventLog.isDebugEnabled())
+                    ((Logger) eventLog).setLogLevel(Logger.DEBUG);
+                else if (!eventLog.isInfoEnabled())
+                    ((Logger) eventLog).setLogLevel(Logger.INFO);
             }
 
             // set prop read timestamp
