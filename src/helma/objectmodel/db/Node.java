@@ -1199,7 +1199,8 @@ public final class Node implements INode, Serializable {
                 retval = nhandle.getNode(nmgr);
             }
 
-            // This would be an alternative way to do it, without loading the subnodes:
+            // This would be an alternative way to do it, without loading the subnodes,
+            // but it currently isn't supported by NodeManager.
             //    if (dbmap != null && dbmap.getSubnodeRelation () != null)
             //         retval = nmgr.getNode (this, subid, dbmap.getSubnodeRelation ());
             if ((retval != null) && (retval.parentHandle == null) &&
@@ -1622,9 +1623,9 @@ public final class Node implements INode, Serializable {
      */
     long getLastSubnodeChange(Relation subRel) {
         // include dbmap.getLastTypeChange to also reload if the type mapping has changed.
+        long checkSum = lastSubnodeChange + dbmap.getLastTypeChange();
         return subRel.aggressiveCaching ?
-                        lastSubnodeChange + dbmap.getLastTypeChange() :
-                        subRel.otherType.getLastDataChange() + dbmap.getLastTypeChange();
+                checkSum : checkSum + subRel.otherType.getLastDataChange();
     }
 
     /**
