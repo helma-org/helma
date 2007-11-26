@@ -227,7 +227,7 @@ public final class NodeManager {
             // generated on the fly
             key = new SyntheticKey(home.getKey(), kstr);
         } else {
-            // Not a relation we use can use getNodeByRelation() for
+            // Not a relation we can use getNodeByRelation() for.
             return null;
         }
 
