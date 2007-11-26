@@ -63,11 +63,16 @@ public class Logging extends LogFactory {
         if (logname == null) {
             throw new LogConfigurationException("No logname specified!");
         }
-
-        if ("console".equals(logdir) && !logname.startsWith("org.mortbay.")) {
-            return getConsoleLog();
+        if ("console".equals(logdir)) {
+            if (logname.startsWith("org.mortbay."))
+                return getConsoleLog().getSedatedLog();
+            else
+                return getConsoleLog();
         } else {
-            return getFileLog(logname);
+            if (logname.startsWith("org.mortbay."))
+                return getFileLog(logname).getSedatedLog();
+            else
+                return getFileLog(logname);
         }
     }
 
@@ -75,7 +80,7 @@ public class Logging extends LogFactory {
      * Get a logger to System.out.
      * @return a logger that writes to System.out
      */
-    public static Log getConsoleLog() {
+    public static Logger getConsoleLog() {
         ensureRunning();
         return consoleLog;
     }

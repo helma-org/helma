@@ -55,6 +55,9 @@ public class Logger implements Log {
     // periods of inactivity
     long lastMessage = System.currentTimeMillis();
 
+    // sedated log instance for jetty
+    private Log sedatedLog = new SedatedLog();
+
     /**
      * zero argument constructor, only here for FileLogger subclass
      */
@@ -88,7 +91,7 @@ public class Logger implements Log {
         else if ("error".equalsIgnoreCase(level))
             logLevel = ERROR;
         else if ("fatal".equalsIgnoreCase(level))
-            logLevel = FATAL;    
+            logLevel = FATAL;
     }
 
     /**
@@ -300,6 +303,100 @@ public class Logger implements Log {
             this.message = message;
             this.exception = exception;
         }
+    }
+
+    /**
+     * return a "quiet" version of this log that routes debug() output to trace()
+     * @return a possibly less verbose version of this log.
+     */
+    protected Log getSedatedLog() {
+        return sedatedLog;
+    }
+
+    /*
+     * A inner class that "calms down" logging output by routing debug() output
+     * to trace(). This is useful for software like Jetty, which has really
+     * verbose output at DEBUG level (dumps whole HTTP request and response headers).
+     * You can enable that output by setting the log level to TRACE.
+     */
+    class SedatedLog implements Log {
+
+        public void debug(Object o) {
+            // Route debug() to trace()
+            Logger.this.trace(o);
+        }
+
+        public void debug(Object o, Throwable t) {
+            // Route debug() to trace()
+            Logger.this.trace(o, t);
+        }
+
+        public void error(Object o) {
+            Logger.this.error(o);
+        }
+
+        public void error(Object o, Throwable t) {
+            Logger.this.error(o, t);
+        }
+
+        public void fatal(Object o) {
+            Logger.this.fatal(o);
+        }
+
+        public void fatal(Object o, Throwable t) {
+            Logger.this.fatal(o, t);
+        }
+
+        public void info(Object o) {
+            Logger.this.info(o);
+        }
+
+        public void info(Object o, Throwable t) {
+            Logger.this.info(o, t);
+        }
+
+        public void trace(Object o) {
+            // swallow trace()
+        }
+
+        public void trace(Object o, Throwable t) {
+            // swallow trace()
+        }
+
+        public void warn(Object o) {
+            Logger.this.warn(o);
+        }
+
+        public void warn(Object o, Throwable t) {
+            Logger.this.warn(o, t);
+        }
+
+        public boolean isDebugEnabled() {
+            // Route debug() to trace()
+            return Logger.this.isTraceEnabled();
+        }
+
+        public boolean isErrorEnabled() {
+            return Logger.this.isErrorEnabled();
+        }
+
+        public boolean isFatalEnabled() {
+            return Logger.this.isFatalEnabled();
+        }
+
+        public boolean isInfoEnabled() {
+            return Logger.this.isInfoEnabled();
+        }
+
+        public boolean isTraceEnabled() {
+            // swallow trace()
+            return false;
+        }
+
+        public boolean isWarnEnabled() {
+            return Logger.this.isWarnEnabled();
+        }
+
     }
 
 }
