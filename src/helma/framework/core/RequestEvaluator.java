@@ -239,7 +239,7 @@ public final class RequestEvaluator implements Runnable {
                                             action = getAction(currentElement, null, req);
 
                                             if (action == null) {
-                                                throw new FrameworkException("Action not found");
+                                                throw new NotFoundException("Action not found");
                                             }
                                         } else {
                                             // march down request path...
@@ -262,7 +262,7 @@ public final class RequestEvaluator implements Runnable {
 
                                             for (int i = 0; i < ntokens; i++) {
                                                 if (currentElement == null) {
-                                                    throw new FrameworkException("Object not found.");
+                                                    throw new NotFoundException("Object not found.");
                                                 }
 
                                                 if (pathItems[i].length() == 0) {
@@ -288,7 +288,7 @@ public final class RequestEvaluator implements Runnable {
                                             }
 
                                             if (currentElement == null) {
-                                                throw new FrameworkException("Object not found.");
+                                                throw new NotFoundException("Object not found.");
                                             }
 
                                             if (action == null) {
@@ -296,10 +296,10 @@ public final class RequestEvaluator implements Runnable {
                                             }
 
                                             if (action == null) {
-                                                throw new FrameworkException("Action not found");
+                                                throw new NotFoundException("Action not found");
                                             }
                                         }
-                                    } catch (FrameworkException notfound) {
+                                    } catch (NotFoundException notfound) {
                                         if (error != null) {
 
                                             // we already have an error and the error template wasn't found,
@@ -318,7 +318,7 @@ public final class RequestEvaluator implements Runnable {
                                         action = getAction(currentElement, notFoundAction, req);
 
                                         if (action == null) {
-                                            throw new FrameworkException(notfound.getMessage());
+                                            throw new NotFoundException(notfound.getMessage());
                                         }
                                     }
 
@@ -432,7 +432,7 @@ public final class RequestEvaluator implements Runnable {
                                         }
 
                                         if (currentElement == null) {
-                                            throw new FrameworkException("Method name \"" +
+                                            throw new NotFoundException("Method name \"" +
                                                     function + "\" could not be resolved.");
                                         }
 
@@ -448,7 +448,7 @@ public final class RequestEvaluator implements Runnable {
                                     // reset skin recursion detection counter
                                     skinDepth = 0;
                                     if (!scriptingEngine.hasFunction(currentElement, functionName, false)) {
-                                        throw new FrameworkException(missingFunctionMessage(currentElement, functionName));
+                                        throw new NotFoundException(missingFunctionMessage(currentElement, functionName));
                                     }
                                     result = scriptingEngine.invoke(currentElement,
                                             functionName, args,
@@ -580,7 +580,7 @@ public final class RequestEvaluator implements Runnable {
                         // check if we tried to process the error already,
                         // or if this is an XML-RPC request
                         if (error == null) {
-                            if (!(x instanceof FrameworkException)) {
+                            if (!(x instanceof NotFoundException)) {
                                 app.errorCount += 1;
                             }
 
