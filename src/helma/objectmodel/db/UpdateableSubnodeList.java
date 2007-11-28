@@ -149,9 +149,9 @@ public class UpdateableSubnodeList extends OrderedSubnodeList {
         DbColumn dbc = rel.otherType.getColumn(updateCriteria[idx]);
         if (rel.otherType.getIDField().equalsIgnoreCase(updateCriteria[idx])) {
             if (rel.otherType.needsQuotes(updateCriteria[idx])) {
-                sb.append ("'").append (values[idx]).append("'");
+                sb.append("'").append(DbMapping.escapeString(values[idx])).append("'");
             } else {
-                sb.append (values[idx]);
+                sb.append(DbMapping.checkNumber(values[idx]));
             }
             return;
         }
@@ -192,9 +192,9 @@ public class UpdateableSubnodeList extends OrderedSubnodeList {
             case Types.CLOB:
             default:
                 if (rel.otherType.needsQuotes(updateCriteria[idx])) {
-                    sb.append ("'").append (strgVal).append ("'");
+                    sb.append("'").append(DbMapping.escapeString(strgVal)).append("'");
                 } else {
-                    sb.append (strgVal);
+                    sb.append(DbMapping.checkNumber(strgVal));
                 }
         }
     }

@@ -692,64 +692,6 @@ public final class Node implements INode, Serializable {
     }
 
     /**
-     * This version of setParent additionally marks the node as anonymous or non-anonymous,
-     * depending on the string argument. This is the version called from the scripting framework,
-     * while the one argument version is called from within the objectmodel classes only.
-     */
-    public void setParent(Node parent, String propertyName) {
-        // we only do that for relational nodes.
-        if (!isRelational()) {
-            return;
-        }
-
-        NodeHandle oldParentHandle = parentHandle;
-
-        parentHandle = (parent == null) ? null : parent.getHandle();
-
-        // mark parent as set, otherwise getParent will try to
-        // determine the parent again when called.
-        lastParentSet = System.currentTimeMillis();
-
-        if ((parentHandle == null) || parentHandle.equals(oldParentHandle)) {
-            // nothing changed, no need to find access property
-            return;
-        }
-
-        if ((parent != null) && (propertyName == null)) {
-            // see if we can find out the propertyName by ourselfes by looking at the
-            // parent's property relation
-            String newname = null;
-            DbMapping parentmap = parent.getDbMapping();
-
-            if (parentmap != null) {
-                // first try to retrieve name via generic property relation of parent
-                Relation prel = parentmap.getSubnodeRelation();
-
-                if ((prel != null) && (prel.otherType == dbmap) &&
-                        (prel.accessName != null)) {
-                    // reverse look up property used to access this via parent
-                    Relation proprel = dbmap.columnNameToRelation(prel.accessName);
-
-                    if ((proprel != null) && (proprel.propName != null)) {
-                        newname = getString(proprel.propName);
-                    }
-                }
-            }
-
-            // did we find a new name for this
-            if (newname == null) {
-                this.anonymous = true;
-            } else {
-                this.anonymous = false;
-                this.name = newname;
-            }
-        } else {
-            this.anonymous = false;
-            this.name = propertyName;
-        }
-    }
-
-    /**
      * Get parent, retrieving it if necessary.
      */
     public INode getParent() {
@@ -794,7 +736,7 @@ public final class Node implements INode, Serializable {
                         } else if (pn2.equals(this)) {
                             // a special case we want to support: virtualname is actually
                             // a reference to this node, not a collection containing this node.
-                            setParent(pn);
+                            parentHandle = pn.getHandle();
                             name = pinfo.virtualname;
                             anonymous = false;
                             return pn;
@@ -813,7 +755,7 @@ public final class Node implements INode, Serializable {
                         }
 
                         if (pn != null) {
-                            setParent(pn);
+                            parentHandle = pn.getHandle();
                             lastParentSet = System.currentTimeMillis();
 
                             return pn;
@@ -826,7 +768,7 @@ public final class Node implements INode, Serializable {
                 if (i == parentInfo.length-1) {
                     // if we came till here and we didn't find a parent.
                     // set parent to null.
-                    setParent(null);
+                    parentHandle = null;
                     lastParentSet = System.currentTimeMillis();
                 }
             }
@@ -836,11 +778,9 @@ public final class Node implements INode, Serializable {
             }
         }
 
-        // fall back to heuristic parent (the node that fetched this one from db)
         if (parentHandle == null) {
             return null;
         }
-
         return parentHandle.getNode(nmgr);
     }
 
@@ -890,7 +830,7 @@ public final class Node implements INode, Serializable {
             node.checkWriteLock();
         }
 
-        // if subnodes are defined via realation, make sure its constraints are enforced.
+        // if subnodes are defined via relation, make sure its constraints are enforced.
         if ((dbmap != null) && (dbmap.getSubnodeRelation() != null)) {
             dbmap.getSubnodeRelation().setConstraints(this, node);
         }
@@ -1203,6 +1143,7 @@ public final class Node implements INode, Serializable {
             // but it currently isn't supported by NodeManager.
             //    if (dbmap != null && dbmap.getSubnodeRelation () != null)
             //         retval = nmgr.getNode (this, subid, dbmap.getSubnodeRelation ());
+
             if ((retval != null) && (retval.parentHandle == null) &&
                     !nmgr.isRootNode(retval)) {
                 retval.setParent(this);
@@ -2531,7 +2472,7 @@ public final class Node implements INode, Serializable {
      */
     public String toString() {
         try {
-            // We need to reach deap into helma.framework.core to invoke onInit(),
+            // We need to reach deap into helma.framework.core to invoke toString(),
             // but the functionality is really worth it.
             RequestEvaluator reval = getApp().getCurrentRequestEvaluator();
             if (reval != null) {
@@ -2675,7 +2616,7 @@ public final class Node implements INode, Serializable {
 
             if (node.getState() == Node.TRANSIENT) {
                 DbMapping map = node.getDbMapping();
-                if (map == null || map.getTypeName() != null)
+                if (map == null || !map.isVirtual())
                     return node;
             } else if (node.getState() != Node.VIRTUAL) {
                 return node;

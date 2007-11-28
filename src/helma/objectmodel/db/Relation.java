@@ -734,18 +734,18 @@ public final class Relation {
             return null;
         }
 
-        // if the collection node is prototyped, return the app's DbMapping
-        // for that prototype
-        if (prototype != null) {
-            return otherType;
-        }
-
         // create a synthetic DbMapping that describes how to fetch the
         // collection's child objects.
         if (virtualMapping == null) {
-            virtualMapping = new DbMapping(ownType.app, null);
-            virtualMapping.subRelation = getVirtualSubnodeRelation();
-            virtualMapping.propRelation = getVirtualPropertyRelation();
+            // if the collection node is prototyped (a mountpoint), create
+            // a virtual sub-mapping from the app's DbMapping for that prototype
+            if (prototype != null) {
+                virtualMapping = new DbMapping(ownType.app, prototype);
+            } else {
+                virtualMapping = new DbMapping(ownType.app, null);
+                virtualMapping.subRelation = getVirtualSubnodeRelation();
+                virtualMapping.propRelation = getVirtualPropertyRelation();
+            }
         }
 
         return virtualMapping;
@@ -924,7 +924,7 @@ public final class Relation {
                     }
                     // end column version
                     if (value != null) {
-                        q.append(DbMapping.escape(value.toString()));
+                        q.append(DbMapping.escapeString(value.toString()));
                     } else {
                         q.append("NULL");
                     }

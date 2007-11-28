@@ -123,11 +123,22 @@ public final class DbMapping {
     // Set of mappings that depend on us and should be forwarded last data change events
     HashSet dependentMappings = new HashSet();
 
+    // does this DbMapping describe a virtual node (collection, mountpoint, groupnode)?
+    private boolean virtual = false;
+
     /**
-     * Create an empty DbMapping
+     * Create an internal DbMapping used for "virtual" mappings aka collections, mountpoints etc.
      */
-    public DbMapping(Application app, String typename) {
-        this(app, typename, null);
+    public DbMapping(Application app, String parentTypeName) {
+        this(app, parentTypeName, null);
+        // DbMappings created with this constructor always define virtual nodes
+        virtual = true;
+        if (parentTypeName != null) {
+            parentMapping = app.getDbMapping(parentTypeName);
+            if (parentMapping == null) {
+                throw new IllegalArgumentException("Unknown parent mapping: " + parentTypeName);
+            }
+        }
     }
 
     /**
@@ -764,12 +775,7 @@ public final class DbMapping {
         // if mapping doesn' exist or isn't defined, create a new (anonymous internal) one
         groupbyMapping = new DbMapping(app, subRelation.groupbyPrototype);
 
-        // If a mapping is defined, make the internal mapping inherit from
-        // the defined named prototype.
-        if (subRelation.groupbyPrototype != null) {
-            groupbyMapping.parentMapping = app.getDbMapping(subRelation.groupbyPrototype);
-        }
-
+        // set subnode and property relations
         groupbyMapping.subRelation = subRelation.getGroupbySubnodeRelation();
 
         if (propRelation != null) {
@@ -1503,13 +1509,13 @@ public final class DbMapping {
             for (int i = 0; i < values.length; i++) {
                 if (i > 0)
                     q.append(", ");
-                q.append("'").append(escape(values[i])).append("'");
+                q.append("'").append(escapeString(values[i])).append("'");
             }
         } else {
             for (int i = 0; i < values.length; i++) {
                 if (i > 0)
                     q.append(", ");
-                q.append(values[i]);
+                q.append(checkNumber(values[i]));
             }
         }
         q.append(")");
@@ -1531,9 +1537,9 @@ public final class DbMapping {
         q.append(column).append(" = ");
         
         if (needsQuotes(column)) {
-            q.append("'").append(escape(val)).append("'");
+            q.append("'").append(escapeString(val)).append("'");
         } else {
-            q.append(val);
+            q.append(checkNumber(val));
         }
     }
 
@@ -1544,7 +1550,8 @@ public final class DbMapping {
      * @param str the string to escape
      * @return the escaped string
      */
-    static String escape(String str) {
+    static String escapeString(Object value) {
+        String str = value == null ? null : value.toString();        
         if (str == null) {
             return null;
         } else if (str.indexOf("'") < 0) {
@@ -1563,5 +1570,32 @@ public final class DbMapping {
             sbuf.append(c);
         }
         return sbuf.toString();
+    }
+
+    /**
+     * Utility method to check whether the argument is a number literal.
+     * @param str a string representing a number literal
+     * @return the argument, if it conforms to the number literal syntax
+     * @throws IllegalArgumentException if the argument does not represent a number
+     */
+    static String checkNumber(Object value) throws IllegalArgumentException {
+        String str = value == null ? null : value.toString();
+        if (str == null) {
+            return null;
+        } else {
+            str = str.trim();
+            if (str.matches("(?:\\+|\\-)??\\d+(?:\\.\\d+)??")) {
+                return str;
+            }
+        }
+        throw new IllegalArgumentException("Illegal numeric literal: " + str);
+    }
+
+    /**
+     * Find if this DbMapping describes a virtual node (collection, mountpoint, groupnode)
+     * @return true if this instance describes a virtual node.
+     */
+    public boolean isVirtual() {
+        return virtual;
     }
 }
