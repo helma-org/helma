@@ -100,9 +100,26 @@ public class Session implements Serializable {
      * Remove this sessions's user node.
      */
     public void logout() {
-        userHandle = null;
-        uid = null;
-        lastModified = System.currentTimeMillis();
+        if (userHandle != null) {
+            // invoke User.onLogout
+            RequestEvaluator reval = null;
+            try {
+                reval = app.getEvaluator();
+                reval.invokeInternal(userHandle, "onLogout", new Object[] {sessionId});
+            } catch (Exception x) {
+                // errors should already be logged by requestevaluator, but you never know
+                app.logError("Error in onLogout", x);
+            } finally {
+                // do the actual work
+                userHandle = null;
+                uid = null;
+                lastModified = System.currentTimeMillis();
+                // release the evaluator
+                if (reval != null) {
+                    app.releaseEvaluator(reval);
+                }
+            }
+        }
     }
 
     /**
