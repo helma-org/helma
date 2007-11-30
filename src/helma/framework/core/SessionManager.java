@@ -317,8 +317,7 @@ public class SessionManager {
                     }
                 }
             } catch (Exception cx) {
-                app.logEvent("Error cleaning up sessions: " + cx);
-                cx.printStackTrace();
+                app.logError("Error cleaning up sessions", cx);
             } finally {
                 if (thisEvaluator != null) {
                     app.releaseEvaluator(thisEvaluator);
