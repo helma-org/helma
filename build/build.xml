@@ -22,6 +22,7 @@
         <property name="build.classes" value="${home.dir}/classes"/>
         <property name="build.docs" value="${home.dir}/docs"/>
         <property name="build.javadocs" value="${home.dir}/docs/api"/>
+        <property name="build.externals" value="${build.dir}/externals"/>
 
         <property name="build.work" value="${home.dir}/work"/>
         <property name="build.dist" value="${home.dir}/dist"/>
@@ -160,6 +161,19 @@
     <!-- =================================================================== -->
     <target name="jsdocs" depends="init, package-modules">
         <!-- cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="reference" dest="${build.work}" /-->
+
+        <!-- add a copy of the reference -->
+        <mkdir dir="${build.work}/reference"/>
+        <copy todir="${build.work}/reference">
+            <fileset dir="${build.externals}/reference"/>
+        </copy>
+ 
+        <!-- add a copy of the modules -->
+        <mkdir dir="${build.work}/reference/modules"/>
+        <copy todir="${build.work}/reference/modules">
+            <fileset dir="${build.externals}/modules/"/>
+        </copy>
+ 
     	<mkdir dir="${build.jsdocs}"/>
     	<java dir="${home.dir}" fork="true" jar="${build.lib}/rhino.jar">
           <sysproperty key="jsdoc.dir" value="work/reference"/>
@@ -169,9 +183,9 @@
           <arg value="-r=3"/>
           <arg value="work/reference/coreEnvironment"/>
           <arg value="work/reference/coreExtensions"/>
-          <arg value="modules"/>
+          <arg value="work/reference/modules"/>
         </java>
-        <!-- delete dir="${build.work}/reference" /-->
+        <delete dir="${build.work}/reference" />
     </target>
 
 
@@ -223,7 +237,7 @@
         </antcall>
 
         <!-- clean up -->
-        <!-- delete dir="${build.work}"/ -->
+        <delete dir="${build.work}"/>
     </target>
 
 
@@ -231,7 +245,7 @@
     <!-- Creates the full helma distribution                                 -->
     <!-- =================================================================== -->
     <target name="package" depends="init">
-        <!-- mkdir dir="${build.work}"/-->
+        <mkdir dir="${build.work}"/>
         
         <!-- checkout the demo apps (and zip manage-app) -->
         <antcall target="package-apps" />
@@ -268,7 +282,7 @@
         </antcall>
 
         <!-- clean up -->
-        <!-- delete dir="${build.work}"/-->
+        <delete dir="${build.work}"/>
     </target>
 
 
@@ -339,6 +353,12 @@
 
         <!-- get demo apps -->
         <!--cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="welcome" dest="${build.work}/apps" /-->
+        
+        <!-- add a copy of the welcome app -->
+        <mkdir dir="${build.work}/apps/welcome"/>
+        <copy todir="${build.work}/apps/welcome">
+            <fileset dir="${build.externals}/welcome"/>
+        </copy>
  
         <antcall target="package-manage" />
 
@@ -351,9 +371,9 @@
     <target name="package-manage" depends="init">
         <!--cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="manage" dest="${build.work}" /-->
         <mkdir dir="${build.work}/apps/manage"/>
-        <zip zipfile="${build.work}/apps/manage/manage.zip" basedir="${build.work}/manage/" includes="**" excludes="**/properties,readme/**" />
+        <zip zipfile="${build.work}/apps/manage/manage.zip" basedir="${build.externals}/manage/" includes="**" excludes="**/properties,readme/**" />
             <copy todir="${build.work}/apps/manage">
-                <fileset dir="${build.work}/manage" includes="app.properties,class.properties,readme.txt"/>
+                <fileset dir="${build.externals}/manage" includes="app.properties,class.properties,readme.txt"/>
             </copy>
         <!-- delete dir="${build.work}/manage" /-->
     </target>
@@ -364,6 +384,13 @@
     <!-- =================================================================== -->
     <target name="package-modules" depends="init">
         <!--cvs cvsRoot="${cvs.root.apps}" command="export" tag="${cvs.apps.tag}" package="modules" dest="${build.work}" /-->
+
+        <!-- add a copy of the modules -->
+        <mkdir dir="${build.work}/modules"/>
+        <copy todir="${build.work}/modules">
+            <fileset dir="${build.externals}/modules"/>
+        </copy>
+ 
         <antcall target="package-helmaTools" />
     </target>
 
@@ -374,7 +401,7 @@
     <target name="package-helmaTools" depends="init">
         <!-- cvs cvsRoot="${cvs.root.apps}" command="export" package="helmaTools" dest="${build.work}" /-->
         <mkdir dir="${build.work}/modules"/>
-        <zip zipfile="${build.work}/modules/helmaTools.zip" basedir="${build.work}/helmaTools/" includes="**" excludes="**/*.txt, **/*.html, **/*.bat, **/*.sh" />
+        <zip zipfile="${build.work}/modules/helmaTools.zip" basedir="${build.externals}/helmaTools/" includes="**" excludes="**/*.txt, **/*.html, **/*.bat, **/*.sh" />
         <!--delete dir="${build.work}/helmaTools" /-->
     </target>
 
@@ -399,7 +426,7 @@
             </tarfileset>
         </tar>
         <gzip zipfile="${build.dist}/${filename}.tar.gz" src="${build.dist}/${filename}.tar"/>
-        <!--delete file="${build.dist}/${filename}.tar"/-->
+        <delete file="${build.dist}/${filename}.tar"/>
     </target>
 
 
@@ -441,7 +468,7 @@
             </tarfileset>
         </tar>
         <gzip zipfile="${build.dist}/${filename}-src.tar.gz" src="${build.dist}/${filename}-src.tar"/>
-        <!--delete file="${build.dist}/${filename}-src.tar"/-->
+        <delete file="${build.dist}/${filename}-src.tar"/>
     </target>
 
 
@@ -469,7 +496,7 @@
     <!-- Cleans up temporary build directories                               -->
     <!-- =================================================================== -->
     <target name="clean" depends="init">
-        <!--delete dir="${build.work}" /-->
+        <delete dir="${build.work}" />
         <delete dir="${build.classes}" />
     </target>
 
