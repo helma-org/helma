@@ -101,23 +101,25 @@ public class Session implements Serializable {
      */
     public void logout() {
         if (userHandle != null) {
-            // invoke User.onLogout
-            RequestEvaluator reval = null;
             try {
-                reval = app.getEvaluator();
-                reval.invokeInternal(userHandle, "onLogout", new Object[] {sessionId});
+                // Invoke User.onLogout() iff this is a transactor request with a request
+                // evaluator already associated (i.e., if this is called from an app/script).
+                // Otherwise, we assume being called from the scheduler thread, which takes
+                // care of calling User.onLogout().
+                RequestEvaluator reval = app.getCurrentRequestEvaluator();
+                if (reval != null) {
+                    Node userNode = userHandle.getNode(app.nmgr.safe);
+                    if (userNode != null)
+                        reval.invokeDirectFunction(userNode, "onLogout", new Object[] {sessionId});
+                }
             } catch (Exception x) {
-                // errors should already be logged by requestevaluator, but you never know
+                // errors should already be logged by request evaluator, but you never know
                 app.logError("Error in onLogout", x);
             } finally {
-                // do the actual work
+                // do log out
                 userHandle = null;
                 uid = null;
                 lastModified = System.currentTimeMillis();
-                // release the evaluator
-                if (reval != null) {
-                    app.releaseEvaluator(reval);
-                }
             }
         }
     }
