@@ -2059,6 +2059,10 @@ public final class NodeManager {
             switch (columnType) {
                 case Types.BIT:
                 case Types.BOOLEAN:
+                    stmt.setBoolean(stmtNumber, p.getBooleanValue());
+
+                    break;
+                
                 case Types.TINYINT:
                 case Types.BIGINT:
                 case Types.SMALLINT:
