@@ -79,49 +79,24 @@ public class SessionManager {
      * Remove the session from the sessions-table and logout the user.
      */
     public void discardSession(Session session) {
-        logoutSession(session);
+        session.logout();
         sessions.remove(session.getSessionId());
     }
 
     /**
      * Log in a user given his or her user name and password.
+     * @deprecated
      */
     public boolean loginSession(String uname, String password, Session session) {
-        // Check the name/password of a user and log it in to the current session
-        if (uname == null) {
-            return false;
-        }
-
-        uname = uname.toLowerCase().trim();
-
-        if ("".equals(uname)) {
-            return false;
-        }
-
-        try {
-            INode users = app.getUserRoot();
-            Node unode = (Node) users.getChildElement(uname);
-            String pw = unode.getString("password");
-
-            if ((pw != null) && pw.equals(password)) {
-                // let the old user-object forget about this session
-                logoutSession(session);
-                session.login(unode);
-
-                return true;
-            }
-        } catch (Exception x) {
-            return false;
-        }
-
-        return false;
+        return app.loginSession(uname, password, session);
     }
 
     /**
      * Log out a session from this application.
+     * @deprecated
      */
     public void logoutSession(Session session) {
-        session.logout();
+        app.logoutSession(session);
     }
 
 
