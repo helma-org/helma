@@ -1858,10 +1858,11 @@ public final class NodeManager {
             return null;
         } else if (Thread.currentThread() instanceof Transactor) {
             // Check if the node is already registered with the transactor -
-            // it may be in the process of being DELETED.
+            // it may be in the process of being DELETED, but do return the
+            // new node if the old one has been marked as INVALID.
             DbKey key = new DbKey(dbmap, id);
             Node dirtyNode = ((Transactor) Thread.currentThread()).getDirtyNode(key);
-            if (dirtyNode != null) {
+            if (dirtyNode != null && dirtyNode.getState() != Node.INVALID) {
                 return dirtyNode;
             }
         }
