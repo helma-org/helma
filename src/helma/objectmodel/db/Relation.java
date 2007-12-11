@@ -1285,6 +1285,10 @@ public final class Relation {
                 map.put(cnst.foreignKey, home.getString(cnst.localProperty()));
             }
         }
+        // add filter as pseudo-constraint
+        if (filter != null) {
+            map.put("__filter__", filter);
+        }
         return map;
     }
 
