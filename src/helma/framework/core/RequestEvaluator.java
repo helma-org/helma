@@ -220,6 +220,7 @@ public final class RequestEvaluator implements Runnable {
                                         if (error != null) {
                                             // there was an error in the previous loop, call error handler
                                             currentElement = root;
+                                            res.setStatus(500);
 
                                             // do not reset the requestPath so error handler can use the original one
                                             // get error handler action
