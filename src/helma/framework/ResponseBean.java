@@ -115,6 +115,13 @@ public class ResponseBean implements Serializable {
     }
 
     /**
+     * Reset the response buffer, clearing all content previously written to it
+     */
+    public void resetBuffer() {
+        res.resetBuffer();
+    }
+
+    /**
      * Returns the ServletResponse instance for this Response.
      * Returns null for internal and XML-RPC requests.
      * @return the servlet response

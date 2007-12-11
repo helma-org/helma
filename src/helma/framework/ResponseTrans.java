@@ -171,6 +171,15 @@ public final class ResponseTrans extends Writer implements Serializable {
     }
 
     /**
+     * Reset the current response buffer.
+     */
+    public synchronized void resetBuffer() {
+        if (buffer != null) {
+            buffer.setLength(0);
+        }
+    }
+
+    /**
      * Reset the response object to its initial empty state.
      */
     public synchronized void reset() {
