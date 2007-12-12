@@ -500,7 +500,6 @@ public class ApplicationManager implements XmlRpcHandler {
                         context.setResourceBase(protectedContent.getPath());
                         server.getLogger().info("Serving protected static from " +
                                        protectedContent.getPath());
-                        context.addHandler(new ResourceHandler());
                     }
 
                     context.start();
