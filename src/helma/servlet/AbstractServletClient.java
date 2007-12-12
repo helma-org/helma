@@ -439,10 +439,15 @@ public abstract class AbstractServletClient extends HttpServlet {
     void sendForward(HttpServletResponse res, HttpServletRequest req,
                      ResponseTrans hopres) throws IOException {
         String forward = hopres.getForward();
+        // Jetty 5.1 bails at forward paths without leading slash, so fix it
+        if (!forward.startsWith("/")) {
+            forward = "/" + forward;
+        }
         ServletContext cx = getServletConfig().getServletContext();
         String path = cx.getRealPath(forward);
-        if (path == null)
+        if (path == null) {
             throw new IOException("Resource " + forward + " not found");
+        }
 
         File file = new File(path);
         // check if the client has an up-to-date copy so we can
@@ -456,8 +461,9 @@ public abstract class AbstractServletClient extends HttpServlet {
         res.setContentType(hopres.getContentType());
 
         InputStream in = cx.getResourceAsStream(forward);
-        if (in == null)
+        if (in == null) {
             throw new IOException("Can't read " + path);
+        }
         try {
             OutputStream out = res.getOutputStream();
     
@@ -466,13 +472,14 @@ public abstract class AbstractServletClient extends HttpServlet {
             int l;
     
             while (length > 0) {
-                if (length < bufferSize)
+                if (length < bufferSize) {
                     l = in.read(buffer, 0, length);
-                else
+                } else {
                     l = in.read(buffer, 0, bufferSize);
-    
-                if (l == -1)
+                }
+                if (l == -1) {
                     break;
+                }
     
                 length -= l;
                 out.write(buffer, 0, l);
