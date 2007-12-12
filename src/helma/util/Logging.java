@@ -64,7 +64,7 @@ public class Logging extends LogFactory {
             throw new LogConfigurationException("No logname specified!");
         }
         // normalize log name
-        logname = logname.replaceFirst("[^\\w\\d\\.]", "");
+        logname = logname.replaceAll("[^\\w\\d\\.]", "");
         if ("console".equals(logdir)) {
             if (logname.startsWith("org.mortbay."))
                 return getConsoleLog().getSedatedLog();
