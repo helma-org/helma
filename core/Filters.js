@@ -94,7 +94,7 @@ function trim_filter(input) {
  * Removes all tags from a String.
  * Currently simply wraps Helma's stripTags-method.
  *
- * @see stripTags
+ * @see global.stripTags
  */
 function stripTags_filter(input) {
    return stripTags((input || "").toString());
@@ -105,7 +105,7 @@ function stripTags_filter(input) {
  * Escapes the characters in a String using XML entities.
  * Currently simply wraps Helma's encodeXml-method.
  *
- * @see encodeXml
+ * @see global.encodeXml
  */
 function escapeXml_filter(input) {
    return encodeXml((input || "").toString());
