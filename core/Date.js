@@ -40,6 +40,7 @@ Date.ISOFORMAT    = "yyyy-MM-dd'T'HH:mm:ss'Z'";
  * @param Object Java Locale Object (optional)
  * @param Object Java TimeZone Object (optional)
  * @return String formatted Date
+ * @see http://java.sun.com/j2se/1.4.2/docs/api/java/text/SimpleDateFormat.html
  */
 Date.prototype.format = function (format, locale, timezone) {
     if (!format)
@@ -90,7 +91,8 @@ Date.prototype.diff = function(dateObj) {
  * @return Object containing properties:
  *         .isFuture = (Boolean)
  *         .span = (String) timespan
- * @see Date.prototype.getAge, Date.prototype.getExpiry
+ * @see Date.prototype.getAge
+ * @see Date.prototype.getExpiry
  */
 Date.prototype.getTimespan = function(param) {
     if (!param)
