@@ -145,7 +145,6 @@
     /**
      * This method produces a JSON text from an object. 
      * The object must not contain any cyclical references.
-     * @ignore
      */
     Object.prototype.toJSON = function () {
         return s.object(this);
@@ -154,7 +153,6 @@
     /**
      * This method produces a JSON text from an array. 
      * The array must not contain any cyclical references.
-     * @ignore
      */
     Array.prototype.toJSON = function () {
         return s.array(this);
@@ -169,7 +167,6 @@
 /**
  * This method parses a JSON text to produce an object or
  * array. It will return false if there is an error.
- * @ignore
  */
 String.prototype.parseJSON = function () {
     try {
