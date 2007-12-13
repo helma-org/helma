@@ -14,6 +14,12 @@
  * $Date$
  */
 
+/**
+ * @fileoverview Adds useful methods to Helma's built-in HopObject prototype.
+ * <br /><br />
+ * To use this optional module, its repository needs to be added to the 
+ * application, for example by calling app.addRepository('modules/core/HopObject.js')
+ */
 
 app.addRepository("modules/core/Number.js");
 app.addRepository("modules/core/String.js");

@@ -14,11 +14,37 @@
  * $Date$
  */
 
+/**
+ * @fileoverview Methods of the helma.Image module.
+ * <br /><br />
+ * To use this optional module, its repository needs to be added to the 
+ * application, for example by calling app.addRepository('modules/helma/Image.js')
+ */
 
 if (!global.helma) {
     global.helma = {};
 }
 
+/**
+ * Returns an Image object, generated from the specified source. 
+ * <br /><br />
+ * If the JIMI package is installed, an instance of 
+ * helma.image.jimi.JimiGenerator will be returned. Otherwise, 
+ * if the javax.imageio package is available, an instance of 
+ * helma.image.imageio.ImageIOGenerator is returned. 
+ * Additionally, the class of the ImageGenerator implementation
+ * to be used can be set using the <code>imageGenerator</code> 
+ * property in either the app.properties or server.properties 
+ * file.
+ * 
+ * 
+ * @param {helma.File|java.io.File|String} arg image source, filename or url
+ * @return a new Image object
+ * @singleton
+ * @see Packages.helma.image.ImageGenerator
+ * @see Packages.helma.image.jimi.JimiGenerator
+ * @see Packages.helma.image.imageio.ImageIOGenerator 
+ */
 helma.Image = function(arg) {
     // according to 
     // http://grazia.helma.org/pipermail/helma-dev/2004-June/001253.html
@@ -26,12 +52,20 @@ helma.Image = function(arg) {
     return generator.createImage(arg);
 }
 
-
+/** @ignore */
 helma.Image.toString = function() {
     return "[helma.Image]";
 };
 
 
+/**
+ * Returns an ImageInfo object for the specified image file. 
+ * 
+ * @param {helma.File|java.io.File|String} arg image source, filename or url
+ * @returns an ImageInfo object
+ * @memberof helma.Image
+ * @see Packages.helma.image.ImageInfo
+ */
 helma.Image.getInfo = function(arg) {
     if (arguments.length != 1) {
         throw new java.lang.IllegalArgumentException(
@@ -92,12 +126,17 @@ helma.Image.getInfo = function(arg) {
 };
 
 
+/**
+ * Writes a 1x1 pixel transparent spacer GIF image to the
+ * response buffer and sets the content type to image/gif.
+ * 
+ * @memberof helma.Image
+ */
 helma.Image.spacer = function() {
     res.contentType = "image/gif";
     res.writeBinary([71,73,70,56,57,97,2,0,2,0,-128,-1,0,-64,-64,-64,0,0,0,33,-7,4,1,0,0,0,0,44,0,0,0,0,1,0,1,0,64,2,2,68,1,0,59]);
     return;
 };
-
 
 helma.lib = "Image";
 helma.dontEnum(helma.lib);
@@ -106,3 +145,6 @@ for (var i in helma[helma.lib])
 for (var i in helma[helma.lib].prototype)
     helma[helma.lib].prototype.dontEnum(i);
 delete helma.lib;
+
+
+

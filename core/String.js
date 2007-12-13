@@ -32,6 +32,9 @@ String.NULL           = String.EMPTY; // to be deprecated?
 
 /**
  * @fileoverview Adds useful methods to the JavaScript String type.
+ * <br /><br />
+ * To use this optional module, its repository needs to be added to the 
+ * application, for example by calling app.addRepository('modules/core/String.js')
  */
 
 /**

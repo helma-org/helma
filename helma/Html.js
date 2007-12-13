@@ -18,6 +18,9 @@
 /**
  * @fileoverview Fields and methods of the helma.Html
  * and helma.Html.Tablewriter classes.
+ * <br /><br />
+ * To use this optional module, its repository needs to be added to the 
+ * application, for example by calling app.addRepository('modules/helma/Html.js')
  */
 
 // take care of any dependencies

@@ -17,6 +17,9 @@
 
 /**
  * @fileoverview Fields and methods of the helma.Http class.
+ * <br /><br />
+ * To use this optional module, its repository needs to be added to the 
+ * application, for example by calling app.addRepository('modules/helma/Http.js')
  */
 
 // take care of any dependencies

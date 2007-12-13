@@ -14,6 +14,12 @@
  * $Date$
  */
 
+/**
+ * @fileoverview Adds JSON methods to the Object, Array and String prototypes.
+ * <br /><br />
+ * To use this optional module, its repository needs to be added to the 
+ * application, for example by calling app.addRepository('modules/core/JSON.js')
+ */
 
 /*
     json.js
@@ -49,6 +55,9 @@
     },
     
     s = {
+        /**
+         * @ignore
+         */
         array: function (x) {
             var a = ['['], b, f, i, l = x.length, v;
             for (i = 0; i < l; i += 1) {
@@ -77,10 +86,16 @@
             return "null";
         },
         
+        /**
+         * @ignore
+         */
         number: function (x) {
             return isFinite(x) ? String(x) : 'null';
         },
         
+        /**
+         * @ignore
+         */
         object: function (x) {
             if (x) {
                 if (x instanceof Array) {
@@ -107,6 +122,9 @@
             return 'null';
         },
         
+        /**
+         * @ignore
+         */
         string: function (x) {
             if (/["\\\x00-\x1f]/.test(x)) {
                 x = x.replace(/([\x00-\x1f\\"])/g, function(a, b) {
@@ -127,6 +145,7 @@
     /**
      * This method produces a JSON text from an object. 
      * The object must not contain any cyclical references.
+     * @ignore
      */
     Object.prototype.toJSON = function () {
         return s.object(this);
@@ -135,6 +154,7 @@
     /**
      * This method produces a JSON text from an array. 
      * The array must not contain any cyclical references.
+     * @ignore
      */
     Array.prototype.toJSON = function () {
         return s.array(this);
@@ -149,6 +169,7 @@
 /**
  * This method parses a JSON text to produce an object or
  * array. It will return false if there is an error.
+ * @ignore
  */
 String.prototype.parseJSON = function () {
     try {

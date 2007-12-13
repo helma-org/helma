@@ -14,6 +14,12 @@
  * $Date$
  */
 
+/**
+ * @fileoverview Adds useful global macros.
+ * <br /><br />
+ * To use this optional module, its repository needs to be added to the 
+ * application, for example by calling app.addRepository('modules/core/Global.js')
+ */
 
 app.addRepository("modules/core/String.js");
 

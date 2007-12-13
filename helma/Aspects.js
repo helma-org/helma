@@ -14,6 +14,12 @@
  * $Date$
  */
 
+/**
+ * @fileoverview Methods of the helma.Aspects module.
+ * <br /><br />
+ * To use this optional module, its repository needs to be added to the 
+ * application, for example by calling app.addRepository('modules/helma/Aspects.js')
+ */
 
 /**
  * Define the global namespace if not existing

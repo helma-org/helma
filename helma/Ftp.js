@@ -16,8 +16,10 @@
 
 
 /**
- * @fileoverview Default properties and methods of  
- * the FtpClient prototype.
+ * @fileoverview Default properties and methods of the FtpClient prototype.
+ * <br /><br />
+ * To use this optional module, its repository needs to be added to the 
+ * application, for example by calling app.addRepository('modules/helma/Ftp.js')
  */
 
 // requires helma.File

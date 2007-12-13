@@ -16,8 +16,10 @@
 
 
 /**
- * @fileoverview Default properties and methods of  
- * the File prototype.
+ * @fileoverview Default properties and methods of the File prototype.
+ * <br /><br />
+ * To use this optional module, its repository needs to be added to the 
+ * application, for example by calling app.addRepository('modules/helma/File.js')
  */
 
 

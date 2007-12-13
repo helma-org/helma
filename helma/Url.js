@@ -16,6 +16,9 @@
 
 /**
  * @fileoverview Fields and methods of the helma.Url class.
+ * <br /><br />
+ * To use this optional module, its repository needs to be added to the 
+ * application, for example by calling app.addRepository('modules/helma/Url.js')
  */
 
 if (!global.helma) {
