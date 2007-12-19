@@ -59,26 +59,41 @@ helma.Http = function() {
     var maxResponseSize = null;
 
     var responseHandler = function(connection, result) {
-       var input = new java.io.BufferedInputStream(connection.getInputStream());
-       var body = new java.io.ByteArrayOutputStream();
-       var buf = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 1024);
-       var len;
-       var currentSize = 0;
-       var maxResponseSize = self.getMaxResponseSize();
-       while ((len = input.read(buf)) > -1) {
-          body.write(buf, 0, len);
-          currentSize += len;
-          if (maxResponseSize && currentSize > maxResponseSize) {
-             throw new Error("Maximum allowed response size is exceeded");
-          }
+       var input;
+       try {
+          input = new java.io.BufferedInputStream(connection.getInputStream());
+       } catch (error) {
+          input = new java.io.BufferedInputStream(connection.getErrorStream());
        }
-       input.close();
-       if (binaryMode) {
-          result.content = body.toByteArray();
-       } else {
-          result.content = result.charset ?
+       if (input) {
+          var body = new java.io.ByteArrayOutputStream();
+          var buf = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 1024);
+          var len;
+          var currentSize = 0;
+          while ((len = input.read(buf)) > -1) {
+             body.write(buf, 0, len);
+             currentSize += len;
+             if (maxResponseSize && currentSize > maxResponseSize) {
+                throw new Error("Maximum allowed response size is exceeded");
+             }
+          }
+          try {
+             input.close();
+          } catch (error) {
+             // safe to ignore 
+          }
+          if (binaryMode && (result.code >= 200 && result.code < 300)) {
+             // only honor binaryMode if the request succeeded
+             result.content = body.toByteArray();
+          } else {
+             result.content = result.charset ?
                       body.toString(result.charset) :
                       body.toString();
+          }
+          // adjust content length
+          if (result.content) {
+             result.length = result.content.length;
+          }
        }
     };
 
@@ -413,15 +428,27 @@ helma.Http = function() {
     };
 
     /**
-     * Overloads the default response handler
+     * Overloads the default response handler.
      * Use this do implement your own response handling, like storing the response directly to the harddisk
-     * The handler function gets two parameter, first is the Connection and second is the result object
+     * The handler function gets two parameter, first is the java.net.URLConnection and second is the result object.
+     * Note that custom response handler functions should check the HTTP status code before reading
+     * the response. The status code for successful requests is 200. Response bodies for requests with
+     * status codes less than 400 can be read from the connection's input stream, while response bodies
+     * with 4xx or 5xx status codes must be read using the error stream.
      * @param {function} Response handler function
      */
     this.setResponseHandler = function(callback) {
        responseHandler = callback;
        return;
     };
+
+    /**
+     * Get the response handler. This is the function used to read the HTTP response body.
+     * @returns The response handler function
+     */
+    this.getResponseHandler = function() {
+       return responseHandler;
+    }
 
     /**
      * Executes a http request
@@ -457,7 +484,11 @@ helma.Http = function() {
         }
         
         var conn = proxy ? url.openConnection(proxy) : url.openConnection();
-        conn.setFollowRedirects(followRedirects);
+        // Note: we must call setInstanceFollowRedirects() instead of
+        // static method setFollowRedirects(), as the latter will
+        // set the default value for all url connections, and will not work for
+        // url connections that have already been created.
+        conn.setInstanceFollowRedirects(followRedirects);
         conn.setAllowUserInteraction(false);
         conn.setRequestMethod(method);
         conn.setRequestProperty("User-Agent", userAgent);
@@ -549,26 +580,10 @@ helma.Http = function() {
            charset = charset.replace('"', ' ').trim();
            result.charset = charset;
         }
-        if (result.length != 0 && result.code == 200) {
-            responseHandler(conn, result);
-            if (result.content) {
-               result.length = result.content.length;
-            }
-            result.length = result.content.length;
-        } else {
-           var errorStream = conn.getErrorStream();
-           if (errorStream) {
-              var body = new java.io.ByteArrayOutputStream();
-              var input = new java.io.BufferedInputStream(errorStream);
-              var buf = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 1024);
-              var str;
-              while ((str = input.read(buf)) > -1) {
-                 body.write(buf, 0, str);
-              }
-              input.close();
-              result.error = body.toString();
-           }
-        }
+
+        // invoke response handler
+        responseHandler(conn, result);
+
         conn.disconnect();
         return result;
     }
