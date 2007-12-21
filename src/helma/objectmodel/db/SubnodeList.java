@@ -26,10 +26,9 @@ import java.util.Iterator;
  */
 public class SubnodeList extends ArrayList {
 
-    WrappedNodeManager nmgr;
-
-    HashMap views = null;
-    Relation rel;
+    transient WrappedNodeManager nmgr;
+    transient HashMap views = null;
+    transient Relation rel;
 
     /**
      * Hide/disable zero argument constructor for subclasses
