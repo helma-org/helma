@@ -669,6 +669,36 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     }
 
     /**
+     * Check whether the wrapped Node is persistent.
+     * This also returns true if the Node is being inserted in the database,
+     * or it has been in database and is in the proces of being deleted.
+     * @return true if the the wrapped Node has a valid database id.
+     */
+    public boolean jsFunction_isPersistent() {
+        if (!(node instanceof helma.objectmodel.db.Node)) {
+            return false;
+        }
+        checkNode();
+        int nodeState = node.getState();
+        return nodeState != INode.TRANSIENT;
+    }
+
+    /**
+     * Check whether the wrapped Node is transient.
+     * This also returns false if the Node is being inserted in the database,
+     * or it has been in database and is in the proces of being deleted.
+     * @return true if the the wrapped Node is not stored in a database.
+     */
+    public boolean jsFunction_isTransient() {
+        if (!(node instanceof helma.objectmodel.db.Node)) {
+            return true;
+        }
+        checkNode();
+        int nodeState = node.getState();
+        return nodeState == INode.TRANSIENT;
+    }
+
+    /**
      * Check if node is contained in the subnode collection.
      * Return its index position if it is, and -1 otherwise.
      */
