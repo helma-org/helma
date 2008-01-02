@@ -75,6 +75,9 @@ public final class RhinoCore implements ScopeProvider {
     // optimization level for rhino engine, ranges from -1 to 9
     int optLevel = 0;
 
+    // language version
+    int languageVersion = 0;
+    
     // debugger/tracer flags
     boolean hasDebugger = false;
     boolean hasTracer = false;
@@ -115,6 +118,14 @@ public final class RhinoCore implements ScopeProvider {
                 } catch (Exception ignore) {
                     app.logError("Invalid rhino optlevel: " + opt);
                 }
+            }
+        }
+        String v = app.getProperty("rhino.languageVersion");
+        if (v != null) {
+            try {
+                languageVersion = Integer.parseInt(v);
+            } catch (Exception ignore) {
+                app.logError("Invalid rhino.languageVersion: " + v);
             }
         }
         wrapper = new WrapMaker();
@@ -1108,6 +1119,11 @@ public final class RhinoCore implements ScopeProvider {
         protected void onContextCreated(Context cx) {
             cx.setWrapFactory(wrapper);
             cx.setOptimizationLevel(optLevel);
+            if (cx.isValidLanguageVersion(languageVersion)) {
+                cx.setLanguageVersion(languageVersion);
+            } else {
+                app.logError("Unsupported rhino.languageVersion: " + languageVersion);
+            }
             // Set up visual debugger if rhino.debug = true
             if (hasDebugger)
                 initDebugger(cx);
