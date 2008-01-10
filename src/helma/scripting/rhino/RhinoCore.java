@@ -155,6 +155,7 @@ public final class RhinoCore implements ScopeProvider {
             new LazilyLoadedCtor(global, "Remote",
                     "helma.scripting.rhino.extensions.XmlRpcObject", false);
             MailObject.init(global, app.getProperties());
+            JSAdapter.init(context, global, false);
 
             // add some convenience functions to string, date and number prototypes
             Scriptable stringProto = ScriptableObject.getClassPrototype(global, "String");
