@@ -16,7 +16,7 @@
 
 package helma.scripting.rhino.extensions;
 
-import com.oroinc.net.ftp.*;
+import org.apache.commons.net.ftp.*;
 import java.io.*;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Function;

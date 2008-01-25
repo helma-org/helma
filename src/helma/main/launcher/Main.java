@@ -36,11 +36,11 @@ import java.util.ArrayList;
 public class Main {
     public static final String[] jars = {
                                             "helma.jar", "rhino.jar", "jetty.jar",
-                                            "commons-logging.jar", 
+                                            "commons-logging.jar",
                                             "crimson.jar", "xmlrpc.jar", "servlet.jar",
                                             "mail.jar", "activation.jar",
                                             "commons-fileupload.jar", "commons-codec.jar",
-                                            "commons-io.jar", "netcomponents.jar", 
+                                            "commons-io.jar", "commons-net.jar", 
                                             "tagsoup.jar"
                                         };
 
@@ -95,7 +95,6 @@ public class Main {
 
         for (int i = 0; i < jars.length; i++) {
             File jar = new File(libdir, jars[i]);
-
             jarlist.add(new URL("file:" + jar.getAbsolutePath()));
         }
 
@@ -104,7 +103,6 @@ public class Main {
         File[] files = extdir.listFiles(new FilenameFilter() {
                 public boolean accept(File dir, String name) {
                     String n = name.toLowerCase();
-
                     return n.endsWith(".jar") || n.endsWith(".zip");
                 }
             });
