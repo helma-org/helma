@@ -64,8 +64,8 @@ helma.Ftp = function(server) {
    var PUT     = 41;
    var DELETE  = 42;
 
-   var FTP                    = Packages.com.oroinc.net.ftp.FTP;
-   var FtpClient              = Packages.com.oroinc.net.ftp.FTPClient;
+   var FTP                    = Packages.org.apache.commons.net.ftp.FTP;
+   var FtpClient              = Packages.org.apache.commons.net.ftp.FTPClient;
    var BufferedInputStream    = java.io.BufferedInputStream;
    var BufferedOutputStream   = java.io.BufferedOutputStream;
    var FileInputStream        = java.io.FileInputStream;
