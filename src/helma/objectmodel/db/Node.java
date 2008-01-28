@@ -666,7 +666,7 @@ public final class Node implements INode, Serializable {
      * @param name ...
      */
     public void setName(String name) {
-        if ((name == null) || (name.trim().length() == 0)) {
+        if ((name == null) || (name.length() == 0)) {
             // use id as name
             this.name = id;
         } else if (name.indexOf('/') > -1) {
@@ -704,30 +704,36 @@ public final class Node implements INode, Serializable {
 
         // check if current parent candidate matches presciption,
         // if not, try to get one that does.
-        if (parentInfo != null) {
+        if (nmgr.isRootNode(this)) {
+            parentHandle = null;
+            lastParentSet =  System.currentTimeMillis();
+            return null;
+        } else if (parentInfo != null) {
+
+            Node parentFallback = null;
 
             for (int i = 0; i < parentInfo.length; i++) {
 
                 ParentInfo pinfo = parentInfo[i];
-                Node pn = null;
+                Node parentNode = null;
 
                 // see if there is an explicit relation defined for this parent info
                 // we only try to fetch a node if an explicit relation is specified for the prop name
                 Relation rel = dbmap.propertyToRelation(pinfo.propname);
                 if ((rel != null) && (rel.isReference() || rel.isComplexReference())) {
-                    pn = (Node) getNode(pinfo.propname);
+                    parentNode = (Node) getNode(pinfo.propname);
                 }
 
                 // the parent of this node is the app's root node...
-                if ((pn == null) && pinfo.isroot) {
-                    pn = nmgr.getRootNode();
+                if ((parentNode == null) && pinfo.isroot) {
+                    parentNode = nmgr.getRootNode();
                 }
 
                 // if we found a parent node, check if we ought to use a virtual or groupby node as parent
-                if (pn != null) {
+                if (parentNode != null) {
                     // see if dbmapping specifies anonymity for this node
                     if (pinfo.virtualname != null) {
-                        Node pn2 = (Node) pn.getNode(pinfo.virtualname);
+                        Node pn2 = (Node) parentNode.getNode(pinfo.virtualname);
                         if (pn2 == null) {
                             getApp().logError("Error: Can't retrieve parent node " +
                                                    pinfo + " for " + this);
@@ -736,52 +742,59 @@ public final class Node implements INode, Serializable {
                         } else if (pn2.equals(this)) {
                             // a special case we want to support: virtualname is actually
                             // a reference to this node, not a collection containing this node.
-                            parentHandle = pn.getHandle();
+                            parentHandle = parentNode.getHandle();
                             name = pinfo.virtualname;
                             anonymous = false;
-                            return pn;
+                            return parentNode;
                         }
 
-                        pn = pn2;
+                        parentNode = pn2;
                     }
 
-                    DbMapping dbm = (pn == null) ? null : pn.getDbMapping();
+                    DbMapping dbm = (parentNode == null) ? null : parentNode.getDbMapping();
 
                     try {
                         if ((dbm != null) && (dbm.getSubnodeGroupby() != null)) {
                             // check for groupby
                             rel = dbmap.columnNameToRelation(dbm.getSubnodeGroupby());
-                            pn = (Node) pn.getChildElement(getString(rel.propName));
+                            parentNode = (Node) parentNode.getChildElement(getString(rel.propName));
                         }
 
-                        if (pn != null) {
-                            parentHandle = pn.getHandle();
-                            lastParentSet = System.currentTimeMillis();
-
-                            return pn;
+                        // check if parent actually contains this node. If it does,
+                        // accept it immediately, otherwise, keep it as fallback in case
+                        // no other parent matches. See http://helma.org/bugs/show_bug.cgi?id=593
+                        if (parentNode != null) {
+                            if (parentNode.isParentOf(this)) {
+                                parentHandle = parentNode.getHandle();
+                                lastParentSet = System.currentTimeMillis();
+                                return parentNode;
+                            } else if (parentFallback == null) {
+                                parentFallback = parentNode;
+                            }
                         }
                     } catch (Exception x) {
                         getApp().logError("Error retrieving parent node " +
                                                    pinfo + " for " + this, x);
                     }
                 }
-                if (i == parentInfo.length-1) {
-                    // if we came till here and we didn't find a parent.
-                    // set parent to null.
-                    parentHandle = null;
-                    lastParentSet = System.currentTimeMillis();
-                }
             }
-            if (parentHandle == null && !nmgr.isRootNode(this) && state != TRANSIENT) {
-                getApp().logEvent("*** Couldn't resolve parent for " + this);
-                getApp().logEvent("*** Please check _parent info in type.properties!");
+            lastParentSet = System.currentTimeMillis();
+            // if we came till here and we didn't find a parent.
+            // set parent to null unless we have a fallback.
+            if (parentFallback != null) {
+                parentHandle = parentFallback.getHandle();
+                return parentFallback;
+            } else {
+                parentHandle = null;
+                if (state != TRANSIENT) {
+                    getApp().logEvent("*** Couldn't resolve parent for " + this +
+                            " - please check _parent info in type.properties!");
+                }
+                return null;
             }
         }
 
-        if (parentHandle == null) {
-            return null;
-        }
-        return parentHandle.getNode(nmgr);
+        return parentHandle == null ? null : parentHandle.getNode(nmgr);
     }
 
     /**
