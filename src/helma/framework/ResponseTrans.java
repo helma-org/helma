@@ -19,6 +19,7 @@ package helma.framework;
 import helma.framework.core.Skin;
 import helma.framework.core.Application;
 import helma.util.*;
+import helma.scripting.ScriptingException;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
@@ -95,8 +96,8 @@ public final class ResponseTrans extends Writer implements Serializable {
     // field for generic message to be displayed
     private transient String message;
 
-    // field for error message
-    private transient String error;
+    // field for error
+    private transient Throwable error;
 
     // the res.data map of form and cookie data
     private transient Map values = new SystemMap();
@@ -190,7 +191,8 @@ public final class ResponseTrans extends Writer implements Serializable {
         buffers = null;
         response = null;
         cacheable = true;
-        redir = forward = message = error = null;
+        redir = forward = message = null;
+        error = null;
         etag = realm = charset = null;
         contentType =  "text/html";
         values.clear();
@@ -546,21 +548,59 @@ public final class ResponseTrans extends Writer implements Serializable {
      * Write a vanilla error report. Callers should make sure the ResponeTrans is
      * new or has been reset.
      *
-     * @param appName the application name
-     * @param message the error message
+     * @param throwable the error
      */
-    public void reportError(String appName, String message) {
+    public void reportError(Throwable throwable) {
+        if (throwable == null) {
+            // just to be safe
+            reportError("Unspecified error");
+            return;
+        }
         if (reqtrans.isXmlRpc()) {
-            writeXmlRpcError(new RuntimeException(message));
+            writeXmlRpcError(new RuntimeException(throwable));
         } else {
             status = 500;
             if (!"true".equalsIgnoreCase(app.getProperty("suppressErrorPage"))) {
-                write("<html><body><h3>");
+                write("<html><body>");
+                write("<h2>Error in application " + app.getName() + "</h2><p>");
+                encode(getErrorMessage(throwable));
+                writeln("</p>");
+                if (app.debug()) {
+                    if (throwable instanceof ScriptingException) {
+                        ScriptingException scriptx = (ScriptingException) throwable;
+                        writeln("<h4>Script Stack</h4>");
+                        writeln("<pre>" + scriptx.getScriptStackTrace() + "</pre>");
+                        writeln("<h4>Java Stack</h4>");
+                        writeln("<pre>" + scriptx.getJavaStackTrace() + "</pre>");
+                    } else {
+                        writeln("<h4>Java Stack</h4>");
+                        writeln("<pre>");
+                        throwable.printStackTrace(new PrintWriter(this));
+                        writeln("</pre>");
+                    }
+                }
+                writeln("</body></html>");
+            }
+        }
+    }
+
+    /**
+     * Write a vanilla error report. Callers should make sure the ResponeTrans is
+     * new or has been reset.
+     * @param errorMessage the error message
+     */
+    public void reportError(String errorMessage) {
+        if (reqtrans.isXmlRpc()) {
+            writeXmlRpcError(new RuntimeException(errorMessage));
+        } else {
+            status = 500;
+            if (!"true".equalsIgnoreCase(app.getProperty("suppressErrorPage"))) {
+                write("<html><body><h2>");
                 write("Error in application ");
-                write(appName);
-                write("</h3>");
-                write(message);
-                write("</body></html>");
+                write(app.getName());
+                write("</h2><p>");
+                encode(errorMessage);
+                writeln("</p></body></html>");
             }
         }
     }
@@ -1010,7 +1050,7 @@ public final class ResponseTrans extends Writer implements Serializable {
      * Get the error message to display to the user, if any.
      * @return the error message
      */
-    public String getError() {
+    public Throwable getError() {
         return error;
     }
 
@@ -1018,8 +1058,23 @@ public final class ResponseTrans extends Writer implements Serializable {
      * Set a message to display to the user.
      * @param error the error message
      */
-    public void setError(String error) {
+    public void setError(Throwable error) {
         this.error = error;
+    }
+
+    public String getErrorMessage() {
+        if (error == null)
+            return null;
+        return getErrorMessage(error);
+    }
+
+    private static String getErrorMessage(Throwable t) {
+        String msg = t.getMessage();
+        if (msg == null || msg.length() == 0)
+            msg = t.toString();
+        if (msg == null || msg.length() == 0)
+            return "Unspecified Error: " + t.getClass().getName();
+        return msg;
     }
 
     /**

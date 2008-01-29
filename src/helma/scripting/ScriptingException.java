@@ -18,10 +18,7 @@ package helma.scripting;
 
 import org.mozilla.javascript.RhinoException;
 
-import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.io.FilenameFilter;
-import java.io.File;
+import java.io.*;
 
 /**
  * The base class for wrapped exceptions thrown by invocation of the scripting engine.
@@ -60,9 +57,26 @@ public class ScriptingException extends Exception {
         }
     }
 
+    /**
+     * Get the script stack, or null if none is available
+     * @return the script stack trace
+     */
+    public String getScriptStackTrace() {
+        return scriptStack;
+    }
+
+    /**
+     * Get the java stack trace.
+     * @return the java stack trace
+     */
+    public String getJavaStackTrace() {
+        StringWriter w = new StringWriter();
+        getCause().printStackTrace(new PrintWriter(w));
+        return w.toString();
+    }
 
     /*
-     * Adaption from Throwable.printStackTrace() to only print Script file stack elements.
+     * Adaption from Throwable.printStackTrace() to also print Script file stack elements.
      */
     public void printStackTrace(PrintStream s) {
         synchronized (s) {
@@ -77,7 +91,7 @@ public class ScriptingException extends Exception {
 
 
     /*
-     * Adaption from Throwable.printStackTrace() to only print Script file stack elements.
+     * Adaption from Throwable.printStackTrace() to also print Script file stack elements.
      */
     public void printStackTrace(PrintWriter s) {
         synchronized (s) {

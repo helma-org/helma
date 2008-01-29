@@ -149,7 +149,7 @@ public final class RequestEvaluator implements Runnable {
 
                 int tries = 0;
                 boolean done = false;
-                String error = null;
+                Throwable error = null;
                 String functionName = function instanceof String ?
                         (String) function : null;
 
@@ -543,7 +543,7 @@ public final class RequestEvaluator implements Runnable {
                                 Thread.sleep((long) (base + (Math.random() * base * 2)));
                             } catch (InterruptedException interrupt) {
                                 // we got interrrupted, create minimal error message 
-                                res.reportError(app.getName(), error);
+                                res.reportError(interrupt);
                                 done = true;
                                 // and release resources and thread
                                 rtx = null;
@@ -555,11 +555,8 @@ public final class RequestEvaluator implements Runnable {
                             }
                             abortTransaction();
 
-                            if (error == null)
-                                error = "Application too busy, please try again later";
-
                             // error in error action. use traditional minimal error message
-                            res.reportError(app.getName(), error);
+                            res.reportError("Application too busy, please try again later");
                             done = true;
                         }
                     } catch (Throwable x) {
@@ -587,15 +584,7 @@ public final class RequestEvaluator implements Runnable {
 
                             // set done to false so that the error will be processed
                             done = false;
-                            error = x.getMessage();
-
-                            if ((error == null) || (error.length() == 0)) {
-                                error = x.toString();
-                            }
-
-                            if (error == null) {
-                                error = "Unspecified error";
-                            }
+                            error = x;
 
                             app.logError(txname + ": " + error, x);
 
@@ -610,7 +599,7 @@ public final class RequestEvaluator implements Runnable {
                             }
                         } else {
                             // error in error action. use traditional minimal error message
-                            res.reportError(app.getName(), error);
+                            res.reportError(error);
                             done = true;
                         }
                     } finally {
@@ -755,7 +744,7 @@ public final class RequestEvaluator implements Runnable {
 
         if (reqtype != NONE && stopTransactor()) {
             res.reset();
-            res.reportError(app.getName(), "Request timed out");
+            res.reportError("Request timed out");
         }
 
         session.commit(this);

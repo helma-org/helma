@@ -17,9 +17,12 @@
 package helma.framework;
 
 import helma.objectmodel.db.Transactor;
+import helma.scripting.ScriptingException;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.Serializable;
+import java.io.StringWriter;
+import java.io.PrintWriter;
 import java.util.Date;
 import java.util.Map;
 
@@ -373,7 +376,41 @@ public class ResponseBean implements Serializable {
      * @return the error message
      */
     public String getError() {
+        return res.getErrorMessage();
+    }
+
+    /**
+     * Get the uncaught exception for the response, if any
+     * @return the uncaught exception
+     */
+    public Throwable getException() {
         return res.getError();
+    }
+
+    /**
+     * Return the Javascript stack trace of an uncought exception.
+     * @return the script stack trace of any uncaught exception or null.
+     */
+    public String getScriptStack() {
+        Throwable t = res.getError();
+        if (t instanceof ScriptingException)
+            return ((ScriptingException) t).getScriptStackTrace();
+        return null;
+    }
+
+    /**
+     * Get the Java stack trace of an uncaught exception.
+     * @return the java stack trace of an uncaught exception or null.
+     */
+    public String getJavaStack() {
+        Throwable t = res.getError();
+        if (t == null)
+            return null;
+        else if (t instanceof ScriptingException)
+            return ((ScriptingException) t).getJavaStackTrace();
+        StringWriter w = new StringWriter();
+        t.printStackTrace(new PrintWriter(w));
+        return w.toString();
     }
 
     /**

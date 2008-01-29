@@ -688,7 +688,7 @@ public final class Skin {
                         if ("message".equals(propName))
                             value = cx.reval.getResponse().getMessage();
                         else if ("error".equals(propName))
-                            value = cx.reval.getResponse().getError();
+                            value = cx.reval.getResponse().getErrorMessage();
                         if (value != null)
                             return filter(value, cx);
                     }

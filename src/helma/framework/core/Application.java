@@ -701,7 +701,7 @@ public final class Application implements Runnable {
         } catch (Exception x) {
             errorCount += 1;
             res = new ResponseTrans(this, req);
-            res.reportError(name, x.getMessage());
+            res.reportError(x);
         } finally {
             if (primaryRequest) {
                 activeRequests.remove(req);
