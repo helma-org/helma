@@ -26,6 +26,7 @@ import helma.main.Server;
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Relation;
+import helma.objectmodel.db.NodeHandle;
 import helma.scripting.*;
 import helma.scripting.rhino.debug.Tracer;
 import helma.util.StringUtils;
@@ -526,11 +527,25 @@ public class RhinoEngine implements ScriptingEngine {
             // use a special ScriptableOutputStream that unwraps Wrappers
             ScriptableOutputStream sout = new ScriptableOutputStream(out, core.global) {
                 protected Object replaceObject(Object obj) throws IOException {
-                    if (obj instanceof Wrapper)
-                        obj = ((Wrapper) obj).unwrap();
+                    // FIXME doesn't work because we need a transactor thread for deserialization
+                    // if (obj instanceof Wrapper)
+                    //     obj = ((Wrapper) obj).unwrap();
+                    // if (obj instanceof helma.objectmodel.db.Node)
+                    //     return ((helma.objectmodel.db.Node) obj).getHandle();
+                    if (obj instanceof ApplicationBean)
+                        return new ScriptBeanProxy("app");
+                    if (obj instanceof RequestBean)
+                        return new ScriptBeanProxy("req");
+                    if (obj instanceof ResponseBean)
+                        return new ScriptBeanProxy("res");
+                    if (obj instanceof PathWrapper)
+                        return new ScriptBeanProxy("path");
                     return super.replaceObject(obj);
                 }
             };
+            sout.addExcludedName("Xml");
+            sout.addExcludedName("global");            
+
             sout.writeObject(obj);
             sout.flush();
         } finally {
@@ -550,7 +565,18 @@ public class RhinoEngine implements ScriptingEngine {
     public Object deserialize(InputStream in) throws IOException, ClassNotFoundException {
         core.contextFactory.enter();
         try {
-            ObjectInputStream sin = new ScriptableInputStream(in, core.global);
+            ObjectInputStream sin = new ScriptableInputStream(in, core.global) {
+                protected Object resolveObject(Object obj) throws IOException {
+                    if (obj instanceof NodeHandle) {
+                        // FIXME doesn't work unless we have a transactor thread
+                        // Object node = ((NodeHandle) obj).getNode(app.getNodeManager().safe);
+                        // return Context.toObject(node, global);
+                    } else if (obj instanceof ScriptBeanProxy) {
+                        return ((ScriptBeanProxy) obj).getObject();
+                    }
+                    return super.resolveObject(obj);
+                }
+            };
             return sin.readObject();
         } finally {
             core.contextFactory.exit();
@@ -659,6 +685,26 @@ public class RhinoEngine implements ScriptingEngine {
             res.cacheSkin(key, skin);
         }
         return skin;
+    }
+
+    /**
+     * Serialization proxy for app, req, res, path objects.
+     */
+    class ScriptBeanProxy implements Serializable {
+        String name;
+
+        ScriptBeanProxy(String name) {
+            this.name = name;
+        }
+
+        /**
+         * Lookup the actual object in the current scope
+         * @return the object represented by this proxy
+         */
+        Object getObject() {
+            return global.get(name, global);
+        }
+
     }
 
 }
