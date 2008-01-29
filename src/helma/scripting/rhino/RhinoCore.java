@@ -75,8 +75,8 @@ public final class RhinoCore implements ScopeProvider {
     // optimization level for rhino engine, ranges from -1 to 9
     int optLevel = 0;
 
-    // language version
-    int languageVersion = 0;
+    // language version - default to JS 1.7
+    int languageVersion = 170;
     
     // debugger/tracer flags
     boolean hasDebugger = false;
