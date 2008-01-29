@@ -1327,30 +1327,43 @@ public final class Application implements Runnable {
             return ((IPathElement) obj).getPrototype();
         }
 
+        // How class name to prototype name lookup works:
+        // If an object is not found by its direct class name, a cache entry is added
+        // for the class name. For negative result, the string "(unmapped)" is used
+        // as cache value.
+        //
+        // Caching is done directly in classProperties, as ResourceProperties have
+        // the nice effect of being purged when the underlying resource is updated,
+        // so cache invalidation happens implicitely.
+
         Class clazz = obj.getClass();
         String className = clazz.getName();
         String protoName = classMapping.getProperty(className);
+        // fast path: direct hit, either positive or negative
         if (protoName != null) {
             return protoName == CLASS_NOT_MAPPED ? null : protoName;
         }
 
-        // walk down superclass path
-        while ((clazz = clazz.getSuperclass()) != null) {
+        // walk down superclass path. We already checked the actual class,
+        // and we know that java.lang.Object does not implement any interfaces,
+        // and the code is streamlined a bit to take advantage of this.
+        while (clazz != Object.class) {
+            // check interfaces
+            Class[] classes = clazz.getInterfaces();
+            for (int i = 0; i < classes.length; i++) {
+                protoName = classMapping.getProperty(classes[i].getName());
+                if (protoName != null) {
+                    // cache the class name for the object so we run faster next time
+                    classMapping.setProperty(className, protoName);
+                    return protoName;
+                }
+            }
+            clazz = clazz.getSuperclass();
             protoName = classMapping.getProperty(clazz.getName());
             if (protoName != null) {
                 // cache the class name for the object so we run faster next time
                 classMapping.setProperty(className, protoName);
-                return protoName;
-            }
-        }
-        // check interfaces, too
-        Class[] classes = obj.getClass().getInterfaces();
-        for (int i = 0; i < classes.length; i++) {
-            protoName = classMapping.getProperty(classes[i].getName());
-            if (protoName != null) {
-                // cache the class name for the object so we run faster next time
-                classMapping.setProperty(className, protoName);
-                return protoName;
+                return protoName == CLASS_NOT_MAPPED ? null : protoName;
             }
         }
         // not mapped - cache negative result
