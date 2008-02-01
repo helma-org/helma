@@ -971,9 +971,19 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Return all property names of this object. This method is used by debugger.
+     * @return array containing the names of all properties defined in this object
+     */
+    public Object[] getAllIds() {
+        if (node == null) {
+            return super.getAllIds();
+        }
+        return getIds();
+    }
+
+    /**
+     * Return all "ordinary" property ids of this object. This "hides" the prototype methods.
+     * @return array containing the names of this object's data properties
      */
     public Object[] getIds() {
         if (node == null) {
