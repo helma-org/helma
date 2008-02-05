@@ -189,6 +189,13 @@ public class RequestBean implements Serializable {
     }
 
     /**
+     * @return the request URI
+     */
+    public String getUri() {
+        return req.getUri();
+    }
+
+    /**
      * @return the username if using HTTP basic authentication
      */
     public String getUsername() {

@@ -53,8 +53,11 @@ public class RequestTrans implements Serializable {
     final HttpServletRequest request;
     final HttpServletResponse response;
 
-    // the uri path of the request
+    // the path info of the request
     private final String path;
+
+    // the uri of the request
+    private final String uri;
 
     // the request's session id
     private String session;
@@ -90,6 +93,7 @@ public class RequestTrans implements Serializable {
     public RequestTrans(String method, String path) {
         this.method = method;
         this.path = path;
+        this.uri = null;
         this.request = null;
         this.response = null;
         startTime = System.currentTimeMillis();
@@ -104,6 +108,7 @@ public class RequestTrans implements Serializable {
         this.request = request;
         this.response = response;
         this.path = path;
+        this.uri = request.getRequestURI();
         startTime = System.currentTimeMillis();
 
         // do standard HTTP variables
@@ -427,6 +432,13 @@ public class RequestTrans implements Serializable {
      */
     public String getPath() {
         return path;
+    }
+
+    /**
+     * Get the request's path
+     */
+    public String getUri() {
+        return uri;
     }
 
     /**
