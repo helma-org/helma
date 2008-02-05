@@ -202,4 +202,23 @@ public class RequestBean implements Serializable {
         return req.getUsername();
     }
 
+    /**
+     * The action processor allows the onRequest() method to set the function object
+     * to be invoked for processing the request, overriding the action resolved
+     * from the request path.
+     * @return the action processor
+     */
+    public Object getActionProcessor() {
+        return req.getActionProcessor();
+    }
+
+    /**
+     * The action processor allows the onRequest() method to set the function object
+     * to be invoked for processing the request, overriding the action resolved
+     * from the request path.
+     * @param processor the action processor
+     */
+    public void setActionProcessor(Object processor) {
+        req.setActionProcessor(processor);
+    }
 }

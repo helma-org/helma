@@ -82,6 +82,7 @@ public class RequestTrans implements Serializable {
 
     // the name of the action being invoked
     private String action;
+    private Object actionProcessor = null;
     private String httpUsername;
     private String httpPassword;
 
@@ -454,6 +455,26 @@ public class RequestTrans implements Serializable {
     public void setAction(String action) {
         int suffix = action.lastIndexOf("_action");
         this.action = suffix > -1 ? action.substring(0, suffix) : action;
+    }
+
+    /**
+     * Get the request's action processor. The action processor allows the
+     * onRequest() method to set the function object to be invoked for processing
+     * the request, overriding the action resolved from the request path.
+     * @return the action processor
+     */
+    public Object getActionProcessor() {
+        return actionProcessor;
+    }
+
+    /**
+     * Set the request's action processor. The action processor allows the
+     * onRequest() method to set the function object to be invoked for processing
+     * the request, overriding the action resolved from the request path.
+     * @param processor the action processor
+     */
+    public void setActionProcessor(Object processor) {
+        this.actionProcessor = processor;
     }
 
     /**

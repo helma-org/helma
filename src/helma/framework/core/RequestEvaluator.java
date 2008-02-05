@@ -373,6 +373,9 @@ public final class RequestEvaluator implements Runnable {
                                     // reset skin recursion detection counter
                                     skinDepth = 0;
 
+                                    Object actionProcessor = req.getActionProcessor() != null ?
+                                        req.getActionProcessor() : action;
+
                                     // do the actual action invocation
                                     if (req.isXmlRpc()) {
                                         XmlRpcRequestProcessor xreqproc = new XmlRpcRequestProcessor();
@@ -381,14 +384,14 @@ public final class RequestEvaluator implements Runnable {
                                         Vector args = xreq.getParameters();
                                         args.add(0, xreq.getMethodName());
                                         result = scriptingEngine.invoke(currentElement,
-                                                action,
+                                                actionProcessor,
                                                 args.toArray(),
                                                 ScriptingEngine.ARGS_WRAP_XMLRPC,
                                                 false);
                                         res.writeXmlRpcResponse(result);
                                     } else {
                                         scriptingEngine.invoke(currentElement,
-                                                action,
+                                                actionProcessor,
                                                 EMPTY_ARGS,
                                                 ScriptingEngine.ARGS_WRAP_DEFAULT,
                                                 false);
