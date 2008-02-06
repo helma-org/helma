@@ -28,7 +28,7 @@ import java.util.*;
  * A subclass of thread that keeps track of changed nodes and triggers
  * changes in the database when a transaction is commited.
  */
-public class Transactor extends Thread {
+public class Transactor {
 
     // The associated node manager
     NodeManager nmgr;
@@ -61,15 +61,15 @@ public class Transactor extends Thread {
     // a name to log the transaction. For HTTP transactions this is the rerquest path
     private String tname;
 
+    private static final ThreadLocal <Transactor> txtor = new ThreadLocal <Transactor> ();
+
     /**
      * Creates a new Transactor object.
      *
-     * @param runnable ...
-     * @param group ...
      * @param nmgr ...
      */
-    public Transactor(Runnable runnable, ThreadGroup group, NodeManager nmgr) {
-        super(group, runnable, group.getName());
+    private Transactor(NodeManager nmgr) {
+        // super(group, runnable, group.getName());
         this.nmgr = nmgr;
 
         dirtyNodes = new HashMap();
@@ -80,6 +80,19 @@ public class Transactor extends Thread {
         testedConnections = new HashSet();
         active = false;
         killed = false;
+    }
+
+    public static Transactor getInstance() {
+        return txtor.get();
+    }
+
+    public static Transactor getInstance(NodeManager nmgr) {
+        Transactor t = txtor.get();
+        if (t == null) {
+            t = new Transactor(nmgr);
+            txtor.set(t);
+        }
+        return t;
     }
 
     /**
@@ -430,28 +443,30 @@ public class Transactor extends Thread {
      * Kill this transaction thread. Used as last measure only.
      */
     public synchronized void kill() {
+        Thread thread = Thread.currentThread();
+
         killed = true;
-        interrupt();
+        thread.interrupt();
 
         // Interrupt the thread if it has not noticed the flag (e.g. because it is busy
         // reading from a network socket).
-        if (isAlive()) {
-            interrupt();
+        if (thread.isAlive()) {
+            thread.interrupt();
             try {
-                join(1000);
+                thread.join(1000);
             } catch (InterruptedException ir) {
                 // interrupted by other thread
             }
         }
 
-        if (isAlive() && "true".equals(nmgr.app.getProperty("requestTimeoutStop"))) {
+        if (thread.isAlive() && "true".equals(nmgr.app.getProperty("requestTimeoutStop"))) {
             // still running - check if we ought to stop() it
             try {
                 Thread.sleep(2000);
-                if (isAlive()) {
+                if (thread.isAlive()) {
                     // thread is still running, pull emergency break
                     nmgr.app.logEvent("Stopping Thread for Transactor " + this);
-                    stop();
+                    thread.stop();
                 }
             } catch (InterruptedException ir) {
                 // interrupted by other thread

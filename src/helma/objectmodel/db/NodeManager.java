@@ -149,7 +149,7 @@ public final class NodeManager {
     public void deleteNode(Node node) throws Exception {
         if (node != null) {
             synchronized (this) {
-                Transactor tx = (Transactor) Thread.currentThread();
+                Transactor tx = Transactor.getInstance(app.getNodeManager());
 
                 node.setState(Node.INVALID);
                 deleteNode(db, tx.txn, node);
@@ -162,7 +162,7 @@ public final class NodeManager {
      *  a reference to another node via a NodeHandle/Key.
      */
     public Node getNode(Key key) throws Exception {
-        Transactor tx = (Transactor) Thread.currentThread();
+        Transactor tx = Transactor.getInstance(app.getNodeManager());
 
         // See if Transactor has already come across this node
         Node node = tx.getCleanNode(key);
@@ -212,7 +212,7 @@ public final class NodeManager {
             return null;
         }
 
-        Transactor tx = (Transactor) Thread.currentThread();
+        Transactor tx = Transactor.getInstance(app.getNodeManager());
 
         Key key;
         DbMapping otherDbm = rel == null ? null : rel.otherType;
@@ -408,8 +408,9 @@ public final class NodeManager {
     public void evictKey(Key key) {
         cache.remove(key);
         // also drop key from thread-local transactor cache
-        if (Thread.currentThread() instanceof Transactor) {
-            ((Transactor) Thread.currentThread()).dropCleanNode(key);
+        Transactor tx = Transactor.getInstance();
+        if (tx != null) {
+            tx.dropCleanNode(key);
         }
     }
 
@@ -1856,14 +1857,17 @@ public final class NodeManager {
 
         if (id == null) {
             return null;
-        } else if (Thread.currentThread() instanceof Transactor) {
-            // Check if the node is already registered with the transactor -
-            // it may be in the process of being DELETED, but do return the
-            // new node if the old one has been marked as INVALID.
-            DbKey key = new DbKey(dbmap, id);
-            Node dirtyNode = ((Transactor) Thread.currentThread()).getDirtyNode(key);
-            if (dirtyNode != null && dirtyNode.getState() != Node.INVALID) {
-                return dirtyNode;
+        } else {
+            Transactor tx = Transactor.getInstance();
+            if (tx != null) {
+                // Check if the node is already registered with the transactor -
+                // it may be in the process of being DELETED, but do return the
+                // new node if the old one has been marked as INVALID.
+                DbKey key = new DbKey(dbmap, id);
+                Node dirtyNode = tx.getDirtyNode(key);
+                if (dirtyNode != null && dirtyNode.getState() != Node.INVALID) {
+                    return dirtyNode;
+                }
             }
         }
 
