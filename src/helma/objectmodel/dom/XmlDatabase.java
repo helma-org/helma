@@ -171,7 +171,7 @@ public final class XmlDatabase implements IDatabase {
      * @throws DatabaseException
      */
     public ITransaction beginTransaction() throws DatabaseException {
-        return new Transaction();
+        return new XmlTransaction();
     }
 
     /**
@@ -366,7 +366,7 @@ public final class XmlDatabase implements IDatabase {
         return encoding;
     }
 
-    class Transaction implements ITransaction {
+    class XmlTransaction implements ITransaction {
 
         ArrayList writeFiles = new ArrayList();
         ArrayList deleteFiles = new ArrayList();
