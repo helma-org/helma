@@ -588,7 +588,8 @@ public final class RequestEvaluator implements Runnable {
                             done = false;
                             error = x;
 
-                            String txname = Transactor.getInstance(app.nmgr).getTransactionName();
+                            Transactor tx = Transactor.getInstance();
+                            String txname = tx == null ? "no-txn" : tx.getTransactionName();
                             app.logError(txname + ": " + error, x);
 
                             if (req.isXmlRpc()) {
@@ -618,7 +619,8 @@ public final class RequestEvaluator implements Runnable {
 
             }
         } finally {
-            Transactor.getInstance(app.nmgr).closeConnections();
+            Transactor tx = Transactor.getInstance();
+            if (tx != null) tx.closeConnections();
         }
     }
 
@@ -642,8 +644,8 @@ public final class RequestEvaluator implements Runnable {
      * Called by the transactor thread when the request didn't terminate successfully.
      */
     synchronized void abortTransaction() {
-        Transactor localrtx = Transactor.getInstance(app.nmgr);
-        localrtx.abort();
+        Transactor tx = Transactor.getInstance();
+        if (tx != null) tx.abort();
     }
 
     /**
