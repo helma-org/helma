@@ -16,8 +16,8 @@
 package helma.framework.core;
 
 import helma.objectmodel.INode;
-import helma.objectmodel.db.Node;
 import helma.objectmodel.db.NodeHandle;
+import helma.objectmodel.db.Transactor;
 import helma.scripting.ScriptingEngine;
 
 import java.util.*;
@@ -206,8 +206,10 @@ public class SessionManager {
         }
 
         long now = System.currentTimeMillis();
+        Transactor tx = Transactor.getInstance(app.getNodeManager());
 
         try {
+            tx.begin("sessionloader");
             // load the stored data:
             InputStream istream = new BufferedInputStream(new FileInputStream(f));
             ObjectInputStream p = new ObjectInputStream(istream);
@@ -230,11 +232,17 @@ public class SessionManager {
             istream.close();
             sessions = newSessions;
             app.logEvent("loaded " + newSessions.size() + " sessions from file");
+            tx.commit();
         } catch (FileNotFoundException fnf) {
             // suppress error message if session file doesn't exist
+            tx.abort();
         } catch (Exception e) {
             app.logError("error loading session data.", e);
+            tx.abort();
+        } finally {
+            tx.closeConnections();
         }
+
     }
 
     /**
