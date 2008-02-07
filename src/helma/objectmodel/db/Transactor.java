@@ -61,15 +61,18 @@ public class Transactor {
     // a name to log the transaction. For HTTP transactions this is the rerquest path
     private String tname;
 
+    // the thread we're associated with
+    private Thread thread;
+
     private static final ThreadLocal <Transactor> txtor = new ThreadLocal <Transactor> ();
 
     /**
      * Creates a new Transactor object.
      *
-     * @param nmgr ...
+     * @param nmgr the NodeManager used to fetch and persist nodes.
      */
     private Transactor(NodeManager nmgr) {
-        // super(group, runnable, group.getName());
+        this.thread = Thread.currentThread();
         this.nmgr = nmgr;
 
         dirtyNodes = new HashMap();
@@ -82,10 +85,19 @@ public class Transactor {
         killed = false;
     }
 
+    /**
+     * Get the transactor for the current thread or null if none exists.
+     * @return the transactor associated with the current thread
+     */
     public static Transactor getInstance() {
         return txtor.get();
     }
 
+    /**
+     * Get the transactor for the current thread, creating a new one if none exists.
+     * @param nmgr the NodeManager used to create the transactor
+     * @return the transactor associated with the current thread
+     */
     public static Transactor getInstance(NodeManager nmgr) {
         Transactor t = txtor.get();
         if (t == null) {
@@ -196,6 +208,15 @@ public class Transactor {
      */
     public boolean isActive() {
         return active;
+    }
+
+    /**
+     * Check whether the thread associated with this transactor is alive.
+     * This is a proxy to Thread.isAlive().
+     * @return true if the thread running this transactor is currently alive.
+     */
+    public boolean isAlive() {
+        return thread != null && thread.isAlive();
     }
 
     /**
@@ -443,7 +464,6 @@ public class Transactor {
      * Kill this transaction thread. Used as last measure only.
      */
     public synchronized void kill() {
-        Thread thread = Thread.currentThread();
 
         killed = true;
         thread.interrupt();
