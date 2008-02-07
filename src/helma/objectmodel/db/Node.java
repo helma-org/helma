@@ -266,8 +266,7 @@ public final class Node implements INode, Serializable {
             return; // no need to lock transient node
         }
 
-        Thread thread = Thread.currentThread();
-        Transactor tx = Transactor.getInstance(nmgr.nmgr);
+        Transactor tx = Transactor.getInstanceOrFail();
 
         if (!tx.isActive()) {
             throw new helma.framework.TimeoutException();
@@ -280,7 +279,7 @@ public final class Node implements INode, Serializable {
                                            " was invalidated by another thread.");
         }
 
-        if ((lock != null) && (lock != tx) && /* lock.isAlive() && */ lock.isActive()) {
+        if ((lock != null) && (lock != tx) && lock.isAlive() && lock.isActive()) {
             // nmgr.logEvent("Concurrency conflict for " + this + ", lock held by " + lock);
             throw new ConcurrencyException("Tried to modify " + this +
                                            " from two threads at the same time.");
@@ -936,7 +935,7 @@ public final class Node implements INode, Serializable {
                         }
 
                         if (state != TRANSIENT) {
-                            Transactor tx = Transactor.getInstance(nmgr.nmgr);
+                            Transactor tx = Transactor.getInstanceOrFail();
                             SyntheticKey key = new SyntheticKey(this.getKey(), prop);
                             tx.visitCleanNode(key, node);
                             nmgr.registerNode(node, key);
@@ -1252,7 +1251,7 @@ public final class Node implements INode, Serializable {
                     // nodemanager. Otherwise, we just evict whatever was there before
                     if (create) {
                         // register group node with transactor
-                        Transactor tx = Transactor.getInstance(nmgr.nmgr);
+                        Transactor tx = Transactor.getInstanceOrFail();
                         tx.visitCleanNode(node);
                         nmgr.registerNode(node);
                     } else {
@@ -2389,7 +2388,7 @@ public final class Node implements INode, Serializable {
         // this is done anyway when the node becomes persistent.
         if (n.state != TRANSIENT) {
             // check node in with transactor cache
-            Transactor tx = Transactor.getInstance(nmgr.nmgr);
+            Transactor tx = Transactor.getInstanceOrFail();
 
             // tx.visitCleanNode (new DbKey (dbm, nID), n);
             // UPDATE: using n.getKey() instead of manually constructing key. HW 2002/09/13
@@ -2541,7 +2540,7 @@ public final class Node implements INode, Serializable {
         getHandle().becomePersistent();
 
         // register node with the transactor
-        Transactor tx = Transactor.getInstance(nmgr.nmgr);
+        Transactor tx = Transactor.getInstanceOrFail();
         tx.visitDirtyNode(this);
         tx.visitCleanNode(this);
 

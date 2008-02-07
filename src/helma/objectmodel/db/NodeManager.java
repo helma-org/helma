@@ -149,7 +149,7 @@ public final class NodeManager {
     public void deleteNode(Node node) throws Exception {
         if (node != null) {
             synchronized (this) {
-                Transactor tx = Transactor.getInstance(app.getNodeManager());
+                Transactor tx = Transactor.getInstanceOrFail();
 
                 node.setState(Node.INVALID);
                 deleteNode(db, tx.txn, node);
@@ -162,7 +162,7 @@ public final class NodeManager {
      *  a reference to another node via a NodeHandle/Key.
      */
     public Node getNode(Key key) throws Exception {
-        Transactor tx = Transactor.getInstance(app.getNodeManager());
+        Transactor tx = Transactor.getInstanceOrFail();
 
         // See if Transactor has already come across this node
         Node node = tx.getCleanNode(key);
@@ -212,7 +212,7 @@ public final class NodeManager {
             return null;
         }
 
-        Transactor tx = Transactor.getInstance(app.getNodeManager());
+        Transactor tx = Transactor.getInstanceOrFail();
 
         Key key;
         DbMapping otherDbm = rel == null ? null : rel.otherType;

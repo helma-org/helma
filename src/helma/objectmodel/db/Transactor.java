@@ -94,6 +94,19 @@ public class Transactor {
     }
 
     /**
+     * Get the transactor for the current thread or throw a IllegalStateException if none exists.
+     * @return the transactor associated with the current thread
+     * @throws IllegalStateException if no transactor is associated with the current thread
+     */
+    public static Transactor getInstanceOrFail() throws IllegalStateException {
+        Transactor tx = txtor.get();
+        if (tx == null)
+            throw new IllegalStateException("Operation requires a Transactor, " +
+                "but current thread does not have one.");
+        return tx;
+    }
+
+    /**
      * Get the transactor for the current thread, creating a new one if none exists.
      * @param nmgr the NodeManager used to create the transactor
      * @return the transactor associated with the current thread
