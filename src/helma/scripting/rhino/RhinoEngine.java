@@ -26,7 +26,6 @@ import helma.main.Server;
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Relation;
-import helma.objectmodel.db.NodeHandle;
 import helma.scripting.*;
 import helma.scripting.rhino.debug.Tracer;
 import helma.util.StringUtils;
@@ -54,7 +53,7 @@ public class RhinoEngine implements ScriptingEngine {
     // the per-thread global object
     GlobalObject global;
 
-    // the request evaluator instance owning this fesi evaluator
+    // the request evaluator instance owning this rhino engine
     RequestEvaluator reval;
 
     // the rhino core
@@ -149,7 +148,7 @@ public class RhinoEngine implements ScriptingEngine {
      *  This method is called before an execution context is entered to let the
      *  engine know it should update its prototype information.
      */
-    public synchronized void updatePrototypes() throws IOException {
+    public synchronized void enterContext() throws IOException {
         // remember the current thread as our thread - we do this here so
         // the thread is already set when the RequestEvaluator calls
         // Application.getDataRoot(), which may result in a function invocation
@@ -173,7 +172,7 @@ public class RhinoEngine implements ScriptingEngine {
      *  evaluation is entered. The globals parameter contains the global values
      *  to be applied during this execution context.
      */
-    public synchronized void enterContext(Map globals) throws ScriptingException {
+    public synchronized void setGlobals(Map globals) throws ScriptingException {
         // remember the current thread as our thread
         thread = Thread.currentThread();
 
@@ -609,7 +608,7 @@ public class RhinoEngine implements ScriptingEngine {
     }
 
     /**
-     *  Return the RequestEvaluator owning and driving this FESI evaluator.
+     *  Return the RequestEvaluator owningthis rhino engine.
      */
     public RequestEvaluator getRequestEvaluator() {
         return reval;

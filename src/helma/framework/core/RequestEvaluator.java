@@ -55,6 +55,8 @@ public final class RequestEvaluator implements Runnable {
     // the one and only transactor thread
     private volatile Thread thread;
 
+    private volatile Transactor transactor;
+
     // the type of request to be serviced,
     // used to coordinate worker and waiter threads
     private volatile int reqtype;
@@ -161,7 +163,7 @@ public final class RequestEvaluator implements Runnable {
                         initScriptingEngine();
                         app.setCurrentRequestEvaluator(this);
                         // update scripting prototypes
-                        scriptingEngine.updatePrototypes();
+                        scriptingEngine.enterContext();
 
 
                         // avoid going into transaction if called function doesn't exist.
@@ -196,7 +198,8 @@ public final class RequestEvaluator implements Runnable {
                         txname.append((error == null) ? req.getPath() : "error");
 
                         // begin transaction
-                        Transactor.getInstance(app.nmgr).begin(txname.toString());
+                        transactor = Transactor.getInstance(app.nmgr);
+                        transactor.begin(txname.toString());
 
                         Object root = app.getDataRoot();
                         initGlobals(root, requestPath);
@@ -550,6 +553,7 @@ public final class RequestEvaluator implements Runnable {
                                 done = true;
                                 // and release resources and thread
                                 thread = null;
+                                transactor = null;
                             }
                         } else {
                             // check if request is still valid, or if the requesting thread has stopped waiting already
@@ -608,12 +612,11 @@ public final class RequestEvaluator implements Runnable {
                         }
                     } finally {
                         app.setCurrentRequestEvaluator(null);
+                        // exit execution context
+                        if (scriptingEngine != null)
+                            scriptingEngine.exitContext();
                     }
                 }
-
-                // exit execution context
-                if (scriptingEngine != null)
-                    scriptingEngine.exitContext();
 
                 notifyAndWait();
 
@@ -693,6 +696,7 @@ public final class RequestEvaluator implements Runnable {
         } catch (InterruptedException ix) {
             // we got interrrupted, releases resources and thread
             thread = null;
+            transactor = null;
         }
 
         //  if no request arrived, release ressources and thread
@@ -702,6 +706,7 @@ public final class RequestEvaluator implements Runnable {
             // framework referencing into the scripting engine)
             // scriptingEngine = null;
             thread = null;
+            transactor = null;
         }
     }
 
@@ -711,8 +716,9 @@ public final class RequestEvaluator implements Runnable {
      * thread. If currently active kill the request, otherwise just notify.
      */
     synchronized boolean stopTransactor() {
-        Transactor t = Transactor.getInstance();
+        Transactor t = transactor;
         thread = null;
+        transactor = null;
         boolean stopped = false;
         if (t != null && t.isActive()) {
             // let the scripting engine know that the
@@ -978,7 +984,7 @@ public final class RequestEvaluator implements Runnable {
         globals.put("path", requestPath);
 
         // enter execution context
-        scriptingEngine.enterContext(globals);
+        scriptingEngine.setGlobals(globals);
     }
 
     /**
