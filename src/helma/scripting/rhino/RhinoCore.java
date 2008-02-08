@@ -192,6 +192,7 @@ public final class RhinoCore implements ScopeProvider {
     }
 
     void initDebugger(Context context) {
+        context.setGeneratingDebug(true);
         try {
             if (debugger == null) {
                 debugger = new HelmaDebugger(app.getName());
@@ -1120,6 +1121,7 @@ public final class RhinoCore implements ScopeProvider {
         protected void onContextCreated(Context cx) {
             cx.setWrapFactory(wrapper);
             cx.setOptimizationLevel(optLevel);
+            // cx.setInstructionObserverThreshold(5000);
             if (cx.isValidLanguageVersion(languageVersion)) {
                 cx.setLanguageVersion(languageVersion);
             } else {
@@ -1131,7 +1133,7 @@ public final class RhinoCore implements ScopeProvider {
             super.onContextCreated(cx);
         }
 
-        protected  boolean hasFeature(Context cx, int featureIndex) {
+        protected boolean hasFeature(Context cx, int featureIndex) {
             switch (featureIndex) {
                 case Context.FEATURE_DYNAMIC_SCOPE:
                     return true;
@@ -1142,6 +1144,17 @@ public final class RhinoCore implements ScopeProvider {
                 default:
                     return super.hasFeature(cx, featureIndex);
             }
-       }
+        }
+
+        /**
+         * Implementation of
+         * {@link Context#observeInstructionCount(int instructionCount)}.
+         * This can be used to customize {@link Context} without introducing
+         * additional subclasses.
+         */
+        /* protected void observeInstructionCount(Context cx, int instructionCount) {
+            if (instructionCount >= 0xfffffff)
+                throw new EvaluatorException("Exceeded instruction count, interrupting");
+        } */
     }
 }
