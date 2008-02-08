@@ -16,7 +16,6 @@
 
 package helma.scripting;
 
-import helma.framework.IPathElement;
 import helma.framework.repository.Resource;
 import helma.framework.core.Application;
 import helma.framework.core.RequestEvaluator;
@@ -56,22 +55,28 @@ public interface ScriptingEngine {
 
     /**
      * Init the scripting engine with an application and a request evaluator
+     * @param app the application
+     * @param reval the request evaluator
      */
     public void init(Application app, RequestEvaluator reval);
 
     /**
-     *  This method is called before an execution context for a request
+     *  This method is called when an execution context for a request
      *  evaluation is entered to let the Engine know it should update
      *  its prototype information
+     *  @throws IOException an I/O exception occurred
+     *  @throws ScriptingException a script related exception occurred
      */
-    public void updatePrototypes() throws IOException, ScriptingException;
+    public void enterContext() throws IOException, ScriptingException;
 
     /**
      *  This method is called when an execution context for a request
      *  evaluation is entered. The globals parameter contains the global values
      *  to be applied during this execution context.
+     *  @param globals map of global variables
+     *  @throws ScriptingException a script related exception occurred
      */
-    public void enterContext(Map globals) throws ScriptingException;
+    public void setGlobals(Map globals) throws ScriptingException;
 
     /**
      *   This method is called to let the scripting engine know that the current

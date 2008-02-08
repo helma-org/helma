@@ -266,9 +266,9 @@ public final class Node implements INode, Serializable {
             return; // no need to lock transient node
         }
 
-        Transactor current = (Transactor) Thread.currentThread();
+        Transactor tx = Transactor.getInstanceOrFail();
 
-        if (!current.isActive()) {
+        if (!tx.isActive()) {
             throw new helma.framework.TimeoutException();
         }
 
@@ -279,14 +279,14 @@ public final class Node implements INode, Serializable {
                                            " was invalidated by another thread.");
         }
 
-        if ((lock != null) && (lock != current) && lock.isAlive() && lock.isActive()) {
+        if ((lock != null) && (lock != tx) && lock.isAlive() && lock.isActive()) {
             // nmgr.logEvent("Concurrency conflict for " + this + ", lock held by " + lock);
             throw new ConcurrencyException("Tried to modify " + this +
                                            " from two threads at the same time.");
         }
 
-        current.visitDirtyNode(this);
-        lock = current;
+        tx.visitDirtyNode(this);
+        lock = tx;
     }
 
     /**
@@ -306,9 +306,8 @@ public final class Node implements INode, Serializable {
 
         state = s;
 
-        if (Thread.currentThread() instanceof Transactor) {
-            Transactor tx = (Transactor) Thread.currentThread();
-
+        Transactor tx = Transactor.getInstance();
+        if (tx != null) {
             if (s == CLEAN) {
                 clearWriteLock();
                 tx.dropDirtyNode(this);
@@ -332,9 +331,11 @@ public final class Node implements INode, Serializable {
         // the process of being persistified - except if "manual" subnoderelation is set.
         if ((state == TRANSIENT || state == NEW) && subnodeRelation == null) {
             return;
-        } else if (Thread.currentThread() instanceof Transactor) {
-            Transactor tx = (Transactor) Thread.currentThread();
-            tx.visitParentNode(this);
+        } else {
+            Transactor tx = Transactor.getInstance();
+            if (tx != null) {
+                tx.visitParentNode(this);
+            }
         }
     }
 
@@ -934,7 +935,7 @@ public final class Node implements INode, Serializable {
                         }
 
                         if (state != TRANSIENT) {
-                            Transactor tx = (Transactor) Thread.currentThread();
+                            Transactor tx = Transactor.getInstanceOrFail();
                             SyntheticKey key = new SyntheticKey(this.getKey(), prop);
                             tx.visitCleanNode(key, node);
                             nmgr.registerNode(node, key);
@@ -1250,7 +1251,7 @@ public final class Node implements INode, Serializable {
                     // nodemanager. Otherwise, we just evict whatever was there before
                     if (create) {
                         // register group node with transactor
-                        Transactor tx = (Transactor) Thread.currentThread();
+                        Transactor tx = Transactor.getInstanceOrFail();
                         tx.visitCleanNode(node);
                         nmgr.registerNode(node);
                     } else {
@@ -2387,7 +2388,7 @@ public final class Node implements INode, Serializable {
         // this is done anyway when the node becomes persistent.
         if (n.state != TRANSIENT) {
             // check node in with transactor cache
-            Transactor tx = (Transactor) Thread.currentThread();
+            Transactor tx = Transactor.getInstanceOrFail();
 
             // tx.visitCleanNode (new DbKey (dbm, nID), n);
             // UPDATE: using n.getKey() instead of manually constructing key. HW 2002/09/13
@@ -2539,9 +2540,9 @@ public final class Node implements INode, Serializable {
         getHandle().becomePersistent();
 
         // register node with the transactor
-        Transactor current = (Transactor) Thread.currentThread();
-        current.visitDirtyNode(this);
-        current.visitCleanNode(this);
+        Transactor tx = Transactor.getInstanceOrFail();
+        tx.visitDirtyNode(this);
+        tx.visitCleanNode(this);
 
         // recursively make children persistable
         makeChildrenPersistable();

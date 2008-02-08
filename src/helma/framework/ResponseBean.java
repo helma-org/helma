@@ -626,8 +626,8 @@ public class ResponseBean implements Serializable {
      * @throws Exception thrown if commit fails
      */
     public void commit() throws Exception {
-        if (Thread.currentThread() instanceof Transactor) {
-            Transactor tx = (Transactor) Thread.currentThread();
+        Transactor tx = Transactor.getInstance();
+        if (tx != null) {
             String tname = tx.getTransactionName();
             tx.commit();
             tx.begin(tname);
@@ -640,8 +640,8 @@ public class ResponseBean implements Serializable {
      * @throws Exception thrown if rollback fails
      */
     public void rollback() throws Exception {
-        if (Thread.currentThread() instanceof Transactor) {
-            Transactor tx = (Transactor) Thread.currentThread();
+        Transactor tx = Transactor.getInstance();
+        if (tx != null) {
             String tname = tx.getTransactionName();
             tx.abort();
             tx.begin(tname);

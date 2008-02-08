@@ -18,7 +18,6 @@ package helma.objectmodel.db;
 
 import helma.objectmodel.ObjectNotFoundException;
 
-import java.util.List;
 import java.util.Vector;
 
 /**
@@ -56,11 +55,17 @@ public final class WrappedNodeManager {
      * @return
      */
     public Node getNode(Key key) {
+        Transactor tx = checkLocalTransactor();
         try {
-            return nmgr.getNode(key);
+            beginLocalTransaction(tx, "getNode");
+            Node node = nmgr.getNode(key);
+            commitLocalTransaction(tx);
+            return node;
         } catch (ObjectNotFoundException x) {
+            abortLocalTransaction(tx);
             return null;
         } catch (Exception x) {
+            abortLocalTransaction(tx);
             nmgr.app.logError("Error retrieving Node for " + key, x);
             throw new RuntimeException("Error retrieving Node", x);
         }
@@ -75,11 +80,17 @@ public final class WrappedNodeManager {
      * @return
      */
     public Node getNode(Node home, String id, Relation rel) {
+        Transactor tx = checkLocalTransactor();
         try {
-            return nmgr.getNode(home, id, rel);
+            beginLocalTransaction(tx, "getNode");
+            Node node = nmgr.getNode(home, id, rel);
+            commitLocalTransaction(tx);
+            return node;
         } catch (ObjectNotFoundException x) {
+            abortLocalTransaction(tx);
             return null;
         } catch (Exception x) {
+            abortLocalTransaction(tx);
             nmgr.app.logError("Error retrieving Node \"" + id + "\" from " + home, x);
             throw new RuntimeException("Error retrieving Node", x);
         }
@@ -94,9 +105,14 @@ public final class WrappedNodeManager {
      * @return
      */
     public SubnodeList getNodes(Node home, Relation rel) {
+        Transactor tx = checkLocalTransactor();
         try {
-            return nmgr.getNodes(home, rel);
+            beginLocalTransaction(tx, "getNodes");
+            SubnodeList list = nmgr.getNodes(home, rel);
+            commitLocalTransaction(tx);
+            return list;
         } catch (Exception x) {
+            abortLocalTransaction(tx);
             throw new RuntimeException("Error retrieving Nodes", x);
         }
     }
@@ -150,9 +166,13 @@ public final class WrappedNodeManager {
      * @param node
      */
     public void deleteNode(Node node) {
+        Transactor tx = checkLocalTransactor();
         try {
+            beginLocalTransaction(tx, "deleteNode");
             nmgr.deleteNode(node);
+            commitLocalTransaction(tx);
         } catch (Exception x) {
+            abortLocalTransaction(tx);
             throw new RuntimeException("Error deleting Node", x);
         }
     }
@@ -236,9 +256,14 @@ public final class WrappedNodeManager {
      * Gets the application's root node.
      */
     public Node getRootNode() {
+        Transactor tx = checkLocalTransactor();
         try {
-            return nmgr.getRootNode();
+            beginLocalTransaction(tx, "getRootNode");
+            Node node = nmgr.getRootNode();
+            commitLocalTransaction(tx);
+            return node;
         } catch (Exception x) {
+            abortLocalTransaction(tx);
             throw new RuntimeException(x.toString(), x);
         }
     }
@@ -274,5 +299,46 @@ public final class WrappedNodeManager {
      */
     public DbMapping getDbMapping(String name) {
         return nmgr.app.getDbMapping(name);
+    }
+
+    // helper methods to wrap execution inside local transactions
+
+    private Transactor checkLocalTransactor() {
+        Transactor tx = Transactor.getInstance();
+        if (tx != null) {
+            // transactor already associated with current thread - return null
+            return null;
+        }
+        return Transactor.getInstance(nmgr);
+    }
+
+    private void beginLocalTransaction(Transactor tx, String name) {
+        if (tx != null) {
+            try {
+                tx.begin(name);
+            } catch (Exception x) {
+                nmgr.app.logError("Error in beginLocalTransaction", x);
+            }
+        }
+    }
+
+    private void commitLocalTransaction(Transactor tx) {
+        if (tx != null) {
+            try {
+                tx.commit();
+            } catch (Exception x) {
+                nmgr.app.logError("Error in commitLocalTransaction", x);                
+            }
+        }
+    }
+
+    private void abortLocalTransaction(Transactor tx) {
+        if (tx != null) {
+            try {
+                tx.abort();
+            } catch (Exception x) {
+                nmgr.app.logError("Error in abortLocalTransaction", x);
+            }
+        }
     }
 }

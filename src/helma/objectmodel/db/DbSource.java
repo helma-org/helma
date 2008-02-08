@@ -69,9 +69,8 @@ public class DbSource {
     public synchronized Connection getConnection()
             throws ClassNotFoundException, SQLException {
         Connection con;
-        Transactor tx = null;
-        if (Thread.currentThread() instanceof Transactor) {
-            tx = (Transactor) Thread.currentThread();
+        Transactor tx = Transactor.getInstance();
+        if (tx != null) {
             con = tx.getConnection(this);
         } else {
             con = getThreadLocalConnection();

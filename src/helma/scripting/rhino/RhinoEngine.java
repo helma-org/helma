@@ -26,7 +26,6 @@ import helma.main.Server;
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Relation;
-import helma.objectmodel.db.NodeHandle;
 import helma.scripting.*;
 import helma.scripting.rhino.debug.Tracer;
 import helma.util.StringUtils;
@@ -54,7 +53,7 @@ public class RhinoEngine implements ScriptingEngine {
     // the per-thread global object
     GlobalObject global;
 
-    // the request evaluator instance owning this fesi evaluator
+    // the request evaluator instance owning this rhino engine
     RequestEvaluator reval;
 
     // the rhino core
@@ -149,7 +148,7 @@ public class RhinoEngine implements ScriptingEngine {
      *  This method is called before an execution context is entered to let the
      *  engine know it should update its prototype information.
      */
-    public synchronized void updatePrototypes() throws IOException {
+    public synchronized void enterContext() throws IOException {
         // remember the current thread as our thread - we do this here so
         // the thread is already set when the RequestEvaluator calls
         // Application.getDataRoot(), which may result in a function invocation
@@ -173,7 +172,7 @@ public class RhinoEngine implements ScriptingEngine {
      *  evaluation is entered. The globals parameter contains the global values
      *  to be applied during this execution context.
      */
-    public synchronized void enterContext(Map globals) throws ScriptingException {
+    public synchronized void setGlobals(Map globals) throws ScriptingException {
         // remember the current thread as our thread
         thread = Thread.currentThread();
 
@@ -523,15 +522,17 @@ public class RhinoEngine implements ScriptingEngine {
      */
     public void serialize(Object obj, OutputStream out) throws IOException {
         core.contextFactory.enter();
+        engines.set(this);
         try {
             // use a special ScriptableOutputStream that unwraps Wrappers
             ScriptableOutputStream sout = new ScriptableOutputStream(out, core.global) {
                 protected Object replaceObject(Object obj) throws IOException {
-                    // FIXME doesn't work because we need a transactor thread for deserialization
-                    // if (obj instanceof Wrapper)
-                    //     obj = ((Wrapper) obj).unwrap();
-                    // if (obj instanceof helma.objectmodel.db.Node)
-                    //     return ((helma.objectmodel.db.Node) obj).getHandle();
+                    if (obj instanceof HopObject)
+                        return new HopObjectProxy((HopObject) obj);
+                    if (obj instanceof helma.objectmodel.db.Node)
+                        return new HopObjectProxy((helma.objectmodel.db.Node) obj);
+                    if (obj instanceof GlobalObject)
+                        return new GlobalProxy((GlobalObject) obj);
                     if (obj instanceof ApplicationBean)
                         return new ScriptBeanProxy("app");
                     if (obj instanceof RequestBean)
@@ -543,8 +544,8 @@ public class RhinoEngine implements ScriptingEngine {
                     return super.replaceObject(obj);
                 }
             };
-            sout.addExcludedName("Xml");
-            sout.addExcludedName("global");            
+            // sout.addExcludedName("Xml");
+            // sout.addExcludedName("global");            
 
             sout.writeObject(obj);
             sout.flush();
@@ -564,15 +565,12 @@ public class RhinoEngine implements ScriptingEngine {
      */
     public Object deserialize(InputStream in) throws IOException, ClassNotFoundException {
         core.contextFactory.enter();
+        engines.set(this);
         try {
             ObjectInputStream sin = new ScriptableInputStream(in, core.global) {
                 protected Object resolveObject(Object obj) throws IOException {
-                    if (obj instanceof NodeHandle) {
-                        // FIXME doesn't work unless we have a transactor thread
-                        // Object node = ((NodeHandle) obj).getNode(app.getNodeManager().safe);
-                        // return Context.toObject(node, global);
-                    } else if (obj instanceof ScriptBeanProxy) {
-                        return ((ScriptBeanProxy) obj).getObject();
+                    if (obj instanceof SerializationProxy) {
+                        return ((SerializationProxy) obj).getObject(RhinoEngine.this);
                     }
                     return super.resolveObject(obj);
                 }
@@ -610,7 +608,7 @@ public class RhinoEngine implements ScriptingEngine {
     }
 
     /**
-     *  Return the RequestEvaluator owning and driving this FESI evaluator.
+     *  Return the RequestEvaluator owningthis rhino engine.
      */
     public RequestEvaluator getRequestEvaluator() {
         return reval;
@@ -685,26 +683,6 @@ public class RhinoEngine implements ScriptingEngine {
             res.cacheSkin(key, skin);
         }
         return skin;
-    }
-
-    /**
-     * Serialization proxy for app, req, res, path objects.
-     */
-    class ScriptBeanProxy implements Serializable {
-        String name;
-
-        ScriptBeanProxy(String name) {
-            this.name = name;
-        }
-
-        /**
-         * Lookup the actual object in the current scope
-         * @return the object represented by this proxy
-         */
-        Object getObject() {
-            return global.get(name, global);
-        }
-
     }
 
 }

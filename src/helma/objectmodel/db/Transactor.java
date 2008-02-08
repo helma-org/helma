@@ -28,7 +28,7 @@ import java.util.*;
  * A subclass of thread that keeps track of changed nodes and triggers
  * changes in the database when a transaction is commited.
  */
-public class Transactor extends Thread {
+public class Transactor {
 
     // The associated node manager
     NodeManager nmgr;
@@ -61,15 +61,18 @@ public class Transactor extends Thread {
     // a name to log the transaction. For HTTP transactions this is the rerquest path
     private String tname;
 
+    // the thread we're associated with
+    private Thread thread;
+
+    private static final ThreadLocal <Transactor> txtor = new ThreadLocal <Transactor> ();
+
     /**
      * Creates a new Transactor object.
      *
-     * @param runnable ...
-     * @param group ...
-     * @param nmgr ...
+     * @param nmgr the NodeManager used to fetch and persist nodes.
      */
-    public Transactor(Runnable runnable, ThreadGroup group, NodeManager nmgr) {
-        super(group, runnable, group.getName());
+    private Transactor(NodeManager nmgr) {
+        this.thread = Thread.currentThread();
         this.nmgr = nmgr;
 
         dirtyNodes = new HashMap();
@@ -80,6 +83,41 @@ public class Transactor extends Thread {
         testedConnections = new HashSet();
         active = false;
         killed = false;
+    }
+
+    /**
+     * Get the transactor for the current thread or null if none exists.
+     * @return the transactor associated with the current thread
+     */
+    public static Transactor getInstance() {
+        return txtor.get();
+    }
+
+    /**
+     * Get the transactor for the current thread or throw a IllegalStateException if none exists.
+     * @return the transactor associated with the current thread
+     * @throws IllegalStateException if no transactor is associated with the current thread
+     */
+    public static Transactor getInstanceOrFail() throws IllegalStateException {
+        Transactor tx = txtor.get();
+        if (tx == null)
+            throw new IllegalStateException("Operation requires a Transactor, " +
+                "but current thread does not have one.");
+        return tx;
+    }
+
+    /**
+     * Get the transactor for the current thread, creating a new one if none exists.
+     * @param nmgr the NodeManager used to create the transactor
+     * @return the transactor associated with the current thread
+     */
+    public static Transactor getInstance(NodeManager nmgr) {
+        Transactor t = txtor.get();
+        if (t == null) {
+            t = new Transactor(nmgr);
+            txtor.set(t);
+        }
+        return t;
     }
 
     /**
@@ -183,6 +221,15 @@ public class Transactor extends Thread {
      */
     public boolean isActive() {
         return active;
+    }
+
+    /**
+     * Check whether the thread associated with this transactor is alive.
+     * This is a proxy to Thread.isAlive().
+     * @return true if the thread running this transactor is currently alive.
+     */
+    public boolean isAlive() {
+        return thread != null && thread.isAlive();
     }
 
     /**
@@ -430,28 +477,29 @@ public class Transactor extends Thread {
      * Kill this transaction thread. Used as last measure only.
      */
     public synchronized void kill() {
+
         killed = true;
-        interrupt();
+        thread.interrupt();
 
         // Interrupt the thread if it has not noticed the flag (e.g. because it is busy
         // reading from a network socket).
-        if (isAlive()) {
-            interrupt();
+        if (thread.isAlive()) {
+            thread.interrupt();
             try {
-                join(1000);
+                thread.join(1000);
             } catch (InterruptedException ir) {
                 // interrupted by other thread
             }
         }
 
-        if (isAlive() && "true".equals(nmgr.app.getProperty("requestTimeoutStop"))) {
+        if (thread.isAlive() && "true".equals(nmgr.app.getProperty("requestTimeoutStop"))) {
             // still running - check if we ought to stop() it
             try {
                 Thread.sleep(2000);
-                if (isAlive()) {
+                if (thread.isAlive()) {
                     // thread is still running, pull emergency break
                     nmgr.app.logEvent("Stopping Thread for Transactor " + this);
-                    stop();
+                    thread.stop();
                 }
             } catch (InterruptedException ir) {
                 // interrupted by other thread

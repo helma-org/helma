@@ -53,7 +53,9 @@ public final class RequestEvaluator implements Runnable {
     private volatile ResponseTrans res;
 
     // the one and only transactor thread
-    private volatile Transactor rtx;
+    private volatile Thread thread;
+
+    private volatile Transactor transactor;
 
     // the type of request to be serviced,
     // used to coordinate worker and waiter threads
@@ -128,13 +130,13 @@ public final class RequestEvaluator implements Runnable {
     public void run() {
         // first, set a local variable to the current transactor thread so we know
         // when it's time to quit because another thread took over.
-        Transactor localrtx = (Transactor) Thread.currentThread();
+        Thread localThread = Thread.currentThread();
 
         // spans whole execution loop - close connections in finally clause
         try {
 
             // while this thread is serving requests
-            while (localrtx == rtx) {
+            while (localThread == thread) {
 
                 // object reference to ressolve request path
                 Object currentElement;
@@ -153,7 +155,7 @@ public final class RequestEvaluator implements Runnable {
                 String functionName = function instanceof String ?
                         (String) function : null;
 
-                while (!done && localrtx == rtx) {
+                while (!done && localThread == thread) {
                     // catch errors in path resolution and script execution
                     try {
 
@@ -161,7 +163,7 @@ public final class RequestEvaluator implements Runnable {
                         initScriptingEngine();
                         app.setCurrentRequestEvaluator(this);
                         // update scripting prototypes
-                        scriptingEngine.updatePrototypes();
+                        scriptingEngine.enterContext();
 
 
                         // avoid going into transaction if called function doesn't exist.
@@ -196,7 +198,8 @@ public final class RequestEvaluator implements Runnable {
                         txname.append((error == null) ? req.getPath() : "error");
 
                         // begin transaction
-                        localrtx.begin(txname.toString());
+                        transactor = Transactor.getInstance(app.nmgr);
+                        transactor.begin(txname.toString());
 
                         Object root = app.getDataRoot();
                         initGlobals(root, requestPath);
@@ -412,7 +415,7 @@ public final class RequestEvaluator implements Runnable {
                                 }
 
                                 // check if request is still valid, or if the requesting thread has stopped waiting already
-                                if (localrtx != rtx) {
+                                if (localThread != thread) {
                                     return;
                                 }
                                 commitTransaction();
@@ -459,13 +462,13 @@ public final class RequestEvaluator implements Runnable {
                                             ScriptingEngine.ARGS_WRAP_XMLRPC,
                                             false);
                                     // check if request is still valid, or if the requesting thread has stopped waiting already
-                                    if (localrtx != rtx) {
+                                    if (localThread != thread) {
                                         return;
                                     }
                                     commitTransaction();
                                 } catch (Exception x) {
                                     // check if request is still valid, or if the requesting thread has stopped waiting already
-                                    if (localrtx != rtx) {
+                                    if (localThread != thread) {
                                         return;
                                     }
                                     abortTransaction();
@@ -473,7 +476,7 @@ public final class RequestEvaluator implements Runnable {
 
                                     // If the transactor thread has been killed by the invoker thread we don't have to
                                     // bother for the error message, just quit.
-                                    if (localrtx != rtx) {
+                                    if (localThread != thread) {
                                         return;
                                     }
 
@@ -495,13 +498,13 @@ public final class RequestEvaluator implements Runnable {
                                             ScriptingEngine.ARGS_WRAP_DEFAULT,
                                             true);
                                     // check if request is still valid, or if the requesting thread has stopped waiting already
-                                    if (localrtx != rtx) {
+                                    if (localThread != thread) {
                                         return;
                                     }
                                     commitTransaction();
                                 } catch (Exception x) {
                                     // check if request is still valid, or if the requesting thread has stopped waiting already
-                                    if (localrtx != rtx) {
+                                    if (localThread != thread) {
                                         return;
                                     }
                                     abortTransaction();
@@ -509,7 +512,7 @@ public final class RequestEvaluator implements Runnable {
 
                                     // If the transactor thread has been killed by the invoker thread we don't have to
                                     // bother for the error message, just quit.
-                                    if (localrtx != rtx) {
+                                    if (localThread != thread) {
                                         return;
                                     }
 
@@ -524,7 +527,7 @@ public final class RequestEvaluator implements Runnable {
                         // res.abort() just aborts the transaction and
                         // leaves the response untouched
                         // check if request is still valid, or if the requesting thread has stopped waiting already
-                        if (localrtx != rtx) {
+                        if (localThread != thread) {
                             return;
                         }
                         abortTransaction();
@@ -535,7 +538,7 @@ public final class RequestEvaluator implements Runnable {
                         if (++tries < 8) {
                             // try again after waiting some period
                             // check if request is still valid, or if the requesting thread has stopped waiting already
-                            if (localrtx != rtx) {
+                            if (localThread != thread) {
                                 return;
                             }
                             abortTransaction();
@@ -549,11 +552,12 @@ public final class RequestEvaluator implements Runnable {
                                 res.reportError(interrupt);
                                 done = true;
                                 // and release resources and thread
-                                rtx = null;
+                                thread = null;
+                                transactor = null;
                             }
                         } else {
                             // check if request is still valid, or if the requesting thread has stopped waiting already
-                            if (localrtx != rtx) {
+                            if (localThread != thread) {
                                 return;
                             }
                             abortTransaction();
@@ -563,16 +567,15 @@ public final class RequestEvaluator implements Runnable {
                             done = true;
                         }
                     } catch (Throwable x) {
-                        String txname = localrtx.getTransactionName();
                         // check if request is still valid, or if the requesting thread has stopped waiting already
-                        if (localrtx != rtx) {
+                        if (localThread != thread) {
                             return;
                         }
                         abortTransaction();
 
                         // If the transactor thread has been killed by the invoker thread we don't have to
                         // bother for the error message, just quit.
-                        if (localrtx != rtx) {
+                        if (localThread != thread) {
                             return;
                         }
 
@@ -589,6 +592,8 @@ public final class RequestEvaluator implements Runnable {
                             done = false;
                             error = x;
 
+                            Transactor tx = Transactor.getInstance();
+                            String txname = tx == null ? "no-txn" : tx.getTransactionName();
                             app.logError(txname + ": " + error, x);
 
                             if (req.isXmlRpc()) {
@@ -607,18 +612,18 @@ public final class RequestEvaluator implements Runnable {
                         }
                     } finally {
                         app.setCurrentRequestEvaluator(null);
+                        // exit execution context
+                        if (scriptingEngine != null)
+                            scriptingEngine.exitContext();
                     }
                 }
-
-                // exit execution context
-                if (scriptingEngine != null)
-                    scriptingEngine.exitContext();
 
                 notifyAndWait();
 
             }
         } finally {
-            localrtx.closeConnections();
+            Transactor tx = Transactor.getInstance();
+            if (tx != null) tx.closeConnections();
         }
     }
 
@@ -627,10 +632,12 @@ public final class RequestEvaluator implements Runnable {
      * @throws Exception transaction couldn't be committed
      */
     synchronized void commitTransaction() throws Exception {
-        Transactor localrtx = (Transactor) Thread.currentThread();
+        Thread localThread = Thread.currentThread();
 
-        if (localrtx == rtx) {
-            localrtx.commit();
+        if (localThread == thread) {
+            Transactor tx = Transactor.getInstance();
+            if (tx != null)
+                tx.commit();
         } else {
             throw new TimeoutException();
         }
@@ -640,8 +647,8 @@ public final class RequestEvaluator implements Runnable {
      * Called by the transactor thread when the request didn't terminate successfully.
      */
     synchronized void abortTransaction() {
-        Transactor localrtx = (Transactor) Thread.currentThread();
-        localrtx.abort();
+        Transactor tx = Transactor.getInstance();
+        if (tx != null) tx.abort();
     }
 
     /**
@@ -652,11 +659,11 @@ public final class RequestEvaluator implements Runnable {
             throw new ApplicationStoppedException();
         }
 
-        if ((rtx == null) || !rtx.isAlive()) {
+        if ((thread == null) || !thread.isAlive()) {
             // app.logEvent ("Starting Thread");
-            rtx = new Transactor(this, app.threadgroup, app.nmgr);
-            rtx.setContextClassLoader(app.getClassLoader());
-            rtx.start();
+            thread = new Thread(app.threadgroup, this);
+            thread.setContextClassLoader(app.getClassLoader());
+            thread.start();
         } else {
             notifyAll();
         }
@@ -666,14 +673,17 @@ public final class RequestEvaluator implements Runnable {
      * Tell waiting thread that we're done, then wait for next request
      */
     synchronized void notifyAndWait() {
-        Transactor localrtx = (Transactor) Thread.currentThread();
+        Thread localThread = Thread.currentThread();
 
         // make sure there is only one thread running per instance of this class
         // if localrtx != rtx, the current thread has been aborted and there's no need to notify
-        if (localrtx != rtx) {
+        if (localThread != thread) {
             // A new request came in while we were finishing the last one.
             // Return to run() to get the work done.
-            localrtx.closeConnections();
+            Transactor tx = Transactor.getInstance();
+            if (tx != null) {
+                tx.closeConnections();
+            }
             return;
         }
 
@@ -685,16 +695,18 @@ public final class RequestEvaluator implements Runnable {
             wait(1000 * 60 * 10);
         } catch (InterruptedException ix) {
             // we got interrrupted, releases resources and thread
-            rtx = null;
+            thread = null;
+            transactor = null;
         }
 
         //  if no request arrived, release ressources and thread
-        if ((reqtype == NONE) && (rtx == localrtx)) {
+        if ((reqtype == NONE) && (thread == localThread)) {
             // comment this in to release not just the thread, but also the scripting engine.
             // currently we don't do this because of the risk of memory leaks (objects from
             // framework referencing into the scripting engine)
             // scriptingEngine = null;
-            rtx = null;
+            thread = null;
+            transactor = null;
         }
     }
 
@@ -704,8 +716,9 @@ public final class RequestEvaluator implements Runnable {
      * thread. If currently active kill the request, otherwise just notify.
      */
     synchronized boolean stopTransactor() {
-        Transactor t = rtx;
-        rtx = null;
+        Transactor t = transactor;
+        thread = null;
+        transactor = null;
         boolean stopped = false;
         if (t != null && t.isActive()) {
             // let the scripting engine know that the
@@ -971,7 +984,7 @@ public final class RequestEvaluator implements Runnable {
         globals.put("path", requestPath);
 
         // enter execution context
-        scriptingEngine.enterContext(globals);
+        scriptingEngine.setGlobals(globals);
     }
 
     /**
@@ -1092,8 +1105,8 @@ public final class RequestEvaluator implements Runnable {
      *
      * @return the current transactor thread
      */
-    public synchronized Transactor getThread() {
-        return rtx;
+    public synchronized Thread getThread() {
+        return thread;
     }
 
     /**
