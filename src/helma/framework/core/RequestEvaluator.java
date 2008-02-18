@@ -376,8 +376,8 @@ public final class RequestEvaluator implements Runnable {
                                     // reset skin recursion detection counter
                                     skinDepth = 0;
 
-                                    Object actionProcessor = req.getActionProcessor() != null ?
-                                        req.getActionProcessor() : action;
+                                    Object actionProcessor = req.getActionHandler() != null ?
+                                        req.getActionHandler() : action;
 
                                     // do the actual action invocation
                                     if (req.isXmlRpc()) {
