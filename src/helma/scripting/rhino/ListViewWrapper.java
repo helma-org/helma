@@ -83,7 +83,7 @@ public class ListViewWrapper extends ScriptableObject implements Wrapper, Script
      * Init JS functions from methods.
      */
     void init() {
-        int attributes = READONLY | DONTENUM | PERMANENT;
+        int attributes = DONTENUM | PERMANENT;
         
         Method[] methods = getClass().getDeclaredMethods();
         for (int i=0; i<methods.length; i++) {

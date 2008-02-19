@@ -77,7 +77,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
                                    "wrapJavaMap", "unwrapJavaMap", "toJava"
                                };
 
-        defineFunctionProperties(globalFuncs, GlobalObject.class, DONTENUM | READONLY | PERMANENT);
+        defineFunctionProperties(globalFuncs, GlobalObject.class, DONTENUM | PERMANENT);
         put("app", this, Context.toObject(new ApplicationBean(app), this));
         put("Xml", this, Context.toObject(new XmlObject(core), this));
         put("global", this, this);
