@@ -43,7 +43,8 @@ public class HopObjectCtor extends FunctionObject {
         }
     }
 
-    static final int attr = DONTENUM | PERMANENT | READONLY;
+    static final int attr = DONTENUM | PERMANENT;
+    
     /**
      * Create and install a HopObject constructor.
      * Part of this is copied from o.m.j.FunctionObject.addAsConstructor().
@@ -54,10 +55,8 @@ public class HopObjectCtor extends FunctionObject {
         super(protoName, hopObjCtor, core.global);
         this.core = core;
         this.protoProperty = prototype;
-        // Scriptable ps = prototype.getParentScope();
         addAsConstructor(core.global, prototype);
-        // prototype.setParentScope(ps);
-        defineProperty("getById", new GetById(), attr);
+        defineProperty("getById", new GetById(core.global), attr);
     }
 
     /**
@@ -139,6 +138,10 @@ public class HopObjectCtor extends FunctionObject {
 
     class GetById extends BaseFunction {
 
+        public GetById(Scriptable scope) {
+            ScriptRuntime.setFunctionProtoAndParent(this, scope);
+        }
+
         /**
          * Retrieve any persistent HopObject by type name and id.
          *
@@ -165,6 +168,15 @@ public class HopObjectCtor extends FunctionObject {
             }
             return node == null ? null : Context.toObject(node, this);
         }
+
+        public int getArity() {
+            return 1; 
+        }
+
+        public int getLength() {
+            return 1;
+        }
+
     }
 
 }
