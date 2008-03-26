@@ -386,7 +386,7 @@ helma.Mail = function(host, port) {
      * "mixed" for messages of type multipart/mixed. A common value
      * is "alternative" for the multipart/alternative MIME type.
      * @param {String} messageType the MIME subtype such as "mixed" or "alternative".
-     * @see #setMultipartType
+     * @see #getMultipartType
      * @see #addPart
      */
     this.setMultipartType = function(messageType) {
@@ -399,7 +399,7 @@ helma.Mail = function(host, port) {
      * "mixed" for messages of type multipart/mixed.
      * @return the MIME subtype
      * @type String
-     * @see #getMultipartType
+     * @see #setMultipartType
      * @see #addPart
      */
     this.getMultipartType = function(messageType) {
@@ -418,7 +418,7 @@ helma.Mail = function(host, port) {
      * @param {fileOrMimeObjectOrString} obj File, Mime object or String to attach to the email
      * @param {String} filename optional name of the attachment
      * @param {String} contentType optional content type (only if first argument is a string)
-     * @see global.getUrl
+     * @see global.getURL
      * @see helma.util.MimePart
      * @see helma.File
      */
