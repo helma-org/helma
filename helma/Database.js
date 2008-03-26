@@ -168,16 +168,16 @@ helma.Database = function(source) {
             }
             result[result.length] = row;
         }
+        var logTimeStop = isLogSqlEnabled ? java.lang.System.currentTimeMillis() : 0;
+        if (isLogSqlEnabled) {
+            var tableName = metaData.getColumnCount() > 0 ? metaData.getTableName(1) : null;
+            app.getLogger("helma." + app.name + ".sql").info("SQL DIRECT_QUERY " + (tableName || "-") + " " + (logTimeStop - logTimeStart) + ": " + sql);
+        }
         try {
             statement.close();
             resultSet.close();
         } catch (error) {
             // ignore
-        }
-        var logTimeStop = isLogSqlEnabled ? java.lang.System.currentTimeMillis() : 0;
-        if (isLogSqlEnabled) {
-            var tableName = metaData.getColumnCount() > 0 ? metaData.getTableName(1) : null;
-            app.getLogger("helma." + app.name + ".sql").info("SQL DIRECT_QUERY " + (tableName || "-") + " " + (logTimeStop - logTimeStart) + ": " + sql);
         }
         return result;
     };
