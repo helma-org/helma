@@ -26,6 +26,13 @@ function href(action) {
 }
 
 /**
+ * Method used by Helma for URL composition.
+ */
+function getParentElement() {
+    return root;
+}
+
+/**
  * Method used by Helma request path resolution.
  */
 function getChildElement(name) {
