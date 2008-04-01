@@ -396,6 +396,25 @@ helma.Search.Index.prototype.size = function() {
 };
 
 /**
+ * Returns the number of documents with the given field name and value.
+ * @param {String} fieldName The name of the field
+ * @param {String} fieldValue The value of the field
+ * @returns The number of documents
+ * @type Number
+ */
+helma.Search.Index.prototype.count = function(fieldName, fieldValue) {
+    try {
+        var reader = this.getReader();
+        var term = new Packages.org.apache.lucene.index.Term(fieldName, fieldValue);
+        return reader.docFreq(term);
+    } finally {
+        if (reader !== null) {
+            reader.close();
+        }
+    }
+};
+
+/**
  * Optimizes the underlying index.
  */
 helma.Search.Index.prototype.optimize = function() {
