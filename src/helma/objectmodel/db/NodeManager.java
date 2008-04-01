@@ -333,6 +333,16 @@ public final class NodeManager {
      */
     private Node registerNewNode(Node node, Key secondaryKey) {
         Key key = node.getKey();
+        RequestEvaluator reval = app.getCurrentRequestEvaluator();
+        // if no request evaluator is associated with current thread, do not cache node
+        // as we cannot invoke onInit() on it.
+        if (reval == null) {
+            Node old = (Node) cache.get(key);
+            if (old != null && !old.isNullNode() && old.getState() != INode.INVALID) {
+                return old;
+            }
+            return node;
+        }
 
         synchronized(cache) {
             Node old = (Node) cache.put(key, node);
@@ -352,10 +362,7 @@ public final class NodeManager {
         try {
             // We need to reach deap into helma.framework.core to invoke onInit(),
             // but the functionality is really worth it.
-            RequestEvaluator reval = app.getCurrentRequestEvaluator();
-            if (reval != null) {
-                reval.invokeDirectFunction(node, "onInit", RequestEvaluator.EMPTY_ARGS);
-            }
+            reval.invokeDirectFunction(node, "onInit", RequestEvaluator.EMPTY_ARGS);
         } catch (Exception x) {
             app.logError("Error invoking onInit()", x);
         }
