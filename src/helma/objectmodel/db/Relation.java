@@ -1159,9 +1159,12 @@ public final class Relation {
             if (foreignIsPrimary || cnst.foreignKeyIsPrototype()) {
                 String localProp = cnst.localProperty();
                 if (localProp == null) {
-                    ownType.app.logError("Error: column " + cnst.localKey +
-                       " must be mapped in order to be used as constraint in "+
+                    throw new RuntimeException("Error: column " + cnst.localKey +
+                       " must be mapped in order to be used as constraint in " +
                        Relation.this);
+                } else if (foreignIsPrimary && child.getState() == Node.TRANSIENT) {
+                    throw new RuntimeException(propName + " set to transient object, " +
+                       "can't derive persistent ID for " + localProp);
                 } else {
                     String value = foreignIsPrimary ?
                             child.getID() : child.getDbMapping().getStorageTypeName();
@@ -1198,6 +1201,9 @@ public final class Relation {
                             // correctly for transient nodes, so this may fail.
                         }
                     } else if (crel.reftype == PRIMITIVE) {
+                        if (home.getState() == Node.TRANSIENT) {
+                            throw new RuntimeException("Object is transient, can't derive persistent ID for " + crel);
+                        }
                         child.setString(crel.propName, home.getID());
                     }
                 } else if (crel.reftype == PRIMITIVE) {
