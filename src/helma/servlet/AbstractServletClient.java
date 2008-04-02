@@ -759,8 +759,12 @@ public abstract class AbstractServletClient extends HttpServlet {
                         break;
 
                     case '=':
-                        key = new String(data, 0, ox, encoding);
-                        ox = 0;
+                        if (key == null) {
+                            key = new String(data, 0, ox, encoding);
+                            ox = 0;
+                        } else {
+                            data[ox++] = c;                            
+                        }
 
                         break;
 
