@@ -21,6 +21,7 @@ import helma.framework.core.Application;
 import helma.framework.repository.FileRepository;
 import java.io.*;
 import javax.servlet.*;
+import java.util.*;
 
 /**
  *  Standalone servlet client that runs a Helma application all by itself
@@ -39,6 +40,8 @@ public final class StandaloneServletClient extends AbstractServletClient {
     private String appName;
     private String appDir;
     private String dbDir;
+    // private String hopDir;
+    private Repository[] repositories;
 
     /**
      *
@@ -50,6 +53,8 @@ public final class StandaloneServletClient extends AbstractServletClient {
     public void init(ServletConfig init) throws ServletException {
         super.init(init);
 
+        // hopDir = init.getInitParameter("hopdir");
+
         appName = init.getInitParameter("application");
 
         if ((appName == null) || (appName.trim().length() == 0)) {
@@ -58,15 +63,60 @@ public final class StandaloneServletClient extends AbstractServletClient {
 
         appDir = init.getInitParameter("appdir");
 
-        if ((appDir == null) || (appDir.trim().length() == 0)) {
-            throw new ServletException("appdir parameter not specified");
-        }
-
         dbDir = init.getInitParameter("dbdir");
 
         if ((dbDir == null) || (dbDir.trim().length() == 0)) {
             throw new ServletException("dbdir parameter not specified");
         }
+
+        Class[] parameters = { String.class };
+        ArrayList<Repository> repositoryList = new ArrayList<Repository>();
+
+        for (int i = 0; true; i++) {
+            String repositoryArgs = init.getInitParameter("repository." + i);
+            if (repositoryArgs != null) {
+                    // lookup repository implementation
+                String repositoryImpl = init.getInitParameter("repository." + i +
+                          ".implementation");
+                if (repositoryImpl == null) {
+                    // implementation not set manually, have to guess it
+                    if (repositoryArgs.endsWith(".zip")) {
+                        repositoryImpl = "helma.framework.repository.ZipRepository";
+                    } else if (repositoryArgs.endsWith(".js")) {
+                        repositoryImpl = "helma.framework.repository.SingleFileRepository";
+                    } else {
+                        repositoryImpl = "helma.framework.repository.FileRepository";
+                    }
+                }
+        
+                try {
+                    Repository newRepository = (Repository) Class.forName(repositoryImpl)
+                        .getConstructor(parameters)
+                        .newInstance(repositoryArgs);
+                    repositoryList.add(newRepository);
+                    log("adding repository: " + repositoryArgs);
+                } catch (Exception ex) {
+                    log("Adding repository " + repositoryArgs + " failed. " +
+                        "Will not use that repository. Check your initArgs!", ex);
+                }
+            } else {
+                // we always scan repositories 0-9, beyond that only if defined
+                if (i > 9) {
+                    break;
+                }
+            }
+        }
+        
+        // add app dir
+        FileRepository appRep = new FileRepository(appDir);
+        log("adding repository: " + appDir);
+        if (!repositoryList.contains(appRep)) {
+            repositoryList.add(appRep);
+        }
+
+        repositories = new Repository[repositoryList.size()];
+        repositories = repositoryList.toArray(repositories);
+
     }
 
     /**
@@ -88,16 +138,16 @@ public final class StandaloneServletClient extends AbstractServletClient {
      * do another check if the app already exists and immediately return if it does.
      */
     synchronized void createApp() {
+
         if (app != null) {
             return;
         }
 
         try {
-            Repository[] repositories = new Repository[1];
-            repositories[0] = new FileRepository(new File(appDir));
             File dbHome = new File(dbDir);
+            File appHome = new File(appDir);
 
-            app = new Application(appName, repositories, dbHome);
+            app = new Application(appName, null, repositories, appHome, dbHome);
             app.init();
             app.start();
         } catch (Exception x) {
