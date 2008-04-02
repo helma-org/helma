@@ -75,9 +75,9 @@ public final class StandaloneServletClient extends AbstractServletClient {
         for (int i = 0; true; i++) {
             String repositoryArgs = init.getInitParameter("repository." + i);
             if (repositoryArgs != null) {
-                    // lookup repository implementation
+                // lookup repository implementation
                 String repositoryImpl = init.getInitParameter("repository." + i +
-                          ".implementation");
+                        ".implementation");
                 if (repositoryImpl == null) {
                     // implementation not set manually, have to guess it
                     if (repositoryArgs.endsWith(".zip")) {
