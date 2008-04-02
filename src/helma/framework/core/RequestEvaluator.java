@@ -124,6 +124,12 @@ public final class RequestEvaluator implements Runnable {
         }
     }
 
+    protected synchronized void shutdown() {
+        if (scriptingEngine != null) {
+            scriptingEngine.shutdown();
+        }
+    }
+
     /**
      *
      */

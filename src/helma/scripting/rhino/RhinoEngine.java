@@ -118,6 +118,13 @@ public class RhinoEngine implements ScriptingEngine {
     }
 
     /**
+     * Shut down the scripting engine.
+     */
+    public void shutdown() {
+        core.shutdown();
+    }
+
+    /**
      * Return the RhinoEngine associated with the current thread, or null.
      * @return the RhinoEngine assocated with the current thread
      */

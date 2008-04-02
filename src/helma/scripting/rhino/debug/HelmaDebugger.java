@@ -113,6 +113,12 @@ public class HelmaDebugger extends Dim implements TreeSelectionListener {
         gui.setVisible(visible);
     }
 
+    public void dispose() {
+        super.dispose();
+        gui.setVisible(false);
+        gui.dispose();
+    }
+
     class DebuggerTreeNode extends DefaultMutableTreeNode {
 
         public DebuggerTreeNode(Object obj) {

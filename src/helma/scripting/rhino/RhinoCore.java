@@ -191,6 +191,13 @@ public final class RhinoCore implements ScopeProvider {
         return isInitialized;
     }
 
+    public void shutdown() {
+        if (debugger != null) {
+            debugger.dispose();
+            debugger = null;
+        }
+    }
+
     void initDebugger(Context context) {
         context.setGeneratingDebug(true);
         try {

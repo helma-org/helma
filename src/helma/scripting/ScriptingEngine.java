@@ -61,6 +61,11 @@ public interface ScriptingEngine {
     public void init(Application app, RequestEvaluator reval);
 
     /**
+     * Shut down the Scripting engine.
+     */
+    public void shutdown();
+
+    /**
      *  This method is called when an execution context for a request
      *  evaluation is entered to let the Engine know it should update
      *  its prototype information

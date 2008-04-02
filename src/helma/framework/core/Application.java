@@ -482,8 +482,8 @@ public final class Application implements Runnable {
         if (allThreads != null) {
             for (Enumeration e = allThreads.elements(); e.hasMoreElements();) {
                 RequestEvaluator ev = (RequestEvaluator) e.nextElement();
-
                 ev.stopTransactor();
+                ev.shutdown();
             }
         }
 
