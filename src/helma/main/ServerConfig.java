@@ -25,12 +25,12 @@ import java.io.File;
  
 public class ServerConfig {
 
-    InetAddrPort rmiPort    = null;
-    InetAddrPort xmlrpcPort = null;
-    InetAddrPort websrvPort = null;
-    InetAddrPort ajp13Port  = null;
-    File         propFile   = null;
-    File         homeDir    = null;
+    private InetAddrPort rmiPort    = null;
+    private InetAddrPort xmlrpcPort = null;
+    private InetAddrPort websrvPort = null;
+    private InetAddrPort ajp13Port  = null;
+    private File         propFile   = null;
+    private File         homeDir    = null;
 
     public boolean hasPropFile() {
         return (propFile != null);
@@ -40,4 +40,67 @@ public class ServerConfig {
         return (homeDir != null);
     }
 
+    public boolean hasRmiPort() {
+        return (rmiPort != null);
+    }
+
+    public boolean hasXmlrpcPort() {
+        return (xmlrpcPort != null);
+    }
+
+    public boolean hasWebsrvPort() {
+        return (websrvPort != null);
+    }
+
+    public boolean hasAjp13Port() {
+        return (ajp13Port != null);
+    }
+
+    public InetAddrPort getRmiPort() {
+        return rmiPort;
+    }
+
+    public void setRmiPort(InetAddrPort rmiPort) {
+        this.rmiPort = rmiPort;
+    }
+
+    public InetAddrPort getXmlrpcPort() {
+        return xmlrpcPort;
+    }
+
+    public void setXmlrpcPort(InetAddrPort xmlrpcPort) {
+        this.xmlrpcPort = xmlrpcPort;
+    }
+
+    public InetAddrPort getWebsrvPort() {
+        return websrvPort;
+    }
+
+    public void setWebsrvPort(InetAddrPort websrvPort) {
+        this.websrvPort = websrvPort;
+    }
+
+    public InetAddrPort getAjp13Port() {
+        return ajp13Port;
+    }
+
+    public void setAjp13Port(InetAddrPort ajp13Port) {
+        this.ajp13Port = ajp13Port;
+    }
+
+    public File getPropFile() {
+        return propFile;
+    }
+
+    public void setPropFile(File propFile) {
+        this.propFile = propFile;
+    }
+
+    public File getHomeDir() {
+        return homeDir;
+    }
+
+    public void setHomeDir(File homeDir) {
+        this.homeDir = homeDir;
+    }
 }

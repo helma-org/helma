@@ -32,6 +32,11 @@ import java.io.*;
 import java.rmi.registry.*;
 import java.rmi.server.*;
 import java.util.*;
+import java.net.Socket;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.net.InetSocketAddress;
+
 import helma.util.ResourceProperties;
 
 /**
@@ -96,15 +101,15 @@ public class Server implements Runnable {
         server = this;
         starttime = System.currentTimeMillis();
 
-        rmiPort    = config.rmiPort;
-        xmlrpcPort = config.xmlrpcPort;
-        websrvPort = config.websrvPort;
-        ajp13Port  = config.ajp13Port;
-        hopHome    = config.homeDir;
+        rmiPort    = config.getRmiPort();
+        xmlrpcPort = config.getXmlrpcPort();
+        websrvPort = config.getWebsrvPort();
+        ajp13Port  = config.getAjp13Port();
+        hopHome    = config.getHomeDir();
 
         // create system properties
         sysProps = new ResourceProperties();
-        sysProps.addResource(new FileResource(config.propFile));
+        sysProps.addResource(new FileResource(config.getPropFile()));
     }
 
 
@@ -171,7 +176,7 @@ public class Server implements Runnable {
 
         // get possible environment setting for helma home
         if (System.getProperty("helma.home")!=null) {
-            config.homeDir = new File(System.getProperty("helma.home"));
+            config.setHomeDir(new File(System.getProperty("helma.home")));
         }
 
         parseArgs(config, args);
@@ -180,36 +185,36 @@ public class Server implements Runnable {
 
         // create system properties
         ResourceProperties sysProps = new ResourceProperties();
-        sysProps.addResource(new FileResource(config.propFile));
+        sysProps.addResource(new FileResource(config.getPropFile()));
 
         // check if there's a property setting for those ports not specified via command line
-        if ((config.websrvPort == null) && (sysProps.getProperty("webPort") != null)) {
+        if (!config.hasWebsrvPort() && sysProps.getProperty("webPort") != null) {
             try {
-                config.websrvPort = new InetAddrPort(sysProps.getProperty("webPort"));
+                config.setWebsrvPort(new InetAddrPort(sysProps.getProperty("webPort")));
             } catch (Exception portx) {
                 throw new Exception("Error parsing web server port property from server.properties: " + portx);
             }
         }
 
-        if ((config.ajp13Port == null) && (sysProps.getProperty("ajp13Port") != null)) {
+        if (!config.hasAjp13Port() && sysProps.getProperty("ajp13Port") != null) {
             try {
-                config.ajp13Port = new InetAddrPort(sysProps.getProperty("ajp13Port"));
+                config.setAjp13Port(new InetAddrPort(sysProps.getProperty("ajp13Port")));
             } catch (Exception portx) {
                 throw new Exception("Error parsing AJP1.3 server port property from server.properties: " + portx);
             }
         }
 
-        if ((config.rmiPort == null) && (sysProps.getProperty("rmiPort") != null)) {
+        if (!config.hasRmiPort() && sysProps.getProperty("rmiPort") != null) {
             try {
-                config.rmiPort = new InetAddrPort(sysProps.getProperty("rmiPort"));
+                config.setRmiPort(new InetAddrPort(sysProps.getProperty("rmiPort")));
             } catch (Exception portx) {
                 throw new Exception("Error parsing RMI server port property from server.properties: " + portx);
             }
         }
 
-        if ((config.xmlrpcPort == null) && (sysProps.getProperty("xmlrpcPort") != null)) {
+        if (!config.hasXmlrpcPort() && sysProps.getProperty("xmlrpcPort") != null) {
             try {
-                config.xmlrpcPort = new InetAddrPort(sysProps.getProperty("xmlrpcPort"));
+                config.setXmlrpcPort(new InetAddrPort(sysProps.getProperty("xmlrpcPort")));
             } catch (Exception portx) {
                 throw new Exception("Error parsing XML-RPC server port property from server.properties: " + portx);
             }
@@ -227,30 +232,30 @@ public class Server implements Runnable {
     public static void parseArgs(ServerConfig config, String[] args) throws Exception {
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("-h") && ((i + 1) < args.length)) {
-                config.homeDir = new File(args[++i]);
+                config.setHomeDir(new File(args[++i]));
             } else if (args[i].equals("-f") && ((i + 1) < args.length)) {
-                config.propFile = new File(args[++i]);
+                config.setPropFile(new File(args[++i]));
             } else if (args[i].equals("-p") && ((i + 1) < args.length)) {
                 try {
-                    config.rmiPort = new InetAddrPort(args[++i]);
+                    config.setRmiPort(new InetAddrPort(args[++i]));
                 } catch (Exception portx) {
                     throw new Exception("Error parsing RMI server port property: " + portx);
                 }
             } else if (args[i].equals("-x") && ((i + 1) < args.length)) {
                 try {
-                    config.xmlrpcPort = new InetAddrPort(args[++i]);
+                    config.setXmlrpcPort(new InetAddrPort(args[++i]));
                 } catch (Exception portx) {
                     throw new Exception("Error parsing XML-RPC server port property: " + portx);
                 }
             } else if (args[i].equals("-w") && ((i + 1) < args.length)) {
                 try {
-                    config.websrvPort = new InetAddrPort(args[++i]);
+                    config.setWebsrvPort(new InetAddrPort(args[++i]));
                 } catch (Exception portx) {
                     throw new Exception("Error parsing web server port property: " + portx);
                 }
             } else if (args[i].equals("-jk") && ((i + 1) < args.length)) {
                 try {
-                    config.ajp13Port = new InetAddrPort(args[++i]);
+                    config.setAjp13Port(new InetAddrPort(args[++i]));
                 } catch (Exception portx) {
                     throw new Exception("Error parsing AJP1.3 server port property: " + portx);
                 }
@@ -270,26 +275,26 @@ public class Server implements Runnable {
       */
     public static void guessConfig(ServerConfig config) throws Exception {
         // get property file from hopHome:
-        if (config.propFile == null) {
-            if (config.homeDir != null) {
-                config.propFile = new File(config.homeDir, "server.properties");
+        if (!config.hasPropFile()) {
+            if (config.hasHomeDir()) {
+                config.setPropFile(new File(config.getHomeDir(), "server.properties"));
             } else {
-                config.propFile = new File("server.properties");
+                config.setPropFile(new File("server.properties"));
             }
         }
 
         // create system properties
         ResourceProperties sysProps = new ResourceProperties();
-        sysProps.addResource(new FileResource(config.propFile));
+        sysProps.addResource(new FileResource(config.getPropFile()));
 
         // try to get hopHome from property file
-        if (config.homeDir == null && sysProps.getProperty("hophome") != null) {
-            config.homeDir = new File(sysProps.getProperty("hophome"));
+        if (!config.hasHomeDir() && sysProps.getProperty("hophome") != null) {
+            config.setHomeDir(new File(sysProps.getProperty("hophome")));
         }
 
         // use the directory where server.properties is located:
-        if (config.homeDir == null && config.propFile != null) {
-            config.homeDir = config.propFile.getAbsoluteFile().getParentFile();
+        if (!config.hasHomeDir() && config.hasPropFile()) {
+            config.setHomeDir(config.getPropFile().getAbsoluteFile().getParentFile());
         }
 
         if (!config.hasPropFile()) {
@@ -302,9 +307,9 @@ public class Server implements Runnable {
 
         // try to transform hopHome directory to its canonical representation
         try {
-            config.homeDir = config.homeDir.getCanonicalFile();
+            config.setHomeDir(config.getHomeDir().getCanonicalFile());
         } catch (IOException iox) {
-            config.homeDir = config.homeDir.getAbsoluteFile();
+            config.setHomeDir(config.getHomeDir().getAbsoluteFile());
         }
     }
 
@@ -350,20 +355,20 @@ public class Server implements Runnable {
     public static void checkRunning(ServerConfig config) {
         // check if any of the specified server ports is in use already
         try {
-            if (config.websrvPort != null) {
-                checkPort(config.websrvPort);
+            if (config.hasWebsrvPort()) {
+                checkPort(config.getWebsrvPort());
             }
 
-            if (config.rmiPort != null) {
-                checkPort(config.rmiPort);
+            if (config.hasRmiPort()) {
+                checkPort(config.getRmiPort());
             }
 
-            if (config.xmlrpcPort != null) {
-                checkPort(config.xmlrpcPort);
+            if (config.hasXmlrpcPort()) {
+                checkPort(config.getXmlrpcPort());
             }
 
-            if (config.ajp13Port != null) {
-                checkPort(config.ajp13Port);
+            if (config.hasAjp13Port()) {
+                checkPort(config.getAjp13Port());
             }
         } catch (Exception running) {
             System.out.println(running.getMessage());
@@ -379,8 +384,6 @@ public class Server implements Runnable {
     private static void checkPort(InetAddrPort addrPort) throws Exception {
         // checkRunning is disabled until we find a fix for the socket creation
         // timeout problems reported on the list.
-        return;
-
         /*
         InetAddress addr = addrPort.getInetAddress();
         if (addr == null) {
@@ -392,8 +395,11 @@ public class Server implements Runnable {
             }
         }
         try {
-            new Socket(addr, addrPort.getPort());
-        } catch (IOException x) {
+            Socket sock = new Socket();
+            // this should fix the timeout problems reported here:
+            // http://grazia.helma.at/pipermail/helma-user/2003-December/005602.html
+            sock.connect(new InetSocketAddress(addr, addrPort.getPort()), 1000);
+        } catch (Exception x) {
             // we couldn't connect to the socket because no server
             // is running on it yet. Everything's ok.
             return;
@@ -821,7 +827,11 @@ public class Server implements Runnable {
      * @return the apps.properties subproperties for the given app
      */
     public ResourceProperties getAppsProperties(String appName) {
-        return appsProps.getSubProperties(appName + ".");
+        if (appName == null) {
+            return appsProps;
+        } else {
+            return appsProps.getSubProperties(appName + ".");
+        }
     }
 
     /**

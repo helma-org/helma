@@ -45,15 +45,15 @@ public class CommandlineRunner {
     
         // get possible environment setting for helma home
         if (System.getProperty("helma.home")!=null) {
-            config.homeDir = new File(System.getProperty("helma.home"));
+            config.setHomeDir(new File(System.getProperty("helma.home")));
         }
 
         // parse arguments
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("-h") && ((i + 1) < args.length)) {
-                config.homeDir = new File(args[++i]);
+                config.setHomeDir(new File(args[++i]));
             } else if (args[i].equals("-f") && ((i + 1) < args.length)) {
-                config.propFile = new File(args[++i]);
+                config.setPropFile(new File(args[++i]));
             } else if (commandStr != null) {
                 // we're past the command str, all args for the function
                 funcArgs.add (args[i]);
