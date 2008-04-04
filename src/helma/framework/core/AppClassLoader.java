@@ -45,4 +45,8 @@ public class AppClassLoader extends URLClassLoader {
     public String getAppName() {
         return appname;
     }
+
+    public String toString() {
+        return "helma.framework.core.AppClassLoader[" + appname + "]";
+    }
 }
