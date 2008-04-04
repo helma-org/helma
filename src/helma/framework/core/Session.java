@@ -43,7 +43,7 @@ public class Session implements Serializable {
 
     // the transient cache node that is exposed to javascript
     // this stays the same across logins and logouts.
-    protected TransientNode cacheNode;
+    protected INode cacheNode;
     protected long onSince;
     protected long lastTouched;
     protected long lastModified;
@@ -161,7 +161,7 @@ public class Session implements Serializable {
     /**
      * Set the cache node for this session.
      */
-    public void setCacheNode(TransientNode node) {
+    public void setCacheNode(INode node) {
         this.cacheNode = node;
     }
 
