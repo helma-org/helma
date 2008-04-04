@@ -303,9 +303,9 @@ public final class Application implements Runnable {
     /**
      * Get the application ready to run, initializing the evaluators and type manager.
      */
-    public synchronized void init()
-            throws DatabaseException, IllegalAccessException,
-                   InstantiationException, ClassNotFoundException {
+    public void init()
+            throws DatabaseException, IllegalAccessException, InstantiationException,
+                   ClassNotFoundException, InterruptedException {
         init(null);
     }
 
@@ -314,124 +314,163 @@ public final class Application implements Runnable {
      *
      * @param ignoreDirs comma separated list of directory names to ignore
      */
-    public synchronized void init(String ignoreDirs)
-            throws DatabaseException, IllegalAccessException,
-                   InstantiationException, ClassNotFoundException {
+    public void init(final String ignoreDirs)
+            throws DatabaseException, IllegalAccessException, InstantiationException,
+                   ClassNotFoundException, InterruptedException {
 
-        running = true;
+        Initializer i = new Initializer(ignoreDirs);
+        i.start();
+        i.join();
+        if (i.exception != null) {
+            if (i.exception instanceof DatabaseException)
+                throw (DatabaseException) i.exception;
+            if (i.exception instanceof IllegalAccessException)
+                throw (IllegalAccessException) i.exception;
+            if (i.exception instanceof InstantiationException)
+                throw (InstantiationException) i.exception;
+            if (i.exception instanceof ClassNotFoundException)
+                throw (ClassNotFoundException) i.exception;
+            throw new RuntimeException(i.exception);
+        }
+    }
 
-        // create and init type mananger
-        typemgr = new TypeManager(this, ignoreDirs);
-        // set the context classloader. Note that this must be done before
-        // using the logging framework so that a new LogFactory gets created
-        // for this app.
-        Thread.currentThread().setContextClassLoader(typemgr.getClassLoader());
-        try {
-            typemgr.createPrototypes();
-        } catch (Exception x) {
-            logError("Error creating prototypes", x);
+    // We need to call initialize in a fresh thread because the calling thread could
+    // already be associated with a rhino context, for example when starting from the
+    // manage application.
+    class Initializer extends Thread {
+        Exception exception = null;
+        String ignoreDirs;
+
+        Initializer(String dirs) {
+            super("INIT-" + name);
+            ignoreDirs = dirs;
         }
 
-        if (Server.getServer() != null) {
-            Vector extensions = Server.getServer().getExtensions();
+        public void run() {
+            try {
+                synchronized (Application.this) {
+                    initInternal();
+                }
+            } catch (Exception x) {
+                exception = x;
+            }
+        }
 
-            for (int i = 0; i < extensions.size(); i++) {
-                HelmaExtension ext = (HelmaExtension) extensions.get(i);
+        private void initInternal()
+                throws DatabaseException, IllegalAccessException,
+                       InstantiationException, ClassNotFoundException {
+            running = true;
+            // create and init type mananger
+            typemgr = new TypeManager(Application.this, ignoreDirs);
+            // set the context classloader. Note that this must be done before
+            // using the logging framework so that a new LogFactory gets created
+            // for this app.
+            Thread.currentThread().setContextClassLoader(typemgr.getClassLoader());
+            try {
+                typemgr.createPrototypes();
+            } catch (Exception x) {
+                logError("Error creating prototypes", x);
+            }
 
+            if (Server.getServer() != null) {
+                Vector extensions = Server.getServer().getExtensions();
+
+                for (int i = 0; i < extensions.size(); i++) {
+                    HelmaExtension ext = (HelmaExtension) extensions.get(i);
+
+                    try {
+                        ext.applicationStarted(Application.this);
+                    } catch (ConfigurationException e) {
+                        logEvent("couldn't init extension " + ext.getName() + ": " +
+                                 e.toString());
+                    }
+                }
+            }
+
+            // create and init evaluator/thread lists
+            freeThreads = new Stack();
+            allThreads = new Vector();
+
+            // preallocate minThreads request evaluators
+            int minThreads = 0;
+
+            try {
+                minThreads = Integer.parseInt(props.getProperty("minThreads"));
+            } catch (Exception ignore) {
+                // not parsable as number, keep 0
+            }
+
+            if (minThreads > 0) {
+                logEvent("Starting "+minThreads+" evaluator(s) for " + name);
+            }
+
+            for (int i = 0; i < minThreads; i++) {
+                RequestEvaluator ev = new RequestEvaluator(Application.this);
+
+                if (i == 0) {
+                    ev.initScriptingEngine();
+                }
+                freeThreads.push(ev);
+                allThreads.addElement(ev);
+            }
+
+            activeRequests = new Hashtable();
+            activeCronJobs = new Hashtable();
+            customCronJobs = new Hashtable();
+
+            // create the skin manager
+            skinmgr = new SkinManager(Application.this);
+
+            // read in root id, root prototype, user prototype
+            rootId = props.getProperty("rootid", "0");
+            String rootPrototype = props.getProperty("rootprototype", "root");
+            String userPrototype = props.getProperty("userprototype", "user");
+
+            rootMapping = getDbMapping(rootPrototype);
+            if (rootMapping == null)
+                throw new RuntimeException("rootPrototype does not exist: " + rootPrototype);
+            userMapping = getDbMapping(userPrototype);
+            if (userMapping == null)
+                throw new RuntimeException("userPrototype does not exist: " + userPrototype);
+
+            // The whole user/userroot handling is basically old
+            // ugly obsolete crap. Don't bother.
+            ResourceProperties p = new ResourceProperties();
+            String usernameField = (userMapping != null) ? userMapping.getNameField() : null;
+
+            if (usernameField == null) {
+                usernameField = "name";
+            }
+
+            p.put("_children", "collection(" + userPrototype + ")");
+            p.put("_children.accessname", usernameField);
+            userRootMapping = new DbMapping(Application.this, "__userroot__", p);
+            userRootMapping.update();
+
+            // create the node manager
+            nmgr = new NodeManager(Application.this);
+            nmgr.init(dbDir.getAbsoluteFile(), props);
+
+            // create and init session manager
+            String sessionMgrImpl = props.getProperty("sessionManagerImpl",
+                                                      "helma.framework.core.SessionManager");
+            sessionMgr = (SessionManager) Class.forName(sessionMgrImpl).newInstance();
+            logEvent("Using session manager class " + sessionMgrImpl);
+            sessionMgr.init(Application.this);
+
+            // read the sessions if wanted
+            if ("true".equalsIgnoreCase(getProperty("persistentSessions"))) {
+                RequestEvaluator ev = getEvaluator();
                 try {
-                    ext.applicationStarted(this);
-                } catch (ConfigurationException e) {
-                    logEvent("couldn't init extension " + ext.getName() + ": " +
-                             e.toString());
+                    ev.initScriptingEngine();
+                    sessionMgr.loadSessionData(null, ev.scriptingEngine);
+                } finally {
+                    releaseEvaluator(ev);
                 }
             }
         }
-
-        // create and init evaluator/thread lists
-        freeThreads = new Stack();
-        allThreads = new Vector();
-
-        // preallocate minThreads request evaluators
-        int minThreads = 0;
-
-        try {
-            minThreads = Integer.parseInt(props.getProperty("minThreads"));
-        } catch (Exception ignore) {
-            // not parsable as number, keep 0
-        }
-
-        if (minThreads > 0) {
-            logEvent("Starting "+minThreads+" evaluator(s) for " + name);
-        }
-
-        for (int i = 0; i < minThreads; i++) {
-            RequestEvaluator ev = new RequestEvaluator(this);
-
-            if (i == 0) {
-                ev.initScriptingEngine();
-            }
-            freeThreads.push(ev);
-            allThreads.addElement(ev);
-        }
-
-        activeRequests = new Hashtable();
-        activeCronJobs = new Hashtable();
-        customCronJobs = new Hashtable();
-
-        // create the skin manager
-        skinmgr = new SkinManager(this);
-
-        // read in root id, root prototype, user prototype
-        rootId = props.getProperty("rootid", "0");
-        String rootPrototype = props.getProperty("rootprototype", "root");
-        String userPrototype = props.getProperty("userprototype", "user");
-
-        rootMapping = getDbMapping(rootPrototype);
-        if (rootMapping == null)
-            throw new RuntimeException("rootPrototype does not exist: " + rootPrototype);
-        userMapping = getDbMapping(userPrototype);
-        if (userMapping == null)
-            throw new RuntimeException("userPrototype does not exist: " + userPrototype);
-
-        // The whole user/userroot handling is basically old
-        // ugly obsolete crap. Don't bother.
-        ResourceProperties p = new ResourceProperties();
-        String usernameField = (userMapping != null) ? userMapping.getNameField() : null;
-
-        if (usernameField == null) {
-            usernameField = "name";
-        }
-
-        p.put("_children", "collection(" + userPrototype + ")");
-        p.put("_children.accessname", usernameField);
-        userRootMapping = new DbMapping(this, "__userroot__", p);
-        userRootMapping.update();
-
-        // create the node manager
-        nmgr = new NodeManager(this);
-        nmgr.init(dbDir.getAbsoluteFile(), props);
-
-        // create and init session manager
-        String sessionMgrImpl = props.getProperty("sessionManagerImpl",
-                                                  "helma.framework.core.SessionManager");
-        sessionMgr = (SessionManager) Class.forName(sessionMgrImpl).newInstance();
-        logEvent("Using session manager class " + sessionMgrImpl);
-        sessionMgr.init(this);
-
-        // read the sessions if wanted
-        if ("true".equalsIgnoreCase(getProperty("persistentSessions"))) {
-            RequestEvaluator ev = getEvaluator();
-            try {
-                ev.initScriptingEngine();
-                sessionMgr.loadSessionData(null, ev.scriptingEngine);
-            } finally {
-                releaseEvaluator(ev);
-            }
-        }
-
-        // reset the classloader to the parent/system/server classloader.
-        Thread.currentThread().setContextClassLoader(typemgr.getClassLoader().getParent());
     }
+
 
     /**
      *  Create and start scheduler and cleanup thread
