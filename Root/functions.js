@@ -26,13 +26,24 @@ function renderApi(appName) {
   */
 function getAllApplications() {
     var appsDir = this.getAppsHome();
-    var dir = appsDir.list();
+    var dir = appsDir.listFiles();
     var arr = new Array();
-    if (!dir)
-      return arr;
-    for (var i = 0; i < dir.length; i++) {
-        if (dir[i].toLowerCase() != "cvs" && dir[i].indexOf(".") == -1)
-            arr[arr.length] = this.getApp(dir[i]);
+    var seen = {};
+    // first check apps directory for apps directories
+    if (dir) {
+        for (var i = 0; i < dir.length; i++) {
+            if (dir[i].isDirectory() && dir[i].name.toLowerCase() != "cvs") {
+                arr[arr.length] = this.getApp(dir[i].name);
+                seen[dir[i].name] = true;
+            }
+        }
+    }
+    // then check entries in apps.properties for apps not currently running
+    var props = wrapJavaMap(root.getAppsProperties(null));
+    for (var i in props) {
+        if (i.indexOf(".") < 0 && !seen[i] && !root.getApplication(i)) {
+            arr[arr.length] = this.getApp(i);
+        }
     }
     return arr;
 }
