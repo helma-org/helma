@@ -116,7 +116,9 @@ public class HelmaDebugger extends Dim implements TreeSelectionListener {
     public void dispose() {
         super.dispose();
         gui.setVisible(false);
-        gui.dispose();
+        // Calling dispose() on the gui causes shutdown hook to hang on windows -
+        // see http://helma.org/bugs/show_bug.cgi?id=586#c2
+        // gui.dispose();
     }
 
     class DebuggerTreeNode extends DefaultMutableTreeNode {
