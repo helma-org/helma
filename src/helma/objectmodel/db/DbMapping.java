@@ -124,7 +124,10 @@ public final class DbMapping {
     HashSet dependentMappings = new HashSet();
 
     // does this DbMapping describe a virtual node (collection, mountpoint, groupnode)?
-    private boolean virtual = false;
+    private boolean isVirtual = false;
+
+    // does this Dbmapping describe a group node?
+    private boolean isGroup = false;
 
     /**
      * Create an internal DbMapping used for "virtual" mappings aka collections, mountpoints etc.
@@ -132,7 +135,7 @@ public final class DbMapping {
     public DbMapping(Application app, String parentTypeName) {
         this(app, parentTypeName, null);
         // DbMappings created with this constructor always define virtual nodes
-        virtual = true;
+        isVirtual = true;
         if (parentTypeName != null) {
             parentMapping = app.getDbMapping(parentTypeName);
             if (parentMapping == null) {
@@ -756,9 +759,9 @@ public final class DbMapping {
      * db-mapping with the right relations to create the group-by nodes
      */
     public synchronized DbMapping getGroupbyMapping() {
-        if ((subRelation == null)  && (parentMapping != null)) {
+        if ((subRelation == null) && (parentMapping != null)) {
             return parentMapping.getGroupbyMapping();
-        } else if (subRelation.groupby == null) {
+        } else if (subRelation == null || subRelation.groupby == null) {
             return null;
         } else if (groupbyMapping == null) {
             initGroupbyMapping();
@@ -774,6 +777,7 @@ public final class DbMapping {
         // if a prototype is defined for groupby nodes, use that
         // if mapping doesn' exist or isn't defined, create a new (anonymous internal) one
         groupbyMapping = new DbMapping(app, subRelation.groupbyPrototype);
+        groupbyMapping.isGroup = true;
 
         // set subnode and property relations
         groupbyMapping.subRelation = subRelation.getGroupbySubnodeRelation();
@@ -1596,6 +1600,14 @@ public final class DbMapping {
      * @return true if this instance describes a virtual node.
      */
     public boolean isVirtual() {
-        return virtual;
+        return isVirtual;
+    }
+
+    /**
+     * Find if this DbMapping describes a group node.
+     * @return true if this instance describes a group node.
+     */
+    public boolean isGroup() {
+        return isGroup;
     }
 }
