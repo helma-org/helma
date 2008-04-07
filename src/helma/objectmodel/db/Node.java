@@ -1241,9 +1241,13 @@ public final class Node implements INode, Serializable {
                 boolean relational = groupbyMapping.getSubnodeMapping().isRelational();
 
                 if (relational || create) {
-                    Node node = relational && persistent ?
-                            new Node(this, sid, nmgr, null) :
-                            new Node(sid, null, nmgr);
+                    Node node;
+                    if (relational && persistent) {
+                        node = new Node(this, sid, nmgr, null);
+                    } else {
+                        node = new Node(sid, null, nmgr);
+                        node.setParent(this);
+                    }
 
                     // set "groupname" property to value of groupby field
                     node.setString("groupname", sid);
