@@ -1154,8 +1154,8 @@ helma.Search.Document.prototype.getField = function(name) {
     var f = this.getDocument().getField(name);
     if (f != null) {
         return new helma.Search.Document.Field(f);
-   }
-   return null;
+    }
+    return null;
 };
 
 /**
@@ -1168,7 +1168,7 @@ helma.Search.Document.prototype.getFields = function() {
     var size = fields.size();
     var result = new Array(size);
     for (var i=0; i<size; i+=1) {
-        result[i] = this.getField(fields.get(i).name());
+        result[i] = new helma.Search.Document.Field(fields.get(i));
     }
     return result;
 };
