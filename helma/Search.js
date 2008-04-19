@@ -1159,16 +1159,23 @@ helma.Search.Document.prototype.getField = function(name) {
 };
 
 /**
- * Returns the fields of a document object.
+ * Returns the fields of a document object. If a name is passed as argument,
+ * this method returns only the fields with the given name
+ * @param {String} name Optional name of the fields to return
  * @returns An array containing all fields in this document object.
  * @type Array
  */
-helma.Search.Document.prototype.getFields = function() {
-    var fields = this.getDocument().getFields();
-    var size = fields.size();
+helma.Search.Document.prototype.getFields = function(name) {
+    var fields;
+    if (name != null) {
+        fields = this.getDocument().getFields(name);
+    } else {
+        fields = this.getDocument().getFields().toArray();
+    }
+    var size = fields.length;
     var result = new Array(size);
     for (var i=0; i<size; i+=1) {
-        result[i] = new helma.Search.Document.Field(fields.get(i));
+        result[i] = new helma.Search.Document.Field(fields[i]);
     }
     return result;
 };
