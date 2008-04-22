@@ -577,7 +577,7 @@ helma.Http = function() {
 
         if (result.type && result.type.indexOf("charset=") != -1) {
            var charset = result.type.substring(result.type.indexOf("charset=") + 8);
-           charset = charset.replace('"', ' ').trim();
+           charset = charset.replace(/[;"]/g, '').trim();
            result.charset = charset;
         }
 
