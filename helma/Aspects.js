@@ -6,7 +6,7 @@
  * compliance with the License. A copy of the License is available at
  * http://adele.helma.org/download/helma/license.txt
  *
- * Copyright 1998-2007 Helma Software. All Rights Reserved.
+ * Copyright 1998-2008 Helma Software. All Rights Reserved.
  *
  * $RCSfile: Aspects.js,v $
  * $Author$
@@ -66,6 +66,9 @@ helma.Aspects.prototype.toString = function() {
  * <br /><br />
  * The return value of the added function needs to provide the 
  * array of arguments that is passed to the original function.
+ * The added function receives an array of the original arguments,
+ * the original function and the scope object of the original 
+ * function as its parameters.
  * 
  * @param {Object} obj The object of which the original function is a property
  * @param {String} fname The property name of the original function
