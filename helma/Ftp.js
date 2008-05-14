@@ -63,6 +63,7 @@ helma.Ftp = function(server) {
    var GET     = 40;
    var PUT     = 41;
    var DELETE  = 42;
+   var RENAME  = 43;
 
    var FTP                    = Packages.org.apache.commons.net.ftp.FTP;
    var FtpClient              = Packages.org.apache.commons.net.ftp.FTPClient;
@@ -506,6 +507,27 @@ helma.Ftp = function(server) {
       } catch(x) {
          error("deleteFile", x);
          setStatus(DELETE);
+      }
+      return false;
+   };
+   
+   /**
+    * Renames a file on the FTP server.
+    * 
+    * @example var success = ftp.renameFile("messages.tmp", "messages.txt");
+    * @param {String} from the name of the original file
+    * @param {String} to the new name the original file should get
+    * @return Boolean true if renaming the remote file was successful, false otherwise
+    * @type Boolean
+    */
+   this.renameFile = function(from, to) {
+      try {
+         var result = ftpclient.rename(from, to);
+         debug("renameFile", from + "->" + to);
+         return result;
+      } catch(x) {
+         error("renameFile", x);
+         setStatus(RENAME);
       }
       return false;
    };
