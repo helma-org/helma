@@ -1103,9 +1103,9 @@ public final class Skin {
                     // limiting to 50 passes to avoid infinite loops
                     int maxloop = 50;
                     while (obj != null && maxloop-- > 0) {
-                        Prototype proto = app.getPrototype(obj);
+                        String protoName = app.getPrototypeName(obj);
 
-                        if ((proto != null) && proto.isInstanceOf(handlerName)) {
+                        if (handlerName.equalsIgnoreCase(protoName)) {
                             if (handlerCache != null)
                                 handlerCache.put(handlerName, obj);
                             return obj;
