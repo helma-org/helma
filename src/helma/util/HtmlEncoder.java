@@ -763,7 +763,7 @@ public final class HtmlEncoder {
                                 break;
                         }
                     }
-                    if (c < 128) {
+                    if (c < 128 || insideMacroTag) {
                         ret.append(c);
                     } else if ((c >= 128) && (c < 256)) {
                         ret.append(transform[c - 128]);
