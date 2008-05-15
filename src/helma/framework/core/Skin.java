@@ -437,13 +437,8 @@ public final class Skin {
 
                         if (state == PARSE_MACRONAME && "//".equals(b.toString())) {
                             isCommentMacro = true;
-                            // search macro end tag
-                            while (i < length - 1 &&
-                                       (source[i] != '%' || source[i + 1] != '>')) {
-                                i++;
-                            }
-                            state = PARSE_DONE;
-                            break loop;
+                            // just continue parsing the macro as this is the only way
+                            // to correctly catch embedded macros - see bug 588
                         }
                         break;
 
