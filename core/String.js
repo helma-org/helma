@@ -356,7 +356,7 @@ String.prototype.md5 = function() {
 
 
 /**
- * function repeats a string passed as argument
+ * function repeats a string the specified amount of times
  * @param Int amount of repetitions
  * @return String resulting string
  */
