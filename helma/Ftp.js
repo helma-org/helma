@@ -16,7 +16,7 @@
 
 
 /**
- * @fileoverview Default properties and methods of the FtpClient prototype.
+ * @fileoverview Default properties and methods of the FTP prototype.
  * <br /><br />
  * To use this optional module, its repository needs to be added to the 
  * application, for example by calling app.addRepository('modules/helma/Ftp.js')
@@ -37,10 +37,8 @@ if (!global.helma) {
  * <br /><br />
  * @class This class represents a FTP client, providing 
  * access to an FTP server.
- * The FTP client needs Daniel Savarese's NetComponents 
- * library in the classpath in order to work.
  * 
- * @example var ftp = new FtpClient("ftp.mydomain.com");
+ * @example var ftp = new helma.Ftp("ftp.mydomain.com");
  * @param {String} server as String, the address of the FTP Server to connect to
  * @constructor
  */
