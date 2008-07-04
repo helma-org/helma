@@ -34,13 +34,13 @@ public class Transactor {
     NodeManager nmgr;
 
     // List of nodes to be updated
-    private HashMap dirtyNodes;
+    private Map dirtyNodes;
 
     // List of visited clean nodes
-    private HashMap cleanNodes;
+    private Map cleanNodes;
 
     // List of nodes whose child index has been modified
-    private HashSet parentNodes;
+    private Set parentNodes;
 
     // Is a transaction in progress?
     private volatile boolean active;
@@ -50,10 +50,10 @@ public class Transactor {
     protected ITransaction txn;
 
     // Transactions for SQL data sources
-    private HashMap sqlConnections;
+    private Map sqlConnections;
 
     // Set of SQL connections that already have been verified
-    private HashSet testedConnections;
+    private Set testedConnections;
 
     // when did the current transaction start?
     private long tstart;
@@ -75,7 +75,7 @@ public class Transactor {
         this.thread = Thread.currentThread();
         this.nmgr = nmgr;
 
-        dirtyNodes = new HashMap();
+        dirtyNodes = new LinkedHashMap();
         cleanNodes = new HashMap();
         parentNodes = new HashSet();
 
