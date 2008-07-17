@@ -101,7 +101,7 @@ public final class TypeManager {
      * Run through application's prototype directories and create prototypes, but don't
      * compile or evaluate any scripts.
      */
-    public void createPrototypes() throws IOException {
+    public synchronized void createPrototypes() throws IOException {
         // create standard prototypes.
         for (int i = 0; i < standardTypes.length; i++) {
             createPrototype(standardTypes[i], null);
@@ -126,7 +126,7 @@ public final class TypeManager {
         lastCheck = System.currentTimeMillis();
     }
 
-    protected void checkRepository(Repository repository, boolean update) throws IOException {
+    protected synchronized void checkRepository(Repository repository, boolean update) throws IOException {
         Repository[] list = repository.getRepositories();
         for (int i = 0; i < list.length; i++) {
  
@@ -183,7 +183,7 @@ public final class TypeManager {
      * Run through application's prototype sources and check if
      * there are any prototypes to be created.
      */
-    private void checkRepositories() throws IOException {
+    private synchronized void checkRepositories() throws IOException {
         List list = app.getRepositories();
 
         // walk through repositories and check if any of them have changed.
@@ -284,7 +284,7 @@ public final class TypeManager {
      * @param repository the first prototype source
      * @return the newly created prototype
      */
-    public Prototype createPrototype(String typename, Repository repository) {
+    public synchronized Prototype createPrototype(String typename, Repository repository) {
         Prototype proto = new Prototype(typename, repository, app);
 
         // put the prototype into our map
