@@ -270,7 +270,7 @@ public final class TypeManager {
     /**
      *   Get a prototype defined for this application
      */
-    public Prototype getPrototype(String typename) {
+    public synchronized Prototype getPrototype(String typename) {
         if (typename == null) {
             return null;
         }
