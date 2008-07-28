@@ -314,7 +314,7 @@ public final class Application implements Runnable {
      *
      * @param ignoreDirs comma separated list of directory names to ignore
      */
-    public synchronized void init(final String ignoreDirs)
+    public void init(final String ignoreDirs)
             throws DatabaseException, IllegalAccessException, InstantiationException,
                    ClassNotFoundException, InterruptedException {
 
@@ -356,7 +356,7 @@ public final class Application implements Runnable {
             }
         }
 
-        private synchronized void initInternal()
+        private void initInternal()
                 throws DatabaseException, IllegalAccessException,
                        InstantiationException, ClassNotFoundException {
             running = true;
