@@ -137,7 +137,7 @@ public class ApplicationBean implements Serializable {
      *
      * @param obj the repository, relative or absolute path to the library.
      */
-    public void addRepository(Object obj) {
+    public synchronized void addRepository(Object obj) {
         Resource current = app.getCurrentCodeResource();
         Repository parent = current == null ?
                 null : current.getRepository().getRootRepository();
