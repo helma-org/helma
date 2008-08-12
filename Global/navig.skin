@@ -20,8 +20,8 @@
 <p>
 	Information on <a href="http://helma.org/">helma.org</a>:<br/>
 	<li><a href="http://helma.org/docs">reference</a><br/>
-	<li><a href="http://helma.org/lists/listinfo/hop">mailinglist</a><br/>
-	<li><a href="http://adele.helma.org/source/cvsweb.cgi/?cvsroot=hop">cvs</a><br/>
+	<li><a href="http://dev.helma.org/Mailing+Lists/">mailinglist</a><br/>
+	<li><a href="https://dev.helma.org/trac/helma/browser/helma/helma/trunk">svn</a><br/>
 	<li><a href="http://helma.org/download/">download</a><br/>
 </p>
 
