@@ -80,13 +80,14 @@ class HopObjectProxy implements SerializationProxy {
 
     HopObjectProxy(HopObject obj) {
         INode n = obj.getNode();
-        if (n == null)
+        if (n == null) {
             ref = obj.getClassName();
-        else {
-            if (n instanceof helma.objectmodel.db.Node)
-                ref = new NodeHandle(((helma.objectmodel.db.Node) n).getKey());
-            else
+        } else {
+            if (n instanceof helma.objectmodel.db.Node) {
+                ref = new NodeHandle((helma.objectmodel.db.Node) n);
+            } else {
                 ref = n;
+            }
         }
         wrapped = true;
     }
