@@ -2481,7 +2481,7 @@ public final class Node implements INode, Serializable {
 
                 lastmodified = System.currentTimeMillis();
 
-                if (state == CLEAN) {
+                if (state == CLEAN && isPersistableProperty(propname)) {
                     markAs(MODIFIED);
                 }
             } else if (dbmap != null) {
