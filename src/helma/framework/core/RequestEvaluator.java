@@ -398,6 +398,7 @@ public final class RequestEvaluator implements Runnable {
                                                 ScriptingEngine.ARGS_WRAP_XMLRPC,
                                                 false);
                                         res.writeXmlRpcResponse(result);
+                                        app.xmlrpcCount += 1;
                                     } else {
                                         scriptingEngine.invoke(currentElement,
                                                 actionProcessor,
