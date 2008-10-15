@@ -138,9 +138,6 @@ public class ApplicationBean implements Serializable {
      * @param obj the repository, relative or absolute path to the library.
      */
     public synchronized void addRepository(Object obj) {
-        Resource current = app.getCurrentCodeResource();
-        Repository parent = current == null ?
-                null : current.getRepository().getRootRepository();
         Repository rep;
         if (obj instanceof String) {
             String path = (String) obj;
@@ -152,12 +149,12 @@ public class ApplicationBean implements Serializable {
                 throw new RuntimeException("Repository path does not exist: " + file);
             }
             if (file.isDirectory()) {
-                rep = new FileRepository(file, parent);
+                rep = new FileRepository(file);
             } else if (file.isFile()) {
                 if (file.getName().endsWith(".zip")) {
-                    rep = new ZipRepository(file, parent);
+                    rep = new ZipRepository(file);
                 } else {
-                    rep = new SingleFileRepository(file, parent);
+                    rep = new SingleFileRepository(file);
                 }
             } else {
                 throw new RuntimeException("Unsupported file type in addRepository: " + file);

@@ -799,9 +799,6 @@ public final class RhinoCore implements ScopeProvider {
         String sourceName = code.getName();
         Reader reader = null;
 
-        Resource previousCurrentResource = app.getCurrentCodeResource();
-        app.setCurrentCodeResource(code);
-
         String encoding = app.getProperty("sourceCharset");
 
         try {
@@ -837,7 +834,6 @@ public final class RhinoCore implements ScopeProvider {
                 wrappercache.clear();
             }
         } finally {
-            app.setCurrentCodeResource(previousCurrentResource);
             if (reader != null) {
                 try {
                     reader.close();

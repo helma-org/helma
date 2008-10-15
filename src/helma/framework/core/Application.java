@@ -1736,28 +1736,6 @@ public final class Application implements Runnable {
     }
 
     /**
-     * Set the code resource currently being evaluated/compiled. This is used
-     * to set the proper parent repository when a new repository is added
-     * via app.addRepository().
-     *
-     * @param resource the resource being currently evaluated/compiled
-     */
-    public void setCurrentCodeResource(Resource resource) {
-        currentCodeResource = resource;
-    }
-
-    /**
-     * Set the code resource currently being evaluated/compiled. This is used
-     * to set the proper parent repository when a new repository is added
-     * via app.addRepository().
-
-     * @return the resource being currently evaluated/compiled
-     */
-    public Resource getCurrentCodeResource() {
-        return currentCodeResource;
-    }
-
-    /**
      * Return the directory of the Helma server
      */
     public File getServerDir() {
