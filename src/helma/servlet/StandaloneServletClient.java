@@ -159,6 +159,7 @@ public final class StandaloneServletClient extends AbstractServletClient {
             ServerConfig config = new ServerConfig();
             config.setHomeDir(hopHome);
             Server server = new Server(config);
+            server.init();
 
             app = new Application(appName, server, repositories, appHome, dbHome);
             app.init();
