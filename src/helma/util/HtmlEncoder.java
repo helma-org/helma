@@ -634,7 +634,7 @@ public final class HtmlEncoder {
                     }
 
                     // we didn't reach a break, so encode as entity unless inside a tag
-                    if (insideTag) {
+                    if (insideMacroTag) {
                         ret.append('&');
                     } else {
                         ret.append("&amp;");
