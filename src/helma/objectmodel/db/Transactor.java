@@ -419,10 +419,15 @@ public class Transactor {
             txn = null;
         }
 
-        nmgr.app.logAccess(tname + " " + inserted +
-                           " inserted, " + updated +
-                           " updated, " + deleted + " deleted in " +
-                           (now - tstart) + " millis");
+        StringBuffer msg = new StringBuffer(tname).append(" done in ")
+                .append(now - tstart).append(" millis");
+        if(inserted + updated + deleted > 0) {
+            msg.append(" [+")
+                    .append(inserted).append(", ~")
+                    .append(updated).append(", -")
+                    .append(deleted).append("]");
+        }
+        nmgr.app.logAccess(msg.toString());
 
         // unset transaction name
         tname = null;

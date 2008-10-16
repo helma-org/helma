@@ -159,6 +159,9 @@ public final class RequestEvaluator implements Runnable {
                 // request path object
                 RequestPath requestPath = new RequestPath(app);
 
+                String txname = req.getMethod().toLowerCase() + ":" + req.getPath();
+                app.logEvent(txname + " starting");
+
                 int tries = 0;
                 boolean done = false;
                 Throwable error = null;
@@ -202,14 +205,14 @@ public final class RequestEvaluator implements Runnable {
                             throw new IllegalStateException("No function name in non-internal request ");
                         }
 
-                        // Transaction name is used for logging etc.
-                        StringBuffer txname = new StringBuffer(app.getName());
-                        txname.append(":").append(req.getMethod().toLowerCase()).append(":");
-                        txname.append((error == null) ? req.getPath() : "error");
+                        // Update transaction name in case we're processing an error
+                        if (error != null) {
+                            txname = txname + ":error";
+                        }
 
                         // begin transaction
                         transactor = Transactor.getInstance(app.nmgr);
-                        transactor.begin(txname.toString());
+                        transactor.begin(txname);
 
                         Object root = app.getDataRoot();
                         initGlobals(root, requestPath);
@@ -604,7 +607,7 @@ public final class RequestEvaluator implements Runnable {
                             error = x;
 
                             Transactor tx = Transactor.getInstance();
-                            String txname = tx == null ? "no-txn" : tx.getTransactionName();
+                            txname = tx == null ? "no-txn" : tx.getTransactionName();
                             app.logError(txname + ": " + error, x);
 
                             if (req.isXmlRpc()) {
@@ -624,8 +627,9 @@ public final class RequestEvaluator implements Runnable {
                     } finally {
                         app.setCurrentRequestEvaluator(null);
                         // exit execution context
-                        if (scriptingEngine != null)
+                        if (scriptingEngine != null) {
                             scriptingEngine.exitContext();
+                        }
                     }
                 }
 
