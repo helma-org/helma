@@ -633,9 +633,12 @@ public final class HtmlEncoder {
                         }
                     }
 
-                    // we didn't reach a break, so encode the ampersand as HTML entity
-                    ret.append("&amp;");
-
+                    // we didn't reach a break, so encode as entity unless inside a tag
+                    if (insideTag) {
+                        ret.append('&');
+                    } else {
+                        ret.append("&amp;");
+                    }
                     break;
 
                 case '\\':
