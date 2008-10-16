@@ -342,7 +342,7 @@ public final class Application implements Runnable {
         String ignoreDirs;
 
         Initializer(String dirs) {
-            super("INIT-" + name);
+            super(name + "-init");
             ignoreDirs = dirs;
         }
 
@@ -489,7 +489,7 @@ public final class Application implements Runnable {
             releaseEvaluator(eval);
         }
 
-        worker = new Thread(this, "Worker-" + name);
+        worker = new Thread(this, name + "-worker");
         worker.setPriority(Thread.NORM_PRIORITY + 1);
         worker.start();
     }

@@ -79,6 +79,10 @@ public final class RequestEvaluator implements Runnable {
     // the exception thrown by the evaluator, if any.
     private volatile Exception exception;
 
+    // For numbering threads.
+    private int threadId;
+
+
     /**
      *  Create a new RequestEvaluator for this application.
      *  @param app the application
@@ -668,7 +672,7 @@ public final class RequestEvaluator implements Runnable {
 
         if ((thread == null) || !thread.isAlive()) {
             // app.logEvent ("Starting Thread");
-            thread = new Thread(app.threadgroup, this);
+            thread = new Thread(app.threadgroup, this, app.getName() + "-" + (++threadId));
             thread.setContextClassLoader(app.getClassLoader());
             thread.start();
         } else {
