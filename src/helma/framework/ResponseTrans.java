@@ -493,11 +493,11 @@ public final class ResponseTrans extends Writer implements Serializable {
 
     /**
      *  Allow to directly set the byte array for the response. Calling this more than once will
-     *  overwrite the previous output. We take a generic object as parameter to be able to
-     * generate a better error message, but it must be byte[].
+     *  overwrite the previous output.
+     * @param bytes an arbitrary byte array
      */
-    public void writeBinary(byte[] what) {
-        response = what;
+    public void writeBinary(byte[] bytes) {
+        response = bytes;
     }
 
     /**
@@ -649,6 +649,11 @@ public final class ResponseTrans extends Writer implements Serializable {
         // there's no point in closing the response buffer
         HttpServletResponse res = reqtrans.getServletResponse();
         if (res != null && res.isCommitted()) {
+            // response was committed using HttpServletResponse directly. We need
+            // set response to null and notify waiters in order to let attached
+            // requests know they can't reuse this response.
+            response = null;
+            notifyAll();
             return;
         }
 
@@ -664,7 +669,8 @@ public final class ResponseTrans extends Writer implements Serializable {
 
         boolean encodingError = false;
 
-        // only close if the response hasn't been closed yet
+        // only close if the response hasn't been closed yet, and if no
+        // response was generated using writeBinary().
         if (response == null) {
             // if debug buffer exists, append it to main buffer
             if (contentType != null &&
@@ -747,7 +753,7 @@ public final class ResponseTrans extends Writer implements Serializable {
      * @return the response body
      */
     public byte[] getContent() {
-        return (response == null) ? new byte[0] : response;
+        return response;
     }
 
     /**

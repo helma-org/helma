@@ -345,17 +345,17 @@ public abstract class AbstractServletClient extends HttpServlet {
             res.setContentLength(hopres.getContentLength());
             res.setContentType(hopres.getContentType());
 
-            if ("HEAD".equalsIgnoreCase(req.getMethod())) {
-                return;
-            }
-
-            try {
-                OutputStream out = res.getOutputStream();
-
-                out.write(hopres.getContent());
-                out.flush();
-            } catch (Exception iox) {
-                log("Exception in writeResponse: " + iox);
+            if (!"HEAD".equalsIgnoreCase(req.getMethod())) {
+                byte[] content = hopres.getContent();
+                if (content != null) {
+                    try {
+                        OutputStream out = res.getOutputStream();
+                        out.write(content);
+                        out.flush();
+                    } catch (Exception iox) {
+                        log("Exception in writeResponse: " + iox);
+                    }
+                }
             }
         }
     }

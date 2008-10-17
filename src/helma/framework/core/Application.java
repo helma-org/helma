@@ -720,6 +720,14 @@ public final class Application implements Runnable {
 
             if (ev != null) {
                 res = ev.attachHttpRequest(req);
+                if (res != null) {
+                    // we can only use the existing response object if the response
+                    // wasn't written to the HttpServletResponse directly.
+                    res.waitForClose();
+                    if (res.getContent() == null) {
+                        res = null;
+                    }
+                }
             }
 
             if (res == null) {
@@ -752,8 +760,6 @@ public final class Application implements Runnable {
                 } catch (UnsupportedEncodingException uee) {
                     logError("Unsupported response encoding", uee);
                 }
-            } else {
-                res.waitForClose();
             }
         }
 
