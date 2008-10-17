@@ -131,7 +131,7 @@ public final class RhinoCore implements ScopeProvider {
         wrapper = new WrapMaker();
         wrapper.setJavaPrimitiveWrap(false);
 
-        Context context = contextFactory.enter();
+        Context context = contextFactory.enterContext();
 
         try {
             // create global object
@@ -182,7 +182,7 @@ public final class RhinoCore implements ScopeProvider {
             app.logError("Cannot initialize interpreter", e);
             throw new RuntimeException(e.getMessage(), e);
         } finally {
-            contextFactory.exit();
+            Context.exit();
             isInitialized = true;
         }
     }
@@ -1124,7 +1124,7 @@ public final class RhinoCore implements ScopeProvider {
         protected void onContextCreated(Context cx) {
             cx.setWrapFactory(wrapper);
             cx.setOptimizationLevel(optLevel);
-            // cx.setInstructionObserverThreshold(5000);
+            cx.setInstructionObserverThreshold(10000);
             if (cx.isValidLanguageVersion(languageVersion)) {
                 cx.setLanguageVersion(languageVersion);
             } else {
@@ -1155,9 +1155,11 @@ public final class RhinoCore implements ScopeProvider {
          * This can be used to customize {@link Context} without introducing
          * additional subclasses.
          */
-        /* protected void observeInstructionCount(Context cx, int instructionCount) {
-            if (instructionCount >= 0xfffffff)
-                throw new EvaluatorException("Exceeded instruction count, interrupting");
-        } */
+        protected void observeInstructionCount(Context cx, int instructionCount) {
+            RhinoEngine engine = RhinoEngine.getRhinoEngine();
+            if (engine != null && engine.thread != Thread.currentThread()) {
+                throw new EvaluatorException("Request timed out");
+            }
+        }
     }
 }
