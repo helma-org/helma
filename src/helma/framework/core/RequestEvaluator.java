@@ -794,7 +794,7 @@ public final class RequestEvaluator implements Runnable {
         // Get a reference to the res object at the time we enter
         ResponseTrans localRes = res;
 
-        if ((localRes == null) || !req.equals(this.req)) {
+        if (localRes == null || !req.equals(this.req)) {
             return null;
         }
 

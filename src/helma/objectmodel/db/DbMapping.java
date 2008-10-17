@@ -314,9 +314,6 @@ public final class DbMapping {
                     }
 
                     rel.update(dbField, props);
-
-                    // store relation with lower case property name
-                    // (ResourceProperties now preserve key capitalization!)
                     p2d.put(propName, rel);
 
                     if ((rel.columnName != null) && rel.isPrimitiveOrReference()) {
@@ -1548,7 +1545,7 @@ public final class DbMapping {
      * a utility method to escape single quotes used for inserting
      * string-values into relational databases.
      * Searches for "'" characters and escapes them by duplicating them (= "''")
-     * @param str the string to escape
+     * @param value the string to escape
      * @return the escaped string
      */
     static String escapeString(Object value) {
@@ -1575,7 +1572,7 @@ public final class DbMapping {
 
     /**
      * Utility method to check whether the argument is a number literal.
-     * @param str a string representing a number literal
+     * @param value a string representing a number literal
      * @return the argument, if it conforms to the number literal syntax
      * @throws IllegalArgumentException if the argument does not represent a number
      */
