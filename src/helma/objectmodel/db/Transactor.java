@@ -55,7 +55,7 @@ public class Transactor {
     private Map sqlConnections;
 
     // Set of SQL connections that already have been verified
-    private Set testedConnections;
+    private Map testedConnections;
 
     // when did the current transaction start?
     private long tstart;
@@ -82,7 +82,7 @@ public class Transactor {
         parentNodes = new HashSet();
 
         sqlConnections = new HashMap();
-        testedConnections = new HashSet();
+        testedConnections = new HashMap();
         active = false;
         killed = false;
     }
@@ -242,7 +242,7 @@ public class Transactor {
     public void registerConnection(DbSource src, Connection con) {
         sqlConnections.put(src, con);
         // we assume a freshly created connection is ok.
-        testedConnections.add(src);
+        testedConnections.put(src, new Long(System.currentTimeMillis()));
     }
 
     /**
@@ -252,13 +252,15 @@ public class Transactor {
      */
     public Connection getConnection(DbSource src) {
         Connection con = (Connection) sqlConnections.get(src);
-        if (con != null && !testedConnections.contains(src)) {
+        Long tested = (Long) testedConnections.get(src);
+        long now = System.currentTimeMillis();
+        if (con != null && (tested == null || now - tested.longValue() > 10000)) {
             // Check if the connection is still alive by executing a simple statement.
             try {
                 Statement stmt = con.createStatement();
                 stmt.execute("SELECT 1");
                 stmt.close();
-                testedConnections.add(src);
+                testedConnections.put(src, new Long(now));
             } catch (SQLException sx) {
                 try {
                     con.close();
