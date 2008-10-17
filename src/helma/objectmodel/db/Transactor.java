@@ -66,7 +66,7 @@ public class Transactor {
     // the thread we're associated with
     private Thread thread;
 
-    private static final ThreadLocal <Transactor> txtor = new ThreadLocal <Transactor> ();
+    private static final ThreadLocal txtor = new ThreadLocal();
 
     /**
      * Creates a new Transactor object.
@@ -92,7 +92,7 @@ public class Transactor {
      * @return the transactor associated with the current thread
      */
     public static Transactor getInstance() {
-        return txtor.get();
+        return (Transactor) txtor.get();
     }
 
     /**
@@ -101,7 +101,7 @@ public class Transactor {
      * @throws IllegalStateException if no transactor is associated with the current thread
      */
     public static Transactor getInstanceOrFail() throws IllegalStateException {
-        Transactor tx = txtor.get();
+        Transactor tx = (Transactor) txtor.get();
         if (tx == null)
             throw new IllegalStateException("Operation requires a Transactor, " +
                 "but current thread does not have one.");
@@ -114,7 +114,7 @@ public class Transactor {
      * @return the transactor associated with the current thread
      */
     public static Transactor getInstance(NodeManager nmgr) {
-        Transactor t = txtor.get();
+        Transactor t = (Transactor) txtor.get();
         if (t == null) {
             t = new Transactor(nmgr);
             txtor.set(t);

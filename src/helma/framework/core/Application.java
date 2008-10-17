@@ -105,7 +105,7 @@ public final class Application implements Runnable {
     ThreadGroup threadgroup;
 
     // threadlocal variable for the current RequestEvaluator
-    ThreadLocal<RequestEvaluator> currentEvaluator = new ThreadLocal<RequestEvaluator>();
+    ThreadLocal currentEvaluator = new ThreadLocal();
 
     // Map of requesttrans -> active requestevaluators
     Hashtable activeRequests;

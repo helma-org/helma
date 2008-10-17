@@ -350,7 +350,7 @@ public class ApplicationManager implements XmlRpcHandler {
             ignoreDirs = conf.getProperty("ignore");
 
             // read and configure app repositories
-            ArrayList<Repository> repositoryList = new ArrayList<Repository>();
+            ArrayList repositoryList = new ArrayList();
             Class[] parameters = { String.class };
             for (int i = 0; true; i++) {
                 String repositoryArgs = conf.getProperty("repository." + i);
@@ -373,7 +373,7 @@ public class ApplicationManager implements XmlRpcHandler {
                     try {
                         Repository newRepository = (Repository) Class.forName(repositoryImpl)
                                 .getConstructor(parameters)
-                                .newInstance(repositoryArgs);
+                                .newInstance(new Object[] {repositoryArgs});
                         repositoryList.add(newRepository);
                     } catch (Exception ex) {
                         getLogger().error("Adding repository " + repositoryArgs + " failed. " +
@@ -397,7 +397,7 @@ public class ApplicationManager implements XmlRpcHandler {
                         new File(server.getAppsHome(), appName)));
             }
             repositories = new Repository[repositoryList.size()];
-            repositories = repositoryList.toArray(repositories);
+            repositories = (Repository[]) repositoryList.toArray(repositories);
         }
 
 

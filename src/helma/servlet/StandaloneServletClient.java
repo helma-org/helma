@@ -78,7 +78,7 @@ public final class StandaloneServletClient extends AbstractServletClient {
         }
 
         Class[] parameters = { String.class };
-        ArrayList<Repository> repositoryList = new ArrayList<Repository>();
+        ArrayList repositoryList = new ArrayList();
 
         for (int i = 0; true; i++) {
             String repositoryArgs = init.getInitParameter("repository." + i);
@@ -100,7 +100,7 @@ public final class StandaloneServletClient extends AbstractServletClient {
                 try {
                     Repository newRepository = (Repository) Class.forName(repositoryImpl)
                         .getConstructor(parameters)
-                        .newInstance(repositoryArgs);
+                        .newInstance(new Object[] {repositoryArgs});
                     repositoryList.add(newRepository);
                     log("adding repository: " + repositoryArgs);
                 } catch (Exception ex) {
@@ -123,7 +123,7 @@ public final class StandaloneServletClient extends AbstractServletClient {
         }
 
         repositories = new Repository[repositoryList.size()];
-        repositories = repositoryList.toArray(repositories);
+        repositories = (Repository[]) repositoryList.toArray(repositories);
 
     }
 
