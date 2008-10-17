@@ -19,6 +19,7 @@ package helma.objectmodel;
 import helma.framework.IPathElement;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Relation;
+import helma.objectmodel.db.Node;
 import helma.util.*;
 import java.io.*;
 import java.util.Date;
@@ -588,7 +589,7 @@ public class TransientNode implements INode, Serializable {
     }
 
     private Property makeVirtualNode(String propname, Relation rel) {
-        INode node = new helma.objectmodel.db.Node(rel.getPropName(), rel.getPrototype(),
+        INode node = new Node(rel.getPropName(), rel.getPrototype(),
                                                    dbmap.getWrappedNodeManager());
 
         // node.setState (TRANSIENT);

@@ -26,6 +26,7 @@ import helma.main.Server;
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Relation;
+import helma.objectmodel.db.Node;
 import helma.scripting.*;
 import helma.scripting.rhino.debug.Tracer;
 import helma.util.StringUtils;
@@ -536,8 +537,8 @@ public class RhinoEngine implements ScriptingEngine {
                 protected Object replaceObject(Object obj) throws IOException {
                     if (obj instanceof HopObject)
                         return new HopObjectProxy((HopObject) obj);
-                    if (obj instanceof helma.objectmodel.db.Node)
-                        return new HopObjectProxy((helma.objectmodel.db.Node) obj);
+                    if (obj instanceof Node)
+                        return new HopObjectProxy((Node) obj);
                     if (obj instanceof GlobalObject)
                         return new GlobalProxy((GlobalObject) obj);
                     if (obj instanceof ApplicationBean)
