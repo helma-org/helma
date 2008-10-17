@@ -381,7 +381,7 @@ public class OrderedSubnodeList extends SubnodeList {
         return 0;
     }
 
-    public List getOrderedView (String order) {
+    public SubnodeList getOrderedView (String order) {
         if (origin != null) {
             return origin.getOrderedView(order);
         } else {

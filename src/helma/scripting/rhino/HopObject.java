@@ -20,6 +20,7 @@ import helma.framework.core.*;
 import helma.framework.repository.Resource;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
+import helma.objectmodel.db.Node;
 import org.mozilla.javascript.*;
 
 import java.lang.reflect.Method;
@@ -170,13 +171,13 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      */
     private void checkNode() {
         if (node != null && node.getState() == INode.INVALID) {
-            if (node instanceof helma.objectmodel.db.Node) {
-                NodeHandle handle = ((helma.objectmodel.db.Node) node).getHandle();
+            if (node instanceof Node) {
+                NodeHandle handle = ((Node) node).getHandle();
                 node = handle.getNode(core.app.getWrappedNodeManager());
                 if (node == null) {
                     // we probably have a deleted node. Replace with empty transient node
                     // to avoid throwing an exception.
-                    node = new helma.objectmodel.TransientNode();
+                    node = new TransientNode();
                     // throw new RuntimeException("Tried to access invalid/removed node " + handle + ".");
                 }
             }
@@ -455,14 +456,14 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     }
 
     private void prefetchChildren(int start, int length) {
-        if (!(node instanceof helma.objectmodel.db.Node)) {
+        if (!(node instanceof Node)) {
             return;
         }
 
         checkNode();
 
         try {
-            ((helma.objectmodel.db.Node) node).prefetchChildren(start, length);
+            ((Node) node).prefetchChildren(start, length);
         } catch (Exception x) {
             core.app.logError("Error in HopObject.prefetchChildren: " + x, x);
         }
@@ -638,8 +639,8 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
 
         checkNode();
 
-        if (node instanceof helma.objectmodel.db.Node) {
-            ((helma.objectmodel.db.Node) node).persist();
+        if (node instanceof Node) {
+            ((Node) node).persist();
             return node.getID();
         }
         return null;
@@ -649,19 +650,19 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      *  Invalidate the node itself or a subnode
      */
     public boolean jsFunction_invalidate(Object childId) {
-        if (childId != null && node instanceof helma.objectmodel.db.Node) {
+        if (childId != null && node instanceof Node) {
             if (childId == Undefined.instance) {
 
                 if (node.getState() == INode.INVALID) {
                     return true;
                 }
 
-                ((helma.objectmodel.db.Node) node).invalidate();
+                ((Node) node).invalidate();
             } else {
 
                 checkNode();
 
-                ((helma.objectmodel.db.Node) node).invalidateNode(childId.toString());
+                ((Node) node).invalidateNode(childId.toString());
             }
         }
 
@@ -675,7 +676,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * @return true if the the wrapped Node has a valid database id.
      */
     public boolean jsFunction_isPersistent() {
-        if (!(node instanceof helma.objectmodel.db.Node)) {
+        if (!(node instanceof Node)) {
             return false;
         }
         checkNode();
@@ -690,7 +691,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * @return true if the the wrapped Node is not stored in a database.
      */
     public boolean jsFunction_isTransient() {
-        if (!(node instanceof helma.objectmodel.db.Node)) {
+        if (!(node instanceof Node)) {
             return true;
         }
         checkNode();
@@ -1096,10 +1097,10 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      *    do have a higher id than the last record loaded by this collection
      */
     public int jsFunction_update() {
-        if (!(node instanceof helma.objectmodel.db.Node))
+        if (!(node instanceof Node))
             throw new RuntimeException ("update only callabel on persistent HopObjects");
         checkNode();
-        helma.objectmodel.db.Node n = (helma.objectmodel.db.Node) node;
+        Node n = (Node) node;
         return n.updateSubnodes();
     }
 
@@ -1111,18 +1112,19 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * @return ListViewWrapper holding the information of the ordered view
      */
     public Object jsFunction_getOrderedView(String expr) {
-        if (!(node instanceof helma.objectmodel.db.Node)) {
+        if (!(node instanceof Node)) {
             throw new RuntimeException (
                     "getOrderedView only callable on persistent HopObjects");
         }
-        helma.objectmodel.db.Node n = (helma.objectmodel.db.Node) node;
+        Node n = (Node) node;
         n.loadNodes();
         SubnodeList subnodes = n.getSubnodeList();
         if (subnodes == null) {
             throw new RuntimeException (
                     "getOrderedView only callable on already existing subnode-collections");
         }
-        return new ListViewWrapper (subnodes.getOrderedView(expr),
-                    core, core.app.getWrappedNodeManager(), this);
+        Node subnode = new Node("OrderedView", "HopObject", core.app.getWrappedNodeManager());
+        subnode.setSubnodes(subnodes.getOrderedView(expr));
+        return new HopObject("HopObject", core, subnode, core.getPrototype("HopObject"));
     }
 }
