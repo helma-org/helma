@@ -24,6 +24,8 @@ import java.sql.Statement;
 import java.sql.SQLException;
 import java.util.*;
 
+import org.apache.commons.logging.Log;
+
 /**
  * A subclass of thread that keeps track of changed nodes and triggers
  * changes in the database when a transaction is commited.
@@ -326,6 +328,7 @@ public class Transactor {
 
             // the set to collect DbMappings to be marked as changed
             HashSet dirtyDbMappings = new HashSet();
+            Log eventLog = nmgr.app.getEventLog();
 
             for (int i = 0; i < dirty.length; i++) {
                 Node node = (Node) dirty[i];
@@ -346,8 +349,10 @@ public class Transactor {
                     }
 
                     inserted++;
-                    nmgr.app.logEvent("inserted: Node " + node.getPrototype() + "/" +
-                                  node.getID());
+                    if (eventLog.isDebugEnabled()) {
+                        eventLog.debug("inserted node: " + node.getPrototype() + "/" +
+                                node.getID());
+                    }
                 } else if (nstate == Node.MODIFIED) {
                     // only mark DbMapping as dirty if updateNode returns true
                     if (nmgr.updateNode(nmgr.db, txn, node)) {
@@ -363,8 +368,10 @@ public class Transactor {
                     }
 
                     updated++;
-                    nmgr.app.logEvent("updated: Node " + node.getPrototype() + "/" +
-                                      node.getID());
+                    if (eventLog.isDebugEnabled()) {
+                        eventLog.debug("updated node: " + node.getPrototype() + "/" +
+                                node.getID());
+                    }
                 } else if (nstate == Node.DELETED) {
                     nmgr.deleteNode(nmgr.db, txn, node);
                     dirtyDbMappings.add(node.getDbMapping());
@@ -377,6 +384,10 @@ public class Transactor {
                     }
 
                     deleted++;
+                    if (eventLog.isDebugEnabled()) {
+                        eventLog.debug("removed node: " + node.getPrototype() + "/" +
+                                node.getID());
+                    }
                 }
 
                 node.clearWriteLock();

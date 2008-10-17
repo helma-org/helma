@@ -25,6 +25,7 @@ import java.util.*;
 
 import org.apache.xmlrpc.XmlRpcRequestProcessor;
 import org.apache.xmlrpc.XmlRpcServerRequest;
+import org.apache.commons.logging.Log;
 
 /**
  * This class does the work for incoming requests. It holds a transactor thread
@@ -160,7 +161,10 @@ public final class RequestEvaluator implements Runnable {
                 RequestPath requestPath = new RequestPath(app);
 
                 String txname = req.getMethod().toLowerCase() + ":" + req.getPath();
-                app.logEvent(txname + " starting");
+                Log eventLog = app.getEventLog();
+                if (eventLog.isDebugEnabled()) {
+                    eventLog.debug(txname + " starting");
+                }
 
                 int tries = 0;
                 boolean done = false;
@@ -207,7 +211,7 @@ public final class RequestEvaluator implements Runnable {
 
                         // Update transaction name in case we're processing an error
                         if (error != null) {
-                            txname = txname + ":error";
+                            txname = "error:" + txname;
                         }
 
                         // begin transaction
@@ -486,7 +490,7 @@ public final class RequestEvaluator implements Runnable {
                                         return;
                                     }
                                     abortTransaction();
-                                    app.logError(txname + ": " + error, x);
+                                    app.logError(txname + " " + error, x);
 
                                     // If the transactor thread has been killed by the invoker thread we don't have to
                                     // bother for the error message, just quit.
@@ -522,7 +526,7 @@ public final class RequestEvaluator implements Runnable {
                                         return;
                                     }
                                     abortTransaction();
-                                    app.logError(txname + ": " + error, x);
+                                    app.logError(txname + " " + error, x);
 
                                     // If the transactor thread has been killed by the invoker thread we don't have to
                                     // bother for the error message, just quit.
@@ -606,9 +610,7 @@ public final class RequestEvaluator implements Runnable {
                             done = false;
                             error = x;
 
-                            Transactor tx = Transactor.getInstance();
-                            txname = tx == null ? "no-txn" : tx.getTransactionName();
-                            app.logError(txname + ": " + error, x);
+                            app.logError(txname + " " + error, x);
 
                             if (req.isXmlRpc()) {
                                 // if it's an XML-RPC exception immediately generate error response

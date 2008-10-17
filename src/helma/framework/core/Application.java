@@ -105,7 +105,7 @@ public final class Application implements Runnable {
     ThreadGroup threadgroup;
 
     // threadlocal variable for the current RequestEvaluator
-    ThreadLocal currentEvaluator = new ThreadLocal();
+    ThreadLocal<RequestEvaluator> currentEvaluator = new ThreadLocal<RequestEvaluator>();
 
     // Map of requesttrans -> active requestevaluators
     Hashtable activeRequests;
@@ -1462,7 +1462,7 @@ public final class Application implements Runnable {
     /**
      * get the app's event log.
      */
-    Log getEventLog() {
+    public Log getEventLog() {
         if (eventLog == null) {
             eventLog = getLogger(eventLogName);
             // set log level for event log in case it is a helma.util.Logger
@@ -1479,7 +1479,7 @@ public final class Application implements Runnable {
     /**
      * get the app's access log.
      */
-    Log getAccessLog() {
+    public Log getAccessLog() {
         if (accessLog == null) {
             accessLog = getLogger(accessLogName);
         }
