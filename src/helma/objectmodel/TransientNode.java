@@ -610,8 +610,6 @@ public class TransientNode implements INode, Serializable {
      * @return ...
      */
     public IProperty get(String propname) {
-        propname = propname.toLowerCase();
-
         return getProperty(propname);
     }
 
@@ -637,8 +635,6 @@ public class TransientNode implements INode, Serializable {
      * @return ...
      */
     public String getString(String propname) {
-        propname = propname.toLowerCase();
-
         Property prop = getProperty(propname);
 
         try {
@@ -657,8 +653,6 @@ public class TransientNode implements INode, Serializable {
      * @return ...
      */
     public long getInteger(String propname) {
-        propname = propname.toLowerCase();
-
         Property prop = getProperty(propname);
 
         try {
@@ -677,8 +671,6 @@ public class TransientNode implements INode, Serializable {
      * @return ...
      */
     public double getFloat(String propname) {
-        propname = propname.toLowerCase();
-
         Property prop = getProperty(propname);
 
         try {
@@ -697,8 +689,6 @@ public class TransientNode implements INode, Serializable {
      * @return ...
      */
     public Date getDate(String propname) {
-        propname = propname.toLowerCase();
-
         Property prop = getProperty(propname);
 
         try {
@@ -717,8 +707,6 @@ public class TransientNode implements INode, Serializable {
      * @return ...
      */
     public boolean getBoolean(String propname) {
-        propname = propname.toLowerCase();
-
         Property prop = getProperty(propname);
 
         try {
@@ -737,8 +725,6 @@ public class TransientNode implements INode, Serializable {
      * @return ...
      */
     public INode getNode(String propname) {
-        propname = propname.toLowerCase();
-
         Property prop = getProperty(propname);
 
         try {
@@ -757,8 +743,6 @@ public class TransientNode implements INode, Serializable {
      * @return ...
      */
     public Object getJavaObject(String propname) {
-        propname = propname.toLowerCase();
-
         Property prop = getProperty(propname);
 
         try {
@@ -776,13 +760,11 @@ public class TransientNode implements INode, Serializable {
         }
 
         propname = propname.trim();
-
-        String p2 = propname.toLowerCase();
-        Property prop = (Property) propMap.get(p2);
+        Property prop = (Property) propMap.get(propname);
 
         if (prop == null) {
             prop = new Property(propname, this);
-            propMap.put(p2, prop);
+            propMap.put(propname, prop);
         }
 
         return prop;
@@ -917,21 +899,12 @@ public class TransientNode implements INode, Serializable {
      * @param propname ...
      */
     public void unset(String propname) {
-        if (propMap == null) {
-            return;
-        }
-
-        try {
-            propMap.remove(propname.toLowerCase());
-
+        if (propMap != null && propname != null) {
+            propMap.remove(propname);
             lastmodified = System.currentTimeMillis();
-        } catch (Exception ignore) {
         }
     }
 
-    /* public String getUrl (INode root, INode users, String tmpname, String rootproto) {
-       throw new RuntimeException ("HREFs on transient (non-db based) Nodes not supported");
-       } */
     public long lastModified() {
         return lastmodified;
     }

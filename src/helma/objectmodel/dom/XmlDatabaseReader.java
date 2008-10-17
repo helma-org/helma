@@ -144,7 +144,7 @@ public final class XmlDatabaseReader extends DefaultHandler implements XmlConsta
                     currentNode.setPropMap(propMap);
                 }
 
-                propMap.put(propName.toLowerCase(), prop);
+                propMap.put(propName, prop);
             }
         } else {
             // a primitive property
@@ -233,7 +233,7 @@ public final class XmlDatabaseReader extends DefaultHandler implements XmlConsta
                 currentNode.setPropMap(propMap);
             }
 
-            propMap.put(elementName.toLowerCase(), prop);
+            propMap.put(elementName, prop);
             elementName = null;
             elementType = null;
             charValue = null;

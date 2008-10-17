@@ -307,7 +307,7 @@ public final class DbMapping {
                     String dbField = props.getProperty(propName);
 
                     // check if a relation for this propery already exists. If so, reuse it
-                    Relation rel = (Relation) prop2db.get(propName.toLowerCase());
+                    Relation rel = (Relation) prop2db.get(propName);
 
                     if (rel == null) {
                         rel = new Relation(propName, this);
@@ -317,7 +317,7 @@ public final class DbMapping {
 
                     // store relation with lower case property name
                     // (ResourceProperties now preserve key capitalization!)
-                    p2d.put(propName.toLowerCase(), rel);
+                    p2d.put(propName, rel);
 
                     if ((rel.columnName != null) && rel.isPrimitiveOrReference()) {
                         Relation old = (Relation) d2p.put(rel.columnName.toLowerCase(), rel);
@@ -631,8 +631,7 @@ public final class DbMapping {
             return null;
         }
 
-        // prop2db stores keys in lower case
-        return _propertyToColumnName(propName.toLowerCase());
+        return _propertyToColumnName(propName);
     }
 
     private String _propertyToColumnName(final String propName) {
@@ -678,9 +677,7 @@ public final class DbMapping {
             return null;
         }
 
-        // FIXME: prop2db stores keys in lower case, because it gets them
-        // from a SystemProperties object which converts keys to lower case.
-        return _propertyToRelation(propName.toLowerCase());
+        return _propertyToRelation(propName);
     }
 
     private Relation _propertyToRelation(String propName) {
@@ -866,7 +863,7 @@ public final class DbMapping {
             return null;
         }
 
-        Relation rel = (Relation) prop2db.get(propname.toLowerCase());
+        Relation rel = (Relation) prop2db.get(propname);
 
         if ((rel == null) && (parentMapping != null)) {
             rel = parentMapping.getExactPropertyRelation(propname);

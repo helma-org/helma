@@ -1776,12 +1776,10 @@ public final class Node implements INode, Serializable {
         }
 
         Relation rel = dbmap == null ?
-                             null :
-                             dbmap.getExactPropertyRelation(propname);
+                null : dbmap.getExactPropertyRelation(propname);
 
         // 1) check if the property is contained in the propMap
-        Property prop = propMap == null ? null :
-                        (Property) propMap.get(propname.toLowerCase());
+        Property prop = propMap == null ? null : (Property) propMap.get(propname);
 
         if (prop != null) {
             if (rel != null) {
@@ -1813,7 +1811,7 @@ public final class Node implements INode, Serializable {
             n.setDbMapping(rel.getVirtualMapping());
             n.setParent(this);
             setNode(propname, n);
-            return (Property) propMap.get(propname.toLowerCase());
+            return (Property) propMap.get(propname);
         }
 
         // 2) check if this is a create-on-demand node property
@@ -1845,7 +1843,6 @@ public final class Node implements INode, Serializable {
      * @return ...
      */
     public String getString(String propname) {
-        // propname = propname.toLowerCase ();
         Property prop = getProperty(propname);
 
         try {
@@ -1864,7 +1861,6 @@ public final class Node implements INode, Serializable {
      * @return ...
      */
     public long getInteger(String propname) {
-        // propname = propname.toLowerCase ();
         Property prop = getProperty(propname);
 
         try {
@@ -1883,7 +1879,6 @@ public final class Node implements INode, Serializable {
      * @return ...
      */
     public double getFloat(String propname) {
-        // propname = propname.toLowerCase ();
         Property prop = getProperty(propname);
 
         try {
@@ -1902,7 +1897,6 @@ public final class Node implements INode, Serializable {
      * @return ...
      */
     public Date getDate(String propname) {
-        // propname = propname.toLowerCase ();
         Property prop = getProperty(propname);
 
         try {
@@ -1921,7 +1915,6 @@ public final class Node implements INode, Serializable {
      * @return ...
      */
     public boolean getBoolean(String propname) {
-        // propname = propname.toLowerCase ();
         Property prop = getProperty(propname);
 
         try {
@@ -1940,7 +1933,6 @@ public final class Node implements INode, Serializable {
      * @return ...
      */
     public INode getNode(String propname) {
-        // propname = propname.toLowerCase ();
         Property prop = getProperty(propname);
 
         try {
@@ -1959,7 +1951,6 @@ public final class Node implements INode, Serializable {
      * @return ...
      */
     public Object getJavaObject(String propname) {
-        // propname = propname.toLowerCase ();
         Property prop = getProperty(propname);
 
         try {
@@ -1984,17 +1975,14 @@ public final class Node implements INode, Serializable {
         }
 
         propname = propname.trim();
-
-        String p2 = propname.toLowerCase();
-
-        Property prop = (Property) propMap.get(p2);
+        Property prop = (Property) propMap.get(propname);
 
         if (prop != null) {
             prop.setValue(value, type);
         } else {
             prop = new Property(propname, this);
             prop.setValue(value, type);
-            propMap.put(p2, prop);
+            propMap.put(propname, prop);
         }
 
         lastmodified = System.currentTimeMillis();
@@ -2019,10 +2007,7 @@ public final class Node implements INode, Serializable {
         }
 
         propname = propname.trim();
-
-        String p2 = propname.toLowerCase();
-
-        Property prop = (Property) propMap.get(p2);
+        Property prop = (Property) propMap.get(propname);
         String oldvalue = null;
 
         if (prop != null) {
@@ -2037,7 +2022,7 @@ public final class Node implements INode, Serializable {
         } else {
             prop = new Property(propname, this);
             prop.setStringValue(value);
-            propMap.put(p2, prop);
+            propMap.put(propname, prop);
         }
 
         if (dbmap != null) {
@@ -2130,17 +2115,14 @@ public final class Node implements INode, Serializable {
         }
 
         propname = propname.trim();
-
-        String p2 = propname.toLowerCase();
-
-        Property prop = (Property) propMap.get(p2);
+        Property prop = (Property) propMap.get(propname);
 
         if (prop != null) {
             prop.setIntegerValue(value);
         } else {
             prop = new Property(propname, this);
             prop.setIntegerValue(value);
-            propMap.put(p2, prop);
+            propMap.put(propname, prop);
         }
 
         notifyPropertyChange(propname);
@@ -2167,17 +2149,14 @@ public final class Node implements INode, Serializable {
         }
 
         propname = propname.trim();
-
-        String p2 = propname.toLowerCase();
-
-        Property prop = (Property) propMap.get(p2);
+        Property prop = (Property) propMap.get(propname);
 
         if (prop != null) {
             prop.setFloatValue(value);
         } else {
             prop = new Property(propname, this);
             prop.setFloatValue(value);
-            propMap.put(p2, prop);
+            propMap.put(propname, prop);
         }
 
         notifyPropertyChange(propname);
@@ -2204,17 +2183,14 @@ public final class Node implements INode, Serializable {
         }
 
         propname = propname.trim();
-
-        String p2 = propname.toLowerCase();
-
-        Property prop = (Property) propMap.get(p2);
+        Property prop = (Property) propMap.get(propname);
 
         if (prop != null) {
             prop.setBooleanValue(value);
         } else {
             prop = new Property(propname, this);
             prop.setBooleanValue(value);
-            propMap.put(p2, prop);
+            propMap.put(propname, prop);
         }
 
         notifyPropertyChange(propname);
@@ -2241,17 +2217,14 @@ public final class Node implements INode, Serializable {
         }
 
         propname = propname.trim();
-
-        String p2 = propname.toLowerCase();
-
-        Property prop = (Property) propMap.get(p2);
+        Property prop = (Property) propMap.get(propname);
 
         if (prop != null) {
             prop.setDateValue(value);
         } else {
             prop = new Property(propname, this);
             prop.setDateValue(value);
-            propMap.put(p2, prop);
+            propMap.put(propname, prop);
         }
 
         notifyPropertyChange(propname);
@@ -2278,17 +2251,14 @@ public final class Node implements INode, Serializable {
         }
 
         propname = propname.trim();
-
-        String p2 = propname.toLowerCase();
-
-        Property prop = (Property) propMap.get(p2);
+        Property prop = (Property) propMap.get(propname);
 
         if (prop != null) {
             prop.setJavaObjectValue(value);
         } else {
             prop = new Property(propname, this);
             prop.setJavaObjectValue(value);
-            propMap.put(p2, prop);
+            propMap.put(propname, prop);
         }
 
         notifyPropertyChange(propname);
@@ -2366,9 +2336,6 @@ public final class Node implements INode, Serializable {
         }
 
         propname = propname.trim();
-
-        String p2 = propname.toLowerCase();
-
         if (rel == null && dbmap != null) {
             // widen relation to non-exact (collection) mapping
             rel = dbmap.getPropertyRelation(propname);
@@ -2383,7 +2350,7 @@ public final class Node implements INode, Serializable {
             }
         }
 
-        Property prop = (propMap == null) ? null : (Property) propMap.get(p2);
+        Property prop = (propMap == null) ? null : (Property) propMap.get(propname);
 
         if (prop != null) {
             if ((prop.getType() == IProperty.NODE) &&
@@ -2415,7 +2382,7 @@ public final class Node implements INode, Serializable {
                 propMap = new Hashtable();
             }
 
-            propMap.put(p2, prop);
+            propMap.put(propname, prop);
 
             if (state == CLEAN && isPersistable) {
                 markAs(MODIFIED);
@@ -2465,9 +2432,9 @@ public final class Node implements INode, Serializable {
 
             if (propMap != null) {
                 if (relational) {
-                    p = (Property) propMap.get(propname.toLowerCase());
+                    p = (Property) propMap.get(propname);
                 } else {
-                    p = (Property) propMap.remove(propname.toLowerCase());
+                    p = (Property) propMap.remove(propname);
                 }
             }
 

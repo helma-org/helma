@@ -1896,7 +1896,7 @@ public final class NodeManager {
                     // FIXME: References to anything other than the primary key are not supported
                     prop.convertToNodeReference(rel);
                 }
-                propMap.put(rel.propName.toLowerCase(), prop);
+                propMap.put(rel.propName, prop);
             }
         }
 
