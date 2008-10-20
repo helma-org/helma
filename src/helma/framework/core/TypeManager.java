@@ -101,7 +101,7 @@ public final class TypeManager {
      * Run through application's prototype directories and create prototypes, but don't
      * compile or evaluate any scripts.
      */
-    public void createPrototypes() throws IOException {
+    public synchronized void createPrototypes() throws IOException {
         // create standard prototypes.
         for (int i = 0; i < standardTypes.length; i++) {
             createPrototype(standardTypes[i], null);
@@ -126,7 +126,7 @@ public final class TypeManager {
         lastCheck = System.currentTimeMillis();
     }
 
-    protected void checkRepository(Repository repository, boolean update) throws IOException {
+    protected synchronized void checkRepository(Repository repository, boolean update) throws IOException {
         Repository[] list = repository.getRepositories();
         for (int i = 0; i < list.length; i++) {
  
@@ -183,7 +183,7 @@ public final class TypeManager {
      * Run through application's prototype sources and check if
      * there are any prototypes to be created.
      */
-    private void checkRepositories() throws IOException {
+    private synchronized void checkRepositories() throws IOException {
         List list = app.getRepositories();
 
         // walk through repositories and check if any of them have changed.
@@ -197,11 +197,20 @@ public final class TypeManager {
             }
         }
 
+        boolean debug = "true".equalsIgnoreCase(app.getProperty("helma.debugTypeManager"));
+        if (debug) {
+            System.err.println("Starting CHECK loop in " + Thread.currentThread());
+        }
+
         // loop through prototypes and check if type.properties needs updates
         // it's important that we do this _after_ potentially new prototypes
         // have been created in the previous loop.
         for (Iterator i = prototypes.values().iterator(); i.hasNext();) {
             Prototype proto = (Prototype) i.next();
+
+            if (debug) {
+                System.err.println("CHECK: " + proto.getName() + " in " + Thread.currentThread());
+            }            
 
             // update prototype's type mapping
             DbMapping dbmap = proto.getDbMapping();
@@ -215,6 +224,9 @@ public final class TypeManager {
                 proto.props.update();
                 dbmap.update();
             }
+        }
+        if (debug) {
+            System.err.println("Finished CHECK in " + Thread.currentThread());
         }
     }
 
@@ -263,14 +275,14 @@ public final class TypeManager {
      *
      * @return a collection containing the prototypes
      */
-    public Collection getPrototypes() {
+    public synchronized Collection getPrototypes() {
         return Collections.unmodifiableCollection(prototypes.values());
     }
 
     /**
      *   Get a prototype defined for this application
      */
-    public Prototype getPrototype(String typename) {
+    public synchronized Prototype getPrototype(String typename) {
         if (typename == null) {
             return null;
         }
@@ -284,12 +296,14 @@ public final class TypeManager {
      * @param repository the first prototype source
      * @return the newly created prototype
      */
-    public Prototype createPrototype(String typename, Repository repository) {
+    public synchronized Prototype createPrototype(String typename, Repository repository) {
+        if ("true".equalsIgnoreCase(app.getProperty("helma.debugTypeManager"))) {
+            System.err.println("CREATE: " + typename + " from " + repository + " in " + Thread.currentThread());
+            // Thread.dumpStack();
+        }
         Prototype proto = new Prototype(typename, repository, app);
-
         // put the prototype into our map
         prototypes.put(proto.getLowerCaseName(), proto);
-
         return proto;
     }
 

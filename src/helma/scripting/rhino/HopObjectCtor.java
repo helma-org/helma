@@ -15,14 +15,15 @@
  */
 package helma.scripting.rhino;
 
-import org.mozilla.javascript.*;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
 import helma.objectmodel.INode;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.DbKey;
+import helma.objectmodel.db.Node;
+
+import org.mozilla.javascript.*;
 
 public class HopObjectCtor extends FunctionObject {
 
@@ -89,8 +90,8 @@ public class HopObjectCtor extends FunctionObject {
                 throw new EvaluatorException(x.toString());
             }
         } else {
-            INode node = new helma.objectmodel.db.Node(protoname, protoname,
-                                                    core.app.getWrappedNodeManager());
+            INode node = new Node(protoname, protoname,
+                    core.app.getWrappedNodeManager());
             Scriptable proto = core.getPrototype(protoname);
             HopObject hobj = new HopObject(protoname, core, node, proto);
 

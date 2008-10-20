@@ -143,7 +143,9 @@ public class Logger implements Log {
         // has gone. the 2000 entries threshold is somewhat arbitrary. 
         if (entries.size() < 2000) {
             String message = msg == null ? "null" : msg.toString();
-            entries.add(new Entry(dateCache, level, message, exception));
+            Thread thread = Thread.currentThread();
+            String threadId = "[" + thread.getName() + "] ";
+            entries.add(new Entry(dateCache, level, message, threadId, exception));
         }
     }
 
@@ -164,6 +166,7 @@ public class Logger implements Log {
                 Entry entry = (Entry) entries.remove(0);
                 writer.print(entry.date);
                 writer.print(entry.level);
+                writer.print(entry.threadId);
                 writer.println(entry.message);
                 if (entry.exception != null)
                     entry.exception.printStackTrace(writer);
@@ -294,13 +297,14 @@ public class Logger implements Log {
     }
 
     class Entry {
-        final String date, level, message;
+        final String date, level, message, threadId;
         final Throwable exception;
 
-        Entry(String date, String level, String message, Throwable exception) {
+        Entry(String date, String level, String message, String threadId, Throwable exception) {
             this.date = date;
             this.level = level;
             this.message = message;
+            this.threadId = threadId;
             this.exception = exception;
         }
     }

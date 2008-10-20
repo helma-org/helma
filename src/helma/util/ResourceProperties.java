@@ -59,6 +59,12 @@ public class ResourceProperties extends Properties {
     // lower case key to original key mapping for case insensitive lookups
     private Properties keyMap = new Properties();
 
+    // prefix for sub-properties
+    private String prefix;
+
+    // parent properties for sub-properties
+    private ResourceProperties parentProperties;
+
     /**
      * Constructs an empty ResourceProperties
      * Resources must be added manually afterwards
@@ -120,6 +126,22 @@ public class ResourceProperties extends Properties {
         this(app, resourceName);
         this.defaultProperties = defaultProperties;
         this.ignoreCase = ignoreCase;
+        forceUpdate();
+    }
+
+    /**
+     * Constructs a properties object containing all entries where the key matches
+     * the given string prefix from the source map to the target map, cutting off
+     * the prefix from the original key.
+     * @see #getSubProperties(String)
+     * @param parentProperties the parent properties
+     * @param prefix the property name prefix
+     */
+    private ResourceProperties(ResourceProperties parentProperties, String prefix) {
+        this.parentProperties = parentProperties;
+        this.prefix = prefix;
+        resources = new HashSet();
+        setIgnoreCase(parentProperties.ignoreCase);        
         forceUpdate();
     }
 
@@ -208,6 +230,21 @@ public class ResourceProperties extends Properties {
                 }
             }
 
+            // if these are subproperties, reload them from the parent properties
+            if (parentProperties != null && prefix != null) {
+                parentProperties.update();
+                Iterator it = parentProperties.entrySet().iterator();
+                int prefixLength = prefix.length();
+                while (it.hasNext()) {
+                    Map.Entry entry = (Map.Entry) it.next();
+                    String key = entry.getKey().toString();
+                    if (key.regionMatches(ignoreCase, 0, prefix, 0, prefixLength)) {
+                        temp.put(key.substring(prefixLength), entry.getValue());
+                    }
+                }
+
+            }
+
             // at last we try to load properties from the resource list
             if (resources != null) {
                 Iterator iterator = resources.iterator();
@@ -247,25 +284,13 @@ public class ResourceProperties extends Properties {
      * against the prefix.
      *
      * @param prefix the string prefix to match against
+     * @return a new subproperties instance
      */
     public ResourceProperties getSubProperties(String prefix) {
-        if (prefix == null)
+        if (prefix == null) {
             throw new NullPointerException("prefix");
-        if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
-            update();
         }
-        ResourceProperties subprops = new ResourceProperties();
-        subprops.setIgnoreCase(ignoreCase);
-        Iterator it = entrySet().iterator();
-        int prefixLength = prefix.length();
-        while (it.hasNext()) {
-            Map.Entry entry = (Map.Entry) it.next();
-            String key = entry.getKey().toString();
-            if (key.regionMatches(ignoreCase, 0, prefix, 0, prefixLength)) {
-                subprops.put(key.substring(prefixLength), entry.getValue());
-            }
-        }
-        return subprops;
+        return new ResourceProperties(this, prefix);
     }
 
     /**
@@ -322,7 +347,7 @@ public class ResourceProperties extends Properties {
             if (strkey == null)
                 return null;
         }
-        return (String) super.get(strkey);
+        return super.get(strkey);
     }
 
     /**

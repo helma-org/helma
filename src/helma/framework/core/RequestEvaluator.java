@@ -25,6 +25,7 @@ import java.util.*;
 
 import org.apache.xmlrpc.XmlRpcRequestProcessor;
 import org.apache.xmlrpc.XmlRpcServerRequest;
+import org.apache.commons.logging.Log;
 
 /**
  * This class does the work for incoming requests. It holds a transactor thread
@@ -78,6 +79,10 @@ public final class RequestEvaluator implements Runnable {
 
     // the exception thrown by the evaluator, if any.
     private volatile Exception exception;
+
+    // For numbering threads.
+    private int threadId;
+
 
     /**
      *  Create a new RequestEvaluator for this application.
@@ -155,6 +160,12 @@ public final class RequestEvaluator implements Runnable {
                 // request path object
                 RequestPath requestPath = new RequestPath(app);
 
+                String txname = req.getMethod().toLowerCase() + ":" + req.getPath();
+                Log eventLog = app.getEventLog();
+                if (eventLog.isDebugEnabled()) {
+                    eventLog.debug(txname + " starting");
+                }
+
                 int tries = 0;
                 boolean done = false;
                 Throwable error = null;
@@ -198,14 +209,14 @@ public final class RequestEvaluator implements Runnable {
                             throw new IllegalStateException("No function name in non-internal request ");
                         }
 
-                        // Transaction name is used for logging etc.
-                        StringBuffer txname = new StringBuffer(app.getName());
-                        txname.append(":").append(req.getMethod().toLowerCase()).append(":");
-                        txname.append((error == null) ? req.getPath() : "error");
+                        // Update transaction name in case we're processing an error
+                        if (error != null) {
+                            txname = "error:" + txname;
+                        }
 
                         // begin transaction
                         transactor = Transactor.getInstance(app.nmgr);
-                        transactor.begin(txname.toString());
+                        transactor.begin(txname);
 
                         Object root = app.getDataRoot();
                         initGlobals(root, requestPath);
@@ -398,6 +409,7 @@ public final class RequestEvaluator implements Runnable {
                                                 ScriptingEngine.ARGS_WRAP_XMLRPC,
                                                 false);
                                         res.writeXmlRpcResponse(result);
+                                        app.xmlrpcCount += 1;
                                     } else {
                                         scriptingEngine.invoke(currentElement,
                                                 actionProcessor,
@@ -478,7 +490,7 @@ public final class RequestEvaluator implements Runnable {
                                         return;
                                     }
                                     abortTransaction();
-                                    app.logError(txname + ": " + error, x);
+                                    app.logError(txname + " " + error, x);
 
                                     // If the transactor thread has been killed by the invoker thread we don't have to
                                     // bother for the error message, just quit.
@@ -514,7 +526,7 @@ public final class RequestEvaluator implements Runnable {
                                         return;
                                     }
                                     abortTransaction();
-                                    app.logError(txname + ": " + error, x);
+                                    app.logError(txname + " " + error, x);
 
                                     // If the transactor thread has been killed by the invoker thread we don't have to
                                     // bother for the error message, just quit.
@@ -598,9 +610,7 @@ public final class RequestEvaluator implements Runnable {
                             done = false;
                             error = x;
 
-                            Transactor tx = Transactor.getInstance();
-                            String txname = tx == null ? "no-txn" : tx.getTransactionName();
-                            app.logError(txname + ": " + error, x);
+                            app.logError(txname + " " + error, x);
 
                             if (req.isXmlRpc()) {
                                 // if it's an XML-RPC exception immediately generate error response
@@ -619,8 +629,9 @@ public final class RequestEvaluator implements Runnable {
                     } finally {
                         app.setCurrentRequestEvaluator(null);
                         // exit execution context
-                        if (scriptingEngine != null)
+                        if (scriptingEngine != null) {
                             scriptingEngine.exitContext();
+                        }
                     }
                 }
 
@@ -667,7 +678,7 @@ public final class RequestEvaluator implements Runnable {
 
         if ((thread == null) || !thread.isAlive()) {
             // app.logEvent ("Starting Thread");
-            thread = new Thread(app.threadgroup, this);
+            thread = new Thread(app.threadgroup, this, app.getName() + "-" + (++threadId));
             thread.setContextClassLoader(app.getClassLoader());
             thread.start();
         } else {
@@ -783,7 +794,7 @@ public final class RequestEvaluator implements Runnable {
         // Get a reference to the res object at the time we enter
         ResponseTrans localRes = res;
 
-        if ((localRes == null) || !req.equals(this.req)) {
+        if (localRes == null || !req.equals(this.req)) {
             return null;
         }
 

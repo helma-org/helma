@@ -437,13 +437,8 @@ public final class Skin {
 
                         if (state == PARSE_MACRONAME && "//".equals(b.toString())) {
                             isCommentMacro = true;
-                            // search macro end tag
-                            while (i < length - 1 &&
-                                       (source[i] != '%' || source[i + 1] != '>')) {
-                                i++;
-                            }
-                            state = PARSE_DONE;
-                            break loop;
+                            // just continue parsing the macro as this is the only way
+                            // to correctly catch embedded macros - see bug 588
                         }
                         break;
 
@@ -639,7 +634,7 @@ public final class Skin {
             }
 
             if ((sandbox != null) && !sandbox.contains(name)) {
-                throw new RuntimeException("Macro " + name + " not allowed in sandbox");
+                throw new MacroException("Macro not allowed in sandbox: " + name);
             }
 
             Object handler = null;
@@ -705,7 +700,7 @@ public final class Skin {
                                 buffer.setLength(bufLength);
                             }
                         } else if (standardParams.verboseFailmode(handler, engine)) {
-                            throw new UnhandledMacroException(name);
+                            throw new MacroException("Unhandled macro: " + name);
                         }
                     } else {
                         value = engine.getProperty(handler, propName);
@@ -713,7 +708,7 @@ public final class Skin {
                     return filter(value, cx);
                 }
             } else if (standardParams.verboseFailmode(handler, engine)) {
-                throw new UnhandledMacroException(name);
+                throw new MacroException("Unhandled macro: " + name);
             }
             return filter(null, cx);
         }
@@ -786,8 +781,8 @@ public final class Skin {
                 throw concur;
             } catch (TimeoutException timeout) {
                 throw timeout;
-            } catch (UnhandledMacroException unhandled) {
-                String msg = "Unhandled Macro: " + unhandled.getMessage();
+            } catch (MacroException mx) {
+                String msg = mx.getMessage();
                 cx.reval.getResponse().write(" [" + msg + "] ");
                 app.logError(msg);
             } catch (Exception x) {
@@ -816,9 +811,9 @@ public final class Skin {
                 throws Exception {
 
             if (name == null) {
-                throw new RuntimeException("Empty macro filter");
+                throw new MacroException("Empty macro filter");
             } else if (sandbox != null && !sandbox.contains(name)) {
-                throw new RuntimeException("Macro " + name + " not allowed in sandbox");
+                throw new MacroException("Macro not allowed in sandbox: " + name);
             }
             Object handlerObject = null;
 
@@ -840,7 +835,7 @@ public final class Skin {
 
                 return filter(retval, cx);
             } else {
-                throw new RuntimeException("Undefined Filter " + name);
+                throw new MacroException("Undefined macro filter: " + name);
             }
         }
 
@@ -1103,9 +1098,9 @@ public final class Skin {
                     // limiting to 50 passes to avoid infinite loops
                     int maxloop = 50;
                     while (obj != null && maxloop-- > 0) {
-                        Prototype proto = app.getPrototype(obj);
+                        String protoName = app.getPrototypeName(obj);
 
-                        if ((proto != null) && proto.isInstanceOf(handlerName)) {
+                        if (handlerName.equalsIgnoreCase(protoName)) {
                             if (handlerCache != null)
                                 handlerCache.put(handlerName, obj);
                             return obj;
@@ -1126,12 +1121,13 @@ public final class Skin {
     }
 
     /**
-     * Exception type for unhandled macros
+     * Exception type for unhandled, forbidden or failed macros
      */
-    class UnhandledMacroException extends Exception {
-        UnhandledMacroException(String name) {
-            super(name);
+    class MacroException extends Exception {
+        MacroException(String message) {
+            super(message);
         }
     }
+
 }
 

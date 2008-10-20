@@ -32,6 +32,8 @@ import java.util.*;
  */
 public class Session implements Serializable {
 
+    static final long serialVersionUID = -6149094040363012913L;
+    
     transient protected Application app;
     protected String sessionId;
 

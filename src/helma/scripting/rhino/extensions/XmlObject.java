@@ -246,7 +246,7 @@ public class XmlObject {
                 converter = new XmlConverter();
             }
 
-            INode node = new helma.objectmodel.db.Node(null, null,
+            INode node = new Node(null, null,
                     core.getApplication().getWrappedNodeManager());
             INode result = converter.convert(url, node);
 

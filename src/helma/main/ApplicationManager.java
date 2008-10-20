@@ -281,6 +281,14 @@ public class ApplicationManager implements XmlRpcHandler {
         return server.getLogger();
     }
 
+    private String findResource(String path) {
+        File file = new File(path);
+        if (!file.isAbsolute() && !file.exists()) {
+            file = new File(server.getHopHome(), path);
+        }
+        return file.getAbsolutePath();
+    }
+
     /**
      *  Inner class that describes an application and its start settings.
      */
@@ -350,7 +358,7 @@ public class ApplicationManager implements XmlRpcHandler {
             ignoreDirs = conf.getProperty("ignore");
 
             // read and configure app repositories
-            ArrayList<Repository> repositoryList = new ArrayList<Repository>();
+            ArrayList repositoryList = new ArrayList();
             Class[] parameters = { String.class };
             for (int i = 0; true; i++) {
                 String repositoryArgs = conf.getProperty("repository." + i);
@@ -362,10 +370,13 @@ public class ApplicationManager implements XmlRpcHandler {
                     if (repositoryImpl == null) {
                         // implementation not set manually, have to guess it
                         if (repositoryArgs.endsWith(".zip")) {
+                            repositoryArgs = findResource(repositoryArgs);
                             repositoryImpl = "helma.framework.repository.ZipRepository";
                         } else if (repositoryArgs.endsWith(".js")) {
+                            repositoryArgs = findResource(repositoryArgs);
                             repositoryImpl = "helma.framework.repository.SingleFileRepository";
                         } else {
+                            repositoryArgs = findResource(repositoryArgs);
                             repositoryImpl = "helma.framework.repository.FileRepository";
                         }
                     }
@@ -373,7 +384,7 @@ public class ApplicationManager implements XmlRpcHandler {
                     try {
                         Repository newRepository = (Repository) Class.forName(repositoryImpl)
                                 .getConstructor(parameters)
-                                .newInstance(repositoryArgs);
+                                .newInstance(new Object[] {repositoryArgs});
                         repositoryList.add(newRepository);
                     } catch (Exception ex) {
                         getLogger().error("Adding repository " + repositoryArgs + " failed. " +
@@ -397,7 +408,7 @@ public class ApplicationManager implements XmlRpcHandler {
                         new File(server.getAppsHome(), appName)));
             }
             repositories = new Repository[repositoryList.size()];
-            repositories = repositoryList.toArray(repositories);
+            repositories = (Repository[]) repositoryList.toArray(repositories);
         }
 
 

@@ -93,7 +93,7 @@ public class ServerConfig {
     }
 
     public void setPropFile(File propFile) {
-        this.propFile = propFile;
+        this.propFile = propFile == null ? null : propFile.getAbsoluteFile();
     }
 
     public File getHomeDir() {
@@ -101,6 +101,6 @@ public class ServerConfig {
     }
 
     public void setHomeDir(File homeDir) {
-        this.homeDir = homeDir;
+        this.homeDir = homeDir == null ? null : homeDir.getAbsoluteFile();
     }
 }

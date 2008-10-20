@@ -633,9 +633,12 @@ public final class HtmlEncoder {
                         }
                     }
 
-                    // we didn't reach a break, so encode the ampersand as HTML entity
-                    ret.append("&amp;");
-
+                    // we didn't reach a break, so encode as entity unless inside a tag
+                    if (insideMacroTag) {
+                        ret.append('&');
+                    } else {
+                        ret.append("&amp;");
+                    }
                     break;
 
                 case '\\':
@@ -763,7 +766,7 @@ public final class HtmlEncoder {
                                 break;
                         }
                     }
-                    if (c < 128) {
+                    if (c < 128 || insideMacroTag) {
                         ret.append(c);
                     } else if ((c >= 128) && (c < 256)) {
                         ret.append(transform[c - 128]);

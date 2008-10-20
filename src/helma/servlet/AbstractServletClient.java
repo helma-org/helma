@@ -345,17 +345,17 @@ public abstract class AbstractServletClient extends HttpServlet {
             res.setContentLength(hopres.getContentLength());
             res.setContentType(hopres.getContentType());
 
-            if ("HEAD".equalsIgnoreCase(req.getMethod())) {
-                return;
-            }
-
-            try {
-                OutputStream out = res.getOutputStream();
-
-                out.write(hopres.getContent());
-                out.flush();
-            } catch (Exception iox) {
-                log("Exception in writeResponse: " + iox);
+            if (!"HEAD".equalsIgnoreCase(req.getMethod())) {
+                byte[] content = hopres.getContent();
+                if (content != null) {
+                    try {
+                        OutputStream out = res.getOutputStream();
+                        out.write(content);
+                        out.flush();
+                    } catch (Exception iox) {
+                        log("Exception in writeResponse: " + iox);
+                    }
+                }
             }
         }
     }
@@ -545,24 +545,25 @@ public abstract class AbstractServletClient extends HttpServlet {
             addIPAddress(buffer, request.getHeader("X-Forwarded-For"));
             addIPAddress(buffer, request.getHeader("Client-ip"));
             if (reqtrans.getSession() == null || !reqtrans.getSession().startsWith(buffer.toString())) {
-                response.addCookie(createSession(buffer.toString(), reqtrans, domain));
+                createSession(response, buffer.toString(), reqtrans, domain);
             }
         } else if (reqtrans.getSession() == null) {
-            response.addCookie(createSession("", reqtrans, domain));
+            createSession(response, "", reqtrans, domain);
         }
     }
 
     /**
      * Create a new session cookie.
      *
+     * @param response the servlet response
      * @param prefix the session id prefix
      * @param reqtrans the request object
      * @param domain the cookie domain
-     * @return the session cookie
      */
-    private Cookie createSession(String prefix,
-                                 RequestTrans reqtrans,
-                                 String domain) {
+    private void createSession(HttpServletResponse response,
+                               String prefix,
+                               RequestTrans reqtrans,
+                               String domain) {
         Application app = getApplication();
         String id = null;
         while (id == null || app.getSession(id) != null) {
@@ -575,12 +576,20 @@ public abstract class AbstractServletClient extends HttpServlet {
         }
 
         reqtrans.setSession(id);
-        Cookie cookie = new Cookie(sessionCookieName, id);
-        cookie.setPath("/");
-        if (domain != null)
-            cookie.setDomain(domain);
 
-        return cookie;
+        StringBuffer buffer = new StringBuffer(sessionCookieName);
+        buffer.append("=").append(id).append("; Path=/");
+        if (domain != null) {
+            // lowercase domain for IE
+            buffer.append("; Domain=").append(domain.toLowerCase());
+        }
+        if (!"false".equalsIgnoreCase(app.getProperty("httpOnlySessionCookie"))) {
+            buffer.append("; HttpOnly");
+        }
+        if ("true".equalsIgnoreCase(app.getProperty("secureSessionCookie"))) {
+            buffer.append("; Secure");
+        }
+        response.addHeader("Set-Cookie", buffer.toString());
     }
 
     /**

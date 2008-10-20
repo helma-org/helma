@@ -38,7 +38,7 @@ import org.apache.commons.logging.LogFactory;
  * application specific functionality.
  */
 public class ApplicationBean implements Serializable {
-    Application app;
+    transient Application app;
     WrappedMap properties = null;
 
     /**
@@ -137,33 +137,27 @@ public class ApplicationBean implements Serializable {
      *
      * @param obj the repository, relative or absolute path to the library.
      */
-    public void addRepository(Object obj) {
-        Resource current = app.getCurrentCodeResource();
-        Repository parent = current == null ?
-                null : current.getRepository().getRootRepository();
+    public synchronized void addRepository(Object obj) {
         Repository rep;
         if (obj instanceof String) {
             String path = (String) obj;
-            File file = new File(path).getAbsoluteFile();
+            File file = findResource(null, path);
             if (!file.exists()) {
-                file = new File(path + ".zip").getAbsoluteFile();
+                file = findResource(app.hopHome, path);
             }
             if (!file.exists()) {
-                file = new File(path + ".js").getAbsoluteFile();
-            }
-            if (!file.exists()) {
-                throw new RuntimeException("Repository path does not exist: " + obj);
+                throw new RuntimeException("Repository path does not exist: " + file);
             }
             if (file.isDirectory()) {
-                rep = new FileRepository(file, parent);
+                rep = new FileRepository(file);
             } else if (file.isFile()) {
                 if (file.getName().endsWith(".zip")) {
-                    rep = new ZipRepository(file, parent);
+                    rep = new ZipRepository(file);
                 } else {
-                    rep = new SingleFileRepository(file, parent);
+                    rep = new SingleFileRepository(file);
                 }
             } else {
-                throw new RuntimeException("Unrecognized file type in addRepository: " + obj);
+                throw new RuntimeException("Unsupported file type in addRepository: " + file);
             }
         } else if (obj instanceof Repository) {
             rep = (Repository) obj;
@@ -176,6 +170,23 @@ public class ApplicationBean implements Serializable {
         } catch (IOException iox) {
             getLogger().error("Error checking repository " + rep, iox);
         }
+    }
+
+    /**
+     * Helper method to resolve a repository path.
+     * @param parent the parent file
+     * @param path the repository path
+     * @return our best guess of what the file may be
+     */
+    private File findResource(File parent, String path) {
+        File file = new File(parent, path).getAbsoluteFile();
+        if (!file.exists()) {
+            file = new File(parent, path + ".zip").getAbsoluteFile();
+        }
+        if (!file.exists()) {
+            file = new File(parent, path + ".js").getAbsoluteFile();
+        }
+        return file;
     }
 
     /**

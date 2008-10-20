@@ -24,6 +24,8 @@ import java.sql.Statement;
 import java.sql.SQLException;
 import java.util.*;
 
+import org.apache.commons.logging.Log;
+
 /**
  * A subclass of thread that keeps track of changed nodes and triggers
  * changes in the database when a transaction is commited.
@@ -34,13 +36,13 @@ public class Transactor {
     NodeManager nmgr;
 
     // List of nodes to be updated
-    private HashMap dirtyNodes;
+    private Map dirtyNodes;
 
     // List of visited clean nodes
-    private HashMap cleanNodes;
+    private Map cleanNodes;
 
     // List of nodes whose child index has been modified
-    private HashSet parentNodes;
+    private Set parentNodes;
 
     // Is a transaction in progress?
     private volatile boolean active;
@@ -50,10 +52,10 @@ public class Transactor {
     protected ITransaction txn;
 
     // Transactions for SQL data sources
-    private HashMap sqlConnections;
+    private Map sqlConnections;
 
     // Set of SQL connections that already have been verified
-    private HashSet testedConnections;
+    private Map testedConnections;
 
     // when did the current transaction start?
     private long tstart;
@@ -64,7 +66,7 @@ public class Transactor {
     // the thread we're associated with
     private Thread thread;
 
-    private static final ThreadLocal <Transactor> txtor = new ThreadLocal <Transactor> ();
+    private static final ThreadLocal txtor = new ThreadLocal();
 
     /**
      * Creates a new Transactor object.
@@ -75,12 +77,12 @@ public class Transactor {
         this.thread = Thread.currentThread();
         this.nmgr = nmgr;
 
-        dirtyNodes = new HashMap();
+        dirtyNodes = new LinkedHashMap();
         cleanNodes = new HashMap();
         parentNodes = new HashSet();
 
         sqlConnections = new HashMap();
-        testedConnections = new HashSet();
+        testedConnections = new HashMap();
         active = false;
         killed = false;
     }
@@ -90,7 +92,7 @@ public class Transactor {
      * @return the transactor associated with the current thread
      */
     public static Transactor getInstance() {
-        return txtor.get();
+        return (Transactor) txtor.get();
     }
 
     /**
@@ -99,7 +101,7 @@ public class Transactor {
      * @throws IllegalStateException if no transactor is associated with the current thread
      */
     public static Transactor getInstanceOrFail() throws IllegalStateException {
-        Transactor tx = txtor.get();
+        Transactor tx = (Transactor) txtor.get();
         if (tx == null)
             throw new IllegalStateException("Operation requires a Transactor, " +
                 "but current thread does not have one.");
@@ -112,7 +114,7 @@ public class Transactor {
      * @return the transactor associated with the current thread
      */
     public static Transactor getInstance(NodeManager nmgr) {
-        Transactor t = txtor.get();
+        Transactor t = (Transactor) txtor.get();
         if (t == null) {
             t = new Transactor(nmgr);
             txtor.set(t);
@@ -240,7 +242,7 @@ public class Transactor {
     public void registerConnection(DbSource src, Connection con) {
         sqlConnections.put(src, con);
         // we assume a freshly created connection is ok.
-        testedConnections.add(src);
+        testedConnections.put(src, new Long(System.currentTimeMillis()));
     }
 
     /**
@@ -250,13 +252,15 @@ public class Transactor {
      */
     public Connection getConnection(DbSource src) {
         Connection con = (Connection) sqlConnections.get(src);
-        if (con != null && !testedConnections.contains(src)) {
+        Long tested = (Long) testedConnections.get(src);
+        long now = System.currentTimeMillis();
+        if (con != null && (tested == null || now - tested.longValue() > 10000)) {
             // Check if the connection is still alive by executing a simple statement.
             try {
                 Statement stmt = con.createStatement();
                 stmt.execute("SELECT 1");
                 stmt.close();
-                testedConnections.add(src);
+                testedConnections.put(src, new Long(now));
             } catch (SQLException sx) {
                 try {
                     con.close();
@@ -326,6 +330,7 @@ public class Transactor {
 
             // the set to collect DbMappings to be marked as changed
             HashSet dirtyDbMappings = new HashSet();
+            Log eventLog = nmgr.app.getEventLog();
 
             for (int i = 0; i < dirty.length; i++) {
                 Node node = (Node) dirty[i];
@@ -346,8 +351,10 @@ public class Transactor {
                     }
 
                     inserted++;
-                    nmgr.app.logEvent("inserted: Node " + node.getPrototype() + "/" +
-                                  node.getID());
+                    if (eventLog.isDebugEnabled()) {
+                        eventLog.debug("inserted node: " + node.getPrototype() + "/" +
+                                node.getID());
+                    }
                 } else if (nstate == Node.MODIFIED) {
                     // only mark DbMapping as dirty if updateNode returns true
                     if (nmgr.updateNode(nmgr.db, txn, node)) {
@@ -363,8 +370,10 @@ public class Transactor {
                     }
 
                     updated++;
-                    nmgr.app.logEvent("updated: Node " + node.getPrototype() + "/" +
-                                      node.getID());
+                    if (eventLog.isDebugEnabled()) {
+                        eventLog.debug("updated node: " + node.getPrototype() + "/" +
+                                node.getID());
+                    }
                 } else if (nstate == Node.DELETED) {
                     nmgr.deleteNode(nmgr.db, txn, node);
                     dirtyDbMappings.add(node.getDbMapping());
@@ -377,6 +386,10 @@ public class Transactor {
                     }
 
                     deleted++;
+                    if (eventLog.isDebugEnabled()) {
+                        eventLog.debug("removed node: " + node.getPrototype() + "/" +
+                                node.getID());
+                    }
                 }
 
                 node.clearWriteLock();
@@ -419,10 +432,15 @@ public class Transactor {
             txn = null;
         }
 
-        nmgr.app.logAccess(tname + " " + inserted +
-                           " inserted, " + updated +
-                           " updated, " + deleted + " deleted in " +
-                           (now - tstart) + " millis");
+        StringBuffer msg = new StringBuffer(tname).append(" done in ")
+                .append(now - tstart).append(" millis");
+        if(inserted + updated + deleted > 0) {
+            msg.append(" [+")
+                    .append(inserted).append(", ~")
+                    .append(updated).append(", -")
+                    .append(deleted).append("]");
+        }
+        nmgr.app.logAccess(msg.toString());
 
         // unset transaction name
         tname = null;

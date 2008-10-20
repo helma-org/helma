@@ -32,10 +32,6 @@ import java.io.*;
 import java.rmi.registry.*;
 import java.rmi.server.*;
 import java.util.*;
-import java.net.Socket;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.net.InetSocketAddress;
 
 import helma.util.ResourceProperties;
 
@@ -44,7 +40,7 @@ import helma.util.ResourceProperties;
  */
 public class Server implements Runnable {
     // version string
-    public static final String version = "1.6.2 (__builddate__)";
+    public static final String version = "1.6.3 (__builddate__)";
 
     // static server instance
     private static Server server;
@@ -109,7 +105,9 @@ public class Server implements Runnable {
 
         // create system properties
         sysProps = new ResourceProperties();
-        sysProps.addResource(new FileResource(config.getPropFile()));
+        if (config.hasPropFile()) {
+            sysProps.addResource(new FileResource(config.getPropFile()));
+        }
     }
 
 
@@ -303,13 +301,6 @@ public class Server implements Runnable {
 
         if (!config.hasHomeDir()) {
             throw new Exception ("couldn't determine helma directory");
-        }
-
-        // try to transform hopHome directory to its canonical representation
-        try {
-            config.setHomeDir(config.getHomeDir().getCanonicalFile());
-        } catch (IOException iox) {
-            config.setHomeDir(config.getHomeDir().getAbsoluteFile());
         }
     }
 

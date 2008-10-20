@@ -26,6 +26,7 @@ import helma.main.Server;
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Relation;
+import helma.objectmodel.db.Node;
 import helma.scripting.*;
 import helma.scripting.rhino.debug.Tracer;
 import helma.util.StringUtils;
@@ -86,7 +87,7 @@ public class RhinoEngine implements ScriptingEngine {
         this.reval = reval;
         initRhinoCore(app);
 
-        context = core.contextFactory.enter();
+        context = core.contextFactory.enterContext();
 
         try {
             extensionGlobals = new HashMap();
@@ -113,7 +114,7 @@ public class RhinoEngine implements ScriptingEngine {
             app.logError("Cannot initialize interpreter", e);
             throw new RuntimeException(e.getMessage(), e);
         } finally {
-            core.contextFactory.exit ();
+            Context.exit();
         }
     }
 
@@ -162,7 +163,7 @@ public class RhinoEngine implements ScriptingEngine {
         // (chicken and egg problem, kind of)
         thread = Thread.currentThread();
         global = new GlobalObject(core, app, true);
-        context = core.contextFactory.enter();
+        context = core.contextFactory.enterContext();
 
         if (core.hasTracer) {
             context.setDebugger(new Tracer(getResponse()), null);
@@ -214,7 +215,7 @@ public class RhinoEngine implements ScriptingEngine {
     public synchronized void exitContext() {
         // unregister the engine threadlocal
         engines.set(null);
-        core.contextFactory.exit();
+        Context.exit();
         thread = null;
         global = null;
     }
@@ -345,7 +346,7 @@ public class RhinoEngine implements ScriptingEngine {
      *  Let the evaluator know that the current evaluation has been
      *  aborted.
      */
-    public  void abort() {
+    public void abort() {
         // current request has been aborted.
         Thread t = thread;
         // set thread to null
@@ -528,7 +529,7 @@ public class RhinoEngine implements ScriptingEngine {
      * @throws java.io.IOException
      */
     public void serialize(Object obj, OutputStream out) throws IOException {
-        core.contextFactory.enter();
+        core.contextFactory.enterContext();
         engines.set(this);
         try {
             // use a special ScriptableOutputStream that unwraps Wrappers
@@ -536,8 +537,8 @@ public class RhinoEngine implements ScriptingEngine {
                 protected Object replaceObject(Object obj) throws IOException {
                     if (obj instanceof HopObject)
                         return new HopObjectProxy((HopObject) obj);
-                    if (obj instanceof helma.objectmodel.db.Node)
-                        return new HopObjectProxy((helma.objectmodel.db.Node) obj);
+                    if (obj instanceof Node)
+                        return new HopObjectProxy((Node) obj);
                     if (obj instanceof GlobalObject)
                         return new GlobalProxy((GlobalObject) obj);
                     if (obj instanceof ApplicationBean)
@@ -557,7 +558,7 @@ public class RhinoEngine implements ScriptingEngine {
             sout.writeObject(obj);
             sout.flush();
         } finally {
-            core.contextFactory.exit();
+            Context.exit();
         }
     }
 
@@ -571,7 +572,7 @@ public class RhinoEngine implements ScriptingEngine {
      * @throws java.io.IOException
      */
     public Object deserialize(InputStream in) throws IOException, ClassNotFoundException {
-        core.contextFactory.enter();
+        core.contextFactory.enterContext();
         engines.set(this);
         try {
             ObjectInputStream sin = new ScriptableInputStream(in, core.global) {
@@ -584,7 +585,7 @@ public class RhinoEngine implements ScriptingEngine {
             };
             return sin.readObject();
         } finally {
-            core.contextFactory.exit();
+            Context.exit();
         }
     }
 

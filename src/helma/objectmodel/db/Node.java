@@ -869,26 +869,10 @@ public final class Node implements INode, Serializable {
         loadNodes();
 
         // check if this node has a group-by subnode-relation
-        if (dbmap != null) {
-            Relation srel = dbmap.getSubnodeRelation();
-
-            if ((srel != null) && (srel.groupby != null)) {
-                Relation groupbyRel = srel.otherType.columnNameToRelation(srel.groupby);
-                String groupbyProp = (groupbyRel != null) ? groupbyRel.propName
-                                                              : srel.groupby;
-                String groupbyValue = node.getString(groupbyProp);
-                INode groupbyNode = (INode) getChildElement(groupbyValue);
-
-                // if group-by node doesn't exist, we'll create it
-                if (groupbyNode == null) {
-                    groupbyNode = getGroupbySubnode(groupbyValue, true);
-                } else {
-                    groupbyNode.setDbMapping(dbmap.getGroupbyMapping());
-                }
-
-                groupbyNode.addNode(node);
-                return node;
-            }
+        INode groupbyNode = getGroupbySubnode(node, true);
+        if (groupbyNode != null) {
+            groupbyNode.addNode(node);
+            return node;
         }
 
         NodeHandle nhandle = node.getHandle();
@@ -1198,6 +1182,38 @@ public final class Node implements INode, Serializable {
         return retval;
     }
 
+    protected Node getGroupbySubnode(Node node, boolean create) {
+        if (node.dbmap != null && node.dbmap.isGroup()) {
+            return null;
+        }
+        
+        if (dbmap != null) {
+            Relation srel = dbmap.getSubnodeRelation();
+
+            if ((srel != null) && (srel.groupby != null)) {
+                Relation groupbyRel = srel.otherType.columnNameToRelation(srel.groupby);
+                String groupbyProp = (groupbyRel != null) ? groupbyRel.propName
+                                                              : srel.groupby;
+                String groupbyValue = node.getString(groupbyProp);
+                Node groupbyNode = (Node) getChildElement(groupbyValue);
+
+                // if group-by node doesn't exist, we'll create it
+                if (groupbyNode == null) {
+                    groupbyNode = getGroupbySubnode(groupbyValue, create);
+                    // mark subnodes as changed as we have a new group node
+                    if (create && groupbyNode != null) {
+                        Transactor.getInstance().visitParentNode(this);
+                    }
+                } else {
+                    groupbyNode.setDbMapping(dbmap.getGroupbyMapping());
+                }
+
+                return groupbyNode;
+            }
+        }
+        return null;
+    }
+
     /**
      *
      *
@@ -1211,10 +1227,7 @@ public final class Node implements INode, Serializable {
             throw new IllegalArgumentException("Can't create group by null");
         }
 
-        if (state == TRANSIENT) {
-            throw new RuntimeException("Can't add grouped child on transient node. "+
-                                       "Make parent persistent before adding grouped nodes.");
-        }
+        boolean persistent = state != TRANSIENT;
 
         loadNodes();
 
@@ -1228,34 +1241,44 @@ public final class Node implements INode, Serializable {
                 boolean relational = groupbyMapping.getSubnodeMapping().isRelational();
 
                 if (relational || create) {
-                    Node node = relational ? new Node(this, sid, nmgr, null)
-                                           : new Node(sid, null, nmgr);
+                    Node node;
+                    if (relational && persistent) {
+                        node = new Node(this, sid, nmgr, null);
+                    } else {
+                        node = new Node(sid, null, nmgr);
+                        node.setParent(this);
+                    }
 
                     // set "groupname" property to value of groupby field
                     node.setString("groupname", sid);
-
+                    // Set the dbmapping on the group node
                     node.setDbMapping(groupbyMapping);
+                    node.setPrototype(groupbyMapping.getTypeName());
 
-                    if (!relational) {
-                        // if we're not transient, make new node persistable
-                        if (state != TRANSIENT) {
-                            node.makePersistable();
-                            node.checkWriteLock();
-                        }
-                        subnodes.add(node.getHandle());
+                    // if we're relational and persistent, make new node persistable
+                    if (!relational && persistent) {
+                        node.makePersistable();
+                        node.checkWriteLock();
                     }
 
-                    // Set the dbmapping on the group node
-                    node.setPrototype(groupbyMapping.getTypeName());
+                    // if we created a new node, check if we need to add it to subnodes
+                    if (create) {
+                        NodeHandle handle = node.getHandle();
+                        if (!subnodes.contains(handle))
+                            subnodes.add(handle);
+                    }
+
                     // If we created the group node, we register it with the
                     // nodemanager. Otherwise, we just evict whatever was there before
-                    if (create) {
-                        // register group node with transactor
-                        Transactor tx = Transactor.getInstanceOrFail();
-                        tx.visitCleanNode(node);
-                        nmgr.registerNode(node);
-                    } else {
-                        nmgr.evictKey(node.getKey());
+                    if (persistent) {
+                        if (create) {
+                            // register group node with transactor
+                            Transactor tx = Transactor.getInstanceOrFail();
+                            tx.visitCleanNode(node);
+                            nmgr.registerNode(node);
+                        } else {
+                            nmgr.evictKey(node.getKey());
+                        }
                     }
 
                     return node;
@@ -1299,6 +1322,13 @@ public final class Node implements INode, Serializable {
      * {@link #removeNode(INode)}.
      */
     protected void releaseNode(Node node) {
+
+        Node groupNode = getGroupbySubnode(node, false);
+        if (groupNode != null) {
+            groupNode.releaseNode(node);
+            return;
+        }
+
         INode parent = node.getParent();
 
         checkWriteLock();
@@ -1314,7 +1344,9 @@ public final class Node implements INode, Serializable {
             synchronized (subnodes) {
                 removed = subnodes.remove(node.getHandle());
             }
-            if (removed) {
+            if (dbmap != null && dbmap.isGroup() && subnodes.size() == 0) {
+                remove();
+            } else if (removed) {
                 registerSubnodeChange();
             }
         }
@@ -1341,6 +1373,12 @@ public final class Node implements INode, Serializable {
                             nmgr.evictKey(new SyntheticKey(getKey(), prop));
                         }
                     }
+                } else if (prel.groupby != null) {
+                    String prop = node.getString("groupname");
+                    if (prop != null && state != TRANSIENT) {
+                        nmgr.evictKey(new SyntheticKey(getKey(), prop));
+                    }
+
                 }
                 // TODO: We should unset constraints to actually remove subnodes here,
                 // but omit it by convention and to keep backwards compatible.
@@ -2443,7 +2481,7 @@ public final class Node implements INode, Serializable {
 
                 lastmodified = System.currentTimeMillis();
 
-                if (state == CLEAN) {
+                if (state == CLEAN && isPersistableProperty(propname)) {
                     markAs(MODIFIED);
                 }
             } else if (dbmap != null) {

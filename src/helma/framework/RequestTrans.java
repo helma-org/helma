@@ -164,7 +164,18 @@ public class RequestTrans implements Serializable {
      * @return true if this might be an XML-RPC request.
      */
     public synchronized boolean checkXmlRpc() {
-        return "POST".equals(method) && "text/xml".equals(request.getContentType());
+        if ("POST".equalsIgnoreCase(method)) {
+            String contentType = request.getContentType();
+            if (contentType == null) {
+                return false;
+            }
+            int semi = contentType.indexOf(";");
+            if (semi > -1) {
+                contentType = contentType.substring(0, semi);
+            }
+            return "text/xml".equalsIgnoreCase(contentType.trim());
+        }
+        return false;
     }
 
     /**

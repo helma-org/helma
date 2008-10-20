@@ -124,7 +124,10 @@ public final class DbMapping {
     HashSet dependentMappings = new HashSet();
 
     // does this DbMapping describe a virtual node (collection, mountpoint, groupnode)?
-    private boolean virtual = false;
+    private boolean isVirtual = false;
+
+    // does this Dbmapping describe a group node?
+    private boolean isGroup = false;
 
     /**
      * Create an internal DbMapping used for "virtual" mappings aka collections, mountpoints etc.
@@ -132,7 +135,7 @@ public final class DbMapping {
     public DbMapping(Application app, String parentTypeName) {
         this(app, parentTypeName, null);
         // DbMappings created with this constructor always define virtual nodes
-        virtual = true;
+        isVirtual = true;
         if (parentTypeName != null) {
             parentMapping = app.getDbMapping(parentTypeName);
             if (parentMapping == null) {
@@ -311,9 +314,6 @@ public final class DbMapping {
                     }
 
                     rel.update(dbField, props);
-
-                    // store relation with lower case property name
-                    // (ResourceProperties now preserve key capitalization!)
                     p2d.put(propName.toLowerCase(), rel);
 
                     if ((rel.columnName != null) && rel.isPrimitiveOrReference()) {
@@ -756,9 +756,9 @@ public final class DbMapping {
      * db-mapping with the right relations to create the group-by nodes
      */
     public synchronized DbMapping getGroupbyMapping() {
-        if ((subRelation == null)  && (parentMapping != null)) {
+        if ((subRelation == null) && (parentMapping != null)) {
             return parentMapping.getGroupbyMapping();
-        } else if (subRelation.groupby == null) {
+        } else if (subRelation == null || subRelation.groupby == null) {
             return null;
         } else if (groupbyMapping == null) {
             initGroupbyMapping();
@@ -774,6 +774,7 @@ public final class DbMapping {
         // if a prototype is defined for groupby nodes, use that
         // if mapping doesn' exist or isn't defined, create a new (anonymous internal) one
         groupbyMapping = new DbMapping(app, subRelation.groupbyPrototype);
+        groupbyMapping.isGroup = true;
 
         // set subnode and property relations
         groupbyMapping.subRelation = subRelation.getGroupbySubnodeRelation();
@@ -1547,7 +1548,7 @@ public final class DbMapping {
      * a utility method to escape single quotes used for inserting
      * string-values into relational databases.
      * Searches for "'" characters and escapes them by duplicating them (= "''")
-     * @param str the string to escape
+     * @param value the string to escape
      * @return the escaped string
      */
     static String escapeString(Object value) {
@@ -1574,7 +1575,7 @@ public final class DbMapping {
 
     /**
      * Utility method to check whether the argument is a number literal.
-     * @param str a string representing a number literal
+     * @param value a string representing a number literal
      * @return the argument, if it conforms to the number literal syntax
      * @throws IllegalArgumentException if the argument does not represent a number
      */
@@ -1596,6 +1597,14 @@ public final class DbMapping {
      * @return true if this instance describes a virtual node.
      */
     public boolean isVirtual() {
-        return virtual;
+        return isVirtual;
+    }
+
+    /**
+     * Find if this DbMapping describes a group node.
+     * @return true if this instance describes a group node.
+     */
+    public boolean isGroup() {
+        return isGroup;
     }
 }

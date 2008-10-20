@@ -342,7 +342,7 @@ public final class Application implements Runnable {
         String ignoreDirs;
 
         Initializer(String dirs) {
-            super("INIT-" + name);
+            super(name + "-init");
             ignoreDirs = dirs;
         }
 
@@ -489,7 +489,7 @@ public final class Application implements Runnable {
             releaseEvaluator(eval);
         }
 
-        worker = new Thread(this, "Worker-" + name);
+        worker = new Thread(this, name + "-worker");
         worker.setPriority(Thread.NORM_PRIORITY + 1);
         worker.start();
     }
@@ -720,6 +720,14 @@ public final class Application implements Runnable {
 
             if (ev != null) {
                 res = ev.attachHttpRequest(req);
+                if (res != null) {
+                    // we can only use the existing response object if the response
+                    // wasn't written to the HttpServletResponse directly.
+                    res.waitForClose();
+                    if (res.getContent() == null) {
+                        res = null;
+                    }
+                }
             }
 
             if (res == null) {
@@ -752,8 +760,6 @@ public final class Application implements Runnable {
                 } catch (UnsupportedEncodingException uee) {
                     logError("Unsupported response encoding", uee);
                 }
-            } else {
-                res.waitForClose();
             }
         }
 
@@ -1462,7 +1468,7 @@ public final class Application implements Runnable {
     /**
      * get the app's event log.
      */
-    Log getEventLog() {
+    public Log getEventLog() {
         if (eventLog == null) {
             eventLog = getLogger(eventLogName);
             // set log level for event log in case it is a helma.util.Logger
@@ -1479,7 +1485,7 @@ public final class Application implements Runnable {
     /**
      * get the app's access log.
      */
-    Log getAccessLog() {
+    public Log getAccessLog() {
         if (accessLog == null) {
             accessLog = getLogger(accessLogName);
         }
@@ -1733,28 +1739,6 @@ public final class Application implements Runnable {
      */
     public List getRepositories() {
         return Collections.unmodifiableList(repositories);
-    }
-
-    /**
-     * Set the code resource currently being evaluated/compiled. This is used
-     * to set the proper parent repository when a new repository is added
-     * via app.addRepository().
-     *
-     * @param resource the resource being currently evaluated/compiled
-     */
-    public void setCurrentCodeResource(Resource resource) {
-        currentCodeResource = resource;
-    }
-
-    /**
-     * Set the code resource currently being evaluated/compiled. This is used
-     * to set the proper parent repository when a new repository is added
-     * via app.addRepository().
-
-     * @return the resource being currently evaluated/compiled
-     */
-    public Resource getCurrentCodeResource() {
-        return currentCodeResource;
     }
 
     /**

@@ -104,7 +104,7 @@ public class SubnodeList extends ArrayList {
         }
     }
 
-    public List getOrderedView (String order) {
+    public SubnodeList getOrderedView (String order) {
         String key = order.trim().toLowerCase();
         // long start = System.currentTimeMillis();
         if (views == null) {

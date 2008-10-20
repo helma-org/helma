@@ -19,6 +19,9 @@ package helma.servlet;
 import helma.framework.repository.Repository;
 import helma.framework.core.Application;
 import helma.framework.repository.FileRepository;
+import helma.main.ServerConfig;
+import helma.main.Server;
+
 import java.io.*;
 import javax.servlet.*;
 import java.util.*;
@@ -40,7 +43,7 @@ public final class StandaloneServletClient extends AbstractServletClient {
     private String appName;
     private String appDir;
     private String dbDir;
-    // private String hopDir;
+    private String hopDir;
     private Repository[] repositories;
 
     /**
@@ -53,7 +56,12 @@ public final class StandaloneServletClient extends AbstractServletClient {
     public void init(ServletConfig init) throws ServletException {
         super.init(init);
 
-        // hopDir = init.getInitParameter("hopdir");
+        hopDir = init.getInitParameter("hopdir");
+
+        if (hopDir == null) {
+            // assume helmaDir to be current directory
+            hopDir = ".";
+        }
 
         appName = init.getInitParameter("application");
 
@@ -70,7 +78,7 @@ public final class StandaloneServletClient extends AbstractServletClient {
         }
 
         Class[] parameters = { String.class };
-        ArrayList<Repository> repositoryList = new ArrayList<Repository>();
+        ArrayList repositoryList = new ArrayList();
 
         for (int i = 0; true; i++) {
             String repositoryArgs = init.getInitParameter("repository." + i);
@@ -92,7 +100,7 @@ public final class StandaloneServletClient extends AbstractServletClient {
                 try {
                     Repository newRepository = (Repository) Class.forName(repositoryImpl)
                         .getConstructor(parameters)
-                        .newInstance(repositoryArgs);
+                        .newInstance(new Object[] {repositoryArgs});
                     repositoryList.add(newRepository);
                     log("adding repository: " + repositoryArgs);
                 } catch (Exception ex) {
@@ -115,7 +123,7 @@ public final class StandaloneServletClient extends AbstractServletClient {
         }
 
         repositories = new Repository[repositoryList.size()];
-        repositories = repositoryList.toArray(repositories);
+        repositories = (Repository[]) repositoryList.toArray(repositories);
 
     }
 
@@ -146,8 +154,14 @@ public final class StandaloneServletClient extends AbstractServletClient {
         try {
             File dbHome = new File(dbDir);
             File appHome = new File(appDir);
+            File hopHome = new File(hopDir);
 
-            app = new Application(appName, null, repositories, appHome, dbHome);
+            ServerConfig config = new ServerConfig();
+            config.setHomeDir(hopHome);
+            Server server = new Server(config);
+            server.init();
+
+            app = new Application(appName, server, repositories, appHome, dbHome);
             app.init();
             app.start();
         } catch (Exception x) {
