@@ -578,8 +578,12 @@ helma.Mail = function(host, port) {
         props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.host", String(host));
         props.put("mail.smtp.port", String(port || 25));
+        props.put("mail.smtp.starttls.enable",
+                getProperty("smtp.tls") || "false");
         props.put("mail.mime.charset",
-                  System.getProperty("mail.charset", "ISO-8859-15"));
+                getProperty("smtp.charset") ||
+                System.getProperty("mail.charset") ||
+                "ISO-8859-15");
     }
 
     this.setAuthentication(getProperty("smtp.username"),
