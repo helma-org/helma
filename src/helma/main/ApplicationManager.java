@@ -281,6 +281,14 @@ public class ApplicationManager implements XmlRpcHandler {
         return server.getLogger();
     }
 
+    private String findResource(String path) {
+        File file = new File(path);
+        if (!file.isAbsolute() && !file.exists()) {
+            file = new File(server.getHopHome(), path);
+        }
+        return file.getAbsolutePath();
+    }
+
     /**
      *  Inner class that describes an application and its start settings.
      */
@@ -362,10 +370,13 @@ public class ApplicationManager implements XmlRpcHandler {
                     if (repositoryImpl == null) {
                         // implementation not set manually, have to guess it
                         if (repositoryArgs.endsWith(".zip")) {
+                            repositoryArgs = findResource(repositoryArgs);
                             repositoryImpl = "helma.framework.repository.ZipRepository";
                         } else if (repositoryArgs.endsWith(".js")) {
+                            repositoryArgs = findResource(repositoryArgs);
                             repositoryImpl = "helma.framework.repository.SingleFileRepository";
                         } else {
+                            repositoryArgs = findResource(repositoryArgs);
                             repositoryImpl = "helma.framework.repository.FileRepository";
                         }
                     }
