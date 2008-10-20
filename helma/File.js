@@ -41,13 +41,14 @@ if (!global.helma) {
 helma.File = function(path) {
    var BufferedReader            = java.io.BufferedReader;
    var File                      = java.io.File;
-   var Reader                    = java.io.Reader;
    var Writer                    = java.io.Writer;
    var FileReader                = java.io.FileReader;
-   var FileWriter                = java.io.FileWriter;
    var PrintWriter               = java.io.PrintWriter;
+   var FileOutputStream          = java.io.FileOutputStream;
+   var OutputStreamWriter        = java.io.OutputStreamWriter;
+   var FileInputStream           = java.io.FileInputStream;
+   var InputStreamReader         = java.io.InputStreamReader;
    var EOFException              = java.io.EOFException;
-   var IOException               = java.io.IOException;
    var IllegalStateException     = java.lang.IllegalStateException;
    var IllegalArgumentException  = java.lang.IllegalArgumentException
 
@@ -107,12 +108,19 @@ helma.File = function(path) {
    };
 
    /**
-    * Opens the file represented by this File object.
-    * 
-    * @returns Boolean
+    * Opens the file represented by this File object. If the file exists,
+    * it is used for reading, otherwise it is opened for writing.
+    * If the encoding argument is specified, it is used to read or write
+    * the file. Otherwise, the platform's default encoding is used.
+    *
+    * @param {Object} options an optional argument holder object.
+    *  The following options are supported:
+    *  <ul><li>charset name of encoding to use for reading or writing</li>
+    *  <li>append whether to append to the file if it exists</li></ul>
+    * @returns Boolean true if the operation succeeded
     * @type Boolean
     */
-   this.open = function() {
+   this.open = function(options) {
       if (self.isOpened()) {
          setError(new IllegalStateException("File already open"));
          return false;
@@ -121,12 +129,29 @@ helma.File = function(path) {
       // cannot fail except if the FileReader/FileWriter fails.
       // Otherwise we have an open file until the reader/writer
       // get garbage collected.
-      try{
-         if (file.exists()) {
-            readerWriter = new BufferedReader(new FileReader(file));
-         } else {
-            readerWriter = new PrintWriter(new FileWriter(file));
-         }
+      var charset = options && options.charset;
+      var append = options && options.append;
+      try {
+          if (file.exists() && !append) {
+             if (charset) {
+                 readerWriter = new BufferedReader(
+                         new InputStreamReader(new FileInputStream(file), charset));
+             } else {
+                 readerWriter = new BufferedReader(new FileReader(file));
+             }
+          } else {
+             if (append && charset)  {
+                 readerWriter = new PrintWriter(
+                         new OutputStreamWriter(new FileOutputStream(file, true), charset));
+             } else if (append) {
+                 readerWriter = new PrintWriter(
+                         new OutputStreamWriter(new FileOutputStream(file, true)));
+             } else if (charset) {
+                 readerWriter = new PrintWriter(file, charset);
+             } else {
+                 readerWriter = new PrintWriter(file);
+             }
+          }
          return true;
       } catch (e) {
          setError(e);
@@ -331,6 +356,8 @@ helma.File = function(path) {
       if (!self.isOpened())
          return false;
       try {
+         atEOF = false;
+         lastLine = null;
          readerWriter.close();
          readerWriter = null;
          return true;
