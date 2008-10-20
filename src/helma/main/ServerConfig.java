@@ -31,6 +31,7 @@ public class ServerConfig {
     private InetAddrPort ajp13Port  = null;
     private File         propFile   = null;
     private File         homeDir    = null;
+    private File         configFile = null;
 
     public boolean hasPropFile() {
         return (propFile != null);
@@ -103,4 +104,12 @@ public class ServerConfig {
     public void setHomeDir(File homeDir) {
         this.homeDir = homeDir == null ? null : homeDir.getAbsoluteFile();
     }
+    
+    public File getConfigFile() {
+		return configFile;
+	}
+
+	public void setConfigFile(File configFile) {
+		this.configFile = configFile == null ? null : configFile.getAbsoluteFile();
+	}
 }
