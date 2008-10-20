@@ -32,6 +32,9 @@ import java.io.*;
 import java.rmi.registry.*;
 import java.rmi.server.*;
 import java.util.*;
+import java.net.UnknownHostException;
+import java.net.ServerSocket;
+import java.net.InetAddress;
 
 import helma.util.ResourceProperties;
 
@@ -370,13 +373,11 @@ public class Server implements Runnable {
 
 
     /**
-     *  A primitive method to check whether a server is already running on our port.
+     *  Check whether a server port is available by trying to open a server socket
      */
     private static void checkPort(InetAddrPort addrPort) throws Exception {
-        // checkRunning is disabled until we find a fix for the socket creation
-        // timeout problems reported on the list.
-        /*
         InetAddress addr = addrPort.getInetAddress();
+        int port = addrPort.getPort();
         if (addr == null) {
             try {
                 addr = InetAddress.getLocalHost();
@@ -386,19 +387,12 @@ public class Server implements Runnable {
             }
         }
         try {
-            Socket sock = new Socket();
-            // this should fix the timeout problems reported here:
-            // http://grazia.helma.at/pipermail/helma-user/2003-December/005602.html
-            sock.connect(new InetSocketAddress(addr, addrPort.getPort()), 1000);
+            ServerSocket sock = new ServerSocket(port, 1, addr);
+            sock.close();
         } catch (Exception x) {
-            // we couldn't connect to the socket because no server
-            // is running on it yet. Everything's ok.
-            return;
+            throw new Exception("Error: Server already running on this port: " + addrPort);
         }
-
-        // if we got so far, another server is already running on this port and db
-        throw new Exception("Error: Server already running on this port: " + addrPort);
-        */
+        return;
     }
 
 
