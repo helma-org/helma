@@ -74,6 +74,9 @@ public class Server implements Runnable {
     InetAddrPort websrvPort = null;
     InetAddrPort ajp13Port = null;
 
+    // Jetty configuration file
+    File configFile = null;
+    
     // map of server-wide database sources
     Hashtable dbSources;
 
@@ -102,6 +105,7 @@ public class Server implements Runnable {
         websrvPort = config.getWebsrvPort();
         ajp13Port  = config.getAjp13Port();
         hopHome    = config.getHomeDir();
+        configFile = config.getConfigFile();
 
         // create system properties
         sysProps = new ResourceProperties();
@@ -257,6 +261,8 @@ public class Server implements Runnable {
                 } catch (Exception portx) {
                     throw new Exception("Error parsing AJP1.3 server port property: " + portx);
                 }
+            } else if (args[i].equals("-c") && ((i + 1) < args.length)) {
+                config.setConfigFile(new File(args[++i]));
             } else if (args[i].equals("-i") && ((i + 1) < args.length)) {
                 // eat away the -i parameter which is meant for helma.main.launcher.Main
                 i++;
@@ -323,6 +329,7 @@ public class Server implements Runnable {
         System.out.println("Possible options:");
         System.out.println("  -h dir       Specify hop home directory");
         System.out.println("  -f file      Specify server.properties file");
+        System.out.println("  -c jetty.xml      Specify Jetty XML configuration file");
         System.out.println("  -w [ip:]port      Specify embedded web server address/port");
         System.out.println("  -x [ip:]port      Specify XML-RPC address/port");
         System.out.println("  -jk [ip:]port     Specify AJP13 address/port");
@@ -435,14 +442,21 @@ public class Server implements Runnable {
 
 
         // read db.properties file in helma home directory
+        String dbPropfile = sysProps.getProperty("dbPropFile");
+        File file;
+        if ((dbPropfile != null) && !"".equals(dbPropfile.trim())) {
+            file = new File(dbPropfile);
+        } else {
+            file = new File(hopHome, "db.properties");
+        }
+
         dbProps = new ResourceProperties();
         dbProps.setIgnoreCase(false);
-        dbProps.addResource(new FileResource(new File(hopHome, "db.properties")));
+        dbProps.addResource(new FileResource(file));
         DbSource.setDefaultProps(dbProps);
 
         // read apps.properties file
         String appsPropfile = sysProps.getProperty("appsPropFile");
-        File file;
         if ((appsPropfile != null) && !"".equals(appsPropfile.trim())) {
             file = new File(appsPropfile);
         } else {
@@ -559,39 +573,41 @@ public class Server implements Runnable {
      */
     public void run() {
         try {
-            if ((websrvPort != null) || (ajp13Port != null)) {
+            if (configFile != null && configFile.exists()) {
+                http = new org.mortbay.jetty.Server(configFile.toURI().toURL());
+            } else if ((websrvPort != null) || (ajp13Port != null)) {
                 http = new HttpServer();
-            }
 
-            // start embedded web server if port is specified
-            if (websrvPort != null) {
-                http.addListener(websrvPort);
-            }
-
-            // activate the ajp13-listener
-            if (ajp13Port != null) {
-                // create AJP13Listener
-                ajp13 = new AJP13Listener(ajp13Port);
-                ajp13.setHttpServer(http);
-
-                String jkallow = sysProps.getProperty("allowAJP13");
-
-                // by default the AJP13-connection just accepts requests from 127.0.0.1
-                if (jkallow == null) {
-                    jkallow = "127.0.0.1";
+                // start embedded web server if port is specified
+                if (websrvPort != null) {
+                    http.addListener(websrvPort);
                 }
 
-                StringTokenizer st = new StringTokenizer(jkallow, " ,;");
-                String[] jkallowarr = new String[st.countTokens()];
-                int cnt = 0;
+                // activate the ajp13-listener
+                if (ajp13Port != null) {
+                    // create AJP13Listener
+                    ajp13 = new AJP13Listener(ajp13Port);
+                    ajp13.setHttpServer(http);
 
-                while (st.hasMoreTokens()) {
-                    jkallowarr[cnt] = st.nextToken();
-                    cnt++;
+                    String jkallow = sysProps.getProperty("allowAJP13");
+
+                    // by default the AJP13-connection just accepts requests from 127.0.0.1
+                    if (jkallow == null) {
+                        jkallow = "127.0.0.1";
+                    }
+
+                    StringTokenizer st = new StringTokenizer(jkallow, " ,;");
+                    String[] jkallowarr = new String[st.countTokens()];
+                    int cnt = 0;
+
+                    while (st.hasMoreTokens()) {
+                        jkallowarr[cnt] = st.nextToken();
+                        cnt++;
+                    }
+
+                    ajp13.setRemoteServers(jkallowarr);
+                    logger.info("Starting AJP13-Listener on port " + (ajp13Port));
                 }
-
-                ajp13.setRemoteServers(jkallowarr);
-                logger.info("Starting AJP13-Listener on port " + (ajp13Port));
             }
 
             if (xmlrpcPort != null) {
