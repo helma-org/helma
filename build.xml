@@ -171,7 +171,7 @@
         <!-- add a copy of the modules -->
         <mkdir dir="${build.work}/reference/modules"/>
         <copy todir="${build.work}/reference/modules">
-            <fileset dir="${build.externals}/modules/"/>
+            <fileset dir="${home.dir}/modules/"/>
         </copy>
  
     	<mkdir dir="${build.jsdocs}"/>
@@ -388,7 +388,7 @@
         <!-- add a copy of the modules -->
         <mkdir dir="${build.work}/modules"/>
         <copy todir="${build.work}/modules">
-            <fileset dir="${build.externals}/modules"/>
+            <fileset dir="${home.dir}/modules"/>
         </copy>
  
         <antcall target="package-helmaTools" />
@@ -459,6 +459,7 @@
             <tarfileset prefix="${filename}" dir="${home.dir}">
                 <include name="src/**"/>
                 <include name="build/**"/>
+                <include name="build.xml"/>
                 <include name="docs/**"/>
                 <include name="licenses/**"/>
                 <include name="license.txt"/>
@@ -482,6 +483,7 @@
             <zipfileset dir="${home.dir}" prefix="${filename}">
               <include name="src/**"/>
               <include name="build/**"/>
+              <include name="build.xml"/>
               <include name="docs/**"/>
               <include name="licenses/**"/>
               <include name="license.txt"/>
