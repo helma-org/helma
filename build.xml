@@ -459,6 +459,7 @@
             <tarfileset prefix="${filename}" dir="${home.dir}">
                 <include name="src/**"/>
                 <include name="build/**"/>
+                <include name="build.xml"/>
                 <include name="docs/**"/>
                 <include name="licenses/**"/>
                 <include name="license.txt"/>
@@ -482,6 +483,7 @@
             <zipfileset dir="${home.dir}" prefix="${filename}">
               <include name="src/**"/>
               <include name="build/**"/>
+              <include name="build.xml"/>
               <include name="docs/**"/>
               <include name="licenses/**"/>
               <include name="license.txt"/>
