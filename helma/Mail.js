@@ -56,17 +56,21 @@ if (!global.helma) {
  */
 helma.Mail = function(host, port) {
     // Error code values for this.status
-    var OK          =  0;
-    var SUBJECT     = 10;
-    var TEXT        = 11;
-    var MIMEPART    = 12;
-    var TO          = 20;
-    var CC          = 21;
-    var BCC         = 22;
-    var FROM        = 23;
-    var REPLYTO     = 24;
-    var SEND        = 30;
-    var MAILPKG     = Packages.javax.mail;
+    var OK           = 0;
+    var SUBJECT      = 10;
+    var TEXT         = 11;
+    var MIMEPART     = 12;
+    var TO           = 20;
+    var CC           = 21;
+    var BCC          = 22;
+    var FROM         = 23;
+    var REPLYTO      = 24;
+    var SETHEADER    = 25;
+    var ADDHEADER    = 26;
+    var GETHEADER    = 27;
+    var REMOVEHEADER = 28;
+    var SEND         = 30;
+    var MAILPKG      = Packages.javax.mail;
 
     var self = this;
     var errStr = "Error in helma.Mail";
@@ -81,12 +85,9 @@ helma.Mail = function(host, port) {
     var MimePart            = Packages.helma.util.MimePart;
     var MimePartDataSource  = Packages.helma.util.MimePartDataSource;
 
-    var Address             = MAILPKG.Address;
     var BodyPart            = MAILPKG.BodyPart;
     var Message             = MAILPKG.Message;
-    var Multipart           = MAILPKG.Multipart;
     var Session             = MAILPKG.Session;
-    var Transport           = MAILPKG.Transport;
     var InternetAddress     = MAILPKG.internet.InternetAddress;
     var AddressException    = MAILPKG.internet.AddressException;
     var MimeBodyPart        = MAILPKG.internet.MimeBodyPart;
@@ -232,6 +233,74 @@ helma.Mail = function(host, port) {
         }
         return;
     };
+
+    /**
+     * Set a header in the e-mail message. If the given header is already set the previous
+     * value is replaced with the new one.
+     * @param name a header name
+     * @param value the header value
+     */
+    this.setHeader = function(name, value) {
+        try {
+            message.addHeader(name, MimeUtility.encodeText(value));
+        } catch (mx) {
+            app.logger.error(errStr + ".setHeader(): " + mx);
+            setStatus(SETHEADER);
+        }
+        return;
+    }
+
+    /**
+     * Set a header in the e-mail message. If the given header is already set the previous 
+     * value is replaced with the new one.
+     * @param name a header name
+     * @param value the header value
+     */
+    this.addHeader = function(name, value) {
+        try {
+            message.addHeader(name, MimeUtility.encodeText(value));
+        } catch (mx) {
+            app.logger.error(errStr + ".addHeader(): " + mx);
+            setStatus(ADDHEADER);
+        }
+        return;
+    }
+
+    /**
+     * Get all the headers for this header name.
+     * Returns null  if no headers for this header name are available.
+     * @param name a header name
+     * @return {String[]} a string array of header values, or null
+     */
+    this.getHeader = function(name) {
+        var value = null;
+        try {
+            value = message.getHeader(name);
+            if (value && value.length) {
+                for (var i = 0; i < value.length; i++) {
+                    value[i] = MimeUtility.decodeText(value[i]);
+                }
+            }
+        } catch (mx) {
+            app.logger.error(errStr + ".getHeader(): " + mx);
+            setStatus(GETHEADER);
+        }
+        return value;
+    }
+
+    /**
+     * Remove all headers with this name. 
+     * @param name the header name
+     */
+    this.removeHeader = function(name) {
+        try {
+            message.removeHeader(name);
+        } catch (mx) {
+            app.logger.error(errStr + ".removeHeader(): " + mx);
+            setStatus(REMOVEHEADER);
+        }
+        return;
+    }
     
     /**
      * Sets the Reply-To address of an e-mail message.
