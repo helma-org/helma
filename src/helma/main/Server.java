@@ -24,9 +24,6 @@ import helma.util.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.xmlrpc.*;
-import org.mortbay.http.*;
-import org.mortbay.http.ajp.*;
-import org.mortbay.util.InetAddrPort;
 
 import java.io.*;
 import java.rmi.registry.*;
@@ -72,10 +69,10 @@ public class Server implements Runnable {
     private Thread mainThread;
 
     // server ports
-    InetAddrPort rmiPort = null;
-    InetAddrPort xmlrpcPort = null;
-    InetAddrPort websrvPort = null;
-    InetAddrPort ajp13Port = null;
+    InetEndpoint rmiPort = null;
+    InetEndpoint xmlrpcPort = null;
+    InetEndpoint websrvPort = null;
+    InetEndpoint ajp13Port = null;
 
     // Jetty configuration file
     File configFile = null;
@@ -85,10 +82,7 @@ public class Server implements Runnable {
 
     // the embedded web server
     // protected Serve websrv;
-    protected HttpServer http;
-
-    // the AJP13 Listener, used for connecting from external webserver to servlet via JK
-    protected AJP13Listener ajp13;
+    protected JettyServer jetty;
 
     // the XML-RPC server
     protected WebServer xmlrpc;
@@ -195,7 +189,7 @@ public class Server implements Runnable {
         // check if there's a property setting for those ports not specified via command line
         if (!config.hasWebsrvPort() && sysProps.getProperty("webPort") != null) {
             try {
-                config.setWebsrvPort(new InetAddrPort(sysProps.getProperty("webPort")));
+                config.setWebsrvPort(new InetEndpoint(sysProps.getProperty("webPort")));
             } catch (Exception portx) {
                 throw new Exception("Error parsing web server port property from server.properties: " + portx);
             }
@@ -203,7 +197,7 @@ public class Server implements Runnable {
 
         if (!config.hasAjp13Port() && sysProps.getProperty("ajp13Port") != null) {
             try {
-                config.setAjp13Port(new InetAddrPort(sysProps.getProperty("ajp13Port")));
+                config.setAjp13Port(new InetEndpoint(sysProps.getProperty("ajp13Port")));
             } catch (Exception portx) {
                 throw new Exception("Error parsing AJP1.3 server port property from server.properties: " + portx);
             }
@@ -211,7 +205,7 @@ public class Server implements Runnable {
 
         if (!config.hasRmiPort() && sysProps.getProperty("rmiPort") != null) {
             try {
-                config.setRmiPort(new InetAddrPort(sysProps.getProperty("rmiPort")));
+                config.setRmiPort(new InetEndpoint(sysProps.getProperty("rmiPort")));
             } catch (Exception portx) {
                 throw new Exception("Error parsing RMI server port property from server.properties: " + portx);
             }
@@ -219,7 +213,7 @@ public class Server implements Runnable {
 
         if (!config.hasXmlrpcPort() && sysProps.getProperty("xmlrpcPort") != null) {
             try {
-                config.setXmlrpcPort(new InetAddrPort(sysProps.getProperty("xmlrpcPort")));
+                config.setXmlrpcPort(new InetEndpoint(sysProps.getProperty("xmlrpcPort")));
             } catch (Exception portx) {
                 throw new Exception("Error parsing XML-RPC server port property from server.properties: " + portx);
             }
@@ -242,25 +236,25 @@ public class Server implements Runnable {
                 config.setPropFile(new File(args[++i]));
             } else if (args[i].equals("-p") && ((i + 1) < args.length)) {
                 try {
-                    config.setRmiPort(new InetAddrPort(args[++i]));
+                    config.setRmiPort(new InetEndpoint(args[++i]));
                 } catch (Exception portx) {
                     throw new Exception("Error parsing RMI server port property: " + portx);
                 }
             } else if (args[i].equals("-x") && ((i + 1) < args.length)) {
                 try {
-                    config.setXmlrpcPort(new InetAddrPort(args[++i]));
+                    config.setXmlrpcPort(new InetEndpoint(args[++i]));
                 } catch (Exception portx) {
                     throw new Exception("Error parsing XML-RPC server port property: " + portx);
                 }
             } else if (args[i].equals("-w") && ((i + 1) < args.length)) {
                 try {
-                    config.setWebsrvPort(new InetAddrPort(args[++i]));
+                    config.setWebsrvPort(new InetEndpoint(args[++i]));
                 } catch (Exception portx) {
                     throw new Exception("Error parsing web server port property: " + portx);
                 }
             } else if (args[i].equals("-jk") && ((i + 1) < args.length)) {
                 try {
-                    config.setAjp13Port(new InetAddrPort(args[++i]));
+                    config.setAjp13Port(new InetEndpoint(args[++i]));
                 } catch (Exception portx) {
                     throw new Exception("Error parsing AJP1.3 server port property: " + portx);
                 }
@@ -382,7 +376,7 @@ public class Server implements Runnable {
     /**
      *  Check whether a server port is available by trying to open a server socket
      */
-    private static void checkPort(InetAddrPort addrPort) throws Exception {
+    private static void checkPort(InetEndpoint addrPort) throws Exception {
         InetAddress addr = addrPort.getInetAddress();
         int port = addrPort.getPort();
         if (addr == null) {
@@ -524,10 +518,10 @@ public class Server implements Runnable {
 
         appManager.stopAll();
 
-        if (http != null) {
+        if (jetty != null) {
             try {
-                http.stop();
-                http.destroy();
+                jetty.stop();
+                jetty.destroy();
             } catch (InterruptedException irx) {
                 // http.stop() interrupted by another thread. ignore.
             }
@@ -567,42 +561,7 @@ public class Server implements Runnable {
      */
     public void run() {
         try {
-            if (configFile != null && configFile.exists()) {
-                http = new org.mortbay.jetty.Server(configFile.toURI().toURL());
-            } else if ((websrvPort != null) || (ajp13Port != null)) {
-                http = new HttpServer();
-
-                // start embedded web server if port is specified
-                if (websrvPort != null) {
-                    http.addListener(websrvPort);
-                }
-
-                // activate the ajp13-listener
-                if (ajp13Port != null) {
-                    // create AJP13Listener
-                    ajp13 = new AJP13Listener(ajp13Port);
-                    ajp13.setHttpServer(http);
-
-                    String jkallow = sysProps.getProperty("allowAJP13");
-
-                    // by default the AJP13-connection just accepts requests from 127.0.0.1
-                    if (jkallow == null) {
-                        jkallow = "127.0.0.1";
-                    }
-
-                    StringTokenizer st = new StringTokenizer(jkallow, " ,;");
-                    String[] jkallowarr = new String[st.countTokens()];
-                    int cnt = 0;
-
-                    while (st.hasMoreTokens()) {
-                        jkallowarr[cnt] = st.nextToken();
-                        cnt++;
-                    }
-
-                    ajp13.setRemoteServers(jkallowarr);
-                    logger.info("Starting AJP13-Listener on port " + (ajp13Port));
-                }
-            }
+            jetty = JettyServer.init(this);
 
             if (xmlrpcPort != null) {
                 String xmlparser = sysProps.getProperty("xmlparser");
@@ -689,19 +648,11 @@ public class Server implements Runnable {
         }
 
         // start embedded web server
-        if (http != null) {
+        if (jetty != null) {
             try {
-                http.start();
+                jetty.start();
             } catch (Exception m) {
                 throw new RuntimeException("Error starting embedded web server", m);
-            }
-        }
-
-        if (ajp13 != null) {
-            try {
-                ajp13.start();
-            } catch (Exception m) {
-                throw new RuntimeException("Error starting AJP13 listener: " + m);
             }
         }
 
@@ -892,6 +843,38 @@ public class Server implements Runnable {
     public void stopApplication(String name) {
         appManager.stop(name);
     }
+}
+
+class InetEndpoint {
+    
+    InetAddress addr;
+    int port;
+
+    public InetEndpoint(String inetAddrPort)
+            throws java.net.UnknownHostException {
+        int c = inetAddrPort.indexOf(':');
+        if (c >= 0) {
+            String addr = inetAddrPort.substring(0, c);
+            if (addr.indexOf('/') > 0)
+                addr = addr.substring(addr.indexOf('/') + 1);
+            inetAddrPort = inetAddrPort.substring(c + 1);
+
+            if (addr.length() > 0 && !"0.0.0.0".equals(addr)) {
+                this.addr = InetAddress.getByName(addr);
+            }
+        }
+
+        this.port = Integer.parseInt(inetAddrPort);
+    }
+
+    public InetAddress getInetAddress() {
+        return addr;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
 }
 
 

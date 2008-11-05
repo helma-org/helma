@@ -42,7 +42,7 @@ public class ApplicationManager implements XmlRpcHandler {
     private ResourceProperties props;
     private Server server;
     private long lastModified;
-    private HttpServer httpServer = null;
+    private JettyServer jetty = null;
 
     /**
      * Creates a new ApplicationManager object.
@@ -60,7 +60,7 @@ public class ApplicationManager implements XmlRpcHandler {
         applications = new Hashtable();
         xmlrpcHandlers = new Hashtable();
         lastModified = 0;
-        httpServer = server.http;
+        jetty = server.jetty;
     }
 
     /**
@@ -88,7 +88,7 @@ public class ApplicationManager implements XmlRpcHandler {
                     // check if application has been removed and should be stopped
                     if (!props.containsKey(appDesc.appName)) {
                         appDesc.stop();
-                    } else if (server.http != null) {
+                    } else if (server.jetty != null) {
                         // If application continues to run, remount
                         // as the mounting options may have changed.
                         AppDescriptor ndesc = new AppDescriptor(appDesc.appName);
@@ -471,9 +471,9 @@ public class ApplicationManager implements XmlRpcHandler {
                 }
 
                 // bind to Jetty HTTP server
-                if (httpServer != null) {
+                if (jetty != null) {
 
-                    HttpContext context = httpServer.addContext(pathPattern);
+                    HttpContext context = jetty.addContext(pathPattern);
 
                     if (encode) {
                         // FIXME: ContentEncodingHandler is broken/removed in Jetty 4.2
@@ -534,7 +534,7 @@ public class ApplicationManager implements XmlRpcHandler {
                         getLogger().info("Mounting static at " +
                                        staticMountpoint);
 
-                        context = httpServer.addContext(staticMountpoint);
+                        context = jetty.addContext(staticMountpoint);
                         context.setWelcomeFiles(staticHome);
 
                         context.setResourceBase(staticContent.getPath());
@@ -566,8 +566,8 @@ public class ApplicationManager implements XmlRpcHandler {
                 }
 
                 // unbind from Jetty HTTP server
-                if (httpServer != null) {
-                    HttpContext context = httpServer.getContext(null, pathPattern);
+                if (jetty != null) {
+                    HttpContext context = jetty.getContext(pathPattern);
 
                     if (context != null) {
                         context.stop();
@@ -575,7 +575,7 @@ public class ApplicationManager implements XmlRpcHandler {
                     }
 
                     if (staticDir != null) {
-                        context = httpServer.getContext(null, staticMountpoint);
+                        context = jetty.getContext(staticMountpoint);
 
                         if (context != null) {
                             context.stop();

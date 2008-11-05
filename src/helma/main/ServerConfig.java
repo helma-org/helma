@@ -16,7 +16,6 @@
 
 package helma.main;
 
-import org.mortbay.util.InetAddrPort;
 import java.io.File;
 
 /**
@@ -25,10 +24,10 @@ import java.io.File;
  
 public class ServerConfig {
 
-    private InetAddrPort rmiPort    = null;
-    private InetAddrPort xmlrpcPort = null;
-    private InetAddrPort websrvPort = null;
-    private InetAddrPort ajp13Port  = null;
+    private InetEndpoint rmiPort    = null;
+    private InetEndpoint xmlrpcPort = null;
+    private InetEndpoint websrvPort = null;
+    private InetEndpoint ajp13Port  = null;
     private File         propFile   = null;
     private File         homeDir    = null;
     private File         configFile = null;
@@ -57,35 +56,35 @@ public class ServerConfig {
         return (ajp13Port != null);
     }
 
-    public InetAddrPort getRmiPort() {
+    public InetEndpoint getRmiPort() {
         return rmiPort;
     }
 
-    public void setRmiPort(InetAddrPort rmiPort) {
+    public void setRmiPort(InetEndpoint rmiPort) {
         this.rmiPort = rmiPort;
     }
 
-    public InetAddrPort getXmlrpcPort() {
+    public InetEndpoint getXmlrpcPort() {
         return xmlrpcPort;
     }
 
-    public void setXmlrpcPort(InetAddrPort xmlrpcPort) {
+    public void setXmlrpcPort(InetEndpoint xmlrpcPort) {
         this.xmlrpcPort = xmlrpcPort;
     }
 
-    public InetAddrPort getWebsrvPort() {
+    public InetEndpoint getWebsrvPort() {
         return websrvPort;
     }
 
-    public void setWebsrvPort(InetAddrPort websrvPort) {
+    public void setWebsrvPort(InetEndpoint websrvPort) {
         this.websrvPort = websrvPort;
     }
 
-    public InetAddrPort getAjp13Port() {
+    public InetEndpoint getAjp13Port() {
         return ajp13Port;
     }
 
-    public void setAjp13Port(InetAddrPort ajp13Port) {
+    public void setAjp13Port(InetEndpoint ajp13Port) {
         this.ajp13Port = ajp13Port;
     }
 
