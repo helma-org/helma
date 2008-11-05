@@ -757,6 +757,11 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
                 }
             }
             super.put(name, start, value);
+        } else if (super.has(name, start)) {
+            // if property is defined as ScriptableObject slot
+            // (e.g. via __defineGetter__/__defineSetter__)
+            // use ScriptableObject.put to set it
+            super.put(name, start, value);
         } else {
             checkNode();
 
@@ -810,10 +815,11 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     public boolean has(String name, Scriptable start) {
         if (node != null) {
             checkNode();
-            return  (node.get(name) != null);
-        } else {
-            return super.has(name, start);
+            if (node.get(name) != null) {
+            	return true;
+            }
         }
+        return super.has(name, start);
     }
 
     /**
@@ -825,9 +831,8 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         if ((node != null)) {
             checkNode();
             node.unset(name);
-        } else {
-            super.delete(name);
         }
+        super.delete(name);
     }
 
     /**
@@ -839,11 +844,11 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * @return ...
      */
     public Object get(String name, Scriptable start) {
-        if (node == null) {
-            return super.get(name, start);
-        } else {
-            return getFromNode(name);
+    	Object obj = super.get(name, start);
+    	if (obj == Scriptable.NOT_FOUND && node != null) {
+            obj = getFromNode(name);
         }
+        return obj;
     }
 
     /**
