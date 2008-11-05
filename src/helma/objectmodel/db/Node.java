@@ -1968,7 +1968,10 @@ public final class Node implements INode, Serializable {
      * @param value ...
      */
     protected void set(String propname, Object value, int type) {
-        checkWriteLock();
+        boolean isPersistable = state != TRANSIENT && isPersistableProperty(propname);
+        if (isPersistable) {
+            checkWriteLock();
+        }
 
         if (propMap == null) {
             propMap = new Hashtable();
@@ -1987,7 +1990,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN && isPersistableProperty(propname)) {
+        if (state == CLEAN && isPersistable) {
             markAs(MODIFIED);
         }
     }
@@ -2000,7 +2003,10 @@ public final class Node implements INode, Serializable {
      */
     public void setString(String propname, String value) {
         // nmgr.logEvent ("setting String prop");
-        checkWriteLock();
+        boolean isPersistable = state != TRANSIENT && isPersistableProperty(propname);
+        if (isPersistable) {
+            checkWriteLock();
+        }
 
         if (propMap == null) {
             propMap = new Hashtable();
@@ -2095,7 +2101,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN && isPersistableProperty(propname)) {
+        if (state == CLEAN && isPersistable) {
             markAs(MODIFIED);
         }
     }
@@ -2108,7 +2114,10 @@ public final class Node implements INode, Serializable {
      */
     public void setInteger(String propname, long value) {
         // nmgr.logEvent ("setting bool prop");
-        checkWriteLock();
+        boolean isPersistable = state != TRANSIENT && isPersistableProperty(propname);
+        if (isPersistable) {
+            checkWriteLock();
+        }
 
         if (propMap == null) {
             propMap = new Hashtable();
@@ -2129,7 +2138,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN && isPersistableProperty(propname)) {
+        if (state == CLEAN && isPersistable) {
             markAs(MODIFIED);
         }
     }
@@ -2142,7 +2151,10 @@ public final class Node implements INode, Serializable {
      */
     public void setFloat(String propname, double value) {
         // nmgr.logEvent ("setting bool prop");
-        checkWriteLock();
+        boolean isPersistable = state != TRANSIENT && isPersistableProperty(propname);
+        if (isPersistable) {
+            checkWriteLock();
+        }
 
         if (propMap == null) {
             propMap = new Hashtable();
@@ -2163,7 +2175,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN && isPersistableProperty(propname)) {
+        if (state == CLEAN && isPersistable) {
             markAs(MODIFIED);
         }
     }
@@ -2176,7 +2188,10 @@ public final class Node implements INode, Serializable {
      */
     public void setBoolean(String propname, boolean value) {
         // nmgr.logEvent ("setting bool prop");
-        checkWriteLock();
+        boolean isPersistable = state != TRANSIENT && isPersistableProperty(propname);
+        if (isPersistable) {
+            checkWriteLock();
+        }
 
         if (propMap == null) {
             propMap = new Hashtable();
@@ -2197,7 +2212,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN && isPersistableProperty(propname)) {
+        if (state == CLEAN && isPersistable) {
             markAs(MODIFIED);
         }
     }
@@ -2210,7 +2225,10 @@ public final class Node implements INode, Serializable {
      */
     public void setDate(String propname, Date value) {
         // nmgr.logEvent ("setting date prop");
-        checkWriteLock();
+        boolean isPersistable = state != TRANSIENT && isPersistableProperty(propname);
+        if (isPersistable) {
+            checkWriteLock();
+        }
 
         if (propMap == null) {
             propMap = new Hashtable();
@@ -2231,7 +2249,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN && isPersistableProperty(propname)) {
+        if (state == CLEAN && isPersistable) {
             markAs(MODIFIED);
         }
     }
@@ -2244,7 +2262,10 @@ public final class Node implements INode, Serializable {
      */
     public void setJavaObject(String propname, Object value) {
         // nmgr.logEvent ("setting jobject prop");
-        checkWriteLock();
+        boolean isPersistable = state != TRANSIENT && isPersistableProperty(propname);
+        if (isPersistable) {
+            checkWriteLock();
+        }
 
         if (propMap == null) {
             propMap = new Hashtable();
@@ -2265,7 +2286,7 @@ public final class Node implements INode, Serializable {
 
         lastmodified = System.currentTimeMillis();
 
-        if (state == CLEAN && isPersistableProperty(propname)) {
+        if (state == CLEAN && isPersistable) {
             markAs(MODIFIED);
         }
     }
@@ -2439,7 +2460,10 @@ public final class Node implements INode, Serializable {
             }
 
             if (p != null) {
-                checkWriteLock();
+                boolean isPersistable = state != TRANSIENT && isPersistableProperty(propname);
+                if (isPersistable) {
+                    checkWriteLock();
+                }
 
                 if (relational) {
                     p.setStringValue(null);
@@ -2448,7 +2472,7 @@ public final class Node implements INode, Serializable {
 
                 lastmodified = System.currentTimeMillis();
 
-                if (state == CLEAN && isPersistableProperty(propname)) {
+                if (state == CLEAN && isPersistable) {
                     markAs(MODIFIED);
                 }
             } else if (dbmap != null) {
