@@ -701,6 +701,9 @@ public abstract class AbstractServletClient extends HttpServlet {
         // Parse any posted parameters in the input stream
         if (isFormPost) {
             int max = request.getContentLength();
+            if (max > totalUploadLimit * 1024) {
+                throw new IOException("Exceeded Upload limit");
+            }
             int len = 0;
             byte[] buf = new byte[max];
             ServletInputStream is = request.getInputStream();
