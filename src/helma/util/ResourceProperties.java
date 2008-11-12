@@ -73,7 +73,7 @@ public class ResourceProperties extends Properties {
         // TODO: we can't use TreeSet because we don't have the app's resource comparator
         // Since resources don't implement Comparable, we can't add them to a "naked" TreeSet
         // As a result, resource ordering is random when updating.
-        resources = new HashSet();
+        resources = new LinkedHashSet();
     }
 
     /**
@@ -140,7 +140,7 @@ public class ResourceProperties extends Properties {
     private ResourceProperties(ResourceProperties parentProperties, String prefix) {
         this.parentProperties = parentProperties;
         this.prefix = prefix;
-        resources = new HashSet();
+        resources = new LinkedHashSet();
         setIgnoreCase(parentProperties.ignoreCase);        
         forceUpdate();
     }
