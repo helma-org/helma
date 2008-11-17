@@ -765,10 +765,14 @@ helma.Http.Cookie.PATTERN = /([^=;]+)=?([^;]*)(?:;\s*|$)/g;
 helma.Http.Cookie.parse = function(cookieStr) {
     if (cookieStr != null) {
         var cookie = new helma.Http.Cookie;
-        var m, key, value;
+        var m = helma.Http.Cookie.PATTERN.exec(cookieStr);
+        if (m) {
+            cookie.name = m[1].trim();
+            cookie.value = m[2] ? m[2].trim() : "";
+        }
         while ((m = helma.Http.Cookie.PATTERN.exec(cookieStr)) != null) {
-            key = m[1].trim();
-            value = m[2] ? m[2].trim() : "";
+            var key = m[1].trim();
+            var value = m[2] ? m[2].trim() : "";
             switch (key.toLowerCase()) {
                 case "expires":
                     // try to parse the expires date string into a date object
@@ -778,15 +782,8 @@ helma.Http.Cookie.parse = function(cookieStr) {
                         // ignore
                     }
                     break;
-                case "domain":
-                case "path":
-                    cookie[key.toLowerCase()] = value;
-                    break;
-                case "secure":
-                    break;
                 default:
-                    cookie.name = key;
-                    cookie.value = value;
+                    cookie[key.toLowerCase()] = value;
                     break;
             }
         }
