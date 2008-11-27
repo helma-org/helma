@@ -875,6 +875,10 @@ class InetEndpoint {
         return port;
     }
 
+    public String toString() {
+        return addr == null ? "0.0.0.0:" + port  : addr + ":" + port;
+    }
+
 }
 
 
