@@ -630,7 +630,11 @@ public final class RequestEvaluator implements Runnable {
                         app.setCurrentRequestEvaluator(null);
                         // exit execution context
                         if (scriptingEngine != null) {
-                            scriptingEngine.exitContext();
+                            try {
+                                scriptingEngine.exitContext();
+                            } catch (Throwable t) {
+                                // broken rhino, just get out of here
+                            }
                         }
                     }
                 }
