@@ -86,7 +86,7 @@ public class CommandlineRunner {
         // init a server instance and start the application
         Server server = new Server(config);
         server.init();
-        server.checkAppManager(0);
+        server.checkAppManager();
         server.startApplication(appName);
         Application app = server.getApplication(appName);
 

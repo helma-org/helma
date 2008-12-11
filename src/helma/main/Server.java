@@ -616,8 +616,8 @@ public class Server implements Runnable {
                 // create application manager which binds to the given RMI port
                 appManager = new ApplicationManager(appsProps, this, rmiPort.getPort());
             } else {
-                // create application manager with RMI port 0
-                appManager = new ApplicationManager(appsProps, this, 0);
+                // create application manager without RMI port
+                appManager = new ApplicationManager(appsProps, this);
             }
 
             if (xmlrpc != null) {
@@ -677,9 +677,9 @@ public class Server implements Runnable {
      * Make sure this server has an ApplicationManager (e.g. used when
      * accessed from CommandlineRunner)
      */
-    public void checkAppManager(int port) {
+    public void checkAppManager() {
         if (appManager == null) {
-            appManager = new ApplicationManager(appsProps, this, port);
+            appManager = new ApplicationManager(appsProps, this);
         }
     }
 

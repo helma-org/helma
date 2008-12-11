@@ -49,6 +49,17 @@ public class ApplicationManager implements XmlRpcHandler {
      *
      * @param props the properties defining the running apps
      * @param server the server instance
+     */
+    public ApplicationManager(ResourceProperties props,
+                              Server server) {
+        this(props, server, 0);
+    }
+
+    /**
+     * Creates a new ApplicationManager object.
+     *
+     * @param props the properties defining the running apps
+     * @param server the server instance
      * @param port The RMI port we're binding to
      */
     public ApplicationManager(ResourceProperties props,
