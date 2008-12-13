@@ -19,12 +19,12 @@ package helma.main;
 import org.mortbay.http.HttpServer;
 import org.mortbay.http.HttpContext;
 import org.mortbay.http.SocketListener;
+import org.mortbay.http.HttpListener;
 import org.mortbay.http.ajp.AJP13Listener;
 import org.mortbay.util.InetAddrPort;
 
 import java.util.StringTokenizer;
 import java.net.URL;
-import java.net.MalformedURLException;
 import java.io.IOException;
 
 public class JettyServer {
@@ -46,6 +46,7 @@ public class JettyServer {
 
     private JettyServer(URL url) throws IOException {
         http = new org.mortbay.jetty.Server(url);
+        openListeners();
     }
 
     private JettyServer(InetEndpoint webPort, InetEndpoint ajpPort, Server server)
@@ -54,13 +55,7 @@ public class JettyServer {
 
         // create embedded web server if port is specified
         if (webPort != null) {
-            // opening the listener here allows us to run on priviledged port 80 under jsvc
-            // even as non-root user, because init() is called with root privileges
-            // while start() will be called with the user we will actually run as
-            InetAddrPort addr = new InetAddrPort(webPort.getInetAddress(), webPort.getPort());
-            SocketListener listener = new SocketListener(addr);
-            listener.open();
-            http.addListener(listener);
+            http.addListener(new InetAddrPort(webPort.getInetAddress(), webPort.getPort()));
         }
 
         // activate the ajp13-listener
@@ -88,6 +83,7 @@ public class JettyServer {
             ajp13.setRemoteServers(jkallowarr);
             server.getLogger().info("Starting AJP13-Listener on port " + (ajpPort));            
         }
+        openListeners();
     }
 
     public HttpServer getHttpServer() {
@@ -118,5 +114,18 @@ public class JettyServer {
 
     public void destroy() {
         http.destroy();
+    }
+
+    private void openListeners() throws IOException {
+        // opening the listener here allows us to run on priviledged port 80 under jsvc
+        // even as non-root user, because init() is called with root privileges
+        // while start() will be called with the user we will actually run as
+        HttpListener[] listeners = http.getListeners();
+        for (int i = 0; i < listeners.length; i++) {
+            if (listeners[i] instanceof SocketListener) {
+                SocketListener listener = (SocketListener) listeners[i];
+                listener.open();
+            }
+        }
     }
 }
