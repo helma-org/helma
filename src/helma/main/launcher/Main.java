@@ -44,6 +44,12 @@ public class Main {
                                             "tagsoup.jar"
                                         };
 
+    private Class serverClass;
+    private Object server;
+
+    private static final Class[] EMPTY_CLASS_ARRAY = new Class[0];
+    private static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
+
     /**
      * Helma boot method. This retrieves the Helma home directory, creates the
      * classpath and invokes main() in helma.main.Server.
@@ -52,27 +58,67 @@ public class Main {
      *
      */
     public static void main(String[] args) {
+        Main main = new Main();
+        main.init(args);
+        main.start();
+    }
+
+    public void init(String[] args) {
         try {
             String installDir = getInstallDir(args);
-
             ClassLoader loader = createClassLoader(installDir);
-
             // get the main server class
-            Class clazz = loader.loadClass("helma.main.Server");
+            serverClass = loader.loadClass("helma.main.Server");
             Class[] cargs = new Class[]{args.getClass()};
-            Method main = clazz.getMethod("main", cargs);
+            Method loadServer = serverClass.getMethod("loadServer", cargs);
             Object[] nargs = new Object[]{args};
-
-            // and invoke the static main(String, String[]) method
-            main.invoke(null, nargs);
+            // and invoke the static loadServer(String[]) method
+            server = loadServer.invoke(null, nargs);
+            Method init = serverClass.getMethod("init", EMPTY_CLASS_ARRAY);
+            init.invoke(server, EMPTY_OBJECT_ARRAY);
         } catch (Exception x) {
             // unable to get Helma installation dir from launcher jar
-            System.err.println("Unable to get Helma installation directory: ");
+            System.err.println("Unable to load Helma: ");
             x.printStackTrace();
             System.exit(2);
         }
     }
 
+    public void start() {
+        try {
+            Method start = serverClass.getMethod("start", EMPTY_CLASS_ARRAY);
+            start.invoke(server, EMPTY_OBJECT_ARRAY);
+        } catch (Exception x) {
+            // unable to get Helma installation dir from launcher jar
+            System.err.println("Unable to start Helma: ");
+            x.printStackTrace();
+            System.exit(2);
+        }
+    }
+
+    public void stop() {
+        try {
+            Method start = serverClass.getMethod("stop", EMPTY_CLASS_ARRAY);
+            start.invoke(server, EMPTY_OBJECT_ARRAY);
+        } catch (Exception x) {
+            // unable to get Helma installation dir from launcher jar
+            System.err.println("Unable to stop Helma: ");
+            x.printStackTrace();
+            System.exit(2);
+        }
+    }
+
+    public void destroy() {
+        try {
+            Method start = serverClass.getMethod("shutdown", EMPTY_CLASS_ARRAY);
+            start.invoke(server, EMPTY_OBJECT_ARRAY);
+        } catch (Exception x) {
+            // unable to get Helma installation dir from launcher jar
+            System.err.println("Unable to shutdown Helma: ");
+            x.printStackTrace();
+            System.exit(2);
+        }
+    }
 
     /**
      * Create a server-wide ClassLoader from our install directory. 

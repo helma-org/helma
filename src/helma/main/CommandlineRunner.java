@@ -107,6 +107,7 @@ public class CommandlineRunner {
 
         // stop the application and server
         server.stop();
+        server.shutdown();
     }
 
     

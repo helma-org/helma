@@ -34,6 +34,7 @@ public class HelmaShutdownHook extends Thread {
         Server server = Server.getServer();
         if (server != null) {
             server.stop();
+            server.shutdown();
         }
      }
 }

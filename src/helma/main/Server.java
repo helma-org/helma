@@ -92,6 +92,8 @@ public class Server implements Runnable {
 
     /**
      * Constructs a new Server instance with an array of command line options.
+     * TODO make this a singleton
+     * @param config the configuration
      */
     public Server(ServerConfig config) {
         server = this;
@@ -113,9 +115,23 @@ public class Server implements Runnable {
 
 
     /**
-     *  static main entry point.
+     * Static main entry point.
+     * @param args the command line arguments
      */
     public static void main(String[] args) {
+        loadServer(args);
+        // parse properties files etc
+        server.init();
+        // start the server main thread
+        server.start();
+    }
+
+    /**
+     * Entry point used by launcher.jar to load a server instance
+     * @param args the command line arguments
+     * @return the server instance
+     */
+    public static Server loadServer(String[] args) {
         checkJavaVersion();
 
         ServerConfig config = null;
@@ -130,12 +146,7 @@ public class Server implements Runnable {
 
         // create new server instance
         server = new Server(config);
-
-        // parse properties files etc
-        server.init();
-
-        // start the server main thread
-        server.start();
+        return server;
     }
 
 
@@ -513,10 +524,11 @@ public class Server implements Runnable {
 
     public void stop() {
         mainThread = null;
-        
-        getLogger().info("Shutting down Helma");
-
         appManager.stopAll();
+    }
+
+    public void shutdown() {
+        getLogger().info("Shutting down Helma");
 
         if (jetty != null) {
             try {
