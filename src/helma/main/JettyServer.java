@@ -18,6 +18,7 @@ package helma.main;
 
 import org.mortbay.http.HttpServer;
 import org.mortbay.http.HttpContext;
+import org.mortbay.http.SocketListener;
 import org.mortbay.http.ajp.AJP13Listener;
 import org.mortbay.util.InetAddrPort;
 
@@ -34,8 +35,7 @@ public class JettyServer {
     // the AJP13 Listener, used for connecting from external webserver to servlet via JK
     protected AJP13Listener ajp13;
 
-    public static JettyServer init(Server server)
-            throws MalformedURLException, IOException {
+    public static JettyServer init(Server server) throws IOException {
         if (server.configFile != null && server.configFile.exists()) {
             return new JettyServer(server.configFile.toURI().toURL());
         } else if (server.websrvPort != null || server.ajp13Port != null) {
@@ -52,9 +52,15 @@ public class JettyServer {
             throws IOException {
         http = new HttpServer();
 
-        // start embedded web server if port is specified
+        // create embedded web server if port is specified
         if (webPort != null) {
-            http.addListener(new InetAddrPort(webPort.getInetAddress(), webPort.getPort()));
+            // opening the listener here allows us to run on priviledged port 80 under jsvc
+            // even as non-root user, because init() is called with root privileges
+            // while start() will be called with the user we will actually run as
+            InetAddrPort addr = new InetAddrPort(webPort.getInetAddress(), webPort.getPort());
+            SocketListener listener = new SocketListener(addr);
+            listener.open();
+            http.addListener(listener);
         }
 
         // activate the ajp13-listener

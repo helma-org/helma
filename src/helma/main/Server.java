@@ -118,7 +118,7 @@ public class Server implements Runnable {
      * Static main entry point.
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         loadServer(args);
         // parse properties files etc
         server.init();
@@ -411,7 +411,7 @@ public class Server implements Runnable {
     /**
       * initialize the server
       */
-    public void init() {
+    public void init() throws IOException {
 
         // set the log factory property
         String logFactory = sysProps.getProperty("loggerFactory",
@@ -490,6 +490,7 @@ public class Server implements Runnable {
         if (sysProps.getProperty("extensions") != null) {
             initExtensions();
         }
+        jetty = JettyServer.init(this);
     }
 
 
@@ -573,8 +574,6 @@ public class Server implements Runnable {
      */
     public void run() {
         try {
-            jetty = JettyServer.init(this);
-
             if (xmlrpcPort != null) {
                 String xmlparser = sysProps.getProperty("xmlparser");
 
