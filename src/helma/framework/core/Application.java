@@ -1317,7 +1317,7 @@ public final class Application implements Runnable {
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     *  Return the name to be used to get this element from its parent
+     * Return the name to be used to get this element from its parent
      */
     public String getElementName(Object obj) {
         if (obj instanceof IPathElement) {
@@ -1699,18 +1699,19 @@ public final class Application implements Runnable {
      * ZipRepositories contained in top-level file repositories, for instance.
      *
      * @param rep the repository to add
+     * @param current the current/parent repository
      * @return if the repository was not yet contained
      */
-    public boolean addRepository(Repository rep) {
+    public boolean addRepository(Repository rep, Repository current) {
         if (rep != null && !repositories.contains(rep)) {
-            // Add the new repository before its parent repository.
+            // Add the new repository before its parent/current repository.
             // This establishes the order of compilation between FileRepositories
-            // and embedded ZipRepositories.
-            Repository parent = rep.getParentRepository();
-            if (parent != null) {
-                int idx = repositories.indexOf(parent);
-                if (idx > -1) {
-                    repositories.add(idx, rep);
+            // and embedded ZipRepositories, or repositories added
+            // via app.addRepository()
+            if (current != null) {
+                int pos = repositories.indexOf(current);
+                if (pos > -1) {
+                    repositories.add(pos, rep);
                     return true;
                 }
             }
@@ -1739,6 +1740,28 @@ public final class Application implements Runnable {
      */
     public List getRepositories() {
         return Collections.unmodifiableList(repositories);
+    }
+
+    /**
+     * Set the code resource currently being evaluated/compiled. This is used
+     * to set the proper parent repository when a new repository is added
+     * via app.addRepository().
+     *
+     * @param resource the resource being currently evaluated/compiled
+     */
+    public void setCurrentCodeResource(Resource resource) {
+        currentCodeResource = resource;
+    }
+
+    /**
+     * Set the code resource currently being evaluated/compiled. This is used
+     * to set the proper parent repository when a new repository is added
+     * via app.addRepository().
+
+     * @return the resource being currently evaluated/compiled
+     */
+    public Resource getCurrentCodeResource() {
+        return currentCodeResource;
     }
 
     /**

@@ -141,7 +141,7 @@ public final class TypeManager {
 
             if (list[i].isScriptRoot()) {
                 // this is an embedded top-level script repository 
-                if (app.addRepository(list[i])) {
+                if (app.addRepository(list[i], list[i].getParentRepository())) {
                     // repository is new, check it
                     checkRepository(list[i], update);
                 }

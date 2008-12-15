@@ -138,6 +138,9 @@ public class ApplicationBean implements Serializable {
      * @param obj the repository, relative or absolute path to the library.
      */
     public synchronized void addRepository(Object obj) {
+        Resource current = app.getCurrentCodeResource();
+        Repository parent = current == null ?
+                null : current.getRepository().getRootRepository();
         Repository rep;
         if (obj instanceof String) {
             String path = (String) obj;
@@ -164,7 +167,7 @@ public class ApplicationBean implements Serializable {
         } else {
             throw new RuntimeException("Invalid argument to addRepository: " + obj);
         }
-        app.addRepository(rep);
+        app.addRepository(rep, parent);
         try {
             app.typemgr.checkRepository(rep, true);
         } catch (IOException iox) {
