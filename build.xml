@@ -500,6 +500,11 @@
     <target name="clean" depends="init">
         <delete dir="${build.work}" />
         <delete dir="${build.classes}" />
+        <delete dir="${build.docs}"/>
+        <delete file="${home.dir}/launcher.jar" quiet="true"/>
+        <delete>
+            <fileset file="${build.lib}" includes="**/${jar.name}*.jar"/>
+        </delete>
     </target>
 
     <!-- =================================================================== -->
