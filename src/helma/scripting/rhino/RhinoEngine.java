@@ -16,7 +16,6 @@
 
 package helma.scripting.rhino;
 
-import helma.doc.DocApplication;
 import helma.extensions.ConfigurationException;
 import helma.extensions.HelmaExtension;
 import helma.framework.*;
@@ -68,9 +67,6 @@ public class RhinoEngine implements ScriptingEngine {
 
     // thread local engine registry
     static ThreadLocal engines = new ThreadLocal();
-
-    // the introspector that provides documentation for this application
-    DocApplication doc = null;
 
     /**
      *  Zero argument constructor.
@@ -502,21 +498,6 @@ public class RhinoEngine implements ScriptingEngine {
             // just return original property object
         }
         return obj.toString();
-    }
-
-    /**
-     * Get an introspector to this engine.
-     */
-    public DocApplication getDoc() {
-        if (doc == null) {
-            try {
-                doc = new DocApplication(app);
-                doc.readApplication();
-            } catch (IOException x) {
-                throw new RuntimeException(x.toString(), x);
-            }
-        }
-        return doc;
     }
 
     /**

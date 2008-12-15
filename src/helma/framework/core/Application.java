@@ -24,7 +24,6 @@ import helma.main.Server;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.util.*;
-import helma.doc.DocApplication;
 
 import java.io.*;
 import java.lang.reflect.*;
@@ -1414,19 +1413,6 @@ public final class Application implements Runnable {
         // not mapped - cache negative result
         classMapping.setProperty(className, CLASS_NOT_MAPPED);
         return null;
-    }
-
-    public DocApplication getDoc() {
-        RequestEvaluator eval = null;
-        try {
-            eval = getEvaluator();
-            return eval.scriptingEngine.getDoc();
-        } catch (Exception xcept) {
-            logError("Error in getDoc() for " + name, xcept);
-            return null;
-        } finally {
-            releaseEvaluator(eval);
-        }
     }
 
     ////////////////////////////////////////////////////////////////////////

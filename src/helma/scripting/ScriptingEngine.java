@@ -19,7 +19,6 @@ package helma.scripting;
 import helma.framework.repository.Resource;
 import helma.framework.core.Application;
 import helma.framework.core.RequestEvaluator;
-import helma.doc.DocApplication;
 
 import java.io.OutputStream;
 import java.io.IOException;
@@ -155,14 +154,6 @@ public interface ScriptingEngine {
      * @return a string representing the object
      */
     public String toString(Object obj);
-
-    /**
-     *  Get an IPathElement that offers introspection services into the application.
-     *  If this method returns null, no introspection is available for this kind of engine.
-     *  In order to be compatible with the standard Helma management application, this
-     *  class should be compatible with helma.doc.DocApplication.
-     */
-    public DocApplication getDoc();
 
     /**
      * Provide object serialization for this engine's scripted objects. If no special
