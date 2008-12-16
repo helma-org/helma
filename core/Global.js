@@ -52,7 +52,11 @@ function write_macro(param, text) {
 function now_macro(param) {
     var d = new Date();
     if (param.format) {
-        res.write(d.format(param.format));
+        try {
+            res.write(d.format(param.format));
+        } catch (e) {
+            res.write('<span title="' + e + '">[Invalid date format]</span>');
+        }
     } else if (param.as == "timestamp") {
         res.write(d.getTime());
     } else {
