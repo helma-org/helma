@@ -1346,10 +1346,7 @@ public final class Application implements Runnable {
             return ((IPathElement) obj).getChildElement(name);
         }
 
-        Object[] arg = new Object[1];
-
-        arg[0] = name;
-
+        Object[] arg = new Object[] { name };
         return invokeFunction(obj, "getChildElement", arg);
     }
 
