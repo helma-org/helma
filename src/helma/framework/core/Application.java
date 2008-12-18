@@ -73,6 +73,7 @@ public final class Application implements Runnable {
     // if defined this will cause us to get the root object straight
     // from the scripting engine, circumventing all hopobject db fluff
     String rootObjectPropertyName;
+    String rootObjectFunctionName;
 
     // The session manager
     SessionManager sessionMgr;
@@ -838,7 +839,7 @@ public final class Application implements Runnable {
     /**
      * This method returns the root object of this application's object tree.
      */
-    public Object getDataRoot(ScriptingEngine scriptingEngine) {
+    public Object getDataRoot(ScriptingEngine scriptingEngine) throws Exception {
         // check if we have a custom root object class
         if (rootObjectClass != null) {
             // create custom root element.
@@ -868,9 +869,13 @@ public final class Application implements Runnable {
         } else if (rootObjectPropertyName != null) {
             // get root object from a global scripting engine property
             return scriptingEngine.getGlobalProperty(rootObjectPropertyName);
+        } else if (rootObjectFunctionName != null) {
+            // get root object from a global script engine function
+            return scriptingEngine.invoke(null, rootObjectFunctionName,
+                    RequestEvaluator.EMPTY_ARGS, ScriptingEngine.ARGS_WRAP_DEFAULT, true);
         } else {
             // no custom root object is defined - use standard helma objectmodel
-            return nmgr.safe.getRootNode();
+            return nmgr.getRootNode();
         }
     }
 
@@ -1827,6 +1832,7 @@ public final class Application implements Runnable {
 
             hrefRootPrototype = props.getProperty("hrefrootprototype");
             rootObjectPropertyName = props.getProperty("rootobjectpropertyname");
+            rootObjectFunctionName = props.getProperty("rootobjectfunctionname");
 
             // update the XML-RPC access list, containting prototype.method
             // entries of functions that may be called via XML-RPC
