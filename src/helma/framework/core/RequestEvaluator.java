@@ -218,7 +218,7 @@ public final class RequestEvaluator implements Runnable {
                         transactor = Transactor.getInstance(app.nmgr);
                         transactor.begin(txname);
 
-                        Object root = app.getDataRoot();
+                        Object root = app.getDataRoot(scriptingEngine);
                         initGlobals(root, requestPath);
 
                         String action = null;

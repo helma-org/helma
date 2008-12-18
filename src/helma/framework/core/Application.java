@@ -24,6 +24,7 @@ import helma.main.Server;
 import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.util.*;
+import helma.scripting.ScriptingEngine;
 
 import java.io.*;
 import java.lang.reflect.*;
@@ -69,6 +70,9 @@ public final class Application implements Runnable {
     // otherwise this is managed by the NodeManager and not cached here.
     Object rootObject = null;
     String rootObjectClass;
+    // if defined this will cause us to get the root object straight
+    // from the scripting engine, circumventing all hopobject db fluff
+    String rootObjectPropertyName;
 
     // The session manager
     SessionManager sessionMgr;
@@ -834,7 +838,7 @@ public final class Application implements Runnable {
     /**
      * This method returns the root object of this application's object tree.
      */
-    public Object getDataRoot() {
+    public Object getDataRoot(ScriptingEngine scriptingEngine) {
         // check if we have a custom root object class
         if (rootObjectClass != null) {
             // create custom root element.
@@ -861,9 +865,11 @@ public final class Application implements Runnable {
             }
 
             return rootObject;
-        }
-        // no custom root object is defined - use standard helma objectmodel
-        else {
+        } else if (rootObjectPropertyName != null) {
+            // get root object from a global scripting engine property
+            return scriptingEngine.getGlobalProperty(rootObjectPropertyName);
+        } else {
+            // no custom root object is defined - use standard helma objectmodel
             return nmgr.safe.getRootNode();
         }
     }
@@ -1167,7 +1173,7 @@ public final class Application implements Runnable {
      *  Return the href to the root of this application.
      */
     public String getRootHref() throws UnsupportedEncodingException {
-        return getNodeHref(getDataRoot(), null);
+        return getNodeHref(null, null);
     }
 
     /**
@@ -1823,6 +1829,7 @@ public final class Application implements Runnable {
             }
 
             hrefRootPrototype = props.getProperty("hrefrootprototype");
+            rootObjectPropertyName = props.getProperty("rootobjectpropertyname");
 
             // update the XML-RPC access list, containting prototype.method
             // entries of functions that may be called via XML-RPC

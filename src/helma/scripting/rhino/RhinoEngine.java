@@ -425,6 +425,34 @@ public class RhinoEngine implements ScriptingEngine {
     }
 
     /**
+     * Get a property from the global object.
+     * @param propname the property name
+     * @return the property value if the property is defined, or null
+     */
+    public Object getGlobalProperty(String propname) {
+        if (propname == null) {
+            return null;
+        }
+        try {
+            Object prop = core.global.get(propname, global);
+            if (prop == null
+                    || prop == Undefined.instance
+                    || prop == ScriptableObject.NOT_FOUND) {
+                return null;
+            } else if (prop instanceof Wrapper) {
+                return ((Wrapper) prop).unwrap();
+            } else {
+                // Do not return functions as properties as this
+                // is a potential security problem
+                return (prop instanceof Function) ? null : prop;
+            }
+        } catch (Exception esx) {
+            app.logError("Error getting global property " + propname + ": " + esx);
+            return null;
+        }
+    }
+
+    /**
      * Check if an object has a defined property (public field if it
      * is a java object) with that name.
      */

@@ -117,10 +117,17 @@ public interface ScriptingEngine {
     public void abort();
 
     /**
+     * Get a global property
+     * @param propertyName the property name
+     * @return the property value, or null
+     */
+    public Object getGlobalProperty(String propertyName);
+
+    /**
      * Get a property on an object
      * @param thisObject the object
      * @param propertyName the property name
-     * @return true the property value, or null
+     * @return the property value, or null
      */
     public Object getProperty(Object thisObject, String propertyName);
 
