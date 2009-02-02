@@ -311,7 +311,7 @@ public abstract class AbstractServletClient extends HttpServlet {
         }
 
         if (hopres.getRedirect() != null) {
-            sendRedirect(req, res, hopres.getRedirect());
+            sendRedirect(req, res, hopres.getRedirect(), hopres.getStatus());
         } else if (hopres.getNotModified()) {
             res.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
         } else {
@@ -383,7 +383,7 @@ public abstract class AbstractServletClient extends HttpServlet {
         }
     }
 
-    void sendRedirect(HttpServletRequest req, HttpServletResponse res, String url) {
+    void sendRedirect(HttpServletRequest req, HttpServletResponse res, String url, int status) {
         String location = url;
 
         if (url.indexOf("://") == -1) {
@@ -421,8 +421,11 @@ public abstract class AbstractServletClient extends HttpServlet {
             location = loc.toString();
         }
 
-        // send status code 303 for HTTP 1.1, 302 otherwise
-        if (isOneDotOne(req.getProtocol())) {
+        // if status code was explicitly set use that, or use 303 for HTTP 1.1,
+        // 302 for earlier protocol versions
+        if (status >= 301 && status <= 303) {
+            res.setStatus(status);
+        } else if (isOneDotOne(req.getProtocol())) {
             res.setStatus(HttpServletResponse.SC_SEE_OTHER);
         } else {
             res.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
