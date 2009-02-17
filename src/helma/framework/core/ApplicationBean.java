@@ -145,11 +145,11 @@ public class ApplicationBean implements Serializable {
         if (obj instanceof String) {
             String path = (String) obj;
             File file = findResource(null, path);
-            if (!file.exists()) {
+            if (file == null) {
                 file = findResource(app.hopHome, path);
-            }
-            if (!file.exists()) {
-                throw new RuntimeException("Repository path does not exist: " + file);
+                if (file == null) {
+                    throw new RuntimeException("Repository not found: " + path);
+                }
             }
             if (file.isDirectory()) {
                 rep = new FileRepository(file);
@@ -176,20 +176,21 @@ public class ApplicationBean implements Serializable {
     }
 
     /**
-     * Helper method to resolve a repository path.
+     * Helper method to resolve a repository path. Returns null if no file is found.
      * @param parent the parent file
      * @param path the repository path
-     * @return our best guess of what the file may be
+     * @return an existing file, or null
      */
     private File findResource(File parent, String path) {
         File file = new File(parent, path).getAbsoluteFile();
         if (!file.exists()) {
+            // if file does not exist, try with .zip and .js extensions appended
             file = new File(parent, path + ".zip").getAbsoluteFile();
+            if (!file.exists()) {
+                file = new File(parent, path + ".js").getAbsoluteFile();
+            }
         }
-        if (!file.exists()) {
-            file = new File(parent, path + ".js").getAbsoluteFile();
-        }
-        return file;
+        return file.exists() ? file : null;
     }
 
     /**
