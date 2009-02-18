@@ -125,7 +125,6 @@ public final class Relation {
         this.maxSize =                  rel.maxSize;
         this.constraints =              rel.constraints;
         this.accessName =               rel.accessName;
-        this.maxSize =                  rel.maxSize;
         this.logicalOperator =          rel.logicalOperator;
         this.aggressiveLoading =        rel.aggressiveLoading;
         this.aggressiveCaching =        rel.aggressiveCaching;
