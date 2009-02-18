@@ -484,7 +484,7 @@ public final class DbMapping {
      */
     public DbSource getDbSource() {
         if (dbSource == null) {
-            if ((tableName != null) && (dbSourceName != null)) {
+            if (dbSourceName != null) {
                 dbSource = app.getDbSource(dbSourceName);
             } else if (parentMapping != null) {
                 return parentMapping.getDbSource();
@@ -1385,7 +1385,7 @@ public final class DbMapping {
         if (inheritsStorage()) {
             return parentMapping.getStorageTypeName();
         }
-        return (dbSourceName == null) ? null : typename;
+        return (getDbSourceName() == null) ? null : typename;
     }
 
     /**
