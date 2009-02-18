@@ -1146,6 +1146,7 @@ public final class RhinoCore implements ScopeProvider {
                     return true;
 
                 case Context.FEATURE_STRICT_VARS:
+                case Context.FEATURE_WARNING_AS_ERROR:
                     return strictVars;
 
                 default:
