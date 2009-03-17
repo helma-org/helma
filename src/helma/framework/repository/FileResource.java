@@ -54,12 +54,8 @@ public class FileResource extends AbstractResource {
         return baseName;
     }
 
-    public InputStream getInputStream() {
-        try {
-            return new FileInputStream(file);
-        } catch (FileNotFoundException ex) {
-            return null;
-        }
+    public InputStream getInputStream() throws IOException {
+        return new FileInputStream(file);
     }
 
     public URL getUrl() {
