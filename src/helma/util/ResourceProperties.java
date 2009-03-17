@@ -17,6 +17,7 @@
 package helma.util;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import helma.framework.core.*;
 import helma.framework.repository.Resource;
@@ -222,7 +223,9 @@ public class ResourceProperties extends Properties {
                         Repository repository = (Repository) iterator.next();
                         Resource res = repository.getResource(resourceName);
                         if (res != null && res.exists()) {
-                            temp.load(res.getInputStream());
+                            InputStream in = res.getInputStream();
+                            temp.load(in);
+                            in.close();
                         }
                     } catch (IOException iox) {
                         iox.printStackTrace();
@@ -252,7 +255,9 @@ public class ResourceProperties extends Properties {
                     try {
                         Resource res = (Resource) iterator.next();
                         if (res.exists()) {
-                            temp.load(res.getInputStream());
+                            InputStream in = res.getInputStream();
+                            temp.load(in);
+                            in.close();
                         }
                     } catch (IOException iox) {
                         iox.printStackTrace();

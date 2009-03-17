@@ -164,6 +164,7 @@ public final class SystemProperties extends Properties {
                                throws IOException {
         Properties newProps = new SystemProperties();
         newProps.load(in);
+        in.close();
 
         if (additionalProps == null) {
             additionalProps = new HashMap();
