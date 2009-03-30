@@ -18,7 +18,6 @@ package helma.scripting.rhino;
 
 import helma.scripting.rhino.extensions.*;
 import helma.framework.core.*;
-import helma.framework.ResponseTrans;
 import helma.objectmodel.db.*;
 import helma.util.HtmlEncoder;
 import helma.util.MimePart;
@@ -84,8 +83,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         // Define dontEnum() on Object prototype
         String[] objFuncs = { "dontEnum" };
         ScriptableObject objproto = (ScriptableObject) getObjectPrototype(this);
-        objproto.defineFunctionProperties(objFuncs, GlobalObject.class,
-                    DONTENUM | READONLY | PERMANENT);
+        objproto.defineFunctionProperties(objFuncs, GlobalObject.class, DONTENUM | PERMANENT);
     }
 
     /**
