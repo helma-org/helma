@@ -73,7 +73,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
                                    "getXmlDocument", "getHtmlDocument", "seal",
                                    "getDBConnection", "getURL", "write", "writeln",
                                    "serialize", "deserialize", "defineLibraryScope",
-                                   "wrapJavaMap", "unwrapJavaMap", "toJava"
+                                   "wrapJavaMap", "unwrapJavaMap", "toJava", "definePrototype"
                                };
 
         defineFunctionProperties(globalFuncs, GlobalObject.class, DONTENUM | PERMANENT);
@@ -672,6 +672,24 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         }
         return null;
     }
+
+    public Object definePrototype(String name, Scriptable desc) {
+        if (name == null) {
+            throw new IllegalArgumentException("First argument to definePrototype() must be String");
+        }
+        if (desc == null) {
+            throw new IllegalArgumentException("Second argument to definePrototype() must be Object");
+        }
+
+        Prototype proto = core.app.definePrototype(name, core.scriptableToProperties(desc));
+        RhinoCore.TypeInfo type = (RhinoCore.TypeInfo) core.prototypes.get(proto.getLowerCaseName());
+        if (type == null) {
+            type = core.initPrototype(proto);
+        }
+        core.setParentPrototype(proto, type);
+        return type.objProto;
+    }
+
 
     private static String toString(Object obj) {
         if (obj == null || obj == Undefined.instance) {

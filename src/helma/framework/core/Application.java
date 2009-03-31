@@ -985,6 +985,23 @@ public final class Application implements Runnable {
     }
 
     /**
+     * Programmatically define a new prototype. If a prototype with this name already exists return
+     * the existing prototype.
+     * @param name the prototype name
+     * @param typeProps custom type properties map
+     * @return the new prototype
+     */
+    public Prototype definePrototype(String name, Map typeProps) {
+        Prototype proto = typemgr.getPrototype(name);
+        if (proto == null) {
+            proto = typemgr.createPrototype(name, null, typeProps);
+        } else {
+            proto.setTypeProperties(typeProps);
+        }
+        return proto;
+    }
+
+    /**
      *  Return a skin for a given object. The skin is found by determining the prototype
      *  to use for the object, then looking up the skin for the prototype.
      */

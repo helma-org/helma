@@ -74,8 +74,9 @@ public final class Prototype {
      * @param name the prototype's name
      * @param repository the first prototype's repository
      * @param app the application this prototype is a part of
+     * @param typeProps custom type mapping properties
      */
-    public Prototype(String name, Repository repository, Application app) {
+    public Prototype(String name, Repository repository, Application app, Map typeProps) {
         // app.logEvent ("Constructing Prototype "+app.getName()+"/"+name);
         this.app = app;
         this.name = name;
@@ -87,10 +88,13 @@ public final class Prototype {
 
         // Create and register type properties file
         props = new ResourceProperties(app);
-        if (repository != null) {
+        if (typeProps != null) {
+            props.putAll(typeProps);
+        } else if (repository != null) {
             props.addResource(repository.getResource("type.properties"));
             props.addResource(repository.getResource(name + ".properties"));
         }
+
         dbmap = new DbMapping(app, name, props);
         // we don't need to put the DbMapping into proto.updatables, because
         // dbmappings are checked separately in TypeManager.checkFiles() for
@@ -390,6 +394,16 @@ public final class Prototype {
      */
     public void markUpdated() {
         lastCodeUpdate = System.currentTimeMillis();
+    }
+
+    /**
+     * Set the custom type properties for this prototype and update the database mapping.
+     * @param map the custom type mapping properties.
+     */
+    public void setTypeProperties(Map map) {
+        props.clear();
+        props.putAll(map);
+        dbmap.update();
     }
 
     /**

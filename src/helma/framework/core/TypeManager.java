@@ -104,7 +104,7 @@ public final class TypeManager {
     public synchronized void createPrototypes() throws IOException {
         // create standard prototypes.
         for (int i = 0; i < standardTypes.length; i++) {
-            createPrototype(standardTypes[i], null);
+            createPrototype(standardTypes[i], null, null);
         }
 
         // loop through directories and create prototypes
@@ -154,7 +154,7 @@ public final class TypeManager {
                 if (proto == null) {
                     // create new prototype if type name is valid
                     if (isValidTypeName(name)) 
-                        createPrototype(name, list[i]);
+                        createPrototype(name, list[i], null);
                 } else {
                     proto.addRepository(list[i], update);
                 }
@@ -294,14 +294,15 @@ public final class TypeManager {
      *
      * @param typename the name of the prototype
      * @param repository the first prototype source
+     * @param typeProps custom type mapping properties
      * @return the newly created prototype
      */
-    public synchronized Prototype createPrototype(String typename, Repository repository) {
+    public synchronized Prototype createPrototype(String typename, Repository repository, Map typeProps) {
         if ("true".equalsIgnoreCase(app.getProperty("helma.debugTypeManager"))) {
             System.err.println("CREATE: " + typename + " from " + repository + " in " + Thread.currentThread());
             // Thread.dumpStack();
         }
-        Prototype proto = new Prototype(typename, repository, app);
+        Prototype proto = new Prototype(typename, repository, app, typeProps);
         // put the prototype into our map
         prototypes.put(proto.getLowerCaseName(), proto);
         return proto;
