@@ -482,8 +482,8 @@ public class ResourceProperties extends Properties {
      * @return the old value, if an old value got replaced
      */
     public Object put(Object key, Object value) {
-        if (value != null) {
-            value = value.toString().trim();
+        if (value instanceof String) {
+            value = ((String) value).trim();
         }
         String strkey = key.toString();
         if (ignoreCase) {
