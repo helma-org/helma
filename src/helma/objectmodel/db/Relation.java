@@ -444,11 +444,15 @@ public final class Relation {
 
     private int getIntegerProperty(String name, Properties props, int defaultValue) {
         Object value = props.get(name);
-
         if (value instanceof Number) {
             return ((Number) value).intValue();
         } else if (value instanceof String) {
-            return Integer.parseInt((String) value);
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException nfx) {
+                ownType.getApplication().logError("Can't parse integer for property "
+                        + name + " from value " + value, nfx);
+            }
         }
         return defaultValue;
     }
