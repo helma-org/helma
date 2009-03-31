@@ -17,6 +17,7 @@ package helma.scripting.rhino;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.util.Properties;
 
 import helma.objectmodel.INode;
 import helma.objectmodel.db.DbMapping;
@@ -58,6 +59,7 @@ public class HopObjectCtor extends FunctionObject {
         this.protoProperty = prototype;
         addAsConstructor(core.global, prototype);
         defineProperty("getById", new GetById(core.global), attr);
+        defineProperty("getCollection", new HopCollection(core.global), attr);
     }
 
     /**
@@ -178,6 +180,46 @@ public class HopObjectCtor extends FunctionObject {
             return 1;
         }
 
+    }
+
+    class HopCollection extends BaseFunction {
+
+        public HopCollection(Scriptable scope) {
+            ScriptRuntime.setFunctionProtoAndParent(this, scope);
+        }
+
+        public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
+            if (args.length != 1) {
+                throw new IllegalArgumentException("Wrong number of arguments in definePrototype()");
+            }
+            if (!(args[0] instanceof Scriptable)) {
+                throw new IllegalArgumentException("Second argument to HopObject.definePrototype() must be Object");
+            }
+
+            Scriptable desc = (Scriptable) args[0];
+            Properties childmapping = core.scriptableToProperties(desc);
+            if (!childmapping.containsKey("collection")) {
+                // if contained type isn't defined explicitly limit collection to our own type
+                childmapping.put("collection", HopObjectCtor.this.getFunctionName());
+            }
+
+            Node node = new Node("HopQuery", null, core.app.getWrappedNodeManager());
+            Properties props = new Properties();
+            props.put("_children", childmapping);
+            DbMapping dbmap = new DbMapping(core.app, null, props);
+            dbmap.update();
+            node.setDbMapping(dbmap);
+            node.setState(Node.VIRTUAL);
+            return new HopObject("HopQuery", core, node, core.hopObjectProto);
+        }
+
+        public int getArity() {
+            return 1;
+        }
+
+        public int getLength() {
+            return 1;
+        }
     }
 
 }

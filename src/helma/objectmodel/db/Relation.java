@@ -102,6 +102,7 @@ public final class Relation {
     Vector filterFragments;
     Vector filterPropertyRefs;
     int maxSize = 0;
+    int offset = 0;
 
     /**
      * This constructor makes a copy of an existing relation. Not all fields are copied, just those
@@ -123,6 +124,7 @@ public final class Relation {
         this.additionalTablesJoined =   rel.additionalTablesJoined;
         this.queryHints =               rel.queryHints;
         this.maxSize =                  rel.maxSize;
+        this.offset =                   rel.offset;
         this.constraints =              rel.constraints;
         this.accessName =               rel.accessName;
         this.logicalOperator =          rel.logicalOperator;
@@ -144,73 +146,53 @@ public final class Relation {
     ////////////////////////////////////////////////////////////////////////////////////////////
     // parse methods for new file format
     ////////////////////////////////////////////////////////////////////////////////////////////
-    public void update(String desc, ResourceProperties props) {
+    public void update(Object desc, Properties props) {
         Application app = ownType.getApplication();
 
-        if ((desc == null) || "".equals(desc.trim())) {
-            if (propName != null) {
-                reftype = PRIMITIVE;
-                columnName = propName;
-            } else {
-                reftype = INVALID;
-                columnName = propName;
-            }
-        } else {
-            desc = desc.trim();
-
-            int open = desc.indexOf("(");
-            int close = desc.indexOf(")");
-
-            if ((open > -1) && (close > open)) {
-                String ref = desc.substring(0, open).trim();
-                String proto = desc.substring(open + 1, close).trim();
-
-                if ("collection".equalsIgnoreCase(ref)) {
-                    virtual = !"_children".equalsIgnoreCase(propName);
-                    reftype = COLLECTION;
-                } else if ("mountpoint".equalsIgnoreCase(ref)) {
-                    virtual = true;
-                    reftype = COLLECTION;
-                    prototype = proto;
-                } else if ("object".equalsIgnoreCase(ref)) {
-                    virtual = false;
-                    if (reftype != COMPLEX_REFERENCE) {
-                        reftype = REFERENCE;
-                    }
-                } else {
-                    throw new RuntimeException("Invalid property Mapping: " + desc);
+        if (desc instanceof Properties || parseDescriptor(desc, props)) {
+            // new style foo.collectionOf = Bar mapping
+            String proto;
+            if (props.containsKey("collection")) {
+                proto = props.getProperty("collection");
+                virtual = !"_children".equalsIgnoreCase(propName);
+                reftype = COLLECTION;
+            } else if (props.containsKey("mountpoint")) {
+                proto = props.getProperty("mountpoint");
+                reftype = COLLECTION;
+                virtual = true;
+                this.prototype = proto;
+            } else if (props.containsKey("object")) {
+                proto = props.getProperty("object");
+                if (reftype != COMPLEX_REFERENCE) {
+                    reftype = REFERENCE;
                 }
-
-                otherType = app.getDbMapping(proto);
-
-                if (otherType == null) {
-                    throw new RuntimeException("DbMapping for " + proto +
-                                               " not found from " + ownType.getTypeName());
-                }
-
-                // make sure the type we're referring to is up to date!
-                if (otherType.needsUpdate()) {
-                    otherType.update();
-                }
-
-            } else {
                 virtual = false;
-                columnName = desc;
-                reftype = PRIMITIVE;
+            } else {
+                throw new RuntimeException("Invalid property Mapping: " + desc);
             }
+
+            otherType = app.getDbMapping(proto);
+
+            if (otherType == null) {
+                throw new RuntimeException("DbMapping for " + proto +
+                                           " not found from " + ownType.getTypeName());
+            }
+
+            // make sure the type we're referring to is up to date!
+            if (otherType.needsUpdate()) {
+                otherType.update();
+            }
+
         }
 
-        ResourceProperties config = props.getSubProperties(propName + '.');
-
-        readonly = "true".equalsIgnoreCase(config.getProperty("readonly"));
-
-        isPrivate = "true".equalsIgnoreCase(config.getProperty("private"));
+        readonly = "true".equalsIgnoreCase(props.getProperty("readonly"));
+        isPrivate = "true".equalsIgnoreCase(props.getProperty("private"));
 
         // the following options only apply to object and collection relations
         if ((reftype != PRIMITIVE) && (reftype != INVALID)) {
             Vector newConstraints = new Vector();
 
-            parseOptions(newConstraints, config);
+            parseOptions(newConstraints, props);
 
             constraints = new Constraint[newConstraints.size()];
             newConstraints.copyInto(constraints);
@@ -256,32 +238,84 @@ public final class Relation {
         }
     }
 
-    protected void parseOptions(Vector cnst, Properties config) {
-        String loading = config.getProperty("loadmode");
+    /**
+     * Converts old style foo = collection(Bar) mapping to new style 
+     * foo.collection = Bar mappinng and returns true if a non-primitive mapping
+     * was encountered.
+     * @param value the value of the top level property mapping
+     * @param config the sub-map for this property mapping
+     * @return true if the value describes a valid, non-primitive property mapping
+     */
+    protected boolean parseDescriptor(Object value, Map config) {
+        String desc = value instanceof String ? (String) value : null;
+
+        if ((desc == null) || "".equals(desc.trim())) {
+            if (propName != null) {
+                reftype = PRIMITIVE;
+                columnName = propName;
+            } else {
+                reftype = INVALID;
+                columnName = propName;
+            }
+            return false;
+        } else {
+            desc = desc.trim();
+
+            int open = desc.indexOf("(");
+            int close = desc.indexOf(")");
+
+            if ((open > -1) && (close > open)) {
+                String ref = desc.substring(0, open).trim();
+                String proto = desc.substring(open + 1, close).trim();
+
+                if ("collection".equalsIgnoreCase(ref)) {
+                    config.put("collection", proto);
+                } else if ("mountpoint".equalsIgnoreCase(ref)) {
+                    config.put("mountpoint", proto);
+                } else if ("object".equalsIgnoreCase(ref)) {
+                    config.put("object", proto);
+                } else {
+                    throw new RuntimeException("Invalid property Mapping: " + desc);
+                }
+
+                return true;
+
+            } else {
+                virtual = false;
+                columnName = desc;
+                reftype = PRIMITIVE;
+                return false;
+            }
+        }
+
+    }
+
+    protected void parseOptions(Vector cnst, Properties props) {
+        String loading = props.getProperty("loadmode");
 
         aggressiveLoading = (loading != null) &&
                             "aggressive".equalsIgnoreCase(loading.trim());
 
-        String caching = config.getProperty("cachemode");
+        String caching = props.getProperty("cachemode");
 
         aggressiveCaching = (caching != null) &&
                             "aggressive".equalsIgnoreCase(caching.trim());
 
         // get order property
-        order = config.getProperty("order");
+        order = props.getProperty("order");
 
         if ((order != null) && (order.trim().length() == 0)) {
             order = null;
         }
 
         // get the criteria(s) for updating this collection
-        updateCriteria = config.getProperty("updatecriteria");
+        updateCriteria = props.getProperty("updatecriteria");
 
         // get the autosorting flag
-        autoSorted = "auto".equalsIgnoreCase(config.getProperty("sortmode"));
+        autoSorted = "auto".equalsIgnoreCase(props.getProperty("sortmode"));
 
         // get additional filter property
-        filter = config.getProperty("filter");
+        filter = props.getProperty("filter");
 
         if (filter != null) {
             if (filter.trim().length() == 0) {
@@ -304,7 +338,7 @@ public final class Relation {
         }
 
         // get additional tables
-        additionalTables = config.getProperty("filter.additionalTables");
+        additionalTables = props.getProperty("filter.additionalTables");
 
         if (additionalTables != null) {
             if (additionalTables.trim().length() == 0) {
@@ -334,36 +368,31 @@ public final class Relation {
         }
 
         // get query hints
-        queryHints = config.getProperty("hints");
+        queryHints = props.getProperty("hints");
 
         // get max size of collection
-        String max = config.getProperty("maxSize");
-
-        if (max != null) {
-            try {
-                maxSize = Integer.parseInt(max);
-            } catch (NumberFormatException nfe) {
-                maxSize = 0;
-            }
-        } else {
-            maxSize = 0;
+        maxSize = getIntegerProperty("maxSize", props, 0);
+        if (maxSize == 0) {
+            // use limit as alias for maxSize
+            maxSize = getIntegerProperty("limit", props, 0);
         }
+        offset = getIntegerProperty("offset", props, 0);
 
         // get group by property
-        groupby = config.getProperty("group");
+        groupby = props.getProperty("group");
 
         if ((groupby != null) && (groupby.trim().length() == 0)) {
             groupby = null;
         }
 
         if (groupby != null) {
-            groupbyOrder = config.getProperty("group.order");
+            groupbyOrder = props.getProperty("group.order");
 
             if ((groupbyOrder != null) && (groupbyOrder.trim().length() == 0)) {
                 groupbyOrder = null;
             }
 
-            groupbyPrototype = config.getProperty("group.prototype");
+            groupbyPrototype = props.getProperty("group.prototype");
 
             if ((groupbyPrototype != null) && (groupbyPrototype.trim().length() == 0)) {
                 groupbyPrototype = null;
@@ -374,11 +403,11 @@ public final class Relation {
         }
 
         // check if subnode condition should be applied for property relations
-        accessName = config.getProperty("accessname");
+        accessName = props.getProperty("accessname");
 
         // parse contstraints
-        String local = config.getProperty("local");
-        String foreign = config.getProperty("foreign");
+        String local = props.getProperty("local");
+        String foreign = props.getProperty("foreign");
 
         if ((local != null) && (foreign != null)) {
             cnst.addElement(new Constraint(local, foreign, false));
@@ -387,8 +416,8 @@ public final class Relation {
 
         // parse additional contstraints from *.1 to *.9
         for (int i=1; i<10; i++) {
-            local = config.getProperty("local."+i);
-            foreign = config.getProperty("foreign."+i);
+            local = props.getProperty("local."+i);
+            foreign = props.getProperty("foreign."+i);
 
             if ((local != null) && (foreign != null)) {
                 cnst.addElement(new Constraint(local, foreign, false));
@@ -397,7 +426,7 @@ public final class Relation {
 
         // parse constraints logic
         if (cnst.size() > 1) {
-            String logic = config.getProperty("logicalOperator");
+            String logic = props.getProperty("logicalOperator");
             if ("and".equalsIgnoreCase(logic)) {
                 logicalOperator = AND;
             } else if ("or".equalsIgnoreCase(logic)) {
@@ -413,13 +442,24 @@ public final class Relation {
 
     }
 
+    private int getIntegerProperty(String name, Properties props, int defaultValue) {
+        Object value = props.get(name);
+
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        } else if (value instanceof String) {
+            return Integer.parseInt((String) value);
+        }
+        return defaultValue;
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Get the configuration properties for this relation.
      */
-    public ResourceProperties getConfig() {
-        return ownType.getProperties().getSubProperties(propName + '.');
+    public Map getConfig() {
+        return ownType.getSubProperties(propName + '.');
     }
 
     /**
@@ -873,6 +913,13 @@ public final class Relation {
             }
         } else if (useOrder && (order != null)) {
             q.append(" ORDER BY ").append(order);
+        }
+
+        if (maxSize > 0 && !ownType.isOracle()) {
+            q.append(" LIMIT ").append(maxSize);
+            if (offset > 0) {
+                q.append(" OFFSET ").append(offset);
+            }
         }
 
         return q.toString();

@@ -23,10 +23,7 @@ import helma.framework.repository.Resource;
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
 import helma.scripting.*;
-import helma.util.CacheMap;
-import helma.util.SystemMap;
-import helma.util.WrappedMap;
-import helma.util.WeakCacheMap;
+import helma.util.*;
 import org.mozilla.javascript.*;
 import org.mozilla.javascript.tools.debugger.ScopeProvider;
 
@@ -216,7 +213,7 @@ public final class RhinoCore implements ScopeProvider {
      *
      *  @param prototype the prototype to be created
      */
-    private synchronized void initPrototype(Prototype prototype) {
+    protected synchronized TypeInfo initPrototype(Prototype prototype) {
 
         String name = prototype.getName();
         String lowerCaseName = prototype.getLowerCaseName();
@@ -236,7 +233,7 @@ public final class RhinoCore implements ScopeProvider {
             } else {
                 op = new HopObject(name, this);
             }
-            registerPrototype(prototype, op);
+            type = registerPrototype(prototype, op);
         }
 
         // Register a constructor for all types except global.
@@ -250,6 +247,8 @@ public final class RhinoCore implements ScopeProvider {
                 app.logError("Error adding ctor for " + name,  x);
             }
         }
+
+        return type;
     }
 
     /**
@@ -291,7 +290,7 @@ public final class RhinoCore implements ScopeProvider {
      *  @param prototype the prototype spec
      *  @param type the prototype object info
      */
-    private void setParentPrototype(Prototype prototype, TypeInfo type) {
+    protected void setParentPrototype(Prototype prototype, TypeInfo type) {
         String name = prototype.getName();
         String lowerCaseName = prototype.getLowerCaseName();
 
@@ -433,7 +432,7 @@ public final class RhinoCore implements ScopeProvider {
     public Map getPrototypeProperties(String protoName) {
         TypeInfo type = getPrototypeInfo(protoName);
         SystemMap map = new SystemMap();
-        Iterator it =    type.compiledProperties.iterator();
+        Iterator it = type.compiledProperties.iterator();
         while(it.hasNext()) {
             Object key = it.next();
             if (key instanceof String)
@@ -747,6 +746,26 @@ public final class RhinoCore implements ScopeProvider {
 
         return href;
     }
+
+
+    Properties scriptableToProperties(Scriptable obj) {
+        Object[] ids = obj.getIds();
+        Properties props = new ResourceProperties(app, null, null, true);
+        for (int i = 0; i < ids.length; i++) {
+            // we ignore non-string keys
+            if (ids[i] instanceof String) {
+                String key = (String) ids[i];
+                Object value = obj.get(key, obj);
+                if (value == Undefined.instance || value == Scriptable.NOT_FOUND) {
+                    value = null;
+                } else if (value instanceof Scriptable) {
+                    value = scriptableToProperties((Scriptable) value);
+                }
+                props.put(key, value);
+            }
+        }
+        return props;
+    }    
 
     /**
      * Get the RhinoCore instance associated with the current thread, or null

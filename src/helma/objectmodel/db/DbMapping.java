@@ -36,7 +36,7 @@ public final class DbMapping {
     private final String typename;
 
     // properties from where the mapping is read
-    private final ResourceProperties props;
+    private final Properties props;
 
     // name of data dbSource to which this mapping writes
     private DbSource dbSource;
@@ -147,7 +147,7 @@ public final class DbMapping {
     /**
      * Create a DbMapping from a type.properties property file
      */
-    public DbMapping(Application app, String typename, ResourceProperties props) {
+    public DbMapping(Application app, String typename, Properties props) {
         this.app = app;
         // create a unique instance of the string. This is useful so
         // we can compare types just by using == instead of equals.
@@ -169,7 +169,10 @@ public final class DbMapping {
      * Tell the type manager whether we need update() to be called
      */
     public boolean needsUpdate() {
-        return props.lastModified() != lastTypeChange;
+        if (props instanceof ResourceProperties) {
+            return ((ResourceProperties) props).lastModified() != lastTypeChange;
+        }
+        return false;
     }
 
     /**
@@ -233,7 +236,8 @@ public final class DbMapping {
             parentInfo = null;
         }
 
-        lastTypeChange = props.lastModified();
+        lastTypeChange = props instanceof ResourceProperties ?
+                ((ResourceProperties) props).lastModified() : System.currentTimeMillis();
 
         // see if this prototype extends (inherits from) any other prototype
         String extendsProto = props.getProperty("_extends");
@@ -298,13 +302,15 @@ public final class DbMapping {
         HashMap d2p = new HashMap();
         ArrayList joinList = new ArrayList();
 
-        for (Enumeration e = props.keys(); e.hasMoreElements();) {
-            String propName = (String) e.nextElement();
+        for (Iterator it = props.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry entry =  (Map.Entry) it.next();
 
             try {
+                String propName = (String) entry.getKey();
+
                 // ignore internal properties (starting with "_") and sub-options (containing a ".")
                 if (!propName.startsWith("_") && (propName.indexOf(".") < 0)) {
-                    String dbField = props.getProperty(propName);
+                    Object propValue = entry.getValue();
 
                     // check if a relation for this propery already exists. If so, reuse it
                     Relation rel = (Relation) prop2db.get(propName);
@@ -313,7 +319,7 @@ public final class DbMapping {
                         rel = new Relation(propName, this);
                     }
 
-                    rel.update(dbField, props);
+                    rel.update(propValue, getSubProperties(propName));
                     p2d.put(propName, rel);
 
                     if ((rel.columnName != null) && rel.isPrimitiveOrReference()) {
@@ -354,7 +360,7 @@ public final class DbMapping {
         joins = new Relation[joinList.size()];
         joins = (Relation[]) joinList.toArray(joins);
 
-        String subnodeMapping = props.getProperty("_children");
+        Object subnodeMapping = props.get("_children");
 
         if (subnodeMapping != null) {
             try {
@@ -363,7 +369,7 @@ public final class DbMapping {
                     subRelation = new Relation("_children", this);
                 }
 
-                subRelation.update(subnodeMapping, props);
+                subRelation.update(subnodeMapping, getSubProperties("_children"));
 
                 // if subnodes are accessed via access name or group name,
                 // the subnode relation is also the property relation.
@@ -396,6 +402,9 @@ public final class DbMapping {
      */
     private void registerExtension(String extID, String extName) {
         // lazy initialization of extensionMap
+        if (extID == null) {
+            return;
+        }
         if (extensionMap == null) {
             extensionMap = new ResourceProperties();
             extensionMap.setIgnoreCase(true);
@@ -1469,8 +1478,29 @@ public final class DbMapping {
      *
      * @return our properties
      */
-    public ResourceProperties getProperties() {
+    public Properties getProperties() {
         return props;
+    }
+
+    public Properties getSubProperties(String prefix) {
+        if (props.get(prefix) instanceof Properties) {
+            return (Properties) props.get(prefix);
+        } else if (props instanceof ResourceProperties) {
+            return ((ResourceProperties) props).getSubProperties(prefix + ".");
+        } else {
+            Properties subprops = new Properties();
+            prefix = prefix + ".";
+            Iterator it = props.entrySet().iterator();
+            int prefixLength = prefix.length();
+            while (it.hasNext()) {
+                Map.Entry entry = (Map.Entry) it.next();
+                String key = entry.getKey().toString();
+                if (key.regionMatches(false, 0, prefix, 0, prefixLength)) {
+                    subprops.put(key.substring(prefixLength), entry.getValue());
+                }
+            }
+            return subprops;
+        }
     }
 
     /**
