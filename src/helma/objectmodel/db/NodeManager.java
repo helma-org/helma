@@ -918,11 +918,8 @@ public final class NodeManager {
                     query = b.append(" ").append(home.getSubnodeRelation()).toString();
                 } else {
                     // let relation object build the query
-                    query = b.append(rel.buildQuery(home,
-                                                home.getNonVirtualParent(),
-                                                null,
-                                                " WHERE ",
-                                                true)).toString();
+                    rel.buildQuery(b, home, null, " WHERE ", true);
+                    query = b.toString();
                 }
 
                 stmt = con.createStatement();
@@ -1014,11 +1011,7 @@ public final class NodeManager {
                     b.append(home.getSubnodeRelation());
                 } else {
                     // let relation object build the query
-                    b.append(rel.buildQuery(home,
-                                            home.getNonVirtualParent(),
-                                            null,
-                                            " WHERE ",
-                                            true));
+                    rel.buildQuery(b, home, null, " WHERE ", true);
                 }
 
                 query = b.toString();
@@ -1132,17 +1125,9 @@ public final class NodeManager {
                     if (updateCriteria != null) {
                         b.append (" WHERE ");
                         b.append (updateCriteria);
-                        b.append (rel.buildQuery(home,
-                                home.getNonVirtualParent(),
-                                null,
-                                " AND ",
-                                true));
+                        rel.buildQuery(b, home, null, " AND ", true);
                     } else {
-                        b.append (rel.buildQuery(home,
-                                home.getNonVirtualParent(),
-                                null,
-                                " WHERE ",
-                                true));
+                        rel.buildQuery(b, home, null, " WHERE ", true);
                     }
                     q = b.toString();
                 }
@@ -1253,7 +1238,7 @@ public final class NodeManager {
                     dbm.addJoinConstraints(b, " AND ");
 
                     if (rel.groupby != null) {
-                        rel.renderConstraints(b, home, home.getNonVirtualParent(), " AND ");
+                        rel.renderConstraints(b, home, " AND ");
 
                         if (rel.order != null) {
                             b.append(" ORDER BY ");
@@ -1398,11 +1383,8 @@ public final class NodeManager {
                     query = b.append(" ").append(home.getSubnodeRelation()).toString();
                 } else {
                     // let relation object build the query
-                    query = b.append(rel.buildQuery(home,
-                                                home.getNonVirtualParent(),
-                                                null,
-                                                " WHERE ",
-                                                false)).toString();
+                    rel.buildQuery(b, home, null, " WHERE ", false);
+                    query = b.toString();
                 }
 
                 stmt = con.createStatement();
@@ -1472,11 +1454,7 @@ public final class NodeManager {
                     b.append(" ").append(home.getSubnodeRelation());
                 } else {
                     // let relation object build the query
-                    b.append(rel.buildQuery(home,
-                                            home.getNonVirtualParent(),
-                                            null,
-                                            " WHERE ",
-                                            true));
+                    rel.buildQuery(b, home, null, " WHERE ", true);
                 }
 
                 stmt = con.createStatement();
@@ -1637,12 +1615,7 @@ public final class NodeManager {
                         b.append(")");
                     }
                 } else {
-                    b.append(rel.buildQuery(home,
-                                            home.getNonVirtualParent(),
-                                            dbm,
-                                            kstr,
-                                            " WHERE ",
-                                            false));
+                    rel.buildQuery(b, home, dbm, kstr, " WHERE ", false);
                 }
 
                 stmt = con.createStatement();

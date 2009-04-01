@@ -876,21 +876,20 @@ public final class Relation {
      *  Build the second half of an SQL select statement according to this relation
      *  and a local object.
      */
-    public String buildQuery(INode home, INode nonvirtual,
-                             String kstr, String pre, boolean useOrder)
+    public void buildQuery(StringBuffer q, Node home, String kstr, String pre, boolean useOrder)
             throws SQLException, ClassNotFoundException {
-        return buildQuery(home, nonvirtual, otherType, kstr, pre, useOrder);
+        buildQuery(q, home, otherType, kstr, pre, useOrder);
     }
 
     /**
      *  Build the second half of an SQL select statement according to this relation
      *  and a local object.
      */
-    public String buildQuery(INode home, INode nonvirtual, DbMapping otherDbm,
-                             String kstr, String pre, boolean useOrder)
+    public void buildQuery(StringBuffer q, Node home, DbMapping otherDbm, String kstr,
+                           String pre, boolean useOrder)
             throws SQLException, ClassNotFoundException {
-        StringBuffer q = new StringBuffer();
         String prefix = pre;
+        Node nonvirtual = home.getNonVirtualParent();
 
         if (kstr != null && !isComplexReference()) {
             q.append(prefix);
@@ -919,14 +918,25 @@ public final class Relation {
             q.append(" ORDER BY ").append(order);
         }
 
-        if (maxSize > 0 && !ownType.isOracle()) {
-            q.append(" LIMIT ").append(maxSize);
-            if (offset > 0) {
-                q.append(" OFFSET ").append(offset);
+        if (maxSize > 0) {
+            if (otherType.isOracle()) {
+                // see http://www.oracle.com/technology/oramag/oracle/06-sep/o56asktom.html
+                int minRow = offset;
+                int maxRow = minRow + maxSize;
+                if (minRow > 0) {
+                    q.insert(0, "SELECT * FROM ( SELECT /*+ FIRST_ROWS(n) */ a.*, ROWNUM rnum FROM (");
+                    q.append(") a WHERE ROWNUM <= ").append(maxRow).append(") WHERE rnum > ").append(minRow);
+                } else {
+                    q.insert(0, "SELECT /*+ FIRST_ROWS(n) */ * FROM (");
+                    q.append(") WHERE ROWNUM <= ").append(maxRow);
+                }
+            } else {
+                q.append(" LIMIT ").append(maxSize);
+                if (offset > 0) {
+                    q.append(" OFFSET ").append(offset);
+                }
             }
         }
-
-        return q.toString();
     }
 
     protected void appendAdditionalTables(StringBuffer q) {
@@ -991,16 +1001,14 @@ public final class Relation {
      *
      * @param q the query string
      * @param home our home node
-     * @param nonvirtual our non-virtual home node
      * @param prefix the prefix to use to append to the existing query (e.g. " AND ")
      *
      * @throws SQLException sql related exception
      * @throws ClassNotFoundException driver class not found
      */
-    public void renderConstraints(StringBuffer q, INode home, INode nonvirtual,
-                                  String prefix)
+    public void renderConstraints(StringBuffer q, Node home, String prefix)
                              throws SQLException, ClassNotFoundException {
-        renderConstraints(q, home, nonvirtual, otherType, prefix);
+        renderConstraints(q, home, home.getNonVirtualParent(), otherType, prefix);
     }
 
     /**
@@ -1015,7 +1023,7 @@ public final class Relation {
      * @throws SQLException sql related exception
      * @throws ClassNotFoundException driver class not found
      */
-    public void renderConstraints(StringBuffer q, INode home, INode nonvirtual,
+    public void renderConstraints(StringBuffer q, Node home, Node nonvirtual,
                                   DbMapping otherDbm, String prefix)
                              throws SQLException, ClassNotFoundException {
 
