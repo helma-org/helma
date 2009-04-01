@@ -921,13 +921,12 @@ public final class Relation {
         if (maxSize > 0) {
             if (otherType.isOracle()) {
                 // see http://www.oracle.com/technology/oramag/oracle/06-sep/o56asktom.html
-                int maxRow = offset + maxSize;
                 if (offset > 0) {
                     q.insert(0, "SELECT * FROM ( SELECT /*+ FIRST_ROWS(n) */ a.*, ROWNUM rnum FROM (");
-                    q.append(") a WHERE ROWNUM <= ").append(maxRow).append(") WHERE rnum > ").append(offset);
+                    q.append(") a WHERE ROWNUM <= ").append(offset + maxSize).append(") WHERE rnum > ").append(offset);
                 } else {
                     q.insert(0, "SELECT /*+ FIRST_ROWS(n) */ * FROM (");
-                    q.append(") WHERE ROWNUM <= ").append(maxRow);
+                    q.append(") WHERE ROWNUM <= ").append(maxSize);
                 }
             } else {
                 q.append(" LIMIT ").append(maxSize);
