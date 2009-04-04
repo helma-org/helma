@@ -7,11 +7,6 @@
  * http://adele.helma.org/download/helma/license.txt
  *
  * Copyright 2009 Helma Project. All Rights Reserved.
- *
- * $RCSfile$
- * $Author: hannes $
- * $Revision: 9326 $
- * $Date: 2008-10-17 18:04:28 +0200 (Fr, 17 Okt 2008) $
  */
 
 package helma.objectmodel.db;
