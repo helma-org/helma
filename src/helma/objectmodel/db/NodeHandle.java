@@ -71,8 +71,15 @@ public final class NodeHandle implements INodeState, Serializable {
         if (node != null) {
             return node;
         }
-
         return nodemgr.getNode(key);
+    }
+
+    /**
+     * Check if the node is available without fetching it from the node manager
+     * @return true if we alreay have a reference to our node
+     */
+    public boolean hasNode() {
+        return node != null;
     }
 
     /**
@@ -83,7 +90,6 @@ public final class NodeHandle implements INodeState, Serializable {
         if (key == null) {
             throw new RuntimeException("getKey called on transient Node");
         }
-
         return key;
     }
 
@@ -95,7 +101,6 @@ public final class NodeHandle implements INodeState, Serializable {
         if (key == null) {
             return node.getID();
         }
-
         return key.getID();
     }
 

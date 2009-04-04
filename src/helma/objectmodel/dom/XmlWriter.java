@@ -19,7 +19,6 @@ package helma.objectmodel.dom;
 
 import helma.objectmodel.INode;
 import helma.objectmodel.IProperty;
-import helma.objectmodel.TransientNode;
 import helma.objectmodel.INodeState;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Node;

@@ -22,7 +22,6 @@ import helma.framework.core.Application;
 import helma.objectmodel.ConcurrencyException;
 import helma.objectmodel.INode;
 import helma.objectmodel.IProperty;
-import helma.objectmodel.TransientNode;
 import helma.util.EmptyEnumeration;
 
 import java.io.IOException;
@@ -65,14 +64,11 @@ public final class Node implements INode, Serializable {
     transient DbMapping dbmap;
     transient Key primaryKey = null;
     transient String subnodeRelation = null;
-    transient long lastSubnodeFetch = 0;
-    transient long lastSubnodeChange = 0;
     transient long lastNameCheck = 0;
     transient long lastParentSet = 0;
-    transient long lastSubnodeCount = 0; // these two are only used
-    transient int subnodeCount = -1; // for aggressive loading relational subnodes
     transient private volatile Transactor lock;
     transient private volatile int state;
+    private static long idgen = 0;
 
     /**
      * Creates an empty, uninitialized Node. The init() method must be called on the
@@ -230,7 +226,7 @@ public final class Node implements INode, Serializable {
 
         DbMapping smap = (dbmap == null) ? null : dbmap.getSubnodeMapping();
 
-        if ((smap != null) && smap.isRelational()) {
+        if (smap != null && smap.isRelational()) {
             out.writeObject(null);
         } else {
             out.writeObject(subnodes);
@@ -368,7 +364,9 @@ public final class Node implements INode, Serializable {
      * child index as changed
      */
     public void markSubnodesChanged() {
-        lastSubnodeChange += 1;
+        if (subnodes != null) {
+            subnodes.lastSubnodeChange += 1;
+        }
     }
 
     /**
@@ -429,8 +427,8 @@ public final class Node implements INode, Serializable {
     public String getID() {
         // if we are transient, we generate an id on demand. It's possible that we'll never need
         // it, but if we do it's important to keep the one we have.
-        if ((state == TRANSIENT) && (id == null)) {
-            id = TransientNode.generateID();
+        if (state == TRANSIENT && id == null) {
+            id = generateTransientID();
         }
         return id;
     }
@@ -648,7 +646,6 @@ public final class Node implements INode, Serializable {
 
         if ((smap != null) && smap.isRelational()) {
             subnodes = null;
-            subnodeCount = -1;
         }
     }
 
@@ -1166,20 +1163,7 @@ public final class Node implements INode, Serializable {
             return null;
         }
 
-        Node retval = null;
-
-        if (subnodes.size() > index) {
-            // check if there is a group-by relation
-            retval = ((NodeHandle) subnodes.get(index)).getNode(nmgr);
-
-            if ((retval != null) && (retval.parentHandle == null) &&
-                    !nmgr.isRootNode(retval)) {
-                retval.setParent(this);
-                retval.anonymous = true;
-            }
-        }
-
-        return retval;
+        return subnodes.getNode(index);
     }
 
     protected Node getGroupbySubnode(Node node, boolean create) {
@@ -1232,7 +1216,7 @@ public final class Node implements INode, Serializable {
         loadNodes();
 
         if (subnodes == null) {
-            subnodes = new SubnodeList(nmgr, dbmap.getSubnodeRelation());
+            subnodes = new SubnodeList(this);
         }
 
         if (create || subnodes.contains(new NodeHandle(new SyntheticKey(getKey(), sid)))) {
@@ -1520,38 +1504,7 @@ public final class Node implements INode, Serializable {
      * may actually load their IDs in order to do this.
      */
     public int numberOfNodes() {
-        // If the subnodes are loaded aggressively, we really just
-        // do a count statement, otherwise we just return the size of the id index.
-        // (after loading it, if it's coming from a relational data source).
-        DbMapping subMap = (dbmap == null) ? null : dbmap.getSubnodeMapping();
-
-        if ((subMap != null) && subMap.isRelational()) {
-            // check if subnodes need to be rechecked
-            Relation subRel = dbmap.getSubnodeRelation();
-
-            // do not fetch subnodes for nodes that haven't been persisted yet or are in
-            // the process of being persistified - except if "manual" subnoderelation is set.
-            if (subRel.aggressiveLoading && subRel.getGroup() == null &&
-                    (((state != TRANSIENT) && (state != NEW)) ||
-                    (subnodeRelation != null))) {
-                // we don't want to load *all* nodes if we just want to count them
-                long lastChange = getLastSubnodeChange(subRel);
-
-                if ((lastChange == lastSubnodeFetch) && (subnodes != null)) {
-                    // we can use the nodes vector to determine number of subnodes
-                    subnodeCount = subnodes.size();
-                    lastSubnodeCount = lastChange;
-                } else if ((lastChange != lastSubnodeCount) || (subnodeCount < 0)) {
-                    // count nodes in db without fetching anything
-                    subnodeCount = nmgr.countNodes(this, subRel);
-                    lastSubnodeCount = lastChange;
-                }
-                return subnodeCount;
-            }
-        }
-
         loadNodes();
-
         return (subnodes == null) ? 0 : subnodes.size();
     }
 
@@ -1570,24 +1523,11 @@ public final class Node implements INode, Serializable {
 
         if ((subMap != null) && subMap.isRelational()) {
             // check if subnodes need to be reloaded
-            Relation subRel = dbmap.getSubnodeRelation();
-
             synchronized (this) {
-                // also reload if the type mapping has changed.
-                long lastChange = getLastSubnodeChange(subRel);
-
-                if ((lastChange != lastSubnodeFetch && !subRel.autoSorted) || (subnodes == null)) {
-                    if (subRel.updateCriteria!=null) {
-                        // updateSubnodeList is setting the subnodes directly returning an integer
-                        nmgr.updateSubnodeList(this, subRel);
-                    } else if (subRel.aggressiveLoading) {
-                        subnodes = nmgr.getNodes(this, subRel);
-                    } else {
-                        subnodes = nmgr.getNodeIDs(this, subRel);
-                    }
-
-                    lastSubnodeFetch = lastChange;
+                if (subnodes == null) {
+                    createSubnodeList();
                 }
+                subnodes.update();
             }
         }
     }
@@ -1598,27 +1538,16 @@ public final class Node implements INode, Serializable {
      * @return List an empty List of the type used by this Node
      */
     public SubnodeList createSubnodeList() {
-        Relation rel = this.dbmap == null ? null : this.dbmap.getSubnodeRelation();
-        if (rel != null && rel.updateCriteria != null) {
-            subnodes = new UpdateableSubnodeList(nmgr, rel);
-        } else if (rel != null && rel.autoSorted) {
-            subnodes = new OrderedSubnodeList(nmgr, rel);
-        } else {
-            subnodes = new SubnodeList(nmgr, rel);
-        }
+        subnodes = new SegmentedSubnodeList(this);
         return subnodes;
     }
 
     /**
      * Compute a serial number indicating the last change in subnode collection
-     * @param subRel the subnode relation
      * @return a serial number that increases with each subnode change
      */
-    long getLastSubnodeChange(Relation subRel) {
-        // include dbmap.getLastTypeChange to also reload if the type mapping has changed.
-        long checkSum = lastSubnodeChange + dbmap.getLastTypeChange();
-        return subRel.aggressiveCaching ?
-                checkSum : checkSum + subRel.otherType.getLastDataChange();
+    long getLastSubnodeChange() {
+        return subnodes == null ? 0 : subnodes.getLastSubnodeChange();
     }
 
     /**
@@ -1629,65 +1558,47 @@ public final class Node implements INode, Serializable {
      *
      * @throws Exception ...
      */
-    public void prefetchChildren(int startIndex, int length)
-                          throws Exception {
-        if (length < 1) {
-            return;
-        }
-
+    public void prefetchChildren(int startIndex, int length) {
         if (startIndex < 0) {
             return;
         }
 
         loadNodes();
 
-        if (subnodes == null) {
+        if (subnodes == null || startIndex >= subnodes.size()) {
             return;
         }
 
-        if (startIndex >= subnodes.size()) {
-            return;
-        }
-
-        int l = Math.min(subnodes.size() - startIndex, length);
-
-        if (l < 1) {
-            return;
-        }
-
-        Key[] keys = new Key[l];
-
-        for (int i = 0; i < l; i++) {
-            keys[i] = ((NodeHandle) subnodes.get(i + startIndex)).getKey();
-        }
-
-        prefetchChildren (keys);
-    }
-
-    public void prefetchChildren (Key[] keys) throws Exception {
-        nmgr.nmgr.prefetchNodes(this, dbmap.getSubnodeRelation(), keys);
+        subnodes.prefetch(startIndex, length);
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Enumerate through the subnodes of this node.
+     * @return an enumeration of this node's subnodes
      */
     public Enumeration getSubnodes() {
         loadNodes();
-        class Enum implements Enumeration {
-            int count = 0;
+
+        final SubnodeList list = subnodes;
+        if (list == null) {
+            return new EmptyEnumeration();
+        }
+
+        return new Enumeration() {
+            int pos = 0;
 
             public boolean hasMoreElements() {
-                return count < numberOfNodes();
+                return pos < list.size();
             }
 
             public Object nextElement() {
-                return getSubnodeAt(count++);
-            }
-        }
+                // prefetch in batches of 100
+                if (pos % 100 == 0)
+                    list.prefetch(pos, 100);
 
-        return new Enum();
+                return list.getNode(pos++);
+            }
+        };
     }
 
     /**
@@ -2632,7 +2543,7 @@ public final class Node implements INode, Serializable {
      */
     public synchronized INode getCacheNode() {
         if (cacheNode == null) {
-            cacheNode = new TransientNode();
+            cacheNode = new Node("cache", null, nmgr);
         }
 
         return cacheNode;
@@ -2679,6 +2590,12 @@ public final class Node implements INode, Serializable {
         return nmgr == null;
     }
 
+    String generateTransientID() {
+        // make transient ids differ from persistent ones
+        // and are unique within on runtime session
+        return "t" + idgen++;
+    }
+
     /**
      * We overwrite hashCode to make it dependant from the prototype. That way, when the prototype
      * changes, the node will automatically get a new ESNode wrapper, since they're cached in a hashtable.
@@ -2713,7 +2630,7 @@ public final class Node implements INode, Serializable {
      *   (somefiled1 > theHighestKnownValue value and somefield2 < theLowestKnownValue)
      * @return the number of loaded nodes within this collection update
      */
-    public int updateSubnodes () {
+    /* public int updateSubnodes () {
         // TODO: what do we do if dbmap is null
         if (dbmap == null) {
             throw new RuntimeException (this + " doesn't have a DbMapping");
@@ -2723,7 +2640,7 @@ public final class Node implements INode, Serializable {
             lastSubnodeFetch = getLastSubnodeChange(subRel);
             return nmgr.updateSubnodeList(this, subRel);
         }
-    }
+    } */
 
     /**
      * Get the application this node belongs to.

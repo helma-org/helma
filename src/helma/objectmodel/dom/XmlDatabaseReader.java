@@ -123,7 +123,7 @@ public final class XmlDatabaseReader extends DefaultHandler implements XmlConsta
                     subnodes = currentNode.createSubnodeList();
                 }
 
-                subnodes.addSorted(handle);
+                subnodes.add(handle);
             } else if ("hop:parent".equals(qName)) {
                 currentNode.setParentHandle(handle);
             } else {

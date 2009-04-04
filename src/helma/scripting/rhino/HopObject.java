@@ -177,8 +177,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
                 if (node == null) {
                     // we probably have a deleted node. Replace with empty transient node
                     // to avoid throwing an exception.
-                    node = new TransientNode();
-                    // throw new RuntimeException("Tried to access invalid/removed node " + handle + ".");
+                    node = new Node("DeletedNode", null, core.app.getWrappedNodeManager());
                 }
             }
         }
@@ -456,16 +455,9 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     }
 
     private void prefetchChildren(int start, int length) {
-        if (!(node instanceof Node)) {
-            return;
-        }
-
-        checkNode();
-
-        try {
+        if (node instanceof Node) {
+            checkNode();
             ((Node) node).prefetchChildren(start, length);
-        } catch (Exception x) {
-            core.app.logError("Error in HopObject.prefetchChildren: " + x, x);
         }
     }
 
@@ -474,7 +466,6 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      */
     public void jsFunction_clearCache() {
         checkNode();
-
         node.clearCacheNode();
     }
 
@@ -487,7 +478,6 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     private Scriptable list() {
         checkNode();
 
-        // prefetchChildren(0, 1000);
         Enumeration e = node.getSubnodes();
         ArrayList a = new ArrayList();
 
@@ -518,7 +508,6 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         }
 
         checkNode();
-
         prefetchChildren(start, length);
         ArrayList a = new ArrayList();
 
@@ -1101,13 +1090,13 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * .) the id's of this collection must be in ascending order, meaning, that new records
      *    do have a higher id than the last record loaded by this collection
      */
-    public int jsFunction_update() {
+    /* public int jsFunction_update() {
         if (!(node instanceof Node))
             throw new RuntimeException ("update only callabel on persistent HopObjects");
         checkNode();
         Node n = (Node) node;
         return n.updateSubnodes();
-    }
+    } */
 
     /**
      * Retrieve a view having a different order from this Node's subnodelist.
@@ -1116,7 +1105,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * @param expr the order (like sql-order using the properties instead)
      * @return ListViewWrapper holding the information of the ordered view
      */
-    public Object jsFunction_getOrderedView(String expr) {
+    /* public Object jsFunction_getOrderedView(String expr) {
         if (!(node instanceof Node)) {
             throw new RuntimeException (
                     "getOrderedView only callable on persistent HopObjects");
@@ -1131,5 +1120,5 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         Node subnode = new Node("OrderedView", "HopObject", core.app.getWrappedNodeManager());
         subnode.setSubnodes(subnodes.getOrderedView(expr));
         return new HopObject("HopObject", core, subnode, core.getPrototype("HopObject"));
-    }
+    } */
 }

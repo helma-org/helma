@@ -300,8 +300,6 @@ public final class Application implements Runnable {
 
         dbSources = new Hashtable();
         modules = new SystemMap();
-
-        cachenode = new TransientNode("app");
     }
 
     /**
@@ -454,6 +452,9 @@ public final class Application implements Runnable {
             // create the node manager
             nmgr = new NodeManager(Application.this);
             nmgr.init(dbDir.getAbsoluteFile(), props);
+
+            // create the app cache node exposed as app.data
+            cachenode = new Node("app", null, getWrappedNodeManager());
 
             // create and init session manager
             String sessionMgrImpl = props.getProperty("sessionManagerImpl",

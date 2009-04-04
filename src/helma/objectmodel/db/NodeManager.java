@@ -251,7 +251,7 @@ public final class NodeManager {
         if ((node != null) && (node.getState() != Node.INVALID)) {
             // check if node is null node (cached null)
             if (node.isNullNode()) {
-                if (node.created != home.getLastSubnodeChange(rel)) {
+                if (node.created != home.getLastSubnodeChange()) {
                     node = null; //  cached null not valid anymore
                 }
             } else if (!rel.virtual) {
@@ -292,7 +292,7 @@ public final class NodeManager {
             } else {
                 // node fetched from db is null, cache result using nullNode
                 synchronized (cache) {
-                    cache.put(key, new Node(home.getLastSubnodeChange(rel)));
+                    cache.put(key, new Node(home.getLastSubnodeChange()));
 
                     // we ignore the case that onother thread has created the node in the meantime
                     return null;
@@ -876,14 +876,14 @@ public final class NodeManager {
      *  Loades subnodes via subnode relation. Only the ID index is loaded, the nodes are
      *  loaded later on demand.
      */
-    public SubnodeList getNodeIDs(Node home, Relation rel) throws Exception {
+    public List getNodeIDs(Node home, Relation rel) throws Exception {
 
         if ((rel == null) || (rel.otherType == null) || !rel.otherType.isRelational()) {
             // this should never be called for embedded nodes
             throw new RuntimeException("NodeMgr.getNodeIDs called for non-relational node " +
                                        home);
         } else {
-            SubnodeList retval = home.createSubnodeList();
+            List retval = new ArrayList();
 
             // if we do a groupby query (creating an intermediate layer of groupby nodes),
             // retrieve the value of that field instead of the primary key
@@ -946,7 +946,7 @@ public final class NodeManager {
                     Key key = (rel.groupby == null)
                               ? (Key) new DbKey(rel.otherType, kstr)
                               : (Key) new SyntheticKey(k, kstr);
-                    retval.addSorted(new NodeHandle(key));
+                    retval.add(new NodeHandle(key));
 
                     // if these are groupby nodes, evict nullNode keys
                     if (rel.groupby != null) {
@@ -980,79 +980,77 @@ public final class NodeManager {
      *  actually loades all nodes in one go, which is better for small node collections.
      *  This method is used when xxx.loadmode=aggressive is specified.
      */
-    public SubnodeList getNodes(Node home, Relation rel) throws Exception {
+    public List getNodes(Node home, Relation rel) throws Exception {
         // This does not apply for groupby nodes - use getNodeIDs instead
-        if (rel.groupby != null) {
-            return getNodeIDs(home, rel);
-        }
+        assert rel.groupby == null;
 
         if ((rel == null) || (rel.otherType == null) || !rel.otherType.isRelational()) {
             // this should never be called for embedded nodes
             throw new RuntimeException("NodeMgr.getNodes called for non-relational node " +
                                        home);
-        } else {
-            SubnodeList retval = home.createSubnodeList();
-            DbMapping dbm = rel.otherType;
+        }
 
-            Connection con = dbm.getConnection();
-            // set connection to read-only mode
-            if (!con.isReadOnly()) con.setReadOnly(true);
+        List retval = new ArrayList();
+        DbMapping dbm = rel.otherType;
 
-            Statement stmt = con.createStatement();
-            DbColumn[] columns = dbm.getColumns();
-            Relation[] joins = dbm.getJoins();
-            String query = null;
-            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+        Connection con = dbm.getConnection();
+        // set connection to read-only mode
+        if (!con.isReadOnly()) con.setReadOnly(true);
 
-            try {
-                StringBuffer b = dbm.getSelect(rel);
+        Statement stmt = con.createStatement();
+        DbColumn[] columns = dbm.getColumns();
+        Relation[] joins = dbm.getJoins();
+        String query = null;
+        long logTimeStart = logSql ? System.currentTimeMillis() : 0;
 
-                if (home.getSubnodeRelation() != null) {
-                    b.append(home.getSubnodeRelation());
-                } else {
-                    // let relation object build the query
-                    rel.buildQuery(b, home, null, " WHERE ", true);
-                }
+        try {
+            StringBuffer b = dbm.getSelect(rel);
 
-                query = b.toString();
-
-                if (rel.maxSize > 0) {
-                    stmt.setMaxRows(rel.maxSize);
-                }
-
-                ResultSet rs = stmt.executeQuery(query);
-
-                while (rs.next()) {
-                    // create new Nodes.
-                    Node node = createNode(rel.otherType, rs, columns, 0);
-                    if (node == null) {
-                        continue;
-                    }
-                    Key primKey = node.getKey();
-
-                    retval.addSorted(new NodeHandle(primKey));
-
-                    registerNewNode(node, null);
-
-                    fetchJoinedNodes(rs, joins, columns.length);
-                }
-
-            } finally {
-                if (logSql) {
-                    long logTimeStop = System.currentTimeMillis();
-                    logSqlStatement("SQL SELECT_ALL", dbm.getTableName(),
-                                    logTimeStart, logTimeStop, query);
-                }
-                if (stmt != null) {
-                    try {
-                        stmt.close();
-                    } catch (Exception ignore) {
-                    }
-                }
+            if (home.getSubnodeRelation() != null) {
+                b.append(home.getSubnodeRelation());
+            } else {
+                // let relation object build the query
+                rel.buildQuery(b, home, null, " WHERE ", true);
             }
 
-            return retval;
+            query = b.toString();
+
+            if (rel.maxSize > 0) {
+                stmt.setMaxRows(rel.maxSize);
+            }
+
+            ResultSet rs = stmt.executeQuery(query);
+
+            while (rs.next()) {
+                // create new Nodes.
+                Node node = createNode(rel.otherType, rs, columns, 0);
+                if (node == null) {
+                    continue;
+                }
+                Key primKey = node.getKey();
+
+                retval.add(new NodeHandle(primKey));
+
+                registerNewNode(node, null);
+
+                fetchJoinedNodes(rs, joins, columns.length);
+            }
+
+        } finally {
+            if (logSql) {
+                long logTimeStop = System.currentTimeMillis();
+                logSqlStatement("SQL SELECT_ALL", dbm.getTableName(),
+                        logTimeStart, logTimeStop, query);
+            }
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (Exception ignore) {
+                }
+            }
         }
+
+        return retval;
     }
     
     /**
@@ -1068,7 +1066,7 @@ public final class NodeManager {
      * @return A map having two properties of type String (newNodes (number of nodes retreived by the select-statment), addedNodes (nodes added to the collection))
      * @throws Exception
      */
-    public int updateSubnodeList(Node home, Relation rel) throws Exception {
+    /* public int updateSubnodeList(Node home, Relation rel) throws Exception {
         if ((rel == null) || (rel.otherType == null) || !rel.otherType.isRelational()) {
             // this should never be called for embedded nodes
             throw new RuntimeException("NodeMgr.updateSubnodeList called for non-relational node " +
@@ -1199,20 +1197,35 @@ public final class NodeManager {
                 }
             }
         }
+    } */
+
+    protected List collectMissingKeys(SubnodeList list, int start, int length) {
+        List retval = null;
+        for (int i = start; i < start + length; i++) {
+            NodeHandle handle = (NodeHandle) list.get(i);
+            if (handle != null && !cache.containsKey(handle.getKey())) {
+                if (retval == null) {
+                    retval = new ArrayList();
+                }
+                retval.add(handle.getKey().getID());
+            }
+        }
+        return retval;
     }
 
     /**
      *
      */
-    public void prefetchNodes(Node home, Relation rel, Key[] keys)
+    public void prefetchNodes(Node home, Relation rel, SubnodeList list, int start, int length)
                        throws Exception {
         DbMapping dbm = rel.otherType;
 
         // this does nothing for objects in the embedded database
         if (dbm != null && dbm.isRelational()) {
-            int missing = cache.containsKeys(keys);
+            // int missing = cache.containsKeys(keys);
+            List missing = collectMissingKeys(list, start, length);
 
-            if (missing > 0) {
+            if (missing != null) {
                 Connection con = dbm.getConnection();
                 // set connection to read-only mode
                 if (!con.isReadOnly()) con.setReadOnly(true);
@@ -1226,13 +1239,7 @@ public final class NodeManager {
                 try {
                     StringBuffer b = dbm.getSelect(null).append(" WHERE ");
                     String idfield = (rel.groupby != null) ? rel.groupby : dbm.getIDField();
-
-                    String[] ids = new String[missing];
-                    int j = 0;
-                    for (int k = 0; k < keys.length; k++) {
-                        if (keys[k] != null)
-                            ids[j++] = keys[k].getID();
-                    }
+                    String[] ids = (String[]) missing.toArray(new String[missing.size()]);
 
                     dbm.appendCondition(b, idfield, ids);
                     dbm.addJoinConstraints(b, " AND ");
@@ -1277,7 +1284,7 @@ public final class NodeManager {
                         // group nodes.
                         String groupName = null;
 
-                        if (groupbyProp != null) {
+                        /* if (groupbyProp != null) {
                             groupName = node.getString(groupbyProp);
 
                             SubnodeList sn = (SubnodeList) groupbySubnodes.get(groupName);
@@ -1287,8 +1294,8 @@ public final class NodeManager {
                                 groupbySubnodes.put(groupName, sn);
                             }
 
-                            sn.addSorted(new NodeHandle(key));
-                        }
+                            sn.add(new NodeHandle(key));
+                        } */
 
                         // if relation doesn't use primary key as accessName, get secondary key
                         if (accessProp != null) {
@@ -1313,7 +1320,7 @@ public final class NodeManager {
 
                     // If these are grouped nodes, build the intermediary group nodes
                     // with the subnod lists we created
-                    if (groupbyProp != null) {
+                    /* if (groupbyProp != null) {
                         for (Iterator i = groupbySubnodes.keySet().iterator();
                                  i.hasNext();) {
                             String groupname = (String) i.next();
@@ -1328,7 +1335,7 @@ public final class NodeManager {
                             groupnode.lastSubnodeFetch = 
                                     groupnode.getLastSubnodeChange(groupnode.dbmap.getSubnodeRelation());
                         }
-                    }
+                    } */
                 } catch (Exception x) {
                     app.logError("Error in prefetchNodes()", x);
                 } finally {
@@ -1417,7 +1424,7 @@ public final class NodeManager {
     }
 
     /**
-     *  Similar to getNodeIDs, but returns a Vector that return's the nodes property names instead of IDs
+     *  Similar to getNodeIDs, but returns a List that contains the nodes property names instead of IDs
      */
     public Vector getPropertyNames(Node home, Relation rel)
                             throws Exception {
@@ -1467,7 +1474,7 @@ public final class NodeManager {
                     String n = rs.getString(1);
 
                     if (n != null) {
-                        retval.addElement(n);
+                        retval.add(n);
                     }
                 }
             } finally {

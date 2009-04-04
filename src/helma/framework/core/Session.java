@@ -67,7 +67,7 @@ public class Session implements Serializable {
         this.app = app;
         this.uid = null;
         this.userHandle = null;
-        cacheNode = new TransientNode("session");
+        cacheNode = new Node("session", null, app.getWrappedNodeManager());
         onSince = System.currentTimeMillis();
         lastTouched = lastModified = onSince;
     }

@@ -19,6 +19,7 @@ package helma.objectmodel.db;
 import helma.objectmodel.ObjectNotFoundException;
 
 import java.util.Vector;
+import java.util.List;
 
 /**
  * A wrapper around NodeManager that catches most Exceptions, or rethrows them as RuntimeExceptions.
@@ -104,11 +105,11 @@ public final class WrappedNodeManager {
      * @param rel
      * @return
      */
-    public SubnodeList getNodes(Node home, Relation rel) {
+    public List getNodes(Node home, Relation rel) {
         Transactor tx = checkLocalTransactor();
         try {
             beginLocalTransaction(tx, "getNodes");
-            SubnodeList list = nmgr.getNodes(home, rel);
+            List list = nmgr.getNodes(home, rel);
             commitLocalTransaction(tx);
             return list;
         } catch (Exception x) {
@@ -125,7 +126,7 @@ public final class WrappedNodeManager {
      * @param rel
      * @return
      */
-    public SubnodeList getNodeIDs(Node home, Relation rel) {
+    public List getNodeIDs(Node home, Relation rel) {
         try {
             return nmgr.getNodeIDs(home, rel);
         } catch (Exception x) {
@@ -136,13 +137,13 @@ public final class WrappedNodeManager {
     /**
      * @see helma.objectmodel.db.NodeManager#updateSubnodeList(Node, Relation)
      */
-    public int updateSubnodeList (Node home, Relation rel) {
+    /* public int updateSubnodeList (Node home, Relation rel) {
         try {
             return nmgr.updateSubnodeList(home, rel);
         } catch (Exception x) {
             throw new RuntimeException("Error retrieving NodeIDs", x);
         }
-    }
+    } */
 
     /**
      * Count the nodes contained in the given Node's collection
@@ -157,6 +158,15 @@ public final class WrappedNodeManager {
             return nmgr.countNodes(home, rel);
         } catch (Exception x) {
             throw new RuntimeException("Error counting Nodes", x);
+        }
+    }
+
+    public void prefetchNodes(Node node, Relation rel, SubnodeList list,
+                              int start, int length) {
+        try {
+            nmgr.prefetchNodes(node, rel, list, start, length);
+        } catch (Exception x) {
+            throw new RuntimeException("Error prefetching nodes", x);
         }
     }
 

@@ -18,17 +18,18 @@ package helma.objectmodel.db;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.io.Serializable;
 
 /**
  * A subclass of ArrayList that adds an addSorted(Object) method to
  */
-public class SubnodeList extends ArrayList {
+public class SubnodeList implements Serializable {
 
-    transient WrappedNodeManager nmgr;
-    transient HashMap views = null;
-    transient Relation rel;
+    Node node;
+    List list;
+
+    transient long lastSubnodeFetch = 0;
+    transient long lastSubnodeChange = 0;
 
     /**
      * Hide/disable zero argument constructor for subclasses
@@ -37,21 +38,11 @@ public class SubnodeList extends ArrayList {
 
     /**
      * Creates a new subnode list
-     * @param nmgr
+     * @param node the node we belong to
      */
-    public SubnodeList(WrappedNodeManager nmgr, Relation rel) {
-        this.nmgr = nmgr;
-        this.rel = rel;
-    }
-
-   /**
-    * Inserts the specified element at the specified position in this
-    * list without performing custom ordering
-    *
-    * @param obj element to be inserted.
-    */
-    public boolean addSorted(Object obj)  {
-        return add(obj);
+    public SubnodeList(Node node) {
+        this.node = node;
+        this.list = new ArrayList();
     }
 
     /**
@@ -61,8 +52,7 @@ public class SubnodeList extends ArrayList {
      * @param obj element to be inserted.
      */
     public boolean add(Object obj) {
-        addToViews(obj);
-        return super.add(obj);
+        return list.add(obj);
     }
     /**
      * Adds the specified object to the list at the given position
@@ -70,8 +60,36 @@ public class SubnodeList extends ArrayList {
      * @param obj the object t add
      */
     public void add(int idx, Object obj) {
-        addToViews(obj);
-        super.add(idx, obj);
+        list.add(idx, obj);
+    }
+
+    public Object get(int index) {
+        return list.get(index);
+    }
+
+    public Node getNode(int index) {
+        Node retval = null;
+        NodeHandle handle = (NodeHandle) get(index);
+
+        if (handle != null) {
+            retval = handle.getNode(node.nmgr);
+
+            if ((retval != null) && (retval.parentHandle == null) &&
+                    !node.nmgr.isRootNode(retval)) {
+                retval.setParent(node);
+                retval.anonymous = true;
+            }
+        }
+
+        return retval;
+    }
+
+    public boolean contains(Object object) {
+        return list.contains(object);
+    }
+
+    public int indexOf(Object object) {
+        return list.indexOf(object);
     }
 
     /**
@@ -79,11 +97,7 @@ public class SubnodeList extends ArrayList {
      * @param idx the index-position of the NodeHandle to remove
      */
     public Object remove (int idx) {
-        Object obj = get(idx);
-        if (obj != null) {
-            removeFromViews(obj);
-        }
-        return super.remove(idx);
+        return list.remove(idx);
     }
 
     /**
@@ -91,40 +105,78 @@ public class SubnodeList extends ArrayList {
      * @param obj the NodeHandle to remove
      */
     public boolean remove (Object obj) {
-        removeFromViews(obj);
-        return super.remove(obj);
+        return list.remove(obj);
     }
 
-    protected void removeFromViews(Object obj) {
-        if (views == null || views.isEmpty())
+    /**
+     * Return the size of the list.
+     * @return the list size
+     */
+    public int size() {
+        return list.size();
+    }
+
+    protected void update() {
+        // also reload if the type mapping has changed.
+        long lastChange = getLastSubnodeChange();
+
+        Relation rel = getSubnodeRelation();
+        if (lastChange != lastSubnodeFetch) {
+            if (rel.aggressiveLoading && rel.groupby == null) {
+                list = node.nmgr.getNodes(node, rel);
+            } else {
+                list = node.nmgr.getNodeIDs(node, rel);
+            }
+
+            lastSubnodeFetch = lastChange;
+        }
+    }
+
+    protected void prefetch(int start, int length) {
+        if (start < 0 || start >= size()) {
             return;
-        for (Iterator i = views.values().iterator(); i.hasNext(); ) {
-            OrderedSubnodeList osl = (OrderedSubnodeList) i.next();
-            osl.remove(obj);
         }
-    }
-
-    public SubnodeList getOrderedView (String order) {
-        String key = order.trim().toLowerCase();
-        // long start = System.currentTimeMillis();
-        if (views == null) {
-            views = new HashMap();
-        }
-        OrderedSubnodeList osl = (OrderedSubnodeList) views.get(key);
-        if (osl == null) {
-            osl = new OrderedSubnodeList (nmgr, rel, this, order);
-            views.put(key, osl);
-        }
-        return osl;
-    }
-
-    protected void addToViews (Object obj) {
-        if (views == null || views.isEmpty())
+        length =  (length < 0) ?
+                size() - start : Math.min(length, size() - start);
+        if (length < 0) {
             return;
-        for (Iterator i = views.values().iterator(); i.hasNext(); ) {
-            OrderedSubnodeList osl = (OrderedSubnodeList) i.next();
-            osl.sortIn(obj);
         }
+
+        DbMapping dbmap = getSubnodeMapping();
+        Relation rel = getSubnodeRelation();
+
+        if (!dbmap.isRelational() || rel.getGroup() != null) {
+            return;
+        }
+
+        // this is the code we're going to use for segmented key loading!
+        /* if (start > 0 || length > 0 && length < size()) {
+            rel = new Relation(rel);
+            rel.offset = start;
+            rel.maxSize = length < 0 ? size() : length;
+        }
+        node.nmgr.getNodes(node, rel); */
+
+        node.nmgr.prefetchNodes(node, rel, this, start, length);
     }
 
+    /**
+     * Compute a serial number indicating the last change in subnode collection
+     * @return a serial number that increases with each subnode change
+     */
+    long getLastSubnodeChange() {
+        // include dbmap.getLastTypeChange to also reload if the type mapping has changed.
+        long checkSum = lastSubnodeChange + node.dbmap.getLastTypeChange();
+        Relation rel = getSubnodeRelation();
+        return rel.aggressiveCaching ?
+                checkSum : checkSum + rel.otherType.getLastDataChange();
+    }
+
+    protected DbMapping getSubnodeMapping() {
+        return node.dbmap == null ? null : node.dbmap.getSubnodeMapping();
+    }
+
+    protected Relation getSubnodeRelation() {
+        return node.dbmap == null ? null : node.dbmap.getSubnodeRelation();
+    }
 }

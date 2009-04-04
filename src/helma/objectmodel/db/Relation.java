@@ -108,7 +108,7 @@ public final class Relation {
      * This constructor makes a copy of an existing relation. Not all fields are copied, just those
      * which are needed in groupby- and virtual nodes defined by this relation.
      */
-    private Relation(Relation rel) {
+    protected Relation(Relation rel) {
         // Note: prototype, groupby, groupbyPrototype and groupbyOrder aren't copied here.
         // these are set by the individual get*Relation() methods as appropriate.
         this.ownType =                  rel.ownType;
