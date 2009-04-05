@@ -25,6 +25,7 @@ import org.mortbay.util.InetAddrPort;
 
 import java.util.StringTokenizer;
 import java.net.URL;
+import java.net.InetSocketAddress;
 import java.io.IOException;
 
 public class JettyServer {
@@ -49,19 +50,19 @@ public class JettyServer {
         openListeners();
     }
 
-    private JettyServer(InetEndpoint webPort, InetEndpoint ajpPort, Server server)
+    private JettyServer(InetSocketAddress webPort, InetSocketAddress ajpPort, Server server)
             throws IOException {
         http = new HttpServer();
 
         // create embedded web server if port is specified
         if (webPort != null) {
-            http.addListener(new InetAddrPort(webPort.getInetAddress(), webPort.getPort()));
+            http.addListener(new InetAddrPort(webPort.getAddress(), webPort.getPort()));
         }
 
         // activate the ajp13-listener
         if (ajpPort != null) {
             // create AJP13Listener
-            ajp13 = new AJP13Listener(new InetAddrPort(ajpPort.getInetAddress(), ajpPort.getPort()));
+            ajp13 = new AJP13Listener(new InetAddrPort(ajpPort.getAddress(), ajpPort.getPort()));
             ajp13.setHttpServer(http);
 
             String jkallow = server.sysProps.getProperty("allowAJP13");

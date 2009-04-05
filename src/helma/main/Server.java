@@ -29,9 +29,7 @@ import java.io.*;
 import java.rmi.registry.*;
 import java.rmi.server.*;
 import java.util.*;
-import java.net.UnknownHostException;
-import java.net.ServerSocket;
-import java.net.InetAddress;
+import java.net.*;
 
 import helma.util.ResourceProperties;
 
@@ -69,10 +67,10 @@ public class Server implements Runnable {
     private Thread mainThread;
 
     // server ports
-    InetEndpoint rmiPort = null;
-    InetEndpoint xmlrpcPort = null;
-    InetEndpoint websrvPort = null;
-    InetEndpoint ajp13Port = null;
+    InetSocketAddress rmiPort = null;
+    InetSocketAddress xmlrpcPort = null;
+    InetSocketAddress websrvPort = null;
+    InetSocketAddress ajp13Port = null;
 
     // Jetty configuration file
     File configFile = null;
@@ -200,7 +198,7 @@ public class Server implements Runnable {
         // check if there's a property setting for those ports not specified via command line
         if (!config.hasWebsrvPort() && sysProps.getProperty("webPort") != null) {
             try {
-                config.setWebsrvPort(new InetEndpoint(sysProps.getProperty("webPort")));
+                config.setWebsrvPort(getInetSocketAddress(sysProps.getProperty("webPort")));
             } catch (Exception portx) {
                 throw new Exception("Error parsing web server port property from server.properties: " + portx);
             }
@@ -208,7 +206,7 @@ public class Server implements Runnable {
 
         if (!config.hasAjp13Port() && sysProps.getProperty("ajp13Port") != null) {
             try {
-                config.setAjp13Port(new InetEndpoint(sysProps.getProperty("ajp13Port")));
+                config.setAjp13Port(getInetSocketAddress(sysProps.getProperty("ajp13Port")));
             } catch (Exception portx) {
                 throw new Exception("Error parsing AJP1.3 server port property from server.properties: " + portx);
             }
@@ -216,7 +214,7 @@ public class Server implements Runnable {
 
         if (!config.hasRmiPort() && sysProps.getProperty("rmiPort") != null) {
             try {
-                config.setRmiPort(new InetEndpoint(sysProps.getProperty("rmiPort")));
+                config.setRmiPort(getInetSocketAddress(sysProps.getProperty("rmiPort")));
             } catch (Exception portx) {
                 throw new Exception("Error parsing RMI server port property from server.properties: " + portx);
             }
@@ -224,7 +222,7 @@ public class Server implements Runnable {
 
         if (!config.hasXmlrpcPort() && sysProps.getProperty("xmlrpcPort") != null) {
             try {
-                config.setXmlrpcPort(new InetEndpoint(sysProps.getProperty("xmlrpcPort")));
+                config.setXmlrpcPort(getInetSocketAddress(sysProps.getProperty("xmlrpcPort")));
             } catch (Exception portx) {
                 throw new Exception("Error parsing XML-RPC server port property from server.properties: " + portx);
             }
@@ -247,25 +245,25 @@ public class Server implements Runnable {
                 config.setPropFile(new File(args[++i]));
             } else if (args[i].equals("-p") && ((i + 1) < args.length)) {
                 try {
-                    config.setRmiPort(new InetEndpoint(args[++i]));
+                    config.setRmiPort(getInetSocketAddress(args[++i]));
                 } catch (Exception portx) {
                     throw new Exception("Error parsing RMI server port property: " + portx);
                 }
             } else if (args[i].equals("-x") && ((i + 1) < args.length)) {
                 try {
-                    config.setXmlrpcPort(new InetEndpoint(args[++i]));
+                    config.setXmlrpcPort(getInetSocketAddress(args[++i]));
                 } catch (Exception portx) {
                     throw new Exception("Error parsing XML-RPC server port property: " + portx);
                 }
             } else if (args[i].equals("-w") && ((i + 1) < args.length)) {
                 try {
-                    config.setWebsrvPort(new InetEndpoint(args[++i]));
+                    config.setWebsrvPort(getInetSocketAddress(args[++i]));
                 } catch (Exception portx) {
                     throw new Exception("Error parsing web server port property: " + portx);
                 }
             } else if (args[i].equals("-jk") && ((i + 1) < args.length)) {
                 try {
-                    config.setAjp13Port(new InetEndpoint(args[++i]));
+                    config.setAjp13Port(getInetSocketAddress(args[++i]));
                 } catch (Exception portx) {
                     throw new Exception("Error parsing AJP1.3 server port property: " + portx);
                 }
@@ -387,24 +385,14 @@ public class Server implements Runnable {
     /**
      *  Check whether a server port is available by trying to open a server socket
      */
-    private static void checkPort(InetEndpoint addrPort) throws Exception {
-        InetAddress addr = addrPort.getInetAddress();
-        int port = addrPort.getPort();
-        if (addr == null) {
-            try {
-                addr = InetAddress.getLocalHost();
-            } catch (UnknownHostException unknown) {
-                System.err.println("Error checking running server: localhost is unknown.");
-                return;
-            }
-        }
+    private static void checkPort(InetSocketAddress endpoint) throws IOException {
         try {
-            ServerSocket sock = new ServerSocket(port, 1, addr);
+            ServerSocket sock = new ServerSocket();
+            sock.bind(endpoint);
             sock.close();
-        } catch (Exception x) {
-            throw new Exception("Error: Server already running on this port: " + addrPort);
+        } catch (IOException x) {
+            throw new IOException("Error binding to " + endpoint + ": " + x.getMessage());
         }
-        return;
     }
 
 
@@ -581,8 +569,8 @@ public class Server implements Runnable {
                     XmlRpc.setDriver(xmlparser);
                 }
 
-                if (xmlrpcPort.getInetAddress() != null) {
-                    xmlrpc = new WebServer(xmlrpcPort.getPort(), xmlrpcPort.getInetAddress());
+                if (xmlrpcPort.getAddress() != null) {
+                    xmlrpc = new WebServer(xmlrpcPort.getPort(), xmlrpcPort.getAddress());
                 } else {
                     xmlrpc = new WebServer(xmlrpcPort.getPort());
                 }
@@ -854,42 +842,24 @@ public class Server implements Runnable {
     public void stopApplication(String name) {
         appManager.stop(name);
     }
-}
 
-class InetEndpoint {
-    
-    InetAddress addr;
-    int port;
-
-    public InetEndpoint(String inetAddrPort)
-            throws java.net.UnknownHostException {
+    private static InetSocketAddress getInetSocketAddress(String inetAddrPort)
+            throws UnknownHostException {
+        InetAddress addr = null;
         int c = inetAddrPort.indexOf(':');
         if (c >= 0) {
-            String addr = inetAddrPort.substring(0, c);
-            if (addr.indexOf('/') > 0)
-                addr = addr.substring(addr.indexOf('/') + 1);
+            String a = inetAddrPort.substring(0, c);
+            if (a.indexOf('/') > 0)
+                a = a.substring(a.indexOf('/') + 1);
             inetAddrPort = inetAddrPort.substring(c + 1);
 
-            if (addr.length() > 0 && !"0.0.0.0".equals(addr)) {
-                this.addr = InetAddress.getByName(addr);
+            if (a.length() > 0 && !"0.0.0.0".equals(a)) {
+                addr = InetAddress.getByName(a);
             }
         }
-
-        this.port = Integer.parseInt(inetAddrPort);
+        int port = Integer.parseInt(inetAddrPort);
+        return new InetSocketAddress(addr, port);
     }
-
-    public InetAddress getInetAddress() {
-        return addr;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public String toString() {
-        return addr == null ? "0.0.0.0:" + port  : addr + ":" + port;
-    }
-
 }
 
 

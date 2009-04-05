@@ -17,6 +17,7 @@
 package helma.main;
 
 import java.io.File;
+import java.net.InetSocketAddress;
 
 /**
  * Utility class for server config
@@ -24,13 +25,13 @@ import java.io.File;
  
 public class ServerConfig {
 
-    private InetEndpoint rmiPort    = null;
-    private InetEndpoint xmlrpcPort = null;
-    private InetEndpoint websrvPort = null;
-    private InetEndpoint ajp13Port  = null;
-    private File         propFile   = null;
-    private File         homeDir    = null;
-    private File         configFile = null;
+    private InetSocketAddress rmiPort    = null;
+    private InetSocketAddress xmlrpcPort = null;
+    private InetSocketAddress websrvPort = null;
+    private InetSocketAddress ajp13Port  = null;
+    private File propFile   = null;
+    private File homeDir    = null;
+    private File configFile = null;
 
     public boolean hasPropFile() {
         return (propFile != null);
@@ -56,35 +57,35 @@ public class ServerConfig {
         return (ajp13Port != null);
     }
 
-    public InetEndpoint getRmiPort() {
+    public InetSocketAddress getRmiPort() {
         return rmiPort;
     }
 
-    public void setRmiPort(InetEndpoint rmiPort) {
+    public void setRmiPort(InetSocketAddress rmiPort) {
         this.rmiPort = rmiPort;
     }
 
-    public InetEndpoint getXmlrpcPort() {
+    public InetSocketAddress getXmlrpcPort() {
         return xmlrpcPort;
     }
 
-    public void setXmlrpcPort(InetEndpoint xmlrpcPort) {
+    public void setXmlrpcPort(InetSocketAddress xmlrpcPort) {
         this.xmlrpcPort = xmlrpcPort;
     }
 
-    public InetEndpoint getWebsrvPort() {
+    public InetSocketAddress getWebsrvPort() {
         return websrvPort;
     }
 
-    public void setWebsrvPort(InetEndpoint websrvPort) {
+    public void setWebsrvPort(InetSocketAddress websrvPort) {
         this.websrvPort = websrvPort;
     }
 
-    public InetEndpoint getAjp13Port() {
+    public InetSocketAddress getAjp13Port() {
         return ajp13Port;
     }
 
-    public void setAjp13Port(InetEndpoint ajp13Port) {
+    public void setAjp13Port(InetSocketAddress ajp13Port) {
         this.ajp13Port = ajp13Port;
     }
 
