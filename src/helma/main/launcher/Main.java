@@ -36,8 +36,9 @@ import java.util.ArrayList;
 public class Main {
     public static final String[] jars = {
                                             "helma.jar", "rhino.jar", "jetty.jar",
-                                            "commons-logging.jar",
-                                            "crimson.jar", "xmlrpc.jar", "servlet.jar",
+                                            "jetty-util.jar", "jetty-ajp.jar",
+                                            "commons-logging.jar", "crimson.jar",
+                                            "xmlrpc.jar", "servlet.jar",
                                             "mail.jar", "activation.jar",
                                             "commons-fileupload.jar", "commons-codec.jar",
                                             "commons-io.jar", "commons-net.jar", 

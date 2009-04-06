@@ -16,12 +16,11 @@
 
 package helma.main;
 
-import org.mortbay.http.HttpServer;
-import org.mortbay.http.HttpContext;
-import org.mortbay.http.SocketListener;
-import org.mortbay.http.HttpListener;
-import org.mortbay.http.ajp.AJP13Listener;
-import org.mortbay.util.InetAddrPort;
+
+import org.mortbay.jetty.Connector;
+import org.mortbay.jetty.ajp.Ajp13SocketConnector;
+import org.mortbay.jetty.bio.SocketConnector;
+import org.mortbay.jetty.nio.SelectChannelConnector;
 
 import java.util.StringTokenizer;
 import java.net.URL;
@@ -31,10 +30,10 @@ import java.io.IOException;
 public class JettyServer {
 
     // the embedded web server
-    protected HttpServer http;
+    protected org.mortbay.jetty.Server http;
 
     // the AJP13 Listener, used for connecting from external webserver to servlet via JK
-    protected AJP13Listener ajp13;
+    protected Ajp13SocketConnector ajp13;
 
     public static JettyServer init(Server server) throws IOException {
         if (server.configFile != null && server.configFile.exists()) {
@@ -46,24 +45,34 @@ public class JettyServer {
     }
 
     private JettyServer(URL url) throws IOException {
-        http = new org.mortbay.jetty.Server(url);
+        // TODO: this is wrong. url is supposed to be the url of a jetty config file.
+        http = new org.mortbay.jetty.Server(url.getPort());
         openListeners();
     }
 
     private JettyServer(InetSocketAddress webPort, InetSocketAddress ajpPort, Server server)
             throws IOException {
-        http = new HttpServer();
-
-        // create embedded web server if port is specified
+    	
+        http = new org.mortbay.jetty.Server();
+        http.setServer(http);
+        
+        // start embedded web server if port is specified
         if (webPort != null) {
-            http.addListener(new InetAddrPort(webPort.getAddress(), webPort.getPort()));
+        	Connector conn = new SelectChannelConnector();
+        	conn.setHost(webPort.getAddress().getHostAddress());
+        	conn.setPort(webPort.getPort());
+        	
+        	http.addConnector(conn);
         }
 
         // activate the ajp13-listener
         if (ajpPort != null) {
             // create AJP13Listener
-            ajp13 = new AJP13Listener(new InetAddrPort(ajpPort.getAddress(), ajpPort.getPort()));
-            ajp13.setHttpServer(http);
+        	ajp13 = new Ajp13SocketConnector();
+        	ajp13.setHost(ajpPort.getAddress().getHostAddress());
+        	ajp13.setPort(ajpPort.getPort());
+        	
+        	http.addConnector(ajp13);
 
             String jkallow = server.sysProps.getProperty("allowAJP13");
 
@@ -81,16 +90,17 @@ public class JettyServer {
                 cnt++;
             }
 
-            ajp13.setRemoteServers(jkallowarr);
+            // TODO:
+            //ajp13.setRemoteServers(jkallowarr);
             server.getLogger().info("Starting AJP13-Listener on port " + (ajpPort));            
         }
         openListeners();
     }
 
-    public HttpServer getHttpServer() {
+    public org.mortbay.jetty.Server getHttpServer() {
         return http;
     }
-
+/* TODO:
     public HttpContext getContext(String contextPath) {
         return http.getContext(contextPath);
     }
@@ -98,6 +108,7 @@ public class JettyServer {
     public HttpContext addContext(String contextPath) {
         return http.addContext(contextPath);
     }
+*/
 
     public void start() throws Exception {
         http.start();
@@ -106,7 +117,7 @@ public class JettyServer {
         }
     }
 
-    public void stop() throws InterruptedException {
+    public void stop() throws Exception {
         http.stop();
         if (ajp13 != null) {
             ajp13.stop();
@@ -121,11 +132,11 @@ public class JettyServer {
         // opening the listener here allows us to run on priviledged port 80 under jsvc
         // even as non-root user, because init() is called with root privileges
         // while start() will be called with the user we will actually run as
-        HttpListener[] listeners = http.getListeners();
-        for (int i = 0; i < listeners.length; i++) {
-            if (listeners[i] instanceof SocketListener) {
-                SocketListener listener = (SocketListener) listeners[i];
-                listener.open();
+        Connector[] connectors = http.getConnectors();
+        for (int i = 0; i < connectors.length; i++) {
+            if (connectors[i] instanceof SocketConnector) {
+                SocketConnector connector = (SocketConnector) connectors[i];
+                connector.open();
             }
         }
     }

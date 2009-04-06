@@ -523,8 +523,8 @@ public class Server implements Runnable {
             try {
                 jetty.stop();
                 jetty.destroy();
-            } catch (InterruptedException irx) {
-                // http.stop() interrupted by another thread. ignore.
+            } catch (Exception x) {
+                // exception in jettx stop. ignore.
             }
         }
 
