@@ -1593,9 +1593,8 @@ public final class Node implements INode, Serializable {
 
             public Object nextElement() {
                 // prefetch in batches of 100
-                if (pos % 100 == 0)
-                    list.prefetch(pos, 100);
-
+                // if (pos % 100 == 0)
+                //     list.prefetch(pos, 100);
                 return list.getNode(pos++);
             }
         };
