@@ -42,6 +42,8 @@ public final class Skin {
     private HashSet sandbox;
     private HashMap subskins;
     private Skin parentSkin = this;
+    private String extendz = null;
+    private boolean hasContent = false;
 
     static private final int PARSE_MACRONAME = 0;
     static private final int PARSE_PARAM = 1;
@@ -157,10 +159,16 @@ public final class Skin {
                     length = i;
                     break;
                 } else {
+                    if (!macro.isCommentMacro) {
+                        hasContent = true;
+                    }
                     partBuffer.add(macro);
                 }
                 i = macro.end - 1;
             } else {
+                if (!hasContent && !Character.isWhitespace(source[i])){
+                    hasContent = true;
+                }
                 escape = source[i] == '\\' && !escape;
             }
         }
@@ -181,7 +189,7 @@ public final class Skin {
      * @return true if this skin contains a main skin
      */
     public boolean hasMainskin() {
-        return length - offset > 0 || subskins == null;
+        return hasContent;
     }
 
     /**
@@ -210,6 +218,10 @@ public final class Skin {
         return subskins == null ?
                 new String[0] :
                 (String[]) subskins.keySet().toArray(new String[0]);
+    }
+
+    public String getExtends() {
+        return extendz;
     }
 
     /**
@@ -328,8 +340,6 @@ public final class Skin {
         }
     }
 
-
-
     class Macro {
         final int start, end;
         String name;
@@ -388,6 +398,18 @@ public final class Skin {
                 } else if ("param".equalsIgnoreCase(handlerName)) {
                     handlerType = HANDLER_PARAM;
                 }
+            }
+
+            if (".extends".equals(name)) {
+                if (parentSkin != Skin.this) {
+                    throw new RuntimeException("Found .extends in subskin");
+                }
+                if (positionalParams == null || positionalParams.size() < 1
+                        || !(positionalParams.get(0) instanceof String)) {
+                    throw new RuntimeException(".extends requires an unnamed string parameter");
+                }
+                extendz = (String) positionalParams.get(0);
+                isCommentMacro = true; // don't render
             }
         }
 

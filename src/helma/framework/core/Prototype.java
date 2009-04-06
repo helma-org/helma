@@ -341,19 +341,25 @@ public final class Prototype {
             skin = Skin.getSkin(res, app);
             if (skin.hasMainskin())
                 break;
+            String extendz = skin.getExtends();
+            if (extendz != null && extendz != skinName)
+                return getSkin(extendz, null, null);
             res = res.getOverloadedResource();
         }
         if (parentName != null) {
             Skin parentSkin = null;
-            Resource parent = skinMap.getResource(parentName);
-            while (parent != null) {
-                parentSkin = Skin.getSkin(parent, app);
+            Resource parentResource = skinMap.getResource(parentName);
+            while (parentResource != null) {
+                parentSkin = Skin.getSkin(parentResource, app);
                 if (parentSkin.hasSubskin(subName))
                     break;
-                parent = parent.getOverloadedResource();
+                String extendz = parentSkin.getExtends();
+                if (extendz != null && extendz != parentName)
+                    return getSkin(extendz, extendz, subName);
+                parentResource = parentResource.getOverloadedResource();
             }
-            if (parent != null) {
-                if (res != null && app.getResourceComparator().compare(res, parent) > 0)
+            if (parentResource != null) {
+                if (res != null && app.getResourceComparator().compare(res, parentResource) > 0)
                     return skin;
                 else
                     return parentSkin.getSubskin(subName);

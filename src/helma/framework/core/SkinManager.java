@@ -51,7 +51,7 @@ public final class SkinManager implements FilenameFilter {
         Skin skin;
         Prototype proto = prototype;
 
-        // if name contains dot, this might be a substring of some other string
+        // if name contains #, this may be a subskin of some other skin
         String parentName = null, subskinName = null;
         int hash = skinname.indexOf('#');
         if (hash > -1) {
@@ -65,15 +65,27 @@ public final class SkinManager implements FilenameFilter {
             if (skinpath != null) {
                 for (int i = 0; i < skinpath.length; i++) {
                     skin = getSkinInPath(skinpath[i], proto.getName(), skinname);
-                    if (skin != null && skin.hasMainskin()) {
+                    if (skin != null) {
                         // check if skin skin contains main skin
-                        return skin;
+                        if (skin.hasMainskin()) {
+                            return skin;
+                        }
+                        String extendz = skin.getExtends();
+                        if (extendz != null && !extendz.equals(skinname)) {
+                            return getSkin(prototype, extendz, skinpath);
+                        }
                     } else if (parentName != null) {
                         // get parent skin
                         skin = getSkinInPath(skinpath[i], proto.getName(), parentName);
                         // check if it contains subskin
-                        if (skin != null && skin.hasSubskin(subskinName)) {
-                            return skin.getSubskin(subskinName);
+                        if (skin != null) {
+                            if (skin.hasSubskin(subskinName)) {
+                                return skin.getSubskin(subskinName);
+                            }
+                            String extendz = skin.getExtends();
+                            if (extendz != null && !extendz.equals(skinname)) {
+                                return getSkin(prototype, extendz + "#" + subskinName, skinpath);
+                            }
                         }
                     }
                 }
