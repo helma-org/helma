@@ -74,6 +74,7 @@ public class SubnodeList implements Serializable {
         if (handle != null) {
             retval = handle.getNode(node.nmgr);
 
+            // Legacy alarm!
             if ((retval != null) && (retval.parentHandle == null) &&
                     !node.nmgr.isRootNode(retval)) {
                 retval.setParent(node);
@@ -106,6 +107,10 @@ public class SubnodeList implements Serializable {
      */
     public boolean remove (Object obj) {
         return list.remove(obj);
+    }
+
+    public Object[] toArray() {
+        return list.toArray();
     }
 
     /**

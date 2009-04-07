@@ -29,6 +29,15 @@ import java.io.Serializable;
  * While a direct reference may point to a node that has been evicted from the cache
  * and reinstanciated since being set, NodeHandle will always return an up-to-date
  * instance of its node.
+ *
+ * Helma tries to ensure the following rules on NodeHandles:
+ * <ol>
+ * <li> For transient nodes there exists only one NodeHandle.</li>
+ * <li> If a transient node becomes persistent its node handle is notified and
+ *      converted into a persistent NodeHandle.</li>
+ * </ol>
+ * These two properties guarantee that NodeHandle comparisons are easy and usually correct.
+ *
  */
 public final class NodeHandle implements INodeState, Serializable {
     static final long serialVersionUID = 3067763116576910931L;
@@ -40,9 +49,12 @@ public final class NodeHandle implements INodeState, Serializable {
     private Key key;
 
     /**
-     *  Builds a handle for a node
+     * Builds a handle for a node. This constructor is package private in order to make
+     * sure only one NodeHandle exists per transient node. Use {@link Node#getHandle()}
+     * to get a Node's handle.
+     * @param node the node
      */
-    public NodeHandle(Node node) {
+    NodeHandle(Node node) {
         int state = node.getState();
 
         if (state == TRANSIENT) {
@@ -58,6 +70,7 @@ public final class NodeHandle implements INodeState, Serializable {
      * Builds a handle given a node's retrieval information. At the time this is called,
      * the node is ususally not yet created. It will be fetched on demand when accessed by
      * application code.
+     * @param key the key
      */
     public NodeHandle(Key key) {
         this.node = null;
@@ -84,12 +97,9 @@ public final class NodeHandle implements INodeState, Serializable {
 
     /**
      *  Get the key for the node described by this handle.
-     *  This may only be called on persistent Nodes.
+     *  This will return null for transient Nodes.
      */
     public Key getKey() {
-        if (key == null) {
-            throw new RuntimeException("getKey called on transient Node");
-        }
         return key;
     }
 
@@ -120,11 +130,12 @@ public final class NodeHandle implements INodeState, Serializable {
      * @return ...
      */
     public boolean equals(Object other) {
-        try {
-            return getObject().equals(((NodeHandle) other).getObject());
-        } catch (Exception x) {
-            return false;
+        if (other instanceof NodeHandle) {
+            Object obj1 = getObject();
+            Object obj2 = ((NodeHandle) other).getObject();
+            return obj1 == obj2 || obj1.equals(obj2);
         }
+        return false;
     }
 
     /**

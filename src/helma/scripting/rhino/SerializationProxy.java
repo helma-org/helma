@@ -85,7 +85,7 @@ class HopObjectProxy implements SerializationProxy {
             ref = obj.getClassName();
         } else {
             if (n instanceof Node) {
-                ref = new NodeHandle((Node) n);
+                ref = ((Node) n).getHandle();
             } else {
                 ref = n;
             }

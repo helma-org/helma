@@ -468,18 +468,17 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * @return A JavaScript Array containing all child objects
      */
     private Scriptable list() {
-        INode node = getNode();
-
-        Enumeration e = node.getSubnodes();
-        ArrayList a = new ArrayList();
-
-        while ((e != null) && e.hasMoreElements()) {
-            Object obj = e.nextElement();
-            if (obj != null)
-                a.add(Context.toObject(obj, core.global));
+        Node node = (Node) getNode();
+        node.loadNodes();
+        SubnodeList list = node.getSubnodeList();
+        if (list == null) {
+            return Context.getCurrentContext().newArray(core.global, 0);
         }
-
-        return Context.getCurrentContext().newArray(core.global, a.toArray());
+        Object[] array = list.toArray();
+        for (int i = 0; i < array.length; i++) {
+            array[i] = core.getNodeWrapper((NodeHandle) array[i]);
+        }
+        return Context.getCurrentContext().newArray(core.global, array);
     }
 
     /**
@@ -499,18 +498,19 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
             throw new EvaluatorException("Arguments must not be negative in HopObject.list(start, length)");
         }
 
-        INode node = getNode();
+        Node node = (Node) getNode();
         prefetchChildren(start, length);
-        ArrayList a = new ArrayList();
+        SubnodeList list = node.getSubnodeList();
+        Object[] array = new Object[length];
 
-        for (int i=start; i<start+length; i++) {
-            INode n = node.getSubnodeAt(i);
-            if (n != null) {
-                a.add(Context.toObject(n, core.global));
+        for (int i = 0; i < length; i++) {
+            Object obj = list.get(start + i);
+            if (obj != null) {
+                array[i] = Context.toObject(obj, core.global);
             }
         }
 
-        return Context.getCurrentContext().newArray(core.global, a.toArray());
+        return Context.getCurrentContext().newArray(core.global, array);
     }
 
     /**
@@ -1016,6 +1016,24 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     }
 
     /**
+     * Custom <tt>==</tt> operator.
+     * Must return {@link org.mozilla.javascript.Scriptable#NOT_FOUND} if this object does not
+     * have custom equality operator for the given value,
+     * <tt>Boolean.TRUE</tt> if this object is equivalent to <tt>value</tt>,
+     * <tt>Boolean.FALSE</tt> if this object is not equivalent to
+     * <tt>value</tt>.
+     */
+    protected Object equivalentValues(Object value) {
+        if (value == this) {
+            return Boolean.TRUE;
+        }
+        if (value instanceof HopObject && proxy != null) {
+            return proxy.equivalentValues(((HopObject) value).proxy);
+        }
+        return Scriptable.NOT_FOUND;
+    }
+
+    /**
      * Return a string representation of this HopObject.
      * @return a string representing this HopObject
      */
@@ -1104,6 +1122,9 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
 
         NodeProxy(INode node) {
             this.node = node;
+            if (node instanceof Node) {
+                handle = ((Node) node).getHandle();
+            }
         }
 
         NodeProxy(NodeHandle handle) {
@@ -1132,6 +1153,16 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
                 }
             }
             return node;
+        }
+
+        public Boolean equivalentValues(NodeProxy other) {
+            if (handle == null) {
+                return other.node == this.node ?
+                        Boolean.TRUE : Boolean.FALSE;
+            } else {
+                return handle.equals(other.handle) ?
+                        Boolean.TRUE : Boolean.FALSE;
+            }
         }
     }
 }
