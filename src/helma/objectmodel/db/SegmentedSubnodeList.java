@@ -20,9 +20,6 @@ public class SegmentedSubnodeList extends SubnodeList {
     transient int loadstatus;
     transient List[] keys;
 
-    transient long lastSubnodeCount = 0; // these two are only used
-    transient int subnodeCount = -1; // for aggressive loading relational subnodes
-
     /**
      * Creates a new subnode list
      * @param node the node we belong to

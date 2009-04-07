@@ -30,6 +30,9 @@ public class SubnodeList implements Serializable {
 
     transient long lastSubnodeFetch = 0;
     transient long lastSubnodeChange = 0;
+    transient long lastSubnodeCount = 0;
+    transient int subnodeCount = -1;
+    
 
     /**
      * Hide/disable zero argument constructor for subclasses
@@ -128,6 +131,7 @@ public class SubnodeList implements Serializable {
         // also reload if the type mapping has changed.
         long lastChange = getLastSubnodeChange();
 
+        if (node.getSubnodeRelation() != null) System.err.println(" *** *** *** " + lastChange + "/ " + lastSubnodeFetch);
         Relation rel = getSubnodeRelation();
         if (lastChange != lastSubnodeFetch) {
             if (rel.aggressiveLoading && rel.groupby == null) {

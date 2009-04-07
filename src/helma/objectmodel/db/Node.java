@@ -634,8 +634,8 @@ public final class Node implements INode, Serializable {
      * @param rel ...
      */
     public synchronized void setSubnodeRelation(String rel) {
-        if (((rel == null) && (this.subnodeRelation == null)) ||
-                ((rel != null) && rel.equalsIgnoreCase(this.subnodeRelation))) {
+        if ((rel == null && this.subnodeRelation == null) ||
+                (rel != null && rel.equalsIgnoreCase(this.subnodeRelation))) {
             return;
         }
 
@@ -644,8 +644,9 @@ public final class Node implements INode, Serializable {
 
         DbMapping smap = (dbmap == null) ? null : dbmap.getSubnodeMapping();
 
-        if ((smap != null) && smap.isRelational()) {
-            subnodes = null;
+        if (subnodes != null && smap != null && smap.isRelational()) {
+            subnodes.subnodeCount = -1;
+            subnodes.lastSubnodeFetch = -1;
         }
     }
 
@@ -1515,13 +1516,13 @@ public final class Node implements INode, Serializable {
      */
     public void loadNodes() {
         // Don't do this for transient nodes which don't have an explicit subnode relation set
-        if (((state == TRANSIENT) || (state == NEW)) && (subnodeRelation == null)) {
+        if ((state == TRANSIENT || state == NEW) && subnodeRelation == null) {
             return;
         }
 
         DbMapping subMap = (dbmap == null) ? null : dbmap.getSubnodeMapping();
 
-        if ((subMap != null) && subMap.isRelational()) {
+        if (subMap != null && subMap.isRelational()) {
             // check if subnodes need to be reloaded
             synchronized (this) {
                 if (subnodes == null) {
@@ -1538,7 +1539,7 @@ public final class Node implements INode, Serializable {
      * @return List an empty List of the type used by this Node
      */
     public SubnodeList createSubnodeList() {
-        subnodes = new SegmentedSubnodeList(this);
+        subnodes = new SubnodeList(this);
         return subnodes;
     }
 
