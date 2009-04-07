@@ -64,6 +64,9 @@ public class SubnodeList implements Serializable {
     }
 
     public Object get(int index) {
+        if (index < 0 || index >= list.size()) {
+            return null;
+        }
         return list.get(index);
     }
 

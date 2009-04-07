@@ -501,6 +501,10 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         Node node = (Node) getNode();
         prefetchChildren(start, length);
         SubnodeList list = node.getSubnodeList();
+        length = Math.min(list.size() - start, length);
+        if (length <= 0) {
+            return Context.getCurrentContext().newArray(core.global, 0);
+        }
         Object[] array = new Object[length];
 
         for (int i = 0; i < length; i++) {
@@ -690,6 +694,15 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         return -1;
     }
 
+    /**
+     * Check if node is contained in the subnode collection.
+     * Return its index position if it is, and -1 otherwise.
+     * @deprecated use indexOf(Object) instead.
+     */
+    public int jsFunction_contains(Object obj) {
+        return jsFunction_indexOf(obj);
+    }
+    
     /**
      * Set a property in this HopObject
      *
