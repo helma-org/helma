@@ -46,7 +46,7 @@ public class ResourceProperties extends Properties {
     private long lastCheck = 0;
 
     // Time porperties were last modified
-    private long lastModified = 0;
+    private long lastModified = System.currentTimeMillis();
 
     // Application where to fetch additional resources
     private Application app;
