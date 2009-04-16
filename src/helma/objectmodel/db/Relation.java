@@ -106,7 +106,8 @@ public final class Relation {
 
     /**
      * This constructor makes a copy of an existing relation. Not all fields are copied, just those
-     * which are needed in groupby- and virtual nodes defined by this relation.
+     * which are needed in groupby- and virtual nodes defined by this relation. use
+     * {@link Relation#getClone()} to get a full copy of this relation.
      */
     protected Relation(Relation rel) {
         // Note: prototype, groupby, groupbyPrototype and groupbyOrder aren't copied here.
@@ -790,7 +791,7 @@ public final class Relation {
                 virtualMapping.propRelation = getVirtualPropertyRelation();
             }
         }
-
+        virtualMapping.lastTypeChange = ownType.lastTypeChange;
         return virtualMapping;
     }
 
@@ -1117,6 +1118,19 @@ public final class Relation {
      */
     public boolean isReadonly() {
         return readonly;
+    }
+
+    /**
+     * Get a copy of this relation.
+     * @return a clone of this relation
+     */
+    public Relation getClone() {
+        Relation rel = new Relation(this);
+        rel.prototype        = prototype;
+        rel.groupby          = groupby;
+        rel.groupbyPrototype = groupbyPrototype;
+        rel.groupbyOrder     = groupbyOrder;
+        return rel;
     }
 
     /**
