@@ -38,7 +38,7 @@ public interface Key {
     public String getID();
 
     /**
-     *  Get the key's storage id
+     *  Get the key's storage type name
      *
      * @return ...
      */

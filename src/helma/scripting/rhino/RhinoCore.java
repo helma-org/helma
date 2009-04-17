@@ -22,9 +22,26 @@ import helma.framework.core.*;
 import helma.framework.repository.Resource;
 import helma.objectmodel.*;
 import helma.objectmodel.db.DbMapping;
+import helma.objectmodel.db.NodeHandle;
 import helma.scripting.*;
 import helma.util.*;
-import org.mozilla.javascript.*;
+import org.mozilla.javascript.Context;
+import org.mozilla.javascript.ContextAction;
+import org.mozilla.javascript.ContextFactory;
+import org.mozilla.javascript.BaseFunction;
+import org.mozilla.javascript.EvaluatorException;
+import org.mozilla.javascript.Function;
+import org.mozilla.javascript.JavaScriptException;
+import org.mozilla.javascript.LazilyLoadedCtor;
+import org.mozilla.javascript.NativeArray;
+import org.mozilla.javascript.NativeJavaObject;
+import org.mozilla.javascript.NativeObject;
+import org.mozilla.javascript.Scriptable;
+import org.mozilla.javascript.ScriptableObject;
+import org.mozilla.javascript.ScriptRuntime;
+import org.mozilla.javascript.Undefined;
+import org.mozilla.javascript.WrapFactory;
+import org.mozilla.javascript.Wrapper;
 import org.mozilla.javascript.tools.debugger.ScopeProvider;
 
 import java.io.*;
@@ -637,15 +654,15 @@ public final class RhinoCore implements ScopeProvider {
     /**
      *  Get a script wrapper for an instance of helma.objectmodel.INode
      */
-    public Scriptable getNodeWrapper(INode n) {
-        if (n == null) {
+    public Scriptable getNodeWrapper(INode node) {
+        if (node == null) {
             return null;
         }
 
-        HopObject hobj = (HopObject) wrappercache.get(n);
+        HopObject hobj = (HopObject) wrappercache.get(node);
 
         if (hobj == null) {
-            String protoname = n.getPrototype();
+            String protoname = node.getPrototype();
             Scriptable op = getValidPrototype(protoname);
 
             // no prototype found for this node
@@ -654,7 +671,7 @@ public final class RhinoCore implements ScopeProvider {
                 // deleted, but the storage layer was able to set a
                 // DbMapping matching the relational table the object
                 // was fetched from.
-                DbMapping dbmap = n.getDbMapping();
+                DbMapping dbmap = node.getDbMapping();
                 if (dbmap != null && (protoname = dbmap.getTypeName()) != null) {
                     op = getValidPrototype(protoname);
                 }
@@ -666,12 +683,41 @@ public final class RhinoCore implements ScopeProvider {
                 }
             }
 
-            hobj = new HopObject(protoname, this, n, op);
-            wrappercache.put(n, hobj);
+            hobj = new HopObject(protoname, this, node, op);
+            wrappercache.put(node, hobj);
         }
 
         return hobj;
     }
+
+    /**
+     * Get a node wrapper for a node that may not have been fetched yet
+     * @param handle a node handle
+     * @return a wrapper for the node
+     */
+    public Scriptable getNodeWrapper(NodeHandle handle) {
+        Scriptable hobj = (HopObject) wrappercache.get(handle);
+        if (hobj != null) {
+            return hobj;
+        } else if (handle.hasNode()) {
+            hobj = getNodeWrapper(handle.getNode(app.getWrappedNodeManager()));
+        }
+
+        if (hobj == null) {
+            String protoName = handle.getKey().getStorageName();
+            Scriptable op = getValidPrototype(protoName);
+
+            // no prototype found for this node
+            if (op == null) {
+                protoName = "HopObject";
+                op = getValidPrototype("HopObject");
+            }
+            hobj = new HopObject(protoName, this, handle, op);
+        }
+        wrappercache.put(handle, hobj);
+        return hobj;
+    }
+
 
     protected String postProcessHref(Object obj, String protoName, String href)
             throws UnsupportedEncodingException, IOException {
@@ -1056,6 +1102,9 @@ public final class RhinoCore implements ScopeProvider {
             // Wrap Nodes
             if (obj instanceof INode) {
                 return getNodeWrapper((INode) obj);
+            }
+            if (obj instanceof NodeHandle) {
+                return getNodeWrapper((NodeHandle) obj);
             }
 
             // Masquerade SystemMap and WrappedMap as native JavaScript objects

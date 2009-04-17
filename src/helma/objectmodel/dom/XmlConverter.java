@@ -17,7 +17,6 @@
 package helma.objectmodel.dom;
 
 import helma.objectmodel.INode;
-import helma.objectmodel.TransientNode;
 import helma.util.SystemProperties;
 import org.w3c.dom.*;
 import org.xml.sax.InputSource;
@@ -73,17 +72,6 @@ public class XmlConverter implements XmlConstants {
     public XmlConverter(Properties props) {
         this.props = props;
         extractProperties(props);
-    }
-
-    /**
-     *
-     *
-     * @param desc ...
-     *
-     * @return ...
-     */
-    public INode convert(String desc) {
-        return convert(desc, new TransientNode());
     }
 
     /**
