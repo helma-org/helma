@@ -333,39 +333,25 @@ public final class Prototype {
      *  other locations or database stored skins. If parentName and
      *  subName are defined, the skin may be a subskin of another skin.
      */
-    public Skin getSkin(String skinName, String parentName, String subName)
+    public Skin getSkin(Prototype proto, String skinname, String subskin, Object[] skinpath)
             throws IOException {
-        Skin skin = null;
-        Resource res = skinMap.getResource(skinName);
+        Resource res = skinMap.getResource(skinname);
         while (res != null) {
-            skin = Skin.getSkin(res, app);
-            if (skin.hasMainskin())
-                break;
-            String extendz = skin.getExtends();
-            if (extendz != null && extendz != skinName)
-                return getSkin(extendz, null, null);
+            Skin skin = Skin.getSkin(res, app);
+            if (subskin == null && skin.hasMainskin()) {
+                return skin;
+            } else if (subskin != null && skin.hasSubskin(subskin)) {
+                return skin.getSubskin(subskin);
+            }
+            String baseskin = skin.getExtends();
+            if (baseskin != null && !baseskin.equalsIgnoreCase(skinname)) {
+                // we need to call SkinManager.getSkin() to fetch overwritten
+                // base skins from skinpath
+                return app.skinmgr.getSkin(proto, baseskin, subskin, skinpath);
+            }
             res = res.getOverloadedResource();
         }
-        if (parentName != null) {
-            Skin parentSkin = null;
-            Resource parentResource = skinMap.getResource(parentName);
-            while (parentResource != null) {
-                parentSkin = Skin.getSkin(parentResource, app);
-                if (parentSkin.hasSubskin(subName))
-                    break;
-                String extendz = parentSkin.getExtends();
-                if (extendz != null && extendz != parentName)
-                    return getSkin(extendz, extendz, subName);
-                parentResource = parentResource.getOverloadedResource();
-            }
-            if (parentResource != null) {
-                if (res != null && app.getResourceComparator().compare(res, parentResource) > 0)
-                    return skin;
-                else
-                    return parentSkin.getSubskin(subName);
-            }
-        }
-        return skin;
+        return null;
     }
 
     /**

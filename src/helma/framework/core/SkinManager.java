@@ -42,50 +42,43 @@ public final class SkinManager implements FilenameFilter {
         skinExtension = ".skin";
     }
 
-    protected Skin getSkin(Prototype prototype, String skinname, Object[] skinpath)
+    public Skin getSkin(Prototype prototype, String skinname, Object[] skinpath)
             throws IOException {
         if (prototype == null) {
             return null;
         }
 
-        Skin skin;
-        Prototype proto = prototype;
-
-        // if name contains #, this may be a subskin of some other skin
-        String parentName = null, subskinName = null;
+        // if name contains '#' split name into mainskin and subskin
+        String subskin = null;
         int hash = skinname.indexOf('#');
         if (hash > -1) {
-            parentName = skinname.substring(0, hash);
-            subskinName = skinname.substring(hash + 1);
+            subskin = skinname.substring(hash + 1);
+            skinname = skinname.substring(0, hash);
         }
+        return getSkin(prototype, skinname, subskin, skinpath);
+    }
 
-        // First check if the skin has been already used within the execution of this request
-        // check for skinsets set via res.skinpath property
-        do {
+    public Skin getSkin(Prototype prototype, String skinname,
+                        String subskin, Object[] skinpath)
+            throws IOException {
+        Prototype proto = prototype;
+
+        // Loop over prototype chain and check skinpath and prototype skin resources
+        while (proto != null) {
+            Skin skin;
             if (skinpath != null) {
                 for (int i = 0; i < skinpath.length; i++) {
                     skin = getSkinInPath(skinpath[i], proto.getName(), skinname);
                     if (skin != null) {
                         // check if skin skin contains main skin
-                        if (skin.hasMainskin()) {
+                        if (subskin == null && skin.hasMainskin()) {
                             return skin;
+                        } else if (subskin != null && skin.hasSubskin(subskin)) {
+                            return skin.getSubskin(subskin);
                         }
-                        String extendz = skin.getExtends();
-                        if (extendz != null && !extendz.equals(skinname)) {
-                            return getSkin(prototype, extendz, skinpath);
-                        }
-                    } else if (parentName != null) {
-                        // get parent skin
-                        skin = getSkinInPath(skinpath[i], proto.getName(), parentName);
-                        // check if it contains subskin
-                        if (skin != null) {
-                            if (skin.hasSubskin(subskinName)) {
-                                return skin.getSubskin(subskinName);
-                            }
-                            String extendz = skin.getExtends();
-                            if (extendz != null && !extendz.equals(skinname)) {
-                                return getSkin(prototype, extendz + "#" + subskinName, skinpath);
-                            }
+                        String baseskin = skin.getExtends();
+                        if (baseskin != null && !baseskin.equals(skinname)) {
+                            return getSkin(prototype, baseskin, subskin, skinpath);
                         }
                     }
                 }
@@ -93,15 +86,14 @@ public final class SkinManager implements FilenameFilter {
 
             // skin for this prototype wasn't found in the skinsets.
             // the next step is to look if it is defined as skin file in the application directory
-            skin = proto.getSkin(skinname, parentName, subskinName);
-
+            skin = proto.getSkin(prototype, skinname, subskin, skinpath);
             if (skin != null) {
                 return skin;
             }
 
             // still not found. See if there is a parent prototype which might define the skin.
             proto = proto.getParentPrototype();
-        } while (proto != null);
+        }
 
         // looked every where, nothing to be found
         return null;
