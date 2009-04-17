@@ -30,8 +30,6 @@ public class SubnodeList implements Serializable {
 
     transient long lastSubnodeFetch = 0;
     transient long lastSubnodeChange = 0;
-    transient long lastSubnodeCount = 0;
-    transient int subnodeCount = -1;
     
 
     /**
@@ -79,7 +77,6 @@ public class SubnodeList implements Serializable {
 
         if (handle != null) {
             retval = handle.getNode(node.nmgr);
-
             // Legacy alarm!
             if ((retval != null) && (retval.parentHandle == null) &&
                     !node.nmgr.isRootNode(retval)) {
@@ -130,16 +127,13 @@ public class SubnodeList implements Serializable {
     protected void update() {
         // also reload if the type mapping has changed.
         long lastChange = getLastSubnodeChange();
-
-        if (node.getSubnodeRelation() != null) System.err.println(" *** *** *** " + lastChange + "/ " + lastSubnodeFetch);
-        Relation rel = getSubnodeRelation();
         if (lastChange != lastSubnodeFetch) {
+            Relation rel = getSubnodeRelation();
             if (rel.aggressiveLoading && rel.groupby == null) {
                 list = node.nmgr.getNodes(node, rel);
             } else {
                 list = node.nmgr.getNodeIDs(node, rel);
             }
-
             lastSubnodeFetch = lastChange;
         }
     }
@@ -160,15 +154,6 @@ public class SubnodeList implements Serializable {
         if (!dbmap.isRelational() || rel.getGroup() != null) {
             return;
         }
-
-        // this is the code we're going to use for segmented key loading!
-        /* if (start > 0 || length > 0 && length < size()) {
-            rel = new Relation(rel);
-            rel.offset = start;
-            rel.maxSize = length < 0 ? size() : length;
-        }
-        node.nmgr.getNodes(node, rel); */
-
         node.nmgr.prefetchNodes(node, rel, this, start, length);
     }
 
@@ -176,12 +161,19 @@ public class SubnodeList implements Serializable {
      * Compute a serial number indicating the last change in subnode collection
      * @return a serial number that increases with each subnode change
      */
-    long getLastSubnodeChange() {
+    protected long getLastSubnodeChange() {
         // include dbmap.getLastTypeChange to also reload if the type mapping has changed.
         long checkSum = lastSubnodeChange + node.dbmap.getLastTypeChange();
         Relation rel = getSubnodeRelation();
         return rel.aggressiveCaching ?
                 checkSum : checkSum + rel.otherType.getLastDataChange();
+    }
+
+    protected boolean hasRelationalNodes() {
+        DbMapping dbmap = getSubnodeMapping();
+        return (dbmap != null && dbmap.isRelational()
+                && ((node.getState() != Node.TRANSIENT &&  node.getState() != Node.NEW)
+                    || node.getSubnodeRelation() != null));
     }
 
     protected DbMapping getSubnodeMapping() {

@@ -645,8 +645,7 @@ public final class Node implements INode, Serializable {
         DbMapping smap = (dbmap == null) ? null : dbmap.getSubnodeMapping();
 
         if (subnodes != null && smap != null && smap.isRelational()) {
-            subnodes.subnodeCount = -1;
-            subnodes.lastSubnodeFetch = -1;
+            subnodes = null;
         }
     }
 
@@ -1539,7 +1538,7 @@ public final class Node implements INode, Serializable {
      * @return List an empty List of the type used by this Node
      */
     public SubnodeList createSubnodeList() {
-        subnodes = new SubnodeList(this);
+        subnodes = new SegmentedSubnodeList(this);
         return subnodes;
     }
 
