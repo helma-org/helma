@@ -1148,20 +1148,23 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
             if (node == null || node.getState() == Node.INVALID) {
                 if (handle != null) {
                     node = handle.getNode(core.app.getWrappedNodeManager());
-                    String protoname = node.getPrototype();
-                    // the actual prototype name may vary from the node handle's prototype name
-                    if (className == null || !className.equals(protoname)) {
-                        Scriptable proto = core.getValidPrototype(protoname);
-                        if (proto == null) {
-                            protoname = "HopObject";
-                            proto = core.getValidPrototype("HopObject");
+                    if (node != null) {
+                        String protoname = node.getPrototype();
+                        // the actual prototype name may vary from the node handle's prototype name
+                        if (className == null || !className.equals(protoname)) {
+                            Scriptable proto = core.getValidPrototype(protoname);
+                            if (proto == null) {
+                                protoname = "HopObject";
+                                proto = core.getValidPrototype("HopObject");
+                            }
+                            className = protoname;
+                            setPrototype(proto);
                         }
-                        className = protoname;
-                        setPrototype(proto);
                     }
-                } else {
-                    // we probably have a deleted node. Replace with empty transient node
-                    // to avoid throwing an exception.
+                }
+                if (node == null || node.getState() == Node.INVALID) {
+                    // We probably have a deleted node.
+                    // Replace with empty transient node to avoid throwing an exception.
                     node = new Node("DeletedNode", null, core.app.getWrappedNodeManager());
                 }
             }
