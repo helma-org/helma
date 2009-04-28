@@ -2273,7 +2273,7 @@ public final class Node implements INode, Serializable {
             rel = dbmap.getPropertyRelation(propname);
         }
 
-        if (rel != null && (rel.countConstraints() > 1 || rel.isComplexReference())) {
+        if (rel != null && state != TRANSIENT && (rel.countConstraints() > 1 || rel.isComplexReference())) {
             rel.setConstraints(this, n);
             if (rel.isComplexReference()) {
                 Key key = new MultiKey(n.getDbMapping(), rel.getKeyParts(this));
@@ -2509,13 +2509,14 @@ public final class Node implements INode, Serializable {
 
                 // check if this property actually needs to be persisted.
                 Node n = (Node) next.getNodeValue();
+                Relation rel = null;
 
                 if (n == null || n == this) {
                     continue;
                 }
 
                 if (dbmap != null) {
-                    Relation rel = dbmap.getExactPropertyRelation(next.getName());
+                    rel = dbmap.getExactPropertyRelation(next.getName());
                     if (rel != null && rel.isVirtual() && !rel.needsPersistence()) {
                         // temporarilly set state to TRANSIENT to avoid loading anything from db
                         n.setState(TRANSIENT);
@@ -2533,6 +2534,11 @@ public final class Node implements INode, Serializable {
                 }
 
                 n.makePersistable();
+
+                if (rel != null && rel.isComplexReference()) {
+                    // if this is a complex reference, make binding properties are set
+                    rel.setConstraints(this, n);
+                }
             }
         }
     }
