@@ -841,8 +841,9 @@ public final class Node implements INode, Serializable {
             node.checkWriteLock();
         }
 
+        Relation subrel = dbmap == null ? null : dbmap.getSubnodeRelation();
         // if subnodes are defined via relation, make sure its constraints are enforced.
-        if ((dbmap != null) && (dbmap.getSubnodeRelation() != null)) {
+        if (subrel != null && subrel.countConstraints() < 2) {
             dbmap.getSubnodeRelation().setConstraints(this, node);
         }
 
@@ -853,7 +854,7 @@ public final class Node implements INode, Serializable {
 
         // only mark this node as modified if subnodes are not in relational db
         // pointing to this node.
-        if (!ignoreSubnodeChange() && ((state == CLEAN) || (state == DELETED))) {
+        if (!ignoreSubnodeChange() && (state == CLEAN || state == DELETED)) {
             markAs(MODIFIED);
         }
 
@@ -874,7 +875,7 @@ public final class Node implements INode, Serializable {
 
         NodeHandle nhandle = node.getHandle();
 
-        if ((subnodes != null) && subnodes.contains(nhandle)) {
+        if (subnodes != null && subnodes.contains(nhandle)) {
             // Node is already subnode of this - just move to new position
             synchronized (subnodes) {
                 subnodes.remove(nhandle);
@@ -2493,11 +2494,15 @@ public final class Node implements INode, Serializable {
      * so that the Transactor knows they are to be persistified.
      */
     private void makeChildrenPersistable() {
+        Relation subrel = dbmap == null ? null : dbmap.getSubnodeRelation();
         for (Enumeration e = getSubnodes(); e.hasMoreElements();) {
             Node n = (Node) e.nextElement();
 
             if (n.state == TRANSIENT) {
                 n.makePersistable();
+                if (subrel != null && subrel.countConstraints() > 1) {
+                    subrel.setConstraints(this, n);
+                }
             }
         }
 
