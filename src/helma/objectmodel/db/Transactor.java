@@ -254,7 +254,7 @@ public class Transactor {
         Connection con = (Connection) sqlConnections.get(src);
         Long tested = (Long) testedConnections.get(src);
         long now = System.currentTimeMillis();
-        if (con != null && (tested == null || now - tested.longValue() > 10000)) {
+        if (con != null && (tested == null || now - tested.longValue() > 60000)) {
             // Check if the connection is still alive by executing a simple statement.
             try {
                 Statement stmt = con.createStatement();
@@ -289,7 +289,6 @@ public class Transactor {
         dirtyNodes.clear();
         cleanNodes.clear();
         parentNodes.clear();
-        testedConnections.clear();
         txn = nmgr.db.beginTransaction();
         active = true;
         tstart = System.currentTimeMillis();
@@ -542,6 +541,7 @@ public class Transactor {
             }
 
             sqlConnections.clear();
+            testedConnections.clear();
         }
     }
 
@@ -555,7 +555,6 @@ public class Transactor {
         dirtyNodes.clear();
         cleanNodes.clear();
         parentNodes.clear();
-        testedConnections.clear();
     }
 
     /**
