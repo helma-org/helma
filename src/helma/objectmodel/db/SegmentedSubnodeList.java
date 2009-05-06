@@ -16,7 +16,7 @@ import java.util.*;
 public class SegmentedSubnodeList extends SubnodeList {
 
     transient Segment[] segments;
-    static int SEGLENGTH = 10000;
+    static int SEGLENGTH = 1000;
 
     transient long lastSubnodeCount = 0;
     transient int subnodeCount = -1;    
