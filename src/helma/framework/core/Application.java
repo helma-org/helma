@@ -393,29 +393,6 @@ public final class Application implements Runnable {
             freeThreads = new Stack();
             allThreads = new Vector();
 
-            // preallocate minThreads request evaluators
-            int minThreads = 0;
-
-            try {
-                minThreads = Integer.parseInt(props.getProperty("minThreads"));
-            } catch (Exception ignore) {
-                // not parsable as number, keep 0
-            }
-
-            if (minThreads > 0) {
-                logEvent("Starting "+minThreads+" evaluator(s) for " + name);
-            }
-
-            for (int i = 0; i < minThreads; i++) {
-                RequestEvaluator ev = new RequestEvaluator(Application.this);
-
-                if (i == 0) {
-                    ev.initScriptingEngine();
-                }
-                freeThreads.push(ev);
-                allThreads.addElement(ev);
-            }
-
             activeRequests = new Hashtable();
             activeCronJobs = new Hashtable();
             customCronJobs = new Hashtable();
@@ -472,6 +449,29 @@ public final class Application implements Runnable {
                 } finally {
                     releaseEvaluator(ev);
                 }
+            }
+            
+            // preallocate minThreads request evaluators
+            int minThreads = 0;
+
+            try {
+                minThreads = Integer.parseInt(props.getProperty("minThreads"));
+            } catch (Exception ignore) {
+                // not parsable as number, keep 0
+            }
+
+            if (minThreads > 0) {
+                logEvent("Starting "+minThreads+" evaluator(s) for " + name);
+            }
+
+            for (int i = 0; i < minThreads; i++) {
+                RequestEvaluator ev = new RequestEvaluator(Application.this);
+
+                if (i == 0) {
+                    ev.initScriptingEngine();
+                }
+                freeThreads.push(ev);
+                allThreads.addElement(ev);
             }
         }
     }
