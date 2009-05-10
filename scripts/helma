@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # helma init script (written for debian, but should be rather generic)
 # needs helma.conf, preferrably in /etc/helma.conf
