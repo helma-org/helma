@@ -492,7 +492,7 @@ helma.Ftp = function(server) {
    /**
     * Deletes a file on the FTP server.
     * 
-    * @example var str = ftp.delete("messages.txt");
+    * @example var str = ftp.deleteFile("messages.txt");
     * @param {String} remoteFile as String, the name of the file to be deleted
     * @return Boolean true if the deletion was successful, false otherwise
     * @type Boolean
