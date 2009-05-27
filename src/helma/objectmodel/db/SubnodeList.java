@@ -21,7 +21,7 @@ import java.util.List;
 import java.io.Serializable;
 
 /**
- * A subclass of ArrayList that adds an addSorted(Object) method to
+ * Container implementation for subnode collections.
  */
 public class SubnodeList implements Serializable {
 
@@ -167,6 +167,10 @@ public class SubnodeList implements Serializable {
         Relation rel = getSubnodeRelation();
         return rel.aggressiveCaching ?
                 checkSum : checkSum + rel.otherType.getLastDataChange();
+    }
+
+    protected synchronized void markAsChanged() {
+        lastSubnodeChange += 1;
     }
 
     protected boolean hasRelationalNodes() {

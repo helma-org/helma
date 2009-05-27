@@ -365,7 +365,7 @@ public final class Node implements INode, Serializable {
      */
     public void markSubnodesChanged() {
         if (subnodes != null) {
-            subnodes.lastSubnodeChange += 1;
+            subnodes.markAsChanged();
         }
     }
 
