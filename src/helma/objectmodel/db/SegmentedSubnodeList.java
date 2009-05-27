@@ -36,7 +36,14 @@ public class SegmentedSubnodeList extends SubnodeList {
      * @param obj element to be inserted.
      */
     public synchronized boolean add(Object obj) {
+        if (!hasRelationalNodes() || segments == null) {
+            return super.add(obj);
+        }
+        if (subnodeCount == -1) {
+            update();
+        }
         subnodeCount++;
+        segments[segments.length - 1].length += 1;
         return list.add(obj);
     }
     /**
@@ -49,6 +56,10 @@ public class SegmentedSubnodeList extends SubnodeList {
             super.add(index, obj);
             return;
         }
+        if (subnodeCount == -1) {
+            update();
+        }
+        subnodeCount++;
         list.add(index, obj);
         // shift segment indices by one
         int s = getSegment(index);
@@ -108,12 +119,16 @@ public class SegmentedSubnodeList extends SubnodeList {
         if (!hasRelationalNodes() || segments == null) {
             return super.remove(index);
         }
+        if (subnodeCount == -1) {
+            update();
+        }
         Object removed = list.remove(index);
         int s = getSegment(index);
         segments[s].length -= 1;
         for (int i = s + 1; i < segments.length; i++) {
             segments[i].startIndex -= 1;
         }
+        subnodeCount--;
         return removed;
     }
 
@@ -125,6 +140,9 @@ public class SegmentedSubnodeList extends SubnodeList {
         if (!hasRelationalNodes() || segments == null) {
             return super.remove(object);
         }
+        if (subnodeCount == -1) {
+            update();
+        }
         int index = indexOf(object);
         if (index > -1) {
             list.remove(object);
@@ -133,6 +151,7 @@ public class SegmentedSubnodeList extends SubnodeList {
             for (int i = s + 1; i < segments.length; i++) {
                 segments[i].startIndex -= 1;
             }
+            subnodeCount--;
             return true;
         }
         return false;
@@ -189,6 +208,7 @@ public class SegmentedSubnodeList extends SubnodeList {
     protected synchronized void update() {
         if (!hasRelationalNodes()) {
             super.update();
+            return;
         }
         // also reload if the type mapping has changed.
         long lastChange = getLastSubnodeChange();
@@ -216,7 +236,7 @@ public class SegmentedSubnodeList extends SubnodeList {
     }
 
     public int size() {
-        if (!hasRelationalNodes()) {
+        if (!hasRelationalNodes() || segments == null) {
             return super.size();
         }
 
