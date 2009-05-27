@@ -187,13 +187,13 @@ public final class DbMapping {
             dbSource = app.getDbSource(dbSourceName);
 
             if (dbSource == null) {
-                app.logError("*** Data Source for prototype " + typename +
+                app.logError("Data Source for prototype " + typename +
                              " does not exist: " + dbSourceName);
-                app.logError("*** accessing or storing a " + typename +
+                app.logError("Accessing or storing a " + typename +
                              " object will cause an error.");
             } else if (tableName == null) {
-                app.logError("*** No table name specified for prototype " + typename);
-                app.logError("*** accessing or storing a " + typename +
+                app.logError("No table name specified for prototype " + typename);
+                app.logError("Accessing or storing a " + typename +
                              " object will cause an error.");
 
                 // mark mapping as invalid by nulling the dbSource field
@@ -245,7 +245,7 @@ public final class DbMapping {
         if (extendsProto != null) {
             parentMapping = app.getDbMapping(extendsProto);
             if (parentMapping == null) {
-                app.logError("*** Parent mapping for prototype " + typename +
+                app.logError("Parent mapping for prototype " + typename +
                              " does not exist: " + extendsProto);
             } else {
                 if (parentMapping.needsUpdate()) {
@@ -268,8 +268,8 @@ public final class DbMapping {
         }
 
         if (inheritsStorage() && getPrototypeField() == null) {
-            app.logError("*** Prototype not stored for extended relational type " + typename);
-            app.logError("*** objects fetched from db will have base prototype!");
+            app.logError("No _prototype mapping in extended prototype " + typename);
+            app.logError("Objects fetched from db will have base prototype " + extendsProto);
         }
 
         // check if there is an extension-id specified inside the type.properties
@@ -328,7 +328,7 @@ public final class DbMapping {
                         // if so, primitive relations get precendence to references
                         if (old != null) {
                             if (rel.isPrimitive() && old.isPrimitive()) {
-                                app.logEvent("*** Duplicate mapping for " + typename + "." + rel.columnName);
+                                app.logEvent("Duplicate mapping for " + typename + "." + rel.columnName);
                             } else if (rel.isReference() && old.isPrimitive()) {
                                 // if a column is used both in a primitive and a reference mapping,
                                 // use primitive mapping as primary one and mark reference as
