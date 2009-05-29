@@ -75,4 +75,4 @@ if [ "$HOP_HOME" ]; then
 fi
 
 # Invoke the Java VM
-$JAVACMD $JAVA_OPTIONS -jar "$INSTALL_DIR/launcher.jar" $SWITCHES
+$JAVACMD $JAVA_OPTIONS -jar "$INSTALL_DIR/launcher.jar" $SWITCHES $*

@@ -32,9 +32,14 @@ public class ServerConfig {
     private File propFile   = null;
     private File homeDir    = null;
     private File configFile = null;
+    private String[] apps = null;
 
     public boolean hasPropFile() {
         return (propFile != null);
+    }
+
+    public boolean hasConfigFile() {
+        return (configFile != null);
     }
 
     public boolean hasHomeDir() {
@@ -55,6 +60,10 @@ public class ServerConfig {
 
     public boolean hasAjp13Port() {
         return (ajp13Port != null);
+    }
+
+    public boolean hasApps() {
+        return (apps != null);
     }
 
     public InetSocketAddress getRmiPort() {
@@ -112,4 +121,12 @@ public class ServerConfig {
 	public void setConfigFile(File configFile) {
 		this.configFile = configFile == null ? null : configFile.getAbsoluteFile();
 	}
+
+    public String[] getApps() {
+        return apps;
+    }
+
+    public void setApps(String[] apps) {
+        this.apps = apps;
+    }
 }

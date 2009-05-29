@@ -27,6 +27,7 @@ import java.util.StringTokenizer;
 import java.net.URL;
 import java.net.InetSocketAddress;
 import java.io.IOException;
+import java.io.File;
 
 public class JettyServer {
 
@@ -36,11 +37,12 @@ public class JettyServer {
     // the AJP13 Listener, used for connecting from external webserver to servlet via JK
     protected AJP13Listener ajp13;
 
-    public static JettyServer init(Server server) throws IOException {
-        if (server.configFile != null && server.configFile.exists()) {
-            return new JettyServer(server.configFile.toURI().toURL());
-        } else if (server.websrvPort != null || server.ajp13Port != null) {
-            return new JettyServer(server.websrvPort, server.ajp13Port, server);
+    public static JettyServer init(Server server, ServerConfig config) throws IOException {
+        File configFile = config.getConfigFile();
+        if (configFile != null && configFile.exists()) {
+            return new JettyServer(configFile.toURI().toURL());
+        } else if (config.hasWebsrvPort() || config.hasAjp13Port()) {
+            return new JettyServer(config.getWebsrvPort(), config.getAjp13Port(), server);
         }
         return null;
     }

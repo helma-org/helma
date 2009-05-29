@@ -76,4 +76,4 @@ if not "%HOP_HOME%"=="" (
 )
 
 :: Invoking the Java virtual machine
-%JAVACMD% %JAVA_OPTIONS% -jar "%INSTALL_DIR%\launcher.jar" %OPTIONS%
+%JAVACMD% %JAVA_OPTIONS% -jar "%INSTALL_DIR%\launcher.jar" %OPTIONS% %*

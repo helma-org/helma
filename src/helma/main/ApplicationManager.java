@@ -79,7 +79,7 @@ public class ApplicationManager implements XmlRpcHandler {
      * to create and start new applications.
      */
     protected void checkForChanges() {
-        if (props.lastModified() > lastModified) {
+        if (props.lastModified() > lastModified && server.getApplicationsOption() == null) {
             try {
                 for (Enumeration e = props.keys(); e.hasMoreElements();) {
                     String appName = (String) e.nextElement();
@@ -152,18 +152,26 @@ public class ApplicationManager implements XmlRpcHandler {
      */
     public void startAll() {
         try {
-            for (Enumeration e = props.keys(); e.hasMoreElements();) {
-                String appName = (String) e.nextElement();
-
-                if (appName.indexOf(".") == -1) {
-                    String appValue = props.getProperty(appName);
-
-                    if (appValue != null && appValue.length() > 0) {
-                        appName = appValue;
-                    }
-
-                    AppDescriptor desc = new AppDescriptor(appName);
+            String[] apps = server.getApplicationsOption();
+            if (apps != null) {
+                for (int i = 0; i < apps.length; i++) {
+                    AppDescriptor desc = new AppDescriptor(apps[i]);
                     desc.start();
+                }
+            } else {
+                for (Enumeration e = props.keys(); e.hasMoreElements();) {
+                    String appName = (String) e.nextElement();
+
+                    if (appName.indexOf(".") == -1) {
+                        String appValue = props.getProperty(appName);
+
+                        if (appValue != null && appValue.length() > 0) {
+                            appName = appValue;
+                        }
+
+                        AppDescriptor desc = new AppDescriptor(appName);
+                        desc.start();
+                    }
                 }
             }
 

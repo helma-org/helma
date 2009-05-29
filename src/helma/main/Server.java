@@ -66,15 +66,9 @@ public class Server implements Runnable {
     private Vector extensions;
     private Thread mainThread;
 
-    // server ports
-    InetSocketAddress rmiPort = null;
-    InetSocketAddress xmlrpcPort = null;
-    InetSocketAddress websrvPort = null;
-    InetSocketAddress ajp13Port = null;
+    // configuration
+    ServerConfig config;
 
-    // Jetty configuration file
-    File configFile = null;
-    
     // map of server-wide database sources
     Hashtable dbSources;
 
@@ -97,12 +91,11 @@ public class Server implements Runnable {
         server = this;
         starttime = System.currentTimeMillis();
 
-        rmiPort    = config.getRmiPort();
-        xmlrpcPort = config.getXmlrpcPort();
-        websrvPort = config.getWebsrvPort();
-        ajp13Port  = config.getAjp13Port();
+        this.config = config;
         hopHome    = config.getHomeDir();
-        configFile = config.getConfigFile();
+        if (hopHome == null) {
+            throw new RuntimeException("helma.home property not set");
+        }
 
         // create system properties
         sysProps = new ResourceProperties();
@@ -243,6 +236,8 @@ public class Server implements Runnable {
                 config.setHomeDir(new File(args[++i]));
             } else if (args[i].equals("-f") && ((i + 1) < args.length)) {
                 config.setPropFile(new File(args[++i]));
+            } else if (args[i].equals("-a") && ((i + 1) < args.length)) {
+                config.setApps(StringUtils.split(args[++i]));
             } else if (args[i].equals("-p") && ((i + 1) < args.length)) {
                 try {
                     config.setRmiPort(getInetSocketAddress(args[++i]));
@@ -333,8 +328,9 @@ public class Server implements Runnable {
         System.out.println("");
         System.out.println("Usage: java helma.main.Server [options]");
         System.out.println("Possible options:");
-        System.out.println("  -h dir       Specify hop home directory");
-        System.out.println("  -f file      Specify server.properties file");
+        System.out.println("  -a app[,...]      Specify applications to start");
+        System.out.println("  -h dir            Specify hop home directory");
+        System.out.println("  -f file           Specify server.properties file");
         System.out.println("  -c jetty.xml      Specify Jetty XML configuration file");
         System.out.println("  -w [ip:]port      Specify embedded web server address/port");
         System.out.println("  -x [ip:]port      Specify XML-RPC address/port");
@@ -478,7 +474,7 @@ public class Server implements Runnable {
         if (sysProps.getProperty("extensions") != null) {
             initExtensions();
         }
-        jetty = JettyServer.init(this);
+        jetty = JettyServer.init(this, config);
     }
 
 
@@ -562,7 +558,8 @@ public class Server implements Runnable {
      */
     public void run() {
         try {
-            if (xmlrpcPort != null) {
+            if (config.hasXmlrpcPort()) {
+                InetSocketAddress xmlrpcPort = config.getXmlrpcPort();
                 String xmlparser = sysProps.getProperty("xmlparser");
 
                 if (xmlparser != null) {
@@ -591,7 +588,8 @@ public class Server implements Runnable {
                 logger.info("Starting XML-RPC server on port " + (xmlrpcPort));
             }
 
-            if (rmiPort != null) {
+            if (config.hasRmiPort()) {
+                InetSocketAddress rmiPort = config.getRmiPort();
                 if (paranoid) {
                     HelmaSocketFactory factory = new HelmaSocketFactory();
                     String rallow = sysProps.getProperty("allowWeb");
@@ -729,6 +727,14 @@ public class Server implements Runnable {
      */
     public File getHopHome() {
         return hopHome;
+    }
+
+    /**
+     * Get the explicit list of apps if started with -a option
+     * @return
+     */
+    public String[] getApplicationsOption() {
+        return config.getApps();
     }
 
     /**
