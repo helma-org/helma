@@ -873,13 +873,58 @@ public final class Relation {
         return vr;
     }
 
+    public StringBuffer getIdSelect() {
+        StringBuffer buf = new StringBuffer("SELECT ");
+
+        if (queryHints != null) {
+                buf.append(queryHints).append(" ");
+            }
+
+        String table = otherType.getTableName();
+        String idfield = (groupby == null) ? otherType.getIDField() : groupby;
+
+        if (idfield.indexOf('(') == -1 && idfield.indexOf('.') == -1) {
+            buf.append(table).append('.');
+        }
+        buf.append(idfield).append(" FROM ").append(table);
+        appendAdditionalTables(buf);
+
+        return buf;
+    }
+
+    public StringBuffer getCountSelect() {
+        StringBuffer buf = new StringBuffer();
+        if (otherType.isOracle() && maxSize > 0) {
+            buf.append("SELECT * FROM ");
+        } else {
+            buf.append("SELECT count(*) FROM ");
+        }
+
+        buf.append(otherType.getTableName());
+        appendAdditionalTables(buf);
+
+        return buf;
+    }
+
+    public StringBuffer getNamesSelect() {
+        // if we do a groupby query (creating an intermediate layer of groupby nodes),
+        // retrieve the value of that field instead of the primary key
+        String namefield = (groupby == null) ? accessName : groupby;
+        String table = otherType.getTableName();
+        StringBuffer buf = new StringBuffer("SELECT ");
+        buf.append(namefield).append(" FROM ").append(table);
+        appendAdditionalTables(buf);
+
+        return buf;
+    }
+
     /**
      *  Build the second half of an SQL select statement according to this relation
      *  and a local object.
      */
-    public void buildQuery(StringBuffer q, Node home, String kstr, String pre, boolean useOrder)
+    public void buildQuery(StringBuffer q, Node home, boolean useOrder, boolean isCount)
             throws SQLException, ClassNotFoundException {
-        buildQuery(q, home, otherType, kstr, pre, useOrder);
+        buildQuery(q, home, otherType, null, useOrder, isCount);
     }
 
     /**
@@ -887,9 +932,9 @@ public final class Relation {
      *  and a local object.
      */
     public void buildQuery(StringBuffer q, Node home, DbMapping otherDbm, String kstr,
-                           String pre, boolean useOrder)
+                           boolean useOrder, boolean isCount)
             throws SQLException, ClassNotFoundException {
-        String prefix = pre;
+        String prefix = " WHERE ";
         Node nonvirtual = home.getNonVirtualParent();
 
         if (kstr != null && !isComplexReference()) {
@@ -922,11 +967,12 @@ public final class Relation {
         if (maxSize > 0) {
             if (otherType.isOracle()) {
                 // see http://www.oracle.com/technology/oramag/oracle/06-sep/o56asktom.html
+                String selectItem = isCount ? "count(*)" : "*";
                 if (offset > 0) {
-                    q.insert(0, "SELECT * FROM ( SELECT /*+ FIRST_ROWS(n) */ a.*, ROWNUM rnum FROM (");
+                    q.insert(0, "SELECT " + selectItem + " FROM ( SELECT /*+ FIRST_ROWS(n) */ a.*, ROWNUM rnum FROM (");
                     q.append(") a WHERE ROWNUM <= ").append(offset + maxSize).append(") WHERE rnum > ").append(offset);
                 } else {
-                    q.insert(0, "SELECT /*+ FIRST_ROWS(n) */ * FROM (");
+                    q.insert(0, "SELECT /*+ FIRST_ROWS(n) */ " + selectItem + " FROM (");
                     q.append(") WHERE ROWNUM <= ").append(maxSize);
                 }
             } else {

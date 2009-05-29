@@ -877,102 +877,85 @@ public final class NodeManager {
      *  loaded later on demand.
      */
     public List getNodeIDs(Node home, Relation rel) throws Exception {
-
-        if ((rel == null) || (rel.otherType == null) || !rel.otherType.isRelational()) {
+        DbMapping type = rel == null ? null : rel.otherType;
+        if (type == null || !type.isRelational()) {
             // this should never be called for embedded nodes
-            throw new RuntimeException("NodeMgr.getNodeIDs called for non-relational node " +
-                                       home);
-        } else {
-            List retval = new ArrayList();
+            throw new RuntimeException("getNodeIDs called for non-relational node " + home);
+        }
+        List retval = new ArrayList();
 
-            // if we do a groupby query (creating an intermediate layer of groupby nodes),
-            // retrieve the value of that field instead of the primary key
-            String idfield = (rel.groupby == null) ? rel.otherType.getIDField()
-                                                   : rel.groupby;
-            Connection con = rel.otherType.getConnection();
-            // set connection to read-only mode
-            if (!con.isReadOnly()) con.setReadOnly(true);
+        // if we do a groupby query (creating an intermediate layer of groupby nodes),
+        // retrieve the value of that field instead of the primary key
+        Connection con = type.getConnection();
+        // set connection to read-only mode
+        if (!con.isReadOnly()) con.setReadOnly(true);
 
-            String table = rel.otherType.getTableName();
+        Statement stmt = null;
+        long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+        String query = null;
 
-            Statement stmt = null;
-            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
-            String query = null;
+        try {
+            StringBuffer b = rel.getIdSelect();
 
-            try {
-                StringBuffer b = new StringBuffer("SELECT ");
+            if (home.getSubnodeRelation() != null) {
+                // subnode relation was explicitly set
+                query = b.append(" ").append(home.getSubnodeRelation()).toString();
+            } else {
+                // let relation object build the query
+                rel.buildQuery(b, home, true, false);
+                query = b.toString();
+            }
 
-                if (rel.queryHints != null) {
-                    b.append(rel.queryHints).append(" ");
+            stmt = con.createStatement();
+
+            if (rel.maxSize > 0) {
+                stmt.setMaxRows(rel.maxSize);
+            }
+
+            ResultSet result = stmt.executeQuery(query);
+
+            // problem: how do we derive a SyntheticKey from a not-yet-persistent Node?
+            Key k = (rel.groupby != null) ? home.getKey() : null;
+
+            while (result.next()) {
+                String kstr = result.getString(1);
+
+                // jump over null values - this can happen especially when the selected
+                // column is a group-by column.
+                if (kstr == null) {
+                    continue;
                 }
 
-                if (idfield.indexOf('(') == -1 && idfield.indexOf('.') == -1) {
-                    b.append(table).append('.');
-                }
-                b.append(idfield).append(" FROM ").append(table);
+                // make the proper key for the object, either a generic DB key or a groupby key
+                Key key = (rel.groupby == null)
+                        ? (Key) new DbKey(rel.otherType, kstr)
+                        : (Key) new SyntheticKey(k, kstr);
+                retval.add(new NodeHandle(key));
 
-                rel.appendAdditionalTables(b);
+                // if these are groupby nodes, evict nullNode keys
+                if (rel.groupby != null) {
+                    Node n = (Node) cache.get(key);
 
-                if (home.getSubnodeRelation() != null) {
-                    // subnode relation was explicitly set
-                    query = b.append(" ").append(home.getSubnodeRelation()).toString();
-                } else {
-                    // let relation object build the query
-                    rel.buildQuery(b, home, null, " WHERE ", true);
-                    query = b.toString();
-                }
-
-                stmt = con.createStatement();
-
-                if (rel.maxSize > 0) {
-                    stmt.setMaxRows(rel.maxSize);
-                }
-
-                ResultSet result = stmt.executeQuery(query);
-
-                // problem: how do we derive a SyntheticKey from a not-yet-persistent Node?
-                Key k = (rel.groupby != null) ? home.getKey() : null;
-
-                while (result.next()) {
-                    String kstr = result.getString(1);
-
-                    // jump over null values - this can happen especially when the selected
-                    // column is a group-by column.
-                    if (kstr == null) {
-                        continue;
-                    }
-
-                    // make the proper key for the object, either a generic DB key or a groupby key
-                    Key key = (rel.groupby == null)
-                              ? (Key) new DbKey(rel.otherType, kstr)
-                              : (Key) new SyntheticKey(k, kstr);
-                    retval.add(new NodeHandle(key));
-
-                    // if these are groupby nodes, evict nullNode keys
-                    if (rel.groupby != null) {
-                        Node n = (Node) cache.get(key);
-
-                        if ((n != null) && n.isNullNode()) {
-                            evictKey(key);
-                        }
-                    }
-                }
-            } finally {
-                if (logSql) {
-                    long logTimeStop = System.currentTimeMillis();
-                    logSqlStatement("SQL SELECT_IDS", table,
-                                    logTimeStart, logTimeStop, query);
-                }
-                if (stmt != null) {
-                    try {
-                        stmt.close();
-                    } catch (Exception ignore) {
+                    if ((n != null) && n.isNullNode()) {
+                        evictKey(key);
                     }
                 }
             }
-
-            return retval;
+        } finally {
+            if (logSql) {
+                long logTimeStop = System.currentTimeMillis();
+                logSqlStatement("SQL SELECT_IDS", type.getTableName(),
+                        logTimeStart, logTimeStop, query);
+            }
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (Exception ignore) {
+                }
+            }
         }
+
+        return retval;
     }
 
     /**
@@ -986,7 +969,7 @@ public final class NodeManager {
 
         if ((rel == null) || (rel.otherType == null) || !rel.otherType.isRelational()) {
             // this should never be called for embedded nodes
-            throw new RuntimeException("NodeMgr.getNodes called for non-relational node " +
+            throw new RuntimeException("getNodes called for non-relational node " +
                                        home);
         }
 
@@ -1010,7 +993,7 @@ public final class NodeManager {
                 b.append(home.getSubnodeRelation());
             } else {
                 // let relation object build the query
-                rel.buildQuery(b, home, null, " WHERE ", true);
+                rel.buildQuery(b, home, true, false);
             }
 
             query = b.toString();
@@ -1053,152 +1036,6 @@ public final class NodeManager {
         return retval;
     }
     
-    /**
-     * Update a UpdateableSubnodeList retrieving all values having
-     * higher Values according to the updateCriteria's set for this Collection's Relation
-     * The returned Map-Object has two Properties:
-     * addedNodes = an Integer representing the number of Nodes added to this collection
-     * newNodes = an Integer representing the number of Records returned by the Select-Statement
-     * These two values may be different if a max-size is defined for this Collection and a new
-     * node would be outside of this Border because of the ordering of this collection.
-     * @param home the home of this subnode-list
-     * @param rel the relation the home-node has to the nodes contained inside the subnodelist
-     * @return A map having two properties of type String (newNodes (number of nodes retreived by the select-statment), addedNodes (nodes added to the collection))
-     * @throws Exception
-     */
-    /* public int updateSubnodeList(Node home, Relation rel) throws Exception {
-        if ((rel == null) || (rel.otherType == null) || !rel.otherType.isRelational()) {
-            // this should never be called for embedded nodes
-            throw new RuntimeException("NodeMgr.updateSubnodeList called for non-relational node " +
-                                       home);
-        } else {
-            List list = home.getSubnodeList();
-            if (list == null)
-                list = home.createSubnodeList();
-            
-            if (!(list instanceof UpdateableSubnodeList))
-                throw new RuntimeException ("unable to update SubnodeList not marked as updateable (" + rel.propName + ")");
-            
-            UpdateableSubnodeList sublist = (UpdateableSubnodeList) list;
-            
-            // FIXME: grouped subnodes aren't supported yet
-            if (rel.groupby != null)
-                throw new RuntimeException ("update not yet supported on grouped collections");
-
-            String idfield = rel.otherType.getIDField();
-            Connection con = rel.otherType.getConnection();
-            String table = rel.otherType.getTableName();
-
-            Statement stmt = null;
-
-            try {
-                String q = null;
-
-                StringBuffer b = new StringBuffer();
-                if (rel.loadAggressively()) {
-                    b.append (rel.otherType.getSelect(rel));
-                } else {
-                    b.append ("SELECT ");
-                    if (rel.queryHints != null) {
-                        b.append(rel.queryHints).append(" ");
-                    }
-                    b.append(table).append('.')
-                                   .append(idfield).append(" FROM ")
-                                   .append(table);
-
-                    rel.appendAdditionalTables(b);
-                }
-                String updateCriteria = sublist.getUpdateCriteria();
-                if (home.getSubnodeRelation() != null) {
-                    if (updateCriteria != null) {
-                        b.append (" WHERE ");
-                        b.append (sublist.getUpdateCriteria());
-                        b.append (" AND ");
-                        b.append (home.getSubnodeRelation());
-                    } else {
-                        b.append (" WHERE ");
-                        b.append (home.getSubnodeRelation());
-                    }
-                } else {
-                    if (updateCriteria != null) {
-                        b.append (" WHERE ");
-                        b.append (updateCriteria);
-                        rel.buildQuery(b, home, null, " AND ", true);
-                    } else {
-                        rel.buildQuery(b, home, null, " WHERE ", true);
-                    }
-                    q = b.toString();
-                }
-
-                long logTimeStart = logSql ? System.currentTimeMillis() : 0;
-
-                stmt = con.createStatement();
-
-                if (rel.maxSize > 0) {
-                    stmt.setMaxRows(rel.maxSize);
-                }
-
-                ResultSet result = stmt.executeQuery(q);
-
-                if (logSql) {
-                    long logTimeStop = System.currentTimeMillis();
-                    logSqlStatement("SQL SELECT_UPDATE_SUBNODE_LIST", table,
-                                    logTimeStart, logTimeStop, q);
-                }
-
-                // problem: how do we derive a SyntheticKey from a not-yet-persistent Node?
-                // Key k = (rel.groupby != null) ? home.getKey() : null;
-                // int cntr = 0;
-                
-                DbColumn[] columns = rel.loadAggressively() ? rel.otherType.getColumns() : null;
-                List newNodes = new ArrayList(rel.maxSize);
-                while (result.next()) {
-                    String kstr = result.getString(1);
-
-                    // jump over null values - this can happen especially when the selected
-                    // column is a group-by column.
-                    if (kstr == null) {
-                        continue;
-                    }
-
-                    // make the proper key for the object, either a generic DB key or a groupby key
-                    Key key;
-                    if (rel.loadAggressively()) {
-                        Node node = createNode(rel.otherType, result, columns, 0);
-                        if (node == null) {
-                            continue;
-                        }
-                        key = node.getKey();
-                        registerNewNode(node, null);
-                    } else {
-                        key = new DbKey(rel.otherType, kstr);
-                    }
-                    newNodes.add(new NodeHandle(key));
-
-                    // if these are groupby nodes, evict nullNode keys
-                    if (rel.groupby != null) {
-                        Node n = (Node) cache.get(key);
-
-                        if ((n != null) && n.isNullNode()) {
-                            evictKey(key);
-                        }
-                    }
-                }
-                // System.err.println("GOT NEW NODES: " + newNodes);
-                if (!newNodes.isEmpty())
-                    sublist.addAll(newNodes);
-                return newNodes.size();
-            } finally {
-                if (stmt != null) {
-                    try {
-                        stmt.close();
-                    } catch (Exception ignore) {
-                    }
-                }
-            }
-        }
-    } */
-
     protected List collectMissingKeys(SubnodeList list, int start, int length) {
         List retval = null;
         for (int i = start; i < start + length; i++) {
@@ -1360,67 +1197,55 @@ public final class NodeManager {
      * which is defined by Relation rel.
      */
     public int countNodes(Node home, Relation rel) throws Exception {
-        if ((rel == null) || (rel.otherType == null) || !rel.otherType.isRelational()) {
+        DbMapping type = rel == null ? null : rel.otherType;
+        if (type == null || !type.isRelational()) {
             // this should never be called for embedded nodes
-            throw new RuntimeException("NodeMgr.countNodes called for non-relational node " +
-                                       home);
-        } else {
-            int retval = 0;
-            Connection con = rel.otherType.getConnection();
-            // set connection to read-only mode
-            if (!con.isReadOnly()) con.setReadOnly(true);
+            throw new RuntimeException("countNodes called for non-relational node " + home);
+        }
+        int retval = 0;
+        Connection con = type.getConnection();
+        // set connection to read-only mode
+        if (!con.isReadOnly()) con.setReadOnly(true);
 
-            String table = rel.otherType.getTableName();
-            Statement stmt = null;
-            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
-            String query = null;
+        Statement stmt = null;
+        long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+        String query = null;
 
-            try {
-                StringBuffer tables = new StringBuffer(table);
+        try {
+            StringBuffer b = rel.getCountSelect();
 
-                rel.appendAdditionalTables(tables);
-
-                // NOTE: we explicitly convert tables StringBuffer to a String
-                // before appending to be compatible with JDK 1.3
-                StringBuffer b = new StringBuffer("SELECT count(*) FROM ")
-                        .append(tables.toString());
-
-                if (home.getSubnodeRelation() != null) {
-                    // use the manually set subnoderelation of the home node
-                    query = b.append(" ").append(home.getSubnodeRelation()).toString();
-                } else {
-                    // let relation object build the query
-                    rel.buildQuery(b, home, null, " WHERE ", false);
-                    query = b.toString();
-                }
-
-                stmt = con.createStatement();
-
-
-                ResultSet rs = stmt.executeQuery(query);
-
-
-                if (!rs.next()) {
-                    retval = 0;
-                } else {
-                    retval = rs.getInt(1);
-                }
-            } finally {
-                if (logSql) {
-                    long logTimeStop = System.currentTimeMillis();
-                    logSqlStatement("SQL SELECT_COUNT", table,
-                                    logTimeStart, logTimeStop, query);
-                }
-                if (stmt != null) {
-                    try {
-                        stmt.close();
-                    } catch (Exception ignore) {
-                    }
-                }
+            if (home.getSubnodeRelation() != null) {
+                // use the manually set subnoderelation of the home node
+                query = b.append(" ").append(home.getSubnodeRelation()).toString();
+            } else {
+                // let relation object build the query
+                rel.buildQuery(b, home, false, true);
+                query = b.toString();
             }
 
-            return (rel.maxSize > 0) ? Math.min(rel.maxSize, retval) : retval;
+            stmt = con.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+
+            if (!rs.next()) {
+                retval = 0;
+            } else {
+                retval = rs.getInt(1);
+            }
+        } finally {
+            if (logSql) {
+                long logTimeStop = System.currentTimeMillis();
+                logSqlStatement("SQL SELECT_COUNT", type.getTableName(),
+                        logTimeStart, logTimeStop, query);
+            }
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (Exception ignore) {
+                }
+            }
         }
+
+        return (rel.maxSize > 0) ? Math.min(rel.maxSize, retval) : retval;
     }
 
     /**
@@ -1428,72 +1253,62 @@ public final class NodeManager {
      */
     public Vector getPropertyNames(Node home, Relation rel)
                             throws Exception {
-        if ((rel == null) || (rel.otherType == null) || !rel.otherType.isRelational()) {
+        DbMapping type = rel == null ? null : rel.otherType;
+        if (type == null || !type.isRelational()) {
             // this should never be called for embedded nodes
-            throw new RuntimeException("NodeMgr.getPropertyNames called for non-relational node " +
-                                       home);
-        } else {
-            Vector retval = new Vector();
+            throw new RuntimeException("getPropertyNames called for non-relational node " + home);
+        }
+        Vector retval = new Vector();
 
-            // if we do a groupby query (creating an intermediate layer of groupby nodes),
-            // retrieve the value of that field instead of the primary key
-            String namefield = (rel.groupby == null) ? rel.accessName : rel.groupby;
-            Connection con = rel.otherType.getConnection();
-            // set connection to read-only mode
-            if (!con.isReadOnly()) con.setReadOnly(true);
+        Connection con = rel.otherType.getConnection();
+        // set connection to read-only mode
+        if (!con.isReadOnly()) con.setReadOnly(true);
 
-            String table = rel.otherType.getTableName();
-            StringBuffer tables = new StringBuffer(table);
-            rel.appendAdditionalTables(tables);
+        Statement stmt = null;
+        long logTimeStart = logSql ? System.currentTimeMillis() : 0;
+        String query = null;
 
-            Statement stmt = null;
-            long logTimeStart = logSql ? System.currentTimeMillis() : 0;
-            String query = null;
+        try {
+            // NOTE: we explicitly convert tables StringBuffer to a String
+            // before appending to be compatible with JDK 1.3
+            StringBuffer b = rel.getNamesSelect();
 
-            try {
-                // NOTE: we explicitly convert tables StringBuffer to a String
-                // before appending to be compatible with JDK 1.3
-                StringBuffer b = new StringBuffer("SELECT ").append(namefield)
-                                                            .append(" FROM ")
-                                                            .append(tables.toString());
-
-                if (home.getSubnodeRelation() != null) {
-                    b.append(" ").append(home.getSubnodeRelation());
-                } else {
-                    // let relation object build the query
-                    rel.buildQuery(b, home, null, " WHERE ", true);
-                }
-
-                stmt = con.createStatement();
-
-                query = b.toString();
-
-                ResultSet rs = stmt.executeQuery(query);
-
-                while (rs.next()) {
-                    String n = rs.getString(1);
-
-                    if (n != null) {
-                        retval.add(n);
-                    }
-                }
-            } finally {
-                if (logSql) {
-                    long logTimeStop = System.currentTimeMillis();
-                    logSqlStatement("SQL SELECT_ACCESSNAMES", table,
-                                    logTimeStart, logTimeStop, query);
-                }
-
-                if (stmt != null) {
-                    try {
-                        stmt.close();
-                    } catch (Exception ignore) {
-                    }
-                }
+            if (home.getSubnodeRelation() != null) {
+                b.append(" ").append(home.getSubnodeRelation());
+            } else {
+                // let relation object build the query
+                rel.buildQuery(b, home, true, false);
             }
 
-            return retval;
+            stmt = con.createStatement();
+
+            query = b.toString();
+
+            ResultSet rs = stmt.executeQuery(query);
+
+            while (rs.next()) {
+                String n = rs.getString(1);
+
+                if (n != null) {
+                    retval.add(n);
+                }
+            }
+        } finally {
+            if (logSql) {
+                long logTimeStop = System.currentTimeMillis();
+                logSqlStatement("SQL SELECT_ACCESSNAMES", type.getTableName(),
+                        logTimeStart, logTimeStop, query);
+            }
+
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (Exception ignore) {
+                }
+            }
         }
+
+        return retval;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////
@@ -1622,7 +1437,7 @@ public final class NodeManager {
                         b.append(")");
                     }
                 } else {
-                    rel.buildQuery(b, home, dbm, kstr, " WHERE ", false);
+                    rel.buildQuery(b, home, dbm, kstr, false, false);
                 }
 
                 stmt = con.createStatement();
