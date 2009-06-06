@@ -72,7 +72,7 @@ if not "%RMI_PORT%"=="" (
 )
 if not "%HOP_HOME%"=="" (
    echo Serving applications from %HOP_HOME%
-   set OPTIONS=%OPTIONS% -h "%HOP_HOME%
+   set OPTIONS=%OPTIONS% -h "%HOP_HOME%."
 )
 
 :: Invoking the Java virtual machine
