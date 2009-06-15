@@ -1102,44 +1102,51 @@ public final class Skin {
                 return handlerCache.get(handlerName);
             }
 
-            // if handler object wasn't found in cache retrieve it
+            // if handler object wasn't found in cache first check this-object
             if (thisObject != null) {
                 // not a global macro - need to find handler object
-                // was called with this object - check it or its parents for matching prototype
-                if (handlerName.equalsIgnoreCase(app.getPrototypeName(thisObject))) {
-                    // we already have the right handler object
-                    // put the found handler object into the cache so we don't have to look again
-                    if (handlerCache != null)
-                        handlerCache.put(handlerName, thisObject);
-                    return thisObject;
-                } else {
-                    // the handler object is not what we want
-                    Object obj = thisObject;
+                // was called with this object - check this-object for matching prototype
+                Prototype proto = app.getPrototype(thisObject);
 
-                    // walk down parent chain to find handler object,
-                    // limiting to 50 passes to avoid infinite loops
-                    int maxloop = 50;
-                    while (obj != null && maxloop-- > 0) {
-                        String protoName = app.getPrototypeName(obj);
-
-                        if (handlerName.equalsIgnoreCase(protoName)) {
-                            if (handlerCache != null)
-                                handlerCache.put(handlerName, obj);
-                            return obj;
-                        }
-
-                        obj = app.getParentElement(obj);
-                    }
+                if (proto != null && proto.isInstanceOf(handlerName)) {
+                    return cacheHandler(handlerName, thisObject);
                 }
             }
 
+            // next look in res.handlers
             Map macroHandlers = reval.getResponse().getMacroHandlers();
             Object obj = macroHandlers.get(handlerName);
-            if (handlerCache != null && obj != null) {
-                handlerCache.put(handlerName, obj);
+            if (obj != null) {
+                return cacheHandler(handlerName, obj);
             }
-            return obj;
+
+            // finally walk down the this-object's parent chain
+            if (thisObject != null) {
+                obj = app.getParentElement(thisObject);
+                // walk down parent chain to find handler object,
+                // limiting to 50 passes to avoid infinite loops
+                int maxloop = 50;
+                while (obj != null && maxloop-- > 0) {
+                    Prototype proto = app.getPrototype(obj);
+
+                    if (proto != null && proto.isInstanceOf(handlerName)) {
+                        return cacheHandler(handlerName, obj);
+                    }
+
+                    obj = app.getParentElement(obj);
+                }
+            }
+
+            return cacheHandler(handlerName, null);
         }
+
+        private Object cacheHandler(String name, Object handler) {
+            if (handlerCache != null) {
+                handlerCache.put(name, handler);
+            }
+            return handler;
+        }
+
     }
 
     /**
