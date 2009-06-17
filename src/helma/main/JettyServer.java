@@ -21,8 +21,8 @@ import org.mortbay.jetty.Connector;
 import org.mortbay.jetty.ajp.Ajp13SocketConnector;
 import org.mortbay.jetty.bio.SocketConnector;
 import org.mortbay.jetty.nio.SelectChannelConnector;
+import org.mortbay.xml.XmlConfiguration;
 
-import java.util.StringTokenizer;
 import java.net.URL;
 import java.net.InetSocketAddress;
 import java.io.IOException;
@@ -45,9 +45,18 @@ public class JettyServer {
     }
 
     private JettyServer(URL url) throws IOException {
-        // TODO: this is wrong. url is supposed to be the url of a jetty config file.
-        http = new org.mortbay.jetty.Server(url.getPort());
-        openListeners();
+        http = new org.mortbay.jetty.Server();
+
+        try {
+            XmlConfiguration config = new XmlConfiguration(url);
+            config.configure(http);
+
+            openListeners();
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Jetty configuration problem: " + e);
+        }
     }
 
     private JettyServer(InetSocketAddress webPort, InetSocketAddress ajpPort, Server server)
@@ -74,24 +83,15 @@ public class JettyServer {
         	
         	http.addConnector(ajp13);
 
-            String jkallow = server.sysProps.getProperty("allowAJP13");
-
-            // by default the AJP13-connection just accepts requests from 127.0.0.1
-            if (jkallow == null) {
-                jkallow = "127.0.0.1";
+            // jetty6 does not support protection of AJP13 connections anymore
+            if (server.sysProps.containsKey("allowAJP13")) {
+                String message = "allowAJP13 property is no longer supported. " +
+                        "Please remove it from your config and use a firewall " +
+                        "to protect the AJP13 port";
+                server.getLogger().error(message);
+                throw new RuntimeException(message);
             }
 
-            StringTokenizer st = new StringTokenizer(jkallow, " ,;");
-            String[] jkallowarr = new String[st.countTokens()];
-            int cnt = 0;
-
-            while (st.hasMoreTokens()) {
-                jkallowarr[cnt] = st.nextToken();
-                cnt++;
-            }
-
-            // TODO:
-            //ajp13.setRemoteServers(jkallowarr);
             server.getLogger().info("Starting AJP13-Listener on port " + (ajpPort));            
         }
         openListeners();
@@ -100,15 +100,6 @@ public class JettyServer {
     public org.mortbay.jetty.Server getHttpServer() {
         return http;
     }
-/* TODO:
-    public HttpContext getContext(String contextPath) {
-        return http.getContext(contextPath);
-    }
-
-    public HttpContext addContext(String contextPath) {
-        return http.addContext(contextPath);
-    }
-*/
 
     public void start() throws Exception {
         http.start();
