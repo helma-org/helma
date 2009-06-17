@@ -22,14 +22,17 @@ import helma.framework.repository.FileRepository;
 import helma.util.StringUtils;
 import org.apache.xmlrpc.XmlRpcHandler;
 import org.apache.commons.logging.Log;
-import org.mortbay.http.*;
-import org.mortbay.http.handler.*;
-import org.mortbay.jetty.servlet.*;
+import org.mortbay.jetty.handler.ContextHandler;
+import org.mortbay.jetty.handler.ContextHandlerCollection;
+import org.mortbay.jetty.handler.ResourceHandler;
+import org.mortbay.jetty.servlet.ServletHandler;
+import org.mortbay.jetty.servlet.ServletHolder;
+
 import java.io.*;
 import java.rmi.*;
 import java.util.*;
 import helma.util.ResourceProperties;
-import helma.util.Logging;
+import helma.servlet.EmbeddedServletClient;
 
 /**
  * This class is responsible for starting and stopping Helma applications.
@@ -42,6 +45,7 @@ public class ApplicationManager implements XmlRpcHandler {
     private ResourceProperties props;
     private Server server;
     private long lastModified;
+    private ContextHandlerCollection context;
     private JettyServer jetty = null;
 
     /**
@@ -279,10 +283,10 @@ public class ApplicationManager implements XmlRpcHandler {
         }
 
         if (mountpoint.endsWith("/")) {
-            return mountpoint + "*";
+            return mountpoint.substring(0, mountpoint.length()-1);
         }
 
-        return mountpoint + "/*";
+        return mountpoint;
     }
 
     private File getAbsoluteFile(String path) {
@@ -314,6 +318,9 @@ public class ApplicationManager implements XmlRpcHandler {
     class AppDescriptor {
 
         Application app;
+
+        private ContextHandler staticContext = null;
+        private ContextHandler appContext = null;
 
         String appName;
         File appDir;
@@ -491,8 +498,33 @@ public class ApplicationManager implements XmlRpcHandler {
 
                 // bind to Jetty HTTP server
                 if (jetty != null) {
+                    if(context == null) {
+                        context = new ContextHandlerCollection();
+                        context.mapContexts();
+                        jetty.getHttpServer().setHandler(context);
+                    }
 
-                    HttpContext context = jetty.addContext(pathPattern);
+                    // if there is a static direcory specified, mount it
+                    if (staticDir != null) {
+
+                        File staticContent = getAbsoluteFile(staticDir);
+
+                        getLogger().info("Serving static from " +
+                                       staticContent.getPath());
+                        getLogger().info("Mounting static at " +
+                                       staticMountpoint);
+                        
+                        ResourceHandler rhandler = new ResourceHandler();
+                        rhandler.setResourceBase(staticContent.getPath());
+                        rhandler.setWelcomeFiles(staticHome);
+                        
+                        staticContext = context.addContext(staticMountpoint, "");
+                        staticContext.setHandler(rhandler);
+                        
+                        staticContext.start();
+                    }
+                    
+                    appContext = context.addContext(pathPattern, "");
 
                     if (encode) {
                         // FIXME: ContentEncodingHandler is broken/removed in Jetty 4.2
@@ -502,8 +534,8 @@ public class ApplicationManager implements XmlRpcHandler {
 
                     ServletHandler handler = new ServletHandler();
 
-                    ServletHolder holder = handler.addServlet(appName, "/*",
-                                                          "helma.servlet.EmbeddedServletClient");
+                    ServletHolder holder = new ServletHolder(EmbeddedServletClient.class);
+                    handler.addServletWithMapping(holder, "/*");
 
                     holder.setInitParameter("application", appName);
                     // holder.setInitParameter("mountpoint", mountpoint);
@@ -531,38 +563,17 @@ public class ApplicationManager implements XmlRpcHandler {
                     if (debug != null) {
                         holder.setInitParameter("debug", debug);
                     }
-
-                    context.addHandler(handler);
+                    
+                    appContext.setHandler(handler);
 
                     if (protectedStaticDir != null) {
                         File protectedContent = getAbsoluteFile(protectedStaticDir);
-                        context.setResourceBase(protectedContent.getPath());
+                        appContext.setResourceBase(protectedContent.getPath());
                         getLogger().info("Serving protected static from " +
                                        protectedContent.getPath());
                     }
 
-                    context.start();
-
-                    // if there is a static direcory specified, mount it
-                    if (staticDir != null) {
-
-                        File staticContent = getAbsoluteFile(staticDir);
-
-                        getLogger().info("Serving static from " +
-                                       staticContent.getPath());
-                        getLogger().info("Mounting static at " +
-                                       staticMountpoint);
-
-                        context = jetty.addContext(staticMountpoint);
-                        context.setWelcomeFiles(staticHome);
-
-                        context.setResourceBase(staticContent.getPath());
-
-                        ResourceHandler rhandler = new ResourceHandler();
-                        rhandler.setDirAllowed(staticIndex);
-                        context.addHandler(rhandler);
-                        context.start();
-                    }
+                    appContext.start();
                 }
 
                 // register as XML-RPC handler
@@ -586,20 +597,16 @@ public class ApplicationManager implements XmlRpcHandler {
 
                 // unbind from Jetty HTTP server
                 if (jetty != null) {
-                    HttpContext context = jetty.getContext(pathPattern);
-
-                    if (context != null) {
-                        context.stop();
-                        context.destroy();
+                    if (appContext != null) {
+                        appContext.stop();
+                        appContext.destroy();
+                        appContext = null;
                     }
 
-                    if (staticDir != null) {
-                        context = jetty.getContext(staticMountpoint);
-
-                        if (context != null) {
-                            context.stop();
-                            context.destroy();
-                        }
+                    if (staticContext != null) {
+                        staticContext.stop();
+                        staticContext.destroy();
+                        staticContext = null;
                     }
                 }
 

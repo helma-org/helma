@@ -16,14 +16,13 @@
 
 package helma.main;
 
-import org.mortbay.http.HttpServer;
-import org.mortbay.http.HttpContext;
-import org.mortbay.http.SocketListener;
-import org.mortbay.http.HttpListener;
-import org.mortbay.http.ajp.AJP13Listener;
-import org.mortbay.util.InetAddrPort;
 
-import java.util.StringTokenizer;
+import org.mortbay.jetty.Connector;
+import org.mortbay.jetty.ajp.Ajp13SocketConnector;
+import org.mortbay.jetty.bio.SocketConnector;
+import org.mortbay.jetty.nio.SelectChannelConnector;
+import org.mortbay.xml.XmlConfiguration;
+
 import java.net.URL;
 import java.net.InetSocketAddress;
 import java.io.IOException;
@@ -32,10 +31,10 @@ import java.io.File;
 public class JettyServer {
 
     // the embedded web server
-    protected HttpServer http;
+    protected org.mortbay.jetty.Server http;
 
     // the AJP13 Listener, used for connecting from external webserver to servlet via JK
-    protected AJP13Listener ajp13;
+    protected Ajp13SocketConnector ajp13;
 
     public static JettyServer init(Server server, ServerConfig config) throws IOException {
         File configFile = config.getConfigFile();
@@ -48,57 +47,60 @@ public class JettyServer {
     }
 
     private JettyServer(URL url) throws IOException {
-        http = new org.mortbay.jetty.Server(url);
-        openListeners();
+        http = new org.mortbay.jetty.Server();
+
+        try {
+            XmlConfiguration config = new XmlConfiguration(url);
+            config.configure(http);
+
+            openListeners();
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Jetty configuration problem: " + e);
+        }
     }
 
     private JettyServer(InetSocketAddress webPort, InetSocketAddress ajpPort, Server server)
             throws IOException {
-        http = new HttpServer();
-
-        // create embedded web server if port is specified
+    	
+        http = new org.mortbay.jetty.Server();
+        http.setServer(http);
+        
+        // start embedded web server if port is specified
         if (webPort != null) {
-            http.addListener(new InetAddrPort(webPort.getAddress(), webPort.getPort()));
+        	Connector conn = new SelectChannelConnector();
+        	conn.setHost(webPort.getAddress().getHostAddress());
+        	conn.setPort(webPort.getPort());
+        	
+        	http.addConnector(conn);
         }
 
         // activate the ajp13-listener
         if (ajpPort != null) {
             // create AJP13Listener
-            ajp13 = new AJP13Listener(new InetAddrPort(ajpPort.getAddress(), ajpPort.getPort()));
-            ajp13.setHttpServer(http);
+        	ajp13 = new Ajp13SocketConnector();
+        	ajp13.setHost(ajpPort.getAddress().getHostAddress());
+        	ajp13.setPort(ajpPort.getPort());
+        	
+        	http.addConnector(ajp13);
 
-            String jkallow = server.sysProps.getProperty("allowAJP13");
-
-            // by default the AJP13-connection just accepts requests from 127.0.0.1
-            if (jkallow == null) {
-                jkallow = "127.0.0.1";
+            // jetty6 does not support protection of AJP13 connections anymore
+            if (server.sysProps.containsKey("allowAJP13")) {
+                String message = "allowAJP13 property is no longer supported. " +
+                        "Please remove it from your config and use a firewall " +
+                        "to protect the AJP13 port";
+                server.getLogger().error(message);
+                throw new RuntimeException(message);
             }
 
-            StringTokenizer st = new StringTokenizer(jkallow, " ,;");
-            String[] jkallowarr = new String[st.countTokens()];
-            int cnt = 0;
-
-            while (st.hasMoreTokens()) {
-                jkallowarr[cnt] = st.nextToken();
-                cnt++;
-            }
-
-            ajp13.setRemoteServers(jkallowarr);
             server.getLogger().info("Starting AJP13-Listener on port " + (ajpPort));            
         }
         openListeners();
     }
 
-    public HttpServer getHttpServer() {
+    public org.mortbay.jetty.Server getHttpServer() {
         return http;
-    }
-
-    public HttpContext getContext(String contextPath) {
-        return http.getContext(contextPath);
-    }
-
-    public HttpContext addContext(String contextPath) {
-        return http.addContext(contextPath);
     }
 
     public void start() throws Exception {
@@ -108,7 +110,7 @@ public class JettyServer {
         }
     }
 
-    public void stop() throws InterruptedException {
+    public void stop() throws Exception {
         http.stop();
         if (ajp13 != null) {
             ajp13.stop();
@@ -123,11 +125,11 @@ public class JettyServer {
         // opening the listener here allows us to run on priviledged port 80 under jsvc
         // even as non-root user, because init() is called with root privileges
         // while start() will be called with the user we will actually run as
-        HttpListener[] listeners = http.getListeners();
-        for (int i = 0; i < listeners.length; i++) {
-            if (listeners[i] instanceof SocketListener) {
-                SocketListener listener = (SocketListener) listeners[i];
-                listener.open();
+        Connector[] connectors = http.getConnectors();
+        for (int i = 0; i < connectors.length; i++) {
+            if (connectors[i] instanceof SocketConnector) {
+                SocketConnector connector = (SocketConnector) connectors[i];
+                connector.open();
             }
         }
     }
