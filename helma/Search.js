@@ -773,7 +773,27 @@ helma.Search.HitCollection = function(hits) {
     this.length = function() {
         return this.size();
     };
-
+    
+    /**
+     * Executes a provided function once per hit.
+     * @param {Function} fun Function to execute for each element
+     * @param {Object} context Object to use as "this" when executing callback.
+     * @see https://developer.mozilla.org/En/Core_JavaScript_1.5_Reference/Objects/Array/ForEach
+     */
+    this.forEach = function(func, context) {
+        if (typeof func != "function") {
+            throw new TypeError();
+        }
+        var len = this.size();
+        for (var i = 0; i < len; i += 1) {
+            var hit = this.get(i);
+            if (hit) {
+                func.call(context, hit, i, hits);
+            }
+        }
+        return;
+    };
+    
     return this;
 };
 
