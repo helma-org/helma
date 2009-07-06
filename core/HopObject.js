@@ -136,7 +136,7 @@ HopObject.prototype.loop_macro = function(param, collection) {
     if (param.sort) {
         var allitems = items.list();
         var test = allitems[0][param.sort];
-        if (!test || isNaN(test)) {
+        if (test == null || isNaN(test)) {
             var Sorter = String.Sorter;
         } else {
             var Sorter = Number.Sorter;
