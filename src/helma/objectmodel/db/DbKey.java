@@ -45,6 +45,9 @@ public final class DbKey implements Key, Serializable {
      * make a key for a persistent Object, describing its datasource and id.
      */
     public DbKey(DbMapping dbmap, String id) {
+        if (id == null) {
+            throw new IllegalArgumentException("id null in DbKey");
+        }
         this.id = id;
         this.storageName = (dbmap == null) ? null : dbmap.getStorageTypeName();
     }

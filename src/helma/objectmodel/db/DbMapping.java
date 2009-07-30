@@ -147,6 +147,14 @@ public final class DbMapping {
     /**
      * Create a DbMapping from a type.properties property file
      */
+    public DbMapping(Application app, String typename, Properties props, boolean virtual) {
+        this(app,  typename, props);
+        isVirtual = virtual;
+    }
+
+    /**
+     * Create a DbMapping from a type.properties property file
+     */
     public DbMapping(Application app, String typename, Properties props) {
         this.app = app;
         // create a unique instance of the string. This is useful so

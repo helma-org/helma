@@ -23,6 +23,7 @@ import helma.objectmodel.INode;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.DbKey;
 import helma.objectmodel.db.Node;
+import helma.objectmodel.db.WrappedNodeManager;
 
 import org.mozilla.javascript.*;
 
@@ -35,6 +36,8 @@ public class HopObjectCtor extends FunctionObject {
     Scriptable protoProperty;
 
     static Method hopObjCtor;
+
+    static long collectionId = 0;    
 
     static {
         try {
@@ -203,11 +206,13 @@ public class HopObjectCtor extends FunctionObject {
                 childmapping.put("collection", HopObjectCtor.this.getFunctionName());
             }
 
-            Node node = new Node("HopQuery", null, core.app.getWrappedNodeManager());
             Properties props = new Properties();
             props.put("_children", childmapping);
-            DbMapping dbmap = new DbMapping(core.app, null, props);
+            DbMapping dbmap = new DbMapping(core.app, null, props, true);
             dbmap.update();
+
+            WrappedNodeManager nmgr = core.app.getWrappedNodeManager();
+            Node node = new Node("HopQuery", Long.toString(collectionId++), null, nmgr);
             node.setDbMapping(dbmap);
             node.setState(Node.VIRTUAL);
             return new HopObject("HopQuery", core, node, core.hopObjectProto);
