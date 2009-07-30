@@ -1434,8 +1434,11 @@ public final class Node implements INode, Serializable {
             }
         }
 
-        // mark the node as deleted
+        // mark the node as deleted and evict its primary key
         setParent(null);
+        if (primaryKey != null || state != TRANSIENT) {
+            nmgr.evictKey(getKey());
+        }
         markAs(DELETED);
     }
 
