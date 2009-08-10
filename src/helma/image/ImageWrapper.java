@@ -364,7 +364,7 @@ public class ImageWrapper {
     */
    public void trim(int x, int y, boolean trimLeft, boolean trimTop, boolean trimRight, boolean trimBottom) {
         BufferedImage bi = this.getBufferedImage();
-        int color = bi.getRGB(x, y), pixel;
+        int color = bi.getRGB(x, y);
         int left = 0, top = 0, right = width - 1, bottom = height - 1;
 
         // create a BufferedImage of only 1 pixel height for fetching the rows of the image in the correct format (ARGB)
@@ -447,7 +447,7 @@ public class ImageWrapper {
     }
     
     /**
-     * resizes the image using the Graphics2D approach
+     * Resizes the image using the Graphics2D approach
      */
     protected void resize(int w, int h, boolean smooth) {
         BufferedImage buffered = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
@@ -473,7 +473,7 @@ public class ImageWrapper {
     }
 
     /**
-     * Resize the image
+     * Resizes the image
      * 
      * @param w ...
      * @param h ...
@@ -483,19 +483,19 @@ public class ImageWrapper {
             (double) w / width,
             (double) h / height
         );
-        // if the image is scaled, used the Graphcis2D method, otherwise use AWT:
+        // If the image is scaled, used the Graphcis2D method, otherwise use AWT:
         if (factor > 1f) {
-            // scale it with the Graphics2D approach for supperiour quality.
+            // Scale it with the Graphics2D approach for superior quality.
             resize(w, h, true);
         } else {
             // Area averaging has the best results for shrinking of images:
 
-            // as getScaledInstance is asynchronous, the ImageWaiter is needed here too:
+            // As getScaledInstance is asynchronous, the ImageWaiter is needed here too:
             // Image scaled = ImageWaiter.waitForImage(image.getScaledInstance(w, h, Image.SCALE_AREA_AVERAGING));
             // if (scaled == null)
             //     throw new RuntimeException("Image cannot be resized.");
             
-            // this version is up to 4 times faster than getScaledInstance:
+            // This version is up to 4 times faster than getScaledInstance:
             ImageFilterOp filter = new ImageFilterOp(new AreaAveragingScaleFilter(w, h));
             setImage(filter.filter(getBufferedImage(), null));
         }

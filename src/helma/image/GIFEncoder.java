@@ -17,13 +17,13 @@
 /*
  * The GIF encoding routines are based on the Acme libary
  *
- * The following addaptions and extensions were added by Juerg Lehni:
+ * The following changes and extensions were added by Juerg Lehni:
  * 
  * - encode now directly works on BufferedImage objects, the ImageEncoder
  *   and ImageConsumer oriented frameworks has been removed.
  * - Only BufferedImages with IndexColorModel are taken, so no more
  *   palette optimization with IntHashtable objects are necessary. If the
- *   BufferedImage is in wrong format, helma.image.Quantizie is used to
+ *   BufferedImage is in wrong format, helma.image.ColorQuantizer is used to
  *   convert it into a index based image.
  * - This version is much less space consuming as it only takes one sample
  *   row of the rastered image at a time into memory during compression.
