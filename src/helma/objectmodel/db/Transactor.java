@@ -131,9 +131,7 @@ public class Transactor {
         if (node != null) {
             Key key = node.getKey();
 
-            if (!dirtyNodes.containsKey(key)) {
-                dirtyNodes.put(key, node);
-            }
+            dirtyNodes.put(key, node);
         }
     }
 
