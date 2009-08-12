@@ -41,12 +41,11 @@ public class PathWrapper extends ScriptableObject {
         this.path = new RequestPath(core.app);
 
         // initialize properties and functions
-        int attributes = DONTENUM | READONLY | PERMANENT;
         setParentScope(core.getScope());
         setPrototype(null);
-        defineProperty("length", PathWrapper.class, attributes);
+        defineProperty("length", PathWrapper.class, DONTENUM | READONLY | PERMANENT);
         defineFunctionProperties(new String[] {"href", "contains"}, 
-                                 PathWrapper.class, attributes);
+                                 PathWrapper.class, DONTENUM | PERMANENT);
     }
 
     /**
