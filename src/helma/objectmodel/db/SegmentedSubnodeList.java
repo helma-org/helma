@@ -33,34 +33,34 @@ public class SegmentedSubnodeList extends SubnodeList {
      * Adds the specified object to this list performing
      * custom ordering
      *
-     * @param obj element to be inserted.
+     * @param handle element to be inserted.
      */
-    public synchronized boolean add(Object obj) {
+    public synchronized boolean add(NodeHandle handle) {
         if (!hasRelationalNodes() || segments == null) {
-            return super.add(obj);
+            return super.add(handle);
         }
         if (subnodeCount == -1) {
             update();
         }
         subnodeCount++;
         segments[segments.length - 1].length += 1;
-        return list.add(obj);
+        return list.add(handle);
     }
     /**
      * Adds the specified object to the list at the given position
      * @param index the index to insert the element at
-     * @param obj the object t add
+     * @param handle the object to add
      */
-    public synchronized void add(int index, Object obj) {
+    public synchronized void add(int index, NodeHandle handle) {
         if (!hasRelationalNodes() || segments == null) {
-            super.add(index, obj);
+            super.add(index, handle);
             return;
         }
         if (subnodeCount == -1) {
             update();
         }
         subnodeCount++;
-        list.add(index, obj);
+        list.add(index, handle);
         // shift segment indices by one
         int s = getSegment(index);
         segments[s].length += 1;
@@ -69,7 +69,7 @@ public class SegmentedSubnodeList extends SubnodeList {
         }
     }
 
-    public Object get(int index) {
+    public NodeHandle get(int index) {
         if (!hasRelationalNodes() || segments == null) {
             return super.get(index);
         }
@@ -77,7 +77,7 @@ public class SegmentedSubnodeList extends SubnodeList {
             return null;
         }
         loadSegment(getSegment(index), false);
-        return list.get(index);
+        return (NodeHandle) list.get(index);
     }
 
     public synchronized boolean contains(Object object) {

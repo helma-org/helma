@@ -1039,7 +1039,7 @@ public final class NodeManager {
     protected List collectMissingKeys(SubnodeList list, int start, int length) {
         List retval = null;
         for (int i = start; i < start + length; i++) {
-            NodeHandle handle = (NodeHandle) list.get(i);
+            NodeHandle handle = list.get(i);
             if (handle != null && !cache.containsKey(handle.getKey())) {
                 if (retval == null) {
                     retval = new ArrayList();
@@ -1121,18 +1121,25 @@ public final class NodeManager {
                         // group nodes.
                         String groupName = null;
 
-                        /* if (groupbyProp != null) {
+                        if (groupbyProp != null) {
                             groupName = node.getString(groupbyProp);
+                            if (groupName != null) {
+                                Node groupNode = (Node) groupbySubnodes.get(groupName);
 
-                            SubnodeList sn = (SubnodeList) groupbySubnodes.get(groupName);
+                                if (groupNode == null) {
+                                    groupNode = home.getGroupbySubnode(groupName, true);
+                                    groupbySubnodes.put(groupName, groupNode);
+                                }
 
-                            if (sn == null) {
-                                sn = new SubnodeList(safe, rel);
-                                groupbySubnodes.put(groupName, sn);
+                                SubnodeList subnodes = groupNode.getSubnodeList();
+                                if (subnodes == null) {
+                                    subnodes = groupNode.createSubnodeList();
+                                    // mark subnodes as up-to-date
+                                    subnodes.lastSubnodeFetch = subnodes.getLastSubnodeChange();
+                                }
+                                subnodes.add(new NodeHandle(key));
                             }
-
-                            sn.add(new NodeHandle(key));
-                        } */
+                        }
 
                         // if relation doesn't use primary key as accessName, get secondary key
                         if (accessProp != null) {
@@ -1151,28 +1158,9 @@ public final class NodeManager {
                         // register new nodes with the cache. If an up-to-date copy
                         // existed in the cache, use that.
                         registerNewNode(node, secondaryKey);
-
                         fetchJoinedNodes(rs, joins, columns.length);
                     }
 
-                    // If these are grouped nodes, build the intermediary group nodes
-                    // with the subnod lists we created
-                    /* if (groupbyProp != null) {
-                        for (Iterator i = groupbySubnodes.keySet().iterator();
-                                 i.hasNext();) {
-                            String groupname = (String) i.next();
-
-                            if (groupname == null) {
-                                continue;
-                            }
-
-                            Node groupnode = home.getGroupbySubnode(groupname, true);
-
-                            groupnode.setSubnodes((SubnodeList) groupbySubnodes.get(groupname));
-                            groupnode.lastSubnodeFetch = 
-                                    groupnode.getLastSubnodeChange(groupnode.dbmap.getSubnodeRelation());
-                        }
-                    } */
                 } catch (Exception x) {
                     app.logError("Error in prefetchNodes()", x);
                 } finally {

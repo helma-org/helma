@@ -50,30 +50,30 @@ public class SubnodeList implements Serializable {
      * Adds the specified object to this list performing
      * custom ordering
      *
-     * @param obj element to be inserted.
+     * @param handle element to be inserted.
      */
-    public boolean add(Object obj) {
-        return list.add(obj);
+    public boolean add(NodeHandle handle) {
+        return list.add(handle);
     }
     /**
      * Adds the specified object to the list at the given position
      * @param idx the index to insert the element at
-     * @param obj the object t add
+     * @param handle the object to add
      */
-    public void add(int idx, Object obj) {
-        list.add(idx, obj);
+    public void add(int idx, NodeHandle handle) {
+        list.add(idx, handle);
     }
 
-    public Object get(int index) {
+    public NodeHandle get(int index) {
         if (index < 0 || index >= list.size()) {
             return null;
         }
-        return list.get(index);
+        return (NodeHandle) list.get(index);
     }
 
     public Node getNode(int index) {
         Node retval = null;
-        NodeHandle handle = (NodeHandle) get(index);
+        NodeHandle handle = get(index);
 
         if (handle != null) {
             retval = handle.getNode(node.nmgr);
@@ -149,12 +149,11 @@ public class SubnodeList implements Serializable {
         }
 
         DbMapping dbmap = getSubnodeMapping();
-        Relation rel = getSubnodeRelation();
 
-        if (!dbmap.isRelational() || rel.getGroup() != null) {
-            return;
+        if (dbmap.isRelational()) {
+            Relation rel = getSubnodeRelation();
+            node.nmgr.prefetchNodes(node, rel, this, start, length);
         }
-        node.nmgr.prefetchNodes(node, rel, this, start, length);
     }
 
     /**

@@ -1119,7 +1119,7 @@ public final class Node implements INode, Serializable {
 
             for (int i = 0; i < l; i++)
                 try {
-                    NodeHandle shandle = (NodeHandle) subnodes.get(i);
+                    NodeHandle shandle = subnodes.get(i);
 
                     if (subid.equals(shandle.getID())) {
                         // System.err.println ("FOUND SUBNODE: "+shandle);
