@@ -341,6 +341,7 @@ public class ApplicationManager implements XmlRpcHandler {
         String debug;
         boolean encode;
         Repository[] repositories;
+        String servletClassName;
 
         /**
          * extend apps.properties, add [appname].ignore
@@ -379,6 +380,7 @@ public class ApplicationManager implements XmlRpcHandler {
             appDir = (appDirName == null) ? null : getAbsoluteFile(appDirName);
             String dbDirName = conf.getProperty("dbdir");
             dbDir = (dbDirName == null) ? null : getAbsoluteFile(dbDirName);
+            servletClassName = conf.getProperty("servletClass");
 
             // got ignore dirs
             ignoreDirs = conf.getProperty("ignore");
@@ -533,8 +535,10 @@ public class ApplicationManager implements XmlRpcHandler {
                     }
 
                     ServletHandler handler = new ServletHandler();
+                    Class servletClass = servletClassName == null ?
+                            EmbeddedServletClient.class : Class.forName(servletClassName);
 
-                    ServletHolder holder = new ServletHolder(EmbeddedServletClient.class);
+                    ServletHolder holder = new ServletHolder(servletClass);
                     handler.addServletWithMapping(holder, "/*");
 
                     holder.setInitParameter("application", appName);
