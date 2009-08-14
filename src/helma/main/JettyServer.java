@@ -127,10 +127,7 @@ public class JettyServer {
         // while start() will be called with the user we will actually run as
         Connector[] connectors = http.getConnectors();
         for (int i = 0; i < connectors.length; i++) {
-            if (connectors[i] instanceof SocketConnector) {
-                SocketConnector connector = (SocketConnector) connectors[i];
-                connector.open();
-            }
+            connectors[i].open();
         }
     }
 }
