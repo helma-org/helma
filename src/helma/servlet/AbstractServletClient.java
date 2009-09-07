@@ -142,7 +142,7 @@ public abstract class AbstractServletClient extends HttpServlet {
      *
      * @return this servlet's application instance
      */
-    abstract Application getApplication();
+    public abstract Application getApplication();
 
     /**
      * Handle a request.

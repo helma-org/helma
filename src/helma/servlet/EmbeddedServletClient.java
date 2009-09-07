@@ -58,7 +58,7 @@ public final class EmbeddedServletClient extends AbstractServletClient {
      *
      * @return this servlet's application instance
      */
-    Application getApplication() {
+    public Application getApplication() {
         if (app == null) {
             app = Server.getServer().getApplication(appName);
         }

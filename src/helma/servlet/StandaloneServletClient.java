@@ -133,7 +133,7 @@ public final class StandaloneServletClient extends AbstractServletClient {
      *
      * @return this servlet's application instance
      */
-    Application getApplication() {
+    public Application getApplication() {
         if (app == null) {
             createApp();
         }
@@ -145,7 +145,7 @@ public final class StandaloneServletClient extends AbstractServletClient {
      * Create the application. Since we are synchronized only here, we
      * do another check if the app already exists and immediately return if it does.
      */
-    synchronized void createApp() {
+    protected synchronized void createApp() {
 
         if (app != null) {
             return;
