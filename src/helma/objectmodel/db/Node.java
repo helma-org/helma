@@ -60,7 +60,7 @@ public final class Node implements INode, Serializable {
     private transient String prototype;
     private transient NodeHandle handle;
     private transient INode cacheNode;
-    transient WrappedNodeManager nmgr;
+    transient volatile WrappedNodeManager nmgr;
     transient DbMapping dbmap;
     transient Key primaryKey = null;
     transient String subnodeRelation = null;
@@ -113,6 +113,9 @@ public final class Node implements INode, Serializable {
      * Constructor used for virtual nodes.
      */
     public Node(Node home, String propname, WrappedNodeManager nmgr, String prototype) {
+        if (nmgr == null) {
+            throw new NullPointerException("nmgr");
+        }
         this.nmgr = nmgr;
         setParent(home);
         // generate a key for the virtual node that can't be mistaken for a Database Key
@@ -134,6 +137,9 @@ public final class Node implements INode, Serializable {
      * Creates a new Node with the given name. This is used for ordinary transient nodes.
      */
     public Node(String name, String prototype, WrappedNodeManager nmgr) {
+        if (nmgr == null) {
+            throw new NullPointerException("nmgr");
+        }
         this.nmgr = nmgr;
         this.prototype = prototype;
         dbmap = nmgr.getDbMapping(prototype);
@@ -158,6 +164,9 @@ public final class Node implements INode, Serializable {
      */
     public synchronized void init(DbMapping dbm, String id, String name, String prototype,
                 Hashtable propMap, WrappedNodeManager nmgr) {
+        if (nmgr == null) {
+            throw new NullPointerException("nmgr");
+        }
         this.nmgr = nmgr;
         this.dbmap = dbm;
         this.prototype = prototype;
@@ -583,15 +592,6 @@ public final class Node implements INode, Serializable {
      */
     public DbMapping getDbMapping() {
         return dbmap;
-    }
-
-    /**
-     *
-     *
-     * @param nmgr
-     */
-    public void setWrappedNodeManager(WrappedNodeManager nmgr) {
-        this.nmgr = nmgr;
     }
 
     /**
