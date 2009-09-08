@@ -34,8 +34,7 @@ import java.util.*;
  * An implementation of INode that can be stored in the internal database or
  * an external relational database.
  */
-public final class Node implements INode, Serializable {
-    static final long serialVersionUID = -3740339688506633675L;
+public final class Node implements INode {
 
     // The handle to the node's parent
     protected NodeHandle parentHandle;
@@ -60,7 +59,7 @@ public final class Node implements INode, Serializable {
     private transient String prototype;
     private transient NodeHandle handle;
     private transient INode cacheNode;
-    transient volatile WrappedNodeManager nmgr;
+    transient final WrappedNodeManager nmgr;
     transient DbMapping dbmap;
     transient Key primaryKey = null;
     transient String subnodeRelation = null;
@@ -71,20 +70,25 @@ public final class Node implements INode, Serializable {
     private static long idgen = 0;
 
     /**
-     * Creates an empty, uninitialized Node. The init() method must be called on the
-     * Node before it can do anything useful.
-     */
-    protected Node() {
-        created = lastmodified = System.currentTimeMillis();
-    }
-
-    /**
      * Creates an empty, uninitialized Node with the given create and modify time.
      * This is used for null-node references in the node cache.
      * @param timestamp
      */
     protected Node(long timestamp) {
         created = lastmodified = timestamp;
+        this.nmgr = null;
+    }
+
+    /**
+     * Creates an empty, uninitialized Node. The init() method must be called on the
+     * Node before it can do anything useful.
+     */
+    protected Node(WrappedNodeManager nmgr) {
+        if (nmgr == null) {
+            throw new NullPointerException("nmgr");
+        }
+        this.nmgr = nmgr;
+        created = lastmodified = System.currentTimeMillis();
     }
 
     /**
@@ -93,10 +97,14 @@ public final class Node implements INode, Serializable {
      * Also used by embedded database to re-create an existing Node.
      */
     public Node(String name, String id, String prototype, WrappedNodeManager nmgr) {
+        if (nmgr == null) {
+            throw new NullPointerException("nmgr");
+        }
+        this.nmgr = nmgr;
         if (prototype == null) {
             prototype = "HopObject";
         }
-        init(nmgr.getDbMapping(prototype), id, name, prototype, null, nmgr);
+        init(nmgr.getDbMapping(prototype), id, name, prototype, null);
     }
 
     /**
@@ -162,12 +170,8 @@ public final class Node implements INode, Serializable {
     /**
      * Initializer used for nodes being instanced from an embedded or relational database.
      */
-    public synchronized void init(DbMapping dbm, String id, String name, String prototype,
-                Hashtable propMap, WrappedNodeManager nmgr) {
-        if (nmgr == null) {
-            throw new NullPointerException("nmgr");
-        }
-        this.nmgr = nmgr;
+    public synchronized void init(DbMapping dbm, String id, String name,
+                                  String prototype, Hashtable propMap) {
         this.dbmap = dbm;
         this.prototype = prototype;
         this.id = id;
@@ -185,67 +189,6 @@ public final class Node implements INode, Serializable {
         if (state != CLEAN) {
             markAs(CLEAN);
         }
-    }
-
-    /**
-     * Read this object instance from a stream. This does some smart conversion to
-     * update from previous serialization formats.
-     */
-    private void readObject(ObjectInputStream in) throws IOException {
-        try {
-            // as a general rule of thumb, if a string can be null use read/writeObject,
-            // if not it's save to use read/writeUTF.
-            // version indicates the serialization version
-            version = in.readShort();
-
-            if (version < 9) {
-                throw new IOException("Can't read pre 1.3.0 HopObject");
-            }
-
-            id = (String) in.readObject();
-            name = (String) in.readObject();
-            state = in.readInt();
-            parentHandle = (NodeHandle) in.readObject();
-            created = in.readLong();
-            lastmodified = in.readLong();
-
-            subnodes = (SubnodeList) in.readObject();
-            // left-over from links vector
-            in.readObject();
-            propMap = (Hashtable) in.readObject();
-            anonymous = in.readBoolean();
-            prototype = (String) in.readObject();
-
-        } catch (ClassNotFoundException x) {
-            throw new IOException(x.toString());
-        }
-    }
-
-    /**
-     * Write out this instance to a stream
-     */
-    private void writeObject(ObjectOutputStream out) throws IOException {
-        out.writeShort(9); // serialization version
-        out.writeObject(id);
-        out.writeObject(name);
-        out.writeInt(state);
-        out.writeObject(parentHandle);
-        out.writeLong(created);
-        out.writeLong(lastmodified);
-
-        DbMapping smap = (dbmap == null) ? null : dbmap.getSubnodeMapping();
-
-        if (smap != null && smap.isRelational()) {
-            out.writeObject(null);
-        } else {
-            out.writeObject(subnodes);
-        }
-
-        // left-over from links vector
-        out.writeObject(null);
-        out.writeObject(propMap);
-        out.writeBoolean(anonymous);
-        out.writeObject(prototype);
     }
 
     /**
@@ -1710,9 +1653,6 @@ public final class Node implements INode, Serializable {
                     if (n != null) {
                         // do set DbMapping for embedded db collection nodes
                         n.setDbMapping(rel.getVirtualMapping());
-                        // also set node manager in case this is a mountpoint node
-                        // that came in through replication
-                        n.nmgr = nmgr;
                     }
                 }
             }

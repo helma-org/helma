@@ -29,7 +29,6 @@ import org.mortbay.jetty.servlet.ServletHandler;
 import org.mortbay.jetty.servlet.ServletHolder;
 
 import java.io.*;
-import java.rmi.*;
 import java.util.*;
 import helma.util.ResourceProperties;
 import helma.servlet.EmbeddedServletClient;
@@ -41,7 +40,6 @@ public class ApplicationManager implements XmlRpcHandler {
     private Hashtable descriptors;
     private Hashtable applications;
     private Hashtable xmlrpcHandlers;
-    private int rmiPort;
     private ResourceProperties props;
     private Server server;
     private long lastModified;
@@ -54,23 +52,9 @@ public class ApplicationManager implements XmlRpcHandler {
      * @param props the properties defining the running apps
      * @param server the server instance
      */
-    public ApplicationManager(ResourceProperties props,
-                              Server server) {
-        this(props, server, 0);
-    }
-
-    /**
-     * Creates a new ApplicationManager object.
-     *
-     * @param props the properties defining the running apps
-     * @param server the server instance
-     * @param port The RMI port we're binding to
-     */
-    public ApplicationManager(ResourceProperties props,
-                              Server server, int port) {
+    public ApplicationManager(ResourceProperties props, Server server) {
         this.props = props;
         this.server = server;
-        this.rmiPort = port;
         descriptors = new Hashtable();
         applications = new Hashtable();
         xmlrpcHandlers = new Hashtable();
@@ -488,11 +472,6 @@ public class ApplicationManager implements XmlRpcHandler {
             try {
                 getLogger().info("Binding application " + appName + " :: " + app.hashCode() + " :: " + this.hashCode());
 
-                // bind to RMI server
-                if (rmiPort > 0) {
-                    Naming.rebind("//:" + rmiPort + "/" + appName, new RemoteApplication(app));
-                }
-
                 // set application URL prefix if it isn't set in app.properties
                 if (!app.hasExplicitBaseURI()) {
                     app.setBaseURI(mountpoint);
@@ -594,11 +573,6 @@ public class ApplicationManager implements XmlRpcHandler {
             getLogger().info("Unbinding application " + appName);
 
             try {
-               // unbind from RMI server
-                if (rmiPort > 0) {
-                    Naming.unbind("//:" + rmiPort + "/" + appName);
-                }
-
                 // unbind from Jetty HTTP server
                 if (jetty != null) {
                     if (appContext != null) {

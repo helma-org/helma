@@ -25,7 +25,6 @@ import java.net.InetSocketAddress;
  
 public class ServerConfig {
 
-    private InetSocketAddress rmiPort    = null;
     private InetSocketAddress xmlrpcPort = null;
     private InetSocketAddress websrvPort = null;
     private InetSocketAddress ajp13Port  = null;
@@ -46,10 +45,6 @@ public class ServerConfig {
         return (homeDir != null);
     }
 
-    public boolean hasRmiPort() {
-        return (rmiPort != null);
-    }
-
     public boolean hasXmlrpcPort() {
         return (xmlrpcPort != null);
     }
@@ -64,14 +59,6 @@ public class ServerConfig {
 
     public boolean hasApps() {
         return (apps != null);
-    }
-
-    public InetSocketAddress getRmiPort() {
-        return rmiPort;
-    }
-
-    public void setRmiPort(InetSocketAddress rmiPort) {
-        this.rmiPort = rmiPort;
     }
 
     public InetSocketAddress getXmlrpcPort() {

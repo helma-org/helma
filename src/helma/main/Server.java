@@ -59,7 +59,7 @@ public class Server implements Runnable {
     // server start time
     public final long starttime;
 
-    // if paranoid == true we only accept RMI and XML-RPC connections from
+    // if paranoid == true we only accept XML-RPC connections from
     // explicitly listed hosts.
     public boolean paranoid;
     private ApplicationManager appManager;
@@ -205,14 +205,6 @@ public class Server implements Runnable {
             }
         }
 
-        if (!config.hasRmiPort() && sysProps.getProperty("rmiPort") != null) {
-            try {
-                config.setRmiPort(getInetSocketAddress(sysProps.getProperty("rmiPort")));
-            } catch (Exception portx) {
-                throw new Exception("Error parsing RMI server port property from server.properties: " + portx);
-            }
-        }
-
         if (!config.hasXmlrpcPort() && sysProps.getProperty("xmlrpcPort") != null) {
             try {
                 config.setXmlrpcPort(getInetSocketAddress(sysProps.getProperty("xmlrpcPort")));
@@ -238,12 +230,6 @@ public class Server implements Runnable {
                 config.setPropFile(new File(args[++i]));
             } else if (args[i].equals("-a") && ((i + 1) < args.length)) {
                 config.setApps(StringUtils.split(args[++i]));
-            } else if (args[i].equals("-p") && ((i + 1) < args.length)) {
-                try {
-                    config.setRmiPort(getInetSocketAddress(args[++i]));
-                } catch (Exception portx) {
-                    throw new Exception("Error parsing RMI server port property: " + portx);
-                }
             } else if (args[i].equals("-x") && ((i + 1) < args.length)) {
                 try {
                     config.setXmlrpcPort(getInetSocketAddress(args[++i]));
@@ -335,7 +321,6 @@ public class Server implements Runnable {
         System.out.println("  -w [ip:]port      Specify embedded web server address/port");
         System.out.println("  -x [ip:]port      Specify XML-RPC address/port");
         System.out.println("  -jk [ip:]port     Specify AJP13 address/port");
-        System.out.println("  -p [ip:]port      Specify RMI address/port");
         System.out.println("");
         System.out.println("Supported formats for server ports:");
         System.out.println("   <port-number>");
@@ -357,10 +342,6 @@ public class Server implements Runnable {
         try {
             if (config.hasWebsrvPort()) {
                 checkPort(config.getWebsrvPort());
-            }
-
-            if (config.hasRmiPort()) {
-                checkPort(config.getRmiPort());
             }
 
             if (config.hasXmlrpcPort()) {
@@ -588,34 +569,7 @@ public class Server implements Runnable {
                 logger.info("Starting XML-RPC server on port " + (xmlrpcPort));
             }
 
-            if (config.hasRmiPort()) {
-                InetSocketAddress rmiPort = config.getRmiPort();
-                if (paranoid) {
-                    HelmaSocketFactory factory = new HelmaSocketFactory();
-                    String rallow = sysProps.getProperty("allowWeb");
-                    if (rallow == null) {
-                        rallow = sysProps.getProperty("allowRMI");
-                    }
-
-                    if (rallow != null) {
-                        StringTokenizer st = new StringTokenizer(rallow, " ,;");
-
-                        while (st.hasMoreTokens())
-                            factory.addAddress(st.nextToken());
-                    }
-
-                    RMISocketFactory.setSocketFactory(factory);
-                }
-
-                logger.info("Starting RMI server on port " + rmiPort);
-                LocateRegistry.createRegistry(rmiPort.getPort());
-
-                // create application manager which binds to the given RMI port
-                appManager = new ApplicationManager(appsProps, this, rmiPort.getPort());
-            } else {
-                // create application manager without RMI port
-                appManager = new ApplicationManager(appsProps, this);
-            }
+            appManager = new ApplicationManager(appsProps, this);
 
             if (xmlrpc != null) {
                 xmlrpc.addHandler("$default", appManager);

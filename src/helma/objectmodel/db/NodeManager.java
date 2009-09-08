@@ -42,7 +42,6 @@ public final class NodeManager {
     protected IDGenerator idgen;
     private boolean logSql;
     private Log sqlLog = null;
-    protected boolean logReplication;
     private ArrayList listeners = new ArrayList();
 
     // a wrapper that catches some Exceptions while accessing this NM
@@ -77,19 +76,6 @@ public final class NodeManager {
         }
 
         logSql = "true".equalsIgnoreCase(props.getProperty("logsql"));
-        logReplication = "true".equalsIgnoreCase(props.getProperty("logReplication"));
-
-        String replicationUrl = props.getProperty("replicationUrl");
-
-        if (replicationUrl != null) {
-            if (logReplication) {
-                app.logEvent("Setting up replication listener at " + replicationUrl);
-            }
-
-            Replicator replicator = new Replicator(this);
-            replicator.addUrl(replicationUrl);
-            addNodeChangeListener(replicator);
-        }
 
         db = new XmlDatabase();
         db.init(dbHome, app);
@@ -123,7 +109,6 @@ public final class NodeManager {
         // notify the cache about the properties update
         cache.updateProperties(props);
         logSql = "true".equalsIgnoreCase(props.getProperty("logsql"));
-        logReplication = "true".equalsIgnoreCase(props.getProperty("logReplication"));
     }
 
     /**
@@ -1311,8 +1296,6 @@ public final class NodeManager {
 
         if ((dbm == null) || !dbm.isRelational()) {
             node = (Node) db.getNode(txn, kstr);
-            node.nmgr = safe;
-
             if ((node != null) && (dbm != null)) {
                 node.setDbMapping(dbm);
             }
@@ -1388,15 +1371,11 @@ public final class NodeManager {
 
             if (node == null && (dbm == null || !dbm.isRelational())) {
                 node = (Node) db.getNode(txn, kstr);
-                node.nmgr = safe;
             }
-
             return node;
         } else if (rel == null || dbm == null || !dbm.isRelational()) {
             node = (Node) db.getNode(txn, kstr);
-            node.nmgr = safe;
             node.setDbMapping(dbm);
-
             return node;
         } else {
             Statement stmt = null;
@@ -1476,7 +1455,7 @@ public final class NodeManager {
         String protoName = dbm.getTypeName();
         DbMapping dbmap = dbm;
 
-        Node node = new Node();
+        Node node = new Node(safe);
 
         for (int i = 0; i < columns.length; i++) {
 
@@ -1683,7 +1662,7 @@ public final class NodeManager {
             }
         }
 
-        node.init(dbmap, id, name, protoName, propMap, safe);
+        node.init(dbmap, id, name, protoName, propMap);
         return node;
     }
 
@@ -1776,65 +1755,6 @@ public final class NodeManager {
         }
     }
     
-
-    /**
-     *  Receive notification from a remote app that objects in its cache have been
-     * modified.
-     */
-    public void replicateCache(Vector add, Vector delete) {
-        if (logReplication) {
-            app.logEvent("Received cache replication event: " + add.size() + " added, " +
-                         delete.size() + " deleted");
-        }
-
-        synchronized (cache) {
-            // long now = System.currentTimeMillis();
-
-            for (Enumeration en = add.elements(); en.hasMoreElements();) {
-                Node n = (Node) en.nextElement();
-                DbMapping dbm = app.getDbMapping(n.getPrototype());
-
-                if (dbm != null) {
-                    dbm.setLastDataChange();
-                }
-
-                n.setDbMapping(dbm);
-                n.nmgr = safe;
-
-                if (dbm != null && dbm.evictOnReplication()) {
-                    Node oldNode = (Node) cache.get(n.getKey());
-
-                    if (oldNode != null) {
-                        evictNode(oldNode);
-                    }
-                } else {
-                    n.lastParentSet = -1;
-                    cache.put(n.getKey(), n);
-                }
-            }
-
-            for (Enumeration en = delete.elements(); en.hasMoreElements();) {
-                // NOTE: it would be more efficient to transfer just the keys
-                // of nodes that are to be deleted.
-                Node n = (Node) en.nextElement();
-                DbMapping dbm = app.getDbMapping(n.getPrototype());
-
-                if (dbm != null) {
-                    dbm.setLastDataChange();
-                }
-
-                n.setDbMapping(dbm);
-                n.nmgr = safe;
-
-                Node oldNode = (Node) cache.get(n.getKey());
-
-                if (oldNode != null) {
-                    evictNode(oldNode);
-                }
-            }
-        }
-    }
-
     private void setStatementValue(PreparedStatement stmt, int columnNumber, String value, DbColumn col)
             throws SQLException {
         if (value == null) {

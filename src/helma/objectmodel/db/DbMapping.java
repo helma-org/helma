@@ -117,9 +117,6 @@ public final class DbMapping {
     // timestamp of last modification of an object of this type
     long lastDataChange = 0;
 
-    // evict objects of this type when received via replication
-    private boolean evictOnReplication;
-
     // Set of mappings that depend on us and should be forwarded last data change events
     HashSet dependentMappings = new HashSet();
 
@@ -229,7 +226,6 @@ public final class DbMapping {
         idField = props.getProperty("_id");
         nameField = props.getProperty("_name");
         protoField = props.getProperty("_prototype");
-        evictOnReplication = "true".equals(props.getProperty("_evictOnReplication"));
 
         parentSetting = props.getProperty("_parent");
         if (parentSetting != null) {
@@ -592,14 +588,6 @@ public final class DbMapping {
         }
 
         return protoField;
-    }
-
-    /**
-     * Should objects of this type be evicted/discarded/reloaded when received via
-     * cache replication?
-     */
-    public boolean evictOnReplication() {
-        return evictOnReplication;
     }
 
     /**
