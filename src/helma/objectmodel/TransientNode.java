@@ -66,7 +66,7 @@ public class TransientNode implements INode, Serializable {
      */
     public TransientNode(String n) {
         id = generateID();
-        name = ((n == null) || "".equals(n)) ? id : n;
+        name = (n == null || n.length() == 0) ? id : n;
         created = lastmodified = System.currentTimeMillis();
     }
 
