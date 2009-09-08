@@ -94,7 +94,7 @@ class HopObjectProxy implements SerializationProxy {
     }
 
     HopObjectProxy(Node node) {
-        ref = new NodeHandle(node.getKey());
+        ref = node.getHandle();
     }
 
     /**
