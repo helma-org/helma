@@ -431,7 +431,7 @@ public final class Application implements Runnable {
             nmgr.init(dbDir.getAbsoluteFile(), props);
 
             // create the app cache node exposed as app.data
-            cachenode = new Node("app", null, getWrappedNodeManager());
+            cachenode = new TransientNode("app");
 
             // create and init session manager
             String sessionMgrImpl = props.getProperty("sessionManagerImpl",
@@ -1889,12 +1889,17 @@ public final class Application implements Runnable {
                 }
             }
 
-            logDir = props.getProperty("logdir", "log");
-            if (System.getProperty("helma.logdir") == null) {
-                // set up helma.logdir system property in case we're using it
-                // FIXME: this sets a global System property, should be per-app
-                File dir = new File(logDir);
-                System.setProperty("helma.logdir", dir.getAbsolutePath());
+            String loggerFactory = props.getProperty("loggerFactory", "helma.util.Logging");
+            if ("helma.util.Logging".equals(loggerFactory)) {
+                logDir = props.getProperty("logdir", "log");
+                if (System.getProperty("helma.logdir") == null) {
+                    // set up helma.logdir system property in case we're using it
+                    // FIXME: this sets a global System property, should be per-app
+                    File dir = new File(logDir);
+                    System.setProperty("helma.logdir", dir.getAbsolutePath());
+                }
+            } else {
+                logDir = null;
             }
 
             // set log level for event log in case it is a helma.util.Logger
