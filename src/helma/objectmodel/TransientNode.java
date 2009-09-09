@@ -39,8 +39,6 @@ public class TransientNode implements INode, Serializable {
     protected Hashtable nodeMap;
     protected Vector nodes;
     protected TransientNode parent;
-    protected Vector links; // links to this node
-    protected Vector proplinks; // nodes using this node as property
     transient String prototype;
     protected long created;
     protected long lastmodified;
@@ -67,106 +65,53 @@ public class TransientNode implements INode, Serializable {
     public TransientNode(String n) {
         id = generateID();
         name = (n == null || n.length() == 0) ? id : n;
-        created = lastmodified = System.currentTimeMillis();
+        // HACK - decrease creation and last-modified timestamp by 1 so we notice 
+        // modifications that take place immediately after object creation
+        created = lastmodified = System.currentTimeMillis() - 1;
     }
 
-    /**
-     *
-     *
-     * @return ...
-     */
     public static String generateID() {
         // make transient ids differ from persistent ones
         // and are unique within on runtime session
         return "t" + idgen++;
     }
 
-    /**
-     *
-     *
-     * @param dbmap ...
-     */
     public void setDbMapping(DbMapping dbmap) {
         this.dbmap = dbmap;
     }
 
-    /**
-     *
-     *
-     * @return ...
-     */
     public DbMapping getDbMapping() {
         return dbmap;
     }
 
-    /**
-     *  navigation-related
-     */
     public String getID() {
         return id;
     }
 
-    /**
-     *
-     *
-     * @return ...
-     */
     public boolean isAnonymous() {
         return anonymous;
     }
 
-    /**
-     *
-     *
-     * @return ...
-     */
     public String getName() {
         return name;
     }
 
-    /**
-     *
-     *
-     * @return ...
-     */
     public String getElementName() {
         return anonymous ? id : name;
     }
 
-    /**
-     *
-     *
-     * @return ...
-     */
     public int getState() {
         return TRANSIENT;
     }
 
-    /**
-     *
-     *
-     * @param s ...
-     */
     public void setState(int s) {
         // state always is TRANSIENT on this kind of node
     }
 
-    /**
-     *
-     *
-     * @return ...
-     */
     public String getFullName() {
         return getFullName(null);
     }
 
-    /**
-     *
-     *
-     * @param root ...
-     *
-     * @return ...
-     */
     public String getFullName(INode root) {
         String divider = null;
         StringBuffer b = new StringBuffer();
@@ -186,11 +131,6 @@ public class TransientNode implements INode, Serializable {
         return b.toString();
     }
 
-    /**
-     *
-     *
-     * @param name ...
-     */
     public void setName(String name) {
         // if (name.indexOf('/') > -1)
         //     throw new RuntimeException ("The name of the node must not contain \"/\".");
@@ -201,82 +141,39 @@ public class TransientNode implements INode, Serializable {
         }
     }
 
-    /**
-     *
-     *
-     * @return ...
-     */
     public String getPrototype() {
         // if prototype is null, it's a vanilla HopObject.
         if (prototype == null) {
-            return "hopobject";
+            return "HopObject";
         }
 
         return prototype;
     }
 
-    /**
-     *
-     *
-     * @param proto ...
-     */
     public void setPrototype(String proto) {
         this.prototype = proto;
     }
 
-    /**
-     *
-     *
-     * @return ...
-     */
     public INode getParent() {
         return parent;
     }
 
-    /**
-     *  INode-related
-     */
     public void setSubnodeRelation(String rel) {
         throw new RuntimeException("Can't set subnode relation for non-persistent Node.");
     }
 
-    /**
-     *
-     *
-     * @return ...
-     */
     public String getSubnodeRelation() {
         return null;
     }
 
-    /**
-     *
-     *
-     * @return ...
-     */
     public int numberOfNodes() {
         return (nodes == null) ? 0 : nodes.size();
     }
 
-    /**
-     *
-     *
-     * @param elem ...
-     *
-     * @return ...
-     */
     public INode addNode(INode elem) {
         return addNode(elem, numberOfNodes());
     }
 
-    /**
-     *
-     *
-     * @param elem ...
-     * @param where ...
-     *
-     * @return ...
-     */
     public INode addNode(INode elem, int where) {
         if ((where < 0) || (where > numberOfNodes())) {
             where = numberOfNodes();
@@ -288,7 +185,6 @@ public class TransientNode implements INode, Serializable {
             throw new RuntimeException("The name of a node must not contain \"/\" (slash).");
         }
 
-        // IServer.getLogger().log ("adding: "+node+" -- "+node.getContentLength ());
         if ((nodeMap != null) && (nodeMap.get(elem.getID()) != null)) {
             nodes.removeElement(elem);
             where = Math.min(where, numberOfNodes());
@@ -318,50 +214,21 @@ public class TransientNode implements INode, Serializable {
         }
 
         lastmodified = System.currentTimeMillis();
-
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.SUBNODE_ADDED, node));
         return elem;
     }
 
-    /**
-     *
-     *
-     * @return ...
-     */
     public INode createNode() {
         return createNode(null, 0); // where is ignored since this is an anonymous node
     }
 
-    /**
-     *
-     *
-     * @param where ...
-     *
-     * @return ...
-     */
     public INode createNode(int where) {
         return createNode(null, where);
     }
 
-    /**
-     *
-     *
-     * @param nm ...
-     *
-     * @return ...
-     */
     public INode createNode(String nm) {
         return createNode(nm, numberOfNodes()); // where is usually ignored (if nm != null)
     }
 
-    /**
-     *
-     *
-     * @param nm ...
-     * @param where ...
-     *
-     * @return ...
-     */
     public INode createNode(String nm, int where) {
         boolean anon = false;
 
@@ -380,38 +247,15 @@ public class TransientNode implements INode, Serializable {
         return n;
     }
 
-    /**
-     * register a node that links to this node.
-     */
 
-    /* protected void registerLink (TransientNode from) {
-       if (links == null)
-           links = new Vector ();
-       if (!links.contains (from))
-           links.addElement (from);
-       } */
     public IPathElement getParentElement() {
         return getParent();
     }
 
-    /**
-     *
-     *
-     * @param name ...
-     *
-     * @return ...
-     */
     public IPathElement getChildElement(String name) {
         return getNode(name);
     }
 
-    /**
-     *
-     *
-     * @param name ...
-     *
-     * @return ...
-     */
     public INode getSubnode(String name) {
         StringTokenizer st = new StringTokenizer(name, "/");
         TransientNode retval = this;
@@ -437,24 +281,10 @@ public class TransientNode implements INode, Serializable {
         return retval;
     }
 
-    /**
-     *
-     *
-     * @param index ...
-     *
-     * @return ...
-     */
     public INode getSubnodeAt(int index) {
         return (nodes == null) ? null : (INode) nodes.elementAt(index);
     }
 
-    /**
-     *
-     *
-     * @param n ...
-     *
-     * @return ...
-     */
     public int contains(INode n) {
         if ((n == null) || (nodes == null)) {
             return -1;
@@ -463,11 +293,6 @@ public class TransientNode implements INode, Serializable {
         return nodes.indexOf(n);
     }
 
-    /**
-     *
-     *
-     * @return ...
-     */
     public boolean remove() {
         if (anonymous) {
             parent.unset(name);
@@ -478,11 +303,6 @@ public class TransientNode implements INode, Serializable {
         return true;
     }
 
-    /**
-     *
-     *
-     * @param node ...
-     */
     public void removeNode(INode node) {
         // IServer.getLogger().log ("removing: "+ node);
         releaseNode(node);
@@ -490,24 +310,6 @@ public class TransientNode implements INode, Serializable {
         TransientNode n = (TransientNode) node;
 
         if ((n.getParent() == this) && n.anonymous) {
-            int l = (n.links == null) ? 0 : n.links.size(); // notify nodes that link to n that n is going down.
-
-            for (int i = 0; i < l; i++) {
-                TransientNode link = (TransientNode) n.links.elementAt(i);
-
-                link.releaseNode(n);
-            }
-
-            if (n.proplinks != null) {
-                // clean up all nodes that use n as a property
-                for (Enumeration e1 = n.proplinks.elements(); e1.hasMoreElements();)
-                    try {
-                        TransientProperty p = (TransientProperty) e1.nextElement();
-
-                        p.node.propMap.remove(p.propname.toLowerCase());
-                    } catch (Exception ignore) {
-                    }
-            }
 
             // remove all subnodes, giving them a chance to destroy themselves.
             Vector v = new Vector(); // removeElement modifies the Vector we are enumerating, so we are extra careful.
@@ -521,9 +323,6 @@ public class TransientNode implements INode, Serializable {
             for (int i = 0; i < m; i++) {
                 n.removeNode((TransientNode) v.elementAt(i));
             }
-        } else {
-            //
-            n.links.removeElement(this);
         }
     }
 
@@ -547,14 +346,8 @@ public class TransientNode implements INode, Serializable {
             nodes.removeElementAt(runner);
         }
 
-        // nodes.remove (node);
         nodeMap.remove(node.getName().toLowerCase());
-
-        // Server.throwNodeEvent (new NodeEvent (node, NodeEvent.NODE_REMOVED));
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.SUBNODE_REMOVED, node));
         lastmodified = System.currentTimeMillis();
-
-        // IServer.getLogger().log ("released node "+node +" from "+this+"     oldobj = "+what);
     }
 
     /**
@@ -592,49 +385,22 @@ public class TransientNode implements INode, Serializable {
         INode node = new Node(rel.getPropName(), rel.getPrototype(),
                                                    dbmap.getWrappedNodeManager());
 
-        // node.setState (TRANSIENT);
-        // make a db mapping good enough that the virtual node finds its subnodes
-        // DbMapping dbm = new DbMapping ();
-        // dbm.setSubnodeRelation (rel);
-        // dbm.setPropertyRelation (rel);
         node.setDbMapping(rel.getVirtualMapping());
         setNode(propname, node);
 
         return (TransientProperty) propMap.get(propname);
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     *
-     * @return ...
-     */
     public IProperty get(String propname) {
         return getProperty(propname);
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     * @param defaultValue ...
-     *
-     * @return ...
-     */
     public String getString(String propname, String defaultValue) {
         String propValue = getString(propname);
 
         return (propValue == null) ? defaultValue : propValue;
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     *
-     * @return ...
-     */
     public String getString(String propname) {
         TransientProperty prop = getProperty(propname);
 
@@ -646,13 +412,6 @@ public class TransientNode implements INode, Serializable {
         return null;
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     *
-     * @return ...
-     */
     public long getInteger(String propname) {
         TransientProperty prop = getProperty(propname);
 
@@ -664,13 +423,6 @@ public class TransientNode implements INode, Serializable {
         return 0;
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     *
-     * @return ...
-     */
     public double getFloat(String propname) {
         TransientProperty prop = getProperty(propname);
 
@@ -682,13 +434,6 @@ public class TransientNode implements INode, Serializable {
         return 0.0;
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     *
-     * @return ...
-     */
     public Date getDate(String propname) {
         TransientProperty prop = getProperty(propname);
 
@@ -700,13 +445,6 @@ public class TransientNode implements INode, Serializable {
         return null;
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     *
-     * @return ...
-     */
     public boolean getBoolean(String propname) {
         TransientProperty prop = getProperty(propname);
 
@@ -718,13 +456,6 @@ public class TransientNode implements INode, Serializable {
         return false;
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     *
-     * @return ...
-     */
     public INode getNode(String propname) {
         TransientProperty prop = getProperty(propname);
 
@@ -736,13 +467,6 @@ public class TransientNode implements INode, Serializable {
         return null;
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     *
-     * @return ...
-     */
     public Object getJavaObject(String propname) {
         TransientProperty prop = getProperty(propname);
 
@@ -771,112 +495,44 @@ public class TransientNode implements INode, Serializable {
         return prop;
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     * @param value ...
-     */
     public void setString(String propname, String value) {
-        // IServer.getLogger().log ("setting String prop");
         TransientProperty prop = initProperty(propname);
-
         prop.setStringValue(value);
-
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
         lastmodified = System.currentTimeMillis();
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     * @param value ...
-     */
     public void setInteger(String propname, long value) {
-        // IServer.getLogger().log ("setting bool prop");
         TransientProperty prop = initProperty(propname);
-
         prop.setIntegerValue(value);
-
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
         lastmodified = System.currentTimeMillis();
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     * @param value ...
-     */
     public void setFloat(String propname, double value) {
-        // IServer.getLogger().log ("setting bool prop");
         TransientProperty prop = initProperty(propname);
-
         prop.setFloatValue(value);
-
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
         lastmodified = System.currentTimeMillis();
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     * @param value ...
-     */
     public void setBoolean(String propname, boolean value) {
-        // IServer.getLogger().log ("setting bool prop");
         TransientProperty prop = initProperty(propname);
-
         prop.setBooleanValue(value);
-
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
         lastmodified = System.currentTimeMillis();
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     * @param value ...
-     */
     public void setDate(String propname, Date value) {
-        // IServer.getLogger().log ("setting date prop");
         TransientProperty prop = initProperty(propname);
-
         prop.setDateValue(value);
-
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
         lastmodified = System.currentTimeMillis();
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     * @param value ...
-     */
     public void setJavaObject(String propname, Object value) {
-        // IServer.getLogger().log ("setting date prop");
         TransientProperty prop = initProperty(propname);
-
         prop.setJavaObjectValue(value);
-
-        // Server.throwNodeEvent (new NodeEvent (this, NodeEvent.PROPERTIES_CHANGED));
         lastmodified = System.currentTimeMillis();
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     * @param value ...
-     */
     public void setNode(String propname, INode value) {
-        // IServer.getLogger().log ("setting date prop");
         TransientProperty prop = initProperty(propname);
-
         prop.setNodeValue(value);
 
         // check if the main identity of this node is as a named property
@@ -894,11 +550,6 @@ public class TransientNode implements INode, Serializable {
         lastmodified = System.currentTimeMillis();
     }
 
-    /**
-     *
-     *
-     * @param propname ...
-     */
     public void unset(String propname) {
         if (propMap != null && propname != null) {
             propMap.remove(propname);
@@ -910,20 +561,10 @@ public class TransientNode implements INode, Serializable {
         return lastmodified;
     }
 
-    /**
-     *
-     *
-     * @return ...
-     */
     public long created() {
         return created;
     }
 
-    /**
-     *
-     *
-     * @return ...
-     */
     public String toString() {
         return "TransientNode " + name;
     }
