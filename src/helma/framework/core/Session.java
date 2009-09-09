@@ -46,15 +46,21 @@ public class Session implements Serializable {
     // the transient cache node that is exposed to javascript
     // this stays the same across logins and logouts.
     protected INode cacheNode;
+
+    // timestamps for creation, last request, last modification
     protected long onSince;
     protected long lastTouched;
     protected long lastModified;
+    protected long cacheLastModified;
 
     // used to remember messages to the user between requests, mainly between redirects.
     protected String message;
     protected StringBuffer debugBuffer;
 
     protected HashMap uploads = null;
+
+    protected transient boolean modifiedInRequest = false;
+    protected transient boolean registered = false;
 
     /**
      * Creates a new Session object.
@@ -68,7 +74,10 @@ public class Session implements Serializable {
         this.uid = null;
         this.userHandle = null;
         cacheNode = new TransientNode("session");
-        onSince = System.currentTimeMillis();
+        cacheLastModified = cacheNode.lastModified();
+        // HACK - decrease timestamp by 1 to notice modifications
+        // taking place immediately after object creation
+        onSince = System.currentTimeMillis() - 1;
         lastTouched = lastModified = onSince;
     }
 
@@ -85,17 +94,22 @@ public class Session implements Serializable {
         }
 
         lastModified = System.currentTimeMillis();
+        modifiedInRequest = true;
     }
 
     /**
      * Try logging in this session given the userName and password.
      *
-     * @param userName
-     * @param password
+     * @param userName the user name
+     * @param password the password
      * @return true if session was logged in.
      */
     public boolean login(String userName, String password) {
-        return app.loginSession(userName, password, this);
+        if (app.loginSession(userName, password, this)) {
+            lastModified = System.currentTimeMillis();
+            modifiedInRequest = true;
+        }
+        return false;
     }
 
     /**
@@ -122,6 +136,8 @@ public class Session implements Serializable {
                 userHandle = null;
                 uid = null;
                 lastModified = System.currentTimeMillis();
+                modifiedInRequest = true;
+
             }
         }
     }
@@ -132,7 +148,7 @@ public class Session implements Serializable {
      * @return ...
      */
     public boolean isLoggedIn() {
-        return (userHandle != null) && (uid != null);
+        return userHandle != null;
     }
 
     /**
@@ -164,7 +180,11 @@ public class Session implements Serializable {
      * Set the cache node for this session.
      */
     public void setCacheNode(INode node) {
+        if (node == null) {
+            throw new NullPointerException("cache node is null");
+        }
         this.cacheNode = node;
+        this.cacheLastModified = cacheNode.lastModified();
     }
 
     /**
@@ -214,8 +234,15 @@ public class Session implements Serializable {
      *
      * @param reval the request evaluator that handled the request
      */
-    public void commit(RequestEvaluator reval) {
-        // nothing to do
+    public void commit(RequestEvaluator reval, SessionManager smgr) {
+        if (modifiedInRequest || cacheLastModified != cacheNode.lastModified()) {
+            if (!registered) {
+                smgr.registerSession(this);
+                registered = true;
+            }
+            modifiedInRequest = false;
+            cacheLastModified = cacheNode.lastModified();
+        }
     }
 
     /**
@@ -240,12 +267,10 @@ public class Session implements Serializable {
     /**
      * Set the last modified time on this session.
      *
-     * @param date ...
+     * @param l the timestamp
      */
-    public void setLastModified(Date date) {
-        if (date != null) {
-            lastModified = date.getTime();
-        }
+    public void setLastModified(long l) {
+        lastModified = l;
     }
 
     /**
@@ -278,6 +303,13 @@ public class Session implements Serializable {
         return uid;
     }
 
+    /**
+     * Set the persistent user id of a registered user.
+     * @param uid the user name, or null if the user is not logged in.
+     */
+    public void setUID(String uid) {
+        this.uid = uid;
+    }
 
     /**
      * Set the user and debug messages over from a previous response.
@@ -290,6 +322,7 @@ public class Session implements Serializable {
             res.setDebugBuffer(debugBuffer);
             message = null;
             debugBuffer = null;
+            modifiedInRequest = true;
         }
     }
 
@@ -301,6 +334,9 @@ public class Session implements Serializable {
     public synchronized void storeResponseMessages(ResponseTrans res) {
         message = res.getMessage();
         debugBuffer = res.getDebugBuffer();
+        if (message != null || debugBuffer != null) {
+            modifiedInRequest = true;
+        }
     }
 
     /**

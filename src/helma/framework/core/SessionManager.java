@@ -43,20 +43,21 @@ public class SessionManager {
 
     public Session createSession(String sessionId) {
         Session session = getSession(sessionId);
-
         if (session == null) {
             session = new Session(sessionId, app);
-            sessions.put(sessionId, session);
         }
-
         return session;
     }
 
     public Session getSession(String sessionId) {
-        if (sessionId == null)
+        if (sessionId == null) {
             return null;
-
+        }
         return (Session) sessions.get(sessionId);
+    }
+
+    public void registerSession(Session session) {
+        sessions.put(session.getSessionId(), session);        
     }
 
     /**
@@ -81,22 +82,6 @@ public class SessionManager {
     public void discardSession(Session session) {
         session.logout();
         sessions.remove(session.getSessionId());
-    }
-
-    /**
-     * Log in a user given his or her user name and password.
-     * @deprecated
-     */
-    public boolean loginSession(String uname, String password, Session session) {
-        return app.loginSession(uname, password, session);
-    }
-
-    /**
-     * Log out a session from this application.
-     * @deprecated
-     */
-    public void logoutSession(Session session) {
-        app.logoutSession(session);
     }
 
 

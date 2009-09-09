@@ -181,7 +181,9 @@ public class SessionBean implements Serializable {
      * @param date ...
      */
     public void setLastModified(Date date) {
-        session.setLastModified(date);
+        if (date != null) {
+            session.setLastModified(date.getTime());
+        }
     }
 
     /**
