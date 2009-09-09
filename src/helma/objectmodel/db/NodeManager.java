@@ -219,7 +219,7 @@ public final class NodeManager {
         // See if Transactor has already come across this node
         Node node = tx.getCleanNode(key);
 
-        if ((node != null) && (node.getState() != Node.INVALID)) {
+        if (node != null && node.getState() != Node.INVALID) {
             // we used to refresh the node in the main cache here to avoid the primary key
             // entry being flushed from cache before the secondary one
             // (risking duplicate nodes in cache) but we don't need to since we fetched
@@ -233,10 +233,11 @@ public final class NodeManager {
 
         // check if we can use the cached node without further checks.
         // we need further checks for subnodes fetched by name if the subnodes were changed.
-        if ((node != null) && (node.getState() != Node.INVALID)) {
+        if (node != null && node.getState() != Node.INVALID) {
             // check if node is null node (cached null)
             if (node.isNullNode()) {
-                if (node.created != home.getLastSubnodeChange()) {
+                // do not check reference nodes against child collection
+                if (rel.isComplexReference() || node.created != home.getLastSubnodeChange()) {
                     node = null; //  cached null not valid anymore
                 }
             } else if (!rel.virtual) {
@@ -256,7 +257,7 @@ public final class NodeManager {
             }
         }
 
-        if ((node == null) || (node.getState() == Node.INVALID)) {
+        if (node == null || node.getState() == Node.INVALID) {
             // The requested node isn't in the shared cache.
             // Synchronize with key to make sure only one version is fetched
             // from the database.
