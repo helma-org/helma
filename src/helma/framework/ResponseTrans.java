@@ -643,8 +643,10 @@ public final class ResponseTrans extends Writer implements Serializable {
     /**
      * This has to be called after writing to this response has finished and before it is shipped back to the
      * web server. Transforms the string buffer into a byte array for transmission.
+     * @param defaultCharset the charset to use if no explicit charset has been set on the response
+     * @throws UnsupportedEncodingException if the charset is not a valid encoding name
      */
-    public synchronized void close(String cset) throws UnsupportedEncodingException {
+    public synchronized void close(String defaultCharset) throws UnsupportedEncodingException {
         // if the response was already written and committed by the application
         // there's no point in closing the response buffer
         HttpServletResponse res = reqtrans.getServletResponse();
@@ -657,21 +659,20 @@ public final class ResponseTrans extends Writer implements Serializable {
             return;
         }
 
-        // only use default charset if not explicitly set for this response.
-        if (charset == null) {
-            charset = cset;
-        }
-
-        // if charset is not set, use western encoding
-        if (charset == null) {
-            charset = "ISO-8859-1";
-        }
-
         boolean encodingError = false;
 
         // only close if the response hasn't been closed yet, and if no
         // response was generated using writeBinary().
         if (response == null) {
+            // only use default charset if not explicitly set for this response.
+            if (charset == null) {
+                charset = defaultCharset;
+            }
+            // if charset is not set, use western encoding
+            if (charset == null) {
+                charset = "UTF-8";
+            }
+
             // if debug buffer exists, append it to main buffer
             if (contentType != null &&
                     contentType.startsWith("text/html") && 
@@ -719,8 +720,9 @@ public final class ResponseTrans extends Writer implements Serializable {
                     response = new byte[0];
                     notModified = true;
                 }
-            } catch (Exception ignore) {
-                // Etag creation failed for some reason. Ignore.
+            } catch (Exception e) {
+                // Etag creation failed for some reason.
+                app.logError("Error creating ETag: " + e);
             }
         }
 

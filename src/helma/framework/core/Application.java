@@ -1822,7 +1822,7 @@ public final class Application implements Runnable {
             props.update();
 
             // character encoding to be used for responses
-            charset = props.getProperty("charset", "ISO-8859-1");
+            charset = props.getProperty("charset", "UTF-8");
 
             // debug flag
             debug = "true".equalsIgnoreCase(props.getProperty("debug"));
