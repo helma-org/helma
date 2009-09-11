@@ -108,6 +108,7 @@ public class Session implements Serializable {
         if (app.loginSession(userName, password, this)) {
             lastModified = System.currentTimeMillis();
             modifiedInRequest = true;
+            return true;
         }
         return false;
     }
