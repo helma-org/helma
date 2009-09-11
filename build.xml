@@ -477,7 +477,7 @@
         <delete dir="${build.dist}"/>
         <delete file="${home.dir}/launcher.jar" quiet="true"/>
         <delete>
-            <fileset dir="${build.lib}" includes="**/${jar.name}-*.jar"/>
+            <fileset dir="${build.lib}" includes="${jar.name}*.jar"/>
         </delete>
     </target>
 
