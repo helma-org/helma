@@ -15,18 +15,17 @@ import java.util.*;
 
 public class SegmentedSubnodeList extends SubnodeList {
 
-    transient Segment[] segments;
+    transient Segment[] segments = null;
     static int SEGLENGTH = 1000;
 
-    transient long lastSubnodeCount = 0;
-    transient int subnodeCount = -1;    
+    transient private int subnodeCount = -1;
 
     /**
      * Creates a new subnode list
      * @param node the node we belong to
      */
     public SegmentedSubnodeList(Node node) {
-        super(node); 
+        super(node);
     }
 
     /**
@@ -207,14 +206,17 @@ public class SegmentedSubnodeList extends SubnodeList {
 
     protected synchronized void update() {
         if (!hasRelationalNodes()) {
+            segments = null;
             super.update();
             return;
         }
         // also reload if the type mapping has changed.
         long lastChange = getLastSubnodeChange();
         if (lastChange != lastSubnodeFetch) {
-            float size = size();
-            if (size > SEGLENGTH) {
+            // count nodes in db without fetching anything
+            subnodeCount = node.nmgr.countNodes(node, getSubnodeRelation());
+            if (subnodeCount > SEGLENGTH) {
+                float size = subnodeCount;
                 int nsegments = (int) Math.ceil(size / SEGLENGTH);
                 int remainder = (int) size % SEGLENGTH;
                 segments = new Segment[nsegments];
@@ -238,15 +240,6 @@ public class SegmentedSubnodeList extends SubnodeList {
     public int size() {
         if (!hasRelationalNodes() || segments == null) {
             return super.size();
-        }
-
-        Relation rel = getSubnodeRelation();
-        long lastChange = getLastSubnodeChange();
-
-        if (lastChange != lastSubnodeCount || subnodeCount < 0) {
-            // count nodes in db without fetching anything
-            subnodeCount = node.nmgr.countNodes(node, rel);
-            lastSubnodeCount = lastChange;
         }
         return subnodeCount;
     }
