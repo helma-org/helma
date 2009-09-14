@@ -24,10 +24,6 @@ import helma.objectmodel.INode;
 import helma.objectmodel.IProperty;
 import helma.util.EmptyEnumeration;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.util.*;
 
 /**
@@ -196,13 +192,6 @@ public final class Node implements INode {
      */
     public synchronized void setPropMap(Hashtable propMap) {
         this.propMap = propMap;
-    }
-
-    /**
-     * used by Xml deserialization
-     */
-    public synchronized void setSubnodes(SubnodeList subnodes) {
-        this.subnodes = subnodes;
     }
 
     /**
@@ -810,7 +799,7 @@ public final class Node implements INode {
         loadNodes();
 
         // check if this node has a group-by subnode-relation
-        INode groupbyNode = getGroupbySubnode(node, true);
+        Node groupbyNode = getGroupbySubnode(node, true);
         if (groupbyNode != null) {
             groupbyNode.addNode(node);
             return node;
@@ -1228,7 +1217,12 @@ public final class Node implements INode {
     public boolean remove() {
         INode parent = getParent();
         if (parent != null) {
-            parent.removeNode(this);
+            try {
+                parent.removeNode(this);
+            } catch (Exception x) {
+                // couldn't remove from parent. Log and continue
+                getApp().logError("Couldn't remove node from parent: " + x);
+            }
         }
         deepRemoveNode();
         return true;
@@ -1480,8 +1474,7 @@ public final class Node implements INode {
     }
 
     /**
-     * Retrieve an empty subnodelist. This empty List is an instance of the Class
-     * used for this Nodes subnode-list
+     * Create an empty subnode list.
      * @return List an empty List of the type used by this Node
      */
     public SubnodeList createSubnodeList() {
@@ -2570,31 +2563,6 @@ public final class Node implements INode {
         System.err.println("subnodes: " + subnodes);
         System.err.println("properties: " + propMap);
     }
-
-    /**
-     * This method get's called from the JavaScript environment
-     * (HopObject.updateSubnodes() or HopObject.collection.updateSubnodes()))
-     * The subnode-collection will be updated with a selectstatement getting all
-     * Nodes having a higher id than the highest id currently contained within
-     * this Node's subnoderelation. If this subnodelist has a special order
-     * all nodes will be loaded honoring this order.
-     * Example:
-     *  order by somefield1 asc, somefieled2 desc
-     * gives a where-clausel like the following:
-     *   (somefiled1 > theHighestKnownValue value and somefield2 < theLowestKnownValue)
-     * @return the number of loaded nodes within this collection update
-     */
-    /* public int updateSubnodes () {
-        // TODO: what do we do if dbmap is null
-        if (dbmap == null) {
-            throw new RuntimeException (this + " doesn't have a DbMapping");
-        }
-        Relation subRel = dbmap.getSubnodeRelation();
-        synchronized (this) {
-            lastSubnodeFetch = getLastSubnodeChange(subRel);
-            return nmgr.updateSubnodeList(this, subRel);
-        }
-    } */
 
     /**
      * Get the application this node belongs to.
