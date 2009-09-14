@@ -758,7 +758,7 @@ public final class DbMapping {
      * db-mapping with the right relations to create the group-by nodes
      */
     public synchronized DbMapping getGroupbyMapping() {
-        if ((subRelation == null) && (parentMapping != null)) {
+        if (subRelation == null && parentMapping != null) {
             return parentMapping.getGroupbyMapping();
         } else if (subRelation == null || subRelation.groupby == null) {
             return null;
@@ -776,6 +776,7 @@ public final class DbMapping {
         // if a prototype is defined for groupby nodes, use that
         // if mapping doesn' exist or isn't defined, create a new (anonymous internal) one
         groupbyMapping = new DbMapping(app, subRelation.groupbyPrototype);
+        groupbyMapping.lastTypeChange = this.lastTypeChange;
         groupbyMapping.isGroup = true;
 
         // set subnode and property relations
