@@ -20,7 +20,6 @@ import helma.framework.core.Application;
 import helma.objectmodel.INode;
 import helma.objectmodel.IProperty;
 import helma.util.StringUtils;
-import helma.util.ResourceProperties;
 
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -981,6 +980,11 @@ public final class Relation {
                     q.append(" OFFSET ").append(offset);
                 }
             }
+        }
+
+        if (isCount && groupby != null) {
+            q.insert(0, "SELECT count(*) FROM (");
+            q.append(") as NESTED_COUNT_QUERY");
         }
     }
 
