@@ -25,11 +25,11 @@ import java.io.Serializable;
  */
 public class SubnodeList implements Serializable {
 
-    Node node;
-    List list;
+    protected Node node;
+    protected List list;
 
-    transient long lastSubnodeFetch = 0;
-    transient long lastSubnodeChange = 0;
+    transient protected long lastSubnodeFetch = 0;
+    transient protected long lastSubnodeChange = 0;
     
 
     /**
