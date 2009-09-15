@@ -1,5 +1,6 @@
 tests = [
     "testSize",
+    "testMaxSize",
     "testAddRemoveSmall",
     "testAddRemoveLarge",
     "testListSmall",
@@ -19,6 +20,17 @@ function setup() {
 function testSize() {
     assertEqual(ikea.persons.size(), large);
     assertEqual(helma.persons.size(), small);
+}
+
+function testMaxSize() {
+    assertEqual(ikea.range.size(), 100);
+    assertEqual(helma.range.size(), 0);
+    var person = ikea.range.get("Person Ikea 0150");
+    assertNotNull(person);
+    assertEqual(person, ikea.range.get(50));
+    assertEqual(person, ikea.persons.get(150));
+    assertEqual(50, ikea.range.indexOf(person));
+    assertEqual(150, ikea.persons.indexOf(person));
 }
 
 function testAddRemoveSmall(org) {
