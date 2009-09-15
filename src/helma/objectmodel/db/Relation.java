@@ -880,7 +880,13 @@ public final class Relation {
             }
 
         String table = otherType.getTableName();
-        String idfield = (groupby == null) ? otherType.getIDField() : groupby;
+        String idfield;
+        if (groupby == null) {
+            idfield = otherType.getIDField();
+        } else {
+            idfield = groupby;
+            buf.append("DISTINCT ");
+        }
 
         if (idfield.indexOf('(') == -1 && idfield.indexOf('.') == -1) {
             buf.append(table).append('.');
@@ -892,11 +898,15 @@ public final class Relation {
     }
 
     public StringBuffer getCountSelect() {
-        StringBuffer buf = new StringBuffer();
+        StringBuffer buf = new StringBuffer("SELECT ");
         if (otherType.isOracle() && maxSize > 0) {
-            buf.append("SELECT * FROM ");
+            buf.append("* FROM ");
         } else {
-            buf.append("SELECT count(*) FROM ");
+            if (groupby == null) {
+                buf.append("count(*) FROM ");
+            } else {
+                buf.append("count(DISTINCT ").append(groupby).append(") FROM ");
+            }
         }
 
         buf.append(otherType.getTableName());
@@ -954,8 +964,6 @@ public final class Relation {
 
         // add group and order clauses
         if (groupby != null) {
-            q.append(" GROUP BY ").append(groupby);
-
             if (useOrder && (groupbyOrder != null)) {
                 q.append(" ORDER BY ").append(groupbyOrder);
             }
@@ -982,10 +990,6 @@ public final class Relation {
             }
         }
 
-        if (isCount && groupby != null) {
-            q.insert(0, "SELECT count(*) FROM (");
-            q.append(") as NESTED_COUNT_QUERY");
-        }
     }
 
     protected void appendAdditionalTables(StringBuffer q) {
