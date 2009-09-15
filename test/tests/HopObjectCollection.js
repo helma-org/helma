@@ -3,7 +3,9 @@ tests = [
     "testAddRemoveSmall",
     "testAddRemoveLarge",
     "testListSmall",
-    "testListLarge"
+    "testListLarge",
+    "testOrderLarge",
+    "testOrderSmall"
 ];
 
 var helma, ikea;
@@ -57,7 +59,7 @@ function testList(org, size) {
     function iterate(list, start, length) {
         assertEqual(list.length, length);
         for (var i = 0; i < length; i++) {
-            assertEqual(list[i].name, "Person " + org.name + " " + (start + i).format("0000"));
+            assertEqual(list[i].name, "Person " + org.name + (start + i).format(" 0000"));
         }
     }
     iterate(org.persons.list(), 0, size);
@@ -65,6 +67,27 @@ function testList(org, size) {
     iterate(org.persons.list(), 0, size);
     org.persons.invalidate();
     iterate(org.persons.list(1, size - 2), 1, size - 2);
+}
+
+function testOrderLarge() {
+    testOrder(ikea, ikea.persons.size() - 2);
+    testOrder(ikea, Math.floor(ikea.persons.size() / 2));
+    testOrder(ikea, 2);
+}
+
+function testOrderSmall() {
+    testOrder(helma, helma.persons.size() - 1);
+    testOrder(helma, 1);
+    testOrder(helma, 0);
+}
+
+function testOrder(org, pos) {
+    var person = new Person();
+    person.name = "Person " + org.name + pos.format(" 0000") + "B";
+    person.organisation = org;
+    root.persons.add(person);
+    res.commit();
+    assertEqual(pos + 1, org.persons.indexOf(person));
 }
 
 function cleanup() {
@@ -83,7 +106,7 @@ function makeOrg(name, size) {
 
     for (var i = 0; i < size; i++) {
         var person = new Person();
-        person.name = "Person " + name + " " + i.format("0000");
+        person.name = "Person " + name + i.format(" 0000");
         person.organisation = org;
         root.persons.add(person);
     }
