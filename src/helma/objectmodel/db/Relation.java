@@ -971,7 +971,8 @@ public final class Relation {
             q.append(" ORDER BY ").append(order);
         }
 
-        if (maxSize > 0) {
+        // apply limit and offset, but not if the query is for a single object
+        if (maxSize > 0 && kstr == null) {
             if (otherType.isOracle()) {
                 // see http://www.oracle.com/technology/oramag/oracle/06-sep/o56asktom.html
                 String selectItem = isCount ? "count(*)" : "*";
