@@ -12,7 +12,7 @@ function setup() {
     for (var i = 0; i < size; i++) {
         var org = new Organisation();
         org.name = "Organisation " + i;
-        org.country = "C" + i;
+        org.country = "CH" + i.format("0000");
         root.organisations.add(org);
     }
     res.commit();
@@ -71,17 +71,17 @@ function testGroupByAddRemoveNoCommit() {
 function testGroupOrder() {
 
    var org1 = new Organisation();
-   org1.country = "AT" + Math.random();
+   org1.country = "AT";
    org1.name = "Helma" + Math.random();
    root.organisations.add(org1);
 
    var org2 = new Organisation();
-   org2.country = "CH" + Math.random();
+   org2.country = "CH01";  // pre-populated items have countries CH0000..C1234
    org2.name = "Helma" + Math.random();
    root.organisations.add(org2);
 
    var org3 = new Organisation();
-   org3.country = "DE" + Math.random();
+   org3.country = "DE";
    org3.name = "Helma" + Math.random();
    root.organisations.add(org3);
 
@@ -94,10 +94,15 @@ function testGroupOrder() {
 
    // make sure that countries and organisations are sorted in decreasing order (as specified in type.properties)
    var countries = root.organisationsByCountry.list();
-   for (var i=0; i<root.organisationsByCountry.count(); i++) {
-      if (i>0) assertTrue(root.organisationsByCountry.get(i-1)._id >= root.organisationsByCountry.get(i)._id)
-      for (var j=0; j<root.organisationsByCountry.get(i); j++) {
-         if (j>0) assertTrue(root.organisationsByCountry.get(i).get(j-1)._id >= root.organisationsByCountry.get(i).get(j)._id)
+   assertEqual(countries.length, size + 3);
+   for (var i = 0; i < countries.length; i++) {
+      if (i>0) {
+          assertTrue(root.organisationsByCountry.get(i-1).groupname >= root.organisationsByCountry.get(i).groupname);
+      }
+      for (var j = 0; j < root.organisationsByCountry.get(i); j++) {
+         if (j > 0) {
+             assertTrue(root.organisationsByCountry.get(i).get(j-1).groupname >= root.organisationsByCountry.get(i).get(j).groupname);
+         }
       }
    }
 
