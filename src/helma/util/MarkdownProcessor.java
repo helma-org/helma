@@ -190,8 +190,8 @@ public class MarkdownProcessor {
                         linkValue[0] = buffer.toString().trim();
                         buffer.setLength(0);
                         int j = i + 1;
-                        int newlines = 0;
-                        while (j < length && chars[j] != ')' && Character.isWhitespace(chars[j])) {
+                        int newlines = c == '\n' ? 1 : 0;
+                        while (j < length && Character.isWhitespace(chars[j])) {
                             if (chars[j] == '\n') {
                                 newlines += 1;
                                 if (newlines > 1) {
@@ -203,7 +203,7 @@ public class MarkdownProcessor {
                             }
                             j += 1;
                         }
-                        if ((chars[j] == '"' || chars[j] == '\'' || chars[j] == '(') && newlines <= 1) {
+                        if (j < length && newlines <= 1 && isLinkQuote(chars[j])) {
                             char quoteChar = chars[j] == '(' ? ')' : chars[j];
                             int start = j = j + 1;
                             int len = -1;
@@ -221,13 +221,16 @@ public class MarkdownProcessor {
                                 c = chars[j];
                             }
                         }
-                        if (c == '\n') {
+                        if (c == '\n' && state != NONE) {
                             links.put(linkId.toLowerCase(), linkValue);
                             System.arraycopy(chars, i, chars, linestart, length - i);
                             length -= (i - linestart);
                             i = linestart;
                             buffer.setLength(0);
                             linkId = null;
+                        } else {
+                            // no valid link title - escape
+                            state = NONE;
                         }
                     } else {
                         buffer.append(c);
@@ -983,6 +986,10 @@ public class MarkdownProcessor {
             }
         }
         return b.toString();
+    }
+
+    boolean isLinkQuote(char c) {
+        return c == '"' || c == '\'' || c == '(';
     }
 
     boolean isSpace(char c) {
