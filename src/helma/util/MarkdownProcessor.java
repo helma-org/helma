@@ -17,7 +17,6 @@ public class MarkdownProcessor {
     private int paragraphStartMarker = 0;
     private boolean listParagraphs = false;
     private int codeEndMarker = 0;
-    private boolean strong, em;
     private ElementStack stack = new ElementStack();
     private HashMap spanTags;
 
@@ -26,9 +25,11 @@ public class MarkdownProcessor {
     // private Logger log = Logger.getLogger(MarkdownProcessor.class);
     private int line;
 
-    private final int NONE = 0, NEWLINE = 1, LINK_ID = 2, LINK_URL = 3,
+    private final int
+        // stage 1 states
+        NONE = 0, NEWLINE = 1, LINK_ID = 2, LINK_URL = 3,
         // stage 2 states
-        HEADER = 4, PARAGRAPH = 5, LIST = 6, HTML_BLOCK = 7, CODE = 8, BLOCKQUOTE = 9;
+        HEADER = 4, PARAGRAPH = 5, LIST = 6, HTML_BLOCK = 7, CODE = 8;
 
     static final Set blockTags = new HashSet();
 
@@ -869,6 +870,8 @@ public class MarkdownProcessor {
                 (chars[i + 1] == '\n' || buffer.charAt(buffer.length() - 1) == '\n')) {
             buffer.insert(paragraphEndMarker, "</p>");
             buffer.insert(paragraphStartMarker, "<p>");
+        } else if (i > 1 && chars[i-1] == ' ' && chars[i-2] == ' ') {
+            buffer.append("<br />");
         }
     }
 
