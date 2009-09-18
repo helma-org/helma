@@ -13,7 +13,11 @@ function setup() {
         var org = new Organisation();
         org.name = "Organisation " + i;
         org.country = "CH" + i.format("0000");
-        root.organisations.add(org);
+        // add to different collections
+        if (i % 2 == 0)
+            root.organisations.add(org);
+        else
+            root.organisationsByCountry.add(org);
     }
     res.commit();
 }
