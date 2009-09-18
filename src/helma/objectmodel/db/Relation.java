@@ -381,20 +381,20 @@ public final class Relation {
         // get group by property
         groupby = props.getProperty("group");
 
-        if ((groupby != null) && (groupby.trim().length() == 0)) {
+        if (groupby != null && groupby.trim().length() == 0) {
             groupby = null;
         }
 
         if (groupby != null) {
             groupbyOrder = props.getProperty("group.order");
 
-            if ((groupbyOrder != null) && (groupbyOrder.trim().length() == 0)) {
+            if (groupbyOrder != null && groupbyOrder.trim().length() == 0) {
                 groupbyOrder = null;
             }
 
             groupbyPrototype = props.getProperty("group.prototype");
 
-            if ((groupbyPrototype != null) && (groupbyPrototype.trim().length() == 0)) {
+            if (groupbyPrototype != null && groupbyPrototype.trim().length() == 0) {
                 groupbyPrototype = null;
             }
 
@@ -409,17 +409,17 @@ public final class Relation {
         String local = props.getProperty("local");
         String foreign = props.getProperty("foreign");
 
-        if ((local != null) && (foreign != null)) {
+        if (local != null && foreign != null) {
             cnst.addElement(new Constraint(local, foreign, false));
             columnName = local;
         }
 
         // parse additional contstraints from *.1 to *.9
-        for (int i=1; i<10; i++) {
+        for (int i = 1; i < 10; i++) {
             local = props.getProperty("local."+i);
             foreign = props.getProperty("foreign."+i);
 
-            if ((local != null) && (foreign != null)) {
+            if (local != null && foreign != null) {
                 cnst.addElement(new Constraint(local, foreign, false));
             }
         }
