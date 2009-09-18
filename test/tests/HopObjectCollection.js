@@ -1,8 +1,12 @@
 tests = [
     "testSize",
     "testMaxSize",
-    "testAddRemoveSmall",
-    "testAddRemoveLarge",
+    "testAddSmall",
+    "testAddLarge",
+    "testRemoveSmall",
+    "testRemoveLarge",
+    "testUpdateSmall",
+    "testUpdateLarge",
     "testListSmall",
     "testListLarge",
     "testOrderLarge",
@@ -33,15 +37,56 @@ function testMaxSize() {
     assertEqual(150, ikea.persons.indexOf(person));
 }
 
-function testAddRemoveSmall(org) {
-    testAddRemove(helma, small);
+function testAddSmall() {
+    testAdd(helma, small);
 }
 
-function testAddRemoveLarge(org) {
-    testAddRemove(ikea, large);
+function testAddLarge() {
+    testAdd(ikea, large);
 }
 
-function testAddRemove(org, size) {
+// test directly adding to a collection
+function testAdd(org, size) {
+    var person = new Person();
+    person.name = "TestPerson";
+    org.persons.add(person);
+    assertEqual(org.persons.size(), size + 1);
+    assertEqual(org.persons.indexOf(person), size);
+    assertEqual(org.persons.contains(person), size);
+    assertEqual(person.href(), org.persons.href() + "TestPerson/");
+    // make sure the add has set the back-reference on the person object.
+    // note that === comparison will return false if the
+    // collection size exceeds the cache size.
+    assertTrue(person.organisation == org);
+}
+
+function testRemoveSmall() {
+    testRemove(helma, small);
+}
+
+function testRemoveLarge() {
+    testRemove(ikea, large);
+}
+
+// test directly removing from a collection
+function testRemove(org, size) {
+    var person = org.persons.get(org.persons.size() - 1);
+    person.remove();
+    assertEqual(org.persons.size(), size);
+    assertEqual(org.persons.indexOf(person), -1);
+    assertEqual(org.persons.contains(person), -1);
+}
+
+function testUpdateSmall() {
+    testUpdate(helma, small);
+}
+
+function testUpdateLarge() {
+    testUpdate(ikea, large);
+}
+
+// test indirectly adding to and removing form a collection
+function testUpdate(org, size) {
     var person = new Person();
     person.name = "TestPerson";
     person.organisation = org;

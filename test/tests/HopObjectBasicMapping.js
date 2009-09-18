@@ -1,4 +1,5 @@
 tests = [
+   "testEquality",
    "testSimpleMapping",
    "testSimpleCollection",
    "testObjectReference",
@@ -6,6 +7,19 @@ tests = [
 ];
 
 function setup() {
+}
+
+function testEquality() {
+    var person = new Person();
+    root.persons.add(person);
+    res.commit();
+    var id = person._id;
+    app.clearCache();
+    var person2 = root.persons.get(id);
+    assertNotNull(person2);
+    assertTrue(person !== person2);
+    assertTrue(person._id === person2._id);
+    assertTrue(person == person2);
 }
 
 function testSimpleMapping() {
