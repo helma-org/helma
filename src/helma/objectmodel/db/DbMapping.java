@@ -313,7 +313,7 @@ public final class DbMapping {
                 String propName = (String) entry.getKey();
 
                 // ignore internal properties (starting with "_") and sub-options (containing a ".")
-                if (!propName.startsWith("_") && (propName.indexOf(".") < 0)) {
+                if (!propName.startsWith("_") && propName.indexOf(".") < 0) {
                     Object propValue = entry.getValue();
 
                     // check if a relation for this propery already exists. If so, reuse it

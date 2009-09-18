@@ -769,7 +769,6 @@ public final class Node implements INode {
             if (!ignoreSubnodeChange()) {
                 checkWriteLock();
             }
-
             node.checkWriteLock();
         }
 
@@ -780,7 +779,7 @@ public final class Node implements INode {
         }
 
         // if the new node is marked as TRANSIENT and this node is not, mark new node as NEW
-        if ((state != TRANSIENT) && (node.state == TRANSIENT)) {
+        if (state != TRANSIENT && node.state == TRANSIENT) {
             node.makePersistable();
         }
 

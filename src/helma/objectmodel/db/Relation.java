@@ -143,14 +143,19 @@ public final class Relation {
         otherType = null;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////
-    // parse methods for new file format
-    ////////////////////////////////////////////////////////////////////////////////////////////
+    /**
+     * Update this relation object from a properties object.
+     * @param desc the top level relation descriptor. For relations
+     *             defined in a type.properties file, this is a string like
+     *             "collection(Type)", but for relations defined from
+     *             JavaScript, it is the top level descriptor object.
+     * @param props The subproperties for this relation.
+     */
     public void update(Object desc, Properties props) {
         Application app = ownType.getApplication();
 
         if (desc instanceof Properties || parseDescriptor(desc, props)) {
-            // new style foo.collectionOf = Bar mapping
+            // converted to internal foo.collection = Bar representation
             String proto;
             if (props.containsKey("collection")) {
                 proto = props.getProperty("collection");
@@ -249,7 +254,7 @@ public final class Relation {
     protected boolean parseDescriptor(Object value, Map config) {
         String desc = value instanceof String ? (String) value : null;
 
-        if ((desc == null) || "".equals(desc.trim())) {
+        if (desc == null || "".equals(desc.trim())) {
             if (propName != null) {
                 reftype = PRIMITIVE;
                 columnName = propName;
@@ -262,9 +267,9 @@ public final class Relation {
             desc = desc.trim();
 
             int open = desc.indexOf("(");
-            int close = desc.indexOf(")");
+            int close = desc.indexOf(")", open);
 
-            if ((open > -1) && (close > open)) {
+            if (open > -1 && close > open) {
                 String ref = desc.substring(0, open).trim();
                 String proto = desc.substring(open + 1, close).trim();
 
@@ -585,14 +590,19 @@ public final class Relation {
         }
 
         // collections/mountpoints need to be persisted if the
-        // child object type is non-relational.
+        // child object type is non-relational. Depending on
+        // whether prototype is null or not, we need to look at
+        // otherType itself or otherType's subnode mapping.
         if (prototype == null) {
+            // an ordinary, unprototyped virtual node -
+            // otherType is the content type
             return !otherType.isRelational();
+        } else {
+            // a prototyped virtual node or mountpoint -
+            // otherType is the virtual node type itself
+            DbMapping sub = otherType.getSubnodeMapping();
+            return sub != null && !sub.isRelational();
         }
-
-        DbMapping sub = otherType.getSubnodeMapping();
-
-        return (sub != null) && !sub.isRelational();
     }
 
     /**

@@ -1357,7 +1357,7 @@ public final class NodeManager {
                             throws Exception {
         Node node = null;
 
-        if ((rel != null) && rel.virtual) {
+        if (rel != null && rel.virtual) {
             if (rel.needsPersistence()) {
                 node = (Node) home.createNode(kstr);
             } else {
