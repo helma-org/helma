@@ -1098,24 +1098,34 @@ public final class Node implements INode {
         return subnodes.getNode(index);
     }
 
+    /**
+     * Get or create a group name for a given content node.
+     *
+     * @param node the content node
+     * @param create whether the node should be created if it doesn't exist
+     * @return the group node, or null
+     */
     protected Node getGroupbySubnode(Node node, boolean create) {
         if (node.dbmap != null && node.dbmap.isGroup()) {
             return null;
         }
         
         if (dbmap != null) {
-            Relation srel = dbmap.getSubnodeRelation();
+            Relation subrel = dbmap.getSubnodeRelation();
 
-            if ((srel != null) && (srel.groupby != null)) {
-                Relation groupbyRel = srel.otherType.columnNameToRelation(srel.groupby);
-                String groupbyProp = (groupbyRel != null) ? groupbyRel.propName
-                                                              : srel.groupby;
-                String groupbyValue = node.getString(groupbyProp);
-                Node groupbyNode = (Node) getChildElement(groupbyValue);
+            if (subrel != null && subrel.groupby != null) {
+                // use actual child mapping to resolve group property name,
+                // otherwise the subnode mapping defined for the collection.
+                DbMapping childmap = node.dbmap == null ? subrel.otherType : node.dbmap;
+                Relation grouprel = childmap.columnNameToRelation(subrel.groupby);
+                // If group name can't be resolved to a property name use the group name itself
+                String groupprop = (grouprel != null) ? grouprel.propName : subrel.groupby;
+                String groupname = node.getString(groupprop);
+                Node groupbyNode = (Node) getChildElement(groupname);
 
                 // if group-by node doesn't exist, we'll create it
                 if (groupbyNode == null) {
-                    groupbyNode = getGroupbySubnode(groupbyValue, create);
+                    groupbyNode = getGroupbySubnode(groupname, create);
                     // mark subnodes as changed as we have a new group node
                     if (create && groupbyNode != null) {
                         Transactor.getInstance().visitParentNode(this);
@@ -1131,15 +1141,14 @@ public final class Node implements INode {
     }
 
     /**
+     * Get or create a group name for a given group name.
      *
-     *
-     * @param sid ...
-     * @param create ...
-     *
-     * @return ...
+     * @param groupname the group name
+     * @param create whether the node should be created if it doesn't exist
+     * @return the group node, or null
      */
-    protected Node getGroupbySubnode(String sid, boolean create) {
-        if (sid == null) {
+    protected Node getGroupbySubnode(String groupname, boolean create) {
+        if (groupname == null) {
             throw new IllegalArgumentException("Can't create group by null");
         }
 
@@ -1151,7 +1160,7 @@ public final class Node implements INode {
             subnodes = new SubnodeList(this);
         }
 
-        if (create || subnodes.contains(new NodeHandle(new SyntheticKey(getKey(), sid)))) {
+        if (create || subnodes.contains(new NodeHandle(new SyntheticKey(getKey(), groupname)))) {
             try {
                 DbMapping groupbyMapping = dbmap.getGroupbyMapping();
                 boolean relational = groupbyMapping.getSubnodeMapping().isRelational();
@@ -1159,14 +1168,14 @@ public final class Node implements INode {
                 if (relational || create) {
                     Node node;
                     if (relational && persistent) {
-                        node = new Node(this, sid, nmgr, null);
+                        node = new Node(this, groupname, nmgr, null);
                     } else {
-                        node = new Node(sid, null, nmgr);
+                        node = new Node(groupname, null, nmgr);
                         node.setParent(this);
                     }
 
                     // set "groupname" property to value of groupby field
-                    node.setString("groupname", sid);
+                    node.setString("groupname", groupname);
                     // Set the dbmapping on the group node
                     node.setDbMapping(groupbyMapping);
                     node.setPrototype(groupbyMapping.getTypeName());
@@ -1200,8 +1209,7 @@ public final class Node implements INode {
                     return node;
                 }
             } catch (Exception noluck) {
-                nmgr.logEvent("Error creating group-by node for " + sid + ": " + noluck);
-                noluck.printStackTrace();
+                nmgr.nmgr.app.logError("Error creating group-by node for " + groupname, noluck);
             }
         }
 
@@ -1266,6 +1274,7 @@ public final class Node implements INode {
                 removed = subnodes.remove(node.getHandle());
             }
             if (dbmap != null && dbmap.isGroup() && subnodes.size() == 0) {
+                // clean up ourself if we're an empty group node
                 remove();
             } else if (removed) {
                 registerSubnodeChange();
@@ -1274,7 +1283,7 @@ public final class Node implements INode {
 
 
         // check if subnodes are also accessed as properties. If so, also unset the property
-        if ((dbmap != null) && (node.dbmap != null)) {
+        if (dbmap != null && node.dbmap != null) {
             Relation prel = dbmap.getSubnodeRelation();
 
             if (prel != null) {
