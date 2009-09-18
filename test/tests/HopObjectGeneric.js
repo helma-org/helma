@@ -41,10 +41,7 @@ function testSize() {
 function cleanup() {
     var persons = org.generic.list();
     for each (var person in persons) {
-        if (person.groupname)
-            person.get(0).remove();
-        else
-            person.remove();
+        person.remove();
     }
     org.remove();
 }
