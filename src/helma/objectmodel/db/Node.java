@@ -439,28 +439,15 @@ public final class Node implements INode {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get the node's path
      */
-    public String getFullName() {
-        return getFullName(null);
-    }
-
-    /**
-     *
-     *
-     * @param root ...
-     *
-     * @return ...
-     */
-    public String getFullName(INode root) {
+    public String getPath() {
         String divider = null;
         StringBuffer b = new StringBuffer();
         INode p = this;
         int loopWatch = 0;
 
-        while ((p != null) && (p.getParent() != null) && (p != root)) {
+        while (p != null && p.getParent() != null) {
             if (divider != null) {
                 b.insert(0, divider);
             } else {
@@ -478,14 +465,11 @@ public final class Node implements INode {
                 break;
             }
         }
-
         return b.toString();
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Return the node's prototype name.
      */
     public String getPrototype() {
         // if prototype is null, it's a vanilla HopObject.
@@ -497,9 +481,7 @@ public final class Node implements INode {
     }
 
     /**
-     *
-     *
-     * @param proto ...
+     * Set the node's prototype name.
      */
     public void setPrototype(String proto) {
         this.prototype = proto;
@@ -509,27 +491,21 @@ public final class Node implements INode {
     }
 
     /**
-     *
-     *
-     * @param dbmap ...
+     * Set the node's {@link DbMapping}.
      */
     public void setDbMapping(DbMapping dbmap) {
         this.dbmap = dbmap;
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get the node's {@link DbMapping}.
      */
     public DbMapping getDbMapping() {
         return dbmap;
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get the node's key.
      */
     public Key getKey() {
         if (primaryKey == null && state == TRANSIENT) {
@@ -548,22 +524,17 @@ public final class Node implements INode {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get the node's handle.
      */
     public NodeHandle getHandle() {
         if (handle == null) {
             handle = new NodeHandle(this);
         }
-
         return handle;
     }
 
     /**
-     *
-     *
-     * @param rel ...
+     * Set an explicit select clause for the node's subnodes
      */
     public synchronized void setSubnodeRelation(String rel) {
         if ((rel == null && this.subnodeRelation == null) ||
@@ -582,18 +553,14 @@ public final class Node implements INode {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get the node's explicit subnode select clause if one was set, or null
      */
     public synchronized String getSubnodeRelation() {
         return subnodeRelation;
     }
 
     /**
-     *
-     *
-     * @param name ...
+     * Set the node's name.
      */
     public void setName(String name) {
         if ((name == null) || (name.length() == 0)) {
@@ -1025,11 +992,7 @@ public final class Node implements INode {
     }
 
     /**
-     *
-     *
-     * @param subid ...
-     *
-     * @return ...
+     * Get a named child node with the given id.
      */
     public INode getSubnode(String subid) {
         if (subid == null || subid.length() == 0) {
@@ -1037,45 +1000,38 @@ public final class Node implements INode {
         }
 
         Node retval = null;
+        loadNodes();
+        if (subnodes == null || subnodes.size() == 0) {
+            return null;
+        }
 
-        if (subid != null) {
-            loadNodes();
+        NodeHandle nhandle = null;
+        int l = subnodes.size();
 
-            if ((subnodes == null) || (subnodes.size() == 0)) {
-                return null;
-            }
-
-            NodeHandle nhandle = null;
-            int l = subnodes.size();
-
-            for (int i = 0; i < l; i++)
-                try {
-                    NodeHandle shandle = subnodes.get(i);
-
-                    if (subid.equals(shandle.getID())) {
-                        // System.err.println ("FOUND SUBNODE: "+shandle);
-                        nhandle = shandle;
-
-                        break;
-                    }
-                } catch (Exception x) {
+        for (int i = 0; i < l; i++) {
+            try {
+                NodeHandle shandle = subnodes.get(i);
+                if (subid.equals(shandle.getID())) {
+                    nhandle = shandle;
                     break;
                 }
-
-            if (nhandle != null) {
-                retval = nhandle.getNode(nmgr);
+            } catch (Exception x) {
+                break;
             }
+        }
 
-            // This would be an alternative way to do it, without loading the subnodes,
-            // but it currently isn't supported by NodeManager.
-            //    if (dbmap != null && dbmap.getSubnodeRelation () != null)
-            //         retval = nmgr.getNode (this, subid, dbmap.getSubnodeRelation ());
+        if (nhandle != null) {
+            retval = nhandle.getNode(nmgr);
+        }
 
-            if ((retval != null) && (retval.parentHandle == null) &&
-                    !nmgr.isRootNode(retval)) {
-                retval.setParent(this);
-                retval.anonymous = true;
-            }
+        // This would be a better way to do it, without loading the subnodes,
+        // but it currently isn't supported by NodeManager.
+        //    if (dbmap != null && dbmap.getSubnodeRelation () != null)
+        //         retval = nmgr.getNode (this, subid, dbmap.getSubnodeRelation ());
+
+        if (retval != null && retval.parentHandle == null && !nmgr.isRootNode(retval)) {
+            retval.setParent(this);
+            retval.anonymous = true;
         }
 
         return retval;

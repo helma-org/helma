@@ -27,364 +27,234 @@ import java.util.*;
  */
 public interface INode extends INodeState, IPathElement {
     /**
-     *  id-related methods
+     * Get the node's ID.
      */
     public String getID();
 
     /**
-     *
-     *
-     * @return ...
+     * Get the node's name.
      */
     public String getName();
 
     /**
-     *
-     *
-     * @param dbmap ...
+     * Set the node's {@link DbMapping}.
      */
     public void setDbMapping(DbMapping dbmap);
 
     /**
-     *
-     *
-     * @return ...
+     * Get the node's {@link DbMapping}.
      */
     public DbMapping getDbMapping();
 
     /**
-     *
-     *
-     * @return ...
+     * Get the node's state flag.
+     * @return one of the constants defined in the {@link INodeState} interface.
      */
     public int getState();
 
     /**
-     *
-     *
-     * @param s ...
+     * Set the node's state flag.
+     * @param s one of the constants defined in the {@link INodeState} interface.
      */
     public void setState(int s);
 
     /**
-     *
-     *
-     * @param name ...
+     * Set the node's name.
      */
     public void setName(String name);
 
     /**
-     *
-     *
-     * @return ...
+     * Get the node's last modification timestamp.
      */
     public long lastModified();
 
     /**
-     *
-     *
-     * @return ...
+     * Get the node's creation timestamp.
      */
     public long created();
 
     /**
-     *
-     *
-     * @return ...
+     * Returns true if this node is an unnamed node.
      */
-    public boolean isAnonymous(); // is this a named node, or an anonymous node in a collection?
+    public boolean isAnonymous();
 
     /**
-     *
-     *
-     * @return ...
+     * Return the node's prototype name.
      */
     public String getPrototype();
 
     /**
-     *
-     *
-     * @param prototype ...
+     * Set the node's prototype name.
      */
     public void setPrototype(String prototype);
 
     /**
-     *
-     *
-     * @return ...
+     * Get the cache node associated with this node.
      */
     public INode getCacheNode();
 
     /**
-     *
+     * Clear the cache node associated with this node.
      */
     public void clearCacheNode();
 
     /**
-     *
-     *
-     * @return ...
+     * Get the node's path.
      */
-    public String getFullName();
+    public String getPath();
 
     /**
-     *
-     *
-     * @param root ...
-     *
-     * @return ...
-     */
-    public String getFullName(INode root);
-
-    /**
-     *  node-related methods
+     * Get the node's parent node.
      */
     public INode getParent();
 
     /**
-     *
-     *
-     * @param rel ...
+     * Set an explicit select clause for the node's subnodes
      */
-    public void setSubnodeRelation(String rel);
+    public void setSubnodeRelation(String clause);
 
     /**
-     *
-     *
-     * @return ...
+     * Get the node's explicit subnode select clause if one was set, or null
      */
     public String getSubnodeRelation();
 
     /**
-     *
-     *
-     * @return ...
+     * Get the number the node's direct child nodes.
      */
     public int numberOfNodes();
 
     /**
-     *
-     *
-     * @param node ...
-     *
-     * @return ...
+     * Add a child node to this node.
      */
     public INode addNode(INode node);
 
     /**
-     *
-     *
-     * @param node ...
-     * @param where ...
-     *
-     * @return ...
+     * Add a child node to this node at the given position
      */
     public INode addNode(INode node, int where);
 
     /**
-     *
-     *
-     * @param name ...
-     *
-     * @return ...
+     * Create a new named property with a node value
      */
     public INode createNode(String name);
 
     /**
-     *
-     *
-     * @param name ...
-     * @param where ...
-     *
-     * @return ...
+     * Create a new unnamed child node at the given position.
      */
     public INode createNode(String name, int where);
 
     /**
-     *
-     *
-     * @return ...
+     * Get an enumeration of this node's unnamed child nodes
      */
     public Enumeration getSubnodes();
 
     /**
-     *
-     *
-     * @param name ...
-     *
-     * @return ...
+     * Get a named child node with the given name or id.
      */
     public INode getSubnode(String name);
 
     /**
-     *
-     *
-     * @param index ...
-     *
-     * @return ...
+     * GEt an unnamed child node at the given position
      */
     public INode getSubnodeAt(int index);
 
     /**
-     *
-     *
-     * @param node ...
-     *
-     * @return ...
+     * Returns the position of the child or -1.
      */
     public int contains(INode node);
 
     /**
-     *
-     *
-     * @return ...
+     * Remove this node from the database.
      */
     public boolean remove();
 
     /**
-     *
-     *
-     * @param node ...
+     * Remove the given node from this node's child nodes.
      */
     public void removeNode(INode node);
 
     /**
-     *  property-related methods
+     *  Get an enumeration over the node's properties.
      */
     public Enumeration properties();
 
     /**
-     *
-     *
-     * @param name ...
-     *
-     * @return ...
+     * Get a property with the given name.
      */
     public IProperty get(String name);
 
     /**
-     *
-     *
-     * @param name ...
-     *
-     * @return ...
+     * Get a string property with the given name.
      */
     public String getString(String name);
 
     /**
-     *
-     *
-     * @param name ...
-     *
-     * @return ...
+     * Get a boolean property with the given name.
      */
     public boolean getBoolean(String name);
 
     /**
-     *
-     *
-     * @param name ...
-     *
-     * @return ...
+     * Get a date property with the given name.
      */
     public Date getDate(String name);
 
     /**
-     *
-     *
-     * @param name ...
-     *
-     * @return ...
+     * Get an integer property with the given name.
      */
     public long getInteger(String name);
 
     /**
-     *
-     *
-     * @param name ...
-     *
-     * @return ...
+     * Get a float property with the given name.
      */
     public double getFloat(String name);
 
     /**
-     *
-     *
-     * @param name ...
-     *
-     * @return ...
+     * Get a node property with the given name.
      */
     public INode getNode(String name);
 
     /**
-     *
-     *
-     * @param name ...
-     *
-     * @return ...
+     * Get a Java object property with the given name.
      */
     public Object getJavaObject(String name);
 
     /**
-     *
-     *
-     * @param name ...
-     * @param value ...
+     * Set the property with the given name to the given string value.
      */
     public void setString(String name, String value);
 
     /**
-     *
-     *
-     * @param name ...
-     * @param value ...
+     * Set the property with the given name to the given boolean value.
      */
     public void setBoolean(String name, boolean value);
 
     /**
-     *
-     *
-     * @param name ...
-     * @param value ...
+     * Set the property with the given name to the given date value.
      */
     public void setDate(String name, Date value);
 
     /**
-     *
-     *
-     * @param name ...
-     * @param value ...
+     * Set the property with the given name to the given integer value.
      */
     public void setInteger(String name, long value);
 
     /**
-     *
-     *
-     * @param name ...
-     * @param value ...
+     * Set the property with the given name to the given float value.
      */
     public void setFloat(String name, double value);
 
     /**
-     *
-     *
-     * @param name ...
-     * @param value ...
+     * Set the property with the given name to the given node value.
      */
     public void setNode(String name, INode value);
 
     /**
-     *
-     *
-     * @param name ...
-     * @param value ...
+     * Set the property with the given name to the given Java object value.
      */
     public void setJavaObject(String name, Object value);
 
     /**
-     *
-     *
-     * @param name ...
+     * Unset the property with the given name..
      */
     public void unset(String name);
 }

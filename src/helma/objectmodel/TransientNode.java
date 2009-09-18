@@ -108,7 +108,7 @@ public class TransientNode implements INode, Serializable {
         // state always is TRANSIENT on this kind of node
     }
 
-    public String getFullName() {
+    public String getPath() {
         return getFullName(null);
     }
 
@@ -159,7 +159,7 @@ public class TransientNode implements INode, Serializable {
     }
 
     public void setSubnodeRelation(String rel) {
-        throw new RuntimeException("Can't set subnode relation for non-persistent Node.");
+        throw new UnsupportedOperationException("Can't set subnode relation for non-persistent Node.");
     }
 
     public String getSubnodeRelation() {
