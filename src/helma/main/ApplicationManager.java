@@ -323,7 +323,6 @@ public class ApplicationManager implements XmlRpcHandler {
         String uploadLimit;
         String uploadSoftfail;
         String debug;
-        boolean encode;
         Repository[] repositories;
         String servletClassName;
 
@@ -359,7 +358,6 @@ public class ApplicationManager implements XmlRpcHandler {
             uploadLimit = conf.getProperty("uploadLimit");
             uploadSoftfail = conf.getProperty("uploadSoftfail");
             debug = conf.getProperty("debug");
-            encode = "true".equalsIgnoreCase(conf.getProperty("responseEncoding"));
             String appDirName = conf.getProperty("appdir");
             appDir = (appDirName == null) ? null : getAbsoluteFile(appDirName);
             String dbDirName = conf.getProperty("dbdir");
@@ -481,7 +479,6 @@ public class ApplicationManager implements XmlRpcHandler {
                 if (jetty != null) {
                     if(context == null) {
                         context = new ContextHandlerCollection();
-                        context.mapContexts();
                         jetty.getHttpServer().setHandler(context);
                     }
 
@@ -490,10 +487,8 @@ public class ApplicationManager implements XmlRpcHandler {
 
                         File staticContent = getAbsoluteFile(staticDir);
 
-                        getLogger().info("Serving static from " +
-                                       staticContent.getPath());
-                        getLogger().info("Mounting static at " +
-                                       staticMountpoint);
+                        getLogger().info("Serving static from " + staticContent.getPath());
+                        getLogger().info("Mounting static at " + staticMountpoint);
                         
                         ResourceHandler rhandler = new ResourceHandler();
                         rhandler.setResourceBase(staticContent.getPath());
@@ -506,12 +501,6 @@ public class ApplicationManager implements XmlRpcHandler {
                     }
                     
                     appContext = context.addContext(pathPattern, "");
-
-                    if (encode) {
-                        // FIXME: ContentEncodingHandler is broken/removed in Jetty 4.2
-                        // context.addHandler(new ContentEncodingHandler());
-                        getLogger().warn("Warning: disabling response encoding for Jetty 4.2 compatibility");
-                    }
 
                     ServletHandler handler = new ServletHandler();
                     Class servletClass = servletClassName == null ?
@@ -556,13 +545,14 @@ public class ApplicationManager implements XmlRpcHandler {
                                        protectedContent.getPath());
                     }
 
+                    // Remap the context paths and start
+                    context.mapContexts();
                     appContext.start();
                 }
 
                 // register as XML-RPC handler
                 xmlrpcHandlerName = app.getXmlRpcHandlerName();
                 xmlrpcHandlers.put(xmlrpcHandlerName, app);
-                // app.start();
             } catch (Exception x) {
                 getLogger().error("Couldn't bind app", x);
                 x.printStackTrace();
@@ -576,16 +566,19 @@ public class ApplicationManager implements XmlRpcHandler {
                 // unbind from Jetty HTTP server
                 if (jetty != null) {
                     if (appContext != null) {
+                        context.removeHandler(appContext);
                         appContext.stop();
                         appContext.destroy();
                         appContext = null;
                     }
 
                     if (staticContext != null) {
+                        context.removeHandler(staticContext);
                         staticContext.stop();
                         staticContext.destroy();
                         staticContext = null;
                     }
+                    context.mapContexts();                    
                 }
 
                 // unregister as XML-RPC handler
