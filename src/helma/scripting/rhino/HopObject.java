@@ -292,30 +292,33 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     }
 
     /**
-     * Get the href (URL path) of this object within the application.
-     *
-     * @param action the action name, or null/undefined for the "main" action.
-     *
-     * @return ...
+     * Get the URL for this object with the application
+     * @param action optional action name
+     * @param params optional query parameters
+     * @return the URL for the object
+     * @throws UnsupportedEncodingException if the application's charset property
+     *         is not a valid encoding name
      */
-    public Object jsFunction_href(Object action) throws UnsupportedEncodingException,
-                                                        IOException {
+    public Object jsFunction_href(Object action, Object params)
+            throws UnsupportedEncodingException, IOException {
         if (proxy == null) {
             return null;
         }
 
-        String act = null;
+        String actionName = null;
+        Map queryParams = params instanceof Scriptable ?
+                core.scriptableToProperties((Scriptable) params) : null;
         INode node = getNode();
 
         if (action != null) {
             if (action instanceof Wrapper) {
-                act = ((Wrapper) action).unwrap().toString();
+                actionName = ((Wrapper) action).unwrap().toString();
             } else if (!(action instanceof Undefined)) {
-                act = action.toString();
+                actionName = action.toString();
             }
         }
 
-        String basicHref = core.app.getNodeHref(node, act);
+        String basicHref = core.app.getNodeHref(node, actionName, queryParams);
 
         return core.postProcessHref(node, className, basicHref);
     }
@@ -931,8 +934,8 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
             return node.getName();
         }
 
-        if ("__fullname__".equals(name)) {
-            return node.getFullName();
+        if ("__path__".equals(name)) {
+            return node.getPath();
         }
 
         if ("__hash__".equals(name)) {

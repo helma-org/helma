@@ -110,30 +110,32 @@ public class JavaObject extends NativeJavaObject {
     }
 
     /**
-     *
-     *
-     * @param action ...
-     *
-     * @return ...
+     * Get the URL for this object with the application
+     * @param action optional action name
+     * @param params optional query parameters
+     * @return the URL for the object
+     * @throws UnsupportedEncodingException if the application's charset property
+     *         is not a valid encoding name
      */
-    public Object href(Object action) throws UnsupportedEncodingException, 
-                                             IOException {
+    public Object href(Object action, Object params)
+            throws UnsupportedEncodingException, IOException {
         if (javaObject == null) {
             return null;
         }
 
-        String act = null;
+        String actionName = null;
+        Map queryParams = params instanceof Scriptable ?
+                core.scriptableToProperties((Scriptable) params) : null;
 
         if (action != null) {
             if (action instanceof Wrapper) {
-                act = ((Wrapper) action).unwrap().toString();
+                actionName = ((Wrapper) action).unwrap().toString();
             } else if (!(action instanceof Undefined)) {
-                act = action.toString();
+                actionName = action.toString();
             }
         }
 
-        String basicHref = core.app.getNodeHref(javaObject, act);
-
+        String basicHref = core.app.getNodeHref(javaObject, actionName, queryParams);
         return core.postProcessHref(javaObject, protoName, basicHref);
     }
 

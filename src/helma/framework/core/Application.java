@@ -1194,25 +1194,60 @@ public final class Application implements Runnable {
 
     /**
      *  Return the href to the root of this application.
+     * @return the root element's URL
+     * @throws UnsupportedEncodingException if the application's charset property
+     *         is not a valid encoding name
      */
     public String getRootHref() throws UnsupportedEncodingException {
-        return getNodeHref(null, null);
+        return getNodeHref(null, null, null);
     }
 
     /**
      * Return a path to be used in a URL pointing to the given element  and action
+     * @param elem the object to get the URL for
+     * @param actionName an optional action name
+     * @param queryParams optional map of query parameters
+     * @return the element's URL
+     * @throws UnsupportedEncodingException if the application's charset property
+     *         is not a valid encoding name
      */
-    public String getNodeHref(Object elem, String actionName)
+    public String getNodeHref(Object elem, String actionName, Map queryParams)
             throws UnsupportedEncodingException {
-        StringBuffer b = new StringBuffer(baseURI);
+        StringBuffer buffer = new StringBuffer(baseURI);
 
-        composeHref(elem, b, 0);
+        composeHref(elem, buffer, 0);
 
         if (actionName != null) {
-            b.append(UrlEncoded.encode(actionName, charset));
+            buffer.append(UrlEncoded.encode(actionName, charset));
+        }
+        if (queryParams != null) {
+            appendQueryParams(buffer, queryParams, null, 0);
         }
 
-        return b.toString();
+        return buffer.toString();
+    }
+
+    private int appendQueryParams(StringBuffer buffer, Map params,
+                                  String prefix, int count)
+            throws UnsupportedEncodingException {
+        for (Iterator it = params.entrySet().iterator(); it.hasNext();) {
+            Map.Entry entry = (Map.Entry) it.next();
+            Object value = entry.getValue();
+            if (value == null) {
+                continue;
+            }
+            String key = UrlEncoded.encode(entry.getKey().toString(), charset);
+            if (prefix != null) key = prefix + '[' + key + ']';
+            if (value instanceof Map) {
+                count = appendQueryParams(buffer, (Map) value, key, count);
+            } else {
+                buffer.append(count++ == 0 ? '?' : '&');
+                buffer.append(key);
+                buffer.append('=');
+                buffer.append(UrlEncoded.encode(value.toString(), charset));
+            }
+        }
+        return count;
     }
 
     private void composeHref(Object elem, StringBuffer b, int pathCount)

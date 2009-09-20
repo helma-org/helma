@@ -802,10 +802,13 @@ public final class RhinoCore implements ScopeProvider {
             if (ids[i] instanceof String) {
                 String key = (String) ids[i];
                 Object value = obj.get(key, obj);
+                // Normalize values to either null, string, or nested map
                 if (value == Undefined.instance || value == Scriptable.NOT_FOUND) {
                     value = null;
                 } else if (value instanceof Scriptable) {
                     value = scriptableToProperties((Scriptable) value);
+                } else {
+                    value = ScriptRuntime.toString(value);
                 }
                 props.put(key, value);
             }
@@ -1197,7 +1200,7 @@ public final class RhinoCore implements ScopeProvider {
             cx.setWrapFactory(wrapper);
             cx.setOptimizationLevel(optLevel);
             cx.setInstructionObserverThreshold(10000);
-            if (cx.isValidLanguageVersion(languageVersion)) {
+            if (Context.isValidLanguageVersion(languageVersion)) {
                 cx.setLanguageVersion(languageVersion);
             } else {
                 app.logError("Unsupported rhino.languageVersion: " + languageVersion);
