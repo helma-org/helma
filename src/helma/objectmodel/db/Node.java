@@ -741,8 +741,8 @@ public final class Node implements INode {
 
         Relation subrel = dbmap == null ? null : dbmap.getSubnodeRelation();
         // if subnodes are defined via relation, make sure its constraints are enforced.
-        if (subrel != null && subrel.countConstraints() < 2) {
-            dbmap.getSubnodeRelation().setConstraints(this, node);
+        if (subrel != null && (subrel.countConstraints() < 2 || state != TRANSIENT)) {
+            subrel.setConstraints(this, node);
         }
 
         // if the new node is marked as TRANSIENT and this node is not, mark new node as NEW
@@ -1483,7 +1483,10 @@ public final class Node implements INode {
      */
     public Enumeration getSubnodes() {
         loadNodes();
+        return getLoadedSubnodes();
+    }
 
+    private Enumeration getLoadedSubnodes() {
         final SubnodeList list = subnodes;
         if (list == null) {
             return new EmptyEnumeration();
@@ -2365,7 +2368,9 @@ public final class Node implements INode {
     /**
      * Turn node status from TRANSIENT to NEW so that the Transactor will
      * know it has to insert this node. Recursively persistifies all child nodes
-     * and references.
+     * and references. This method will immediately cause the node it is called upon to
+     * be stored in db when the transaction is committed, so it should be called
+     * with care.
      */
     private void makePersistable() {
         // if this isn't a transient node, do nothing.
@@ -2391,61 +2396,74 @@ public final class Node implements INode {
 
     /**
      * Recursively turn node status from TRANSIENT to NEW on child nodes
-     * so that the Transactor knows they are to be persistified.
+     * so that the Transactor knows they are to be persistified. This method
+     * can be called on TRANSIENT nodes that have just been made perstable
+     * using makePersistable() or converted to virtual using convertToVirtual().
      */
     private void makeChildrenPersistable() {
         Relation subrel = dbmap == null ? null : dbmap.getSubnodeRelation();
-        for (Enumeration e = getSubnodes(); e.hasMoreElements();) {
-            Node n = (Node) e.nextElement();
+        for (Enumeration e = getLoadedSubnodes(); e.hasMoreElements();) {
+            Node node = (Node) e.nextElement();
 
-            if (n.state == TRANSIENT) {
-                n.makePersistable();
-                if (subrel != null && subrel.countConstraints() > 1) {
-                    subrel.setConstraints(this, n);
+            if (node.state == TRANSIENT) {
+                DbMapping submap = node.getDbMapping();
+                if (submap != null && submap.isVirtual() && !submap.needsPersistence()) {
+                    convertToVirtual(node);
+                } else {
+                    node.makePersistable();
+                    if (subrel != null && subrel.countConstraints() > 1) {
+                        subrel.setConstraints(this, node);
+                    }
                 }
             }
         }
+
+        // no need to make properties of virtual nodes persistable
+        if (state == VIRTUAL) return;
 
         for (Enumeration e = properties(); e.hasMoreElements();) {
             String propname = (String) e.nextElement();
             IProperty next = get(propname);
 
-            if ((next != null) && (next.getType() == IProperty.NODE)) {
+            if (next == null || next.getType() != IProperty.NODE) {
+                continue;
+            }
 
-                // check if this property actually needs to be persisted.
-                Node n = (Node) next.getNodeValue();
-                Relation rel = null;
+            // check if this property actually needs to be persisted.
+            Node node = (Node) next.getNodeValue();
+            Relation rel = null;
 
-                if (n == null || n == this) {
-                    continue;
-                }
+            if (node == null || node == this) {
+                continue;
+            }
 
-                if (dbmap != null) {
-                    rel = dbmap.getExactPropertyRelation(next.getName());
-                    if (rel != null && rel.isVirtual() && !rel.needsPersistence()) {
-                        // temporarilly set state to TRANSIENT to avoid loading anything from db
-                        n.setState(TRANSIENT);
-                        n.makeChildrenPersistable();
-                        // make this a virtual node. what we do is basically to
-                        // replay the things done in the constructor for virtual nodes.
-                        // NOTE: setting the primaryKey may not be necessary since this
-                        // isn't managed by the nodemanager but rather an actual property of
-                        // its parent node.
-                        n.setState(VIRTUAL);
-                        n.primaryKey = new SyntheticKey(getKey(), propname);
-                        n.id = propname;
-                        continue;
-                    }
-                }
-
-                n.makePersistable();
-
+            rel = dbmap == null ? null : dbmap.getExactPropertyRelation(next.getName());
+            if (rel != null && rel.isVirtual() && !rel.needsPersistence()) {
+                convertToVirtual(node);
+            } else {
+                node.makePersistable();
                 if (rel != null && rel.isComplexReference()) {
                     // if this is a complex reference, make binding properties are set
-                    rel.setConstraints(this, n);
+                    rel.setConstraints(this, node);
                 }
             }
         }
+    }
+
+    /**
+     * Convert a node to a virtual (collection or group ) node. This is used when we
+     * encounter a node that is defined as virtual from within the  makePeristable() and
+     * makeChildrenPersistable() methods. It will first mark the node as virtual and then
+     * call makeChildrenPersistable() on it.
+     * @param node a previously transient node to be converted to a virtual node.
+     */
+    private void convertToVirtual(Node node) {
+        // Make node a virtual node with this as parent node. what we do is
+        // basically to replay the things done in the constructor for virtual nodes.
+        node.setState(VIRTUAL);
+        node.primaryKey = new SyntheticKey(getKey(), node.name);
+        node.id = node.name;
+        node.makeChildrenPersistable();
     }
 
     /**

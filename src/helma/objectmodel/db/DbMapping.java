@@ -1631,4 +1631,16 @@ public final class DbMapping {
     public boolean isGroup() {
         return isGroup;
     }
+
+    /**
+     * Find whether a node with this DbMapping must be stored in the database.
+     * This is true if this mapping defines a non-virtual node, or a virtual
+     * node with non-relational child objects.
+     * @return true if this node needs to be stored in the db, false otherwise
+     */
+    public boolean needsPersistence() {
+        DbMapping submap = getSubnodeMapping();
+        return !isVirtual || (submap != null && !submap.isRelational());
+    }
 }
+
