@@ -441,7 +441,6 @@ public class MarkdownProcessor {
                         break;
                     }
                     lastChar = chars[k];
-                    System.err.println(k + ": " + chars[k]);
 
                     if (escape) {
                         escape = false;
@@ -1189,7 +1188,7 @@ public class MarkdownProcessor {
 
     public static void main(String[] args) throws IOException {
         if (args.length != 1) {
-            System.err.println("Usage: java org.helma.util.MarkdownProcessor FILE");
+            System.out.println("Usage: java org.helma.util.MarkdownProcessor FILE");
             return;
         }
         MarkdownProcessor processor = new MarkdownProcessor(new File(args[0]));
