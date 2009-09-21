@@ -18,7 +18,7 @@ public class MarkdownProcessor {
     private boolean listParagraphs = false;
     private int codeEndMarker = 0;
     private ElementStack stack = new ElementStack();
-    private HashMap spanTags;
+    private Emphasis[] emph = new Emphasis[2];
 
     private String result = null;
 
@@ -249,7 +249,6 @@ public class MarkdownProcessor {
     private synchronized void secondPass() {
         state = NEWLINE;
         stack.add(new BaseElement());
-        spanTags = new HashMap();
         buffer = new StringBuilder((int) (length * 1.2));
         line = 1;
         boolean escape = false;
@@ -320,9 +319,9 @@ public class MarkdownProcessor {
 
                 if (state == HEADER) {
                     if (c == '#') {
-                        ((Element) stack.peek()).m ++;
+                        ((Element) stack.peek()).mod++;
                     } else {
-                        ((Element) stack.peek()).m = 0;
+                        ((Element) stack.peek()).mod = 0;
                     }
                 }
 
@@ -346,8 +345,8 @@ public class MarkdownProcessor {
                 }
                 if (state == HEADER) {
                     Element header = (Element) stack.pop();
-                    if (header.m > 0) {
-                        buffer.setLength(buffer.length() - header.m);
+                    if (header.mod > 0) {
+                        buffer.setLength(buffer.length() - header.mod);
                     }
                     header.close();
                 }
@@ -415,6 +414,14 @@ public class MarkdownProcessor {
     }
 
     private boolean checkEmphasis(char c) {
+        for (int l = 1; l >= 0; l--) {
+            if (emph[l] != null && emph[l].end == i) {
+                emph[l].close();
+                i += emph[l].mod;
+                emph[l] = null;
+                return true;
+            }
+        }
         if (c == '*' || c == '_') {
             int n = 1;
             int j = i + 1;
@@ -424,68 +431,50 @@ public class MarkdownProcessor {
             }
             int found = n;
             boolean isStartTag = j < length  - 1 && !Character.isWhitespace(chars[j]);
-            boolean isEndTag = i > 0 && !Character.isWhitespace(chars[i - 1]);
-            boolean hasStrong = spanTags.get(Integer.valueOf(2)) != null;
-            boolean hasEmphasis = spanTags.get(Integer.valueOf(1)) != null;
-            if (isStartTag && (!hasStrong || !hasEmphasis)) {
-                List matchingEndTags = new ArrayList();
+            if (isStartTag && (emph[0] == null || emph[1] == null)) {
+                List possibleEndTags = new ArrayList();
                 char lastChar = 0;
                 int count = 0;
+                boolean escape = false;
                 for (int k = j; k < length; k++) {
                     if (chars[k] == '\n' && lastChar == '\n') {
                         break;
                     }
-                    if (chars[k] == c) {
-                        count += 1;
-                    } else {
-                        if (count > 0 && !Character.isWhitespace(chars[k - count - 1])) {
-                            matchingEndTags.add(Integer.valueOf(count));
-                        }
-                        count = 0;
-                    }
                     lastChar = chars[k];
-                }
+                    System.err.println(k + ": " + chars[k]);
 
-                String[] tryElements = {
-                    hasEmphasis ? null : "em",
-                    hasStrong || n < 2 ? null : "strong"
-                };
-                Stack matchedElements = new Stack();
-                for (int l = tryElements.length - 1; l >= 0; l--) {
-                    for (int k = 0; k < matchingEndTags.size(); k++) {
-                        // FIXME bogus check
-                        if (matchedElements.size() == tryElements.length) {
-                            break;
-                        }
-                        if (n > l && tryElements[l] != null && ((Integer) matchingEndTags.get(k)).intValue() > l) {
-                            matchedElements.add(tryElements[l]);
-                            n -= l + 1;
-                            matchingEndTags.set(k, Integer.valueOf(((Integer) matchingEndTags.get(k)).intValue() - l + 1));
-                            tryElements[l] = null;
+                    if (escape) {
+                        escape = false;
+                    } else {
+                        if (chars[k] == '\\') {
+                            escape = true;
+                        } else if (chars[k] == '`') {
+                            k = skipCodeSpan(k);
+                        } else if (chars[k] == c) {
+                            count += 1;
+                        } else {
+                            if (count > 0 && !Character.isWhitespace(chars[k - count - 1])) {
+                                // add an int array to possible end tags: [position, nuberOfTokens]
+                                possibleEndTags.add(new int[] {k - count, count});
+                            }
+                            count = 0;
                         }
                     }
                 }
 
-                while (matchedElements.size() > 0) {
-                    String ctor = (String) matchedElements.pop();
-                    Element elem = "em".equals(ctor) ? (Element) new Emphasis() : new Strong();
-                    elem.open();
-                    spanTags.put(Integer.valueOf("strong".equals(ctor) ? 2 : 1), elem);
-                }
-            }
-            if (isEndTag) {
-                for  (int z = 2; z > 0; z--) {
-                    Element elem = (Element) spanTags.get(Integer.valueOf(z));
-                    if (elem != null && elem.m <= n) {
-                        spanTags.remove(Integer.valueOf(z));
-                        elem.close();
-                        n -= elem.m;
+                for (int l = 1; l >= 0; l--) {
+                    if (emph[l] == null && n > l) {
+                        emph[l] = checkEmphasisInternal(l + 1, possibleEndTags);
+                        if (emph[l] != null) {
+                            n -= l + 1;
+                        }
                     }
                 }
             }
             if (n == found) {
                 return false;
             }
+            // write out remaining token chars
             for (int m = 0; m < n; m++) {
                 buffer.append(c);
             }
@@ -493,6 +482,20 @@ public class MarkdownProcessor {
             return true;
         }
         return false;
+    }
+
+    private Emphasis checkEmphasisInternal(int length, List possibleEndTags) {
+        for (int k = 0; k < possibleEndTags.size(); k++) {
+            int[] possibleEndTag = (int[]) possibleEndTags.get(k);
+            if (possibleEndTag[1] >= length) {
+                Emphasis elem = new Emphasis(length, possibleEndTag[0]);
+                elem.open();
+                possibleEndTag[0] += length;
+                possibleEndTag[1] -= length;
+                return elem;
+            }
+        }
+        return null;
     }
 
     private boolean checkCodeSpan(char c) {
@@ -540,6 +543,37 @@ public class MarkdownProcessor {
         buffer.append(code.toString().trim()).append("</code>");
         i = j + 1;
         return true;
+    }
+
+    // find the end of a code span starting at start
+    private int skipCodeSpan(int start) {
+        int n = 0; // additional backticks to match
+        int j = start + 1;
+        while(j < length && chars[j] == '`') {
+            n += 1;
+            j += 1;
+        }
+        outer: while(j < length) {
+            if (chars[j] == '`') {
+                if (n == 0) {
+                    break;
+                } else {
+                    if (j + n >= length) {
+                        return start + 1;
+                    }
+                    for (int k = j + 1; k <= j + n; k++) {
+                        if (chars[k] != '`') {
+                            break;
+                        } else if (k == j + n) {
+                            j = k;
+                            break outer;
+                        }
+                    }
+                }
+            }
+            j += 1;
+        }
+        return j;
     }
 
     private boolean checkLink(char c) {
@@ -1089,7 +1123,7 @@ public class MarkdownProcessor {
 
     class Element {
         String tag;
-        int nesting, m;
+        int nesting, mod;
 
         void open() {
             openTag(tag, buffer);
@@ -1145,16 +1179,11 @@ public class MarkdownProcessor {
     }
 
     class Emphasis extends Element {
-        Emphasis() {
-            this.tag = "em";
-            this.m = 1;
-        }
-    }
-
-    class Strong extends Element {
-        Strong() {
-            this.tag = "strong";
-            this.m = 2;
+        int end;
+        Emphasis(int mod, int end) {
+            this.mod = mod;
+            this.end = end;
+            this.tag = mod == 1 ? "em" : "strong";
         }
     }
 
