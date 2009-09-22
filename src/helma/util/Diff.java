@@ -1,863 +1,659 @@
-/* $Log$
-/* Revision 1.1  2002/10/31 08:39:34  hannes
-/* Added GNU Diff class from http://www.bmsi.com/java/#diff
 /*
- * Revision 1.3  2000/03/03  21:58:03  stuart
- * move discard_confusing_lines and shift_boundaries to class file_data
- *
- * Revision 1.2  2000/03/02  16:37:38  stuart
- * Add GPL and copyright
- *
+Copyright (c) 2009, incava.org
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice,
+    * this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above copyright notice,
+    * this list of conditions and the following disclaimer in the documentation
+    * and/or other materials provided with the distribution.
+
+    * Neither the name of incava.org nor the names of its contributors may be
+    * used to endorse or promote products derived from this software without
+    * specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package helma.util;
 
-import java.util.Hashtable;
+import java.util.*;
 
-/** A class to compare vectors of objects.  The result of comparison
-    is a list of <code>change</code> objects which form an
-    edit script.  The objects compared are traditionally lines
-    of text from two files.  Comparison options such as "ignore
-    whitespace" are implemented by modifying the <code>equals</code>
-    and <code>hashcode</code> methods for the objects compared.
-<p>
-   The basic algorithm is described in: </br>
-   "An O(ND) Difference Algorithm and its Variations", Eugene Myers,
-   Algorithmica Vol. 1 No. 2, 1986, p 251.  
-<p>
-   This class outputs different results from GNU diff 1.15 on some
-   inputs.  Our results are actually better (smaller change list, smaller
-   total size of changes), but it would be nice to know why.  Perhaps
-   there is a memory overwrite bug in GNU diff 1.15.
 
-  @author Stuart D. Gathman, translated from GNU diff 1.15
-    Copyright (C) 2000  Business Management Systems, Inc.
-<p>
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 1, or (at your option)
-    any later version.
-<p>
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-<p>
-    You should have received a copy of the <a href=COPYING.txt>
-    GNU General Public License</a>
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
+/**
+ * Compares two lists, returning a list of the additions, changes, and deletions
+ * between them. A <code>Comparator</code> may be passed as an argument to the
+ * constructor, and will thus be used. If not provided, the initial value in the
+ * <code>a</code> ("from") list will be looked at to see if it supports the
+ * <code>Comparable</code> interface. If so, its <code>equals</code> and
+ * <code>compareTo</code> methods will be invoked on the instances in the "from"
+ * and "to" lists; otherwise, for speed, hash codes from the objects will be
+ * used instead for comparison.
+ *
+ * <p>The file FileDiff.java shows an example usage of this class, in an
+ * application similar to the Unix "diff" program.</p>
  */
+public class Diff
+{
+    /**
+     * The source list, AKA the "from" values.
+     */
+    protected List a;
 
-public class Diff {
+    /**
+     * The target list, AKA the "to" values.
+     */
+    protected List b;
 
-  /** Prepare to find differences between two arrays.  Each element of
-      the arrays is translated to an "equivalence number" based on
-      the result of <code>equals</code>.  The original Object arrays
-      are no longer needed for computing the differences.  They will
-      be needed again later to print the results of the comparison as
-      an edit script, if desired.
-   */
-  public Diff(Object[] a,Object[] b) {
-    Hashtable h = new Hashtable(a.length + b.length);
-    filevec[0] = new file_data(a,h);
-    filevec[1] = new file_data(b,h);
-  }
+    /**
+     * The list of differences, as <code>Difference</code> instances.
+     */
+    protected List diffs = new ArrayList();
 
-  /** 1 more than the maximum equivalence value used for this or its
-     sibling file. */
-  private int equiv_max = 1;
+    /**
+     * The pending, uncommitted difference.
+     */
+    private Difference pending;
 
-  /** When set to true, the comparison uses a heuristic to speed it up.
-    With this heuristic, for files with a constant small density
-    of changes, the algorithm is linear in the file size.  */
-  public boolean heuristic = false;
+    /**
+     * The comparator used, if any.
+     */
+    private Comparator comparator;
 
-  /** When set to true, the algorithm returns a guarranteed minimal
-      set of changes.  This makes things slower, sometimes much slower. */
-  public boolean no_discards = false;
+    /**
+     * The thresholds.
+     */
+    private TreeMap thresh;
 
-  private int[] xvec, yvec;	/* Vectors being compared. */
-  private int[] fdiag;		/* Vector, indexed by diagonal, containing
-				   the X coordinate of the point furthest
-				   along the given diagonal in the forward
-				   search of the edit matrix. */
-  private int[] bdiag;		/* Vector, indexed by diagonal, containing
-				   the X coordinate of the point furthest
-				   along the given diagonal in the backward
-				   search of the edit matrix. */
-  private int fdiagoff, bdiagoff;
-  private final file_data[] filevec = new file_data[2];
-  private int cost;
-
-  /** Find the midpoint of the shortest edit script for a specified
-     portion of the two files.
-
-     We scan from the beginnings of the files, and simultaneously from the ends,
-     doing a breadth-first search through the space of edit-sequence.
-     When the two searches meet, we have found the midpoint of the shortest
-     edit sequence.
-
-     The value returned is the number of the diagonal on which the midpoint lies.
-     The diagonal number equals the number of inserted lines minus the number
-     of deleted lines (counting only lines before the midpoint).
-     The edit cost is stored into COST; this is the total number of
-     lines inserted or deleted (counting only lines before the midpoint).
-
-     This function assumes that the first lines of the specified portions
-     of the two files do not match, and likewise that the last lines do not
-     match.  The caller must trim matching lines from the beginning and end
-     of the portions it is going to specify.
-
-     Note that if we return the "wrong" diagonal value, or if
-     the value of bdiag at that diagonal is "wrong",
-     the worst this can do is cause suboptimal diff output.
-     It cannot cause incorrect diff output.  */
-
-  private int diag (int xoff, int xlim, int yoff, int ylim) {
-    final int[] fd = fdiag;	// Give the compiler a chance.
-    final int[] bd = bdiag;	// Additional help for the compiler.
-    final int[] xv = xvec;		// Still more help for the compiler.
-    final int[] yv = yvec;		// And more and more . . .
-    final int dmin = xoff - ylim;	// Minimum valid diagonal.
-    final int dmax = xlim - yoff;	// Maximum valid diagonal.
-    final int fmid = xoff - yoff;	// Center diagonal of top-down search.
-    final int bmid = xlim - ylim;	// Center diagonal of bottom-up search.
-    int fmin = fmid, fmax = fmid;	// Limits of top-down search.
-    int bmin = bmid, bmax = bmid;	// Limits of bottom-up search.
-    /* True if southeast corner is on an odd
-				     diagonal with respect to the northwest. */
-    final boolean odd = (fmid - bmid & 1) != 0;	
-
-    fd[fdiagoff + fmid] = xoff;
-    bd[bdiagoff + bmid] = xlim;
-
-    for (int c = 1;; ++c)
-      {
-	int d;			/* Active diagonal. */
-	boolean big_snake = false;
-
-	/* Extend the top-down search by an edit step in each diagonal. */
-	if (fmin > dmin)
-	  fd[fdiagoff + --fmin - 1] = -1;
-	else
-	  ++fmin;
-	if (fmax < dmax)
-	  fd[fdiagoff + ++fmax + 1] = -1;
-	else
-	  --fmax;
-	for (d = fmax; d >= fmin; d -= 2)
-	  {
-	    int x, y, oldx, tlo = fd[fdiagoff + d - 1], thi = fd[fdiagoff + d + 1];
-
-	    if (tlo >= thi)
-	      x = tlo + 1;
-	    else
-	      x = thi;
-	    oldx = x;
-	    y = x - d;
-	    while (x < xlim && y < ylim && xv[x] == yv[y]) {
-	      ++x; ++y;
-	    }
-	    if (x - oldx > 20)
-	      big_snake = true;
-	    fd[fdiagoff + d] = x;
-	    if (odd && bmin <= d && d <= bmax && bd[bdiagoff + d] <= fd[fdiagoff + d])
-	      {
-		cost = 2 * c - 1;
-		return d;
-	      }
-	  }
-
-	/* Similar extend the bottom-up search. */
-	if (bmin > dmin)
-	  bd[bdiagoff + --bmin - 1] = Integer.MAX_VALUE;
-	else
-	  ++bmin;
-	if (bmax < dmax)
-	  bd[bdiagoff + ++bmax + 1] = Integer.MAX_VALUE;
-	else
-	  --bmax;
-	for (d = bmax; d >= bmin; d -= 2)
-	  {
-	    int x, y, oldx, tlo = bd[bdiagoff + d - 1], thi = bd[bdiagoff + d + 1];
-
-	    if (tlo < thi)
-	      x = tlo;
-	    else
-	      x = thi - 1;
-	    oldx = x;
-	    y = x - d;
-	    while (x > xoff && y > yoff && xv[x - 1] == yv[y - 1]) {
-	      --x; --y;
-	    }
-	    if (oldx - x > 20)
-	      big_snake = true;
-	    bd[bdiagoff + d] = x;
-	    if (!odd && fmin <= d && d <= fmax && bd[bdiagoff + d] <= fd[fdiagoff + d])
-	      {
-		cost = 2 * c;
-		return d;
-	      }
-	  }
-
-	/* Heuristic: check occasionally for a diagonal that has made
-	   lots of progress compared with the edit distance.
-	   If we have any such, find the one that has made the most
-	   progress and return it as if it had succeeded.
-
-	   With this heuristic, for files with a constant small density
-	   of changes, the algorithm is linear in the file size.  */
-
-	if (c > 200 && big_snake && heuristic)
-	  {
-	    int best = 0;
-	    int bestpos = -1;
-
-	    for (d = fmax; d >= fmin; d -= 2)
-	      {
-		int dd = d - fmid;
-		if ((fd[fdiagoff + d] - xoff)*2 - dd > 12 * (c + (dd > 0 ? dd : -dd)))
-		  {
-		    if (fd[fdiagoff + d] * 2 - dd > best
-			&& fd[fdiagoff + d] - xoff > 20
-			&& fd[fdiagoff + d] - d - yoff > 20)
-		      {
-			int k;
-			int x = fd[fdiagoff + d];
-
-			/* We have a good enough best diagonal;
-			   now insist that it end with a significant snake.  */
-			for (k = 1; k <= 20; k++)
-			  if (xvec[x - k] != yvec[x - d - k])
-			    break;
-
-			if (k == 21)
-			  {
-			    best = fd[fdiagoff + d] * 2 - dd;
-			    bestpos = d;
-			  }
-		      }
-		  }
-	      }
-	    if (best > 0)
-	      {
-		cost = 2 * c - 1;
-		return bestpos;
-	      }
-
-	    best = 0;
-	    for (d = bmax; d >= bmin; d -= 2)
-	      {
-		int dd = d - bmid;
-		if ((xlim - bd[bdiagoff + d])*2 + dd > 12 * (c + (dd > 0 ? dd : -dd)))
-		  {
-		    if ((xlim - bd[bdiagoff + d]) * 2 + dd > best
-			&& xlim - bd[bdiagoff + d] > 20
-			&& ylim - (bd[bdiagoff + d] - d) > 20)
-		      {
-			/* We have a good enough best diagonal;
-			   now insist that it end with a significant snake.  */
-			int k;
-			int x = bd[bdiagoff + d];
-
-			for (k = 0; k < 20; k++)
-			  if (xvec[x + k] != yvec[x - d + k])
-			    break;
-			if (k == 20)
-			  {
-			    best = (xlim - bd[bdiagoff + d]) * 2 + dd;
-			    bestpos = d;
-			  }
-		      }
-		  }
-	      }
-	    if (best > 0)
-	      {
-		cost = 2 * c - 1;
-		return bestpos;
-	      }
-	  }
-      }
-  }
-
-  /** Compare in detail contiguous subsequences of the two files
-     which are known, as a whole, to match each other.
-
-     The results are recorded in the vectors filevec[N].changed_flag, by
-     storing a 1 in the element for each line that is an insertion or deletion.
-
-     The subsequence of file 0 is [XOFF, XLIM) and likewise for file 1.
-
-     Note that XLIM, YLIM are exclusive bounds.
-     All line numbers are origin-0 and discarded lines are not counted.  */
-
-  private void compareseq (int xoff, int xlim, int yoff, int ylim) {
-    /* Slide down the bottom initial diagonal. */
-    while (xoff < xlim && yoff < ylim && xvec[xoff] == yvec[yoff]) {
-      ++xoff; ++yoff;
+    /**
+     * Constructs the Diff object for the two arrays, using the given comparator.
+     */
+    public Diff(Object[] a, Object[] b, Comparator comp)
+    {
+        this(Arrays.asList(a), Arrays.asList(b), comp);
     }
-    /* Slide up the top initial diagonal. */
-    while (xlim > xoff && ylim > yoff && xvec[xlim - 1] == yvec[ylim - 1]) {
-      --xlim; --ylim;
+
+    /**
+     * Constructs the Diff object for the two arrays, using the default
+     * comparison mechanism between the objects, such as <code>equals</code> and
+     * <code>compareTo</code>.
+     */
+    public Diff(Object[] a, Object[] b)
+    {
+        this(a, b, null);
+    }
+
+    /**
+     * Constructs the Diff object for the two lists, using the given comparator.
+     */
+    public Diff(List a, List b, Comparator comp)
+    {
+        this.a = a;
+        this.b = b;
+        this.comparator = comp;
+        this.thresh = null;
+    }
+
+    /**
+     * Constructs the Diff object for the two lists, using the default
+     * comparison mechanism between the objects, such as <code>equals</code> and
+     * <code>compareTo</code>.
+     */
+    public Diff(List a, List b)
+    {
+        this(a, b, null);
+    }
+
+    /**
+     * Runs diff and returns the results.
+     */
+    public Change diff()
+    {
+        traverseSequences();
+
+        // add the last difference, if pending:
+        if (pending != null) {
+            diffs.add(pending);
+        }
+
+        return Change.fromList(diffs);
+    }
+
+    /**
+     * Traverses the sequences, seeking the longest common subsequences,
+     * invoking the methods <code>finishedA</code>, <code>finishedB</code>,
+     * <code>onANotB</code>, and <code>onBNotA</code>.
+     */
+    protected void traverseSequences()
+    {
+        Integer[] matches = getLongestCommonSubsequences();
+
+        int lastA = a.size() - 1;
+        int lastB = b.size() - 1;
+        int bi = 0;
+        int ai;
+
+        int lastMatch = matches.length - 1;
+        
+        for (ai = 0; ai <= lastMatch; ++ai) {
+            Integer bLine = matches[ai];
+
+            if (bLine == null) {
+                onANotB(ai, bi);
+            }
+            else {
+                while (bi < bLine.intValue()) {
+                    onBNotA(ai, bi++);
+                }
+
+                onMatch(ai, bi++);
+            }
+        }
+
+        boolean calledFinishA = false;
+        boolean calledFinishB = false;
+
+        while (ai <= lastA || bi <= lastB) {
+
+            // last A?
+            if (ai == lastA + 1 && bi <= lastB) {
+                if (!calledFinishA && callFinishedA()) {
+                    finishedA(lastA);
+                    calledFinishA = true;
+                }
+                else {
+                    while (bi <= lastB) {
+                        onBNotA(ai, bi++);
+                    }
+                }
+            }
+
+            // last B?
+            if (bi == lastB + 1 && ai <= lastA) {
+                if (!calledFinishB && callFinishedB()) {
+                    finishedB(lastB);
+                    calledFinishB = true;
+                }
+                else {
+                    while (ai <= lastA) {
+                        onANotB(ai++, bi);
+                    }
+                }
+            }
+
+            if (ai <= lastA) {
+                onANotB(ai++, bi);
+            }
+
+            if (bi <= lastB) {
+                onBNotA(ai, bi++);
+            }
+        }
+    }
+
+    /**
+     * Override and return true in order to have <code>finishedA</code> invoked
+     * at the last element in the <code>a</code> array.
+     */
+    protected boolean callFinishedA()
+    {
+        return false;
+    }
+
+    /**
+     * Override and return true in order to have <code>finishedB</code> invoked
+     * at the last element in the <code>b</code> array.
+     */
+    protected boolean callFinishedB()
+    {
+        return false;
+    }
+
+    /**
+     * Invoked at the last element in <code>a</code>, if
+     * <code>callFinishedA</code> returns true.
+     */
+    protected void finishedA(int lastA)
+    {
+    }
+
+    /**
+     * Invoked at the last element in <code>b</code>, if
+     * <code>callFinishedB</code> returns true.
+     */
+    protected void finishedB(int lastB)
+    {
+    }
+
+    /**
+     * Invoked for elements in <code>a</code> and not in <code>b</code>.
+     */
+    protected void onANotB(int ai, int bi)
+    {
+        if (pending == null) {
+            pending = new Difference(ai, ai, bi, -1);
+        }
+        else {
+            pending.setDeleted(ai);
+        }
+    }
+
+    /**
+     * Invoked for elements in <code>b</code> and not in <code>a</code>.
+     */
+    protected void onBNotA(int ai, int bi)
+    {
+        if (pending == null) {
+            pending = new Difference(ai, -1, bi, bi);
+        }
+        else {
+            pending.setAdded(bi);
+        }
+    }
+
+    /**
+     * Invoked for elements matching in <code>a</code> and <code>b</code>.
+     */
+    protected void onMatch(int ai, int bi)
+    {
+        if (pending == null) {
+            // no current pending
+        }
+        else {
+            diffs.add(pending);
+            pending = null;
+        }
+    }
+
+    /**
+     * Compares the two objects, using the comparator provided with the
+     * constructor, if any.
+     */
+    protected boolean equals(Object x, Object y)
+    {
+        return comparator == null ? x.equals(y) : comparator.compare(x, y) == 0;
     }
     
-    /* Handle simple cases. */
-    if (xoff == xlim)
-      while (yoff < ylim)
-	filevec[1].changed_flag[1+filevec[1].realindexes[yoff++]] = true;
-    else if (yoff == ylim)
-      while (xoff < xlim)
-	filevec[0].changed_flag[1+filevec[0].realindexes[xoff++]] = true;
-    else
-      {
-	/* Find a point of correspondence in the middle of the files.  */
-
-	int d = diag (xoff, xlim, yoff, ylim);
-	int c = cost;
-	//int f = fdiag[fdiagoff + d];
-	int b = bdiag[bdiagoff + d];
-
-	if (c == 1)
-	  {
-	    /* This should be impossible, because it implies that
-	       one of the two subsequences is empty,
-	       and that case was handled above without calling `diag'.
-	       Let's verify that this is true.  */
-	    throw new IllegalArgumentException("Empty subsequence");
-	  }
-	else
-	  {
-	    /* Use that point to split this problem into two subproblems.  */
-	    compareseq (xoff, b, yoff, b - d);
-	    /* This used to use f instead of b,
-	       but that is incorrect!
-	       It is not necessarily the case that diagonal d
-	       has a snake from b to f.  */
-	    compareseq (b, xlim, b - d, ylim);
-	  }
-      }
-  }
-
-  /** Discard lines from one file that have no matches in the other file.
-   */
-
-  private void discard_confusing_lines() {
-    filevec[0].discard_confusing_lines(filevec[1]);
-    filevec[1].discard_confusing_lines(filevec[0]);
-  }
-
-  private boolean inhibit = false;
-
-  /** Adjust inserts/deletes of blank lines to join changes
-     as much as possible.
-   */
-
-  private void shift_boundaries() {
-    if (inhibit)
-      return;
-    filevec[0].shift_boundaries(filevec[1]);
-    filevec[1].shift_boundaries(filevec[0]);
-  }
-
-  /** Scan the tables of which lines are inserted and deleted,
-     producing an edit script in reverse order.  */
-
-  private change build_reverse_script() {
-    change script = null;
-    final boolean[] changed0 = filevec[0].changed_flag;
-    final boolean[] changed1 = filevec[1].changed_flag;
-    final int len0 = filevec[0].buffered_lines;
-    final int len1 = filevec[1].buffered_lines;
-
-    /* Note that changedN[len0] does exist, and contains 0.  */
-
-    int i0 = 0, i1 = 0;
-
-    while (i0 < len0 || i1 < len1)
-      {
-	if (changed0[1+i0] || changed1[1+i1])
-	  {
-	    int line0 = i0, line1 = i1;
-
-	    /* Find # lines changed here in each file.  */
-	    while (changed0[1+i0]) ++i0;
-	    while (changed1[1+i1]) ++i1;
-
-	    /* Record this change.  */
-	    script = new change(line0, line1, i0 - line0, i1 - line1, script);
-	  }
-
-	/* We have reached lines in the two files that match each other.  */
-	i0++; i1++;
-      }
-
-    return script;
-  }
-
-  /** Scan the tables of which lines are inserted and deleted,
-     producing an edit script in forward order.  */
-
-  private change build_script() {
-    change script = null;
-    final boolean[] changed0 = filevec[0].changed_flag;
-    final boolean[] changed1 = filevec[1].changed_flag;
-    final int len0 = filevec[0].buffered_lines;
-    final int len1 = filevec[1].buffered_lines;
-    int i0 = len0, i1 = len1;
-
-    /* Note that changedN[-1] does exist, and contains 0.  */
-
-    while (i0 >= 0 || i1 >= 0)
-      {
-	if (changed0[i0] || changed1[i1])
-	  {
-	    int line0 = i0, line1 = i1;
-
-	    /* Find # lines changed here in each file.  */
-	    while (changed0[i0]) --i0;
-	    while (changed1[i1]) --i1;
-
-	    /* Record this change.  */
-	    script = new change(i0, i1, line0 - i0, line1 - i1, script);
-	  }
-
-	/* We have reached lines in the two files that match each other.  */
-	i0--; i1--;
-      }
-
-    return script;
-  }
-  
-  /**
-   *  Convenience method to get a diff on the two files.
-   */
-  public change diff() {
-    return diff_2 (false);
-  }
-
-  /* Report the differences of two files.  DEPTH is the current directory
-     depth. */
-  public change diff_2(final boolean reverse) {
-
-    /* Some lines are obviously insertions or deletions
-       because they don't match anything.  Detect them now,
-       and avoid even thinking about them in the main comparison algorithm.  */
-
-    discard_confusing_lines ();
-
-    /* Now do the main comparison algorithm, considering just the
-       undiscarded lines.  */
-
-    xvec = filevec[0].undiscarded;
-    yvec = filevec[1].undiscarded;
-
-    int diags =
-      filevec[0].nondiscarded_lines + filevec[1].nondiscarded_lines + 3;
-    fdiag = new int[diags];
-    fdiagoff = filevec[1].nondiscarded_lines + 1;
-    bdiag = new int[diags];
-    bdiagoff = filevec[1].nondiscarded_lines + 1;
-
-    compareseq (0, filevec[0].nondiscarded_lines,
-		0, filevec[1].nondiscarded_lines);
-    fdiag = null;
-    bdiag = null;
-
-    /* Modify the results slightly to make them prettier
-       in cases where that can validly be done.  */
-
-    shift_boundaries ();
-
-    /* Get the results of comparison in the form of a chain
-       of `struct change's -- an edit script.  */
-
-    if (reverse)
-      return build_reverse_script();
-    else
-      return build_script();
-  }
-
-  /** The result of comparison is an "edit script": a chain of change objects.
-     Each change represents one place where some lines are deleted
-     and some are inserted.
-     
-     LINE0 and LINE1 are the first affected lines in the two files (origin 0).
-     DELETED is the number of lines deleted here from file 0.
-     INSERTED is the number of lines inserted here in file 1.
-
-     If DELETED is 0 then LINE0 is the number of the line before
-     which the insertion was done; vice versa for INSERTED and LINE1.  */
-
-  public static class change {
-    /** Previous or next edit command. */
-    public change link;		
-    /** # lines of file 1 changed here.  */
-    public final int inserted;	
-    /** # lines of file 0 changed here.  */
-    public final int deleted;		
-    /** Line number of 1st deleted line.  */
-    public final int line0;		
-    /** Line number of 1st inserted line.  */
-    public final int line1;		
-
-    /** Cons an additional entry onto the front of an edit script OLD.
-       LINE0 and LINE1 are the first affected lines in the two files (origin 0).
-       DELETED is the number of lines deleted here from file 0.
-       INSERTED is the number of lines inserted here in file 1.
-
-       If DELETED is 0 then LINE0 is the number of the line before
-       which the insertion was done; vice versa for INSERTED and LINE1.  */
-    change(int line0, int line1, int deleted, int inserted, change old) {
-      this.line0 = line0;
-      this.line1 = line1;
-      this.inserted = inserted;
-      this.deleted = deleted;
-      this.link = old;
-      //System.err.println(line0+","+line1+","+inserted+","+deleted);
-    }
-  }
-
-  /** Data on one input file being compared.  
-   */
-
-  class file_data {
-
-    /** Allocate changed array for the results of comparison.  */
-    void clear() {
-      /* Allocate a flag for each line of each file, saying whether that line
-	 is an insertion or deletion.
-	 Allocate an extra element, always zero, at each end of each vector.
-       */
-      changed_flag = new boolean[buffered_lines + 2];
-    }
-
-    /** Return equiv_count[I] as the number of lines in this file
-       that fall in equivalence class I.
-         @return the array of equivalence class counts.
+    /**
+     * Returns an array of the longest common subsequences.
      */
-    int[] equivCount() {
-      int[] equiv_count = new int[equiv_max];
-      for (int i = 0; i < buffered_lines; ++i)
-	++equiv_count[equivs[i]];
-      return equiv_count;
+    public Integer[] getLongestCommonSubsequences()
+    {
+        int aStart = 0;
+        int aEnd = a.size() - 1;
+
+        int bStart = 0;
+        int bEnd = b.size() - 1;
+
+        TreeMap matches = new TreeMap();
+
+        while (aStart <= aEnd && bStart <= bEnd && equals(a.get(aStart), b.get(bStart))) {
+            matches.put(Integer.valueOf(aStart++), Integer.valueOf(bStart++));
+        }
+
+        while (aStart <= aEnd && bStart <= bEnd && equals(a.get(aEnd), b.get(bEnd))) {
+            matches.put(Integer.valueOf(aEnd--), Integer.valueOf(bEnd--));
+        }
+
+        Map bMatches = null;
+        if (comparator == null) {
+            if (a.size() > 0 && a.get(0) instanceof Comparable) {
+                // this uses the Comparable interface
+                bMatches = new TreeMap();
+            }
+            else {
+                // this just uses hashCode()
+                bMatches = new HashMap();
+            }
+        }
+        else {
+            // we don't really want them sorted, but this is the only Map
+            // implementation (as of JDK 1.4) that takes a comparator.
+            bMatches = new TreeMap(comparator);
+        }
+
+        for (int bi = bStart; bi <= bEnd; ++bi) {
+            Object         element    = b.get(bi);
+            Object          key       = element;
+            List positions = (List) bMatches.get(key);
+            
+            if (positions == null) {
+                positions = new ArrayList();
+                bMatches.put(key, positions);
+            }
+            
+            positions.add(Integer.valueOf(bi));
+        }
+
+        thresh = new TreeMap();
+        Map links = new HashMap();
+
+        for (int i = aStart; i <= aEnd; ++i) {
+            Object aElement  = a.get(i);
+            List positions = (List) bMatches.get(aElement);
+
+            if (positions != null) {
+                Integer  k   = Integer.valueOf(0);
+                ListIterator pit = positions.listIterator(positions.size());
+                while (pit.hasPrevious()) {
+                    Integer j = (Integer) pit.previous();
+
+                    k = insert(j, k);
+
+                    if (k == null) {
+                        // nothing
+                    }
+                    else {
+                        Object value = k.intValue() > 0 ? links.get(Integer.valueOf(k.intValue() - 1)) : null;
+                        links.put(k, new Object[] { value, Integer.valueOf(i), j });
+                    }   
+                }
+            }
+        }
+
+        if (thresh.size() > 0) {
+            Integer  ti   = (Integer) thresh.lastKey();
+            Object[] link = (Object[])links.get(ti);
+            while (link != null) {
+                Integer x = (Integer)link[1];
+                Integer y = (Integer)link[2];
+                matches.put(x, y);
+                link = (Object[])link[0];
+            }
+        }
+
+        int       size = matches.size() == 0 ? 0 : 1 + ((Integer) matches.lastKey()).intValue();
+        Integer[] ary  = new Integer[size];
+        for (Iterator it = matches.keySet().iterator(); it.hasNext();) {
+            Integer idx = (Integer) it.next();
+            Integer val = (Integer) matches.get(idx);
+            ary[idx.intValue()] = val;
+        }
+        return ary;
     }
 
-    /** Discard lines that have no matches in another file.
-
-       A line which is discarded will not be considered by the actual
-       comparison algorithm; it will be as if that line were not in the file.
-       The file's `realindexes' table maps virtual line numbers
-       (which don't count the discarded lines) into real line numbers;
-       this is how the actual comparison algorithm produces results
-       that are comprehensible when the discarded lines are counted.
-<p>
-       When we discard a line, we also mark it as a deletion or insertion
-       so that it will be printed in the output.  
-      @param f the other file   
+    /**
+     * Returns whether the integer is not zero (including if it is not null).
      */
-    void discard_confusing_lines(file_data f) {
-      clear();
-    /* Set up table of which lines are going to be discarded. */
-      final byte[] discarded = discardable(f.equivCount());
-
-    /* Don't really discard the provisional lines except when they occur
-       in a run of discardables, with nonprovisionals at the beginning
-       and end.  */
-      filterDiscards(discarded);
-
-    /* Actually discard the lines. */
-      discard(discarded);
+    protected static boolean isNonzero(Integer i)
+    {
+        return i != null && i.intValue() != 0;
     }
 
-    /** Mark to be discarded each line that matches no line of another file.
-       If a line matches many lines, mark it as provisionally discardable.  
-       @see equivCount()
-       @param counts The count of each equivalence number for the other file.
-       @return 0=nondiscardable, 1=discardable or 2=provisionally discardable
-       	for each line
+    /**
+     * Returns whether the value in the map for the given index is greater than
+     * the given value.
      */
-
-    private byte[] discardable(final int[] counts) {
-      final int end = buffered_lines;
-      final byte[] discards = new byte[end];
-      final int[] equivs = this.equivs;
-      int many = 5;
-      int tem = end / 64;
-
-      /* Multiply MANY by approximate square root of number of lines.
-	 That is the threshold for provisionally discardable lines.  */
-      while ((tem = tem >> 2) > 0)
-	many *= 2;
-
-      for (int i = 0; i < end; i++)
-	{
-	  int nmatch;
-	  if (equivs[i] == 0)
-	    continue;
-	  nmatch = counts[equivs[i]];
-	  if (nmatch == 0)
-	    discards[i] = 1;
-	  else if (nmatch > many)
-	    discards[i] = 2;
-	}
-      return discards;
+    protected boolean isGreaterThan(Integer index, Integer val)
+    {
+        Integer lhs = (Integer) thresh.get(index);
+        return lhs != null && val != null && lhs.compareTo(val) > 0;
     }
 
-    /** Don't really discard the provisional lines except when they occur
-       in a run of discardables, with nonprovisionals at the beginning
-       and end.  */
-
-    private void filterDiscards(final byte[] discards) {
-	final int end = buffered_lines;
-
-	for (int i = 0; i < end; i++)
-	  {
-	    /* Cancel provisional discards not in middle of run of discards.  */
-	    if (discards[i] == 2)
-	      discards[i] = 0;
-	    else if (discards[i] != 0)
-	      {
-		/* We have found a nonprovisional discard.  */
-		int j;
-		int length;
-		int provisional = 0;
-
-		/* Find end of this run of discardable lines.
-		   Count how many are provisionally discardable.  */
-		for (j = i; j < end; j++)
-		  {
-		    if (discards[j] == 0)
-		      break;
-		    if (discards[j] == 2)
-		      ++provisional;
-		  }
-
-		/* Cancel provisional discards at end, and shrink the run.  */
-		while (j > i && discards[j - 1] == 2) {
-		  discards[--j] = 0; --provisional;
-		}
-
-		/* Now we have the length of a run of discardable lines
-		   whose first and last are not provisional.  */
-		length = j - i;
-
-		/* If 1/4 of the lines in the run are provisional,
-		   cancel discarding of all provisional lines in the run.  */
-		if (provisional * 4 > length)
-		  {
-		    while (j > i)
-		      if (discards[--j] == 2)
-			discards[j] = 0;
-		  }
-		else
-		  {
-		    int consec;
-		    int minimum = 1;
-		    int tem = length / 4;
-
-		    /* MINIMUM is approximate square root of LENGTH/4.
-		       A subrun of two or more provisionals can stand
-		       when LENGTH is at least 16.
-		       A subrun of 4 or more can stand when LENGTH >= 64.  */
-		    while ((tem = tem >> 2) > 0)
-		      minimum *= 2;
-		    minimum++;
-
-		    /* Cancel any subrun of MINIMUM or more provisionals
-		       within the larger run.  */
-		    for (j = 0, consec = 0; j < length; j++)
-		      if (discards[i + j] != 2)
-			consec = 0;
-		      else if (minimum == ++consec)
-			/* Back up to start of subrun, to cancel it all.  */
-			j -= consec;
-		      else if (minimum < consec)
-			discards[i + j] = 0;
-
-		    /* Scan from beginning of run
-		       until we find 3 or more nonprovisionals in a row
-		       or until the first nonprovisional at least 8 lines in.
-		       Until that point, cancel any provisionals.  */
-		    for (j = 0, consec = 0; j < length; j++)
-		      {
-			if (j >= 8 && discards[i + j] == 1)
-			  break;
-			if (discards[i + j] == 2) {
-			  consec = 0; discards[i + j] = 0;
-			}
-			else if (discards[i + j] == 0)
-			  consec = 0;
-			else
-			  consec++;
-			if (consec == 3)
-			  break;
-		      }
-
-		    /* I advances to the last line of the run.  */
-		    i += length - 1;
-
-		    /* Same thing, from end.  */
-		    for (j = 0, consec = 0; j < length; j++)
-		      {
-			if (j >= 8 && discards[i - j] == 1)
-			  break;
-			if (discards[i - j] == 2) {
-			  consec = 0; discards[i - j] = 0;
-			}
-			else if (discards[i - j] == 0)
-			  consec = 0;
-			else
-			  consec++;
-			if (consec == 3)
-			  break;
-		      }
-		  }
-	      }
-	  }
-      }
-
-    /** Actually discard the lines.
-      @param discards flags lines to be discarded
+    /**
+     * Returns whether the value in the map for the given index is less than
+     * the given value.
      */
-    private void discard(final byte[] discards) {
-      final int end = buffered_lines;
-      int j = 0;
-      for (int i = 0; i < end; ++i)
-	if (no_discards || discards[i] == 0)
-	  {
-	    undiscarded[j] = equivs[i];
-	    realindexes[j++] = i;
-	  }
-	else
-	  changed_flag[1+i] = true;
-      nondiscarded_lines = j;
+    protected boolean isLessThan(Integer index, Integer val)
+    {
+        Integer lhs = (Integer) thresh.get(index);
+        return lhs != null && (val == null || lhs.compareTo(val) < 0);
     }
 
-    file_data(Object[] data,Hashtable h) {
-      buffered_lines = data.length;
-
-      equivs = new int[buffered_lines]; 
-      undiscarded = new int[buffered_lines];
-      realindexes = new int[buffered_lines];
-
-      for (int i = 0; i < data.length; ++i) {
-        Integer ir = (Integer)h.get(data[i]);
-	if (ir == null)
-	  h.put(data[i],new Integer(equivs[i] = equiv_max++));
-	else
-	  equivs[i] = ir.intValue();
-      }
+    /**
+     * Returns the value for the greatest key in the map.
+     */
+    protected Integer getLastValue()
+    {
+        return (Integer) thresh.get(thresh.lastKey());
     }
 
-    /** Adjust inserts/deletes of blank lines to join changes
-       as much as possible.
-
-       We do something when a run of changed lines include a blank
-       line at one end and have an excluded blank line at the other.
-       We are free to choose which blank line is included.
-       `compareseq' always chooses the one at the beginning,
-       but usually it is cleaner to consider the following blank line
-       to be the "change".  The only exception is if the preceding blank line
-       would join this change to other changes.  
-      @param f the file being compared against
-    */
-
-    void shift_boundaries(file_data f) {
-      final boolean[] changed = changed_flag;
-      final boolean[] other_changed = f.changed_flag;
-      int i = 0;
-      int j = 0;
-      int i_end = buffered_lines;
-      int preceding = -1;
-      int other_preceding = -1;
-
-      for (;;)
-	{
-	  int start, end, other_start;
-
-	  /* Scan forwards to find beginning of another run of changes.
-	     Also keep track of the corresponding point in the other file.  */
-
-	  while (i < i_end && !changed[1+i])
-	    {
-	      while (other_changed[1+j++])
-		/* Non-corresponding lines in the other file
-		   will count as the preceding batch of changes.  */
-		other_preceding = j;
-	      i++;
-	    }
-
-	  if (i == i_end)
-	    break;
-
-	  start = i;
-	  other_start = j;
-
-	  for (;;)
-	    {
-	      /* Now find the end of this run of changes.  */
-
-	      while (i < i_end && changed[1+i]) i++;
-	      end = i;
-
-	      /* If the first changed line matches the following unchanged one,
-		 and this run does not follow right after a previous run,
-		 and there are no lines deleted from the other file here,
-		 then classify the first changed line as unchanged
-		 and the following line as changed in its place.  */
-
-	      /* You might ask, how could this run follow right after another?
-		 Only because the previous run was shifted here.  */
-
-	      if (end != i_end
-		  && equivs[start] == equivs[end]
-		  && !other_changed[1+j]
-		  && end != i_end
-		  && !((preceding >= 0 && start == preceding)
-		       || (other_preceding >= 0
-			   && other_start == other_preceding)))
-		{
-		  changed[1+end++] = true;
-		  changed[1+start++] = false;
-		  ++i;
-		  /* Since one line-that-matches is now before this run
-		     instead of after, we must advance in the other file
-		     to keep in synch.  */
-		  ++j;
-		}
-	      else
-		break;
-	    }
-
-	  preceding = i;
-	  other_preceding = j;
-	}
+    /**
+     * Adds the given value to the "end" of the threshold map, that is, with the
+     * greatest index/key.
+     */
+    protected void append(Integer value)
+    {
+        Integer addIdx = null;
+        if (thresh.size() == 0) {
+            addIdx = Integer.valueOf(0);
+        }
+        else {
+            Integer lastKey = (Integer) thresh.lastKey();
+            addIdx = Integer.valueOf(lastKey.intValue() + 1);
+        }
+        thresh.put(addIdx, value);
     }
 
-    /** Number of elements (lines) in this file. */
-    final int buffered_lines;
+    /**
+     * Inserts the given values into the threshold map.
+     */
+    protected Integer insert(Integer j, Integer k)
+    {
+        if (isNonzero(k) && isGreaterThan(k, j) && isLessThan(Integer.valueOf(k.intValue() - 1), j)) {
+            thresh.put(k, j);
+        }
+        else {
+            int high = -1;
+            
+            if (isNonzero(k)) {
+                high = k.intValue();
+            }
+            else if (thresh.size() > 0) {
+                high = ((Integer) thresh.lastKey()).intValue();
+            }
 
-    /** Vector, indexed by line number, containing an equivalence code for
-       each line.  It is this vector that is actually compared with that
-       of another file to generate differences. */
-    private final int[]	    equivs;
+            // off the end?
+            if (high == -1 || j.compareTo(getLastValue()) > 0) {
+                append(j);
+                k = Integer.valueOf(high + 1);
+            }
+            else {
+                // binary search for insertion point:
+                int low = 0;
+        
+                while (low <= high) {
+                    int     index = (high + low) / 2;
+                    Integer val   = (Integer) thresh.get(Integer.valueOf(index));
+                    int     cmp   = j.compareTo(val);
 
-    /** Vector, like the previous one except that
-       the elements for discarded lines have been squeezed out.  */
-    final int[]	   undiscarded;
+                    if (cmp == 0) {
+                        return null;
+                    }
+                    else if (cmp > 0) {
+                        low = index + 1;
+                    }
+                    else {
+                        high = index - 1;
+                    }
+                }
+        
+                thresh.put(Integer.valueOf(low), j);
+                k = Integer.valueOf(low);
+            }
+        }
 
-    /** Vector mapping virtual line numbers (not counting discarded lines)
-       to real ones (counting those lines).  Both are origin-0.  */
-    final int[]	   realindexes;
+        return k;
+    }
 
-    /** Total number of nondiscarded lines. */
-    int		    nondiscarded_lines;
+    /**
+     * This is the orignal class used for representation of a single change.
+     * We replace this with our own {@link Change} class for reasons of compatibility
+     * and easier scripting. 
+     */
+    class Difference
+    {
+        public static final int NONE = -1;
 
-    /** Array, indexed by real origin-1 line number,
-       containing true for a line that is an insertion or a deletion.
-       The results of comparison are stored here.  */
-    boolean[]	    changed_flag;
+        /**
+         * The point at which the deletion starts.
+         */
+        private int delStart = NONE;
 
-  }
+        /**
+         * The point at which the deletion ends.
+         */
+        private int delEnd = NONE;
+
+        /**
+         * The point at which the addition starts.
+         */
+        private int addStart = NONE;
+
+        /**
+         * The point at which the addition ends.
+         */
+        private int addEnd = NONE;
+
+        /**
+         * Creates the difference for the given start and end points for the
+         * deletion and addition.
+         */
+        public Difference(int delStart, int delEnd, int addStart, int addEnd)
+        {
+            this.delStart = delStart;
+            this.delEnd   = delEnd;
+            this.addStart = addStart;
+            this.addEnd   = addEnd;
+        }
+
+        /**
+         * The point at which the deletion starts, if any. A value equal to
+         * <code>NONE</code> means this is an addition.
+         */
+        public int getDeletedStart()
+        {
+            return delStart;
+        }
+
+        /**
+         * The point at which the deletion ends, if any. A value equal to
+         * <code>NONE</code> means this is an addition.
+         */
+        public int getDeletedEnd()
+        {
+            return delEnd;
+        }
+
+        /**
+         * The point at which the addition starts, if any. A value equal to
+         * <code>NONE</code> means this must be an addition.
+         */
+        public int getAddedStart()
+        {
+            return addStart;
+        }
+
+        /**
+         * The point at which the addition ends, if any. A value equal to
+         * <code>NONE</code> means this must be an addition.
+         */
+        public int getAddedEnd()
+        {
+            return addEnd;
+        }
+
+        /**
+         * Sets the point as deleted. The start and end points will be modified to
+         * include the given line.
+         */
+        public void setDeleted(int line)
+        {
+            delStart = Math.min(line, delStart);
+            delEnd   = Math.max(line, delEnd);
+        }
+
+        /**
+         * Sets the point as added. The start and end points will be modified to
+         * include the given line.
+         */
+        public void setAdded(int line)
+        {
+            addStart = Math.min(line, addStart);
+            addEnd   = Math.max(line, addEnd);
+        }
+
+        /**
+         * Compares this object to the other for equality. Both objects must be of
+         * type Difference, with the same starting and ending points.
+         */
+        public boolean equals(Object obj)
+        {
+            if (obj instanceof Difference) {
+                Difference other = (Difference)obj;
+
+                return (delStart == other.delStart &&
+                        delEnd   == other.delEnd &&
+                        addStart == other.addStart &&
+                        addEnd   == other.addEnd);
+            }
+            else {
+                return false;
+            }
+        }
+
+        /**
+         * Returns a string representation of this difference.
+         */
+        public String toString()
+        {
+            StringBuffer buf = new StringBuffer();
+            buf.append("del: [" + delStart + ", " + delEnd + "]");
+            buf.append(" ");
+            buf.append("add: [" + addStart + ", " + addEnd + "]");
+            return buf.toString();
+        }
+
+    }
+
+
+    /**
+     * A legacy adapter that is compatible to the interface of the old GPL licenced Diff.
+     */
+    public static class Change {
+
+        public final Change link;
+        public final int line0;
+        public final int line1;
+        public final int inserted;
+        public final int deleted;
+
+        public static Change fromList(List diffs) {
+            Iterator iter = diffs.iterator();
+            return iter.hasNext() ? new Change(iter, 0, 0) : null;
+        }
+
+        private Change(Iterator iter, int prev0, int prev1) {
+            Difference diff = (Difference) iter.next();
+            if (diff.getDeletedEnd() == Difference.NONE) {
+                line0 = prev0 + diff.getAddedStart() - prev1;
+                deleted = 0;
+            } else {
+                line0 = diff.getDeletedStart();
+                deleted = diff.getDeletedEnd() - line0 + 1;
+            }
+            if (diff.getAddedEnd() == Difference.NONE) {
+                line1 = prev1 + diff.getDeletedStart() - prev0;
+                inserted = 0;
+            } else {
+                line1 = diff.getAddedStart();
+                inserted = diff.getAddedEnd() - line1 + 1;
+            }
+            this.link = iter.hasNext() ? new Change(iter, line0 + deleted, line1 + inserted) : null;
+        }
+    }
 }
+
