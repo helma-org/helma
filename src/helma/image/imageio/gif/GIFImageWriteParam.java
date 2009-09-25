@@ -25,9 +25,6 @@ import javax.imageio.*;
 
 public class GIFImageWriteParam extends ImageWriteParam {
 
-    private boolean quantizeColors;
-    private String quantizeMode;
-
     public GIFImageWriteParam(Locale locale) {
         super(locale);
         canWriteProgressive = true;

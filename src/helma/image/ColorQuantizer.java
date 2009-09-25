@@ -521,7 +521,6 @@ public class ColorQuantizer {
            // create the right color model, depending on transparency settings:
            IndexColorModel icm;
            
-           int colorDepth = getDepth(numColors);
            int width = image.getWidth();
            int height = image.getHeight();
            
@@ -538,7 +537,6 @@ public class ColorQuantizer {
            // create the indexed BufferedImage:
            BufferedImage dest = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_INDEXED, icm);
 
-           boolean firstOut = true;
            if (dither)
                new DiffusionFilterOp().filter(image, dest);
            else {
