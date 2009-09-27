@@ -95,6 +95,7 @@ public final class RhinoCore implements ScopeProvider {
     // debugger/tracer flags
     boolean hasDebugger = false;
     boolean hasTracer = false;
+    boolean hasProfiler = false;
     private boolean isInitialized = false;
 
     // dynamic portion of the type check sleep that grows
@@ -120,9 +121,10 @@ public final class RhinoCore implements ScopeProvider {
 
         hasDebugger = "true".equalsIgnoreCase(app.getProperty("rhino.debug"));
         hasTracer = "true".equalsIgnoreCase(app.getProperty("rhino.trace"));
+        hasProfiler = "true".equalsIgnoreCase(app.getProperty("rhino.profile"));
 
         // Set default optimization level according to whether debugger is on
-        if (hasDebugger || hasTracer) {
+        if (hasDebugger || hasTracer || hasProfiler) {
             optLevel = -1;
         } else {
             String opt = app.getProperty("rhino.optlevel");

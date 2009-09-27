@@ -28,6 +28,7 @@ import helma.objectmodel.db.Relation;
 import helma.objectmodel.db.Node;
 import helma.scripting.*;
 import helma.scripting.rhino.debug.Tracer;
+import helma.scripting.rhino.debug.Profiler;
 import helma.util.StringUtils;
 import org.mozilla.javascript.*;
 import org.mozilla.javascript.serialize.ScriptableOutputStream;
@@ -163,6 +164,8 @@ public class RhinoEngine implements ScriptingEngine {
 
         if (core.hasTracer) {
             context.setDebugger(new Tracer(getResponse()), null);
+        } else if (core.hasProfiler) {
+            context.setDebugger(new Profiler(), null);
         }
 
         // register the engine with the current thread
@@ -209,6 +212,16 @@ public class RhinoEngine implements ScriptingEngine {
      *   execution context has terminated.
      */
     public synchronized void exitContext() {
+        if (core.hasProfiler) {
+            try {
+                Profiler profiler = (Profiler) Context.getCurrentContext().getDebugger();
+                String result = profiler.getResult();
+                getResponse().debug("<pre>" + result + "</pre>");
+                System.out.println(result);
+            } catch (Exception x) {
+                app.logError("Error in profiler: " + x, x);
+            }
+        }
         // unregister the engine threadlocal
         engines.set(null);
         Context.exit();
