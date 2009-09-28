@@ -84,4 +84,25 @@ public class StringUtils {
         return (String[]) list.toArray(new String[list.size()]);
     }
 
+    /**
+     * Get the largest common prefix of Strings s1 and s2
+     * @param s1 a string
+     * @param s2 another string
+     * @return the largest prefix shared by both strings
+     */
+    public static String getCommonPrefix(String s1, String s2) {
+        if (s1.indexOf(s2) == 0) {
+            return s2;
+        } else if (s2.indexOf(s1) == 0) {
+            return s1;
+        }
+        int length = Math.min(s1.length(), s2.length());
+        for (int i = 0; i < length; i++) {
+            if (s1.charAt(i) != s2.charAt(i)) {
+                return s1.substring(0, i);
+            }
+        }
+        return s1.substring(0, length);
+    }
+
 }

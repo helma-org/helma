@@ -8,6 +8,8 @@ import org.mozilla.javascript.Scriptable;
 
 import java.util.*;
 
+import helma.util.StringUtils;
+
 public class Profiler implements Debugger {
 
     HashMap frames = new HashMap();
@@ -64,10 +66,16 @@ public class Profiler implements Debugger {
                 return ((ProfilerFrame)o2).runtime - ((ProfilerFrame)o1).runtime;
             }
         });
+        int length = Math.min(100, f.length);
+        int prefixLength = Integer.MAX_VALUE;
+        for (int i = 0; i < length - 1; i++) {
+            prefixLength = Math.min(prefixLength,
+                    StringUtils.getCommonPrefix(f[i].name, f[i+1].name).length());
+        }
         StringBuffer buffer = new StringBuffer("     total  average  calls    path\n");
         buffer.append("==================================================================\n");
-        for (int i = 0; i < Math.min(100, f.length); i++) {
-            buffer.append(f[i].renderLine(0));
+        for (int i = 0; i < length; i++) {
+            buffer.append(f[i].renderLine(prefixLength));
         }
         return buffer.toString();
     }
@@ -134,7 +142,7 @@ public class Profiler implements Debugger {
                     Integer.valueOf(invocations),
                     name.substring(prefixLength)
             };
-            formatter.format("%1$7d ms %2$5d ms %3$6d %4$s%n", args);
+            formatter.format("%1$7d ms %2$5d ms %3$6d    %4$s%n", args);
             return formatter.toString();
         }
     }
