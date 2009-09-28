@@ -46,11 +46,12 @@ public class Profiler implements Debugger {
      */
     static String getFunctionName(DebuggableScript script) {
         if (script.isFunction()) {
+            StringBuffer b = new StringBuffer(script.getSourceName()).append(" #");
+            b.append(script.getLineNumbers()[0]);
             if (script.getFunctionName() != null) {
-                return script.getSourceName() + ": " + script.getFunctionName();
-            } else {
-                return script.getSourceName() + ": #" + script.getLineNumbers()[0];
+                b.append(": ").append(script.getFunctionName());
             }
+            return b.toString();
         } else {
             return script.getSourceName();
         }
@@ -96,9 +97,7 @@ public class Profiler implements Debugger {
          *  Called when thrown exception is handled by the function or script.
          */
         public void onExceptionThrown(Context cx, Throwable ex) {
-            invocations ++;
-            Long time = (Long) timer.pop();
-            runtime += System.nanoTime() - time.longValue();
+            // TODO: figure out if this is called in addition or in place of to onExit
         }
 
         /**

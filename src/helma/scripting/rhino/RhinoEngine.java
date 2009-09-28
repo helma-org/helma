@@ -216,8 +216,11 @@ public class RhinoEngine implements ScriptingEngine {
             try {
                 Profiler profiler = (Profiler) Context.getCurrentContext().getDebugger();
                 String result = profiler.getResult();
-                getResponse().debug("<pre>" + result + "</pre>");
-                System.out.println(result);
+                ResponseTrans res = getResponse();
+                if (res != null) {
+                    getResponse().debug("<pre>" + result + "</pre>");
+                }
+                app.logEvent(result);
             } catch (Exception x) {
                 app.logError("Error in profiler: " + x, x);
             }
