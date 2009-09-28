@@ -164,7 +164,7 @@ public class RhinoEngine implements ScriptingEngine {
 
         if (core.hasTracer) {
             context.setDebugger(new Tracer(getResponse()), null);
-        } else if (core.hasProfiler) {
+        } else if (useProfiler()) {
             context.setDebugger(new Profiler(), null);
         }
 
@@ -212,7 +212,7 @@ public class RhinoEngine implements ScriptingEngine {
      *   execution context has terminated.
      */
     public synchronized void exitContext() {
-        if (core.hasProfiler) {
+        if (useProfiler()) {
             try {
                 Profiler profiler = (Profiler) Context.getCurrentContext().getDebugger();
                 String result = profiler.getResult();
@@ -716,6 +716,26 @@ public class RhinoEngine implements ScriptingEngine {
             res.cacheSkin(key, skin);
         }
         return skin;
+    }
+
+    /**
+     * Determine if we should use a profiler on the current thread. This returns true if
+     * the rhino.profile app property is set to true (requires restart) and the
+     * rhino.profile.session property is either unset, or set to "all", or matching
+     * the session id of the current request.
+     * @return true if the current request should be profiled
+     */
+    private boolean useProfiler() {
+        if (!core.hasProfiler) {
+            return false;
+        }
+        String profilerSession = app.getProperty("rhino.profile.session");
+        if (profilerSession == null || "all".equalsIgnoreCase(profilerSession)) {
+            return true;
+        }
+        RequestTrans req = getRequest();
+        return req != null && req.getSession() != null
+                && req.getSession().indexOf(profilerSession) == 0;
     }
 
 }

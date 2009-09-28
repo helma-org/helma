@@ -15,10 +15,9 @@ public class Profiler implements Debugger {
     HashMap frames = new HashMap();
 
     /**
-     * Create a profiler that writes to this response object
+     * Create a new profiler.
      */
-    public Profiler() {
-    }
+    public Profiler() {}
 
     /**
      * Implementws handleCompilationDone in interface org.mozilla.javascript.debug.Debugger
