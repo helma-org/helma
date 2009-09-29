@@ -49,7 +49,8 @@ public class Profiler implements Debugger {
         if (script.isFunction()) {
             StringBuffer b = new StringBuffer(script.getSourceName()).append(" #");
             b.append(script.getLineNumbers()[0]);
-            if (script.getFunctionName() != null) {
+            String funcName = script.getFunctionName();
+            if (funcName != null && funcName.length() > 0) {
                 b.append(": ").append(script.getFunctionName());
             }
             return b.toString();
@@ -66,13 +67,21 @@ public class Profiler implements Debugger {
             }
         });
         int length = Math.min(100, f.length);
-        int prefixLength = Integer.MAX_VALUE;
-        for (int i = 0; i < length - 1; i++) {
-            prefixLength = Math.min(prefixLength,
+        int prefixLength = length < 2 ? 0 : Integer.MAX_VALUE;
+        int maxLength = 0;
+        for (int i = 0; i < length; i++) {
+            maxLength = Math.max(maxLength, f[i].name.length());
+            if (i < length - 1) {
+                prefixLength = Math.min(prefixLength,
                     StringUtils.getCommonPrefix(f[i].name, f[i+1].name).length());
+            }
         }
+        maxLength = maxLength + 30 - prefixLength;
         StringBuffer buffer = new StringBuffer("     total  average  calls    path\n");
-        buffer.append("==================================================================\n");
+        for (int i = 0; i < maxLength; i++) {
+            buffer.append('-');
+        }
+        buffer.append('\n');
         for (int i = 0; i < length; i++) {
             buffer.append(f[i].renderLine(prefixLength));
         }

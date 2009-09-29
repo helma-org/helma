@@ -621,6 +621,10 @@ public class RequestTrans implements Serializable {
         }
     }
 
+    public String toString() {
+        return method + ":" + path;
+    }
+
     class ParameterMap extends SystemMap {
 
         public ParameterMap() {

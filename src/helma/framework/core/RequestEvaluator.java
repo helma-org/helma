@@ -160,7 +160,7 @@ public final class RequestEvaluator implements Runnable {
                 // request path object
                 RequestPath requestPath = new RequestPath(app);
 
-                String txname = req.getMethod().toLowerCase() + ":" + req.getPath();
+                String txname = req.getMethod() + ":" + req.getPath();
                 Log eventLog = app.getEventLog();
                 if (eventLog.isDebugEnabled()) {
                     eventLog.debug(txname + " starting");

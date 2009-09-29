@@ -220,7 +220,7 @@ public class RhinoEngine implements ScriptingEngine {
                 if (res != null) {
                     getResponse().debug("<pre>" + result + "</pre>");
                 }
-                app.logEvent(result);
+                app.logEvent("Profiler data for " + getRequest() + ":\n" + result);
             } catch (Exception x) {
                 app.logError("Error in profiler: " + x, x);
             }
