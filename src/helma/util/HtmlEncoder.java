@@ -884,22 +884,18 @@ public final class HtmlEncoder {
             switch (c) {
                 case '<':
                     ret.append("&lt;");
-
                     break;
 
                 case '>':
                     ret.append("&gt;");
-
                     break;
 
                 case '&':
                     ret.append("&amp;");
-
                     break;
 
                 case '"':
                     ret.append("&quot;");
-
                     break;
 
                 case '\n':
@@ -907,11 +903,9 @@ public final class HtmlEncoder {
                         ret.append("<br />");
                     }
                     ret.append('\n');
-
                     break;
 
                 default:
-
                     // ret.append (c);
                     if (c < 128) {
                         ret.append(c);
@@ -939,15 +933,12 @@ public final class HtmlEncoder {
         }
 
         int l = str.length();
-
         if (l == 0) {
             return "";
         }
 
         StringBuffer ret = new StringBuffer(Math.round(l * 1.2f));
-
         encodeXml(str, ret);
-
         return ret.toString();
     }
 
@@ -970,27 +961,22 @@ public final class HtmlEncoder {
             switch (c) {
                 case '<':
                     ret.append("&lt;");
-
                     break;
 
                 case '>':
                     ret.append("&gt;");
-
                     break;
 
                 case '&':
                     ret.append("&amp;");
-
                     break;
 
                 case '"':
                     ret.append("&quot;");
-
                     break;
 
                 case '\'':
-                    ret.append("&apos;");
-
+                    ret.append("&#39;");
                     break;
 
                 default:
