@@ -1038,19 +1038,16 @@ public final class Node implements INode {
     }
 
     /**
-     *
-     *
-     * @param index ...
-     *
-     * @return ...
+     * Get a node at a given position. This causes the subnode list to be loaded in case
+     * it isn't up to date.
+     * @param index the subnode index
+     * @return the node at the given index
      */
     public INode getSubnodeAt(int index) {
         loadNodes();
-
         if (subnodes == null) {
             return null;
         }
-
         return subnodes.getNode(index);
     }
 
@@ -1452,7 +1449,10 @@ public final class Node implements INode {
      */
     long getLastSubnodeChange() {
         // TODO check if we should compute this on demand
-        return subnodes == null ? 0 : subnodes.getLastSubnodeChange();
+        if (subnodes == null) {
+            createSubnodeList();
+        }
+        return subnodes.getLastSubnodeChange();
     }
 
     /**
