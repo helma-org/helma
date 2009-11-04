@@ -183,6 +183,14 @@ public final class Skin {
         }
         subskins.put(name, subskin);
     }
+    
+    /**
+     * Return the list of macros found by the parser
+     * @return the list of macros
+     */
+    public Macro[] getMacros() {
+    	return macros;
+    }
 
     /**
      * Check if this skin has a main skin, as opposed to consisting just of subskins
@@ -340,8 +348,8 @@ public final class Skin {
         }
     }
 
-    class Macro {
-        final int start, end;
+    public class Macro {
+        public final int start, end;
         String name;
         String[] path;
         int handlerType = HANDLER_OTHER;
@@ -1006,9 +1014,38 @@ public final class Skin {
          * Return the full name of the macro in handler.name notation
          * @return the macro name
          */
-        String getName() {
+        public String getName() {
             return name;
         }
+
+        /**
+         * Return the numeric type of the macro handler
+         * @return the handler type
+         */
+        public int getHandlerType() {
+        	return handlerType;
+        }
+
+        /**
+         * Return the list of named parameters
+         * @return the list of named parameters
+         */
+        public Map getNamedParams() {
+        	return namedParams;
+        }
+        
+        /**
+         * Return the list of positional parameters
+         * @return the list of positional parameters
+         */
+        public List getPositionalParams() {
+        	return positionalParams;
+        }
+        
+        public boolean hasNestedMacros() {
+        	return hasNestedMacros;
+        }
+
     }
 
     class StandardParams {
