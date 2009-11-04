@@ -26,6 +26,7 @@
 // take care of any dependencies
 app.addRepository('modules/core/String.js');
 app.addRepository('modules/core/Object.js');
+app.addRepository('modules/core/Array.js');
 
 /**
  * Define the global namespace if not existing
