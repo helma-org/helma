@@ -449,7 +449,10 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         if (proxy != null) {
             INode node = getNode();
             if (node instanceof Node) {
-                ((Node) node).prefetchChildren(start, length);
+                Node n = (Node) node;
+                if (n.getState() != Node.TRANSIENT && n.getState() != Node.NEW) {
+                    n.prefetchChildren(start, length);
+                }
             }
         }
     }
