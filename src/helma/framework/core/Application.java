@@ -25,6 +25,7 @@ import helma.objectmodel.*;
 import helma.objectmodel.db.*;
 import helma.util.*;
 import helma.scripting.ScriptingEngine;
+import helma.scripting.ScriptingException;
 
 import java.io.*;
 import java.lang.reflect.*;
@@ -841,50 +842,63 @@ public final class Application implements Runnable {
      * This method returns the root object of this application's object tree.
      */
     public Object getDataRoot() throws Exception {
-        return getDataRoot(getCurrentRequestEvaluator().getScriptingEngine());
+        return getDataRoot(null);
     }
 
     /**
      * This method returns the root object of this application's object tree.
      */
-    public Object getDataRoot(ScriptingEngine scriptingEngine) throws Exception {
+    protected Object getDataRoot(ScriptingEngine engine) throws Exception {
+        if (rootObject != null) {
+            return rootObject;
+        }
         // check if we have a custom root object class
         if (rootObjectClass != null) {
             // create custom root element.
-            if (rootObject == null) {
-                try {
-                    if (classMapping.containsKey("root.factory.class") &&
-                            classMapping.containsKey("root.factory.method")) {
-                        String rootFactory = classMapping.getProperty("root.factory.class");
-                        Class c = typemgr.getClassLoader().loadClass(rootFactory);
-                        Method m = c.getMethod(classMapping.getProperty("root.factory.method"),
-                                               (Class[]) null);
-
-                        rootObject = m.invoke(c, (Object[]) null);
-                    } else {
-                        String rootClass = classMapping.getProperty("root");
-                        Class c = typemgr.getClassLoader().loadClass(rootClass);
-
-                        rootObject = c.newInstance();
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException("Error creating root object: " +
-                                               e.toString());
+            try {
+                if (classMapping.containsKey("root.factory.class") &&
+                        classMapping.containsKey("root.factory.method")) {
+                    String rootFactory = classMapping.getProperty("root.factory.class");
+                    Class c = typemgr.getClassLoader().loadClass(rootFactory);
+                    Method m = c.getMethod(
+                            classMapping.getProperty("root.factory.method"),
+                            (Class[]) null);
+                    rootObject = m.invoke(c, (Object[]) null);
+                } else {
+                    String rootClass = classMapping.getProperty("root");
+                    Class c = typemgr.getClassLoader().loadClass(rootClass);
+                    rootObject = c.newInstance();
                 }
+            } catch (Exception e) {
+                throw new RuntimeException("Error creating root object: " +
+                        e.toString());
             }
-
             return rootObject;
-        } else if (rootObjectPropertyName != null) {
-            // get root object from a global scripting engine property
-            return scriptingEngine.getGlobalProperty(rootObjectPropertyName);
-        } else if (rootObjectFunctionName != null) {
-            // get root object from a global script engine function
-            return scriptingEngine.invoke(null, rootObjectFunctionName,
-                    RequestEvaluator.EMPTY_ARGS, ScriptingEngine.ARGS_WRAP_DEFAULT, true);
+        } else if (rootObjectPropertyName != null || rootObjectFunctionName != null) {
+            // get root object from a global scripting engine property or function
+            if (engine == null) {
+                RequestEvaluator reval = getEvaluator();
+                try {
+                    return getDataRootFromEngine(reval.getScriptingEngine());
+                } finally {
+                    releaseEvaluator(reval);
+                }
+            } else {
+                return getDataRootFromEngine(engine);
+            }
         } else {
             // no custom root object is defined - use standard helma objectmodel
             return nmgr.getRootNode();
         }
+    }
+
+    private Object getDataRootFromEngine(ScriptingEngine engine)
+            throws ScriptingException {
+        return rootObjectPropertyName != null ?
+                engine.getGlobalProperty(rootObjectPropertyName) :
+                engine.invoke(null, rootObjectFunctionName,
+                        RequestEvaluator.EMPTY_ARGS,
+                        ScriptingEngine.ARGS_WRAP_DEFAULT, true);
     }
 
     /**
