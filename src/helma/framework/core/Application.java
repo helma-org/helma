@@ -840,6 +840,13 @@ public final class Application implements Runnable {
     /**
      * This method returns the root object of this application's object tree.
      */
+    public Object getDataRoot() throws Exception {
+        return getDataRoot(getCurrentRequestEvaluator().getScriptingEngine());
+    }
+
+    /**
+     * This method returns the root object of this application's object tree.
+     */
     public Object getDataRoot(ScriptingEngine scriptingEngine) throws Exception {
         // check if we have a custom root object class
         if (rootObjectClass != null) {
