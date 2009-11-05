@@ -507,7 +507,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         Node node = (Node) getNode();
         prefetchChildren(start, length);
         SubnodeList list = node.getSubnodeList();
-        length = Math.min(list.size() - start, length);
+        length = list == null ? 0 : Math.min(list.size() - start, length);
         if (length <= 0) {
             return Context.getCurrentContext().newArray(core.global, 0);
         }
