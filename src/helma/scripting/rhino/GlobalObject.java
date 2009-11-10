@@ -240,11 +240,13 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
      * Retrieve a Document from the specified URL.
      *
      * @param location the URL to retrieve
-     * @param opt either a LastModified date or an ETag string for conditional GETs
+     * @param condition either a LastModified date or an ETag string for conditional GETs
+     * @param timeout the optional timeout value in milliseconds used for
+     *        connecting to and reading from the given URL.
      *
      * @return a wrapped MIME object
      */
-    public Object getURL(String location, Object opt) {
+    public Object getURL(String location, Object condition, Object timeout) {
         if (location ==  null) {
             return null;
         }
@@ -254,9 +256,9 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
             URLConnection con = url.openConnection();
 
             // do we have if-modified-since or etag headers to set?
-            if (opt != null && opt != Undefined.instance) {
-                if (opt instanceof Scriptable) {
-                    Scriptable scr = (Scriptable) opt;
+            if (condition != null && condition != Undefined.instance) {
+                if (condition instanceof Scriptable) {
+                    Scriptable scr = (Scriptable) condition;
                     if ("Date".equals(scr.getClassName())) {
                         Date date = new Date((long) ScriptRuntime.toNumber(scr));
 
@@ -271,7 +273,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
                         con.setRequestProperty("If-None-Match", scr.toString());
                     }
                 } else {
-                    con.setRequestProperty("If-None-Match", opt.toString());
+                    con.setRequestProperty("If-None-Match", condition.toString());
                 }
             }
 
@@ -279,6 +281,12 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
 
             if (httpUserAgent != null) {
                 con.setRequestProperty("User-Agent", httpUserAgent);
+            }
+
+            if (timeout != null && timeout != Undefined.instance) {
+                int time = ScriptRuntime.toInt32(timeout);
+                con.setConnectTimeout(time);
+                con.setReadTimeout(time);
             }
 
             con.setAllowUserInteraction(false);
