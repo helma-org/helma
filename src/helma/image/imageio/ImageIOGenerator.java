@@ -22,16 +22,22 @@
 
 package helma.image.imageio;
 
-import java.awt.Image;
-import java.awt.image.*;
-import java.io.*;
-import java.net.URL;
+import helma.image.ImageGenerator;
+import helma.image.ImageWrapper;
+
+import java.awt.image.BufferedImage;
+import java.awt.image.DirectColorModel;
+import java.awt.image.WritableRaster;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Iterator;
 
-import javax.imageio.*;
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageOutputStream;
-
-import helma.image.*;
 
 
 /**
@@ -46,6 +52,13 @@ public class ImageIOGenerator extends ImageGenerator {
         if (param.canWriteCompressed() &&
             quality >= 0.0 && quality <= 1.0) {
             param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            String[] types = param.getCompressionTypes();
+            // If compression types are defined, but none is set, set the first one,
+            // since setCompressionQuality, which requires MODE_EXPLICIT to be set,
+            // will complain otherwise. 
+            if (types != null && param.getCompressionType() == null) {
+                param.setCompressionType(types[0]);
+            }
             param.setCompressionQuality(quality);
         }
         if (param.canWriteProgressive())
