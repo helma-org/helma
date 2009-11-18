@@ -762,8 +762,6 @@ public final class Node implements INode {
             node.markAs(MODIFIED);
         }
 
-        loadNodes();
-
         // check if this node has a group-by subnode-relation
         Node groupbyNode = getGroupbySubnode(node, true);
         if (groupbyNode != null) {
