@@ -762,11 +762,15 @@ public final class Node implements INode {
             node.markAs(MODIFIED);
         }
 
-        // check if this node has a group-by subnode-relation
-        Node groupbyNode = getGroupbySubnode(node, true);
-        if (groupbyNode != null) {
-            groupbyNode.addNode(node);
-            return node;
+        loadNodes();
+
+        if (subrel != null && subrel.groupby != null) {
+            // check if this node has a group-by subnode-relation
+            Node groupbyNode = getGroupbySubnode(node, true);
+            if (groupbyNode != null) {
+                groupbyNode.addNode(node);
+                return node;
+            }
         }
 
         NodeHandle nhandle = node.getHandle();
