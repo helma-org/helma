@@ -52,17 +52,17 @@ public final class Node implements INode {
 
     // the serialization version this object was read from (see readObject())
     protected short version = 0;
-    private transient String prototype;
-    private transient NodeHandle handle;
-    private transient INode cacheNode;
-    transient final WrappedNodeManager nmgr;
-    transient DbMapping dbmap;
-    transient Key primaryKey = null;
-    transient String subnodeRelation = null;
-    transient long lastNameCheck = 0;
-    transient long lastParentSet = 0;
-    transient private volatile Transactor lock;
-    transient private volatile int state;
+    private String prototype;
+    private NodeHandle handle;
+    private INode cacheNode;
+    final WrappedNodeManager nmgr;
+    DbMapping dbmap;
+    Key primaryKey = null;
+    String subnodeRelation = null;
+    long lastNameCheck = 0;
+    long lastParentSet = 0;
+    private volatile Transactor lock;
+    private volatile int state;
     private static long idgen = 0;
 
     /**
