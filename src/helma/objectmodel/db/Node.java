@@ -1441,7 +1441,9 @@ public final class Node implements INode {
      * @return List an empty List of the type used by this Node
      */
     public SubnodeList createSubnodeList() {
-        subnodes = new SegmentedSubnodeList(this);
+        Relation subrel = dbmap == null ? null : dbmap.getSubnodeRelation();
+        subnodes = subrel == null || !subrel.lazyLoading ?
+                new SubnodeList(this) : new SegmentedSubnodeList(this);
         return subnodes;
     }
 

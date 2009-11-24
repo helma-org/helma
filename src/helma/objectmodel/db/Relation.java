@@ -82,6 +82,7 @@ public final class Relation {
     Constraint[] constraints;
     boolean virtual;
     boolean readonly;
+    boolean lazyLoading;
     boolean aggressiveLoading;
     boolean aggressiveCaching;
     boolean isPrivate = false;
@@ -128,6 +129,7 @@ public final class Relation {
         this.constraints =              rel.constraints;
         this.accessName =               rel.accessName;
         this.logicalOperator =          rel.logicalOperator;
+        this.lazyLoading =              rel.lazyLoading;
         this.aggressiveLoading =        rel.aggressiveLoading;
         this.aggressiveCaching =        rel.aggressiveCaching;
         this.updateCriteria =           rel.updateCriteria;
@@ -298,8 +300,21 @@ public final class Relation {
     protected void parseOptions(Vector cnst, Properties props) {
         String loading = props.getProperty("loadmode");
 
-        aggressiveLoading = (loading != null) &&
-                            "aggressive".equalsIgnoreCase(loading.trim());
+        if (loading != null) {
+            loading = loading.trim();
+            if ("aggressive".equalsIgnoreCase(loading)) {
+                aggressiveLoading = true;
+                lazyLoading = false;
+            } else if ("lazy".equalsIgnoreCase(loading)) {
+                lazyLoading = true;
+                aggressiveLoading = false;
+            } else {
+                System.err.println("Unsupported loadmode property in " + ownType + ": " + loading);
+                aggressiveLoading = lazyLoading = false;
+            }
+        } else {
+            aggressiveLoading = lazyLoading = false;
+        }
 
         String caching = props.getProperty("cachemode");
 
