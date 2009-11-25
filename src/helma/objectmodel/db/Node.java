@@ -22,6 +22,7 @@ import helma.framework.core.Application;
 import helma.objectmodel.ConcurrencyException;
 import helma.objectmodel.INode;
 import helma.objectmodel.IProperty;
+import helma.objectmodel.TransientNode;
 import helma.util.EmptyEnumeration;
 
 import java.util.*;
@@ -2476,7 +2477,7 @@ public final class Node implements INode {
      */
     public synchronized INode getCacheNode() {
         if (cacheNode == null) {
-            cacheNode = new Node("cache", null, nmgr);
+            cacheNode = new TransientNode();
         }
 
         return cacheNode;

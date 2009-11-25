@@ -35,7 +35,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
 
     String className;
     final NodeProxy proxy;
-    RhinoCore core;
+    final RhinoCore core;
 
     // fields to implement PropertyRecorder
     private boolean isRecording = false;
@@ -124,9 +124,9 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
     }
 
     /**
+     * Get the class/prototype name for this HopObject
      *
-     *
-     * @return ...
+     * @return The object's class or prototype name
      */
     public String getClassName() {
         return className;
@@ -136,8 +136,8 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * Overwritten to not define constructor property as constant -
      * we need to have the constructor property resettable in Helma.
      * @param propertyName the property name
-     * @param value the proeprty value
-     * @param attributes the property attributs
+     * @param value the property value
+     * @param attributes the property attributes
      */
     public void defineProperty(String propertyName, Object value,
                                int attributes)
@@ -1046,8 +1046,9 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         if (value == this) {
             return Boolean.TRUE;
         }
-        if (value instanceof HopObject && proxy != null) {
-            return proxy.equivalentValues(((HopObject) value).proxy);
+        if (value instanceof HopObject && proxy != null
+                && proxy.equivalentValues(((HopObject) value).proxy)) {
+            return Boolean.TRUE;
         }
         return Scriptable.NOT_FOUND;
     }
@@ -1096,48 +1097,9 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
         changedProperties = null;
     }
 
-    /**
-     * This method represents the Java-Script-exposed function for updating Subnode-Collections.
-     * The following conditions must be met to make a subnodecollection updateable.
-     * .) the collection must be specified with collection.updateable=true
-     * .) the id's of this collection must be in ascending order, meaning, that new records
-     *    do have a higher id than the last record loaded by this collection
-     */
-    /* public int jsFunction_update() {
-        if (!(node instanceof Node))
-            throw new RuntimeException ("update only callabel on persistent HopObjects");
-        checkNode();
-        Node n = (Node) node;
-        return n.updateSubnodes();
-    } */
-
-    /**
-     * Retrieve a view having a different order from this Node's subnodelist.
-     * The underlying OrderedSubnodeList will keep those views and updates them
-     * if the original collection has been updated.
-     * @param expr the order (like sql-order using the properties instead)
-     * @return ListViewWrapper holding the information of the ordered view
-     */
-    /* public Object jsFunction_getOrderedView(String expr) {
-        if (!(node instanceof Node)) {
-            throw new RuntimeException (
-                    "getOrderedView only callable on persistent HopObjects");
-        }
-        Node n = (Node) node;
-        n.loadNodes();
-        SubnodeList subnodes = n.getSubnodeList();
-        if (subnodes == null) {
-            throw new RuntimeException (
-                    "getOrderedView only callable on already existing subnode-collections");
-        }
-        Node subnode = new Node("OrderedView", "HopObject", core.app.getWrappedNodeManager());
-        subnode.setSubnodes(subnodes.getOrderedView(expr));
-        return new HopObject("HopObject", core, subnode, core.getPrototype("HopObject"));
-    } */
-
     class NodeProxy {
-        INode node;
-        NodeHandle handle;
+        private INode node;
+        private NodeHandle handle;
 
         NodeProxy(INode node) {
             this.node = node;
@@ -1150,7 +1112,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
             this.handle = handle;
         }
 
-        INode getNode() {
+        synchronized INode getNode() {
             if (node == null || node.getState() == Node.INVALID) {
                 if (handle != null) {
                     node = handle.getNode(core.app.getWrappedNodeManager());
@@ -1171,19 +1133,17 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
                 if (node == null || node.getState() == Node.INVALID) {
                     // We probably have a deleted node.
                     // Replace with empty transient node to avoid throwing an exception.
-                    node = new Node("DeletedNode", null, core.app.getWrappedNodeManager());
+                    node = new TransientNode();
                 }
             }
             return node;
         }
 
-        public Boolean equivalentValues(NodeProxy other) {
+        public boolean equivalentValues(NodeProxy other) {
             if (handle == null) {
-                return other.node == this.node ?
-                        Boolean.TRUE : Boolean.FALSE;
+                return other.node == this.node;
             } else {
-                return handle.equals(other.handle) ?
-                        Boolean.TRUE : Boolean.FALSE;
+                return handle == other.handle || handle.equals(other.handle);
             }
         }
     }
