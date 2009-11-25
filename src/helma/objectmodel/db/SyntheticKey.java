@@ -64,7 +64,7 @@ public final class SyntheticKey implements Key, Serializable {
         SyntheticKey k = (SyntheticKey) obj;
 
         return parentKey.equals(k.parentKey) &&
-               ((name == k.name) || name.equalsIgnoreCase(k.name));
+               ((name == k.name) || name.equals(k.name));
     }
 
     /**
@@ -73,7 +73,7 @@ public final class SyntheticKey implements Key, Serializable {
      */
     public int hashCode() {
         if (hashcode == 0) {
-            hashcode = 17 + (37 * name.toLowerCase().hashCode()) +
+            hashcode = 17 + (37 * name.hashCode()) +
                             (37 * parentKey.hashCode());
         }
 
