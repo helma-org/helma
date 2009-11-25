@@ -38,7 +38,9 @@ public final class SyntheticKey implements Key, Serializable {
     static final long serialVersionUID = -693454133259421857L;
 
     /**
-     * make a key for a persistent Object, describing its datasource and id.
+     * Make a symbolic key for an object using its parent key and its property name/id.
+     * @param key the parent key
+     * @param name the property or collection name
      */
     public SyntheticKey(Key key, String name) {
         this.parentKey = key;
@@ -46,35 +48,32 @@ public final class SyntheticKey implements Key, Serializable {
     }
 
     /**
-     *
-     *
-     * @param what ...
-     *
-     * @return ...
+     * Returns true if this key equals obj
+     * @param obj another object
+     * @return true if obj represents the same key as this
      */
-    public boolean equals(Object what) {
-        if (what == this) {
+    public boolean equals(Object obj) {
+        if (obj == this) {
             return true;
         }
 
-        if (!(what instanceof SyntheticKey)) {
+        if (!(obj instanceof SyntheticKey)) {
             return false;
         }
 
-        SyntheticKey k = (SyntheticKey) what;
+        SyntheticKey k = (SyntheticKey) obj;
 
         return parentKey.equals(k.parentKey) &&
                ((name == k.name) || name.equalsIgnoreCase(k.name));
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get the hash-code for this key
+     * @return the hash-code
      */
     public int hashCode() {
         if (hashcode == 0) {
-            hashcode = 17 + (37 * name.toLowerCase().hashCode()) + 
+            hashcode = 17 + (37 * name.toLowerCase().hashCode()) +
                             (37 * parentKey.hashCode());
         }
 
@@ -82,36 +81,32 @@ public final class SyntheticKey implements Key, Serializable {
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get the parent key part of this key
+     * @return the parent key
      */
     public Key getParentKey() {
         return parentKey;
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get the ID part of this key
+     * @return the id part
      */
     public String getID() {
         return name;
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Get the storage name for this key. This alwys returns null for symbolic keys.
+     * @return null
      */
     public String getStorageName() {
         return null;
     }
 
     /**
-     *
-     *
-     * @return ...
+     * Return a string representation for this key
+     * @return a string representation for this key
      */
     public String toString() {
         return parentKey + "/" + name;
