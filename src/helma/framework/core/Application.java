@@ -1539,13 +1539,7 @@ public final class Application implements Runnable {
     public Log getEventLog() {
         if (eventLog == null) {
             eventLog = getLogger(eventLogName);
-            // set log level for event log in case it is a helma.util.Logger
-            if (eventLog instanceof Logger) {
-                if (debug && !eventLog.isDebugEnabled())
-                    ((Logger) eventLog).setLogLevel(Logger.DEBUG);
-                else if (!eventLog.isInfoEnabled())
-                    ((Logger) eventLog).setLogLevel(Logger.INFO);
-            }
+            setEventLogLevel();
         }
         return eventLog;
     }
@@ -1568,6 +1562,19 @@ public final class Application implements Runnable {
             return Logging.getConsoleLog();
         } else {
             return LogFactory.getLog(logname);
+        }
+    }
+
+    private void setEventLogLevel() {
+        // set log level for event log in case it is a helma.util.Logger
+        if (eventLog instanceof Logger) {
+            if (debug) {
+                if (!eventLog.isDebugEnabled()) {
+                    ((Logger) eventLog).setLogLevel(Logger.DEBUG);
+                }
+            } else if (eventLog.isDebugEnabled()) {
+                ((Logger) eventLog).setLogLevel(Logger.INFO);
+            }
         }
     }
 
@@ -1958,13 +1965,8 @@ public final class Application implements Runnable {
                 logDir = null;
             }
 
-            // set log level for event log in case it is a helma.util.Logger
-            if (eventLog instanceof Logger) {
-                if (debug && !eventLog.isDebugEnabled())
-                    ((Logger) eventLog).setLogLevel(Logger.DEBUG);
-                else if (!eventLog.isInfoEnabled())
-                    ((Logger) eventLog).setLogLevel(Logger.INFO);
-            }
+            // set log level for event log in case debug flag has changed
+            setEventLogLevel();
 
             // set prop read timestamp
             lastPropertyRead = props.lastModified();
