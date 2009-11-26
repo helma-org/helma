@@ -362,6 +362,9 @@ public abstract class AbstractServletClient extends HttpServlet {
 
     void sendError(HttpServletResponse response, int code, String message)
             throws IOException {
+        if (response.isCommitted()) {
+            return;
+        }
         response.reset();
         response.setStatus(code);
         response.setContentType("text/html");
