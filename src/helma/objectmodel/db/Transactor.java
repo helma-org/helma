@@ -234,37 +234,38 @@ public class Transactor {
 
     /**
      * Register a db connection with this transactor thread.
-     * @param src the db source
+     * @param name the db source name
      * @param con the connection
      */
-    public void registerConnection(DbSource src, Connection con) {
-        sqlConnections.put(src, con);
+    public void registerConnection(String name, DbConnection con) {
+        DbConnection previous = (DbConnection) sqlConnections.put(name, con);
+        if (previous != null) {
+            nmgr.app.logEvent("Closing previous connection " + con);
+            previous.close();
+        }
         // we assume a freshly created connection is ok.
-        testedConnections.put(src, new Long(System.currentTimeMillis()));
+        testedConnections.put(name, new Long(System.currentTimeMillis()));
     }
 
     /**
      * Get a db connection that was previously registered with this transactor thread.
-     * @param src the db source
-     * @return the connection
+     * @param name the db source name
+     * @param serialId the current serial id of the db source definition, used for validation
+     * @return the connection, or null if no valid connection is available
      */
-    public Connection getConnection(DbSource src) {
-        Connection con = (Connection) sqlConnections.get(src);
-        Long tested = (Long) testedConnections.get(src);
+    public DbConnection getDbConnection(String name, int serialId) {
+        DbConnection con = (DbConnection) sqlConnections.get(name);
+        Long tested = (Long) testedConnections.get(name);
         long now = System.currentTimeMillis();
-        if (con != null && (tested == null || now - tested.longValue() > 60000)) {
-            // Check if the connection is still alive by executing a simple statement.
-            try {
-                Statement stmt = con.createStatement();
-                stmt.execute("SELECT 1");
-                stmt.close();
-                testedConnections.put(src, new Long(now));
-            } catch (SQLException sx) {
-                try {
-                    con.close();
-                } catch (SQLException ignore) {/* nothing to do */}
-                return null;
-            }
+        // Check if the connection is still valid
+        if (con != null
+                && (tested == null || now - tested.longValue() > 60000) 
+                && !con.isValid(serialId)) {
+            nmgr.app.logEvent("Closing cached connection " + con);
+            sqlConnections.remove(name);
+            testedConnections.remove(name);
+            con.close();
+            return null;
         }
         return con;
     }
@@ -529,12 +530,11 @@ public class Transactor {
         if (sqlConnections != null) {
             for (Iterator i = sqlConnections.values().iterator(); i.hasNext();) {
                 try {
-                    Connection con = (Connection) i.next();
-
+                    DbConnection con = (DbConnection) i.next();
                     con.close();
                     nmgr.app.logEvent("Closing DB connection: " + con);
-                } catch (Exception ignore) {
-                    // exception closing db connection, ignore
+                } catch (Exception x) {
+                    nmgr.app.logEvent("Error closing DB connection: " + x);
                 }
             }
 

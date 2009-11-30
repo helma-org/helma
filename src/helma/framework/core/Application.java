@@ -1527,6 +1527,13 @@ public final class Application implements Runnable {
     }
 
     /**
+     * Log a generic application debug message
+     */
+    public void logDebug(String msg) {
+        getEventLog().debug(msg);
+    }
+
+    /**
      * Log an application access
      */
     public void logAccess(String msg) {
