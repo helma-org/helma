@@ -59,8 +59,6 @@ helma.Database = function(source) {
     if (!(source instanceof DbSource))
         throw "helma.Database requires a helma.objectmodel.db.DbSource argument";
 
-    var connection = source.getConnection();
-
     /**
      * Get the java.sql.Connection for this Database instance. This can be used
      * to operate on the connection directly, without going through the helma.Database
@@ -68,7 +66,7 @@ helma.Database = function(source) {
      * @return {java.sql.Connection} the JDBC connection
      */
     this.getConnection = function() {
-        return connection;
+        return source.getConnection();
     };
 
     /**
@@ -76,7 +74,7 @@ helma.Database = function(source) {
      * @return {String} the name of the DB product
      */
     this.getProductName = function() {
-        return connection.getMetaData().getDatabaseProductName().toLowerCase();
+        return source.getConnection().getMetaData().getDatabaseProductName().toLowerCase();
     };
 
     /**
@@ -112,6 +110,7 @@ helma.Database = function(source) {
     this.query = function(sql) {
         var isLogSqlEnabled = (getProperty("logSQL", "false").toLowerCase() == "true");
         var logTimeStart = isLogSqlEnabled ? java.lang.System.currentTimeMillis() : 0;
+        var connection = source.getConnection();
         connection.setReadOnly(true);
         var statement = connection.createStatement();
         var resultSet = statement.executeQuery(sql);
@@ -194,6 +193,7 @@ helma.Database = function(source) {
     this.execute = function(sql) {
         var isLogSqlEnabled = (getProperty("logSQL", "false").toLowerCase() == "true");
         var logTimeStart = isLogSqlEnabled ? java.lang.System.currentTimeMillis() : 0;
+        var connection = source.getConnection();
         connection.setReadOnly(false);
         var statement = connection.createStatement();
         var result;
