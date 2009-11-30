@@ -40,11 +40,11 @@ public class DbConnection {
     }
 
     public boolean isValid(int id) {
-        if (id != serialId) {
-            return false;
-        }
         // test if connection is still ok
         try {
+            if (id != serialId || connection.isClosed()) {
+                return false;
+            }
             Statement stmt = connection.createStatement();
             stmt.execute("SELECT 1");
             stmt.close();
