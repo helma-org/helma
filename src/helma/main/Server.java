@@ -417,6 +417,7 @@ public class Server implements Runnable {
         dbProps = new ResourceProperties();
         dbProps.setIgnoreCase(false);
         dbProps.addResource(new FileResource(file));
+        DbSource.setDefaultProps(dbProps);
 
         // read apps.properties file
         String appsPropfile = sysProps.getProperty("appsPropFile");

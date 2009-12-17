@@ -27,18 +27,20 @@ import java.util.Properties;
 import java.util.Hashtable;
 
 /**
- *  This class describes a relational data source (URL, driver, user and password).
+ *  This class describes a releational data source (URL, driver, user and password).
  */
 public class DbSource {
+    private static ResourceProperties defaultProps = null;
+    private Properties conProps;
     private String name;
-    private int serialId = 0;
-    private ResourceProperties props;
+    private ResourceProperties props, subProps;
     protected String url;
     private String driver;
-    private Properties conProps;
     private boolean isOracle, isMySQL, isPostgreSQL, isH2;
     private long lastRead = 0L;
     private Hashtable dbmappings = new Hashtable();
+    // compute hashcode statically because it's expensive and we need it often
+    private int hashcode;
     // thread local connection holder for non-transactor threads
     private ThreadLocal connection;
 
@@ -66,47 +68,56 @@ public class DbSource {
      */
     public synchronized Connection getConnection()
             throws ClassNotFoundException, SQLException {
-        DbConnection con;
+        Connection con;
         Transactor tx = Transactor.getInstance();
-        if (props.lastModified() != lastRead) {
-            init();
-        }
         if (tx != null) {
-            con = tx.getDbConnection(name, serialId);
+            con = tx.getConnection(this);
         } else {
-            con = getThreadLocalDbConnection();
+            con = getThreadLocalConnection();
         }
 
-        if (con == null) {
-            con = new DbConnection(DriverManager.getConnection(url, conProps), serialId);
+        boolean fileUpdated = props.lastModified() > lastRead ||
+                (defaultProps != null && defaultProps.lastModified() > lastRead);
+
+        if (con == null || con.isClosed() || fileUpdated) {
+            init();
+            con = DriverManager.getConnection(url, conProps);
 
             // If we wanted to use SQL transactions, we'd set autoCommit to
             // false here and make commit/rollback invocations in Transactor methods;
             // System.err.println ("Created new Connection to "+url);
             if (tx != null) {
-                tx.registerConnection(name, con);
+                tx.registerConnection(this, con);
             } else {
                 connection.set(con);
             }
         }
 
-        return con.getConnection();
+        return con;
     }
 
     /**
      * Used for connections not managed by a Helma transactor
      * @return a thread local tested connection, or null
      */
-    private DbConnection getThreadLocalDbConnection() {
+    private Connection getThreadLocalConnection() {
         if (connection == null) {
             connection = new ThreadLocal();
             return null;
         }
-        DbConnection con = (DbConnection) connection.get();
-        if (con != null && !con.isValid(serialId)) {            
-            con.close();
-            connection.remove();
-            return null;
+        Connection con = (Connection) connection.get();
+        if (con != null) {
+            // test if connection is still ok
+            try {
+                Statement stmt = con.createStatement();
+                stmt.execute("SELECT 1");
+                stmt.close();
+            } catch (SQLException sx) {
+                try {
+                    con.close();
+                } catch (SQLException ignore) {/* nothing to do */}
+                return null;
+            }
         }
         return con;
     }
@@ -131,10 +142,13 @@ public class DbSource {
      * @throws ClassNotFoundException if the JDBC driver couldn't be loaded
      */
     private synchronized void init() throws ClassNotFoundException {
-        lastRead = props.lastModified();
-        serialId ++;
+        lastRead = (defaultProps == null) ? props.lastModified()
+                                          : Math.max(props.lastModified(),
+                                                     defaultProps.lastModified());
         // refresh sub-properties for this DbSource
-        ResourceProperties subProps = props.getSubProperties(name + '.');
+        subProps = props.getSubProperties(name + '.');
+        // use properties hashcode for ourselves
+        hashcode = subProps.hashCode();
         // get JDBC URL and driver class name
         url = subProps.getProperty("url");
         driver = subProps.getProperty("driver");
@@ -199,6 +213,15 @@ public class DbSource {
     }
 
     /**
+     * Set the default (server-wide) properties
+     *
+     * @param props server default db.properties
+     */
+    public static void setDefaultProps(ResourceProperties props) {
+        defaultProps = props;
+    }
+
+    /**
      * Check if this DbSource represents an Oracle database
      *
      * @return true if we're using an oracle JDBC driver
@@ -255,4 +278,17 @@ public class DbSource {
         return (DbMapping) dbmappings.get(tablename.toUpperCase());
     }
 
+    /**
+     * Returns a hash code value for the object.
+     */
+    public int hashCode() {
+        return hashcode;
+    }
+
+    /**
+     * Indicates whether some other object is "equal to" this one.
+     */
+    public boolean equals(Object obj) {
+        return obj instanceof DbSource && subProps.equals(((DbSource) obj).subProps);
+    }
 }
