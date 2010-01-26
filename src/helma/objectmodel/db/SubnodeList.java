@@ -129,7 +129,7 @@ public class SubnodeList implements Serializable {
         long lastChange = getLastSubnodeChange();
         if (lastChange != lastSubnodeFetch) {
             Relation rel = getSubnodeRelation();
-            if (rel.aggressiveLoading && rel.groupby == null) {
+            if (rel != null && rel.aggressiveLoading && rel.groupby == null) {
                 list = node.nmgr.getNodes(node, rel);
             } else {
                 list = node.nmgr.getNodeIDs(node, rel);
