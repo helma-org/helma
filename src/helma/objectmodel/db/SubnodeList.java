@@ -164,7 +164,7 @@ public class SubnodeList implements Serializable {
         // include dbmap.getLastTypeChange to also reload if the type mapping has changed.
         long checkSum = lastSubnodeChange + node.dbmap.getLastTypeChange();
         Relation rel = getSubnodeRelation();
-        return rel.aggressiveCaching ?
+        return rel == null || rel.aggressiveCaching ?
                 checkSum : checkSum + rel.otherType.getLastDataChange();
     }
 
