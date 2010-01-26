@@ -201,7 +201,7 @@ public final class NodeManager {
 
         Key key;
         DbMapping otherDbm = rel == null ? null : rel.otherType;
-        // check what kind of object we're looking for and make an apropriate key
+        // check what kind of object we're looking for and make an appropriate key
         if (rel.isComplexReference()) {
             // a key for a complex reference
             key = new MultiKey(rel.otherType, rel.getKeyParts(home));
@@ -278,7 +278,9 @@ public final class NodeManager {
             } else {
                 // node fetched from db is null, cache result using nullNode
                 synchronized (cache) {
-                    cache.put(key, new Node(home.getLastSubnodeChange()));
+                    // do not use child collection timestamp as cache guard for object references
+                    long lastchange = rel.isComplexReference() ? 0 : home.getLastSubnodeChange();
+                    cache.put(key, new Node(lastchange));
 
                     // we ignore the case that onother thread has created the node in the meantime
                     return null;
