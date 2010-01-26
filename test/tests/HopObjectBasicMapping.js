@@ -20,6 +20,7 @@ function testEquality() {
     assertTrue(person !== person2);
     assertTrue(person._id === person2._id);
     assertTrue(person == person2);
+    person.remove();
 }
 
 function testSimpleMapping() {
