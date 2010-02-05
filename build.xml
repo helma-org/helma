@@ -481,4 +481,14 @@
         </delete>
     </target>
 
+    <!-- Build helmaswarm jar file -->
+    <target  name="swarm-jar">
+        <ant dir="helmaswarm" antfile="build.xml" target="jar" inheritAll="false"/>
+    </target>
+
+    <!-- Clean up helmaswarm -->
+    <target  name="swarm-clean">
+        <ant dir="helmaswarm" antfile="build.xml" target="clean" inheritAll="false"/>
+    </target>
+
 </project>
