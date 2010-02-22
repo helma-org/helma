@@ -23,48 +23,14 @@
  * @addon
  */
 
-/**
- * Return the first index position of a value
- * contained in an array, or -1 if it isn't contained.
- * @param {Object} val the value to check
- * @return {int} the index of the first occurence of val, or -1
- */
-Array.prototype.indexOf = function(val) {
-   var i = -1;
-   while (i++ < this.length -1) {
-      if (this[i] == val)
-         return i;
-   }
-   return -1;
-};
-
 
 /**
- * return the last index position of a value 
- * contained in an array, or -1 if it isn't contained.
- * @param {Object} val the value to check
- * @return {int} the index of the first occurence of val, or -1
- */
-Array.prototype.lastIndexOf = function(val) {
-   var i = 1;
-   while (this.length - i++ >= 0) {
-      if (this[i] == val)
-         return i;
-   }
-   return -1;
-};
-
-
-/**
- * check if an array passed as argument contains
- * a specific value (start from end of array)
+ * Check if this array contains a specific value.
  * @param {Object} val the value to check
  * @return {boolean} true if the value is contained
  */
 Array.prototype.contains = function(val) {
-   if (this.indexOf(val) > -1)
-      return true;
-   return false;
+   return this.indexOf(val) > -1;
 };
 
 /**
