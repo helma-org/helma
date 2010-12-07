@@ -495,6 +495,7 @@ public class Transactor {
     /**
      * Kill this transaction thread. Used as last measure only.
      */
+    @SuppressWarnings("deprecation")
     public synchronized void kill() {
 
         killed = true;

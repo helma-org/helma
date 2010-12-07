@@ -218,15 +218,6 @@ public class HelmaSecurityManager extends SecurityManager {
 
     /**
      *
-     *
-     * @param addr ...
-     * @param ttl ...
-     */
-    public void checkMulticast(InetAddress addr, byte ttl) {
-    }
-
-    /**
-     *
      */
     public void checkPropertiesAccess() {
     }
