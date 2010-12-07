@@ -380,6 +380,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
      * @param name the name of the libary namespace
      * @deprecated should be implemented in JavaScript instead
      */
+    @Deprecated
     public void defineLibraryScope(final String name) {
         Object obj = get(name, this);
         if (obj != NOT_FOUND) {

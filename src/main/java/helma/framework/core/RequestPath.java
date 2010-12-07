@@ -142,6 +142,7 @@ public class RequestPath {
      * @return the index of the element, or -1 if it isn't contained
      * @deprecated use {@link #indexOf(Object)} instead.
      */
+    @Deprecated
     public int contains(Object obj) {
         return objects.indexOf(obj);
     }

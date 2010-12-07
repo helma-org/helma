@@ -586,6 +586,7 @@ public class ResponseBean implements Serializable {
      * Old version for push() kept for compatibility
      * @deprecated
      */
+    @Deprecated
     public void pushStringBuffer() {
         res.pushBuffer(null);
     }
@@ -595,6 +596,7 @@ public class ResponseBean implements Serializable {
      * @deprecated
      * @return ...
      */
+    @Deprecated
     public String popStringBuffer() {
         return res.popString();
     }
