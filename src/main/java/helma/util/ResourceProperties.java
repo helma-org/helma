@@ -28,6 +28,8 @@ import helma.framework.repository.Repository;
  */
 public class ResourceProperties extends Properties {
 
+    private static final long serialVersionUID = -2258056784572269727L;
+
     // Delay between checks
     private final long CACHE_TIME = 1500L;
 

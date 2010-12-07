@@ -25,6 +25,8 @@ import java.util.*;
  */
 public final class SystemProperties extends Properties {
 
+    private static final long serialVersionUID = -6994562125444162183L;
+
     final static long cacheTime = 1500L;
     private SystemProperties defaultProps; // the default/fallback properties.
     private File file; // the underlying properties file from which we read.

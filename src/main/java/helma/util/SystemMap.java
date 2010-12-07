@@ -27,6 +27,8 @@ import java.util.*;
 public class SystemMap extends HashMap {
 
 
+    private static final long serialVersionUID = 2926260006469380544L;
+
     /**
      *  Construct an empty SystemMap.
      */

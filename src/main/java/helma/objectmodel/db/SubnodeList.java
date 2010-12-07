@@ -25,6 +25,8 @@ import java.io.Serializable;
  */
 public class SubnodeList implements Serializable {
 
+    private static final long serialVersionUID = 711208015232333566L;
+
     protected Node node;
     protected List list;
 

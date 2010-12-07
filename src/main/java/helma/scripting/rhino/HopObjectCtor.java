@@ -29,6 +29,8 @@ import org.mozilla.javascript.*;
 
 public class HopObjectCtor extends FunctionObject {
 
+    private static final long serialVersionUID = 3787907922712636030L;
+
     // init flag to trigger prototype compilation on
     // static constructor property access
     boolean initialized;
@@ -144,6 +146,8 @@ public class HopObjectCtor extends FunctionObject {
 
     class GetById extends BaseFunction {
 
+        private static final long serialVersionUID = -8041352998956882647L;
+
         public GetById(Scriptable scope) {
             ScriptRuntime.setFunctionProtoAndParent(this, scope);
         }
@@ -186,6 +190,8 @@ public class HopObjectCtor extends FunctionObject {
     }
 
     class HopCollection extends BaseFunction {
+
+        private static final long serialVersionUID = -4046933261468527204L;
 
         public HopCollection(Scriptable scope) {
             ScriptRuntime.setFunctionProtoAndParent(this, scope);

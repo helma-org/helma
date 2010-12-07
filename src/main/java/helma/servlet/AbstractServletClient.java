@@ -41,6 +41,8 @@ import org.apache.commons.fileupload.servlet.ServletRequestContext;
  */
 public abstract class AbstractServletClient extends HttpServlet {
 
+    private static final long serialVersionUID = -6096445259839663680L;
+
     // limit to HTTP uploads per file in kB
     int uploadLimit = 1024;
 

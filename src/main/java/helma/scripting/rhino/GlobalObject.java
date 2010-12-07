@@ -37,6 +37,8 @@ import java.io.*;
  * Helma global object defines a number of custom global functions.
  */
 public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
+    private static final long serialVersionUID = -5058912338247265290L;
+
     Application app;
     RhinoCore core;
     boolean isThreadScope = false;
@@ -387,6 +389,8 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
             return;
         }
         ScriptableObject scope = new NativeObject() {
+            private static final long serialVersionUID = 9205558066617631601L;
+
             public String getClassName() {
                 return name;
             }

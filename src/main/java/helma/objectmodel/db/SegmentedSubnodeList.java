@@ -15,6 +15,8 @@ import java.util.*;
 
 public class SegmentedSubnodeList extends SubnodeList {
 
+    private static final long serialVersionUID = -4947752577517584610L;
+
     transient Segment[] segments = null;
     static int SEGLENGTH = 1000;
 

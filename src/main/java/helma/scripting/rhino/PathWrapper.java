@@ -29,6 +29,8 @@ import java.io.UnsupportedEncodingException;
  */
 public class PathWrapper extends ScriptableObject {
 
+    private static final long serialVersionUID = 514381479839863014L;
+
     RequestPath path;
     RhinoCore core;
 

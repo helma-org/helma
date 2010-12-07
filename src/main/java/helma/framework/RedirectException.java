@@ -24,6 +24,8 @@ package helma.framework;
  * java.lang.ThreadDeath).
  */
 public class RedirectException extends Error {
+    private static final long serialVersionUID = 2362170037476457592L;
+
     String url;
 
     /**

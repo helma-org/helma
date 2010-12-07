@@ -26,6 +26,8 @@ import javax.servlet.*;
  *  web server
  */
 public final class EmbeddedServletClient extends AbstractServletClient {
+    private static final long serialVersionUID = -1716809853688477356L;
+
     private Application app = null;
     private String appName;
 

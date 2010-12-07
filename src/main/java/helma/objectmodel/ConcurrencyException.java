@@ -22,6 +22,8 @@ package helma.objectmodel;
  * will normally catch this and try again after a period of time.
  */
 public class ConcurrencyException extends Error {
+    private static final long serialVersionUID = 4031542073544406467L;
+
     /**
      * Creates a new ConcurrencyException object.
      *

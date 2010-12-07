@@ -27,6 +27,8 @@ import java.io.*;
  */
 public class ScriptingException extends Exception {
 
+    private static final long serialVersionUID = -7191341724784015678L;
+    
     String scriptStack = null;
 
     /**

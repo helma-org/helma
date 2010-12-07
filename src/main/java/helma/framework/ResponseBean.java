@@ -30,6 +30,8 @@ import java.util.Map;
  *
  */
 public class ResponseBean implements Serializable {
+    private static final long serialVersionUID = -6807623667477109800L;
+
     ResponseTrans res;
 
     /**

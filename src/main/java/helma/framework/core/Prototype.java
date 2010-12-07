@@ -492,6 +492,8 @@ public final class Prototype {
      * A Map that dynamically expands to all skins in this prototype.
      */
     class SkinMap extends HashMap {
+        private static final long serialVersionUID = -8855785541204100909L;
+
         volatile long lastSkinmapLoad = -1;
         Object[] skinpath;
 

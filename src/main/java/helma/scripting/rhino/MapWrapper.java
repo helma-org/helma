@@ -30,6 +30,8 @@ import java.util.Map;
  *  and helma.util.WrappedMap.
  */
 public class MapWrapper extends ScriptableObject implements Wrapper {
+    private static final long serialVersionUID = -8802538795495729410L;
+
     Map map;
     RhinoCore core;
 

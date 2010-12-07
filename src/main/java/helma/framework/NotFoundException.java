@@ -22,6 +22,8 @@ package helma.framework;
  * wrong in evaluation of requests.
  */
 public class NotFoundException extends RuntimeException {
+    private static final long serialVersionUID = -715022974097617658L;
+
     /**
      * Creates a new NotFoundException object.
      *

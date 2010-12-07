@@ -35,6 +35,8 @@ public interface SerializationProxy extends Serializable {
  * Serialization proxy for app, req, res, path objects.
  */
 class ScriptBeanProxy implements SerializationProxy {
+    private static final long serialVersionUID = -1002489933060844917L;
+
     String name;
 
     ScriptBeanProxy(String name) {
@@ -56,6 +58,8 @@ class ScriptBeanProxy implements SerializationProxy {
  * Serialization proxy for global scope
  */
 class GlobalProxy implements SerializationProxy {
+    private static final long serialVersionUID = -3200125667487274257L;
+
     boolean shared;
 
     GlobalProxy(GlobalObject scope) {
@@ -76,6 +80,8 @@ class GlobalProxy implements SerializationProxy {
  * Serialization proxy for various flavors of HopObjects/Nodes
  */
 class HopObjectProxy implements SerializationProxy {
+    private static final long serialVersionUID = -4808579296683836009L;
+
     Object ref;
     boolean wrapped = false;
 

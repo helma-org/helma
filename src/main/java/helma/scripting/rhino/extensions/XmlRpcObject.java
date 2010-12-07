@@ -43,6 +43,8 @@ import java.util.Vector;
  */
 public class XmlRpcObject extends BaseFunction {
 
+    private static final long serialVersionUID = 1479373761583135438L;
+
     String url = null;
     String method = null;
 

@@ -41,6 +41,8 @@ import javax.mail.internet.MimeUtility;
  */
 public class MailObject extends ScriptableObject implements Serializable {
 
+    private static final long serialVersionUID = -4834981850233741039L;
+
     public static final int OK = 0;
     public static final int SUBJECT = 10;
     public static final int TEXT = 11;

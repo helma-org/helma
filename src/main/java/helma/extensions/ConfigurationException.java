@@ -20,6 +20,8 @@ package helma.extensions;
  * 
  */
 public class ConfigurationException extends RuntimeException {
+    private static final long serialVersionUID = 6428439427909728917L;
+
     /**
      * Creates a new ConfigurationException object.
      *

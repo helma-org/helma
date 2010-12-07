@@ -21,6 +21,8 @@ package helma.objectmodel;
  * Thrown on any kind of Database-Error
  */
 public class DatabaseException extends RuntimeException {
+    private static final long serialVersionUID = -5715728591015640819L;
+
     /**
      * Creates a new DatabaseException object.
      *

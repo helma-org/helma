@@ -22,6 +22,8 @@ package helma.framework;
  * application
  */
 public class ApplicationStoppedException extends RuntimeException {
+    private static final long serialVersionUID = 7125229844095452333L;
+
     /**
      * Creates a new ApplicationStoppedException object.
      */

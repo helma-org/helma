@@ -33,6 +33,8 @@ import java.io.IOException;
  */
 public class HopObject extends ScriptableObject implements Wrapper, PropertyRecorder {
 
+    private static final long serialVersionUID = 1329862822101428427L;
+
     String className;
     final NodeProxy proxy;
     final RhinoCore core;

@@ -38,6 +38,8 @@ import org.apache.commons.logging.LogFactory;
  * application specific functionality.
  */
 public class ApplicationBean implements Serializable {
+    private static final long serialVersionUID = -5053315391709405106L;
+
     transient Application app;
     WrappedMap properties = null;
 
