@@ -144,7 +144,7 @@ public class ResourceProperties extends Properties {
         this.parentProperties = parentProperties;
         this.prefix = prefix;
         resources = new LinkedHashSet();
-        setIgnoreCase(parentProperties.ignoreCase);        
+        setIgnoreCase(parentProperties.ignoreCase);
         forceUpdate();
     }
 
@@ -483,7 +483,7 @@ public class ResourceProperties extends Properties {
      * @param value value
      * @return the old value, if an old value got replaced
      */
-    public Object put(Object key, Object value) {
+    public synchronized Object put(Object key, Object value) {
         if (value instanceof String) {
             value = ((String) value).trim();
         }
@@ -499,7 +499,7 @@ public class ResourceProperties extends Properties {
      * @param key key
      * @return the old value
      */
-    public Object remove(Object key) {
+    public synchronized Object remove(Object key) {
         String strkey = key.toString();
         if (ignoreCase) {
             strkey = (String) keyMap.remove(strkey.toLowerCase());

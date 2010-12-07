@@ -199,7 +199,7 @@ public final class SystemProperties extends Properties {
      * This should not be used directly if properties are read from file,
      *  otherwise changes will be lost whe the file is next modified.
      */
-    public Object put(Object key, Object value) {
+    public synchronized Object put(Object key, Object value) {
         // cut off trailing whitespace
         if (value != null) {
             value = value.toString().trim();
@@ -211,7 +211,7 @@ public final class SystemProperties extends Properties {
     /**
      *  Overrides method to act on the wrapped properties object.
      */
-    public Object get(Object key) {
+    public synchronized Object get(Object key) {
         if ((System.currentTimeMillis() - lastcheck) > cacheTime) {
             checkFile();
         }
@@ -222,14 +222,14 @@ public final class SystemProperties extends Properties {
     /**
      *  Overrides method to act on the wrapped properties object.
      */
-    public Object remove(Object key) {
+    public synchronized Object remove(Object key) {
         return super.remove(ignoreCase ? key.toString().toLowerCase() : key);
     }
 
     /**
      *  Overrides method to act on the wrapped properties object.
      */
-    public boolean contains(Object obj) {
+    public synchronized boolean contains(Object obj) {
         if ((System.currentTimeMillis() - lastcheck) > cacheTime) {
             checkFile();
         }
@@ -240,7 +240,7 @@ public final class SystemProperties extends Properties {
     /**
      *  Overrides method to act on the wrapped properties object.
      */
-    public boolean containsKey(Object key) {
+    public synchronized boolean containsKey(Object key) {
         if ((System.currentTimeMillis() - lastcheck) > cacheTime) {
             checkFile();
         }
@@ -251,7 +251,7 @@ public final class SystemProperties extends Properties {
     /**
      *  Overrides method to act on the wrapped properties object.
      */
-    public boolean isEmpty() {
+    public synchronized boolean isEmpty() {
         if ((System.currentTimeMillis() - lastcheck) > cacheTime) {
             checkFile();
         }
@@ -285,7 +285,7 @@ public final class SystemProperties extends Properties {
     /**
      *  Overrides method to act on the wrapped properties object.
      */
-    public Enumeration keys() {
+    public synchronized Enumeration keys() {
         if ((System.currentTimeMillis() - lastcheck) > cacheTime) {
             checkFile();
         }
@@ -307,7 +307,7 @@ public final class SystemProperties extends Properties {
     /**
      *  Overrides method to act on the wrapped properties object.
      */
-    public Enumeration elements() {
+    public synchronized Enumeration elements() {
         if ((System.currentTimeMillis() - lastcheck) > cacheTime) {
             checkFile();
         }
@@ -318,7 +318,7 @@ public final class SystemProperties extends Properties {
     /**
      *  Overrides method to act on the wrapped properties object.
      */
-    public int size() {
+    public synchronized int size() {
         if ((System.currentTimeMillis() - lastcheck) > cacheTime) {
             checkFile();
         }
@@ -329,7 +329,7 @@ public final class SystemProperties extends Properties {
     /**
      *  Overrides method to act on the wrapped properties object.
      */
-    public String toString() {
+    public synchronized String toString() {
         return super.toString();
     }
 
