@@ -19,6 +19,8 @@ package helma.util;
 import java.io.*;
 import java.util.*;
 
+import org.apache.commons.codec.digest.DigestUtils;
+
 /**
  *  This file authenticates against a passwd file
  */
@@ -68,7 +70,7 @@ public class CryptFile {
                 }
 
                 // then try MD5
-                if (realpw.equals(MD5Encoder.encode(pw))) {
+                if (realpw.equals(DigestUtils.md5(pw))) {
                     return true;
                 }
             } catch (Exception x) {

@@ -865,7 +865,7 @@ public final class ResponseTrans extends Writer implements Serializable {
         if (what == null) {
             digest.update(new byte[0]);
         } else if (what instanceof Date) {
-            digest.update(MD5Encoder.toBytes(((Date) what).getTime()));
+            digest.update(Long.toBinaryString(((Date) what).getTime()).getBytes());
         } else if (what instanceof byte[]) {
             digest.update((byte[]) what);
         } else {
@@ -889,7 +889,7 @@ public final class ResponseTrans extends Writer implements Serializable {
 
         // add the application checksum as dependency to make ETag
         // generation sensitive to changes in the app
-        byte[] b = digest.digest(MD5Encoder.toBytes(app.getChecksum()));
+        byte[] b = digest.digest(Long.toBinaryString((this.app.getChecksum())).getBytes());
 
         setETag(new String(Base64.encodeBase64(b)));
     }

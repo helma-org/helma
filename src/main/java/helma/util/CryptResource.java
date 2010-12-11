@@ -20,6 +20,9 @@ import java.io.BufferedReader;
 import java.io.StringReader;
 import java.util.Properties;
 import java.util.StringTokenizer;
+
+import org.apache.commons.codec.digest.DigestUtils;
+
 import helma.framework.repository.Resource;
 import helma.framework.repository.Resource;
 
@@ -73,7 +76,7 @@ public class CryptResource {
                 }
 
                 // then try MD5
-                if (realpw.equals(MD5Encoder.encode(pw))) {
+                if (realpw.equals(DigestUtils.md5(pw))) {
                     return true;
                 }
             } catch (Exception x) {
