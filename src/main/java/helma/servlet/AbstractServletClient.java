@@ -464,7 +464,11 @@ public abstract class AbstractServletClient extends HttpServlet {
         }
         int length = (int) file.length();
         res.setContentLength(length);
+        // Erase charset so content-type is not messed with.
+        hopres.setCharset(null);
         res.setContentType(hopres.getContentType());
+        // Define full Content-Range, as required by HTML5 video and audio
+        res.setHeader("Content-Range", "bytes 0-" + length + "/" + length);
 
         InputStream in = cx.getResourceAsStream(forward);
         if (in == null) {
