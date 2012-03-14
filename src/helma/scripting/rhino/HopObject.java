@@ -1133,7 +1133,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
                 if (node == null || node.getState() == Node.INVALID) {
                     // We probably have a deleted node.
                     // Replace with empty transient node to avoid throwing an exception.
-                    node = new TransientNode();
+                    node = new TransientNode(core.app);
                 }
             }
             return node;
