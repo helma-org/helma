@@ -17,6 +17,8 @@
 package helma.objectmodel;
 
 import helma.framework.IPathElement;
+import helma.framework.core.Application;
+import helma.framework.core.RequestEvaluator;
 import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.Relation;
 import helma.objectmodel.db.Node;
@@ -44,6 +46,7 @@ public class TransientNode implements INode, Serializable {
     protected long lastmodified;
     protected String id;
     protected String name;
+    private final Application app;
 
     // is the main identity a named property or an anonymous node in a collection?
     protected boolean anonymous = false;
@@ -53,21 +56,27 @@ public class TransientNode implements INode, Serializable {
     /**
      * Creates a new TransientNode object.
      */
-    public TransientNode() {
+    public TransientNode(Application app) {
         id = generateID();
         name = id;
         created = lastmodified = System.currentTimeMillis();
+        this.app=app;
+    }
+    
+    private TransientNode() {
+        app=null;
     }
 
     /**
      *  Make a new TransientNode object with a given name
      */
-    public TransientNode(String n) {
+    public TransientNode(Application app, String n) {
         id = generateID();
         name = (n == null || n.length() == 0) ? id : n;
         // HACK - decrease creation and last-modified timestamp by 1 so we notice 
         // modifications that take place immediately after object creation
         created = lastmodified = System.currentTimeMillis() - 1;
+        this.app = app;
     }
 
     public static String generateID() {
@@ -236,7 +245,7 @@ public class TransientNode implements INode, Serializable {
             anon = true;
         }
 
-        INode n = new TransientNode(nm);
+        INode n = new TransientNode(app, nm);
 
         if (anon) {
             addNode(n, where);
@@ -367,7 +376,8 @@ public class TransientNode implements INode, Serializable {
     }
 
     private TransientProperty getProperty(String propname) {
-        TransientProperty prop = (propMap == null) ? null : (TransientProperty) propMap.get(propname);
+        TransientProperty prop = (propMap == null) ? null 
+                : (TransientProperty) propMap.get(correctPropertyName(propname));
 
         // check if we have to create a virtual node
         if ((prop == null) && (dbmap != null)) {
@@ -388,7 +398,7 @@ public class TransientNode implements INode, Serializable {
         node.setDbMapping(rel.getVirtualMapping());
         setNode(propname, node);
 
-        return (TransientProperty) propMap.get(propname);
+        return (TransientProperty) propMap.get(correctPropertyName(propname));
     }
 
     public IProperty get(String propname) {
@@ -485,11 +495,12 @@ public class TransientNode implements INode, Serializable {
         }
 
         propname = propname.trim();
-        TransientProperty prop = (TransientProperty) propMap.get(propname);
+        String cpn = correctPropertyName(propname);
+        TransientProperty prop = (TransientProperty) propMap.get(cpn);
 
         if (prop == null) {
             prop = new TransientProperty(propname, this);
-            propMap.put(propname, prop);
+            propMap.put(cpn, prop);
         }
 
         return prop;
@@ -552,7 +563,7 @@ public class TransientNode implements INode, Serializable {
 
     public void unset(String propname) {
         if (propMap != null && propname != null) {
-            propMap.remove(propname);
+            propMap.remove(correctPropertyName(propname));
             lastmodified = System.currentTimeMillis();
         }
     }
@@ -576,7 +587,7 @@ public class TransientNode implements INode, Serializable {
      */
     public synchronized INode getCacheNode() {
         if (cacheNode == null) {
-            cacheNode = new TransientNode();
+            cacheNode = new TransientNode(app);
         }
 
         return cacheNode;
@@ -587,5 +598,9 @@ public class TransientNode implements INode, Serializable {
      */
     public synchronized void clearCacheNode() {
         cacheNode = null;
+    }
+    
+    private String correctPropertyName(String propname) {
+        return app.correctPropertyName(propname);
     }
 }

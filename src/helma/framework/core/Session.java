@@ -73,7 +73,7 @@ public class Session implements Serializable {
         this.app = app;
         this.uid = null;
         this.userHandle = null;
-        cacheNode = new TransientNode("session");
+        cacheNode = new TransientNode(app, "session");
         cacheLastModified = cacheNode.lastModified();
         // HACK - decrease timestamp by 1 to notice modifications
         // taking place immediately after object creation
