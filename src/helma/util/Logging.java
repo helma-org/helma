@@ -66,15 +66,9 @@ public class Logging extends LogFactory {
         // normalize log name
         logname = logname.replaceAll("[^\\w\\d\\.]", "");
         if ("console".equals(logdir)) {
-            if (logname.startsWith("org.mortbay."))
-                return getConsoleLog().getSedatedLog();
-            else
-                return getConsoleLog();
+            return getConsoleLog();
         } else {
-            if (logname.startsWith("org.mortbay."))
-                return getFileLog(logname).getSedatedLog();
-            else
-                return getFileLog(logname);
+            return getFileLog(logname);
         }
     }
 
