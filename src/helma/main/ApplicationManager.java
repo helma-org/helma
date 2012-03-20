@@ -22,6 +22,7 @@ import helma.framework.repository.FileRepository;
 import helma.util.StringUtils;
 import org.apache.xmlrpc.XmlRpcHandler;
 import org.apache.commons.logging.Log;
+import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.server.handler.ResourceHandler;
@@ -304,7 +305,7 @@ public class ApplicationManager implements XmlRpcHandler {
         Application app;
 
         private ContextHandler staticContext = null;
-        private ContextHandler appContext = null;
+        private ServletContextHandler appContext = null;
 
         String appName;
         File appDir;
@@ -489,28 +490,25 @@ public class ApplicationManager implements XmlRpcHandler {
 
                         getLogger().info("Serving static from " + staticContent.getPath());
                         getLogger().info("Mounting static at " + staticMountpoint);
-                        
+
                         ResourceHandler rhandler = new ResourceHandler();
                         rhandler.setResourceBase(staticContent.getPath());
                         rhandler.setWelcomeFiles(staticHome);
-                        
+
                         staticContext = context.addContext(staticMountpoint, "");
                         staticContext.setHandler(rhandler);
-                        
+
                         staticContext.start();
                     }
-                    
-                    appContext = context.addContext(pathPattern, "");
 
-                    ServletHandler handler = new ServletHandler();
+                    appContext = new ServletContextHandler(context, pathPattern);
                     Class servletClass = servletClassName == null ?
                             EmbeddedServletClient.class : Class.forName(servletClassName);
 
                     ServletHolder holder = new ServletHolder(servletClass);
-                    handler.addServletWithMapping(holder, "/*");
+                    appContext.addServlet(holder, "/*");
 
                     holder.setInitParameter("application", appName);
-                    // holder.setInitParameter("mountpoint", mountpoint);
 
                     if (cookieDomain != null) {
                         holder.setInitParameter("cookieDomain", cookieDomain);
@@ -535,8 +533,6 @@ public class ApplicationManager implements XmlRpcHandler {
                     if (debug != null) {
                         holder.setInitParameter("debug", debug);
                     }
-                    
-                    appContext.setHandler(handler);
 
                     if (protectedStaticDir != null) {
                         File protectedContent = getAbsoluteFile(protectedStaticDir);
@@ -578,7 +574,7 @@ public class ApplicationManager implements XmlRpcHandler {
                         staticContext.destroy();
                         staticContext = null;
                     }
-                    context.mapContexts();                    
+                    context.mapContexts();
                 }
 
                 // unregister as XML-RPC handler
