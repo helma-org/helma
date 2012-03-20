@@ -17,11 +17,11 @@
 package helma.main;
 
 
-import org.mortbay.jetty.Connector;
-import org.mortbay.jetty.ajp.Ajp13SocketConnector;
-import org.mortbay.jetty.bio.SocketConnector;
-import org.mortbay.jetty.nio.SelectChannelConnector;
-import org.mortbay.xml.XmlConfiguration;
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.ajp.Ajp13SocketConnector;
+import org.eclipse.jetty.server.bio.SocketConnector;
+import org.eclipse.jetty.server.nio.SelectChannelConnector;
+import org.eclipse.jetty.xml.XmlConfiguration;
 
 import java.net.URL;
 import java.net.InetSocketAddress;
@@ -31,7 +31,7 @@ import java.io.File;
 public class JettyServer {
 
     // the embedded web server
-    protected org.mortbay.jetty.Server http;
+    protected org.eclipse.jetty.server.Server http;
 
     // the AJP13 Listener, used for connecting from external webserver to servlet via JK
     protected Ajp13SocketConnector ajp13;
@@ -47,7 +47,7 @@ public class JettyServer {
     }
 
     private JettyServer(URL url) throws IOException {
-        http = new org.mortbay.jetty.Server();
+        http = new org.eclipse.jetty.server.Server();
 
         try {
             XmlConfiguration config = new XmlConfiguration(url);
@@ -64,7 +64,7 @@ public class JettyServer {
     private JettyServer(InetSocketAddress webPort, InetSocketAddress ajpPort, Server server)
             throws IOException {
     	
-        http = new org.mortbay.jetty.Server();
+        http = new org.eclipse.jetty.server.Server();
         http.setServer(http);
         
         // start embedded web server if port is specified
@@ -99,7 +99,7 @@ public class JettyServer {
         openListeners();
     }
 
-    public org.mortbay.jetty.Server getHttpServer() {
+    public org.eclipse.jetty.server.Server getHttpServer() {
         return http;
     }
 

@@ -22,11 +22,11 @@ import helma.framework.repository.FileRepository;
 import helma.util.StringUtils;
 import org.apache.xmlrpc.XmlRpcHandler;
 import org.apache.commons.logging.Log;
-import org.mortbay.jetty.handler.ContextHandler;
-import org.mortbay.jetty.handler.ContextHandlerCollection;
-import org.mortbay.jetty.handler.ResourceHandler;
-import org.mortbay.jetty.servlet.ServletHandler;
-import org.mortbay.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.server.handler.ContextHandler;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
+import org.eclipse.jetty.server.handler.ResourceHandler;
+import org.eclipse.jetty.servlet.ServletHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 
 import java.io.*;
 import java.util.*;
