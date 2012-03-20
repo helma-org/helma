@@ -78,7 +78,7 @@ public class Server implements Runnable {
 
     // the XML-RPC server
     protected WebServer xmlrpc;
-    
+
     Thread shutdownhook;
 
 
@@ -512,18 +512,18 @@ public class Server implements Runnable {
                 // exception in xmlrpc server shutdown, ignore.
             }
         }
-        
+
         if (helmaLogging) {
             Logging.shutdown();
         }
-        
+
         server = null;
-        
+
         try {
             Runtime.getRuntime().removeShutdownHook(shutdownhook);
             // HACK: running the shutdownhook seems to be necessary in order
-            // to prevent it from blocking garbage collection of helma 
-            // classes/classloaders. Since we already set server to null it 
+            // to prevent it from blocking garbage collection of helma
+            // classes/classloaders. Since we already set server to null it
             // won't do anything anyhow.
             shutdownhook.start();
             shutdownhook = null;
@@ -598,6 +598,9 @@ public class Server implements Runnable {
             logger.error("Error setting security manager", x);
         }
 
+        // start applications
+        appManager.startAll();
+
         // start embedded web server
         if (jetty != null) {
             try {
@@ -606,9 +609,6 @@ public class Server implements Runnable {
                 throw new RuntimeException("Error starting embedded web server", m);
             }
         }
-
-        // start applications
-        appManager.startAll();
 
         while (Thread.currentThread() == mainThread) {
             try {
