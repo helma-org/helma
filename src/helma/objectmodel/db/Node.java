@@ -1602,7 +1602,8 @@ public final class Node implements INode {
                 null : dbmap.getExactPropertyRelation(propname);
 
         // 1) check if the property is contained in the propMap
-        Property prop = propMap == null ? null : (Property) propMap.get(propname);
+        Property prop = propMap == null ? null : 
+            (Property) propMap.get(correctPropertyName(propname));
 
         if (prop != null) {
             if (rel != null) {
@@ -1631,7 +1632,7 @@ public final class Node implements INode {
             n.setDbMapping(rel.getVirtualMapping());
             n.setParent(this);
             setNode(propname, n);
-            return (Property) propMap.get(propname);
+            return (Property) propMap.get(correctPropertyName(propname));
         }
 
         // 2) check if this is a create-on-demand node property
@@ -1798,14 +1799,15 @@ public final class Node implements INode {
         }
 
         propname = propname.trim();
-        Property prop = (Property) propMap.get(propname);
+        String p2 = correctPropertyName(propname);
+        Property prop = (Property) propMap.get(p2);
 
         if (prop != null) {
             prop.setValue(value, type);
         } else {
             prop = new Property(propname, this);
             prop.setValue(value, type);
-            propMap.put(propname, prop);
+            propMap.put(p2, prop);
         }
 
         lastmodified = System.currentTimeMillis();
@@ -1833,7 +1835,8 @@ public final class Node implements INode {
         }
 
         propname = propname.trim();
-        Property prop = (Property) propMap.get(propname);
+        String p2 = correctPropertyName(propname);
+        Property prop = (Property) propMap.get(p2);
         String oldvalue = null;
 
         if (prop != null) {
@@ -1848,7 +1851,7 @@ public final class Node implements INode {
         } else {
             prop = new Property(propname, this);
             prop.setStringValue(value);
-            propMap.put(propname, prop);
+            propMap.put(p2, prop);
         }
 
         if (dbmap != null) {
@@ -1944,14 +1947,15 @@ public final class Node implements INode {
         }
 
         propname = propname.trim();
-        Property prop = (Property) propMap.get(propname);
+        String p2 = correctPropertyName(propname);
+        Property prop = (Property) propMap.get(p2);
 
         if (prop != null) {
             prop.setIntegerValue(value);
         } else {
             prop = new Property(propname, this);
             prop.setIntegerValue(value);
-            propMap.put(propname, prop);
+            propMap.put(p2, prop);
         }
 
         notifyPropertyChange(propname);
@@ -1981,14 +1985,15 @@ public final class Node implements INode {
         }
 
         propname = propname.trim();
-        Property prop = (Property) propMap.get(propname);
+        String p2 = correctPropertyName(propname);
+        Property prop = (Property) propMap.get(p2);
 
         if (prop != null) {
             prop.setFloatValue(value);
         } else {
             prop = new Property(propname, this);
             prop.setFloatValue(value);
-            propMap.put(propname, prop);
+            propMap.put(p2, prop);
         }
 
         notifyPropertyChange(propname);
@@ -2018,14 +2023,15 @@ public final class Node implements INode {
         }
 
         propname = propname.trim();
-        Property prop = (Property) propMap.get(propname);
+        String p2 = correctPropertyName(propname);
+        Property prop = (Property) propMap.get(p2);
 
         if (prop != null) {
             prop.setBooleanValue(value);
         } else {
             prop = new Property(propname, this);
             prop.setBooleanValue(value);
-            propMap.put(propname, prop);
+            propMap.put(p2, prop);
         }
 
         notifyPropertyChange(propname);
@@ -2055,14 +2061,15 @@ public final class Node implements INode {
         }
 
         propname = propname.trim();
-        Property prop = (Property) propMap.get(propname);
+        String p2 = correctPropertyName(propname);
+        Property prop = (Property) propMap.get(p2);
 
         if (prop != null) {
             prop.setDateValue(value);
         } else {
             prop = new Property(propname, this);
             prop.setDateValue(value);
-            propMap.put(propname, prop);
+            propMap.put(p2, prop);
         }
 
         notifyPropertyChange(propname);
@@ -2092,14 +2099,15 @@ public final class Node implements INode {
         }
 
         propname = propname.trim();
-        Property prop = (Property) propMap.get(propname);
+        String p2 = correctPropertyName(propname);
+        Property prop = (Property) propMap.get(p2);
 
         if (prop != null) {
             prop.setJavaObjectValue(value);
         } else {
             prop = new Property(propname, this);
             prop.setJavaObjectValue(value);
-            propMap.put(propname, prop);
+            propMap.put(p2, prop);
         }
 
         notifyPropertyChange(propname);
@@ -2177,6 +2185,7 @@ public final class Node implements INode {
         }
 
         propname = propname.trim();
+        String p2 = correctPropertyName(propname);
         if (rel == null && dbmap != null) {
             // widen relation to non-exact (collection) mapping
             rel = dbmap.getPropertyRelation(propname);
@@ -2191,7 +2200,7 @@ public final class Node implements INode {
             }
         }
 
-        Property prop = (propMap == null) ? null : (Property) propMap.get(propname);
+        Property prop = (propMap == null) ? null : (Property) propMap.get(p2);
 
         if (prop != null) {
             if ((prop.getType() == IProperty.NODE) &&
@@ -2223,7 +2232,7 @@ public final class Node implements INode {
                 propMap = new Hashtable();
             }
 
-            propMap.put(propname, prop);
+            propMap.put(p2, prop);
 
             if (state == CLEAN && isPersistable) {
                 markAs(MODIFIED);
@@ -2273,9 +2282,9 @@ public final class Node implements INode {
 
             if (propMap != null) {
                 if (relational) {
-                    p = (Property) propMap.get(propname);
+                    p = (Property) propMap.get(correctPropertyName(propname));
                 } else {
-                    p = (Property) propMap.remove(propname);
+                    p = (Property) propMap.remove(correctPropertyName(propname));
                 }
             }
 
@@ -2477,7 +2486,7 @@ public final class Node implements INode {
      */
     public synchronized INode getCacheNode() {
         if (cacheNode == null) {
-            cacheNode = new TransientNode();
+            cacheNode = new TransientNode(this.getApp());
         }
 
         return cacheNode;
@@ -2557,5 +2566,9 @@ public final class Node implements INode {
      */
     private Application getApp() {
         return nmgr.nmgr.app;
+    }
+
+    private String correctPropertyName(String propname) {
+        return getApp().correctPropertyName(propname);
     }
 }

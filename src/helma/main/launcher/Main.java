@@ -35,14 +35,17 @@ import java.util.ArrayList;
  */
 public class Main {
     public static final String[] jars = {
-                                            "helma.jar", "rhino.jar", "jetty.jar",
-                                            "jetty-util.jar", "jetty-ajp.jar",
+                                            "helma.jar", "rhino.jar",
                                             "commons-logging.jar", "crimson.jar",
-                                            "xmlrpc.jar", "servlet.jar",
-                                            "mail.jar", "activation.jar",
+                                            "xmlrpc.jar", "mail.jar", "activation.jar",
                                             "commons-fileupload.jar", "commons-codec.jar",
-                                            "commons-io.jar", "commons-net.jar", 
-                                            "tagsoup.jar"
+                                            "commons-io.jar", "commons-net.jar",
+                                            "tagsoup.jar", "servlet-api-2.5.jar",
+                                            "jetty-ajp-7.6.2.v20120308.jar", "jetty-continuation-7.6.2.v20120308.jar",
+                                            "jetty-http-7.6.2.v20120308.jar", "jetty-io-7.6.2.v20120308.jar",
+                                            "jetty-security-7.6.2.v20120308.jar", "jetty-server-7.6.2.v20120308.jar",
+                                            "jetty-servlet-7.6.2.v20120308.jar", "jetty-util-7.6.2.v20120308.jar",
+                                            "jetty-xml-7.6.2.v20120308.jar",
                                         };
 
     private Class serverClass;
@@ -122,8 +125,8 @@ public class Main {
     }
 
     /**
-     * Create a server-wide ClassLoader from our install directory. 
-     * This will be used as parent ClassLoader for all application 
+     * Create a server-wide ClassLoader from our install directory.
+     * This will be used as parent ClassLoader for all application
      * ClassLoaders.
      *
      * @param installDir
