@@ -1,0 +1,10 @@
+<big>Prototype <a href="<% this.href action="main" %>" target="main"><% this.name %></a></big><br/>
+<% this.inheritance action="list" %>
+<% this.inheritance deep="true" hopobject="true" action="main" target="main" onClick="parent.changePrototypeList(this);" separator=", " prefix="extends: " suffix="<br>" %><br>
+
+
+<% this.methods filter="actions" skin="asListItem" prefix="<p><b>Actions:</b><br/>" suffix="</p>" %>
+<% this.methods filter="functions" skin="asListItem" prefix="<p><b>Functions:</b><br/>" suffix="</p>" %>
+<% this.methods filter="macros" skin="asListItem" prefix="<p><b>Macros:</b><br/>" suffix="</p>" %>
+<% this.methods filter="skins" skin="asListItem" prefix="<p><b>Skins:</b><br/>" suffix="</p>" %>
+
