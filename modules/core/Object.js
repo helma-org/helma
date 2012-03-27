@@ -22,25 +22,50 @@
  */
 
 /**
- * copy the properties of an object into
- * a new object
- * @param Object the source object
- * @param Object the (optional) target object
- * @return Object the resulting object
+ * Copies the properties of this object into a clone.
+ * @param {Object} clone The optional target object
+ * @param {Boolean} recursive If true child objects are cloned as well, otherwise
+ * the clone contains references to the child objects
+ * @returns The resulting object
  */
 Object.prototype.clone = function(clone, recursive) {
-   if (!clone)
-      clone = new this.constructor();
-   var value;
-   for (var propName in this) {
-      value = this[propName];
-      if (recursive && (value.constructor == HopObject || value.constructor == Object)) {
-         clone[propName] = value.clone(new value.constructor(), recursive);
-      } else {
-         clone[propName] = value;
+
+   var getValue = function(value, recursive) {
+      if ((value == null || typeof(value) !== "object") || recursive !== true) {
+         return value;
       }
+      return value.clone(null, recursive);
+   };
+
+   if (typeof(this) === "object") {
+      switch (this.constructor) {
+         case Array:
+            return this.map(function(value) {
+               return getValue(value, recursive);
+            });
+
+         case null: // e.g. macro parameter objects
+            if (clone == null) {
+               clone = {};
+            }
+            // continue below
+         case Object:
+         case HopObject:
+            if (clone == null) {
+               clone = new this.constructor();
+            }
+            for (var propName in this) {
+               clone[propName] = getValue(this[propName], recursive);
+            }
+            return clone;
+
+         default:
+            return new this.constructor(this.valueOf());
+      }
+   } else if (typeof(this) === "function" && this.constructor === RegExp) {
+      return new RegExp(this.valueOf());
    }
-   return clone;
+   return this;
 };
 
 
@@ -53,10 +78,11 @@ Object.prototype.clone = function(clone, recursive) {
 Object.prototype.reduce = function(recursive) {
     var result = {};
     for (var i in this) {
-        if (this[i] instanceof HopObject == false)
+        if (this[i] instanceof HopObject == false) {
             result[i] = this[i];
-        else if (recursive)
+        } else if (recursive) {
             result[i] = this.reduce(true);
+        }
     }
     return result;
 };
