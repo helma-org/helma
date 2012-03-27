@@ -1,0 +1,34 @@
+<table width="90%" border="0" cellspacing="1" cellpadding="5">
+<tr>
+	<td class="headline">
+	<big><tt><% this.headline %></tt></big><br>
+	</td>
+</tr>
+
+<tr>
+	<td class="mainbox">
+	<% this.comment suffix="<br><br>" %>
+	<% this.skinparameters prefix="general parameters used in this skin:<ul><li><code>" separator="</code><li><code>" suffix="</code></ul><br>" %>
+	<ul>
+		<% this.tags type="param"  skin="parameter" %>
+		<% this.tags type="return" skin="return" %>
+		<% this.tags type="author" skin="author" %>
+		<% this.tags type="see"    skin="see" %>
+		<% this.tags type="deprecated" skin="deprecated" %>
+		<% this.tags type="overrides"  skin="overrides" %>
+	</ul>
+	</td>
+</tr>
+</table>
+
+<table width="90%" border="0" cellspacing="1" cellpadding="5">
+<tr>
+	<td>Sourcecode in <% this.location %>:
+	<pre><% this.source as="highlighted" %></pre>
+	</td>
+</tr>
+
+</table>
+
+
+

@@ -1,0 +1,10 @@
+<div class="list_apps">
+	<table border="0" cellspacing="0" cellpadding="0" align="right">
+	<tr>
+		<td align="right" valign="top"><small>
+			<a href="<% root.href action="main" %>?app=<% this.title %>&action=start">start</a>
+		</td>
+	</tr>
+	</table>
+	<b><% this.title %></b>
+</div>

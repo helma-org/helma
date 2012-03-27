@@ -1,0 +1,7 @@
+<tr><td>
+<% this.link handler="false" %>
+- <% this.type %> in <% docprototype.name %>
+<br/>
+<% this.comment length="200" %>
+</td></tr>
+

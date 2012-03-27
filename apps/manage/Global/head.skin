@@ -1,0 +1,59 @@
+<head>
+	<title><% response.title %></title>
+	<style type="text/css">
+	<!--
+	
+	body, p, td, th, li {
+		font-family: verdana, sans-serif;
+		font-size: 10pt;
+	}
+	
+	.formEl	{
+		border-color:#000000;
+		border-style:solid;
+		border-width:1px;
+	}
+	
+	.list_apps	{
+		border-color:#ffffff;
+		padding-top:5px;
+		padding-bottom:5px;
+		border-bottom-width:1px;
+		border-bottom-style:dotted;
+	}	
+
+	.list_property	{
+		border-color:#999999;
+		padding-top:5px;
+		padding-bottom:5px;
+		border-bottom-width:1px;
+		border-bottom-style:dotted;
+	}	
+
+	.list_separator {
+		font-weight:bold;
+		background:#dfdfdf;
+		border-color:#999999;
+		padding-top:5px;
+		padding-bottom:5px;
+		border-bottom-width:1px;
+		border-bottom-style:dotted;
+	}	
+
+	big {
+		font-size: 18pt;
+		font-weight: bold;
+	}
+	
+	a {
+		font-weight:bold;
+		color: #cc3333;
+		text-decoration:none;
+	}
+	a:hover	{
+		text-decoration:underline;
+	}
+	
+	// -->
+	</style>
+</head>

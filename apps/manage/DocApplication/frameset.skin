@@ -1,0 +1,31 @@
+<html>
+<head>
+	<title>helma api / <% this.name %></title>
+	<script language="javascript"><!--
+		function changePrototypeList (obj) {
+			if (obj.href.indexOf (".html")>-1)
+				var newhref = obj.href.substring (0, obj.href.length-9) + "list.html";
+			else
+				var newhref = obj.href.substring (0, obj.href.length-4) + "list";
+			functions.location.href = newhref;
+		}
+	//--></script>
+</head>
+
+<frameset cols="30%,70%">
+<frameset rows="40%,60%">
+<frame src="<% this.href action="prototypes" %>" name="prototypes">
+<frame src="<% this.hrefRoot action="list" %>" name="functions">
+</frameset>
+<frame src="<% this.href action="summary" %>" name="main">
+</frameset>
+<noframes>
+<h2>
+Frame Alert</h2>
+
+<p>
+This document is designed to be viewed using the frames feature. If you see this message, you are using a non-frame-capable web client.
+</noframes>
+</html>
+
+

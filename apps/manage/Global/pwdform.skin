@@ -1,0 +1,28 @@
+<body bgcolor="white">
+
+<table width="500" border="0" cellspacing="0" cellpadding="5" bgcolor="#000000">
+<tr>
+<td width="500" align="left" valign="top" bgcolor="#ffffff">
+
+<big>Username and password for helma's manager:</big><br>
+
+<p>Please choose an username and password combination to access the
+manage application of this server. They will be printed md5-encoded
+in a format that you've got to copy/paste into the server.properties
+file.</p>
+
+<font color="red"><% param.msg %></font>
+<form method="post">
+<input class="formEl" name="username" size="25" value="<% param.username %>"> (username)<br>
+<input class="formEl" type="password" name="password"  size="25"> (password)<br>
+<input class="formEl" type="submit" value="md5 encode"><br>
+</form>
+
+<p><b>Warning:</b> The used http-authorization transmits username and password
+in an unsafe cleartext way. Therefore you're strongly discouraged to
+use any given combination that is normally protected through SSH.</p>
+
+</td></tr>
+</table>
+
+</body>

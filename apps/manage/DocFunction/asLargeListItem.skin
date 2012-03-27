@@ -1,0 +1,5 @@
+<tr><td>
+<a href="<% this.href action="main" %>" target="main"><% this.link %></a><br/>
+<% this.comment length="200" %>
+</td></tr>
+
