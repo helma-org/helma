@@ -1,0 +1,24 @@
+--- helma-clean/build.xml	2009-09-11 14:50:36.000000000 +0200
++++ helma/build.xml	2009-09-11 15:00:23.000000000 +0200
+@@ -481,4 +481,14 @@
+         </delete>
+     </target>
+ 
++    <!-- Build helmaswarm jar file -->
++    <target  name="swarm-jar">
++        <ant dir="helmaswarm" antfile="build.xml" target="jar" inheritAll="false"/>
++    </target>
++
++    <!-- Clean up helmaswarm -->
++    <target  name="swarm-clean">
++        <ant dir="helmaswarm" antfile="build.xml" target="clean" inheritAll="false"/>
++    </target>
++
+ </project>
+--- helma-clean/helmaswarm/build.properties   2009-09-11 19:47:13.000000000 +0200
++++ helma/helmaswarm/build.properties 2009-09-11 19:50:29.000000000 +0200
+@@ -1,3 +1,3 @@
+ # build properties for helmaswarm
+ 
+-helma.install.dir=../helma
++helma.install.dir=../

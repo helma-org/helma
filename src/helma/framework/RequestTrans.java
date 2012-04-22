@@ -615,7 +615,12 @@ public class RequestTrans implements Serializable {
         }
 
         try {
-            httpPassword = tok.nextToken();
+            StringBuffer buf = new StringBuffer(tok.nextToken());
+            while (tok.hasMoreTokens()) {
+                buf.append(":");
+                buf.append(tok.nextToken());
+            }
+            httpPassword = buf.toString();
         } catch (NoSuchElementException e) {
             httpPassword = null;
         }

@@ -1,0 +1,6 @@
+.*
+apps
+db/*
+lib/ext
+modules/
+server.properties

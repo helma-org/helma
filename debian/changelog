@@ -1,0 +1,34 @@
+helma1 (1.7.0-1) intrepid; urgency=low
+
+  * Update to final 1.7.0 release
+
+ -- Hannes Wallnoefer <hannes@helma.at>  Tue, 29 Sep 2009 10:12:35 +0200
+
+helma1 (1.7.0-rc3-2) intrepid; urgency=low
+
+  * Update build number to please launchpad build bots
+
+ -- Hannes Wallnoefer <hannes@helma.at>  Fri, 11 Sep 2009 16:15:46 +0200
+
+helma1 (1.7.0-rc3-1) intrepid; urgency=low
+
+  * Update to 1.7.0 release candidate 3
+  * Add package for HelmaSwarm
+
+ -- Hannes Wallnoefer <hannes@helma.at>  Thu, 10 Sep 2009 16:43:12 +0200
+
+helma1 (1.7+r9436-1) intrepid; urgency=low
+
+  * Change java dependencies to include more options
+  * Move properties files to /etc/helma1/ so they are not overwritten 
+    on updates. (Still have to figure out how to prompt the user for 
+    how to handle modified files.)
+
+ -- Hannes Wallnoefer <hannes@helma.at>  Wed, 17 Dec 2008 11:00:00 +0100
+
+helma1 (1.7+r9436) intrepid; urgency=low
+
+  * Initial release
+
+ -- Hannes Wallnoefer <hannes@helma.at>  Tue, 16 Dec 2008 11:00:00 +0100
+

@@ -1,0 +1,9 @@
+[submodule "modules"]
+	path = modules
+	url = ./modules
+[submodule "swarm"]
+	path = swarm
+	url = ./swarm
+[submodule "apps"]
+	path = apps
+	url = ./apps

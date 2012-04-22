@@ -1,0 +1,62 @@
+This package was debianized by Hannes Wallnoefer <hannes@helma.at> on
+Mon, 15 Dec 2008 11:04:41 +0100.
+
+It was downloaded from http://www.helma.org/
+
+Upstream Authors:
+
+    Hannes Wallnoefer
+    Robert Gaggl
+    Daniel Rutharth
+    Stefan Pollach
+    Tobias Schaefer
+    Manfred Andres
+    Juerg Lehni
+
+Copyright: 1999-2008 Helma Project. All rights reserved.
+
+License:
+
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+
+ 2. Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the
+    distribution.
+
+ 3. Products derived from this software may not be called "Helma"
+    or "Hop", nor may "Helma" or "Hop" appear in their name, without
+    prior written permission of the Helma Project Group. For written 
+    permission, please contact helma@helma.org.
+
+
+ THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
+ WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ DISCLAIMED. IN NO EVENT SHALL THE HELMA PROJECT OR ITS
+ CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+Helma includes third party software released under different specific 
+license terms. See the licenses directory in the Helma distribution 
+for a list of these licenses.
+
+The Debian packaging is (C) 2008, Hannes Wallnoefer <hannes@helma.at> and
+is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
+
+Parts of Helma come with different licenses, see /usr/share/helma/licenses
+for details.
+
+

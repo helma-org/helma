@@ -1,0 +1,7 @@
+launcher.jar /usr/share/helma1/
+lib/*.jar /usr/share/helma1/lib/
+licenses/ /usr/share/helma1/licenses/
+build/main/*.properties /etc/helma1/
+build/externals/modules/ /var/lib/helma1/
+build/externals/welcome/ /var/lib/helma1/apps/
+build/externals/manage/ /var/lib/helma1/apps/

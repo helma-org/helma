@@ -1,0 +1,5 @@
+var/log/helma1
+var/lib/helma1/apps
+var/lib/helma1/db
+etc/helma1
+

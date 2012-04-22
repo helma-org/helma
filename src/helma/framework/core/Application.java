@@ -64,6 +64,9 @@ public final class Application implements Runnable {
     // embedded db directory
     File dbDir;
 
+    // false if hopobjects are case sensitive (default)
+    public boolean caseInsensitive;
+
     // this application's node manager
     protected NodeManager nmgr;
 
@@ -224,6 +227,8 @@ public final class Application implements Runnable {
         }
 
         this.name = name;
+        
+        this.caseInsensitive = "true".equalsIgnoreCase(server.getAppsProperties(name).getProperty("caseInsensitive"));
 
         this.repositories = new ArrayList();
         this.repositories.addAll(Arrays.asList(repositories));
@@ -432,7 +437,7 @@ public final class Application implements Runnable {
             nmgr.init(dbDir.getAbsoluteFile(), props);
 
             // create the app cache node exposed as app.data
-            cachenode = new TransientNode("app");
+            cachenode = new TransientNode(Application.this, "app");
 
             // create and init session manager
             String sessionMgrImpl = props.getProperty("sessionManagerImpl",
@@ -1383,6 +1388,19 @@ public final class Application implements Runnable {
             }
         }
         return null;
+    }
+    
+    /**
+     * Returns the correct property name which is either case sensitive or case insensitive
+     * @param propName the raw property name
+     * @return the correct property name
+     */
+    public String correctPropertyName(String propName) {
+        if (propName == null)
+            return null;
+        if (caseInsensitive)
+            return propName.toLowerCase();
+        return propName;
     }
 
     /**

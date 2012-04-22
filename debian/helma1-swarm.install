@@ -1,0 +1,3 @@
+helmaswarm/lib/*.jar /usr/share/helma1/lib/ext/
+helmaswarm/swarm.conf /etc/helma1/
+

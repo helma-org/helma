@@ -1,0 +1,5 @@
+/var/log/helma1 /var/lib/helma1/log
+/etc/helma1/apps.properties /var/lib/helma1/apps.properties
+/etc/helma1/server.properties /var/lib/helma1/server.properties
+/etc/helma1/db.properties /var/lib/helma1/db.properties
+
