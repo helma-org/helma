@@ -144,7 +144,7 @@ public final class XmlDatabaseReader extends DefaultHandler implements XmlConsta
                     currentNode.setPropMap(propMap);
                 }
 
-                propMap.put(propName, prop);
+                propMap.put(correctPropertyName(propName), prop);
             }
         } else {
             // a primitive property
@@ -168,6 +168,10 @@ public final class XmlDatabaseReader extends DefaultHandler implements XmlConsta
                 charBuffer.setLength(0);
             }
         }
+    }
+
+    private String correctPropertyName(String propName) {
+        return this.currentNode.getDbMapping().getApplication().correctPropertyName(propName);
     }
 
     /**
@@ -233,7 +237,7 @@ public final class XmlDatabaseReader extends DefaultHandler implements XmlConsta
                 currentNode.setPropMap(propMap);
             }
 
-            propMap.put(elementName, prop);
+            propMap.put(correctPropertyName(elementName), prop);
             elementName = null;
             elementType = null;
             charValue = null;

@@ -315,6 +315,7 @@ public final class DbMapping {
                 // ignore internal properties (starting with "_") and sub-options (containing a ".")
                 if (!propName.startsWith("_") && propName.indexOf(".") < 0) {
                     Object propValue = entry.getValue();
+                    propName = app.correctPropertyName(propName);
 
                     // check if a relation for this propery already exists. If so, reuse it
                     Relation rel = (Relation) prop2db.get(propName);
@@ -637,7 +638,7 @@ public final class DbMapping {
     }
 
     private String _propertyToColumnName(final String propName) {
-        Relation rel = (Relation) prop2db.get(propName);
+        Relation rel = (Relation) prop2db.get(app.correctPropertyName(propName));
 
         if ((rel == null) && (parentMapping != null)) {
             return parentMapping._propertyToColumnName(propName);
@@ -683,7 +684,7 @@ public final class DbMapping {
     }
 
     private Relation _propertyToRelation(String propName) {
-        Relation rel = (Relation) prop2db.get(propName);
+        Relation rel = (Relation) prop2db.get(app.correctPropertyName(propName));
 
         if ((rel == null) && (parentMapping != null)) {
             return parentMapping._propertyToRelation(propName);
@@ -866,7 +867,7 @@ public final class DbMapping {
             return null;
         }
 
-        Relation rel = (Relation) prop2db.get(propname);
+        Relation rel = (Relation) prop2db.get(app.correctPropertyName(propname));
 
         if ((rel == null) && (parentMapping != null)) {
             rel = parentMapping.getExactPropertyRelation(propname);
