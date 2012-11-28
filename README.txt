@@ -1,6 +1,7 @@
 This is the README file for version 1.7.0 of the Helma Javascript
 Web Application Framework.
 
+---- edit by julian tree for testing git hub --- please ignore.  Thanks Hannes Wallnoefner, I'm next to Anton Pirker in Vienna 
 ==============
 STARTING HELMA
 ==============
