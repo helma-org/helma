@@ -110,4 +110,8 @@ public interface ObjectCache {
      */
     Object[] getCachedObjects();
 
+    /**
+     * Returns a map of statistics about the cache
+     */
+    java.util.Map<String,Object> getStatistics();
 }
