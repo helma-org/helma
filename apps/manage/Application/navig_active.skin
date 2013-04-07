@@ -1,0 +1,18 @@
+<div class="list_apps">
+	<b><a href="<% this.href action="main" %>"><% this.title %></a></b><br />
+	<small><% this.countSessions singular=" Session" plural=" Sessions" %>,
+	<% this.requestCount singular=" Request" plural=" Requests" %>/5min</small>
+	<div align="right">
+	<table border="0" cellspacing="0" cellpadding="0">
+	<tr>
+		<td align="right" valign="top"><small style="font-size:9px;">
+			<a href="<% this.href action="api" %>/read">showAPI</a> |
+			<a href="<% this.href action="api" %>/render">renderAPI</a> |
+			<a href="<% this.url %>">public</a> | 
+			<a href="<% root.href action="main" %>?app=<% this.title %>&action=flush">flush</a> |
+			<a href="<% root.href action="main" %>?app=<% this.title %>&action=restart">restart</a>
+		</small></td>
+	</tr>
+	</table>
+	</div>
+</div>

@@ -56,7 +56,7 @@ public final class NodeManager {
     }
 
     /**
-     * Initialize the NodeManager for the given dbHome and 
+     * Initialize the NodeManager for the given dbHome and
      * application properties. An embedded database will be
      * created in dbHome if one doesn't already exist.
      */
@@ -112,7 +112,7 @@ public final class NodeManager {
     }
 
     /**
-     *  Shut down this node manager. This is called when the application 
+     *  Shut down this node manager. This is called when the application
      *  using this node manager is stopped.
      */
     public void shutdown() throws DatabaseException {
@@ -295,7 +295,7 @@ public final class NodeManager {
                 synchronized (cache) {
                     Node old = (Node) cache.put(node.getKey(), node);
 
-                    if (old != node && old != null && !old.isNullNode() && 
+                    if (old != node && old != null && !old.isNullNode() &&
                             old.getState() != Node.INVALID) {
                         cache.put(node.getKey(), old);
                         cache.put(key, old);
@@ -432,14 +432,14 @@ public final class NodeManager {
     /**
      *  Insert a node into a different (relational) database than its default one.
      */
-    public void exportNode(Node node, DbSource dbs) 
+    public void exportNode(Node node, DbSource dbs)
                     throws SQLException, ClassNotFoundException {
         if (node == null) {
             throw new IllegalArgumentException("Node can't be null in exportNode");
         }
-        
+
         DbMapping dbm = node.getDbMapping();
-        
+
         if (dbs == null) {
             throw new IllegalArgumentException("DbSource can't be null in exportNode");
         } else if ((dbm == null) || !dbm.isRelational()) {
@@ -448,7 +448,7 @@ public final class NodeManager {
             insertRelationalNode(node, dbm, dbs.getConnection());
         }
     }
-    
+
     /**
      *  Insert a node into a different (relational) database than its default one.
      */
@@ -493,7 +493,7 @@ public final class NodeManager {
 
             for (int i = 0; i < columns.length; i++) {
                 DbColumn col = columns[i];
-                if (!col.isMapped()) 
+                if (!col.isMapped())
                     continue;
                 if (col.isIdField()) {
                     setStatementValue(stmt, columnNumber, node.getID(), col);
@@ -502,7 +502,7 @@ public final class NodeManager {
                 } else {
                     Relation rel = col.getRelation();
                     Property p = rel == null ? null : node.getProperty(rel.getPropName());
- 
+
                     if (p != null) {
                         setStatementValue(stmt, columnNumber, p, col.getType());
                     } else if (col.isNameField()) {
@@ -544,7 +544,7 @@ public final class NodeManager {
             app.logError("Error invoking onPersist()", x);
         }
     }
-    
+
     /**
      *  Updates a modified node in the embedded db or an external relational database, depending
      * on its database mapping.
@@ -554,7 +554,7 @@ public final class NodeManager {
      */
     public boolean updateNode(IDatabase db, ITransaction txn, Node node)
                     throws IOException, SQLException, ClassNotFoundException {
-        
+
         invokeOnPersist(node);
         DbMapping dbm = node.getDbMapping();
         boolean markMappingAsUpdated = false;
@@ -1023,7 +1023,7 @@ public final class NodeManager {
 
         return retval;
     }
-    
+
     protected List collectMissingKeys(SubnodeList list, int start, int length) {
         List retval = null;
         for (int i = start; i < start + length; i++) {
@@ -1318,7 +1318,7 @@ public final class NodeManager {
 
                 DbColumn[] columns = dbm.getColumns();
                 Relation[] joins = dbm.getJoins();
-                
+
                 StringBuffer b = dbm.getSelect(null).append("WHERE ");
                 dbm.appendCondition(b, idfield, kstr);
                 dbm.addJoinConstraints(b, " AND ");
@@ -1718,21 +1718,28 @@ public final class NodeManager {
         }
     }
 
-    /** 
-     * Add a listener that is notified each time a transaction commits 
+    /**
+     * Returns a map with statistics about the cache
+     */
+    public Map getCacheStatistics() {
+        return cache.getStatistics();
+    }
+
+    /**
+     * Add a listener that is notified each time a transaction commits
      * that adds, modifies or deletes any Nodes.
      */
     public void addNodeChangeListener(NodeChangeListener listener) {
         listeners.add(listener);
     }
-    
-    /** 
-     * Remove a previously added NodeChangeListener. 
+
+    /**
+     * Remove a previously added NodeChangeListener.
      */
     public void removeNodeChangeListener(NodeChangeListener listener) {
         listeners.remove(listener);
     }
-    
+
     /**
      * Let transactors know if they should collect and fire NodeChangeListener
      * events
@@ -1740,7 +1747,7 @@ public final class NodeManager {
     protected boolean hasNodeChangeListeners() {
         return listeners.size() > 0;
     }
-    
+
     /**
      * Called by transactors after committing.
      */
@@ -1757,7 +1764,7 @@ public final class NodeManager {
             }
         }
     }
-    
+
     private void setStatementValue(PreparedStatement stmt, int columnNumber, String value, DbColumn col)
             throws SQLException {
         if (value == null) {
@@ -1780,7 +1787,7 @@ public final class NodeManager {
                     stmt.setBoolean(stmtNumber, p.getBooleanValue());
 
                     break;
-                
+
                 case Types.TINYINT:
                 case Types.BIGINT:
                 case Types.SMALLINT:
@@ -1833,7 +1840,7 @@ public final class NodeManager {
                     String val = p.getStringValue();
                     Reader isr = new StringReader (val);
                     stmt.setCharacterStream (stmtNumber,isr, val.length());
-                    
+
                     break;
 
                 case Types.CHAR:

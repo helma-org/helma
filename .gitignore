@@ -4,3 +4,6 @@ db/*
 lib/ext
 modules/
 server.properties
+classes/*
+launcher.jar
+lib/helma*.jar

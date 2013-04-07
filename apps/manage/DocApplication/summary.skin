@@ -1,0 +1,29 @@
+
+
+<table width="90%" border="0" cellspacing="1" cellpadding="5">
+<tr>
+	<td class="headline">
+	<big class="top">Application <% this.headline %></tt></b></big><br>
+	</td>
+</tr>
+</table>
+
+<a class="navig" href="<% this.href action="summary"%>">SUMMARY</a> | 
+<a class="navig" href="<% this.href action="functionindex" %>">INDEX</a> | 
+
+
+
+<% this.comment encoding="html" %>
+
+<hr>
+
+<table width="90%" border="0" cellspacing="1" cellpadding="5">
+	<% this.prototypes skin="asSummary"
+			separator="<tr><td class='mainbox'><img src='' width=0 height=0></td></tr>"
+	%>
+</table>
+
+
+<a class="navig" href="<% this.href action="summary"%>">SUMMARY</a> | 
+<a class="navig" href="<% this.href action="functionindex" %>">INDEX</a> | 
+

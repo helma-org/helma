@@ -37,7 +37,7 @@ import java.util.ArrayList;
 
 
 /**
- * The central class of a Helma application. This class keeps a pool of 
+ * The central class of a Helma application. This class keeps a pool of
  * request evaluators (threads with JavaScript interpreters), waits for
  * requests from the Web server or XML-RPC port and dispatches them to
  * the evaluators.
@@ -227,7 +227,7 @@ public final class Application implements Runnable {
         }
 
         this.name = name;
-        
+
         this.caseInsensitive = "true".equalsIgnoreCase(server.getAppsProperties(name).getProperty("caseInsensitive"));
 
         this.repositories = new ArrayList();
@@ -456,7 +456,7 @@ public final class Application implements Runnable {
                     releaseEvaluator(ev);
                 }
             }
-            
+
             // preallocate minThreads request evaluators
             int minThreads = 0;
 
@@ -832,6 +832,13 @@ public final class Application implements Runnable {
      */
     public int getCacheUsage() {
         return nmgr.countCacheEntries();
+    }
+
+    /**
+     * Returns a map of cache statistics
+     */
+    public Map getCacheStatistics() {
+        return nmgr.getCacheStatistics();
     }
 
     /**
@@ -1389,7 +1396,7 @@ public final class Application implements Runnable {
         }
         return null;
     }
-    
+
     /**
      * Returns the correct property name which is either case sensitive or case insensitive
      * @param propName the raw property name

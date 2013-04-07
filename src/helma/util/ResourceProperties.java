@@ -303,7 +303,7 @@ public class ResourceProperties extends Properties {
      * @param value value to look for
      * @return true if the value is found in the value list
      */
-    public boolean contains(Object value) {
+    public synchronized boolean contains(Object value) {
         if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
@@ -315,7 +315,7 @@ public class ResourceProperties extends Properties {
      * @param key key to look for
      * @return true if the key is found in the key list
      */
-    public boolean containsKey(Object key) {
+    public synchronized boolean containsKey(Object key) {
         if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
@@ -330,7 +330,7 @@ public class ResourceProperties extends Properties {
      * Returns an enumeration of all values
      * @return values enumeration
      */
-    public Enumeration elements() {
+    public synchronized Enumeration elements() {
         if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
@@ -342,7 +342,7 @@ public class ResourceProperties extends Properties {
      * @param key key to use for fetching the value
      * @return value belonging to the given key
      */
-    public Object get(Object key) {
+    public synchronized Object get(Object key) {
         if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
@@ -438,7 +438,7 @@ public class ResourceProperties extends Properties {
      * Checks wether the properties list is empty
      * @return true if the properties list is empty
      */
-    public boolean isEmpty() {
+    public synchronized boolean isEmpty() {
         if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
@@ -457,7 +457,7 @@ public class ResourceProperties extends Properties {
      * Returns an enumeration of all keys
      * @return keys enumeration
      */
-    public Enumeration keys() {
+    public synchronized Enumeration keys() {
         if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
@@ -522,7 +522,7 @@ public class ResourceProperties extends Properties {
      * Returns the number of peroperties in the list
      * @return number of properties
      */
-    public int size() {
+    public synchronized int size() {
         if ((System.currentTimeMillis() - lastCheck) > CACHE_TIME) {
             update();
         }
@@ -532,17 +532,9 @@ public class ResourceProperties extends Properties {
     /**
      * Overwrite clear() to also empty the key map.
      */
-    public void clear() {
+    public synchronized void clear() {
         keyMap.clear();
         super.clear();
-    }
-
-    /**
-     * Returns a string-representation of the class
-     * @return string
-     */
-    public String toString() {
-        return super.toString();
     }
 
 }

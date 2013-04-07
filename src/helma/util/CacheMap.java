@@ -277,7 +277,7 @@ public class CacheMap implements ObjectCache {
         return true;
     }
 
-    /// Called when the application using this cache is stopped. We 
+    /// Called when the application using this cache is stopped. We
     //  simply clear out our cache contents.
     public synchronized void shutdown() {
         clear();
@@ -331,6 +331,12 @@ public class CacheMap implements ObjectCache {
         return new HashMap(capacity, loadFactor);
     }
 
+    public Map<String,Object> getStatistics() {
+        Map<String,Object> stats = new HashMap<String,Object>();
+        stats.put("size", size());
+        stats.put("threshold", threshold);
+        return stats;
+    }
 }
 
 

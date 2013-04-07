@@ -1,0 +1,14 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html>
+<% skin name="head" %>
+<body bgcolor="white">
+
+<table width="90%" border="0" cellspacing="1" cellpadding="5" bgcolor="#000000">
+<tr>
+	<td width="30%" align="left" valign="top" bgcolor="#cccc99"><% skin name="navig" %></td>
+	<td width="70%" align="left" valign="top" bgcolor="#ffffff"><% response.body %></td>
+</tr>
+</table>
+
+</body>
+</html>
