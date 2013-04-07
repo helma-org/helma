@@ -23,7 +23,6 @@
  * @addon
  */
 
-
 /**
  * Check if this array contains a specific value.
  * @param {Object} val the value to check

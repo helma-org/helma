@@ -14,7 +14,7 @@
  * $Date$
  */
 
-// convenience SingleFileRepository to load all the 
+// convenience SingleFileRepository to load all the
 // Javascript library files in ./modules/core
 
 app.addRepository('modules/core/Array.js');
@@ -24,5 +24,4 @@ app.addRepository('modules/core/Object.js');
 app.addRepository('modules/core/String.js');
 app.addRepository('modules/core/HopObject.js');
 app.addRepository('modules/core/Global.js');
-app.addRepository('modules/core/JSON.js');
 app.addRepository('modules/core/Filters.js');

@@ -17,7 +17,7 @@
 /**
  * @fileoverview Implements some useful macro filters.
  * <br /><br />
- * To use this optional module, its repository needs to be added to the 
+ * To use this optional module, its repository needs to be added to the
  * application, for example by calling app.addRepository('modules/core/Filters.js')
  */
 
@@ -65,7 +65,7 @@ function titleize_filter(input) {
 
 
 /**
- * Cuts a String at a certain position, and 
+ * Cuts a String at a certain position, and
  * optionally appends a suffix, if truncation
  * has occurred.
  *
@@ -118,7 +118,7 @@ function escapeXml_filter(input) {
  * @see http://www.google.com/codesearch?q=escapeHtml
  */
 function escapeHtml_filter(input) {
-   var replace = Packages.org.mortbay.util.StringUtil.replace;
+   var replace = Packages.org.eclipse.jetty.util.StringUtil.replace;
    var str = (input || "").toString();
    return replace(replace(replace(replace(str, '&', '&amp;'), '"', '&quot;'), '>', '&gt;'), '<', '&lt;');
 }
@@ -127,7 +127,7 @@ var h_filter = escapeHtml_filter;
 
 
 /**
- * Escapes the characters in a String to be suitable 
+ * Escapes the characters in a String to be suitable
  * to use as an HTTP parameter value.
  *
  * @see http://www.google.com/codesearch?q=escapeUrl
@@ -145,7 +145,7 @@ function escapeUrl_filter(input, param, charset) {
  * definitions.
  */
 function escapeJavaScript_filter(input) {
-   var replace = Packages.org.mortbay.util.StringUtil.replace;
+   var replace = Packages.org.eclipse.jetty.util.StringUtil.replace;
    var str = (input || "").toString();
    return replace(replace(replace(replace(replace(str, '"', '\\"'), "'", "\\'"), '\n', '\\n'), '\r', '\\r'), '\t', '\\t');
 }
@@ -155,7 +155,7 @@ function escapeJavaScript_filter(input) {
  * Replaces linebreaks with HTML linebreaks.
  */
 function linebreakToHtml_filter(input) {
-   var replace = Packages.org.mortbay.util.StringUtil.replace;
+   var replace = Packages.org.eclipse.jetty.util.StringUtil.replace;
    var str = (input || "").toString();
    return replace(str, '\n', '<br />');
 }
@@ -171,7 +171,7 @@ function replace_filter(input, param, oldString, newString) {
    var str = (input || "").toString();
    var oldString = param["old"] != null ? param["old"] : oldString;
    var newString = param["new"] != null ? param["new"] : newString;
-   var replace = Packages.org.mortbay.util.StringUtil.replace;
+   var replace = Packages.org.eclipse.jetty.util.StringUtil.replace;
    return replace(str, oldString, newString);
 }
 

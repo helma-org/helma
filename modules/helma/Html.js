@@ -477,7 +477,13 @@ helma.Html.prototype.dropDown = function(param, options, selectedValue, firstOpt
         this.closeTag("option");
         res.write("\n ");
     }
+    var hasOpenGroup = false;
     for (var i in options) {
+        if (options[i].group) {
+            hasOpenGroup && html.closeTag("optgroup");
+            html.openTag("optgroup", {label: options[i].group});
+            hasOpenGroup = true;
+        }
         var attr = new Object();
         var display = "";
         if ((options[i] instanceof Array) && options[i].length > 0) {
@@ -503,6 +509,7 @@ helma.Html.prototype.dropDown = function(param, options, selectedValue, firstOpt
         this.closeTag("option");
         res.write("\n ");
     }
+    hasOpenGroup && html.closeTag("optgroup");
     this.closeTag("select");
     res.write("\n ");
     return;

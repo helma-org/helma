@@ -1,0 +1,17 @@
+<p>HelmaLib is organized into two groups of modules:</p>
+
+<ul>
+<li>modules/core which contains extensions to core JavaScript types such as
+Object, Array, or Date.</li>
+<li>modules/helma which provides new functionality to JavaScript, usually by
+wrapping a Java library.</li>
+</ul>
+
+<p>To use a HelmaLib module in your Helma application, you need to add it to the
+app's repositories. The simplest way to do so is by using the app.addRepository()
+function:</p>
+
+<pre>  app.addRepository("modules/helma/Search.js");</pre>
+
+<p>If you are looking for more Helma libraries, be sure to check out the
+<a href="https://opensvn.csie.org/traccgi/jala/wiki">Jala project</a>!</p>

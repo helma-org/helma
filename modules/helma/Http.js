@@ -61,7 +61,9 @@ helma.Http = function() {
     var responseHandler = function(connection, result) {
        var input;
        try {
-          input = new java.io.BufferedInputStream(connection.getInputStream());
+          if (method !== 'DELETE') {
+             input = new java.io.BufferedInputStream(connection.getInputStream());
+          }
        } catch (error) {
           input = new java.io.BufferedInputStream(connection.getErrorStream());
        }
