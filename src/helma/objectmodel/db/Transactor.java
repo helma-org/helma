@@ -52,10 +52,10 @@ public class Transactor {
     protected ITransaction txn;
 
     // Transactions for SQL data sources
-    private Map<String, Connection> sqlConnections;
+    private Map<DbSource, Connection> sqlConnections;
 
     // Set of SQL connections that already have been verified
-    private Map<String, Long> testedConnections;
+    private Map<DbSource, Long> testedConnections;
 
     // when did the current transaction start?
     private long tstart;
@@ -81,8 +81,8 @@ public class Transactor {
         cleanNodes = new HashMap();
         parentNodes = new HashSet();
 
-        sqlConnections = new HashMap<String, Connection>();
-        testedConnections = new HashMap<String, Long>();
+        sqlConnections = new HashMap<DbSource, Connection>();
+        testedConnections = new HashMap<DbSource, Long>();
         active = false;
         killed = false;
     }
@@ -238,9 +238,9 @@ public class Transactor {
      * @param con the connection
      */
     public void registerConnection(DbSource src, Connection con) {
-        sqlConnections.put(src.getName(), con);
+        sqlConnections.put(src, con);
         // we assume a freshly created connection is ok.
-        testedConnections.put(src.getName(), new Long(System.currentTimeMillis()));
+        testedConnections.put(src, new Long(System.currentTimeMillis()));
     }
 
     /**
@@ -249,8 +249,8 @@ public class Transactor {
      * @return the connection
      */
     public Connection getConnection(DbSource src) {
-        Connection con = sqlConnections.get(src.getName());
-        Long tested = testedConnections.get(src.getName());
+        Connection con = sqlConnections.get(src);
+        Long tested = testedConnections.get(src);
         long now = System.currentTimeMillis();
         if (con != null && (tested == null || now - tested.longValue() > 60000)) {
             // Check if the connection is still alive by executing a simple statement.
@@ -262,7 +262,7 @@ public class Transactor {
                     stmt.execute("SELECT 1");
                 }
                 stmt.close();
-                testedConnections.put(src.getName(), new Long(now));
+                testedConnections.put(src, new Long(now));
             } catch (SQLException sx) {
                 try {
                     con.close();
