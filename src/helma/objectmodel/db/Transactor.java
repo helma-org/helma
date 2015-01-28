@@ -52,10 +52,10 @@ public class Transactor {
     protected ITransaction txn;
 
     // Transactions for SQL data sources
-    private Map sqlConnections;
+    private Map<DbSource, Connection> sqlConnections;
 
     // Set of SQL connections that already have been verified
-    private Map testedConnections;
+    private Map<DbSource, Long> testedConnections;
 
     // when did the current transaction start?
     private long tstart;
@@ -81,8 +81,8 @@ public class Transactor {
         cleanNodes = new HashMap();
         parentNodes = new HashSet();
 
-        sqlConnections = new HashMap();
-        testedConnections = new HashMap();
+        sqlConnections = new HashMap<DbSource, Connection>();
+        testedConnections = new HashMap<DbSource, Long>();
         active = false;
         killed = false;
     }
@@ -249,14 +249,18 @@ public class Transactor {
      * @return the connection
      */
     public Connection getConnection(DbSource src) {
-        Connection con = (Connection) sqlConnections.get(src);
-        Long tested = (Long) testedConnections.get(src);
+        Connection con = sqlConnections.get(src);
+        Long tested = testedConnections.get(src);
         long now = System.currentTimeMillis();
         if (con != null && (tested == null || now - tested.longValue() > 60000)) {
             // Check if the connection is still alive by executing a simple statement.
             try {
                 Statement stmt = con.createStatement();
-                stmt.execute("SELECT 1");
+                if (src.isOracle()) {
+                    stmt.execute("SELECT 1 FROM DUAL");
+                } else {
+                    stmt.execute("SELECT 1");
+                }
                 stmt.close();
                 testedConnections.put(src, new Long(now));
             } catch (SQLException sx) {

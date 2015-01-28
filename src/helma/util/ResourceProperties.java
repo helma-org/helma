@@ -537,4 +537,53 @@ public class ResourceProperties extends Properties {
         super.clear();
     }
 
+    /**
+     * Compares this ResourceProperties instance to the one passed
+     * as argument. Note that in contrast to Hashtable.equals this method
+     * isn't synchronized to avoid deadlocks (which can happen in eg.
+     * DbSource.equals), and the comparison might return a wrong result
+     * if one of the two instances is modified during this method call. This
+     * method however doesn't throw a ConcurrentModificationException.
+     *
+     * @param  o object to be compared for equality with this instance
+     * @return true if the specified Object is equal to this instance
+     * @see Hashtable#equals(Object)
+     */
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+
+        if (!(o instanceof ResourceProperties)) {
+            return false;
+        }
+        ResourceProperties t = (ResourceProperties) o;
+        if (t.size() != size()) {
+            return false;
+        }
+
+        try {
+            Object[] keys = keySet().toArray();
+            for (Object key : keys) {
+                Object value = get(key);
+                if (value == null) {
+                    if (!(t.get(key) == null && t.containsKey(key))) {
+                        return false;
+                    }
+                } else {
+                    if (!value.equals(t.get(key))) {
+                        return false;
+                    }
+                }
+            }
+        } catch (ClassCastException unused) {
+            return false;
+        } catch (NullPointerException unused) {
+            return false;
+        }
+
+        return true;
+    }
+
+
 }

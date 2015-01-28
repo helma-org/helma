@@ -32,7 +32,7 @@ import java.util.Hashtable;
 public class DbSource {
     private static ResourceProperties defaultProps = null;
     private Properties conProps;
-    private String name;
+    private final String name;
     private ResourceProperties props, subProps;
     protected String url;
     private String driver;
