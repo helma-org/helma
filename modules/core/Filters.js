@@ -168,11 +168,10 @@ function linebreakToHtml_filter(input) {
  * @param new
  */
 function replace_filter(input, param, oldString, newString) {
-   var str = (input || "").toString();
-   var oldString = param["old"] != null ? param["old"] : oldString;
-   var newString = param["new"] != null ? param["new"] : newString;
-   var replace = Packages.org.eclipse.jetty.util.StringUtil.replace;
-   return replace(str, oldString, newString);
+   var str = String(input || '');
+   var oldString = param.old || oldString;
+   var newString = param['new'] || newString;
+   return str.replace(new RegExp(oldString, 'g'), newString);
 }
 
 
