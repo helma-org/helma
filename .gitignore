@@ -1,5 +1,10 @@
-server.properties
+apps/*
+!apps/manage
 classes/*
+db/*
 launcher.jar
 lib/helma*.jar
+lib/ext
 log/*
+server.properties
+
