@@ -2,3 +2,4 @@ server.properties
 classes/*
 launcher.jar
 lib/helma*.jar
+log/*
