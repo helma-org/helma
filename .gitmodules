@@ -1,0 +1,3 @@
+[submodule "modules/jala"]
+	path = modules/jala
+	url = github.com:p3k/helma-jala
