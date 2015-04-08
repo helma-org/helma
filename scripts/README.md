@@ -6,14 +6,10 @@ tested on SuSE Linux and should work for most Linux and Unix platforms.
 If you are looking for a way to run Helma as Service on a Windows 
 machine, have a look at HelmaService: 
  
- http://adele.helma.org/download/helma/contrib/hannes/helmaservice/
+http://adele.helma.org/download/helma/contrib/hannes/helmaservice
 
 If you experience any problems running Helma as service on Linux, 
 Windows or Unix box, please drop us a note on the Helma User Mailing 
 List: 
 
- http://helma.org/development/mailinglists/
-
-
-
-
+http://helma.org/development/mailinglists
