@@ -1,4 +1,4 @@
-The Helma modules directoriy is organized in several groups:
+The Helma modules directory is organized in several groups:
 
 * **modules/core** which contains extensions to core JavaScript types such as
 Object, Array, or Date.
