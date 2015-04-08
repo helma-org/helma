@@ -1,4 +1,4 @@
-HelmaLib is organized into several groups of modules:
+The Helma modules directoriy is organized in several groups:
 
 * **modules/core** which contains extensions to core JavaScript types such as
 Object, Array, or Date.
@@ -12,5 +12,7 @@ function:
 
     app.addRepository('modules/helma/Search.js');
 
-If you are looking for more Helma libraries, be sure to check out the 
-<a href="https://opensvn.csie.org/traccgi/jala/wiki">Jala project</a>!
+Be sure to load the Git submodule if you want to use one of the Jala modules:
+
+    > git submodule init
+    > git submodule update
