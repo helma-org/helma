@@ -1,4 +1,4 @@
-apps/*
+apps*
 !apps/manage
 classes/*
 db/*
@@ -6,5 +6,6 @@ launcher.jar
 lib/helma*.jar
 lib/ext
 log/*
+passwd
 server.properties
 
