@@ -766,7 +766,8 @@ public final class HtmlEncoder {
                                 break;
                         }
                     }
-                    if (c < 128 || insideMacroTag) {
+
+                    /*if (c < 128 || insideMacroTag) {
                         ret.append(c);
                     } else if ((c >= 128) && (c < 256)) {
                         ret.append(transform[c - 128]);
@@ -774,7 +775,9 @@ public final class HtmlEncoder {
                         ret.append("&#");
                         ret.append((int) c);
                         ret.append(";");
-                    }
+                    }*/
+
+                    ret.append(c);
 
                     escape = false;
             }
