@@ -102,8 +102,8 @@
         <replace file="${build.work}/src/helma/main/Server.java"
             token="__builddate__" value="${TODAY}"/>
         <javac srcdir="${build.work}/src"
-            source="1.5"
-            target="1.5"
+            source="1.7"
+            target="1.7"
             destdir="${build.classes}"
             debug="${debug}"
             deprecation="${deprecation}"
@@ -127,7 +127,7 @@
             includes="**/main/launcher/**"
             manifest="${build.src}/helma/main/launcher/manifest.txt"/>
         <!-- Copy timestamped helma jar file to lib/helma.jar  -->
-        <copy file="${build.lib}/${jar.name}-${DSTAMP}.jar" 
+        <copy file="${build.lib}/${jar.name}-${DSTAMP}.jar"
               tofile="${build.lib}/${jar.name}.jar"/>
     </target>
 
@@ -161,13 +161,13 @@
         <copy todir="${build.work}/reference">
             <fileset dir="${build.externals}/reference"/>
         </copy>
- 
+
         <!-- add a copy of the modules -->
         <mkdir dir="${build.work}/reference/modules"/>
         <copy todir="${build.work}/reference/modules">
             <fileset dir="${build.externals}/modules/"/>
         </copy>
- 
+
     	<mkdir dir="${build.jsdocs}"/>
     	<java dir="${home.dir}" fork="true" jar="${build.lib}/rhino.jar">
           <sysproperty key="jsdoc.dir" value="work/reference"/>
@@ -201,7 +201,7 @@
     <!-- =================================================================== -->
     <target name="core" depends="init, jar">
         <mkdir dir="${build.work}"/>
-        
+
         <!-- copy all libraries except helma-YYYYMMDD.jar -->
         <copy todir="${build.work}/lib">
             <fileset dir="${home.dir}/lib">
@@ -240,7 +240,7 @@
     <!-- =================================================================== -->
     <target name="package" depends="init">
         <mkdir dir="${build.work}"/>
-        
+
         <!-- checkout the demo apps (and zip manage-app) -->
         <antcall target="package-apps" />
 
@@ -350,7 +350,7 @@
         <copy todir="${build.work}/apps/welcome">
             <fileset dir="${build.externals}/welcome"/>
         </copy>
- 
+
         <mkdir dir="${build.work}/apps/manage"/>
         <zip zipfile="${build.work}/apps/manage/manage.zip" basedir="${build.externals}/manage/"
              includes="**" excludes="**/properties,readme/**" />
@@ -371,7 +371,7 @@
         <copy todir="${build.work}/modules">
             <fileset dir="${build.externals}/modules"/>
         </copy>
- 
+
         <mkdir dir="${build.work}/modules"/>
         <zip zipfile="${build.work}/modules/helmaTools.zip" basedir="${build.externals}/helmaTools/"
              includes="**" excludes="**/*.txt, **/*.html, **/*.bat, **/*.sh" />
