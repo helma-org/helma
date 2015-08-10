@@ -563,7 +563,7 @@ public final class HtmlEncoder {
 
                 if (entering != INTERNAL && exiting != INTERNAL) {
                     int swallowBreaks = 0;
-                    if (paragraphs && 
+                    /*if (paragraphs &&
                           (entering != BLOCK || exiting != BLOCK) &&
                           (exiting < BLOCK) &&
                           (linebreaks > 1) &&
@@ -571,14 +571,14 @@ public final class HtmlEncoder {
                         ret.insert(paragraphStart, "<p>");
                         ret.append("</p>");
                         swallowBreaks = 2;
-                    }
+                    }*/
 
-                    // treat entering a SEMIBLOCK as entering a TEXT 
+                    // treat entering a SEMIBLOCK as entering a TEXT
                     int _entering = entering == SEMIBLOCK ? TEXT : entering;
                     for (int k = linebreaks-1; k>=0; k--) {
-                        if (k >= swallowBreaks && k >= _entering && k >= exiting) {
+                        /*if (k >= swallowBreaks && k >= _entering && k >= exiting) {
                             ret.append("<br />");
-                        }
+                        }*/
                         ret.append(newLine);
                     }
                     if (exiting >= SEMIBLOCK || linebreaks > 1) {
@@ -799,17 +799,17 @@ public final class HtmlEncoder {
 
         // add remaining newlines we may have collected
         int swallowBreaks = 0;
-        if (paragraphs && entering < BLOCK) {
+        /*if (paragraphs && entering < BLOCK) {
             ret.insert(paragraphStart, "<p>");
             ret.append("</p>");
             swallowBreaks = 2;
-        }
+        }*/
 
         if (linebreaks > 0) {
             for (int i = linebreaks-1; i>=0; i--) {
-                if (i >= swallowBreaks && i > exiting) {
+                /*if (i >= swallowBreaks && i > exiting) {
                     ret.append("<br />");
-                }
+                }*/
                 ret.append(newLine);
             }
         }
