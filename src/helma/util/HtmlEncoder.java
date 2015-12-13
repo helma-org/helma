@@ -767,18 +767,7 @@ public final class HtmlEncoder {
                         }
                     }
 
-                    /*if (c < 128 || insideMacroTag) {
-                        ret.append(c);
-                    } else if ((c >= 128) && (c < 256)) {
-                        ret.append(transform[c - 128]);
-                    } else {
-                        ret.append("&#");
-                        ret.append((int) c);
-                        ret.append(";");
-                    }*/
-
                     ret.append(c);
-
                     escape = false;
             }
         }
@@ -909,16 +898,7 @@ public final class HtmlEncoder {
                     break;
 
                 default:
-                    // ret.append (c);
-                    if (c < 128) {
-                        ret.append(c);
-                    } else if ((c >= 128) && (c < 256)) {
-                        ret.append(transform[c - 128]);
-                    } else {
-                        ret.append("&#");
-                        ret.append((int) c);
-                        ret.append(";");
-                    }
+                    ret.append (c);
             }
         }
     }
