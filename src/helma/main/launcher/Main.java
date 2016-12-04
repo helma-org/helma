@@ -35,17 +35,18 @@ import java.util.ArrayList;
  */
 public class Main {
     public static final String[] jars = {
-                                            "helma.jar", "rhino.jar",
-                                            "commons-logging.jar", "crimson.jar",
-                                            "xmlrpc.jar", "mail.jar", "activation.jar",
-                                            "commons-fileupload.jar", "commons-codec.jar",
-                                            "commons-io.jar", "commons-net.jar",
-                                            "tagsoup.jar", "servlet-api-2.5.jar",
-                                            "jetty-ajp-7.6.2.v20120308.jar", "jetty-continuation-7.6.2.v20120308.jar",
-                                            "jetty-http-7.6.2.v20120308.jar", "jetty-io-7.6.2.v20120308.jar",
-                                            "jetty-security-7.6.2.v20120308.jar", "jetty-server-7.6.2.v20120308.jar",
-                                            "jetty-servlet-7.6.2.v20120308.jar", "jetty-util-7.6.2.v20120308.jar",
-                                            "jetty-xml-7.6.2.v20120308.jar",
+                                            "helma.jar", "rhino-1.7R5.jar",
+                                            "commons-logging-1.2.jar",
+                                            "xmlrpc-2.0.1.jar", "mail-1.4.7.jar", "activation-1.1.jar",
+                                            "commons-fileupload-1.3.2.jar", "commons-codec-1-10.jar",
+                                            "commons-io-2.2.jar", "commons-net-3.5.jar",
+                                            "tagsoup-1.2.1.jar", "servlet-api-3.1.0.jar",
+                                            "jetty-ajp-8.1.22.v20160922.jar", "jetty-continuation-8.1.22.v20160922.jar",
+                                            "jetty-http-8.1.22.v20160922.jar", "jetty-io-8.1.22.v20160922.jar",
+                                            "jetty-security-8.1.22.v20160922.jar", "jetty-server-8.1.22.v20160922.jar",
+                                            "jetty-servlet-8.1.22.v20160922.jar", "jetty-util-8.1.22.v20160922.jar",
+                                            "jetty-xml-8.1.22.v20160922.jar",
+                                            "javax.servlet-3.0.0.v201112011016.jar"
                                         };
 
     private Class serverClass;
