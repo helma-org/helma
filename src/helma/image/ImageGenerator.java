@@ -61,14 +61,7 @@ public abstract class ImageGenerator {
                     // if we're still here, ImageIOWrapper can be used
                     className = "helma.image.imageio.ImageIOGenerator";
                 } catch (ClassNotFoundException e1) {
-                    try {
-                        // use Jimi as a fallback scenaio
-                        Class.forName("com.sun.jimi.core.Jimi");
-                        // if we're still here, JimiWrapper can be used
-                        className = "helma.image.jimi.JimiGenerator";
-                    } catch (ClassNotFoundException e2) {
-                        throw new RuntimeException("JimiGenerator canot be used. Please make sure you placed jimi.jar in helma/lib/ext");
-                    }
+                    throw new RuntimeException("ImageIOGenerator cannot be used. Please use a custom image processing library for Java and set the imageGenerator property accordingly.");
                 }
             }
             // now let's get the generator class and create an instance:

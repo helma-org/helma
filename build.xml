@@ -393,7 +393,6 @@
             <tarfileset prefix="${filename}" dir="${build.work}">
                 <include name="**"/>
                 <exclude name="start.sh"/>
-                <exclude name="lib/jimi.jar"/>
                 <exclude name="lib/apache-dom.jar"/>
                 <exclude name="docs/api/**"/>
             </tarfileset>
@@ -414,7 +413,6 @@
             <zipfileset dir="${build.work}" prefix="${filename}">
               <include name="**"/>
               <exclude name="start.sh"/>
-              <exclude name="lib/jimi.jar"/>
               <exclude name="lib/apache-dom.jar"/>
               <exclude name="docs/api/**"/>
             </zipfileset>
@@ -436,7 +434,6 @@
                 <include name="docs/**"/>
                 <include name="licenses/**"/>
                 <include name="license.txt"/>
-                <include name="lib/jimi.jar"/>
                 <include name="lib/apache-dom.jar"/>
                 <exclude name="docs/modules/**"/>
             </tarfileset>
@@ -460,7 +457,6 @@
               <include name="docs/**"/>
               <include name="licenses/**"/>
               <include name="license.txt"/>
-              <include name="lib/jimi.jar"/>
               <include name="lib/apache-dom.jar"/>
               <exclude name="docs/modules/**"/>
             </zipfileset>
