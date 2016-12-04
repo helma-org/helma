@@ -2,6 +2,8 @@ apps*
 !apps/manage
 classes/*
 db*
+dist
+docs
 launcher.jar
 lib/helma*.jar
 lib/ext

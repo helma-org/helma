@@ -62,7 +62,7 @@
         <echo message=" available targets are:"/>
         <echo message=""/>
         <echo message=" compile       --> compiles the source code to ./classes"/>
-        <echo message=" jar           --> generates the ./lib/helma-YYYYMMDD.jar file"/>
+        <echo message=" mkjar         --> generates the ./lib/helma-YYYYMMDD.jar file"/>
         <echo message=" javadocs      --> generates the API docs"/>
         <echo message=" jsdocs        --> generates the framework docs"/>
     <!--<echo message=" docs           -> tries to retrieve the HTML documentation "/>   -->
@@ -71,7 +71,7 @@
         <echo message=" app [name]    --> gets an application from svn and zips it"/>
         <echo message=" module [name] --> gets a module from svn and zips it"/>
         <echo message=" core          --> generates core for production updates (zip and tar.gz)"/>
-        <echo message=" clean         --> clean up temporary build directories and files"/>
+        <echo message=" mkclean       --> clean up temporary build directories and files"/>
         <echo message=""/>
         <echo message=" usage         --> provides help on using the build tool (default)"/>
         <echo message=""/>
@@ -118,7 +118,7 @@
     <!-- =================================================================== -->
     <!-- Creates a helma.jar file (snapshot) in the lib-directory            -->
     <!-- =================================================================== -->
-    <target name="jar" depends="compile">
+    <target name="mkjar" depends="compile">
         <jar jarfile="${build.lib}/${jar.name}-${DSTAMP}.jar"
             basedir="${build.classes}"
             excludes="**/package.html,**/main/launcher/**"/>
@@ -199,7 +199,7 @@
     <!-- Builds and packages only the core for the deployment and updating   -->
     <!-- of production environments                                          -->
     <!-- =================================================================== -->
-    <target name="core" depends="init, jar">
+    <target name="core" depends="init, mkjar">
         <mkdir dir="${build.work}"/>
 
         <!-- copy all libraries except helma-YYYYMMDD.jar -->
@@ -284,7 +284,7 @@
     <!-- Compile Helma and prepare the skeleton in a temporary directory.    -->
     <!-- Used by package             .                                       -->
     <!-- =================================================================== -->
-    <target name="package-raw" depends="init, jar">
+    <target name="package-raw" depends="init, mkjar">
 
         <!-- copy the framework (apps.props, server.props, hop/db, hop/static) -->
         <copy todir="${build.work}">
@@ -466,7 +466,7 @@
     <!-- =================================================================== -->
     <!-- Cleans up temporary build directories                               -->
     <!-- =================================================================== -->
-    <target name="clean" depends="init">
+    <target name="mkclean" depends="init">
         <delete dir="${build.work}" />
         <delete dir="${build.classes}" />
         <delete dir="${build.docs}"/>
