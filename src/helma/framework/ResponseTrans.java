@@ -26,6 +26,7 @@ import java.io.*;
 import java.security.*;
 import java.util.*;
 
+import helma.util.Base64;
 import org.apache.xmlrpc.XmlRpcResponseProcessor;
 
 /**
