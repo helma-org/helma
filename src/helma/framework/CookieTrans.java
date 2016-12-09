@@ -29,6 +29,8 @@ public final class CookieTrans implements Serializable {
     String path;
     String domain;
     int days = -1;
+    boolean secure;
+    boolean httpOnly;
 
     CookieTrans(String name, String value) {
         this.name = name;
@@ -96,6 +98,22 @@ public final class CookieTrans implements Serializable {
         return domain;
     }
 
+    public boolean isSecure() {
+        return secure;
+    }
+
+    void isSecure(boolean secure) {
+        this.secure = secure;
+    }
+
+    public boolean isHttpOnly() {
+        return httpOnly;
+    }
+
+    void isHttpOnly(boolean httpOnly) {
+        this.httpOnly = httpOnly;
+    }
+
     /**
      *
      *
@@ -126,6 +144,9 @@ public final class CookieTrans implements Serializable {
         } else if (defaultDomain != null) {
             c.setDomain(defaultDomain);
         }
+
+        c.setHttpOnly(httpOnly);
+        c.setSecure(secure);
 
         return c;
     }

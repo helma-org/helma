@@ -999,6 +999,14 @@ public final class ResponseTrans extends Writer implements Serializable {
         c.setDays(days);
         c.setPath(path);
         c.setDomain(domain);
+
+        if (!"false".equalsIgnoreCase(app.getProperty("cookies.httpOnly"))) {
+            c.isHttpOnly(true);
+        }
+
+        if ("true".equalsIgnoreCase(app.getProperty("cookies.secure"))) {
+            c.isSecure(true);
+        }
     }
 
     /**
