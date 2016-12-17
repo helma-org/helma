@@ -35,7 +35,7 @@ public class PathWrapper extends ScriptableObject {
     /**
      * Zero arg constructor for creating the PathWrapper prototype.
      */
-    public PathWrapper (RhinoCore core) throws PropertyException, NoSuchMethodException {
+    public PathWrapper (RhinoCore core) throws RhinoException, NoSuchMethodException {
         this.core = core;
         // create a dummy path object
         this.path = new RequestPath(core.app);
