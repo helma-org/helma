@@ -35,7 +35,7 @@ import java.util.ArrayList;
  */
 public class Main {
     public static final String[] jars = {
-                                            "helma.jar", "rhino-1.7R5.jar",
+                                            "helma.jar", "rhino-1.7.7.1.jar",
                                             "commons-logging-1.2.jar",
                                             "xmlrpc-2.0.1.jar", "mail-1.4.7.jar", "activation-1.1.jar",
                                             "commons-fileupload-1.3.2.jar", "commons-codec-1-10.jar",
