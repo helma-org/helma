@@ -75,4 +75,4 @@ if [ "$HOP_HOME" ]; then
 fi
 
 # Invoke the Java VM
-$JAVACMD $JAVA_OPTIONS -jar "$INSTALL_DIR/launcher.jar" $SWITCHES $*
+exec $JAVACMD $JAVA_OPTIONS -Dapple.awt.UIElement=true -jar "$INSTALL_DIR/launcher.jar" $SWITCHES $*
