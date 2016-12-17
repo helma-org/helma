@@ -25,6 +25,7 @@ import helma.objectmodel.db.DbMapping;
 import helma.objectmodel.db.NodeHandle;
 import helma.scripting.*;
 import helma.util.*;
+
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextAction;
 import org.mozilla.javascript.ContextFactory;
@@ -42,9 +43,12 @@ import org.mozilla.javascript.ScriptRuntime;
 import org.mozilla.javascript.Undefined;
 import org.mozilla.javascript.WrapFactory;
 import org.mozilla.javascript.Wrapper;
+import org.mozilla.javascript.commonjs.module.RequireBuilder;
+import org.mozilla.javascript.commonjs.module.provider.*;
 import org.mozilla.javascript.tools.debugger.ScopeProvider;
 
 import java.io.*;
+import java.net.URI;
 import java.text.*;
 import java.util.*;
 import java.lang.ref.WeakReference;
@@ -89,9 +93,9 @@ public final class RhinoCore implements ScopeProvider {
     // optimization level for rhino engine, ranges from -1 to 9
     int optLevel = 0;
 
-    // language version - default to JS 1.7
-    int languageVersion = 170;
-    
+    // language version - default to JS 1.8
+    int languageVersion = 180;
+
     // debugger/tracer flags
     boolean hasDebugger = false;
     boolean hasTracer = false;
@@ -156,6 +160,27 @@ public final class RhinoCore implements ScopeProvider {
             // importClass() and importPackage() are set up.
             global.initStandardObjects(context, false);
             global.init();
+
+            // Enable loading and exporting of CommonJS modules with require and module.exports, resp.
+            // Inspiration: http://stackoverflow.com/a/30355409/5281580
+
+            List<URI> commonJsPaths = new ArrayList<URI>();
+            commonJsPaths.add(app.getAppDir().toURI());
+            String commonJsAppPath = app.getProperty("commonjs.dir");
+
+            if (commonJsAppPath != null) {
+                File commonJsAppDir = new File(app.getAppDir(), commonJsAppPath);
+                if (commonJsAppDir.isDirectory()) {
+                    commonJsPaths.add(commonJsAppDir.toURI());
+                }
+            }
+
+            new RequireBuilder()
+                .setModuleScriptProvider(new StrongCachingModuleScriptProvider(
+                    new UrlModuleSourceProvider(commonJsPaths, null)))
+                .setSandboxed(true)
+                .createRequire(context, global)
+                .install(global);
 
             pathProto = new PathWrapper(this);
 
@@ -816,7 +841,7 @@ public final class RhinoCore implements ScopeProvider {
             }
         }
         return props;
-    }    
+    }
 
     /**
      * Get the RhinoCore instance associated with the current thread, or null
@@ -1207,6 +1232,7 @@ public final class RhinoCore implements ScopeProvider {
             } else {
                 app.logError("Unsupported rhino.languageVersion: " + languageVersion);
             }
+
             // Set up visual debugger if rhino.debug = true
             if (hasDebugger)
                 initDebugger(cx);
