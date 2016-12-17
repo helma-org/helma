@@ -5,20 +5,20 @@
 # lib/ext directory.
 
 # uncomment to set JAVA_HOME variable
-# JAVA_HOME=/usr/lib/java
+#JAVA_HOME=/usr/lib/java
 
 # uncomment to set HOP_HOME, otherwise we get it from the script path
-# HOP_HOME=/usr/local/helma
+#HOP_HOME=/usr/local/helma
 
 # options to pass to the Java virtual machine
-# JAVA_OPTIONS="-server -Xmx128m"
+#JAVA_OPTIONS="-server -Xmx128m"
 
 # Set TCP ports for Helma servers
 # (comment/uncomment to de/activate)
 HTTP_PORT=8080
-# XMLRPC_PORT=8081
-# AJP13_PORT=8009
-# RMI_PORT=5050
+#XMLRPC_PORT=8081
+#AJP13_PORT=8009
+#RMI_PORT=5050
 
 ###########################################################
 ###### No user configuration needed below this line #######
