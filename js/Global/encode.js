@@ -3,6 +3,7 @@ var encode = function (str, buffer, encodeNewline) {
 
   if (str === null || !str.length) return str;
   if (!buffer) buffer = [];
+  if (typeof encodeNewline === 'undefined') encodeNewline = true;
 
   for (var i = 0, len = str.length; i < len; i += 1) {
     var char = str.charAt(i);
