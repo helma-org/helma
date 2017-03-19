@@ -10,4 +10,4 @@ lib/ext
 log/*
 passwd
 server.properties
-
+.gradle
