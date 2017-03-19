@@ -69,7 +69,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         String[] globalFuncs = {
                                    "renderSkin", "renderSkinAsString", "getProperty",
                                    "authenticate", "createSkin", "format",
-                                   "encodeXml", "encodeForm", "formatParagraphs",
+                                   "encodeForm", "formatParagraphs",
                                    "getXmlDocument", "getHtmlDocument", "seal",
                                    "getDBConnection", "getURL", "write", "writeln",
                                    "serialize", "deserialize", "defineLibraryScope",
@@ -451,17 +451,6 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
             }
         }
         return new NativeJavaObject(this, obj, null);
-    }
-
-    /**
-     *
-     *
-     * @param obj ...
-     *
-     * @return ...
-     */
-    public String encodeXml(Object obj) {
-        return HtmlEncoder.encodeXml(toString(obj));
     }
 
     /**
