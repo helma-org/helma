@@ -69,7 +69,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         String[] globalFuncs = {
                                    "renderSkin", "renderSkinAsString", "getProperty",
                                    "authenticate", "createSkin", "format", "encode",
-                                   "encodeXml", "encodeForm", "stripTags", "formatParagraphs",
+                                   "encodeXml", "encodeForm", "formatParagraphs",
                                    "getXmlDocument", "getHtmlDocument", "seal",
                                    "getDBConnection", "getURL", "write", "writeln",
                                    "serialize", "deserialize", "defineLibraryScope",
@@ -152,7 +152,7 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
         Skin skin = engine.toSkin(skinobj, "global");
 
         if (skin != null) {
-            skin.render(engine.reval, null, 
+            skin.render(engine.reval, null,
                     (paramobj == Undefined.instance) ? null : paramobj);
         }
 
@@ -569,47 +569,6 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     }
 
     /**
-     * (Try to) strip all HTML/XML style tags from the given string argument
-     *
-     * @param str a string
-     * @return the string with tags removed
-     */
-    public String stripTags(String str) {
-        if (str == null) {
-            return null;
-        }
-
-        char[] c = str.toCharArray();
-        boolean inTag = false;
-        int i;
-        int j = 0;
-
-        for (i = 0; i < c.length; i++) {
-            if (c[i] == '<') {
-                inTag = true;
-            }
-
-            if (!inTag) {
-                if (i > j) {
-                    c[j] = c[i];
-                }
-
-                j++;
-            }
-
-            if (c[i] == '>') {
-                inTag = false;
-            }
-        }
-
-        if (i > j) {
-            return new String(c, 0, j);
-        }
-
-        return str;
-    }
-
-    /**
      * Serialize a JavaScript object to a file.
      */
     public static void serialize(Context cx, Scriptable thisObj,
@@ -658,10 +617,10 @@ public class GlobalObject extends ImporterTopLevel implements PropertyRecorder {
     }
 
     /**
-     * Set DONTENUM attrubutes on the given properties in this object. 
+     * Set DONTENUM attrubutes on the given properties in this object.
      * This is set on the JavaScript Object prototype.
      */
-    public static Object dontEnum (Context cx, Scriptable thisObj, 
+    public static Object dontEnum (Context cx, Scriptable thisObj,
                                    Object[] args, Function funObj) {
         if (!(thisObj instanceof ScriptableObject)) {
             throw new EvaluatorException("dontEnum() called on non-ScriptableObject");
