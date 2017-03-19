@@ -2,11 +2,11 @@ _This is the README file for version 1.7.0 of the Helma Javascript Web Applicati
 
 __TL;DR__  
 
-- make sure you have Java 1.4 or higher as well as Apache Ant installed
-- clone this repository
-- build Helma with `ant jar`
-- invoke `start.sh`, resp. `start.bat`, depending on your platform
-- direct your web browser to http://localhost:8080
+- Make sure you have Java 1.4 or higher installed
+- Clone this repository
+- Build Helma with `./gradlew`
+- Invoke `start.sh`, resp. `start.bat`, depending on your platform
+- Direct your web browser to http://localhost:8080
 
 # Helma
 
