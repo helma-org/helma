@@ -473,10 +473,10 @@ public class ApplicationManager implements XmlRpcHandler {
                 }
 
                 // bind to Jetty HTTP server
-                if (ApplicationManager.this.jetty != null) {
-                    if(ApplicationManager.this.context == null) {
-                        ApplicationManager.this.context = new ContextHandlerCollection();
-                        ApplicationManager.this.jetty.getHttpServer().setHandler(ApplicationManager.this.context);
+                if (jetty != null) {
+                    if (context == null) {
+                        context = new ContextHandlerCollection();
+                        jetty.getHttpServer().setHandler(context);
                     }
 
                     // if there is a static direcory specified, mount it
@@ -501,9 +501,8 @@ public class ApplicationManager implements XmlRpcHandler {
                     Class servletClass = servletClassName == null ?
                             EmbeddedServletClient.class : Class.forName(servletClassName);
                     ServletHolder holder = new ServletHolder(servletClass);
-                    appContext.addServlet(holder, "/*"); //$NON-NLS-1$
-
-                    holder.setInitParameter("application", appName); //$NON-NLS-1$
+                    holder.setInitParameter("application", appName);
+                    appContext.addServlet(holder, "/*");
 
                     if (this.cookieDomain != null) {
                         holder.setInitParameter("cookieDomain", this.cookieDomain); //$NON-NLS-1$
@@ -529,9 +528,9 @@ public class ApplicationManager implements XmlRpcHandler {
                         holder.setInitParameter("debug", this.debug); //$NON-NLS-1$
                     }
 
-                    if (this.protectedStaticDir != null) {
-                        File protectedContent = getAbsoluteFile(this.protectedStaticDir);
-                        this.appContext.setResourceBase(protectedContent.getPath());
+                    if (protectedStaticDir != null) {
+                        File protectedContent = getAbsoluteFile(protectedStaticDir);
+                        appContext.setResourceBase(protectedContent.getPath());
                         getLogger().info("Serving protected static from " +
                                        protectedContent.getPath());
                     }
