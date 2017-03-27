@@ -35,15 +35,17 @@ import java.util.ArrayList;
  */
 public class Main {
     public static final String[] jars = {
-                                            "helma.jar", "rhino.jar", "jetty.jar",
-                                            "jetty-util.jar", "jetty-ajp.jar",
-                                            "commons-logging.jar", "crimson.jar",
-                                            "xmlrpc.jar", "servlet.jar",
-                                            "mail.jar", "activation.jar",
-                                            "commons-fileupload.jar", "commons-codec.jar",
-                                            "commons-io.jar", "commons-net.jar", 
-                                            "tagsoup.jar"
-                                        };
+        "helma.jar", "rhino.jar",
+        "jetty-server.jar", "jetty-io.jar", "jetty-http.jar",
+        "jetty-security.jar", "jetty-xml.jar",
+        "jetty-servlet.jar", "jetty-util.jar",
+        "commons-logging.jar",
+        "xmlrpc.jar", "servlet.jar",
+        "mail.jar", "activation.jar",
+        "commons-fileupload.jar", "commons-codec.jar",
+        "commons-io.jar", "commons-net.jar",
+        "tagsoup.jar"
+    };
 
     private Class serverClass;
     private Object server;

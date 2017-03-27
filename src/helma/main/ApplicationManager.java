@@ -22,11 +22,11 @@ import helma.framework.repository.FileRepository;
 import helma.util.StringUtils;
 import org.apache.xmlrpc.XmlRpcHandler;
 import org.apache.commons.logging.Log;
-import org.mortbay.jetty.handler.ContextHandler;
-import org.mortbay.jetty.handler.ContextHandlerCollection;
-import org.mortbay.jetty.handler.ResourceHandler;
-import org.mortbay.jetty.servlet.ServletHandler;
-import org.mortbay.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.server.handler.ContextHandler;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
+import org.eclipse.jetty.server.handler.ResourceHandler;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 
 import java.io.*;
 import java.util.*;
@@ -304,7 +304,7 @@ public class ApplicationManager implements XmlRpcHandler {
         Application app;
 
         private ContextHandler staticContext = null;
-        private ContextHandler appContext = null;
+        private ServletContextHandler appContext = null;
 
         String appName;
         File appDir;
@@ -477,7 +477,7 @@ public class ApplicationManager implements XmlRpcHandler {
 
                 // bind to Jetty HTTP server
                 if (jetty != null) {
-                    if(context == null) {
+                    if (context == null) {
                         context = new ContextHandlerCollection();
                         jetty.getHttpServer().setHandler(context);
                     }
@@ -499,18 +499,13 @@ public class ApplicationManager implements XmlRpcHandler {
                         
                         staticContext.start();
                     }
-                    
-                    appContext = context.addContext(pathPattern, "");
 
-                    ServletHandler handler = new ServletHandler();
+                    appContext = new ServletContextHandler(context, pathPattern, true, true);
                     Class servletClass = servletClassName == null ?
                             EmbeddedServletClient.class : Class.forName(servletClassName);
-
                     ServletHolder holder = new ServletHolder(servletClass);
-                    handler.addServletWithMapping(holder, "/*");
-
                     holder.setInitParameter("application", appName);
-                    // holder.setInitParameter("mountpoint", mountpoint);
+                    appContext.addServlet(holder, "/*");
 
                     if (cookieDomain != null) {
                         holder.setInitParameter("cookieDomain", cookieDomain);
@@ -536,8 +531,6 @@ public class ApplicationManager implements XmlRpcHandler {
                         holder.setInitParameter("debug", debug);
                     }
                     
-                    appContext.setHandler(handler);
-
                     if (protectedStaticDir != null) {
                         File protectedContent = getAbsoluteFile(protectedStaticDir);
                         appContext.setResourceBase(protectedContent.getPath());
