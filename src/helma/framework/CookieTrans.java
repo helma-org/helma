@@ -24,11 +24,13 @@ import javax.servlet.http.Cookie;
  *  of an HTTP cookie.
  */
 public final class CookieTrans implements Serializable {
-    String name;
-    String value;
-    String path;
-    String domain;
-    int days = -1;
+    private String name;
+    private String value;
+    private String path;
+    private String domain;
+    private boolean isHttpOnly = true;
+    private boolean isSecure = false;
+    private int days = -1;
 
     CookieTrans(String name, String value) {
         this.name = name;
@@ -51,9 +53,15 @@ public final class CookieTrans implements Serializable {
         this.domain = domain;
     }
 
+    void setHttpOnly(boolean isHttpOnly) {
+        this.isHttpOnly = isHttpOnly;
+    }
+
+    void setSecure(boolean isSecure) {
+        this.isSecure = isSecure;
+    }
+
     /**
-     *
-     *
      * @return ...
      */
     public String getName() {
@@ -61,8 +69,6 @@ public final class CookieTrans implements Serializable {
     }
 
     /**
-     *
-     *
      * @return ...
      */
     public String getValue() {
@@ -70,8 +76,6 @@ public final class CookieTrans implements Serializable {
     }
 
     /**
-     *
-     *
      * @return ...
      */
     public int getDays() {
@@ -79,8 +83,6 @@ public final class CookieTrans implements Serializable {
     }
 
     /**
-     *
-     *
      * @return ...
      */
     public String getPath() {
@@ -88,12 +90,24 @@ public final class CookieTrans implements Serializable {
     }
 
     /**
-     *
-     *
      * @return ...
      */
     public String getDomain() {
         return domain;
+    }
+
+    /**
+     * @return ...
+     */
+    public boolean getHttpOnly() {
+        return isHttpOnly;
+    }
+
+    /**
+     * @return ...
+     */
+    public boolean getSecure() {
+        return isSecure;
     }
 
     /**
@@ -126,6 +140,8 @@ public final class CookieTrans implements Serializable {
         } else if (defaultDomain != null) {
             c.setDomain(defaultDomain);
         }
+        c.setHttpOnly(isHttpOnly);
+        c.setSecure(isSecure);
 
         return c;
     }
