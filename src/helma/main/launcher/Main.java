@@ -41,7 +41,7 @@ public class Main {
         "jetty-servlet.jar", "jetty-util.jar",
         "commons-logging.jar",
         "xmlrpc.jar", "servlet.jar",
-        "mail.jar", "activation.jar",
+        "mail.jar",
         "commons-fileupload.jar", "commons-codec.jar",
         "commons-io.jar", "commons-net.jar",
         "tagsoup.jar"
