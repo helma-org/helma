@@ -143,7 +143,7 @@ public class ResponseBean implements Serializable {
      * @param value the cookie value
      */
     public void setCookie(String key, String value) {
-        res.setCookie(key, value, -1, null, null);
+        res.setCookie(key, value, -1, null, null, true, false);
     }
 
     /**
@@ -156,7 +156,7 @@ public class ResponseBean implements Serializable {
      * @param days number of days the cookie should be stored
      */
     public void setCookie(String key, String value, int days) {
-        res.setCookie(key, value, days, null, null);
+        res.setCookie(key, value, days, null, null, true, false);
     }
 
     /**
@@ -171,7 +171,42 @@ public class ResponseBean implements Serializable {
      * @param path the URL path to apply the cookie to
      */
     public void setCookie(String key, String value, int days, String path) {
-        res.setCookie(key, value, days, path, null);
+        res.setCookie(key, value, days, path, null, true, false);
+    }
+
+    /**
+     * Set a HTTP cookie with the name and value that is only applied to
+     * the URLs matching the given path and is stored by the
+     * HTTP client for the given number of days. A days value of 0 means the
+     * cookie should be immediately discarded.
+     *
+     * @param key the cookie name
+     * @param value the cookie value
+     * @param days number of days the cookie should be stored
+     * @param path the URL path to apply the cookie to
+     * @param domain domain
+     * @param isHttpOnly marks the cookie as HttpOnly
+     */
+    public void setCookie(String key, String value, int days, String path, String domain, boolean isHttpOnly) {
+        res.setCookie(key, value, days, path, domain, isHttpOnly, false);
+    }
+
+    /**
+     * Set a HTTP cookie with the name and value that is only applied to
+     * the URLs matching the given path and is stored by the
+     * HTTP client for the given number of days. A days value of 0 means the
+     * cookie should be immediately discarded.
+     *
+     * @param key the cookie name
+     * @param value the cookie value
+     * @param days number of days the cookie should be stored
+     * @param path the URL path to apply the cookie to
+     * @param domain domain
+     * @param isHttpOnly marks the cookie as HttpOnly
+     * @param isSecure limits the cookie to secure protocols
+     */
+    public void setCookie(String key, String value, int days, String path, String domain, boolean isHttpOnly, boolean isSecure) {
+        res.setCookie(key, value, days, path, domain, isHttpOnly, isSecure);
     }
 
     /**
@@ -187,7 +222,7 @@ public class ResponseBean implements Serializable {
      * @param domain domain
      */
     public void setCookie(String key, String value, int days, String path, String domain) {
-        res.setCookie(key, value, days, path, domain);
+        res.setCookie(key, value, days, path, domain, true, false);
     }
 
     /**
@@ -197,7 +232,7 @@ public class ResponseBean implements Serializable {
      * @param key the name of the cookie to be discarded
      */
     public void unsetCookie(String key) {
-        res.setCookie(key, "", 0, null, null);
+        res.setCookie(key, "", 0, null, null, true, false);
     }
 
     /**

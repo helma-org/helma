@@ -974,8 +974,10 @@ public final class ResponseTrans extends Writer implements Serializable {
      * @param days the cookie's lifespan in days
      * @param path the URL path to apply the cookie to
      * @param domain the domain to apply the cookie to
+     * @param isHttpOnly marks the cookie as HttpOnly
+     * @param isSecure limits the cookie for use with secure protocols
      */
-    public void setCookie(String key, String value, int days, String path, String domain) {
+    public void setCookie(String key, String value, int days, String path, String domain, boolean isHttpOnly, boolean isSecure) {
         CookieTrans c = null;
 
         if (cookies == null) {
@@ -1001,11 +1003,11 @@ public final class ResponseTrans extends Writer implements Serializable {
         c.setDomain(domain);
 
         if (!"false".equalsIgnoreCase(app.getProperty("cookies.httpOnly"))) {
-            c.isHttpOnly(true);
+            c.setHttpOnly(true);
         }
 
         if ("true".equalsIgnoreCase(app.getProperty("cookies.secure"))) {
-            c.isSecure(true);
+            c.setSecure(true);
         }
     }
 
