@@ -35,17 +35,12 @@ import java.util.ArrayList;
  */
 public class Main {
     public static final String[] jars = {
-        "helma.jar",
-        "rhino-1.7.7.1.jar",
-        "commons-logging-1.2.jar",
-        "xmlrpc-2.0.1.jar",
-        "mail-1.4.7.jar",
-        "activation-1.1.jar",
-        "commons-fileupload-1.3.2.jar",
         "commons-codec-1-10.jar",
+        "commons-fileupload-1.3.2.jar",
         "commons-io-2.2.jar",
-        "commons-net-3.6.jar",
-        "tagsoup-1.2.1.jar",
+        "commons-logging-1.2.jar",
+        "commons-net-3.5.jar",
+        "helma.jar",
         "javax.servlet-api-3.1.0.jar",
         "jetty-http-9.4.3.v20170317.jar",
         "jetty-io-9.4.3.v20170317.jar",
@@ -53,7 +48,11 @@ public class Main {
         "jetty-server-9.4.3.v20170317.jar",
         "jetty-servlet-9.4.3.v20170317.jar",
         "jetty-util-9.4.3.v20170317.jar",
-        "jetty-xml-9.4.3.v20170317.jar"
+        "jetty-xml-9.4.3.v20170317.jar",
+        "mail-1.4.7.jar",
+        "rhino-1.7.7.1.jar",
+        "tagsoup-1.2.1.jar",
+        "xmlrpc-2.0.1.jar"
     };
 
     private Class serverClass;
