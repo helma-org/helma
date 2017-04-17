@@ -204,6 +204,8 @@ public class ResponseBean implements Serializable {
      * @param str the string to write to the response buffer
      */
     public void write(String... str) {
+        if (str == null) return;
+
         for (String s : str) {
             res.write(s);
         }
@@ -215,6 +217,8 @@ public class ResponseBean implements Serializable {
      * @param str the string to write to the response buffer
      */
     public void writeln(String... str) {
+        if (str == null) return;
+
         for (String s : str) {
             res.writeln(s);
         }
@@ -242,6 +246,10 @@ public class ResponseBean implements Serializable {
      * @param message the message
      */
     public void debug(String... messages) {
+        if (messages == null) {
+          messages = new String[]{null};
+        }
+
         for (String message : messages) {
             res.debug(message);
         }
