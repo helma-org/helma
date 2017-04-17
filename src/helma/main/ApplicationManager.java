@@ -22,11 +22,10 @@ import helma.framework.repository.FileRepository;
 import helma.util.StringUtils;
 import org.apache.xmlrpc.XmlRpcHandler;
 import org.apache.commons.logging.Log;
-import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.server.handler.ResourceHandler;
-import org.eclipse.jetty.servlet.ServletHandler;
+import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
 import java.io.*;
@@ -478,7 +477,7 @@ public class ApplicationManager implements XmlRpcHandler {
 
                 // bind to Jetty HTTP server
                 if (jetty != null) {
-                    if(context == null) {
+                    if (context == null) {
                         context = new ContextHandlerCollection();
                         jetty.getHttpServer().setHandler(context);
                     }
@@ -501,14 +500,12 @@ public class ApplicationManager implements XmlRpcHandler {
                         staticContext.start();
                     }
 
-                    appContext = new ServletContextHandler(context, pathPattern);
+                    appContext = new ServletContextHandler(context, pathPattern, true, true);
                     Class servletClass = servletClassName == null ?
                             EmbeddedServletClient.class : Class.forName(servletClassName);
-
                     ServletHolder holder = new ServletHolder(servletClass);
-                    appContext.addServlet(holder, "/*");
-
                     holder.setInitParameter("application", appName);
+                    appContext.addServlet(holder, "/*");
 
                     if (cookieDomain != null) {
                         holder.setInitParameter("cookieDomain", cookieDomain);
@@ -533,7 +530,7 @@ public class ApplicationManager implements XmlRpcHandler {
                     if (debug != null) {
                         holder.setInitParameter("debug", debug);
                     }
-
+                    
                     if (protectedStaticDir != null) {
                         File protectedContent = getAbsoluteFile(protectedStaticDir);
                         appContext.setResourceBase(protectedContent.getPath());

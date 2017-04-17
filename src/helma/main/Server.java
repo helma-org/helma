@@ -26,8 +26,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.xmlrpc.*;
 
 import java.io.*;
-import java.rmi.registry.*;
-import java.rmi.server.*;
 import java.util.*;
 import java.net.*;
 
@@ -197,14 +195,6 @@ public class Server implements Runnable {
             }
         }
 
-        if (!config.hasAjp13Port() && sysProps.getProperty("ajp13Port") != null) {
-            try {
-                config.setAjp13Port(getInetSocketAddress(sysProps.getProperty("ajp13Port")));
-            } catch (Exception portx) {
-                throw new Exception("Error parsing AJP1.3 server port property from server.properties: " + portx);
-            }
-        }
-
         if (!config.hasXmlrpcPort() && sysProps.getProperty("xmlrpcPort") != null) {
             try {
                 config.setXmlrpcPort(getInetSocketAddress(sysProps.getProperty("xmlrpcPort")));
@@ -241,12 +231,6 @@ public class Server implements Runnable {
                     config.setWebsrvPort(getInetSocketAddress(args[++i]));
                 } catch (Exception portx) {
                     throw new Exception("Error parsing web server port property: " + portx);
-                }
-            } else if (args[i].equals("-jk") && ((i + 1) < args.length)) {
-                try {
-                    config.setAjp13Port(getInetSocketAddress(args[++i]));
-                } catch (Exception portx) {
-                    throw new Exception("Error parsing AJP1.3 server port property: " + portx);
                 }
             } else if (args[i].equals("-c") && ((i + 1) < args.length)) {
                 config.setConfigFile(new File(args[++i]));
@@ -320,7 +304,6 @@ public class Server implements Runnable {
         System.out.println("  -c jetty.xml      Specify Jetty XML configuration file");
         System.out.println("  -w [ip:]port      Specify embedded web server address/port");
         System.out.println("  -x [ip:]port      Specify XML-RPC address/port");
-        System.out.println("  -jk [ip:]port     Specify AJP13 address/port");
         System.out.println("");
         System.out.println("Supported formats for server ports:");
         System.out.println("   <port-number>");
@@ -348,9 +331,6 @@ public class Server implements Runnable {
                 checkPort(config.getXmlrpcPort());
             }
 
-            if (config.hasAjp13Port()) {
-                checkPort(config.getAjp13Port());
-            }
         } catch (Exception running) {
             System.out.println(running.getMessage());
             System.exit(1);

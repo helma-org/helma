@@ -27,7 +27,6 @@ public class ServerConfig {
 
     private InetSocketAddress xmlrpcPort = null;
     private InetSocketAddress websrvPort = null;
-    private InetSocketAddress ajp13Port  = null;
     private File propFile   = null;
     private File homeDir    = null;
     private File configFile = null;
@@ -53,10 +52,6 @@ public class ServerConfig {
         return (websrvPort != null);
     }
 
-    public boolean hasAjp13Port() {
-        return (ajp13Port != null);
-    }
-
     public boolean hasApps() {
         return (apps != null);
     }
@@ -75,14 +70,6 @@ public class ServerConfig {
 
     public void setWebsrvPort(InetSocketAddress websrvPort) {
         this.websrvPort = websrvPort;
-    }
-
-    public InetSocketAddress getAjp13Port() {
-        return ajp13Port;
-    }
-
-    public void setAjp13Port(InetSocketAddress ajp13Port) {
-        this.ajp13Port = ajp13Port;
     }
 
     public File getPropFile() {
