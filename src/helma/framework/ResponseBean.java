@@ -203,8 +203,10 @@ public class ResponseBean implements Serializable {
      *
      * @param str the string to write to the response buffer
      */
-    public void write(String str) {
-        res.write(str);
+    public void write(String... str) {
+        for (String s : str) {
+            res.write(s);
+        }
     }
 
     /**
@@ -212,8 +214,10 @@ public class ResponseBean implements Serializable {
      *
      * @param str the string to write to the response buffer
      */
-    public void writeln(String str) {
-        res.writeln(str);
+    public void writeln(String... str) {
+        for (String s : str) {
+            res.writeln(s);
+        }
     }
 
     /**
@@ -237,8 +241,10 @@ public class ResponseBean implements Serializable {
      *
      * @param message the message
      */
-    public void debug(String message) {
-        res.debug(message);
+    public void debug(String... messages) {
+        for (String message : messages) {
+            res.debug(message);
+        }
     }
 
     /**
