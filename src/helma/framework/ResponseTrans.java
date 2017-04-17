@@ -377,8 +377,7 @@ public final class ResponseTrans extends Writer implements Serializable {
 
         String str = (message == null) ? "null" : message.toString();
 
-        debugBuffer.append("<div class=\"helma-debug-line\" style=\"background: yellow; ");
-        debugBuffer.append("color: black; border-top: 1px solid black;\">");
+        debugBuffer.append("<div class=\"helma-debug-line\">");
         debugBuffer.append(str);
         debugBuffer.append("</div>");
     }
