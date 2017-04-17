@@ -44,7 +44,7 @@ public class Main {
         "commons-fileupload-1.3.2.jar",
         "commons-codec-1-10.jar",
         "commons-io-2.2.jar",
-        "commons-net-3.5.jar",
+        "commons-net-3.6.jar",
         "tagsoup-1.2.1.jar",
         "javax.servlet-api-3.1.0.jar",
         "jetty-http-9.4.3.v20170317.jar",
