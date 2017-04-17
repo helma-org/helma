@@ -66,9 +66,15 @@ public class Logging extends LogFactory {
         // normalize log name
         logname = logname.replaceAll("[^\\w\\d\\.]", "");
         if ("console".equals(logdir)) {
-            return getConsoleLog();
+            if (logname.startsWith("org.eclipse.jetty."))
+                return getConsoleLog().getSedatedLog();
+            else
+                return getConsoleLog();
         } else {
-            return getFileLog(logname);
+            if (logname.startsWith("org.eclipse.jetty."))
+                return getFileLog(logname).getSedatedLog();
+            else
+                return getFileLog(logname);
         }
     }
 
