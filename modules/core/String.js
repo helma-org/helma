@@ -394,7 +394,7 @@ String.prototype.unwrap = function(removeTags, replacement) {
  * @return String md5 hash of the string
  */
 String.prototype.md5 = function() {
-    return Packages.helma.util.MD5Encoder.encode(this);
+    return Packages.org.apache.commons.codec.digest.DigestUtils.md5Hex(this);
 };
 
 
