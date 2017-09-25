@@ -49,9 +49,30 @@ class ScriptBeanProxy implements SerializationProxy {
      * @return the object represented by this proxy
      */
     public Object getObject(RhinoEngine engine) {
+        try {
+            Object object = engine.global.get(name, engine.global);
+        } catch (Exception e) {
+            System.out.println(name);
+        }
+        
         return engine.global.get(name, engine.global);
     }
+}
 
+/**
+ * Serialization proxy for the application object.
+ * 
+ * @author Daniel Ruthardt
+ * @since 20170918
+ */
+class ApplicationProxy implements SerializationProxy {
+    private static final long serialVersionUID = -3635418002212260600L;
+
+    @Override
+    public Object getObject(RhinoEngine engine) {
+        // return the application
+        return engine.app;
+    }
 }
 
 /**

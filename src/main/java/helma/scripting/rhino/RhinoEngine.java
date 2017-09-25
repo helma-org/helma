@@ -568,6 +568,8 @@ public class RhinoEngine implements ScriptingEngine {
                         return new GlobalProxy((GlobalObject) obj);
                     if (obj instanceof ApplicationBean)
                         return new ScriptBeanProxy("app");
+                    if (obj instanceof Application)
+                        return new ApplicationProxy();
                     if (obj instanceof RequestBean)
                         return new ScriptBeanProxy("req");
                     if (obj instanceof ResponseBean)
