@@ -417,8 +417,8 @@ public class ApplicationManager implements XmlRpcHandler {
                 repositoryList.add(new FileRepository(
                         new File(server.getAppsHome(), appName)));
             }
-            repositories = new Repository[repositoryList.size()];
-            repositories = (Repository[]) repositoryList.toArray(repositories);
+
+            this.repositories = (RepositoryInterface[]) repositoryList.toArray(new RepositoryInterface[repositoryList.size()]);
         }
 
 
@@ -530,7 +530,7 @@ public class ApplicationManager implements XmlRpcHandler {
                     if (debug != null) {
                         holder.setInitParameter("debug", debug);
                     }
-                    
+
                     if (protectedStaticDir != null) {
                         File protectedContent = getAbsoluteFile(protectedStaticDir);
                         appContext.setResourceBase(protectedContent.getPath());
