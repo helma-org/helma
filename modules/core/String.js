@@ -42,6 +42,8 @@ String.URLPATTERN     = /^(https?|ftp):\/\/(((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\
  * application, for example by calling app.addRepository('modules/core/String.js')
  */
 
+app.addRepository('modules/core/Global.js');
+
 /**
  * checks if a date format pattern is correct
  * @external
