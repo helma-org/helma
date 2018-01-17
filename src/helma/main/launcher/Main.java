@@ -216,12 +216,10 @@ public class Main {
             }
         }
 
-        URLClassLoader apploader = (URLClassLoader)
-                                   ClassLoader.getSystemClassLoader();
-
         // try to get Helma installation directory
         if (installDir == null) {
-            URL launcherUrl = apploader.findResource("helma/main/launcher/Main.class");
+            URL launcherUrl = ClassLoader.getSystemClassLoader()
+                    .getResource("helma/main/launcher/Main.class"); //$NON-NLS-1$
 
             // this is a  JAR URL of the form
             //    jar:<url>!/{entry}
