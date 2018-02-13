@@ -1,4 +1,4 @@
-This is the README file for version 1.7.0 of the Helma Javascript
+This is the README file for version 1.7.4 of the Helma Javascript
 Web Application Framework.
 
 ==============
@@ -7,9 +7,9 @@ STARTING HELMA
 
 With the default package installed, all you need to do to get 
 started is:
- -> make sure that you have Java 1.4 or higher installed
+ -> make sure that you have Java 1.8 or higher installed
  -> call start.sh, resp. start.bat depending on your platform
- -> direct your web browser to http://localhost:8080/
+ -> direct your web browser to http://localhost:8080/manage/
 See below for more detailed information.
 
 ===========
@@ -40,7 +40,7 @@ successfully been deploying Helma for several years now.
 SYSTEM REQUIREMENTS
 ===================
 
-You need a Java virtual machine 1.4 or higher to run Helma.
+You need a Java virtual machine 1.8 or higher to run Helma.
 
 For Windows, Linux and Solaris you can get a Java runtime or development 
 kit from http://java.sun.com/j2se/downloads.html. If you are on Mac OS X, 
@@ -72,28 +72,22 @@ browser to http://localhost:8080/ or http://127.0.0.1:8080/
 (port 8080 on the local machine, that is).
 
 Helma comes with a version of Jetty, a lightweight yet industrial strenth
-web server developed by Mortbay Consulting. See http://jetty.mortbay.com/
+web server developed by Mortbay Consulting. See https://www.eclipse.org/jetty/
 for more information. While Jetty works well for deploying real web sites,
 you may want to run Helma behind an existing web server. This is most
-easily done by running Helma with the AJPv13 listener which allows you to
-plug Helma into any web server using the Apache mod_jk module. See
-http://tomcat.apache.org/connectors-doc/index.html for more 
-information on mod_jk and AJPv13.
+easily done by using a HTTP-Proxy module like mod_proxy for Apache.
 
 Finally, Helma can be plugged into Servlet containers using Servlet
 classes that communicate with Helma either directly or via Java RMI.
 (Be warned that these options may be harder to set up and maintain though,
 since most of the recent development efforts have been geared towards the
-mod_jk/AJPv13 setup.)
+HTTP-Proxy setup).
 
 =====================================
 DOCUMENTATION AND FURTHER INFORMATION
 =====================================
 
-After installing and running Helma, you will be able to access  
-introductions to the features of Helma and the various included 
-development tools. Further information you will find on the helma.org 
-website:
+You can find further information on the helma.org website:
 
 http://helma.org/docs/guide/
 http://helma.org/docs/reference/
@@ -107,7 +101,7 @@ MAILING LIST AND SUPPORT
 Please join us on the Helma mailing lists where we will be happy to 
 answer any further questions you may have!
 
-http://helma.org/development/mailinglists/
+https://groups.google.com/forum/#!forum/helma
 
 
 
