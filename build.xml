@@ -17,7 +17,6 @@
         <property name="build.lib" value="${home.dir}/lib"/>
         <property name="build.classes" value="${home.dir}/classes"/>
         <property name="build.docs" value="${home.dir}/docs"/>
-        <property name="build.javadocs" value="${home.dir}/docs/api"/>
         <property name="build.externals" value="${build.dir}/externals"/>
 
         <property name="build.work" value="${home.dir}/work"/>
@@ -30,9 +29,6 @@
         <property name="debug" value="on"/>
         <property name="optimize" value="on"/>
         <property name="deprecation" value="off"/>
-
-        <property name="build.jsdocs" value="${home.dir}/docs/framework"/>
-        <property name="jsdoc" value="${home.dir}/work/reference/templates/jsdoc.pl"/>
 
         <path id="build.class.path">
             <fileset dir="${home.dir}/lib">
@@ -63,10 +59,6 @@
         <echo message=""/>
         <echo message=" compile       --> compiles the source code to ./classes"/>
         <echo message=" jar           --> generates the ./lib/helma-YYYYMMDD.jar file"/>
-        <echo message=" javadocs      --> generates the API docs"/>
-        <echo message=" jsdocs        --> generates the framework docs"/>
-    <!--<echo message=" docs           -> tries to retrieve the HTML documentation "/>   -->
-    <!--<echo message="                   (may need proxy settings in startscript)"/>    -->
         <echo message=" package       --> generates the distribution (zip and tar.gz)"/>
         <echo message=" app [name]    --> gets an application from svn and zips it"/>
         <echo message=" module [name] --> gets a module from svn and zips it"/>
@@ -133,57 +125,6 @@
 
 
     <!-- =================================================================== -->
-    <!-- Creates the javadoc API documentation                               -->
-    <!-- =================================================================== -->
-    <target name="javadocs" depends="init">
-        <mkdir dir="${build.javadocs}"/>
-        <javadoc packagenames="helma.*"
-            sourcepath="${build.src}"
-            destdir="${build.javadocs}"
-            author="false"
-            private="false"
-            version="false"
-            windowtitle="${Name} ${version} API"
-            doctitle="${Name} ${version} API"
-            bottom="Copyright &#169; ${year} Helma.org. All Rights Reserved."
-            classpathref="build.class.path"
-        />
-    </target>
-
-
-    <!-- =================================================================== -->
-    <!-- Create the jsdoc Framework documentation                            -->
-    <!-- =================================================================== -->
-    <target name="jsdocs" depends="init, package-modules">
-
-        <!-- add a copy of the reference -->
-        <mkdir dir="${build.work}/reference"/>
-        <copy todir="${build.work}/reference">
-            <fileset dir="${build.externals}/reference"/>
-        </copy>
- 
-        <!-- add a copy of the modules -->
-        <mkdir dir="${build.work}/reference/modules"/>
-        <copy todir="${build.work}/reference/modules">
-            <fileset dir="${build.externals}/modules/"/>
-        </copy>
- 
-    	<mkdir dir="${build.jsdocs}"/>
-    	<java dir="${home.dir}" fork="true" jar="${build.lib}/rhino.jar">
-          <sysproperty key="jsdoc.dir" value="work/reference"/>
-          <arg value="work/reference/app/run.js"/>
-          <arg value="-t=work/reference/templates"/>
-          <arg value="-d=docs/framework"/>
-          <arg value="-r=3"/>
-          <arg value="work/reference/coreEnvironment"/>
-          <arg value="work/reference/coreExtensions"/>
-          <arg value="work/reference/modules"/>
-        </java>
-        <delete dir="${build.work}/reference" />
-    </target>
-
-
-    <!-- =================================================================== -->
     <!-- Get the documentation (currently can fail due to request time-out   -->
     <!-- or missing support for proxies)                                     -->
     <!-- =================================================================== -->
@@ -244,9 +185,6 @@
         <!-- checkout the demo apps (and zip manage-app) -->
         <antcall target="package-apps" />
 
-        <!-- generate the framework and modules documentation -->
-        <antcall target="jsdocs" />
-
         <!-- create the main part of helma -->
         <antcall target="package-raw">
             <param name="distribution" value="main" />
@@ -267,7 +205,6 @@
         </antcall>
 
         <!-- make the src distributions -->
-        <antcall target="javadocs"/>
         <antcall target="package-src-zip">
             <param name="filename" value="${package.name}"/>
         </antcall>
@@ -298,11 +235,6 @@
 
         <!-- copy README.txt -->
         <copy file="${home.dir}/README.txt" todir="${build.work}/"/>
-
-        <!-- copy the whole docs-directory -->
-        <copy todir="${build.work}/docs">
-            <fileset dir="${build.docs}"/>
-        </copy>
 
         <!-- copy all libraries except helma-YYYYMMDD.jar -->
         <copy todir="${build.work}/lib">
@@ -339,23 +271,17 @@
 
 
     <!-- =================================================================== -->
-    <!-- Checkout demo apps, put them in work directory and zip manage app   -->
+    <!-- zip manage app   -->
     <!-- =================================================================== -->
     <target name="package-apps" depends="init">
 
         <mkdir dir="${build.work}/apps" />
 
-        <!-- add a copy of the welcome app -->
-        <mkdir dir="${build.work}/apps/welcome"/>
-        <copy todir="${build.work}/apps/welcome">
-            <fileset dir="${build.externals}/welcome"/>
-        </copy>
- 
         <mkdir dir="${build.work}/apps/manage"/>
-        <zip zipfile="${build.work}/apps/manage/manage.zip" basedir="${build.externals}/manage/"
+        <zip zipfile="${build.work}/apps/manage/manage.zip" basedir="${home.dir}/apps/manage/"
              includes="**" excludes="**/properties,readme/**" />
             <copy todir="${build.work}/apps/manage">
-                <fileset dir="${build.externals}/manage" includes="app.properties,class.properties,readme.txt"/>
+                <fileset dir="${home.dir}/apps/manage" includes="app.properties,class.properties,readme.txt"/>
             </copy>
         <!-- delete dir="${build.work}/manage" /-->
     </target>
@@ -369,13 +295,8 @@
         <!-- add a copy of the modules -->
         <mkdir dir="${build.work}/modules"/>
         <copy todir="${build.work}/modules">
-            <fileset dir="${build.externals}/modules"/>
+            <fileset dir="${home.dir}/modules"/>
         </copy>
- 
-        <mkdir dir="${build.work}/modules"/>
-        <zip zipfile="${build.work}/modules/helmaTools.zip" basedir="${build.externals}/helmaTools/"
-             includes="**" excludes="**/*.txt, **/*.html, **/*.bat, **/*.sh" />
-        <!--delete dir="${build.work}/helmaTools" /-->
     </target>
 
 
@@ -395,7 +316,6 @@
                 <exclude name="start.sh"/>
                 <exclude name="lib/jimi.jar"/>
                 <exclude name="lib/apache-dom.jar"/>
-                <exclude name="docs/api/**"/>
             </tarfileset>
         </tar>
         <gzip zipfile="${build.dist}/${filename}.tar.gz" src="${build.dist}/${filename}.tar"/>
@@ -416,7 +336,6 @@
               <exclude name="start.sh"/>
               <exclude name="lib/jimi.jar"/>
               <exclude name="lib/apache-dom.jar"/>
-              <exclude name="docs/api/**"/>
             </zipfileset>
         </zip>
     </target>
@@ -433,12 +352,10 @@
                 <include name="src/**"/>
                 <include name="build/**"/>
                 <include name="build.xml"/>
-                <include name="docs/**"/>
                 <include name="licenses/**"/>
                 <include name="license.txt"/>
                 <include name="lib/jimi.jar"/>
                 <include name="lib/apache-dom.jar"/>
-                <exclude name="docs/modules/**"/>
             </tarfileset>
         </tar>
         <gzip zipfile="${build.dist}/${filename}-src.tar.gz" src="${build.dist}/${filename}-src.tar"/>
@@ -457,12 +374,10 @@
               <include name="src/**"/>
               <include name="build/**"/>
               <include name="build.xml"/>
-              <include name="docs/**"/>
               <include name="licenses/**"/>
               <include name="license.txt"/>
               <include name="lib/jimi.jar"/>
               <include name="lib/apache-dom.jar"/>
-              <exclude name="docs/modules/**"/>
             </zipfileset>
         </zip>
     </target>
@@ -473,7 +388,6 @@
     <target name="clean" depends="init">
         <delete dir="${build.work}" />
         <delete dir="${build.classes}" />
-        <delete dir="${build.docs}"/>
         <delete dir="${build.dist}"/>
         <delete file="${home.dir}/launcher.jar" quiet="true"/>
         <delete>
