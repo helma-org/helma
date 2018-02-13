@@ -190,6 +190,9 @@
             <param name="distribution" value="main" />
         </antcall>
 
+        <!-- copy modules -->
+        <antcall target="package-modules" />
+
         <chmod perm="755">
             <fileset dir="${build.work}">
                 <include name="start.sh"/>
