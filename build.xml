@@ -94,8 +94,8 @@
         <replace file="${build.work}/src/helma/main/Server.java"
             token="__builddate__" value="${TODAY}"/>
         <javac srcdir="${build.work}/src"
-            source="1.5"
-            target="1.5"
+            source="1.8"
+            target="1.8"
             destdir="${build.classes}"
             debug="${debug}"
             deprecation="${deprecation}"
