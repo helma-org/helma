@@ -17,7 +17,7 @@ dependencies {
   compile group: 'org.ccil.cowan.tagsoup', name: 'tagsoup', version: '1.2.1'
   compile group: 'org.eclipse.jetty', name: 'jetty-servlet', version: '9.4.3.v20170317'
   compile group: 'org.eclipse.jetty', name: 'jetty-xml', version: '9.4.3.v20170317'
-  compile group: 'org.mozilla', name: 'rhino', version: '1.7.7.1'
+  compile group: 'org.mozilla', name: 'rhino', version: '1.7.9'
   compile group: 'xerces', name: 'xercesImpl', version: '2.11.0'
   // Potential replacement for apache-dom
   //compile group: 'xmlrpc', name: 'xmlrpc', version: '2.0.1'

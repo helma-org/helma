@@ -50,7 +50,7 @@ public class Main {
         "jetty-util-9.4.3.v20170317.jar",
         "jetty-xml-9.4.3.v20170317.jar",
         "mail-1.4.7.jar",
-        "rhino-1.7.7.1.jar",
+        "rhino-1.7.9.jar",
         "tagsoup-1.2.1.jar",
         "xmlrpc-2.0.1.jar"
     };
