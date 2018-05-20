@@ -304,8 +304,25 @@ helma.Zip = function(file) {
      * @type ByteArray
      */
     this.getData = function() {
+        zOutStream.close();
+        fOutStream.close();
+        var inputStream = new java.io.FileInputStream(tempFile);
+        var bOutStream = new java.io.ByteArrayOutputStream();
+        var buffer = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 8192);
+        try {
+            var chunk;
+            while ((chunk = inputStream.read(buffer)) !== -1) {
+                bOutStream.write(buffer, 0, chunk);
+            }
+            bOutStream.flush();
+        } catch (ex) {
+            app.log(ex);
+        } finally {
+            if (inputStream) inputStream.close();
+            if (bOutStream) bOutStream.close();
+        }
         return bOutStream.toByteArray();
-     };
+    };
 
     /**
      * Saves the archive.
@@ -317,12 +334,13 @@ helma.Zip = function(file) {
             throw new Error("no destination for ZipFile given");
         // first of all, close the ZipOutputStream
         zOutStream.close();
+        fOutStream.close();
         var destFile = new java.io.File(dest);
         try {
-            var outStream = new java.io.FileOutputStream(destFile);
-            bOutStream.writeTo(outStream);
-        } finally {
-            if (outStream) outStream.close();
+            if (destFile.exists()) destFile['delete']();
+            java.nio.file.Files.move(tempFile.toPath(), destFile.toPath());
+        } catch (ex) {
+            app.log(ex);
         }
         return;
     };
@@ -339,8 +357,10 @@ helma.Zip = function(file) {
     /**
      * constructor body
      */
-    var bOutStream = new java.io.ByteArrayOutputStream();
-    var zOutStream = new java.util.zip.ZipOutputStream(bOutStream);
+    var tempFile = new java.io.File.createTempFile('zip-', '');
+    var fOutStream = new java.io.FileOutputStream(tempFile);
+    var zOutStream = new java.util.zip.ZipOutputStream(fOutStream);
+
     if (file) {
         file = evalFile(file);
     }
