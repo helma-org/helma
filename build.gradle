@@ -1,7 +1,8 @@
 apply plugin: 'java'
-defaultTasks 'main'
+defaultTasks 'jar'
 
 ant.importBuild 'build.xml'
+tasks.jar.dependsOn 'mkjar'
 
 repositories {
   jcenter()
@@ -26,8 +27,4 @@ dependencies {
 task deps(type: Copy) {
   from configurations.compile
   into 'lib/'
-}
-
-task main(dependsOn: 'mkjar') {
-
 }
