@@ -1,0 +1,24 @@
+<p>This HopObject is named "<% response.title %>" and has the ID "<% response.id %>".</p>
+
+<p>It is attached to the HopObject 
+    <a href="<% response.parenthref %>">"<% response.parentname %>"</a>.</p>
+
+<form method="post">
+    <p>The access counter for 
+        <a href="<% response.href %>">this Hop Object</a> is at 
+        <% response.counter %> 
+        <input type="submit" name="counter" value="Reset">
+    </p>
+</form>
+
+<p>This HopObject is automatically persisted in Helma's 
+    embedded XML database at ./db/welcome/<% response.id %>.xml</p>
+
+<p>To explore this HopObject and its properties in more detail you 
+    may utilize the <a href="<% response.href %>shell">web-based shell</a>. 
+    In addition to the inspection of this HopObject, you will be able to 
+    evaluate server-side Javascript in its scope.</p>
+
+<p>In case you are curious: This request has been handled by the action 
+    defined at ./apps/welcome/code/HopObject/main.hac and this text was 
+    rendered from the skin  ./apps/welcome/code/HopObject/hop.skin</p>

@@ -1,0 +1,18 @@
+sourceSets {
+  main {
+    java {
+      srcDirs = ["${rootProject.buildDir}/src/main/java"]
+      include '**/main/launcher/**'
+    }
+  }
+}
+
+jar {
+  manifest {
+    from "${rootProject.projectDir}/src/main/java/helma/main/launcher/manifest.txt"
+  }
+}
+
+task copyJars(type: Copy) {
+  from jar into "${rootProject.projectDir}"
+}

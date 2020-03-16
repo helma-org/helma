@@ -1,0 +1,10 @@
+<p>This is an example of a simple skin.</p>
+<p>You will find this skin at 
+    ./apps/welcome/code/Root/example.skin</p>
+<p>This skin is rendered by the action defined at 
+    ./apps/welcome/code/Root/example_using_skin.hac</p>
+<p>You can test it via the URL 
+    <a href="<% response.pushLinkUrl %>">
+        <% response.pushLinkText %>
+    </a>
+</p>

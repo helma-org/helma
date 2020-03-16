@@ -1,0 +1,207 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+
+<title>Helma SqlShell <% response.title %></title>
+
+<style type="text/css">
+body {
+    background-color: #ffffff;
+    margin: 20px;
+    font: 12px <% response.fontface %>; 
+}
+
+h1, h2, h3 {
+    border-bottom: 1px solid #cccc99;
+    font-family: <% response.fontface %>;
+}
+
+pre {
+    padding: 10px;
+    border: 1px solid black;
+    background-color: #ccccff;
+    overflow: auto;
+}
+
+table {
+    border: 1px solid <% response.tabcolor %>;
+    border-collapse:collapse;
+    margin-bottom: 1em;
+}
+
+th {
+    text-align: left;
+    background-color: white;
+    padding-right: 2em;
+}
+
+td {
+    font: 12px <% response.fontface %>;
+    border-top: 1px solid <% response.tabcolor %>;
+    padding: 2px;
+    max-height: 40em;
+    overflow: auto;
+}
+
+.tabs {
+    padding-top: 1em;
+}
+
+.activetab {
+    background-color: <% response.tabcolor %>;
+    color: black;
+}
+
+.passivetab {
+    color: #666;
+}
+
+div.activetab {
+    padding: 0.8em;
+    margin-bottom: 1em;
+}
+
+a.tab {
+    font-size: 13px;
+    text-decoration: none;
+    padding: 0.4em;
+    line-height: 2em;
+}
+
+</style>
+
+<script type="text/javascript">
+    function toggleEditor(elem) {
+        var colname = elem.name.substring(8);
+        var chooser = document.getElementById("refedit_" + colname);
+        var link = document.getElementById("extralink_" + colname);
+        if (elem.value == "0") {
+            if (chooser) chooser.style.display = "none";
+            if (link) link.style.display = "none";
+        } else {
+            if (chooser) chooser.style.display = "inline";
+            if (link) link.style.display = "inline";
+        }
+    }
+
+    function openPopup(url, name, width, height) {
+        if (isNaN(width)) width = 500;
+        if (isNaN(height)) height = 500;
+        // create reasonable screen location for popup
+        var position = ",left=" +
+                       Math.floor((screen.availWidth - width) / 2) +
+                       ",top=" +
+                       Math.floor((screen.availHeight - height) / 2) +
+                       ",scrollbars=yes,resizable=yes";
+        var popup = window.open(url, name, 'width=' + width + ',height=' + height + position);
+        popup.focus();
+    }
+
+    function openExtraEditor(url, name, width, height) {
+        var target = document.getElementsByName("target_" + name)[0];
+        url += "&target=" + target.value;
+        var table = document.getElementsByName("__sqlshell_table__")[0];
+        url += "&table=" + table.value;
+        openPopup(url, "extras", width, height);
+    }
+
+    function submitFormToPopup(form, url, name, width, height) {
+        openPopup(null, name, width, height);
+        var prevTarget = form.target;
+        var prevAction = form.action;
+        form.target = name;
+        form.action = url;
+        form.submit();
+        form.target = prevTarget;
+        form.action = prevAction;
+    }
+
+    function appendTableRow(parent) {
+        var row = document.createElement("tr");
+        var table = document.getElementById(parent);
+        if (row && table) {
+            var colname = "collection_" + (colcount++);
+            table.appendChild(row);
+            row.innerHTML = rowtemplate.replace(/\$\$\$/g, colname);
+        }
+        return false;
+    }
+
+    function extraEditor(propname, localCols, targetCols) {
+        var type = opener.document.getElementsByName("maptype_" + propname)[0];
+        for (var i in mappingOptions) {
+            var fieldname = propname + '_' + i;
+            if (!type || parseInt(type.value) < mappingOptions[i]) continue;
+            var field = opener.document.getElementById(fieldname);
+            if (field) {
+                document.write("<tr><td>" + i + "</td><td>");
+                if (i in {foreign: 1, accessname: 1, group:1} && targetCols) {
+                    writeSelect(fieldname, field.value, targetCols);
+                } else if (i == "local" && localCols) {
+                    writeSelect(fieldname, field.value, localCols);
+                } else {
+                    document.write("<input name=\'" + fieldname + "\' value=\'" + field.value + "\'>");
+                }
+                document.write("</td></tr>");
+            } else document.write(fieldname + "<br>");
+        }
+    }
+
+    function writeSelect(name, value, options) {
+        document.write("<select name=\'" + name + "\'>");
+        document.write("<option value=''>");
+        for (var i in options) {
+            document.write("<option value=\'" + options[i] + "\'");
+            document.write(value == options[i] ? " selected=\'selected=\'>" : ">");
+            document.write(options[i]);
+            document.write("</option>");
+        }
+        document.write("</select>");
+    }
+
+    var mappingOptions = {
+        local: 1,
+        foreign: 1,
+        order: 2,
+        accessname: 2,
+        group: 2,
+        group_order: 2,
+        group_prototype: 2,
+        filter: 2,
+        filter_additionalTables: 2,
+        loadmode: 1,
+        cachemode: 2,
+        maxsize: 2,
+        hints: 2,
+        logicalOperator: 2,
+        readonly: 2,
+        "private": 2
+    }
+
+    function applyExtras(propname) {
+        if (opener && opener.document) {
+            for (var i=0; i<document.extras.elements.length; i++) {
+                var e = document.extras.elements[i];
+                if (!e || !e.name || e.name.indexOf(propname) != 0) {
+                    continue;
+                }
+                var e2 = opener.document.getElementById(e.name);
+                if (e2) {
+                    e2.value = e.value;
+                }
+            }
+        } else {
+            alert("Error applying changes: opener.document is not defined");
+        }
+        window.close();
+    }
+
+</script>
+
+</head>
+<body>
+<% response.header prefix="<h3>" suffix="</h3>" %>
+
+<% response.body %>
+</body>
+</html>

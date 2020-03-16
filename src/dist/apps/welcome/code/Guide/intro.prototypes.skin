@@ -1,0 +1,41 @@
+<h1>prototypes</h1>
+
+<p>Helma's coding conventions revolve around the prototype based object 
+    inheritance of Javascript. While Helma does not force you to leverage 
+    these coding conventions, doing so will increase productivity and you 
+    will achieve better maintainability due to a clean and well organized 
+    code structure.</p>
+
+<p>The HopObject prototype is the core prototype of every Helma application. 
+    By default, other prototypes that you create will inherit from the 
+    HopObject prototype. Every directory that you create inside your 
+    application's code repository becomes automatically a prototype by that 
+    name and will inherit the methods, actions, macros and skins that the 
+    HopObject prototype provides.</p>
+
+<p>In the "welcome" application's code repository at ./apps/welcome/code/ 
+    for example, you will find directories for the HopObject, Root and Guide 
+    prototypes. Both the Root and Guide prototypes inherit automatically any 
+    code from the HopObject prototype. Additionally, the Root prototype also 
+    inherits from the Guide prototype, due to the "_extends" property that is 
+    configured in ./apps/welcome/code/Root/type.properties</p>
+
+<pre>
+_extends = Guide
+</pre>
+
+<p>"Root" is the prototype of the application's root object. The root object 
+    of the "welcome" application therefore uses the combined code from these 
+    three prototypes, with code in "Root" overriding code from "Guide", which 
+    in turn overrides code from "HopObject".</p>
+
+<p>When Helma receives a request to <a href="http://<% request.http_host %>/">
+    http://<% request.http_host %>/</a> it will look for a "main" action to 
+    handle the request. Since it will not find one in "Root", it will use the 
+    one defined at ./apps/welcome/code/Guide/main.hac. Requests pointing to a 
+    generic HopObject such as <a href="http://<% request.http_host %>/first/">
+    http://<% request.http_host %>/first/</a> on the other hand, will use the 
+    main action defined at ./apps/welcome/code/HopObject/main.hac.</p>
+
+<p>More information on how Helma puts prototypes to work:
+<br /><a href="http://dev.helma.org/docs/Request-Response-Cycle/">/docs/Request-Response-Cycle/</a></p>

@@ -1,0 +1,18 @@
+// Prepare some response values used by the skins
+res.data.href = this.href();
+res.data.root = root.href();
+
+// Render three nested skins
+res.data.listtools = this.renderSkinAsString('list.tools');
+res.data.listintro = this.renderSkinAsString('list.intro');
+res.data.listwebsite = this.renderSkinAsString('list.website');
+if (this.parent && this.parent.name) {
+    res.data.title = 'Welcome to Helma - '+ this.parent.name +' - '+ this.name;
+    res.data.content = this.renderSkinAsString( this.parent.name +'.'+ this.name );
+    res.data.body = this.renderSkinAsString( this.parent.name );
+}
+if (!res.data.body) {
+    res.data.title = 'Welcome to Helma - Overview';
+    res.data.body = this.renderSkinAsString('overview');
+}
+this.renderSkin('page');

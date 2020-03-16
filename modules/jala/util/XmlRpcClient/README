@@ -1,0 +1,59 @@
+This is the README file for the XmlRpcClient application as part of
+version 1.0 of the Jala Javascript Library.
+
+
+About XmlRpcClient
+------------------
+
+The XmlRpcClient is a small Helma application useful to test and debug XmlRpc
+requests.
+
+
+Installation
+------------
+
+To install the application add the following to the apps.properties file in
+your Helma installation directory:
+
+xmlrpcclient
+xmlrpcclient.repository.0 = ./modules/jala/util/XmlRpcClient
+
+
+Usage Instructions
+------------------
+
+To access the XmlRpcClient point your browser to the URL
+
+http://your.server.domain[:port]/xmlrpcclient
+
+(replace "your.server.domain" with the domain of your server, and the ":port"
+section with the port number if not 80). Then fill out the form with at least
+the URL of the XmlRpc service and the method name (both are required).
+
+Optionally you can pass various arguments to the remote method using standard
+Javascript literal notation, eg.:
+
+String: 	"a string"
+Number: 	1
+Boolean:	true|false
+Objec: 	{name: "jala"}
+Array: 	[1, 2, "three", 4]
+Date: 	new Date(2007, 0, 22, 15, 10)
+
+By default the XmlRpc client uses UTF-8 as encoding for request and response,
+which you can change to ISO-8859-1 if necessary. If you select the "Show Xml"
+checkbox the result shown will also contain the Xml source of the request and
+response, which is useful for debugging.
+
+At last you can tell the client to use a specific HTTP proxy for the requests,
+which you must define in the form "fqdn:port", eg. "my.proxy.com:3128".
+
+
+Contact, Bugs and Feedback
+--------------------------
+
+The Jala Project is currently hosted at https://OpenSVN.csie.org/traccgi/jala/ 
+providing all necessary information about Subversion access, Ticketing, Releases 
+etc.
+
+For immediate contact you can reach the developers via jaladev AT gmail.com.

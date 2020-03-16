@@ -1,0 +1,433 @@
+<?xml version="1.0"?>
+
+<project name="jala-utils" default="usage">
+
+   <property environment="env"/>
+	<property name="work" value="${env.BUILD_HOME}/work" />
+   
+   <!-- load javascript libraries -->
+   <loadfile property="file_jsmin" srcFile="${env.BUILD_HOME}/scripts/jsmin.js" />
+   <loadfile property="file_jslint" srcFile="${env.BUILD_HOME}/scripts/jslint.js" />
+   <loadfile property="file_jsant" srcFile="${env.BUILD_HOME}/scripts/jsant.js" />
+
+   <!-- =================================================================== -->
+   <!-- Help on usage                                                       -->
+   <!-- =================================================================== -->
+   <target name="help" depends="usage" />
+   <target name="usage">
+      <echo message="" />
+      <echo message=" Available targets are:" />
+      <echo message=" jslint   -> Run jslint on the current directory (validation)" />
+      <echo message=" docs     -> Run jsdoc on a helma application" />
+      <echo message=" pot      -> Parse i18n methods out of function files and skins and" />
+      <echo message="             create a gettext template file." />
+      <echo message=" messages -> Compile Gnu PO-files into JavaScript message files" />
+      <echo message="" />
+      <echo message=" Macro definitions that can be used in other build files:" />
+      <echo message=" - jslint" />
+      <echo message=" - jsdoc" />
+      <echo message=" - jsmin" />
+      <echo message="" />
+      <echo message=" See comments inside this file (lib.xml) for more details." />
+      <echo message="----------------------------------------------------------" />
+      <echo message="" />
+      <echo message="" />
+   </target>
+
+
+   <!-- =================================================================== -->
+   <!-- Validates a version                                                 -->
+   <!-- =================================================================== -->
+   <target name="jslint">
+      <echo message="Validating source files in ${user.dir}" />
+      <jslint printWarnings="true" failOnError="false">
+         <fileset dir="${user.dir}" includes="**/*.js" />
+      </jslint>
+   </target>
+
+
+   <!-- =================================================================== -->
+   <!-- Create documentation for a Helma application with jsdoc.pl          -->
+   <!-- =================================================================== -->
+   <target name="hopdoc">
+      <input message="Directory containing the application code (./code):"
+               addproperty="docs.source" defaultvalue="./code" />
+      <input message="Destination directory for the documentation (./docs):"
+               addproperty="docs.destination" defaultvalue="./docs" />
+      <input message="Name of the project:"
+               addproperty="docs.projectName" defaultvalue="" />
+   	<!-- convert inputs to absolute paths -->
+   	<property name="srcdir" location="${docs.source}" />
+   	<property name="destdir" location="${docs.destination}" />
+   	<mkdir dir="${work}" />
+      <helmadoc srcdir="${srcdir}"
+             	 destdir="${destdir}"
+             	 projectName="${docs.projectName}" />
+      <delete dir="${work}" />
+   </target>
+
+
+   <!-- =================================================================== -->
+   <!-- Create documentation with jsdoc.pl                                  -->
+   <!-- =================================================================== -->
+   <target name="docs">
+      <input message="Directory containing the code (./code):"
+               addproperty="docs.source" defaultvalue="./code" />
+      <input message="Destination directory for the documentation (./docs):"
+               addproperty="docs.destination" defaultvalue="./docs" />
+      <input message="Name of the project:"
+               addproperty="docs.projectName" defaultvalue="" />
+   	<!-- convert inputs to absolute paths -->
+   	<property name="srcdir" location="${docs.source}" />
+   	<property name="destdir" location="${docs.destination}" />
+   	<mkdir dir="${work}" />
+      <jsdoc srcdir="${srcdir}"
+             destdir="${destdir}"
+             projectName="${docs.projectName}" />
+      <delete dir="${work}" />
+   </target>
+
+
+   <!-- =================================================================== -->
+   <!-- Parse i18n methods and macros in function files and skins           -->
+   <!-- and create a GNU gettext compatible template file                   -->
+   <!-- =================================================================== -->
+   <target name="pot">
+      <input message="Name of the template file to generate:"
+             addproperty="i18n.template" defaultvalue="messages.pot" />
+      <echo message="Using '${i18n.template}' as output" />
+      <input message="Directories containing code/skins separated by spaces:"
+             addproperty="i18n.scan" />
+      <input message="Encoding of code/skin files (default is UTF-8):"
+             addproperty="i18n.fileEncoding" />
+   	<!-- convert inputs to absolute paths -->
+   	<property name="dest" location="${i18n.template}" />
+     	<property name="src" location="${i18n.scan}" />
+      <java classname="org.mozilla.javascript.tools.shell.Main">
+         <arg value="${env.BUILD_HOME}/scripts/MessageParser.js" />
+         <arg value="-o" />
+         <arg value="${dest}" />
+         <arg value="-e" />
+         <arg value="${i18n.fileEncoding}" />
+         <arg line="${src}" />
+      </java>
+   </target>
+
+   <!-- =================================================================== -->
+   <!-- Generates JavaScript message files out of the .po files in a given  -->
+   <!-- directory                                                           -->
+   <!-- =================================================================== -->
+   <target name="messages">
+      <input message="Directory containing PO-files:"
+             addproperty="i18n.poDirectory" />
+      <input message="Destination directory for generated message files:"
+             addproperty="i18n.destination" />
+      <input message="Namespace to use for generated messages (optional):"
+             addproperty="i18n.namespace" />
+   	<!-- convert inputs to absolute paths -->
+     	<property name="src" location="${i18n.poDirectory}" />
+   	<property name="dest" location="${i18n.destination}" />
+      <echo message="Generating message files from PO-files in '${src}'..." />
+      <echo message="Using '${dest}' as output directory" />
+      <java classname="org.mozilla.javascript.tools.shell.Main">
+         <arg value="${env.BUILD_HOME}/scripts/PoParser.js" />
+         <arg value="${src}" />
+         <arg value="${dest}" />
+         <arg line="${i18n.namespace}" />
+      </java>
+   </target>
+
+   <!-- =================================================================== -->
+   <!-- Create documentation with jsdoc.pl                                  -->
+   <!-- =================================================================== -->
+   <macrodef name="jsdoc">
+   	<attribute name="srcdir" />
+      <attribute name="destdir" />
+      <attribute name="projectName" />
+      <sequential>
+         <echo message="Generating JSDoc API documentation for @{srcdir}" />
+         <property name="workJSdoc" value="${work}/jsdoc-worker" />
+         <mkdir dir="${workJSdoc}" />
+         <copy todir="${workJSdoc}">
+            <fileset dir="@{srcdir}">
+               <exclude name=".svn/**" />
+               <include name="**/*.js" />
+            </fileset>
+         </copy>
+         <mkdir dir="@{destdir}" />
+         <exec executable="perl">
+            <arg value="${env.BUILD_HOME}/JSDoc/jsdoc.pl" />
+            <arg value="--template-dir=${env.BUILD_HOME}/JSDoc/templates" />
+            <arg value="-d=@{destdir}" />
+            <arg value="--extensions=js" />
+            <arg value="--no-sources" />
+            <arg value="--recursive" />
+            <arg value="--quiet" />
+            <arg value="--package-naming" />
+            <arg value="--project-name=@{projectName}" />
+            <arg value="--project-summary=@{srcdir}/.jsdoc/summary.html" />
+            <arg value="--globals-name=Global" />
+         	<arg value="${workJSdoc}" />
+         </exec>
+      
+         <delete dir="${workJSdoc}" />
+      </sequential>
+   </macrodef>
+
+
+
+   <!-- =================================================================== -->
+   <!-- Create documentation for a helma appplication with jsdoc.pl         -->
+   <!-- (copies the application to a temp directory, works on the js        -->
+   <!-- source code to make it work with jsdoc and runs the doc task)       -->
+   <!-- =================================================================== -->
+   <macrodef name="helmadoc">
+      <attribute name="srcdir" />
+      <attribute name="destdir" />
+   	<attribute name="projectName" />
+      <sequential>
+         <echo message="Generating API specification for Helma application in @{srcdir}" />
+         <property name="workHelmadoc" value="${work}/helmadocs-worker" />
+         <mkdir dir="${workHelmadoc}" />
+         <copy todir="${workHelmadoc}">
+            <fileset dir="@{srcdir}">
+               <exclude name=".svn/**" />
+               <include name="**/*.js" />
+               <include name="**/*.hac" />
+               <include name="**/*.properties" />
+            </fileset>
+         </copy>
+         <echo message="Preparing files for JSDoc ..." />
+         <script language="javascript"> <![CDATA[
+      
+            // load libraries:
+            eval(file_jsant);
+
+            var fs = project.createDataType("fileset");
+            fs.setDir(new java.io.File(workHelmadoc));
+            fs.setIncludes("**/*.js,**/*.hac,**/*.properties");
+            fs.setExcludes("app.properties,db.properties,Global/**");
+            var ds = fs.getDirectoryScanner(project);
+            var srcFiles = ds.getIncludedFiles();
+
+            var files = [];
+            for (var i=0; i<srcFiles.length; i++) {
+               var f = new java.io.File(workHelmadoc + "/" + srcFiles[i]);
+               files[files.length] = f.getCanonicalPath();
+            }
+      
+            // slice filename into dir (= name of prototype), filename, file-extension
+            var fileNameReg = /([^\\\/]+)[\\\/]([^\\\/]+)\.([^\.]*)$/i;
+      
+            // find plain function definitions
+            var functionReg = /(^|[^=]\s+)function\s+(\w+)\s*\(/gi;
+      
+            // find constructor functions (after replacing plain function definitions
+            var ctorReg = /.prototype.constructor/gi;
+      
+            // find object/collection/mountpoint mappings in type.properties
+            var mappingReg  = /(.*)\s*\(\s*(.*)\s*\)/;
+      
+            // store helper javascripts
+            var propsDef = "";
+      
+            // keep track of constructor functions
+            var ctorTracker = {};
+            
+      
+            for (var i=0; i<files.length; i++) {
+               var fileNameResult = files[i].match(fileNameReg);
+               if (ctorTracker[fileNameResult[1]] === null) {
+                  ctorTracker[fileNameResult[1]] = false;
+               }
+               var content = Util.readFile(files[i]);
+               if (fileNameResult[3].toLowerCase() == "properties") {
+      
+                  // add mappings of type.properties to the field summary
+                  var props = Util.loadProperties(files[i]);
+                  for (var e=props.keys(); e.hasMoreElements();) {
+                     var key = e.nextElement();
+                     var value = props.getProperty(key);
+                     if (key.indexOf(".") > -1 || (key.indexOf("_") == 0 && key != "_id" && key != "_children")) {
+                        continue;
+                     }
+                     var re = value.match(mappingReg);
+                     if (re) {
+                        propsDef += "/**\n  * mapped to " + re[1] + "\n  * {@link " + re[2].capitalize() + "}\n  */\n";
+                     } else {
+                        propsDef += "/** mapped to database column <b>" + value + "</b>  */\n";
+                     }
+                     propsDef += fileNameResult[1] + ".prototype." + key + " = null;\n\n";
+                  }
+      
+               } else if (fileNameResult[3].toLowerCase() == "hac") {
+      
+                  // wrap helma action files in a block: function XXX_action  {  }
+                  var str = fileNameResult[1] + ".prototype." + fileNameResult[2] + "_action = function()  {\n" + content + "\n}\n";
+                  Util.writeToFile(files[i], str);
+      
+               } else {
+      
+                  // in common javascript files switch to .prototype. definition
+                  var str = content.replace(functionReg, "$1" + fileNameResult[1] + ".prototype.$2 = function(");
+                  if (str.match(ctorReg)) {
+                     str = str.replace(ctorReg, "");
+                     ctorTracker[fileNameResult[1]] = true;
+                  }
+                  Util.writeToFile(files[i], str);
+               }
+            }
+      
+            // all constructors that haven't been defined in functions are added to helper-file
+            for (var key in ctorTracker) {
+               if (key.toLowerCase() == "root" || key.toLowerCase() == "hopobject") {
+                  continue;
+               }
+               if (ctorTracker[key] === false) {
+                  propsDef += "function " + key + "(){return;}\n"
+               }
+            }
+      
+            var file = Util.getFile(workHelmadoc, "definitions.js");
+            Util.writeToFile(file, propsDef);
+            
+         ]]> </script>
+         <echo message="... prepared files for JSDoc." />
+         <mkdir dir="@{destdir}" />
+         <exec executable="perl">
+            <arg value="${env.BUILD_HOME}/JSDoc/jsdoc.pl" />
+            <arg value="--template-dir=${env.BUILD_HOME}/JSDoc/templates" />
+            <arg value="-d=@{destdir}" />
+            <arg value="--extensions=js,hac,properties" />
+            <arg value="--no-sources" />
+            <arg value="--recursive" />
+            <arg value="--quiet" />
+            <arg value="--package-naming" />
+            <arg value="--project-name=@{projectName}" />
+            <arg value="--project-summary=@{srcdir}/.jsdoc/summary.html" />
+            <arg value="--globals-name=Global" />
+         	<arg value="${workHelmadoc}" />
+         </exec>
+      
+         <delete dir="${workHelmadoc}" />
+      </sequential>
+   </macrodef>
+
+
+   <!-- =================================================================== -->
+   <!-- Compresses javascript files in a fileset                            -->
+   <!--                                                                     -->
+   <!-- nested element:                                                     -->
+   <!-- <fileset> - the files to compress                                   -->
+   <!-- =================================================================== -->
+   <macrodef name="jsmin">
+      <element name="filesetEl" implicit="true" />
+      <sequential>
+         <path id="filepath">
+            <filesetEl />
+         </path>
+         <script language="javascript"> <![CDATA[
+            // load libraries:
+            eval(file_jsant);
+            eval(file_jsmin);
+   
+            // loop through files in fileset passed by reference
+            var files = filepath.list();
+            for (var i=0; i<files.length; i++) {
+               // read original code
+               var f = new java.io.File(files[i]);
+               var oldCode = Util.readFile(f.getCanonicalPath());
+   
+               // compress
+               try {
+                  var newCode = jsmin("", oldCode, 2);
+               } catch (anyerror) {
+                  Util.log(files[i] + " could not be compressed because of an error: " + anyerror);
+                  continue;
+               }
+   
+               // load comment
+               var comment = Util.readFile(new java.io.File(f.getParent(), "COPYRIGHT.txt").toString());
+               newCode = comment + newCode + "\n";
+   
+               Util.writeToFile(f.getCanonicalPath(), newCode);
+   
+               // log message
+               var msg = "Reduced " + files[i] + " from " + oldCode.length + " to " + newCode.length + " bytes";
+               msg += " (" + (Math.round(newCode.length / oldCode.length * 1000) / 10) + "% of original size)";
+               Util.log(msg);
+            }
+         ]]> </script>
+      </sequential>
+   </macrodef>
+
+
+   
+   <!-- =================================================================== -->
+   <!-- Validate javascript files in a fileset                              -->
+   <!--                                                                     -->
+   <!-- nested element:                                                     -->
+   <!-- <fileset> - the files to validate                                   -->
+   <!--                                                                     -->
+   <!-- attributes:                                                         -->
+   <!-- printWarnings: if "true", syntax warnings are written too           -->
+   <!--                      (and not just errors)                          -->
+   <!-- failOnError: if "true" build process fails if there are             -->
+   <!--                      any javascript errors                          -->
+   <!-- =================================================================== -->
+   <macrodef name="jslint">
+      <attribute name="printWarnings" default="true" />
+      <attribute name="failOnError" default="false" />
+      <element name="filesetEl" implicit="true" />
+      <sequential>
+         <!-- copy attributes to local properties (that can be used in the script task) -->
+         <property name="printWarningsProp" value="@{printWarnings}" />
+         <property name="failOnErrorProp" value="@{failOnError}" />
+         <!-- nested elements can't be used from script task, so wrap <path> around the <fileset> -->
+         <path id="filepath">
+            <filesetEl />
+         </path>
+         <script language="javascript"> <![CDATA[
+            // load libraries:
+            eval(file_jsant);
+            eval(file_jslint);
+
+            // store whether there was a major error in any of the files
+            var fail = false;
+            var failStr = "";
+
+            // loop through files in fileset passed by reference
+            var files = filepath.list();
+            for (var i=0; i<files.length; i++) {
+               // get file object and parse source file
+               var f = new java.io.File(files[i]);
+               var re = JSLINT(Util.readFile(f.getCanonicalPath()) ,{browser:true, passfail:false, undef:true});
+   
+               // loop through error and warning messages
+               for (var j=0; j<JSLINT.errors.length; j++) {
+                  var e = JSLINT.errors[j];
+                  if(e && printWarningsProp == "true") {
+                     // warning message
+                     Util.log("Javascript Warning in " + files[i] + ", line " + (e.line+1) + ", character " + (e.character+1)+ ":\n" + e.reason + "\n\n");
+                  } else if (!e) {
+                     // if last element of the array is null, the one 
+                     // before that element was an error
+                     e = JSLINT.errors[j-1];
+                     failStr += "Javascript error in " + files[i] + ", line " + (e.line+1) + ", character " + (e.character+1)+ ":\n" + e.reason + "\n\n";
+                     fail = true;
+                  }
+               }
+            }
+            if (fail && failOnErrorProp == "true")  {
+               // failing directly from javascript using createTask("fail")
+               // results in a bulk of stack traces.
+               // so set the property here ... and fail outside the script task
+               Util.setProperty("validateFailed", "true");
+               Util.log(failStr);
+            }
+         ]]> </script>
+         <fail if="validateFailed">validate failed: error(s) in javascript code.</fail>
+      </sequential>
+   </macrodef>
+
+</project>

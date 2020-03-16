@@ -1,0 +1,2 @@
+res.write('Hello, this is the action defined \
+    at ./apps/welcome/code/Root/example.hac');

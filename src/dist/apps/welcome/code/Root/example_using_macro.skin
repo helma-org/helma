@@ -1,0 +1,12 @@
+<p>This is an example of a skin that calls a macro.</p>
+<p>You will find this skin at 
+    ./apps/welcome/code/Root/example_using_macro.skin</p>
+<p>This skin is rendered by the action defined at 
+    ./apps/welcome/code/Root/example_using_macro.hac</p>
+<p>The macro this skin calls is defined in 
+    ./apps/welcome/code/Root/example.js</p>
+<p>You can test it via the URL 
+    <a href="<% this.pullLink part="url" %>">
+        <% this.pullLink part="text" %>
+    </a>
+</p>

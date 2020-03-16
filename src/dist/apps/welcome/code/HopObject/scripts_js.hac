@@ -1,0 +1,2 @@
+res.contentType="application/javascript";
+this.renderSkin('scripts_js');

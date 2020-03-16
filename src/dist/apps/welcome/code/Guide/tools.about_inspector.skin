@@ -1,0 +1,21 @@
+<h1>inspector</h1>
+
+<p>The Inspector allows you to inspect and modify the properties of 
+    HopObjects and to browse the HopObject tree. For example, you 
+    can invoke the Inspector on the HopObject named "first" by 
+    accessing the "inspector" action at 
+    <a href="http://<% request.http_host %>/first/inspector">
+    http://<% request.http_host %>/first/inspector</a></p>
+
+<img src="/static/guide/inspector.png" width="480" height="332" />
+
+<p>Note that access to the Inspector is restricted for obvious security 
+    reasons. If you have not yet done so, you will be directed on how 
+    to configure administrative access when you attempt to use 
+    this tool.</p>
+
+<p>In order to be able to use the Inspector inside your own application,  
+    you will need to add the helmaTools code repository to that  
+    application. For example by adding modules/helmaTools.zip to the  
+    <a href="/intro/applications">list of its repositories in the 
+    ./apps.properties file</a>.

@@ -1,0 +1,31 @@
+<h1>static files</h1>
+
+<p>The default mountpoint of a Helma application is always a code repository, 
+    which means that requests will be handled by the application's Javascript 
+    environment and will not reference specific server pages. Static files on 
+    the other hand are served from separate "static" mountpoints.</p>
+
+<p>In Helma's default installation, the "welcome" application is serving 
+    static files from its "static" directory at ./apps/welcome/static/ 
+    and makes them accessible through URLs starting with 
+    <a href="http://<% request.http_host %>/static/">
+    http://<% request.http_host %>/static/</a></p>
+
+<p>For example, you should be able to access the file named "test.txt" inside 
+    the ./apps/welcome/static/ directory via the URL 
+    <a href="http://<% request.http_host %>/static/test.txt">
+    http://<% request.http_host %>/static/test.txt</a></p>
+
+<p>Inside the ./apps.properties file, you will find the following settings, 
+    which control the related behavior:</p>
+
+<pre>
+welcome.static = apps/welcome/static
+welcome.staticMountpoint = /static
+welcome.staticHome = index.html,default.html
+welcome.staticIndex = true
+</pre>
+
+<p>More information about these and additional settings related to serving static files:
+<br /><a href="http://dev.helma.org/docs/Properties+Files/apps.properties/">/docs/Properties+Files/apps.properties/</a>
+</p>

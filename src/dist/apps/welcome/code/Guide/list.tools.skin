@@ -1,0 +1,7 @@
+        <ul>
+            <li><a href="<% response.root %>tools/about_manage">manage</a></li>
+            <li><a href="<% response.root %>tools/about_shell">shell</a></li>
+            <li><a href="<% response.root %>tools/about_inspector">inspector</a></li>
+            <li><a href="<% response.root %>tools/about_sqlshell">sqlshell</a></li>
+            <li><a href="<% response.root %>tools/debugger">debugger</a></li>
+        </ul>

@@ -1,0 +1,19 @@
+if (req.data.add && req.data.name) {
+    var obj = new HopObject();
+    obj.name = req.data.name;
+    this.add(obj);
+    res.redirect(obj.href())
+}
+res.data.root = root.href();
+res.data.parenthref = this._parent.href();
+res.data.parentname = this._parent.name;
+res.data.href = this.href();
+res.data.title = this.name;
+res.data.list = '\
+    <ul>\
+        <li><a href="'+ this.href() +'">&lt;&lt; back</a></li>\
+    </ul>';
+res.data.content = this.renderSkinAsString('add');
+res.data.body = this.renderSkinAsString('main');
+
+this.renderSkin('page');

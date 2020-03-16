@@ -1,0 +1,33 @@
+<h1>java packages</h1>
+
+<p>Helma puts the whole wealth of Java libraries at your fingertips. 
+    The "Packages" object in Helma's Javascript environment serves as 
+    the doorway to leverage any Java packages in the CLASSPATH. You can 
+    <a href="http://www.docjar.com/">add any Java packages</a> to the 
+    CLASSPATH simply by putting the jar files in the ./lib/ext/ directory.</p>
+
+<p>Any public methods that these Java classes define become callable from 
+    your application's Javascript environment and you can create and work 
+    with Java objects just like you do with Javascript objects. For example, 
+    you could create a Java StringBuffer object and then append data to it 
+    as follows:</p>
+
+<pre>
+var buffer = new Packages.java.lang.StringBuffer();
+buffer.append('hello');
+</pre>
+
+<p>If your application makes extensive use of a Java class, it might be a 
+    good idea to wrap that class in a Javascript prototype. That way, the 
+    objects your applications works with become true Javascript objects, you 
+    can control exactly which class methods are exposed to your application 
+    and you can abstract the implementation, allowing you to change the Java 
+    classes you use without requiring modifications to your application.</p>
+
+<p>Various examples of such wrappers around Java classes can be found in the 
+    helmaLib, which makes Mail, File, Ftp, Image, Search, SSH and Zip 
+    functionality available in this way.</p>
+
+<p>More information on how Helma makes Java scriptable:
+<br /><a href="http://www.mozilla.org/rhino/ScriptingJava.html">/rhino/ScriptingJava</a>
+</p>

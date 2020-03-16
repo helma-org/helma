@@ -1,0 +1,43 @@
+<h1>sqlshell</h1>
+
+<p>The SQLshell allows you to query relational databases, explore 
+    their schema, send SQL statements and create object/relational 
+    mappings for your HopObject prototypes.</p>
+
+<p>In order to be able to use the SQLshell, you need to define at least 
+    one datasource inside the ./db.properties file in Helma's home 
+    directory or for application specific configurations in a db.properties 
+    file inside the application's code repository. An example of such a 
+    file can be found inside the welcome application at 
+    ./apps/welcome/code/db.properties</p>
+
+<pre>
+myDataSource.url = jdbc:mysql://db.domain.com/space
+myDataSource.driver = org.gjt.mm.mysql.Driver
+myDataSource.user = username
+myDataSource.password = xyz
+</pre>
+
+<p>In order to add the specified JDBC driver to the CLASSPATH, place it in 
+    the ./lib/ext/ directory. Depending on the database system you are using, 
+    you may want to <a href="http://developers.sun.com/product/jdbc/drivers">
+    download an appropriate JDBC driver</a>, for example a 
+    <a href="http://www.mysql.com/downloads/api-jdbc-stable.html">driver for 
+    MySQL</a>.</p>
+
+<p>Now you should be able to use the SQLshell by accessing any URL 
+    pointing to a HopObject with the added "sqlshell" action, such as 
+    <a href="http://<% request.http_host %>/sqlshell">/sqlshell</a>.</p>
+
+<img src="/static/guide/sqlshell.png" width="480" height="475" />
+
+<p>Note that access to the SQLshell is restricted for obvious security 
+    reasons. If you have not yet done so, you will be directed on how 
+    to configure your administrative access when you attempt to use 
+    this tool.</p>
+
+<p>In order to be able to use the SQLshell inside your own application,  
+    you will need to add the helmaTools code repository to that  
+    application. For example by adding modules/helmaTools.zip to the  
+    <a href="/intro/applications">list of its repositories in the 
+    ./apps.properties file</a>.

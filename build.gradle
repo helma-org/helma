@@ -1,12 +1,84 @@
-apply plugin: 'java'
-defaultTasks 'jar'
+allprojects {
+  apply plugin: 'java'
+  apply plugin: 'application'
 
-ant.importBuild 'build.xml'
-tasks.jar.dependsOn 'mkjar'
+  compileJava {
+    dependsOn 'processSource'
+    sourceCompatibility = JavaVersion.VERSION_1_6
+    targetCompatibility = JavaVersion.VERSION_1_6
+  }
+
+  // FIXME: start scripts are not working, yet
+  startScripts {
+    mainClassName = 'helma.main.launcher.Main'
+    applicationName = 'helma'
+    classpath = files('launcher.jar')
+  }
+
+  task processSource(type: Sync) {
+    def date = new Date().format("MMMM dd, yyyy")
+    def gitOutput = new ByteArrayOutputStream()
+
+    exec {
+      commandLine 'git', 'describe'
+      standardOutput = gitOutput
+      errorOutput = new ByteArrayOutputStream()
+      ignoreExitValue = true
+    }
+
+    def description = date
+    def tag = gitOutput.toString().trim()
+
+    if (tag) description = "$tag; $description"
+
+    from 'src'
+
+    filter {
+      line -> line.replaceAll('__builddate__', date)
+    } into "${project.buildDir}/src"
+  }
+}
+
+version = new Date().format("yyyyMMdd")
+
+distributions {
+  main {
+    contents {
+      from project(':launcher').jar
+    }
+  }
+}
+
+applicationDistribution.from(projectDir) {
+  include 'modules/**'
+  include 'LICENSE.md'
+  include 'README.md'
+  include 'start.*'
+}
+
+applicationDistribution.from(javadoc.destinationDir) {
+  include '**'
+  into 'docs'
+}
+
+sourceSets {
+  main {
+    java {
+      srcDirs = ["$buildDir/src/main/java"]
+      exclude '**/package.html', '**/main/launcher/**'
+    }
+  }
+}
 
 repositories {
   mavenCentral()
   jcenter()
+}
+
+configurations {
+  // Wrapping implementation because it does not allow access to its files
+  // (i.e. cannot be resolved)
+  library.extendsFrom implementation
 }
 
 dependencies {
@@ -25,7 +97,76 @@ dependencies {
   implementation 'xmlrpc:xmlrpc:2.0.1'
 }
 
-task deps(type: Copy) {
-  from configurations.compileClasspath
-  into 'lib/'
+distTar {
+  compression = Compression.GZIP
+}
+
+installDist {
+  dependsOn javadoc
+  finalizedBy 'update'
+}
+
+run {
+  classpath = files('launcher.jar')
+  args '-w', '8080'
+  args '-x', '8081'
+  args '-i', projectDir
+  args '-h', projectDir
+  jvmArgs '-Dorg.eclipse.jetty.LEVEL=WARN'
+}
+
+task shell(type: JavaExec) {
+  def rhinoJar = configurations.library.files.find { f ->
+    f.name.startsWith('rhino')
+  }
+
+  // if (environment.get('TERM') != 'dumb') {
+  //   println 'Run this task with `TERM=dumb ./gradlew shell` to get rid of the progress output'
+  // }
+
+  classpath = files(rhinoJar)
+  main = 'org.mozilla.javascript.tools.shell.Main'
+
+  standardInput = System.in
+}
+
+task commandline(type: JavaExec) {
+  classpath = files('launcher.jar')
+  main = 'helma.main.launcher.Commandline'
+  args '-h', projectDir, 'manage.getAllApplications'
+}
+
+task update {
+  def rsyncArgs = ['-a', '--info=progress2', '--exclude', 'backups']
+
+  def confirm = {
+    ant.input(message: 'Update this installation?', validargs: 'y,n', addproperty: 'continue')
+    return ant.continue == 'y'
+  }
+
+  onlyIf { confirm() }
+
+  doFirst {
+    def backupDir = 'backups/' + new Date().format('yyyyMMdd-HHmmss')
+
+    mkdir backupDir
+
+    exec {
+      // Using rsync instead of a CopyTask because the latter chokes on multi-byte characters
+      // See https://github.com/gradle/gradle/issues/789
+      executable 'rsync'
+      args rsyncArgs
+      args "$projectDir/", backupDir
+    }
+  }
+
+  doLast {
+    exec {
+      // Using rsync instead of installDist task because it does not overwrite the project directory
+      executable 'rsync'
+      args rsyncArgs
+      args '--exclude', 'bin'
+      args "${installDist.destinationDir}/", projectDir
+    }
+  }
 }

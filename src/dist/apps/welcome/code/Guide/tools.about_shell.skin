@@ -1,0 +1,31 @@
+<h1>shell</h1>
+
+<p>The Shell allows you to run commands and evaluate scripts within 
+    your running application. This may be useful for administrative 
+    and maintenance tasks for which you may not want to build a GUI 
+    or pre-defined scripts. Certainly, the Shell can become very 
+    useful during development and debugging.</p>
+
+<p>By running commands you can inspect and manage data structures 
+    beyond the capabilities of the Inspector. By running scripts you 
+    can easily test and modify small portions of your application or 
+    invoke actions, simulating specific circumstances and measuring 
+    their performance.</p>
+
+<p>For example, you can invoke the Shell on the HopObject 
+    named "second" by accessing the "shell" action at 
+    <a href="http://<% request.http_host %>/first/second/shell">
+    http://<% request.http_host %>/first/second/shell</a></p>
+
+<img src="/static/guide/shell.png" width="480" height="475" />
+
+<p>Note that access to the Shell is restricted for obvious security 
+    reasons. If you have not yet done so, you will be directed on how 
+    to configure administrative access when you attempt to use 
+    this tool.</p>
+
+<p>In order to be able to use the Shell inside your own application,  
+    you will need to add the helmaTools code repository to that  
+    application. For example by adding modules/helmaTools.zip to the  
+    <a href="/intro/applications">list of its repositories in the 
+    ./apps.properties file</a>.

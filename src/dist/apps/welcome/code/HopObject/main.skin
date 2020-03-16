@@ -1,0 +1,16 @@
+<div class="lead">
+    <p>HopObject - the central building blocks of your Helma applications.</p>
+</div>
+
+<script> openbox('pagewebsite') </script>
+    <ul>
+        <li><a href="<% response.parenthref %>"><% response.parentname %></a></li>
+    </ul>
+    <h3><% response.title %></h3>
+    <% response.list %>
+    <% response.add %>
+<script> closebox() </script>
+
+<script> openbox('content') </script>
+    <% response.content %>
+<script> closebox() </script>

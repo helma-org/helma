@@ -1,0 +1,56 @@
+<h1>database mapping</h1>
+
+<p>Helma allows you to map your HopObjects to relational database tables 
+    instead of persisting them in the application's embedded XML database.</p>
+
+<p>The list of available database connections is defined inside the file 
+    ./db.properties in Helma's home directory or for application specific 
+    configurations in a db.properties file inside an application's code 
+    repository.</p>
+
+<pre>
+myDataSource.url = jdbc:mysql://db.domain.com/space
+myDataSource.driver = org.gjt.mm.mysql.Driver
+myDataSource.user = username
+myDataSource.password = xyz
+</pre>
+
+<p>In order to add the specified JDBC driver to the classpath, place it in 
+    the ./lib/ext/ directory. Depending on the database system you are using, 
+    you may want to <a href="http://developers.sun.com/product/jdbc/drivers">
+    download an appropriate JDBC driver</a>, for example a 
+    <a href="http://www.mysql.com/downloads/api-jdbc-stable.html">driver for 
+    MySQL</a>.</p>
+
+<p>Using the <a href="sqlshell">SQLshell</a> from within your application, 
+    you may at any time explore your database and issue SQL statements. 
+    The SQLshell also allows you to map your database tables to properties 
+    of your application's prototypes as desired. A simple configuration for 
+    your object/relational mappings might look as follows:</p>
+
+<pre>
+_db         = myDataSource
+_table      = PERSON
+_id         = ID
+
+firstname   = FIRSTNAME
+lastname    = LASTNAME
+email       = EMAIL
+createtime  = CREATETIME
+modifytime  = MODIFYTIME
+</pre>
+
+<p>These configurations would be placed in a type.properties file 
+    inside the corresponding prototype directory, for example in 
+    ./apps/addressbook/Person/type.properties, when following the 
+    "addressbook" tutorial.</p>
+
+<p>To learn how Helma's relational database mapping is put to work and 
+    how it relates and integrates with the other central aspects of the 
+    framework, <a href="http://dev.helma.org/docs/Object-Relational+Mapping+Tutorial/">follow the 
+    tutorial and build the full "addressbook" application</a>.</p>
+
+<p>More information about the object/relational mapping of HopObject properties:
+<br /><a href="http://dev.helma.org/docs/Properties+Files/db.properties/">/docs/Properties+Files/db.properties/</a>
+<br /><a href="http://dev.helma.org/docs/Object-Relational+Mapping/">/docs/Object-Relational+Mapping/</a>
+</p>

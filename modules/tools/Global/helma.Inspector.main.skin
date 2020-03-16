@@ -1,0 +1,157 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" >
+<head>
+<title>helma.Inspector v<% inspector.version %></title>
+<style type="text/css">
+<!--
+body, p, div, td, th {
+   font-size:  12px;
+   font-family: arial, sans-serif;
+}
+
+h1 {
+   margin: 0;
+}
+
+a {
+   color: blue;
+   background-color: white;
+   text-decoration: none;
+}
+
+a:hover {
+   color: white;
+   background-color: blue;
+}
+
+table#main {
+   background-color: white;
+}
+
+table {
+   width: 100%;
+   background-color: #cccccc;
+}
+
+td {
+   padding: 0 5px;
+   background-color: white;
+   vertical-align: top;
+}
+
+th {
+   padding: 0 5px;
+   font-size: 0.75em;
+   text-transform: uppercase;
+   letter-spacing: 1px;
+   color: white;
+   background-color: #000099;
+}
+
+textarea {
+   background-color: lightyellow;
+   font-size: 12px;
+   font-family: arial, sans-serif;
+   width: 400px;
+   height: 150px;
+   margin-top: 5px;
+}
+
+select {
+   margin-top: 5px;
+   background-color: lightyellow;
+}
+
+input {
+   margin-top: 5px;
+   font-size: 11px;
+}
+
+.display {
+   width: 400px;
+   height: 17px;
+   overflow: hidden;
+}
+
+.editor {
+   display: none;
+}
+//-->
+</style>
+
+<script type="text/javascript">
+<!--
+var lastEditor;
+function toggleEditor(obj) {
+   var openEditor = function() {
+      var key = obj.firstChild.nodeValue;
+      var display = document.getElementById(key + "_display");
+      var editor = document.getElementById(obj.firstChild.nodeValue + "_editor");
+      display.style.display = "none";
+      editor.style.display = "block";
+      lastEditor = obj;
+   };
+
+   var closeEditor = function() {
+      var key = lastEditor.firstChild.nodeValue;
+      var display = document.getElementById(key + "_display");
+      var editor = document.getElementById(key + "_editor");
+      display.style.display = "block";
+      editor.style.display = "none";
+      lastEditor = null;
+   };
+
+   if (obj != lastEditor) {
+      if (lastEditor)
+         closeEditor();
+      openEditor();
+   } else if (lastEditor)
+      closeEditor();
+   return;
+}
+//-->
+</script>
+</head>
+<body>
+
+<h1><% inspector.title %></h1>
+<div><% inspector.path %><strong><% inspector.title %></strong></div><br />
+
+<table id="main" cellpadding="0" cellspacing="0">
+<tr>
+
+<td width="20%">
+<table cellpadding="0" cellspacing="1">
+<tr>
+<th><% inspector.childProto default="child" %>&nbsp;objects</th>
+</tr>
+<% inspector.children default='<tr><td colspan="2" align="center"><em>none</em></td></tr>' %>
+</table>
+</td>
+
+<td width="60%">
+<table cellpadding="0" cellspacing="1">
+<tr>
+<th colspan="2">properties</th>
+</tr>
+<% inspector.properties %>
+</table>
+</td>
+
+<td width="20%">
+<table cellpadding="0" cellspacing="1">
+<tr>
+<th colspan="2">collections</th>
+</tr>
+<% inspector.collections default='<tr><td colspan="2" align="center"><em>none</em></td></tr>' %>
+</table>
+</td>
+
+</tr>
+</table>
+
+</body>
+</html>

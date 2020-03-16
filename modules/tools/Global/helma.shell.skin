@@ -1,0 +1,124 @@
+<style>
+    body {
+        //font: 12px <% response.fontface %>; 
+    }
+    .commandshell {
+        font: 12px <% response.fontface %>; 
+        border: 1px solid groove; 
+        background-color:#eee;
+    }
+    .error {
+        background-color: #ffdddd;
+    }
+    .command {
+        padding-top: 5px;
+    }
+    .cell {
+        font: 12px <% response.fontface %>; 
+        border-bottom: 1px solid #ddd;
+        padding: 2px 0px 2px 0px;
+    }
+    .hot {
+        background-color: #eef5ee;
+        cursor: pointer;
+        
+    }
+    .cold {
+        background-color: #ffffff;
+        cursor: auto;
+    }
+</style>
+<script>
+    function getRequest() {
+        return window.ActiveXObject
+            ? new ActiveXObject( "Microsoft.XMLHTTP" )
+            : new XMLHttpRequest()
+        ;
+    }
+    function load( url, data, param ) {
+        var req = getRequest();
+        req.onreadystatechange = getHandler( req, param );
+        req.open( data ? "POST" : "GET", url, true );
+        if ( data ) {
+            req.setRequestHeader( "Content-Type", "application/x-www-form-urlencoded" );
+            var params = [];
+            for ( var x in data )
+                params.push( encodeURIComponent( x ) + "=" + encodeURIComponent( data[ x ] ) )
+            req.send( params.join( "&" ) );
+        } else {
+            req.send();
+        }
+    }
+    function handle( input, event ) {
+        var key = event.keyCode ? event.keyCode : event.charCode;                
+        if (( key == 13 && input.value ) || event == 'enter') { // enter
+            var command = input.value;
+            input.value = "";
+            emitCell( command, ++id );
+            lines.push( command );
+            delta = 0;                    
+            load( '<% response.href %>shell', { command: command }, { id: id } );
+            if ( hotCellId )                
+                cellOut( document.getElementById( hotCellId ) );
+            window.scroll( 0, 1000000 );            
+        } else if ( key == 38 && delta < lines.length ) {  // up
+            delta++;
+            input.value = lines[ lines.length - delta ];
+        } else if ( key == 40 ) { // down
+            if ( delta > 0 )
+                delta--;
+            input.value = lines[ lines.length - delta ] || "";                
+        }
+    }
+    function getHandler( req, param ) {
+        return function() {
+            if ( req.readyState == 4 )
+                document.getElementById( param.id ).innerHTML = req.responseText;
+        }
+    }
+    function recallCommand( i ) {
+        var input = document.getElementById( "command" );
+        input.value = lines[ i ];
+        input.focus();
+    }
+    function cellIn( cell ) {                
+        cell.className = "cell hot";
+        hotCellId = cell.id;
+    }
+    function cellOut( cell ) {
+        cell.className = "cell cold";
+        hotCellId = null;
+    }
+    function emitCell( command, resultId ) {
+        var str = "";
+        str += "<div id=\"cell" + resultId + "\" class=\"cell cold\" onmouseover=\"cellIn( this )\" onmouseout=\"cellOut( this )\" onclick=\"recallCommand( " + lines.length + " )\">";
+        str += "<b>" + command + "</b><br />";
+        str += "<div id='" + resultId + "'>...</div>";
+        str += "</div>";
+        emit( str );
+    }
+    function emit( str ) {
+        document.getElementById( "result" ).innerHTML += str;
+    }
+    // --
+    var id = 1;
+    var lines = [];
+    var delta = 0;
+    var hotCellId = null;
+</script>
+<div id="result"></div>
+<div class="command">
+    <input type="text" class="commandshell" id="command" onkeydown="handle( this, event )" size="80" />
+    <input type="submit" name="evaluate" value="Run Command" onclick="handle( document.getElementById( 'command' ), 'enter' )" />
+</div>
+<script>
+    document.getElementById( "command" ).focus();
+</script>
+<form name="shellform" method="post">
+    <div>
+        <textarea class="commandshell" style="background-color:#f6f6f6;" name="commands" rows="25" cols="100" 
+            wrap="off"><% response.commands %></textarea>
+    </div>
+    <input type="submit" name="evaluate" value="Run Script" />
+    <input type="submit" name="done" value="Done" />
+</form>

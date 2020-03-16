@@ -1,0 +1,37 @@
+<h1>hopobjects</h1>
+
+<p>HopObjects extend the standard Javascript object with Helma-specific 
+    properties and functions. They are the central building blocks that allow 
+    you to leverage the application framework Helma provides.</p>
+
+<p>The main HopObject of every application is the "root" object. Every 
+    HopObject can have a collection of attached additional HopObjects. 
+    Each requested URL is resolved to a particular HopObject according 
+    to these collections.</p>
+
+<p>In the "welcome" application for example, a request to 
+    <a href="http://<% request.http_host %>/first/second/">
+    http://<% request.http_host %>/first/second/</a> will be resolved by 
+    checking the "root" object's collection for a HopObject named "first" 
+    and the "first" object's collection for a HopObject named "second".</p>
+
+<p>While this path resolution is by default performed based on the ID of 
+    the attached HopObjects, collections can be custom configured to use 
+    another property as access name. In this example, the HopObject prototype 
+    is configured at ./apps/welcome/code/HopObject/type.properties to use the 
+    "name" property for this purpose.</p>
+
+<pre>
+_children = collection(HopObject)
+_children.accessname = name
+name
+</pre>
+
+<p>When a new HopObject is added to such a collection, it is automatically 
+    stored in Helma's embedded XML database. To see a detailed example of 
+    how this works, go to <a href="http://<% request.http_host %>/first/">
+    http://<% request.http_host %>/first/</a> and add additional HopObjects.</p>
+
+<p>Documentation of HopObject functions and built-in properties:
+<br /><a href="http://helma.server-side-javascript.org/reference/HopObject.html">/reference/HopObject.html</a>
+</p>

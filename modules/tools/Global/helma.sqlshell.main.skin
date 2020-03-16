@@ -1,0 +1,30 @@
+<h3>Helma Sql Shell</h3>
+
+<div style="float:right;">
+<form method="get" action="<% datasource.href %>" name="datasource">
+   <input type="hidden" name="tab" value="<% request.tab %>">
+   <% html.select name="datasource" options="response.datasources"
+      prefix="Data Source: " onchange="document.forms.datasource.submit(); %>
+      &nbsp;&nbsp;
+   <% html.select name="schema" options="response.schemas"
+      prefix="Schema: "  onchange="document.forms.datasource.submit(); %>
+</form>
+</div>
+
+<form method="post" action="<% datasource.href %>" name="tab">
+
+<div class="tabs">
+<% html.tablink name="explore" %>
+<% html.tablink name="query" %>
+<% html.tablink name="map" %>
+</div>
+
+<input type="hidden" name="datasource" value="<% request.datasource %>">
+<input type="hidden" name="schema" value="<% request.schema %>">
+<input type="hidden" name="tab" value="<% request.tab %>">
+
+<% param.body %>
+
+<p><input type="submit" name="done" value="Done" /></p>
+
+</form>
