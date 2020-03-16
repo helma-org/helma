@@ -1,0 +1,3 @@
+res.data.pushLinkUrl = this.href('example_using_skin');
+res.data.pushLinkText = 'example_using_skin';
+this.renderSkin('example');

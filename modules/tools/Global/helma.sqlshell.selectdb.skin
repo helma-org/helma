@@ -1,0 +1,10 @@
+<p>Data sources are defined in db.properties files either at server or application level.</p>
+
+<% param.message prefix="<p style='color: red'>" suffix="</p>" %>
+
+<form method="post">
+Please enter a valid data source name:
+  <% html.select name="datasource" options="response.datasources" %>
+     &nbsp;&nbsp;
+  <input type="submit" value=" OK " />
+</form>

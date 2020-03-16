@@ -1,0 +1,44 @@
+<h1>skins</h1>
+
+<p>Helma allows you to cleanly separate presentation from application logic 
+    through the use of skins. The skins are segments of HTML markup that can 
+    contain macro tags, which are replaced with dynamic content when the 
+    skin is rendered.</p> 
+
+<p>You will find an example for such a skin in the "welcome" application at 
+    ./apps/welcome/code/Root/example.skin</p>
+
+<pre>
+&lt;p>This is an example of a simple skin.&lt;/p>
+&lt;p>You will find this skin at 
+    ./apps/welcome/code/Root/example.skin&lt;/p>
+&lt;p>This skin is rendered by the action defined at 
+    ./apps/welcome/code/Root/example_using_skin.hac&lt;/p>
+&lt;p>You can test it via the URL 
+    &lt;a href="&lt;% response.pushLink %>">
+        &lt;% response.pushLinkText %>
+    &lt;/a>
+&lt;/p>
+</pre>
+
+<p>The rendering of skins is controlled by an application's actions. In the 
+    case of the "welcome" application, you will find an example of such an 
+    action at ./apps/welcome/code/Root/example_using_skin.hac</p>
+
+<pre>
+res.data.pushLink = this.href('example_using_skin');
+res.data.pushLinkText = '/example_using_skin';
+this.renderSkin('example');
+</pre>
+
+<p>You can test this action and see the skin rendered via the URL 
+    <a href="http://<% request.http_host %>/example_using_skin">
+    http://<% request.http_host %>/example_using_skin</a>
+
+<p>Skins can contain various kinds of "macro tags" such as &lt;% response.pushLink %> 
+    used in this example skin, where the value of a dynamic URL is determined by the 
+    action and made available to the skin by setting the req.data.pushLink property.</p>
+
+<p>More information about the way in which Helma defines and renders skins, and the 
+    various kinds of available Macro Tags:
+<br /><a href="http://dev.helma.org/docs/Request-Response-Cycle/">/docs/Request-Response-Cycle/</a></p>

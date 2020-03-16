@@ -1,0 +1,2034 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN""http://www.w3.org/TR/REC-html40/loose.dtd">
+<!--NewPage-->
+<HTML>
+<HEAD>
+<TITLE>
+jala.Form
+</TITLE>
+<LINK REL ="stylesheet" TYPE="text/css" HREF="stylesheet.css" TITLE="Style">
+</HEAD>
+<SCRIPT>
+function asd()
+{
+parent.document.title="jala.Form";
+}
+</SCRIPT>
+<BODY BGCOLOR="white" onload="asd();">
+
+<!-- ========== START OF NAVBAR ========== -->
+<A NAME="navbar_bottom"><!-- --></A>
+<TABLE BORDER="0" WIDTH="100%" CELLPADDING="1" CELLSPACING="0">
+<TR>
+<TD COLSPAN=3 BGCOLOR="#EEEEFF" CLASS="NavBarCell1">
+<A NAME="navbar_bottom_firstrow"><!-- --></A>
+<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="3">
+  <TR ALIGN="center" VALIGN="top">
+  <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="overview-summary.html"><FONT CLASS="NavBarFont1"><B>Overview</B></FONT></A>&nbsp;</TD>
+  <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">  <A HREF="overview-summary-Form.js.html"><FONT CLASS="NavBarFont1"><B>File</B></FONT></A>&nbsp;</TD>
+  <TD BGCOLOR="#FFFFFF" CLASS="NavBarCell1Rev">&nbsp;<FONT CLASS="NavBarFont1Rev"><B>Class</B></FONT>&nbsp;</TD>
+  <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="overview-tree.html"><FONT CLASS="NavBarFont1"><B>Tree</B></FONT></A>&nbsp;</TD>
+  <!--TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1"-->    <!--A HREF="deprecated-list.html"--><!--FONT CLASS="NavBarFont1">Deprecated</FONT--><!--/A--><!--&nbsp;</TD-->
+  <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="index-all.html"--><FONT CLASS="NavBarFont1"><B>Index</B></FONT></A>&nbsp;</TD>
+  <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="help-doc.html"><FONT CLASS="NavBarFont1"><B>Help</B></FONT></A>&nbsp;</TD>
+  </TR>
+</TABLE>
+</TD>
+<TD ALIGN="right" VALIGN="top" ROWSPAN=3><EM>
+<B>Jala 1.3</B>
+</EM>
+</TD
+</TR>
+
+<TR>
+<TD BGCOLOR="white" CLASS="NavBarCell2"><FONT SIZE="-2">
+&nbsp;<A HREF="jala.DnsClient.Record.html"><B>PREV CLASS</B></A><!-- 
+   NEXT CLASS 
+-->
+&nbsp;<A HREF="jala.Form.Component.html"><B>NEXT CLASS</B></A></FONT></TD>
+<TD BGCOLOR="white" CLASS="NavBarCell2"><FONT SIZE="-2">
+  <A HREF="index.html" TARGET="_top"><B>FRAMES</B></A>  &nbsp;
+&nbsp;<A HREF="jala.Form.html" TARGET="_top"><B>NO FRAMES</B></A>  &nbsp;
+&nbsp;
+<SCRIPT>
+  <!--
+  if(window==top) {
+    document.writeln('<A HREF="allclasses-noframe.html" TARGET=""><B>All Classes</B></A>');
+  }
+  //-->
+</SCRIPT>
+<NOSCRIPT>
+<A HREF="allclasses-noframe.html" TARGET=""><B>All Classes</B></A>
+</NOSCRIPT>
+</FONT></TD>
+</TR>
+<TR>
+<TD VALIGN="top" CLASS="NavBarCell3"><FONT SIZE="-2">
+  SUMMARY:&nbsp;<A HREF="#field_summary">FIELD</A>&nbsp;|&nbsp;<A HREF="#constructor_summary">CONSTR</A>&nbsp;|&nbsp;<A HREF="#method_summary">METHOD</A></FONT></TD>
+<TD VALIGN="top" CLASS="NavBarCell3"><FONT SIZE="-2">
+DETAIL:&nbsp;<A HREF="#field_detail">FIELD</A>&nbsp;|&nbsp;<A HREF="#constructor_detail">CONSTR</A>&nbsp;|&nbsp;<A HREF="#method_detail">METHOD</A></FONT></TD>
+</TR>
+</TABLE>
+<!-- =========== END OF NAVBAR =========== -->
+<HR>
+
+<!-- ======== START OF CLASS DATA ======== -->
+<H2>Class jala.Form</H2>
+<PRE>Object
+   |
+   +--<b>jala.Form</b>
+</PRE>
+
+
+<HR>
+<DL>
+   <!-- Class definition -->
+   <DT>class 
+   <B>jala.Form</B>
+   
+
+</DL>
+   
+   <P>
+   <BR/>A class that renders forms, validates submitted form data and
+ stores the data in a specified object.
+ <BR/><I>Defined in <a href='overview-summary-Form.js.html'>Form.js</a></I><BR/><BR/>
+   </P>
+   
+   <HR>
+
+<!-- ======== NESTED CLASS SUMMARY ======== -->
+
+<A NAME="inner_classes"><!-- --></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="100%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN=2><FONT SIZE="+2">
+<B>Nested Class Summary</B></FONT></TD>
+</TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+   <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+   <CODE>&lt;static&nbsp;class&gt;</CODE></FONT></TD>
+   <TD><CODE><B><A HREF="jala.Form.Component.html">jala.Form.Component</A></B></CODE></TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+   <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+   <CODE>&lt;static&nbsp;class&gt;</CODE></FONT></TD>
+   <TD><CODE><B><A HREF="jala.Form.Tracker.html">jala.Form.Tracker</A></B></CODE></TD>
+   </TR>
+
+</TABLE>
+&nbsp;
+
+<!-- ======== END NESTED CLASS SUMMARY ======== -->
+
+
+<!-- =========== FIELD SUMMARY =========== -->
+
+   <A NAME="field_summary"><!-- --></A>
+      <TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="100%">
+         <TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+            <TD COLSPAN=2><FONT SIZE="+2">
+               <B>Field Summary</B></FONT></TD>
+         </TR>
+
+   <!-- This is one instance field summary -->
+   
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+   <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+   <CODE>&nbsp;Skin</CODE></FONT></TD>
+   <TD><CODE><B><A HREF="#componentSkin">componentSkin</A></B></CODE>
+   <BR>
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Contains the default component skin</TD>
+   </TR>
+   
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+   <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+   <CODE>&nbsp;String</CODE></FONT></TD>
+   <TD><CODE><B><A HREF="#name">name</A></B></CODE>
+   <BR>
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Readonly reference to the name of the form</TD>
+   </TR>
+   
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+   <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+   <CODE>&lt;static&gt; &nbsp;&lt;final&gt;&nbsp;String</CODE></FONT></TD>
+   <TD><CODE><B><A HREF="#!s!CHECKOPTIONS">CHECKOPTIONS</A></B></CODE>
+   <BR>
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Constant used by require function to define that a select or
+ radio component should validate only if the user input is contained
+ in the list of options provided.</TD>
+   </TR>
+   
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+   <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+   <CODE>&lt;static&gt; &nbsp;&lt;final&gt;&nbsp;String</CODE></FONT></TD>
+   <TD><CODE><B><A HREF="#!s!CONTENTTYPE">CONTENTTYPE</A></B></CODE>
+   <BR>
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Constant used by require function to define that a file upload
+ component should validate only if the file's content type is
+ in the list of allowed content types provided.</TD>
+   </TR>
+   
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+   <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+   <CODE>&lt;static&gt; &nbsp;helma.Html</CODE></FONT></TD>
+   <TD><CODE><B><A HREF="#!s!html">html</A></B></CODE>
+   <BR>
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The HTML renderer used by jala.Form</TD>
+   </TR>
+   
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+   <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+   <CODE>&lt;static&gt; &nbsp;&lt;final&gt;&nbsp;String</CODE></FONT></TD>
+   <TD><CODE><B><A HREF="#!s!MAXHEIGHT">MAXHEIGHT</A></B></CODE>
+   <BR>
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Constant used by require function to define that an image upload
+ component should validate only if the image's height is less than
+ the value provided.</TD>
+   </TR>
+   
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+   <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+   <CODE>&lt;static&gt; &nbsp;&lt;final&gt;&nbsp;String</CODE></FONT></TD>
+   <TD><CODE><B><A HREF="#!s!MAXLENGTH">MAXLENGTH</A></B></CODE>
+   <BR>
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Constant used by require function to define that a component
+ should not validate if userinput exceeds a maximum length.</TD>
+   </TR>
+   
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+   <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+   <CODE>&lt;static&gt; &nbsp;&lt;final&gt;&nbsp;String</CODE></FONT></TD>
+   <TD><CODE><B><A HREF="#!s!MAXWIDTH">MAXWIDTH</A></B></CODE>
+   <BR>
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Constant used by require function to define that an image upload
+ component should validate only if the image's width is less than
+ the value provided.</TD>
+   </TR>
+   
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+   <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+   <CODE>&lt;static&gt; &nbsp;&lt;final&gt;&nbsp;String</CODE></FONT></TD>
+   <TD><CODE><B><A HREF="#!s!MINHEIGHT">MINHEIGHT</A></B></CODE>
+   <BR>
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Constant used by require function to define that an image upload
+ component should validate only if the image's height is more than
+ the value provided.</TD>
+   </TR>
+   
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+   <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+   <CODE>&lt;static&gt; &nbsp;&lt;final&gt;&nbsp;String</CODE></FONT></TD>
+   <TD><CODE><B><A HREF="#!s!MINLENGTH">MINLENGTH</A></B></CODE>
+   <BR>
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Constant used by require function to define that a component
+ should not validate if userinput is shorter than a given length.</TD>
+   </TR>
+   
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+   <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+   <CODE>&lt;static&gt; &nbsp;&lt;final&gt;&nbsp;String</CODE></FONT></TD>
+   <TD><CODE><B><A HREF="#!s!MINWIDTH">MINWIDTH</A></B></CODE>
+   <BR>
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Constant used by require function to define that an image upload
+ component should validate only if the image's width is more than
+ the value provided.</TD>
+   </TR>
+   
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+   <TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+   <CODE>&lt;static&gt; &nbsp;&lt;final&gt;&nbsp;String</CODE></FONT></TD>
+   <TD><CODE><B><A HREF="#!s!REQUIRE">REQUIRE</A></B></CODE>
+   <BR>
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Constant used by require function to define that a component
+ should validate only if the user did provide input.</TD>
+   </TR>
+   
+
+   </TABLE>
+   &nbsp;
+   
+
+   
+
+<!-- =========== END FIELD SUMMARY =========== -->
+
+
+<!-- ======== CONSTRUCTOR SUMMARY ======== -->
+
+<A NAME="constructor_summary"><!-- --></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="100%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN=2><FONT SIZE="+2">
+<B>Constructor Summary</B></FONT></TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+   <TD>
+      <CODE>
+	 <B>
+	    <A HREF="jala.Form.html#jala.Form()">jala.Form</A> 
+	 </B>
+	 (&lt;String&gt; name, &lt;Object&gt; dataObj)
+      </CODE>
+      <BR>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+      Constructs a new Form instance
+      </TD>
+</TR>
+</TABLE>
+
+<!-- ======== END CONSTRUCTOR SUMMARY ======== -->
+
+&nbsp;
+
+<!-- ========== METHOD SUMMARY =========== -->
+
+<A NAME="method_summary"><!-- --></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="100%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN=2><FONT SIZE="+2">
+<B>Method Summary</B></FONT></TD>
+</TR>
+
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;void</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#addComponent">addComponent</A></B>(&lt;<a href="jala.Form.Component.Input.html">jala.Form.Component.Input</a>&gt; component)
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Adds a component to this jala.Form instance
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;String</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#class_macro">class_macro</A></B>()
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Returns the class name of the form
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;void</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#close_macro">close_macro</A></B>()
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Writes the form closing tag to response
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;Boolean</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#containsFileUpload">containsFileUpload</A></B>()
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Returns true if this instance of jala.Form contains at least
+ one component doing a file upload.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;Number</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#countErrors">countErrors</A></B>()
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 If this instance of jala.Form holds a jala.Form.Tracker
+ instance it returns the number of components that didn't
+ validate.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;String</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#createDomId">createDomId</A></B>()
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Creates a DOM identifier based on the arguments passed.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;String</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#getClassName">getClassName</A></B>()
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Returns the class name set for this form instance.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;Object</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#getDataObject">getDataObject</A></B>()
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Returns the data object containing the values used
+ for rendering the form.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;String</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#getErrorMessage">getErrorMessage</A></B>()
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Returns the general error message printed above the form
+ if any of the components didn't validate.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;<a href="jala.Form.Tracker.html">jala.Form.Tracker</a></CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#getTracker">getTracker</A></B>()
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Returns the tracker object this form instance uses for collecting
+ error messages and parsed values.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;Boolean</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#handle">handle</A></B>(&lt;Object&gt; reqData, &lt;Object&gt; destObj)
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Parses form input, applies check functions and stores the values
+ if the form does validate.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;Boolean</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#hasError">hasError</A></B>()
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Returns true if this instance of jala.Form holds a jala.Form.Tracker
+ instance and at least one error has been set on this tracker.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;String</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#id_macro">id_macro</A></B>()
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Returns the id (equal to the name) of the form
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;Array</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#listComponents">listComponents</A></B>()
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Returns an array containing the components
+ of this jala.Form instance.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;String</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#name_macro">name_macro</A></B>()
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Returns the name (equal to the id) of the form
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;void</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#open_macro">open_macro</A></B>()
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Writes the form opening tag to response
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;void</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#render">render</A></B>()
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Renders this form including all components to response.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;void</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#render_macro">render_macro</A></B>()
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Renders the whole form to response
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;String</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#renderAsString">renderAsString</A></B>(param)
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 renders the form as a string
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;void</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#save">save</A></B>(&lt;<a href="jala.Form.Tracker.html">jala.Form.Tracker</a>&gt; tracker, &lt;Object&gt; destObj)
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Sets the parsed values on an object.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;void</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#setClassName">setClassName</A></B>(&lt;String&gt; newClassName)
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Sets an extra classname for this form instance
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;void</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#setDataObject">setDataObject</A></B>(newDataObj)
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Sets the data object which is being edited by this form.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;void</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#setErrorMessage">setErrorMessage</A></B>(&lt;String&gt; newErrorMessage)
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Sets the general error message printed above the form if any
+ of the components didn't validate.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;void</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#setTracker">setTracker</A></B>(&lt;<a href="jala.Form.Tracker.html">jala.Form.Tracker</a>&gt; newTracker)
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Sets the tracker object this form instance uses for collecting
+ error messages and parsed values.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&nbsp;<a href="jala.Form.Tracker.html">jala.Form.Tracker</a></CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#validate">validate</A></B>(&lt;Object&gt; reqData)
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Validates user input from a submitted form by calling each
+ component's validate method.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&lt;static&gt;&nbsp;<a href="jala.Form.html">jala.Form</a></CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#!s!create">create</A></B>(&lt;Object&gt; config, dataObj)
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Parses a plain javascript object tree and configures a
+ new jala.Form instance according to the properties.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&lt;static&gt;&nbsp;void</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#!s!extend">extend</A></B>(&lt;Function&gt; subClass, &lt;Function&gt; superClass)
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Utility to set up the prototype, constructor, superclass and superconstructor
+ properties to support an inheritance strategy that can chain constructors and methods.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&lt;static&gt;&nbsp;String</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#!s!isEmail">isEmail</A></B>(&lt;String&gt; name, &lt;String&gt; value, &lt;Object&gt; reqData, &lt;<a href="jala.Form.html">jala.Form</a>&gt; formObj)
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Static validator function to test values for being a valid email address.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&lt;static&gt;&nbsp;String</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#!s!isUrl">isUrl</A></B>(&lt;String&gt; name, &lt;String&gt; value, &lt;Object&gt; reqData, &lt;<a href="jala.Form.html">jala.Form</a>&gt; formObj)
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 Static validator function to test values for being a valid url.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&lt;static&gt;&nbsp;Object</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#!s!propertyGetter">propertyGetter</A></B>(&lt;String&gt; name, value)
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 static default getter function used to return a field 
+ from the data object.
+      </TD>
+   </TR>
+
+   <TR BGCOLOR="white" CLASS="TableRowColor">
+      <TD ALIGN="right" VALIGN="top" WIDTH="1%">
+	 <FONT SIZE="-1">
+	    <CODE>&lt;static&gt;&nbsp;void</CODE>
+	 </FONT>
+      </TD>
+      <TD>
+	 <CODE>
+	    <B>
+	       <A HREF="#!s!propertySetter">propertySetter</A></B>(&lt;String&gt; name, &lt;Object&gt; value)
+	 </CODE>
+	 <BR>
+	 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	 static default setter function used to change a field 
+ of the data object.
+      </TD>
+   </TR>
+
+
+</TABLE>
+
+
+
+<P>
+<!-- ========== END METHOD SUMMARY =========== -->
+
+
+<!-- ============ FIELD DETAIL START =========== -->
+
+   <A NAME="field_detail"><!-- --></A>
+   <TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="100%">
+      <TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+         <TD COLSPAN=1><FONT SIZE="+2"><B>Field Detail</B></FONT></TD>
+      </TR>
+   </TABLE>
+
+   
+   <A NAME="componentSkin"><!-- --></A>
+   <H3>componentSkin</H3>
+   <PRE>Skin&nbsp;<B>componentSkin</B></PRE>
+   <UL>
+   Contains the default component skin
+   
+   </UL>
+   <HR>
+   
+   <A NAME="name"><!-- --></A>
+   <H3>name</H3>
+   <PRE>String&nbsp;<B>name</B></PRE>
+   <UL>
+   Readonly reference to the name of the form
+   
+   </UL>
+   <HR>
+   
+   <A NAME="!s!CHECKOPTIONS"><!-- --></A>
+   <H3>CHECKOPTIONS</H3>
+   <PRE>&lt;static&gt;&nbsp;&lt;final&gt;&nbsp;String&nbsp;<B>CHECKOPTIONS</B></PRE>
+   <UL>
+   Constant used by require function to define that a select or
+ radio component should validate only if the user input is contained
+ in the list of options provided.
+ Value: "checkoptions"
+   
+    <P>
+    <DL>
+    <DT><B>See Also:</B><DD><A HREF="constant-values.html#java.awt.AWTEvent.COMPONENT_EVENT_MASK">Constant Field Values</A></DL>
+    </DL>
+
+   
+   </UL>
+   <HR>
+   
+   <A NAME="!s!CONTENTTYPE"><!-- --></A>
+   <H3>CONTENTTYPE</H3>
+   <PRE>&lt;static&gt;&nbsp;&lt;final&gt;&nbsp;String&nbsp;<B>CONTENTTYPE</B></PRE>
+   <UL>
+   Constant used by require function to define that a file upload
+ component should validate only if the file's content type is
+ in the list of allowed content types provided.
+ Value: "contenttype"
+   
+    <P>
+    <DL>
+    <DT><B>See Also:</B><DD><A HREF="constant-values.html#java.awt.AWTEvent.COMPONENT_EVENT_MASK">Constant Field Values</A></DL>
+    </DL>
+
+   
+   </UL>
+   <HR>
+   
+   <A NAME="!s!html"><!-- --></A>
+   <H3>html</H3>
+   <PRE>&lt;static&gt;&nbsp;helma.Html&nbsp;<B>html</B></PRE>
+   <UL>
+   The HTML renderer used by jala.Form
+   
+   </UL>
+   <HR>
+   
+   <A NAME="!s!MAXHEIGHT"><!-- --></A>
+   <H3>MAXHEIGHT</H3>
+   <PRE>&lt;static&gt;&nbsp;&lt;final&gt;&nbsp;String&nbsp;<B>MAXHEIGHT</B></PRE>
+   <UL>
+   Constant used by require function to define that an image upload
+ component should validate only if the image's height is less than
+ the value provided.
+ Value: "maxheight"
+   
+    <P>
+    <DL>
+    <DT><B>See Also:</B><DD><A HREF="constant-values.html#java.awt.AWTEvent.COMPONENT_EVENT_MASK">Constant Field Values</A></DL>
+    </DL>
+
+   
+   </UL>
+   <HR>
+   
+   <A NAME="!s!MAXLENGTH"><!-- --></A>
+   <H3>MAXLENGTH</H3>
+   <PRE>&lt;static&gt;&nbsp;&lt;final&gt;&nbsp;String&nbsp;<B>MAXLENGTH</B></PRE>
+   <UL>
+   Constant used by require function to define that a component
+ should not validate if userinput exceeds a maximum length.
+ Value: "maxlength"
+   
+    <P>
+    <DL>
+    <DT><B>See Also:</B><DD><A HREF="constant-values.html#java.awt.AWTEvent.COMPONENT_EVENT_MASK">Constant Field Values</A></DL>
+    </DL>
+
+   
+   </UL>
+   <HR>
+   
+   <A NAME="!s!MAXWIDTH"><!-- --></A>
+   <H3>MAXWIDTH</H3>
+   <PRE>&lt;static&gt;&nbsp;&lt;final&gt;&nbsp;String&nbsp;<B>MAXWIDTH</B></PRE>
+   <UL>
+   Constant used by require function to define that an image upload
+ component should validate only if the image's width is less than
+ the value provided.
+ Value: "maxwidth"
+   
+    <P>
+    <DL>
+    <DT><B>See Also:</B><DD><A HREF="constant-values.html#java.awt.AWTEvent.COMPONENT_EVENT_MASK">Constant Field Values</A></DL>
+    </DL>
+
+   
+   </UL>
+   <HR>
+   
+   <A NAME="!s!MINHEIGHT"><!-- --></A>
+   <H3>MINHEIGHT</H3>
+   <PRE>&lt;static&gt;&nbsp;&lt;final&gt;&nbsp;String&nbsp;<B>MINHEIGHT</B></PRE>
+   <UL>
+   Constant used by require function to define that an image upload
+ component should validate only if the image's height is more than
+ the value provided.
+ Value: "min-height"
+   
+    <P>
+    <DL>
+    <DT><B>See Also:</B><DD><A HREF="constant-values.html#java.awt.AWTEvent.COMPONENT_EVENT_MASK">Constant Field Values</A></DL>
+    </DL>
+
+   
+   </UL>
+   <HR>
+   
+   <A NAME="!s!MINLENGTH"><!-- --></A>
+   <H3>MINLENGTH</H3>
+   <PRE>&lt;static&gt;&nbsp;&lt;final&gt;&nbsp;String&nbsp;<B>MINLENGTH</B></PRE>
+   <UL>
+   Constant used by require function to define that a component
+ should not validate if userinput is shorter than a given length.
+ Value: "minlength"
+   
+    <P>
+    <DL>
+    <DT><B>See Also:</B><DD><A HREF="constant-values.html#java.awt.AWTEvent.COMPONENT_EVENT_MASK">Constant Field Values</A></DL>
+    </DL>
+
+   
+   </UL>
+   <HR>
+   
+   <A NAME="!s!MINWIDTH"><!-- --></A>
+   <H3>MINWIDTH</H3>
+   <PRE>&lt;static&gt;&nbsp;&lt;final&gt;&nbsp;String&nbsp;<B>MINWIDTH</B></PRE>
+   <UL>
+   Constant used by require function to define that an image upload
+ component should validate only if the image's width is more than
+ the value provided.
+ Value: "minwidth"
+   
+    <P>
+    <DL>
+    <DT><B>See Also:</B><DD><A HREF="constant-values.html#java.awt.AWTEvent.COMPONENT_EVENT_MASK">Constant Field Values</A></DL>
+    </DL>
+
+   
+   </UL>
+   <HR>
+   
+   <A NAME="!s!REQUIRE"><!-- --></A>
+   <H3>REQUIRE</H3>
+   <PRE>&lt;static&gt;&nbsp;&lt;final&gt;&nbsp;String&nbsp;<B>REQUIRE</B></PRE>
+   <UL>
+   Constant used by require function to define that a component
+ should validate only if the user did provide input.
+ Value: "require"
+   
+    <P>
+    <DL>
+    <DT><B>See Also:</B><DD><A HREF="constant-values.html#java.awt.AWTEvent.COMPONENT_EVENT_MASK">Constant Field Values</A></DL>
+    </DL>
+
+   
+   </UL>
+   <HR>
+   
+
+
+<!-- ============ FIELD DETAIL END =========== -->
+
+    <!-- ========= CONSTRUCTOR DETAIL START ======== -->
+
+<A NAME="constructor_detail"><!-- --></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="100%">
+   <TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+      <TD COLSPAN=1>
+      <FONT SIZE="+2"><B>Constructor Detail</B></FONT>
+      </TD>
+   </TR>
+</TABLE>
+
+<A NAME="jala.Form()"><!-- --></A><H3>
+jala.Form</H3>
+<PRE><B>jala.Form</B>(&lt;String&gt; name, &lt;Object&gt; dataObj)</PRE>
+
+
+<UL>
+   Constructs a new Form instance
+</UL>
+
+
+
+   <UL>
+   <B>Parameters:</B>
+   
+     <UL><CODE>name</CODE> -  The name of the form  
+     </UL>
+   
+     <UL><CODE>dataObj</CODE> -  An optional object used to retrieve values  to display in the form input fields contained in this Form instance.  
+     </UL>
+   
+   
+   </UL>
+
+
+<!-- Constructor return value(s) -->
+
+   <UL>
+   <B>Returns:</B>
+     <UL>
+     A newly created Form instance   
+     </UL>
+   </UL>
+
+<!-- End constructor return value(s) -->
+
+<!-- ADDITIONAL ATTRIBUTES -->
+
+<HR/>
+<!-- END ADDITIONAL ATTRIBUTES  -->
+
+<!-- ========= CONSTRUCTOR DETAIL END ======== -->
+
+
+<!-- ============ METHOD DETAIL START ========== -->
+
+<A NAME="method_detail"><!-- --></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="100%">
+   <TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+      <TD COLSPAN=1><FONT SIZE="+2">
+         <B>Method Detail</B></FONT>
+      </TD>
+   </TR>
+</TABLE>
+
+<!-- One single method detail entry -->
+
+   <A NAME="addComponent"><!-- --></A>
+   <H3>addComponent</H3>
+   <PRE>void <B>addComponent</B>(&lt;<a href="jala.Form.Component.Input.html">jala.Form.Component.Input</a>&gt; component)</PRE>
+   
+      <UL>Adds a component to this jala.Form instance</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <UL>
+   <B>Parameters:</B>
+   
+     <UL><CODE>component</CODE> -        
+      </UL> 
+   
+   </UL>
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="class_macro"><!-- --></A>
+   <H3>class_macro</H3>
+   <PRE>String <B>class_macro</B>()</PRE>
+   
+      <UL>Returns the class name of the form</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        The class name of this Form instance   
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="close_macro"><!-- --></A>
+   <H3>close_macro</H3>
+   <PRE>void <B>close_macro</B>()</PRE>
+   
+      <UL>Writes the form closing tag to response</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="containsFileUpload"><!-- --></A>
+   <H3>containsFileUpload</H3>
+   <PRE>Boolean <B>containsFileUpload</B>()</PRE>
+   
+      <UL>Returns true if this instance of jala.Form contains at least
+ one component doing a file upload.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <UL>   
+   <B>See:</B><UL>- jala.Form.Component#containsFileUpload</UL>
+   </UL>
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="countErrors"><!-- --></A>
+   <H3>countErrors</H3>
+   <PRE>Number <B>countErrors</B>()</PRE>
+   
+      <UL>If this instance of jala.Form holds a jala.Form.Tracker
+ instance it returns the number of components that didn't
+ validate.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        Number of components that didn't validate.   
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="createDomId"><!-- --></A>
+   <H3>createDomId</H3>
+   <PRE>String <B>createDomId</B>()</PRE>
+   
+      <UL>Creates a DOM identifier based on the arguments passed. The
+ resulting Id will be prefixed with the name of the form.
+ All arguments will be chained using camel casing.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        The DOM Id   
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="getClassName"><!-- --></A>
+   <H3>getClassName</H3>
+   <PRE>String <B>getClassName</B>()</PRE>
+   
+      <UL>Returns the class name set for this form instance.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        class name   
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="getDataObject"><!-- --></A>
+   <H3>getDataObject</H3>
+   <PRE>Object <B>getDataObject</B>()</PRE>
+   
+      <UL>Returns the data object containing the values used
+ for rendering the form.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        The data object of this jala.Form instance 
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="getErrorMessage"><!-- --></A>
+   <H3>getErrorMessage</H3>
+   <PRE>String <B>getErrorMessage</B>()</PRE>
+   
+      <UL>Returns the general error message printed above the form
+ if any of the components didn't validate.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        error message   
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="getTracker"><!-- --></A>
+   <H3>getTracker</H3>
+   <PRE><a href="jala.Form.Tracker.html">jala.Form.Tracker</a> <B>getTracker</B>()</PRE>
+   
+      <UL>Returns the tracker object this form instance uses for collecting
+ error messages and parsed values.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        tracker object   
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="handle"><!-- --></A>
+   <H3>handle</H3>
+   <PRE>Boolean <B>handle</B>(&lt;Object&gt; reqData, &lt;Object&gt; destObj)</PRE>
+   
+      <UL>Parses form input, applies check functions and stores the values
+ if the form does validate. Otherwise this method returns false
+ without saving so that the form can be reprinted with error messages.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <UL>
+   <B>Parameters:</B>
+   
+     <UL><CODE>reqData</CODE> -  input from form  
+      </UL> 
+   
+     <UL><CODE>destObj</CODE> -  object whose values should be chanegd  
+      </UL> 
+   
+   </UL>
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        False if one of the checks failed,           true if the element was saved correctly.   
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="hasError"><!-- --></A>
+   <H3>hasError</H3>
+   <PRE>Boolean <B>hasError</B>()</PRE>
+   
+      <UL>Returns true if this instance of jala.Form holds a jala.Form.Tracker
+ instance and at least one error has been set on this tracker.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        true if an error has been encountered.   
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="id_macro"><!-- --></A>
+   <H3>id_macro</H3>
+   <PRE>String <B>id_macro</B>()</PRE>
+   
+      <UL>Returns the id (equal to the name) of the form</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        The id of this Form instance   
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="listComponents"><!-- --></A>
+   <H3>listComponents</H3>
+   <PRE>Array <B>listComponents</B>()</PRE>
+   
+      <UL>Returns an array containing the components
+ of this jala.Form instance.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        The components of this jala.Form instance.   
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="name_macro"><!-- --></A>
+   <H3>name_macro</H3>
+   <PRE>String <B>name_macro</B>()</PRE>
+   
+      <UL>Returns the name (equal to the id) of the form</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        The name of this Form instance   
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="open_macro"><!-- --></A>
+   <H3>open_macro</H3>
+   <PRE>void <B>open_macro</B>()</PRE>
+   
+      <UL>Writes the form opening tag to response</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="render"><!-- --></A>
+   <H3>render</H3>
+   <PRE>void <B>render</B>()</PRE>
+   
+      <UL>Renders this form including all components to response.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="render_macro"><!-- --></A>
+   <H3>render_macro</H3>
+   <PRE>void <B>render_macro</B>()</PRE>
+   
+      <UL>Renders the whole form to response</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="renderAsString"><!-- --></A>
+   <H3>renderAsString</H3>
+   <PRE>String <B>renderAsString</B>(param)</PRE>
+   
+      <UL>renders the form as a string</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        rendered form   
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="save"><!-- --></A>
+   <H3>save</H3>
+   <PRE>void <B>save</B>(&lt;<a href="jala.Form.Tracker.html">jala.Form.Tracker</a>&gt; tracker, &lt;Object&gt; destObj)</PRE>
+   
+      <UL>Sets the parsed values on an object. By default the internally 
+ stored tracker and data objects are used, but those may be 
+ overridden here.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <UL>
+   <B>Parameters:</B>
+   
+     <UL><CODE>tracker</CODE> -  (optional) tracker object        holding parsed data from form input.  
+      </UL> 
+   
+     <UL><CODE>destObj</CODE> -  (optional) object whose values will be changed.        By default the dataObj passed to the constructor or to        setDataObject is used.    
+      </UL> 
+   
+   </UL>
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="setClassName"><!-- --></A>
+   <H3>setClassName</H3>
+   <PRE>void <B>setClassName</B>(&lt;String&gt; newClassName)</PRE>
+   
+      <UL>Sets an extra classname for this form instance</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <UL>
+   <B>Parameters:</B>
+   
+     <UL><CODE>newClassName</CODE> -  new classname       
+      </UL> 
+   
+   </UL>
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="setDataObject"><!-- --></A>
+   <H3>setDataObject</H3>
+   <PRE>void <B>setDataObject</B>(newDataObj)</PRE>
+   
+      <UL>Sets the data object which is being edited by this form. This object
+ is used to get the default values when first printing the form and 
+ - if no other object is provided - receives the changed values in save.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <UL>
+   <B>Parameters:</B>
+   
+     <UL><CODE>dataObj</CODE> -  The object which is being edited by this form.  
+      </UL> 
+   
+   </UL>
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <UL>   
+   <B>See:</B><UL>- <a href="#save">save()</a></UL>
+   </UL>
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="setErrorMessage"><!-- --></A>
+   <H3>setErrorMessage</H3>
+   <PRE>void <B>setErrorMessage</B>(&lt;String&gt; newErrorMessage)</PRE>
+   
+      <UL>Sets the general error message printed above the form if any
+ of the components didn't validate.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <UL>
+   <B>Parameters:</B>
+   
+     <UL><CODE>newErrorMessage</CODE> -  error message       
+      </UL> 
+   
+   </UL>
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="setTracker"><!-- --></A>
+   <H3>setTracker</H3>
+   <PRE>void <B>setTracker</B>(&lt;<a href="jala.Form.Tracker.html">jala.Form.Tracker</a>&gt; newTracker)</PRE>
+   
+      <UL>Sets the tracker object this form instance uses for collecting
+ error messages and parsed values.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <UL>
+   <B>Parameters:</B>
+   
+     <UL><CODE>newTracker</CODE> -        
+      </UL> 
+   
+   </UL>
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="validate"><!-- --></A>
+   <H3>validate</H3>
+   <PRE><a href="jala.Form.Tracker.html">jala.Form.Tracker</a> <B>validate</B>(&lt;Object&gt; reqData)</PRE>
+   
+      <UL>Validates user input from a submitted form by calling each
+ component's validate method.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <UL>
+   <B>Parameters:</B>
+   
+     <UL><CODE>reqData</CODE> -  Optional submitted form data. If not specified  req.data is used.  
+      </UL> 
+   
+   </UL>
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        tracker object with error fields set.   
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="!s!create"><!-- --></A>
+   <H3>create</H3>
+   <PRE>&lt;static&gt; <a href="jala.Form.html">jala.Form</a> <B>create</B>(&lt;Object&gt; config, dataObj)</PRE>
+   
+      <UL>Parses a plain javascript object tree and configures a
+ new jala.Form instance according to the properties.
+ Propertynames are matched with constants and setter-functions,
+ the property "type" is used to create new component objects.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <UL>
+   <B>Parameters:</B>
+   
+     <UL><CODE>config</CODE> -  object tree containing config  
+      </UL> 
+   
+   </UL>
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        A newly created jala.Form instance based on the config specified   
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="!s!extend"><!-- --></A>
+   <H3>extend</H3>
+   <PRE>&lt;static&gt; void <B>extend</B>(&lt;Function&gt; subClass, &lt;Function&gt; superClass)</PRE>
+   
+      <UL>Utility to set up the prototype, constructor, superclass and superconstructor
+ properties to support an inheritance strategy that can chain constructors and methods.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <UL>
+   <B>Parameters:</B>
+   
+     <UL><CODE>subClass</CODE> -  the object which inherits superClass' functions  
+      </UL> 
+   
+     <UL><CODE>superClass</CODE> -  the object to inherit    
+      </UL> 
+   
+   </UL>
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="!s!isEmail"><!-- --></A>
+   <H3>isEmail</H3>
+   <PRE>&lt;static&gt; String <B>isEmail</B>(&lt;String&gt; name, &lt;String&gt; value, &lt;Object&gt; reqData, &lt;<a href="jala.Form.html">jala.Form</a>&gt; formObj)</PRE>
+   
+      <UL>Static validator function to test values for being a valid email address.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <UL>
+   <B>Parameters:</B>
+   
+     <UL><CODE>name</CODE> -  name of the property being validated.  
+      </UL> 
+   
+     <UL><CODE>value</CODE> -  value in form input  
+      </UL> 
+   
+     <UL><CODE>reqData</CODE> -  the whole request-data-object,            in case properties depend on each other  
+      </UL> 
+   
+     <UL><CODE>formObj</CODE> -  instance of jala.Form  
+      </UL> 
+   
+   </UL>
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        Error message or null   
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="!s!isUrl"><!-- --></A>
+   <H3>isUrl</H3>
+   <PRE>&lt;static&gt; String <B>isUrl</B>(&lt;String&gt; name, &lt;String&gt; value, &lt;Object&gt; reqData, &lt;<a href="jala.Form.html">jala.Form</a>&gt; formObj)</PRE>
+   
+      <UL>Static validator function to test values for being a valid url.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <UL>
+   <B>Parameters:</B>
+   
+     <UL><CODE>name</CODE> -  name of the property being validated.  
+      </UL> 
+   
+     <UL><CODE>value</CODE> -  value in form input  
+      </UL> 
+   
+     <UL><CODE>reqData</CODE> -  the whole request-data-object,            in case properties depend on each other  
+      </UL> 
+   
+     <UL><CODE>formObj</CODE> -  instance of jala.Form  
+      </UL> 
+   
+   </UL>
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+   <UL>
+   <B>Returns:</B>
+        <UL>
+        Error message or null   
+        </UL>
+   </UL>
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="!s!propertyGetter"><!-- --></A>
+   <H3>propertyGetter</H3>
+   <PRE>&lt;static&gt; Object <B>propertyGetter</B>(&lt;String&gt; name, value)</PRE>
+   
+      <UL>static default getter function used to return a field 
+ from the data object.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <UL>
+   <B>Parameters:</B>
+   
+     <UL><CODE>name</CODE> -  Name of the property.  
+      </UL> 
+   
+   </UL>
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+   <A NAME="!s!propertySetter"><!-- --></A>
+   <H3>propertySetter</H3>
+   <PRE>&lt;static&gt; void <B>propertySetter</B>(&lt;String&gt; name, &lt;Object&gt; value)</PRE>
+   
+      <UL>static default setter function used to change a field 
+ of the data object.</UL>
+   
+
+   <!-- METHOD PARAMETERS START -->
+   
+   <UL>
+   <B>Parameters:</B>
+   
+     <UL><CODE>name</CODE> -  Name of the property.  
+      </UL> 
+   
+     <UL><CODE>value</CODE> -  New value of the property.    
+      </UL> 
+   
+   </UL>
+   
+   <!-- METHOD PARAMETERS END -->
+
+   
+
+   <!-- ADDITIONAL ATTRIBUTES START -->
+   
+   <!-- ADDITIONAL ATTRIBUTES  END -->
+<HR>
+
+
+
+<!-- ============ METHOD DETAIL END ========== -->
+
+<!-- ========= END OF CLASS DATA ========= -->
+
+<!-- ========== START OF NAVBAR ========== -->
+<A NAME="navbar_bottom"><!-- --></A>
+<TABLE BORDER="0" WIDTH="100%" CELLPADDING="1" CELLSPACING="0">
+<TR>
+<TD COLSPAN=3 BGCOLOR="#EEEEFF" CLASS="NavBarCell1">
+<A NAME="navbar_bottom_firstrow"><!-- --></A>
+<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="3">
+  <TR ALIGN="center" VALIGN="top">
+  <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="overview-summary.html"><FONT CLASS="NavBarFont1"><B>Overview</B></FONT></A>&nbsp;</TD>
+  <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">  <A HREF="overview-summary-Form.js.html"><FONT CLASS="NavBarFont1"><B>File</B></FONT></A>&nbsp;</TD>
+  <TD BGCOLOR="#FFFFFF" CLASS="NavBarCell1Rev"> &nbsp;<FONT CLASS="NavBarFont1Rev"><B>Class</B></FONT>&nbsp;</TD>
+  <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="overview-tree.html"><FONT CLASS="NavBarFont1"><b>Tree</b></FONT></A>&nbsp;</TD>
+  <!--TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1"-->    <!--A HREF="deprecated-list.html"--><!--FONT CLASS="NavBarFont1">Deprecated</FONT--><!--/A--><!--&nbsp;</TD-->
+  <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="index-all.html"><FONT CLASS="NavBarFont1"><B>Index</B></FONT></A>&nbsp;</TD>
+  <TD BGCOLOR="#EEEEFF" CLASS="NavBarCell1">    <A HREF="help-doc.html"><FONT CLASS="NavBarFont1"><B>Help</B></FONT></A>&nbsp;</TD>
+  </TR>
+</TABLE>
+</TD>
+<TD ALIGN="right" VALIGN="top" ROWSPAN=3><EM>
+<B>Jala 1.3</B>
+</EM>
+</TD
+</TR>
+
+<TR>
+<TD BGCOLOR="white" CLASS="NavBarCell2"><FONT SIZE="-2">
+&nbsp;<A HREF="jala.DnsClient.Record.html"><B>PREV CLASS</B></A><!-- 
+   NEXT CLASS 
+-->
+&nbsp;<A HREF="jala.Form.Component.html"><B>NEXT CLASS</B></A></FONT></TD>
+<TD BGCOLOR="white" CLASS="NavBarCell2"><FONT SIZE="-2">
+  <A HREF="index.html" TARGET="_top"><B>FRAMES</B></A>  &nbsp;
+&nbsp;<A HREF="jala.Form.html" TARGET="_top"><B>NO FRAMES</B></A>  &nbsp;
+&nbsp;
+<SCRIPT>
+  <!--
+  if(window==top) {
+    document.writeln('<A HREF="allclasses-noframe.html" TARGET=""><B>All Classes</B></A>');
+  }
+  //-->
+</SCRIPT>
+<NOSCRIPT>
+<A HREF="allclasses-noframe.html" TARGET=""><B>All Classes</B></A>
+</NOSCRIPT>
+</FONT></TD>
+</TR>
+<TR>
+<TD VALIGN="top" CLASS="NavBarCell3"><FONT SIZE="-2">
+  SUMMARY:&nbsp;<A HREF="#field_summary">FIELD</A>&nbsp;|&nbsp;<A HREF="#constructor_summary">CONSTR</A>&nbsp;|&nbsp;<A HREF="#method_summary">METHOD</A></FONT></TD>
+<TD VALIGN="top" CLASS="NavBarCell3"><FONT SIZE="-2">
+DETAIL:&nbsp;<A HREF="#field_detail">FIELD</A>&nbsp;|&nbsp;<A HREF="#constructor_detail">CONSTR</A>&nbsp;|&nbsp;<A HREF="#method_detail">METHOD</A></FONT></TD>
+</TR>
+</TABLE>
+
+<!-- =========== END OF NAVBAR =========== -->
+
+<HR>
+<FONT SIZE="-1">
+
+</FONT>
+<div class="jsdoc_ctime">Documentation generated by <a href="http://jsdoc.sourceforge.net/" target="_parent">JSDoc</a> on Tue Jan  8 15:45:31 2008</div>
+</BODY>
+</HTML>

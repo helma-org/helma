@@ -1,0 +1,14 @@
+        <ul>
+            <li><a href="http://dev.helma.org/">home</a></li>
+            <li><a href="http://dev.helma.org/mailing+lists/">mailing lists</a></li>
+            <li><a href="http://helma.server-side-javascript.org/hopbot/">irc channel</a></li>
+            <li><a href="http://dev.helma.org/docs/Documentation/">documentation</a></li>
+            <li><a href="http://helma.server-side-javascript.org/reference/">reference</a></li>
+            <li><a href="http://dev.helma.org/development/">project</a></li>
+            <li><a href="http://dev.helma.org/wiki/Helma+Roadmap/">roadmap</a></li>
+            <li><a href="http://dev.helma.org/bug+reporting/">bug reporting</a></li>
+            <li><a href="http://dev.helma.org/docs/Using+the+Source+Code+Repositories/">source</a></li>
+            <li><a href="http://dev.helma.org/wiki/">wiki</a></li>
+            <li><a href="http://dev.helma.org/wiki/Related+Projects/">related projects</a></li>
+            <li><a href="http://dev.helma.org/wiki/Sites+using+Helma/">sites using helma</a></li>
+        </ul>

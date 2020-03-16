@@ -1,0 +1,2 @@
+res.contentType="text/css";
+this.renderSkin('styles_css');

@@ -1,0 +1,294 @@
+<%
+//
+// Jala Project [http://opensvn.csie.org/traccgi/jala]
+//
+// Copyright 2004 ORF Online und Teletext GmbH
+//
+// Licensed under the Apache License, Version 2.0 (the ``License'');
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an ``AS IS'' BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// $Revision$
+// $LastChangedBy$
+// $LastChangedDate$
+// $HeadURL$
+//
+%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" >
+<head>
+<title>Jala Unit Test Runner</title>
+<link rel="stylesheet" type="text/css" media="screen" href="<% root.href action="jala.test.css" %>" />
+<script type="text/javascript">
+<!--
+
+function toggleCheckboxes(reverse) {
+	var state = document.getElementById("toggle").checked;
+	if (reverse) {
+		state = !state;
+	}
+	var form = document.getElementById("tests");
+	var inputs = form.getElementsByTagName("input");
+	var cb;
+	for (var i=0; i<inputs.length; i++) {
+		cb = inputs[i];
+		if (cb.type == "checkbox") {
+			cb.checked = state;
+		}
+	}
+	return false;
+}
+
+-->
+</script>
+</head>
+<body>
+   <div class="header">
+      <div class="title">Jala Unit Test Runner</div>
+      <div class="directory"><% test.directory prefix="Tests: " %></div>
+   </div>
+   <div class="main">
+      <div class="list">
+         <form id="tests" method="post" action="<% root.href action="jala.test" %>">
+         <% test.list prefix='<h4>Available Tests</h4><ul>'
+                      suffix='<li><br /><input id="toggle" type="checkbox" onclick="toggleCheckboxes()" /><a href="#" onclick="toggleCheckboxes(true);">select all</a></li></ul><input class="submit" type="submit" name="run" value="Execute" />' %>
+         </form>
+      </div>
+      <div class="result">
+         <table class="statistics">
+            <tr>
+               <th>Tests</th>
+               <th>Functions</th>
+            </tr>
+            <tr>
+               <td><span class="passed"><% test.testsRun %></span> run</td>
+               <td><span class="passed"><% test.functionsPassed %></span> passed</td>
+            </tr>
+            <tr>
+               <td><span class="failed"><% test.testsFailed %></span> failed</td>
+               <td><span class="failed"><% test.functionsFailed %></span> failed</td>
+            </tr>
+         </table>
+         <% test.results %>
+      </div>
+   </div>
+</body>
+</html>
+
+
+
+<% #result ------------------------------------------------------------------ %>
+
+<h4 class="<% param.status %>">Results of '<% param.name %>':</h4>
+<% param.log prefix="<dl>" suffix="</dl>" %>
+
+
+
+<% #item -------------------------------------------------------------------- %>
+
+<li>
+   <input type="checkbox" name="test" value="<% param.name %>" <% param.checked %>/><a href="?test=<% param.name %>"><% param.name %></a>
+</li>
+
+
+
+<% #logFailed --------------------------------------------------------------- %>
+
+<dt class="test error">Error</dt>
+<dd>
+   <% param.functionName prefix='<span class="function">' suffix='()</span>' %></span>
+   <div class="message"><% param.name suffix=": " %><% param.message %></div>
+   <div class="comment"><% param.comment %></div>
+   <div><% param.fileName prefix="at " %><% param.lineNumber prefix=":" %></div>
+   <div class="stackTrace"><% param.stackTrace encoding="html" %></div>
+</dd>
+
+
+
+<% #logPassed --------------------------------------------------------------- %>
+
+<dt class="test passed">Passed</dt>
+<dd><span class="function"><% param.functionName %>()</span><span class="elapsed">(in <% param.elapsed %> ms)</span></dd>
+
+
+
+<% #stylesheet -------------------------------------------------------------- %>
+
+body {
+   font-family: Verdana, Arial, Helvetica;
+   font-size: 0.85em;
+   margin: 0;
+   padding: 0;
+}
+
+a {
+   text-decoration: none;
+   color: #333;
+}
+
+a:hover {
+   text-decoration: underline;
+}
+
+div.header {
+   background-color: #aaa;
+   border-bottom: 1px solid #333;
+   font-size: 18px;
+   font-weight: bold;
+   color: #ddd;
+   padding: 10px 20px;
+}
+
+div.header div.title {
+   float: left;
+   font-size: 18px;
+   font-weight: bold;
+   color: #ddd;
+}
+
+div.header div.directory {
+   text-align: right;
+   font-size: 11px;
+   font-weight: normal;
+   color: #eee;
+   padding: 5px;
+}
+
+div.main {
+   margin: 20px;
+}
+
+div.footer {
+   margin-top: 400px;
+   padding: 10px 0 10px 20px;
+   clear: both;
+   background-color: #eee;
+   font-size: 0.7em;
+   color: #999;
+}
+
+div.list {
+   float: left;
+   width: 200px;
+   padding-right: 30px;
+   border-right: 1px solid #ccc;
+}
+
+div.list h4 {
+   margin: 0;
+   padding: 0 0 10px 0;
+   font-size: 1em;
+}
+
+div.list form {
+   margin: 0;
+   padding: 0;
+}
+
+div.list ul {
+   list-style-type: none;
+   margin: 0;
+   padding: 0;
+}
+
+div.list ul li {
+   padding: 0;
+   margin-top:1px;
+   font-size: 0.95em;
+}
+
+div.list .submit {
+   margin: 15px 0 0 0;
+   padding: 0 10px;
+   border: 1px solid gray;
+}
+
+div.result {
+   margin-left: 250px;
+   padding-left: 20px;
+}
+
+/** statistics **/
+
+table.statistics {
+   xborder: 1px solid black;
+   border-collapse: collapse;
+}
+
+table.statistics th {
+   text-align: left;
+   font-size: 0.9em;
+}
+
+table.statistics td {
+   padding-right: 15px;
+   color: #666;
+}
+
+table.statistics span.passed {
+   color: #009900;
+   font-weight: bold;
+}
+
+table.statistics span.failed {
+   color: #cc0000;
+   font-weight: bold;
+}
+
+/** result formattings **/
+
+div.result h4 {
+   font-size: 1em;
+   font-weight: bold;
+   border-top: 1px solid #ccc;
+   padding-top: 20px;
+}
+
+dt {
+   float: left;
+}
+
+dt.test {
+   width: 70px;
+   padding: 2px 10px;
+}
+
+dt.passed {
+   background-color:#33cc33;
+   font-size: 0.9em;
+}
+
+dt.error {
+   background-color:#cc0000;
+   color: #efefef;
+   font-size: 0.9em;
+}
+
+dd {
+   font-size: 0.95em;
+   margin: 0 0 10px 100px;
+   padding: 2px;
+}
+
+
+span.title, span.function {
+   width: 200px;
+   padding-right:10px;
+}
+
+span.function {
+   font-style: italic;
+}
+
+span.elapsed {
+   font-size: 0.9em;
+}

@@ -1,0 +1,22 @@
+function openbox(kind) {
+    document.write('\
+        <div class="'+ kind +'">\
+        <b class="rtop"><b class="r1"></b><b class="r2"></b>\
+        <b class="r3"></b><b class="r4"></b></b>\
+    ');
+    if (kind != 'content') document.write('\
+        <div class="columnheight">\
+    ');
+    else document.write('\
+        <div class="contentmargin">\
+    ');
+}
+
+function closebox(kind) {
+    document.write('\
+        </div>\
+        <b class="rbottom"><b class="r4"></b><b class="r3"></b>\
+        <b class="r2"></b><b class="r1"></b></b>\
+        </div>\
+    ');
+}

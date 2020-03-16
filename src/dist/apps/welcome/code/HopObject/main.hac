@@ -1,0 +1,24 @@
+// Prepare some response values used by the skins
+res.data.root = root.href();
+res.data.parenthref = this._parent.href();
+res.data.parentname = this._parent.name;
+res.data.href = this.href();
+res.data.title = this.name;
+res.data.id = this._id;
+if (req.data.counter)
+    this.counter = 0;
+else
+    this.counter = !this.counter ? 1 : this.counter + 1;
+res.data.counter = this.counter;
+res.data.list = this.hoplist();
+res.data.add = '\
+    <blockquote>\
+        <form method="post" action="'+ this.href() +'add">\
+            <input type="submit" name="add" value="Add HopObject">\
+        </form>\
+    </blockquote>';
+
+// Render three nested skins
+res.data.content = this.renderSkinAsString('hop');
+res.data.body = this.renderSkinAsString('main');
+this.renderSkin('page');

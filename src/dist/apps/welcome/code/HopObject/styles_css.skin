@@ -1,0 +1,112 @@
+body {
+    background-color: #fff; 
+    margin-top: 0px; 
+    margin-left: 0px; 
+}
+
+a {text-decoration: none;}
+a:link {color: #00f;}
+a:visited {color: #00b;}
+a:active {color: #f66;}
+a:hover {color: #c33;}
+
+pre {
+    background: #ffe;
+    line-height:150%;
+    padding: 8px;
+}
+
+h3 {
+    font-family: "Trebuchet MS", sans-serif; 
+    font-size: 16px; 
+    margin-left: 15px;
+}
+
+ul {
+    font-family: "Trebuchet MS", sans-serif; 
+    font-size: 13px; 
+    color: #333;
+    // margin-left: 40px;
+}
+
+.overview {
+    width: 755px;
+    heigth: 92px;
+}
+.tools {
+    float:left;
+    margin-left: 15px;
+    width: 222px;
+}
+.intro {
+    float:left;
+    margin-left: 27px;
+    margin-right: 27px;
+    width: 222px;
+}
+.website {
+    float:left;
+    width: 222px;
+}
+.pagetools, .pageintro, .pagewebsite {
+    float:left;
+    margin-left: 15px;
+    width: 195px;
+}
+
+.frame {
+    width: 755px;
+    margin-top: 0px;
+    margin-right: auto;
+    margin-left: auto;
+    margin-bottom: 30px;
+}
+.lead {
+    font-family: "Trebuchet MS", sans-serif; 
+    font-size: 16px; 
+    color: #666;
+    margin-top: 20px;
+    margin-right: 45px;
+    margin-left: 125px;
+    margin-bottom: 25px;
+}
+.columnheight {
+    height: 300px;
+}
+.content {
+    font-family: "Trebuchet MS", sans-serif; 
+    font-size: 13px; 
+    line-height:135%;
+    float:left;
+    spacing: 10px;
+    margin-left: 25px;
+    width: 505px;
+}
+.contentmargin {
+    margin-left: 20px;
+    margin-right: 15px;
+}
+
+.tools, .tools b.rtop b, .tools b.rbottom b,
+.pagetools, .pagetools b.rtop b, .pagetools b.rbottom b 
+    {background: #bf7}
+    
+.intro, .intro b.rtop b, .intro b.rbottom b,
+.pageintro, .pageintro b.rtop b, .pageintro b.rbottom b 
+    {background: #fd6}
+    
+.website, .website b.rtop b, .website b.rbottom b,
+.pagewebsite, .pagewebsite b.rtop b, .pagewebsite b.rbottom b 
+    {background: #7cf}
+    
+.content, .content b.rtop b, .content b.rbottom b 
+    {background: #eee}
+
+b.rtop, b.rbottom{display:block;background: #fff}
+b.rtop b, b.rbottom b{display:block;height: 1px;
+    overflow: hidden;}
+b.r1{margin: 0 5px}
+b.r2{margin: 0 3px}
+b.r3{margin: 0 2px}
+b.r4{margin: 0 1px;height: 2px}
+b.rtop b.r4, b.rbottom b.r4{margin: 0 1px;height: 2px}

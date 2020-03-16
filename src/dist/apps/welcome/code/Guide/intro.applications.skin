@@ -1,0 +1,48 @@
+<h1>applications</h1>
+
+<p>Helma can serve multiple independent applications, each accessible 
+    through a different mountpoint, using Javascript environments 
+    running in their own global scope, and configurable to use separate 
+    code repositories.</p>
+
+<p>A Helma default installation, for example, is serving the applications 
+    "manage" and "welcome" and makes them accessible through the 
+    <a href="http://<% request.http_host %>/manage/">
+    http://<% request.http_host %>/manage/</a> and 
+    <a href="http://<% request.http_host %>/">http://<% request.http_host %>/</a> 
+    URLs respectively. The list of active applications is defined by the file 
+    ./apps.properties in Helma's home directory.</p>
+
+<pre>
+# Administrative application to manage all 
+# other apps on this server, accessible via its 
+# default mountpoint at http://host:port/manage 
+# and using its default repository at apps/manage
+
+manage
+
+
+# More complex example of an application with 
+# custom configuration:
+
+welcome
+welcome.mountpoint = /
+welcome.repository.0 = apps/welcome/code/
+welcome.repository.1 = modules/helmaTools.zip
+welcome.static = apps/welcome/static
+welcome.staticMountpoint = /static
+welcome.staticHome = index.html,default.html
+welcome.staticIndex = true
+welcome.uploadLimit = 2048
+</pre>
+
+<p>Further application specific configurations can be defined in an app.properties 
+    file inside an application's code repository. Examples of such a file you will 
+    find in the "manage" app's default repository directory at 
+    ./apps/manage/app.properties and in the "welcome" application's repository at 
+    ./apps/welcome/code/app.properties.</p>
+
+<p>More information about these files:
+<br /><a href="http://dev.helma.org/docs/Properties+Files/apps.properties/">/docs/Properties+Files/apps.properties/</a>
+<br /><a href="http://dev.helma.org/docs/Properties+Files/app.properties/">/docs/Properties+Files/app.properties/</a>
+</p>

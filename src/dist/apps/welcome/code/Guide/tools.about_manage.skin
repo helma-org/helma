@@ -1,0 +1,18 @@
+<h1>manage</h1>
+
+<p>The Manage application allows you to start and stop applications and 
+    makes a variety of status information available. It also provides access 
+    to the automatically generated API documentation of the application's 
+    code repositories and libraries.</p>
+
+<p>In Helma's default installation, the Manage application can be accessed 
+    using the <a href="http://<% request.http_host %>/manage">
+    http://<% request.http_host %>/manage</a> mountpoint.</p>
+
+<img src="/static/guide/manage.png" width="480" height="440" />
+
+<p>Note that access to the Manage application is restricted for obvious 
+    security reasons. You will first need to edit the ./server.properties 
+    file and set adminAccess to your IP address. You then will be 
+    directed on how to configure administrative access when you attempt to 
+    use this tool.</p>

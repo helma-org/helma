@@ -1,0 +1,23 @@
+<!DOCTYPE html
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+<title><% response.title %></title>
+
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<script src="<% response.href %>scripts.js"></script>
+<link rel="stylesheet" href="<% response.href %>styles.css" media="screen" />
+
+</head>
+<body>
+
+    <div class="frame">
+        <img class="overview" onclick="location='/'" src="/static/helmaheader.png" /><br />
+        <% response.body %>
+    </div>
+    <br clear="all" /><br /><br />
+
+</body>
+</html>

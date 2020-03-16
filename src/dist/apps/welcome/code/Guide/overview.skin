@@ -1,0 +1,19 @@
+<div class="lead">
+    <p>Welcome to Helma! Explore the tools, introductions and resources below and 
+    discover what you can do with Helma and Javascript on the server-side.</p>
+</div>
+
+<script> openbox('tools') </script>
+    <h3>tools</h3>
+    <% response.listtools %>
+<script> closebox() </script>
+
+<script> openbox('intro') </script>
+    <h3>introductions</h3>
+    <% response.listintro %>
+<script> closebox() </script>
+
+<script> openbox('website') </script>
+    <h3>helma.org</h3>
+    <% response.listwebsite %>
+<script> closebox() </script>

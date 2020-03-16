@@ -1,0 +1,52 @@
+<h1>macros</h1>
+
+<p>Macros are methods of application logic that can be called through 
+    custom macro tags contained in skins. Macros allow skins to pull 
+    data from application logic, while other macro tags only push 
+    pre-determined data to the skins.</p>
+
+<p>You will find an example for such a skin in the "welcome" application 
+    at ./apps/welcome/code/Root/example_using_macro.skin</p>
+
+<pre>
+&lt;p>This is an example of a skin calling a macro.&lt;/p>
+&lt;p>You will find this skin at 
+    ./apps/welcome/code/Root/example_using_macro.skin&lt;/p>
+&lt;p>This skin is rendered by the action defined at 
+    ./apps/welcome/code/Root/example_using_macro.hac&lt;/p>
+&lt;p>The macro this skin calls is defined in 
+    ./apps/welcome/code/Root/example.js&lt;/p>
+&lt;p>You can test it via the URL 
+    &lt;a href="&lt;% this.pullLink part="url" %>">
+        &lt;% this.pullLink part="text" %>
+    &lt;/a>
+&lt;/p>
+</pre>
+
+<p>In this example, the skin calls a "pullLink" macro twice, using a different 
+    "part" parameter. Macro methods are defined using a corresponding function 
+    name with a "_macro" suffix. The pullLink macro used in this example, you 
+    will find defined in ./apps/welcome/code/Root/example.js</p>
+
+<pre>
+function pullLink_macro(params) {
+    switch (params.part) {
+        case 'text' : 
+            return '/example_using_macro';
+        case 'url'  : 
+            return this.href('example_using_macro');;
+    }
+}
+</pre>
+
+<p>You can test this macro and see the skin rendered via the URL 
+    <a href="http://<% request.http_host %>/example_using_macro">
+    http://<% request.http_host %>/example_using_macro</a></p>
+
+<p>Note that macros can again make use of skins, which may again contain 
+    macro calls. This combination of skins and macros allows actions to 
+    delegate the response generation through multiple tiers of "control" 
+    and "presentation".</p>
+
+<p>More information about macro tags and ways in which you can use custom defined macros:
+<br /><a href="http://dev.helma.org/docs/Request-Response-Cycle/">/docs/Request-Response-Cycle/</a></p>

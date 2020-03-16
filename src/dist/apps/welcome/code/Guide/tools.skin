@@ -1,0 +1,14 @@
+<div class="lead">
+    <p>Explore the tools below and discover what you <br />
+    can do with Helma and Javascript on the server-side.</p>
+</div>
+
+<script> openbox('pagetools') </script>
+    <h3>tools</h3>
+    <% response.listtools %>
+
+<script> closebox() </script>
+
+<script> openbox('content') </script>
+    <% response.content %>
+<script> closebox() </script>

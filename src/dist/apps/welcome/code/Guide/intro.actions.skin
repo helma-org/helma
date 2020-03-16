@@ -1,0 +1,40 @@
+<h1>actions</h1>
+
+<p>Every request a Helma application receives is handled by an "action" 
+    associated with the requested URL. For example, a request to 
+    <a href="http://<% request.http_host %>/example">
+    http://<% request.http_host %>/example</a> will be handled by the 
+    "example" action, defined at ./apps/welcome/code/Root/example.hac</p>
+
+<pre>
+res.write('Hello, this is the action defined \
+    at ./apps/welcome/code/Root/example.hac');
+</pre>
+
+<p>The file example.hac contains the Javascript code that Helma will 
+    evaluate when handling that request. In this example, the code inside 
+    the example.hac file automatically becomes a prototype method with an 
+    "_action" suffix. By leveraging such conventions, Helma allows you to 
+    structure your code in clean and uncluttered ways. Alternatively, you 
+    can also define actions in generic Javascript files, an examples of 
+    which can be found in ./apps/welcome/code/Root/example.js and tested via 
+    the URL <a href="http://<% request.http_host %>/anotherexample">
+    http://<% request.http_host %>/anotherexample</a></p>
+
+<pre>
+function anotherexample_action() {
+    res.write('Hello again, this is the action \
+        defined in ./apps/welcome/Root/example.js');
+}
+</pre>
+
+<p>Requests that do not specify a particular action are handled by the 
+    "main" action. For example, a request to 
+    <a href="http://<% request.http_host %>/">http://<% request.http_host %>/</a> 
+    will be handled by the "main" action, defined at 
+    ./apps/welcome/code/Guide/main.hac</p>
+
+<p>More information about the way Helma handles requests and maps them to 
+    actions, and how Helma maps directories and filename extensions to 
+    objects in the Javascript environment:
+<br /><a href="http://dev.helma.org/docs/Request-Response-Cycle/">/docs/Request-Response-Cycle/</a></p>

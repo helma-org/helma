@@ -1,0 +1,33 @@
+<h1>debugger</h1>
+
+<p>The debugger can help you debug Helma applications, providing 
+    facilities to set and clear breakpoints, control execution, view 
+    variables, and evaluate arbitrary Javascript code in the current 
+    scope, for example that of a request that is being processed.</p>
+
+<p>To enable the debugger, set the rhino.debug property in the 
+    application's app.properties file as follows:</p>
+
+<pre>
+rhino.debug = true
+</pre>
+
+<p>If this property is set when an application is started, the debugger 
+    will open in a separate window. Since this window will open on the 
+    server the application is running on, using the debugger is only 
+    suitable for local development.</p>
+
+<img src="/static/guide/debugger.png" width="480" height="876" />
+
+<p>The "welcome" application comes with the debugger disabled. To enable 
+    it and cause the debugger window to automatically open when Helma is  
+    started, uncomment the corresponding property by removing the leading 
+    hash in the ./apps/welcome/code/app.properties file:</p>
+
+<pre>
+#rhino.debug = true
+</pre>
+
+<p>More information on the functionality the debugger offers:
+<br /><a href="http://www.mozilla.org/rhino/debugger.html">/rhino/debugger</a>
+</p>

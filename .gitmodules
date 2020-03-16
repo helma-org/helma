@@ -1,3 +1,0 @@
-[submodule "modules/jala"]
-	path = modules/jala
-	url = git@github.com:antville/jala.git

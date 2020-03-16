@@ -1,0 +1,11 @@
+        <ul>
+            <li><a href="<% response.root %>intro/applications">applications</a></li>
+            <li><a href="<% response.root %>intro/staticfiles">static files</a></li>
+            <li><a href="<% response.root %>intro/actions">actions</a></li>
+            <li><a href="<% response.root %>intro/skins">skins</a></li>
+            <li><a href="<% response.root %>intro/macros">macros</a></li>
+            <li><a href="<% response.root %>intro/hopobjects">hopobjects</a></li>
+            <li><a href="<% response.root %>intro/prototypes">prototypes</a></li>
+            <li><a href="<% response.root %>intro/dbmapping">database mappings</a></li>
+            <li><a href="<% response.root %>intro/javapackages">java packages</a></li>
+        </ul>
