@@ -10,11 +10,20 @@ allprojects {
     targetCompatibility = JavaVersion.VERSION_1_6
   }
 
-  // FIXME: start scripts are not working, yet
   startScripts {
-    mainClassName = 'helma.main.launcher.Main'
     applicationName = 'helma'
-    classpath = files('launcher.jar')
+    classpath = files('../launcher.jar')
+    mainClassName = 'helma.main.launcher.Main'
+    defaultJvmOpts = [jettyLogLevel]
+
+    doLast {
+      // Work-around to make the classpath above work (launcher.jar is located outside of `lib` dir)
+      // See https://discuss.gradle.org/t/classpath-in-application-plugin-is-building-always-relative-to-app-home-lib-directory/2012
+      def unixScriptFile = file getUnixScript()
+      def windowsScriptFile = file getWindowsScript()
+      unixScriptFile.text = unixScriptFile.text.replace('$APP_HOME/lib', '$APP_HOME')
+      windowsScriptFile.text = windowsScriptFile.text.replace('%APP_HOME%\\lib', '%APP_HOME%')
+    }
   }
 
   task processSource(type: Sync) {
