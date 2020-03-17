@@ -1,3 +1,5 @@
+def jettyLogLevel = '-Dorg.eclipse.jetty.LEVEL=WARN'
+
 allprojects {
   apply plugin: 'java'
   apply plugin: 'application'
@@ -108,11 +110,7 @@ installDist {
 
 run {
   classpath = files('launcher.jar')
-  args '-w', '8080'
-  args '-x', '8081'
-  args '-i', projectDir
-  args '-h', projectDir
-  jvmArgs '-Dorg.eclipse.jetty.LEVEL=WARN'
+  jvmArgs jettyLogLevel
 }
 
 task shell(type: JavaExec) {
