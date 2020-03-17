@@ -1,3 +1,5 @@
+# Helma Modules
+
 The Helma modules directory is organized in several groups:
 
 * **modules/core** which contains extensions to core JavaScript types such as
@@ -11,8 +13,3 @@ app's repositories. The simplest way to do so is by using the `app.addRepository
 function:
 
     app.addRepository('modules/helma/Search.js');
-
-Be sure to load the Git submodule if you want to use one of the Jala modules:
-
-    > git submodule init
-    > git submodule update
