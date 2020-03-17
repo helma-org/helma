@@ -2,81 +2,25 @@ def jettyLogLevel = '-Dorg.eclipse.jetty.LEVEL=WARN'
 
 allprojects {
   apply plugin: 'java'
-  apply plugin: 'application'
 
   compileJava {
-    dependsOn 'processSource'
     sourceCompatibility = JavaVersion.VERSION_1_6
     targetCompatibility = JavaVersion.VERSION_1_6
   }
-
-  startScripts {
-    applicationName = 'helma'
-    classpath = files('../launcher.jar')
-    mainClassName = 'helma.main.launcher.Main'
-    defaultJvmOpts = [jettyLogLevel]
-
-    doLast {
-      // Work-around to make the classpath above work (launcher.jar is located outside of `lib` dir)
-      // See https://discuss.gradle.org/t/classpath-in-application-plugin-is-building-always-relative-to-app-home-lib-directory/2012
-      def unixScriptFile = file getUnixScript()
-      def windowsScriptFile = file getWindowsScript()
-      unixScriptFile.text = unixScriptFile.text.replace('$APP_HOME/lib', '$APP_HOME')
-      windowsScriptFile.text = windowsScriptFile.text.replace('%APP_HOME%\\lib', '%APP_HOME%')
-    }
-  }
-
-  task processSource(type: Sync) {
-    def date = new Date().format("MMMM dd, yyyy")
-    def gitOutput = new ByteArrayOutputStream()
-
-    exec {
-      commandLine 'git', 'describe'
-      standardOutput = gitOutput
-      errorOutput = new ByteArrayOutputStream()
-      ignoreExitValue = true
-    }
-
-    def description = date
-    def tag = gitOutput.toString().trim()
-
-    if (tag) description = "$tag; $description"
-
-    from 'src'
-
-    filter {
-      line -> line.replaceAll('__builddate__', date)
-    } into "${project.buildDir}/src"
-  }
 }
+
+apply plugin: 'application'
 
 version = new Date().format("yyyyMMdd")
 
-distributions {
-  main {
-    contents {
-      from project(':launcher').jar
-    }
-  }
-}
-
-applicationDistribution.from(projectDir) {
-  include 'modules/**'
-  include 'LICENSE.md'
-  include 'README.md'
-  include 'start.*'
-}
-
-applicationDistribution.from(javadoc.destinationDir) {
-  include '**'
-  into 'docs'
-}
+tasks.build.dependsOn javadoc
+tasks.compileJava.dependsOn 'processSource'
 
 sourceSets {
   main {
     java {
+      // Sources in `src` will be available here after processing
       srcDirs = ["$buildDir/src/main/java"]
-      exclude '**/package.html', '**/main/launcher/**'
     }
   }
 }
@@ -108,6 +52,42 @@ dependencies {
   implementation 'xmlrpc:xmlrpc:2.0.1'
 }
 
+startScripts {
+  applicationName = 'helma'
+  classpath = files('../launcher.jar')
+  mainClassName = 'helma.main.launcher.Main'
+  defaultJvmOpts = [jettyLogLevel]
+
+  doLast {
+    // Work-around to make the classpath above work (launcher.jar is located outside of `lib` dir)
+    // See https://discuss.gradle.org/t/classpath-in-application-plugin-is-building-always-relative-to-app-home-lib-directory/2012
+    def unixScriptFile = file getUnixScript()
+    def windowsScriptFile = file getWindowsScript()
+    unixScriptFile.text = unixScriptFile.text.replace('$APP_HOME/lib', '$APP_HOME')
+    windowsScriptFile.text = windowsScriptFile.text.replace('%APP_HOME%\\lib', '%APP_HOME%')
+  }
+}
+
+distributions {
+  main {
+    contents {
+      from project(':launcher').jar
+    }
+  }
+}
+
+applicationDistribution.from(projectDir) {
+  include 'modules/**'
+  include 'LICENSE.md'
+  include 'README.md'
+  include 'start.*'
+}
+
+applicationDistribution.from(javadoc.destinationDir) {
+  include '**'
+  into 'docs'
+}
+
 distTar {
   compression = Compression.GZIP
 }
@@ -122,21 +102,28 @@ run {
   jvmArgs jettyLogLevel
 }
 
-task shell(type: JavaExec) {
-  def rhinoJar = configurations.library.files.find { f ->
-    f.name.startsWith('rhino')
+task processSource(type: Sync) {
+  def date = new Date().format("MMMM dd, yyyy")
+  def gitOutput = new ByteArrayOutputStream()
+
+  exec {
+    commandLine 'git', 'describe'
+    standardOutput = gitOutput
+    errorOutput = new ByteArrayOutputStream()
+    ignoreExitValue = true
   }
 
-  classpath = files(rhinoJar)
-  main = 'org.mozilla.javascript.tools.shell.Main'
+  def description = date
+  def tag = gitOutput.toString().trim()
 
-  standardInput = System.in
-}
+  // TODO: Implement extended description in Java code
+  if (tag) description = "$tag; $description"
 
-task commandline(type: JavaExec) {
-  classpath = files('launcher.jar')
-  main = 'helma.main.launcher.Commandline'
-  args '-h', projectDir, 'manage.getAllApplications'
+  from 'src'
+
+  filter {
+    line -> line.replaceAll('__builddate__', date)
+  } into "${project.buildDir}/src"
 }
 
 task update {
@@ -172,4 +159,21 @@ task update {
       args "${installDist.destinationDir}/", projectDir
     }
   }
+}
+
+task shell(type: JavaExec) {
+  def rhinoJar = configurations.library.files.find { f ->
+    f.name.startsWith('rhino')
+  }
+
+  classpath = files(rhinoJar)
+  main = 'org.mozilla.javascript.tools.shell.Main'
+
+  standardInput = System.in
+}
+
+task commandLine(type: JavaExec) {
+  classpath = files('launcher.jar')
+  main = 'helma.main.launcher.Commandline'
+  args '-h', projectDir, 'manage.getAllApplications'
 }
