@@ -1,5 +1,3 @@
-_This is the README file for version 1.2 of the Jala Javascript Library._
-
 # About Jala
 
 Jala is an open-source collection of JavaScript modules for Helma Object Publisher. Copyright 2004 ORF Online und Teletext GmbH, Vienna (Austria). You can find more information about each module in the API Documentation located in the `docs` directory.
