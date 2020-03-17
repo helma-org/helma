@@ -127,10 +127,6 @@ task shell(type: JavaExec) {
     f.name.startsWith('rhino')
   }
 
-  // if (environment.get('TERM') != 'dumb') {
-  //   println 'Run this task with `TERM=dumb ./gradlew shell` to get rid of the progress output'
-  // }
-
   classpath = files(rhinoJar)
   main = 'org.mozilla.javascript.tools.shell.Main'
 
