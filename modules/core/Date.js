@@ -17,7 +17,7 @@
 /**
  * @fileoverview Adds useful methods to the JavaScript Date type.
  * <br /><br />
- * To use this optional module, its repository needs to be added to the 
+ * To use this optional module, its repository needs to be added to the
  * application, for example by calling app.addRepository('modules/core/Date.js')
  */
 
@@ -33,9 +33,11 @@ Date.ISOFORMAT    = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
 /**
  * Format a Date to a string.
- * For details on the format pattern, see 
- * http://java.sun.com/j2se/1.4.2/docs/api/java/text/SimpleDateFormat.html
- * 
+ * For details on the format pattern, see
+ * http://java.sun.com/j2se/1.4.2/docs/api/java/text/SimpleDateFormat.html *
+ * @external
+ * @memberof {Date}
+ *
  * @param String Format pattern
  * @param Object Java Locale Object (optional)
  * @param Object Java TimeZone Object (optional)
@@ -53,19 +55,23 @@ Date.prototype.format = function (format, locale, timezone) {
 };
 
 
-/** 
+/**
  * set the date/time to UTC by subtracting
  * the timezone offset
- */ 
+ * @external
+ * @memberof {Date}
+ */
 Date.prototype.toUtc = function() {
     this.setMinutes(this.getMinutes() + this.getTimezoneOffset());
 };
 
 
-/** 
+/**
  * set the date/time to local time by adding
  * the timezone offset
- */ 
+ * @external
+ * @memberof {Date}
+ */
 Date.prototype.toLocalTime = function() {
     this.setMinutes(this.getMinutes() - this.getTimezoneOffset());
 };
@@ -74,6 +80,8 @@ Date.prototype.toLocalTime = function() {
 /**
  * returns the difference between this and another
  * date object in milliseconds
+ * @external
+ * @memberof {Date}
  */
 Date.prototype.diff = function(dateObj) {
     return this.getTime() - dateObj.getTime();
@@ -82,6 +90,8 @@ Date.prototype.diff = function(dateObj) {
 
 /**
  * return the timespan to current date/time or a different Date object
+ * @external
+ * @memberof {Date}
  * @param Object parameter object containing optional properties:
  *        .now = String to use if difference is < 1 minute
  *        .day|days = String to use for single|multiple day(s)
@@ -134,6 +144,8 @@ Date.prototype.getTimespan = function(param) {
  * return the past timespan between this Date object and
  * the current Date or a different Date object
  * @see Date.prototype.getTimespan
+ * @external
+ * @memberof {Date}
  */
 Date.prototype.getAge = function(param) {
     var age = this.getTimespan(param);
@@ -147,6 +159,8 @@ Date.prototype.getAge = function(param) {
  * return the future timespan between this Date object and
  * the current Date or a different Date object
  * @see Date.prototype.getTimespan
+ * @external
+ * @memberof {Date}
  */
 Date.prototype.getExpiry = function(param) {
     var age = this.getTimespan(param);
@@ -158,6 +172,8 @@ Date.prototype.getExpiry = function(param) {
 
 /**
  * checks if a date object equals another date object
+ * @external
+ * @memberof {Date}
  * @param Object Date object to compare
  * @param Int indicating how far the comparison should go
  * @return Boolean

@@ -13,7 +13,7 @@ apply plugin: 'application'
 
 version = new Date().format("yyyyMMdd")
 
-tasks.build.dependsOn javadoc
+tasks.build.dependsOn javadoc, 'jsdoc'
 tasks.compileJava.dependsOn 'processSource'
 
 sourceSets {
@@ -85,7 +85,12 @@ applicationDistribution.from(projectDir) {
 
 applicationDistribution.from(javadoc.destinationDir) {
   include '**'
-  into 'docs'
+  into 'docs/javadoc'
+}
+
+applicationDistribution.from("${project.buildDir}/docs/jsdoc") {
+  include '**'
+  into 'docs/jsdoc'
 }
 
 distTar {
@@ -93,7 +98,7 @@ distTar {
 }
 
 installDist {
-  dependsOn javadoc
+  dependsOn javadoc, 'jsdoc'
   finalizedBy 'update'
 }
 
@@ -159,6 +164,22 @@ task update {
       args "${installDist.destinationDir}/", projectDir
     }
   }
+}
+
+task jsdoc(type: Exec) {
+  def sources = ['modules/core', 'modules/helma', 'modules/jala/code']
+  def destination = "${project.buildDir}/docs/jsdoc"
+
+  sources.each { dir -> inputs.dir dir }
+  outputs.dir destination
+
+  executable 'npx'
+  args = ['jsdoc', '-d', "$destination"].plus(sources)
+
+  // As of writing jsdoc throws the following error:
+  // Unable to parse /home/tobi/Projects/helma/current/modules/jala/code/Database.js: Unexpected token, expected "(" (844:10)
+  // Seems to be related to the `for each` syntax but did not find any further references.
+  ignoreExitValue true
 }
 
 task shell(type: JavaExec) {

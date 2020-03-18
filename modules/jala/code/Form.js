@@ -64,7 +64,7 @@ jala.Form = function(name, dataObj) {
     * @private
     */
    var tracker = undefined;
-   
+
    /**
     * Private field containing all components of this form
     * @type Array
@@ -94,7 +94,7 @@ jala.Form = function(name, dataObj) {
 
    /**
     * Sets the data object which is being edited by this form. This object
-    * is used to get the default values when first printing the form and 
+    * is used to get the default values when first printing the form and
     * - if no other object is provided - receives the changed values in save.
     * @param {Object} dataObj The object which is being edited by this form.
     * @see #save
@@ -158,7 +158,7 @@ jala.Form = function(name, dataObj) {
    });
 
    var tracker = undefined;
-   
+
    /**
     * Sets the tracker object this form instance uses for collecting
     * error messages and parsed values.
@@ -360,7 +360,7 @@ jala.Form.CHECKOPTIONS  = "checkoptions";
  * @type String
  * @final
  */
-jala.Form.CONTENTTYPE   = "contenttype"; 
+jala.Form.CONTENTTYPE   = "contenttype";
 
 /**
  * Constant used by require function to define that an image upload
@@ -606,7 +606,7 @@ jala.Form.prototype.render = function() {
 
    this.renderFormOpen();
    res.write("\n");
-   
+
    // print optional general error message
    var errorMessage = this.getErrorMessage();
    if (this.hasError() && errorMessage) {
@@ -678,8 +678,8 @@ jala.Form.prototype.validate = function(reqData) {
 };
 
 /**
- * Sets the parsed values on an object. By default the internally 
- * stored tracker and data objects are used, but those may be 
+ * Sets the parsed values on an object. By default the internally
+ * stored tracker and data objects are used, but those may be
  * overridden here.
  * @param {jala.Form.Tracker} tracker (optional) tracker object
  *       holding parsed data from form input.
@@ -785,7 +785,7 @@ jala.Form.Component = function Component(name) {
    if (!name) {
       throw "jala.Form.Component: missing component name";
    }
-   
+
    /**
     * The Form this component belongs to
     * @type jala.Form
@@ -798,7 +798,7 @@ jala.Form.Component = function Component(name) {
     * @type String
     */
    var className;
-   
+
    /**
     * Readonly reference to name of component
     * @type String
@@ -806,14 +806,14 @@ jala.Form.Component = function Component(name) {
    this.name;     // for doc purposes only, readonly-access is through the getter function
    this.__defineGetter__("name", function() {   return name;   });
 
-   
+
    /**
     * Readonly reference to instance of jala.Form.
     * @type jala.Form
     */
    this.form;     // for doc purposes only, readonly-access through the getter function
    this.__defineGetter__("form", function() {   return form;   });
-   
+
    /**
     * Attaches this component to an instance of jala.Form.
     * @param {jala.Form} newForm form object
@@ -862,7 +862,7 @@ jala.Form.Component = function Component(name) {
    this.containsFileUpload = function() {
       return false;
    };
-   
+
    return this;
 };
 
@@ -919,7 +919,7 @@ jala.Form.Component.prototype.save = function(destObj, val) {
  */
 jala.Form.Component.Fieldset = function Fieldset(name) {
    jala.Form.Component.Fieldset.superConstructor.apply(this, arguments);
-   
+
    /**
     * Private field containing the components of this fieldset
     * @type Array
@@ -1078,12 +1078,12 @@ jala.Form.Component.Fieldset.prototype.save = function(tracker, destObj) {
  */
 jala.Form.Component.Skin = function Skin(name) {
    jala.Form.Component.Skin.superConstructor.apply(this, arguments);
-   
+
    /**
     * Private field containing the handler object
     */
    var handler = undefined;
-   
+
    /**
     * Returns the handler object for the skin.
     * @type Object
@@ -1133,7 +1133,7 @@ jala.Form.Component.Input = function Input(name) {
     * Private map containing the requirements that need to be met
     */
    var requirements = {};
-   
+
    /**
     * Private map containing messages to use when a requirement is not met
     */
@@ -1150,7 +1150,7 @@ jala.Form.Component.Input = function Input(name) {
     * @type String
     */
    var help;
-   
+
    /**
     * Sets a requirement for this component.
     * If function is called without arguments, jala.Form.REQUIRE
@@ -1194,7 +1194,7 @@ jala.Form.Component.Input = function Input(name) {
       messages[key] = msg;
       return;
    };
-  
+
    /**
     * Returns a specific message for a config element.
     * @param {String} key The key of the message as defined by
@@ -1585,7 +1585,7 @@ jala.Form.Component.Input.prototype.getControlAttributes = function() {
    var attr = {
       id: this.createDomId("control"),
       name: this.name,
-      "class": this.getType() 
+      "class": this.getType()
    };
    if (this.getClassName()) {
       attr["class"] += " " + this.getClassName();
@@ -1605,7 +1605,7 @@ jala.Form.Component.Input.prototype.checkLength = function(reqData) {
    var require   = this.getRequirement(jala.Form.REQUIRE);
    var minLength = this.getRequirement(jala.Form.MINLENGTH);
    var maxLength = this.getRequirement(jala.Form.MAXLENGTH);
-   
+
    if (require && (reqData[this.name] == null || reqData[this.name].trim() == "")) {
       return this.getMessage(jala.Form.REQUIRE, "Please enter text into this field.");
    } else if (maxLength && reqData[this.name].length > maxLength) {
@@ -1791,7 +1791,7 @@ jala.Form.Component.Textarea = function Textarea(name) {
       cols = newCols;
       return;
    };
-   
+
    return this;
 };
 // extend jala.Form.Component.Input
@@ -1910,16 +1910,16 @@ jala.Form.Component.Date.prototype.parseValue = function(reqData) {
  */
 jala.Form.Component.Select = function Select(name) {
    jala.Form.Component.Select.superConstructor.apply(this, arguments);
-   
+
    var options, firstOption = undefined;
-   
+
    /**
     * Returns the option list for this component.
     */
    this.getOptions = function() {
       return options;
    };
-   
+
    /**
     * Sets the option list for this component.
     * The argument may either be an array that will be used as option list,
@@ -1930,13 +1930,13 @@ jala.Form.Component.Select = function Select(name) {
     * <li>Array of objects <code>[ {value:val, display:display}, .. ]</code></li>
     * <li>Array of strings <code>[ display, display, .. ]</code> In this case,
     *    the index position of the string will be the value.</li>
-    * @param {Array Function} newOptions Array or function defining option list.
+    * @param {Array|Function} newOptions Array or function defining option list.
     */
    this.setOptions = function(newOptions) {
       options = newOptions;
       return;
    };
-   
+
    /**
     * Returns the text that should be displayed if no value is selected.
     * @type String
@@ -1944,7 +1944,7 @@ jala.Form.Component.Select = function Select(name) {
    this.getFirstOption = function() {
       return firstOption;
    };
-   
+
    /**
     * Sets the text that is displayed if no value is selected
     * @param {String} newFirstOption text to display as first option element.
@@ -1953,7 +1953,7 @@ jala.Form.Component.Select = function Select(name) {
       firstOption = newFirstOption;
       return;
    };
-  
+
    return this;
 };
 // extend jala.Form.Component.Input
@@ -2224,7 +2224,7 @@ jala.Form.Component.File.prototype.checkRequirements = function(reqData) {
       return this.getMessage(jala.Form.MAXLENGTH, "This file is too big ({0} bytes), maximum allowed size {1} bytes.",
             reqData[this.name].contentLength, maxLength);
    }
-   
+
    var contentType = this.getRequirement(jala.Form.CONTENTTYPE);
    if (contentType) {
       var arr = (contentType instanceof Array) ? contentType : [contentType];
@@ -2233,7 +2233,7 @@ jala.Form.Component.File.prototype.checkRequirements = function(reqData) {
             reqData[this.name].contentType);
       }
    }
-   
+
    return null;
 };
 
@@ -2251,7 +2251,6 @@ jala.Form.Component.File.prototype.checkRequirements = function(reqData) {
 jala.Form.Component.Image = function() {};
 
 /**
- * @ignore
  * FIXME: JSDoc has some sever problems with this class.
  * It's somehow due to the named method ("Image") that it
  * always appears as global static object.
@@ -2290,22 +2289,22 @@ jala.Form.Component.Image.prototype.checkRequirements = function(reqData) {
       } catch (imgError) {
          return this.getMessage("invalid", "This image file can't be processed.");
       }
-   
+
       var maxWidth = this.getRequirement(jala.Form.MAXWIDTH);
       if (maxWidth && helmaImg.getWidth() > maxWidth) {
          return this.getMessage("maxwidth", "This image is too wide.");
       }
-      
+
       var minWidth = this.getRequirement(jala.Form.MINWIDTH);
       if (minWidth && helmaImg.getWidth() < minWidth) {
          return this.getMessage("minwidth", "This image is not wide enough.");
       }
-      
+
       var maxHeight = this.getRequirement(jala.Form.MAXHEIGHT);
       if (maxHeight && helmaImg.getHeight() > maxHeight) {
          return this.getMessage("maxheight", "This image is too tall.");
       }
-      
+
       var minHeight = this.getRequirement(jala.Form.MINHEIGHT);
       if (minHeight && helmaImg.getHeight() < minHeight) {
          return this.getMessage("minheight", "This image is not tall enough.");
@@ -2333,7 +2332,7 @@ jala.Form.Component.Button = function Button(name) {
     * @type String
     */
    var value;
-   
+
    /**
     * Returns the value set for this button.
     * @returns value
@@ -2375,7 +2374,7 @@ jala.Form.Component.Button.prototype.render = function(attr, value, reqData) {
 
    this.renderControls(this.getControlAttributes(), this.getValue());
    res.write("\n");
-   
+
    jala.Form.html.closeTag("div");
    res.write("\n");
    return;
@@ -2426,7 +2425,7 @@ jala.Form.Component.Submit.prototype.renderControls = function(attr, value) {
 
 
 /**
- * static default getter function used to return a field 
+ * static default getter function used to return a field
  * from the data object.
  * @param {String} name Name of the property.
  * @type Object
@@ -2436,7 +2435,7 @@ jala.Form.propertyGetter = function(name, value) {
 };
 
 /**
- * static default setter function used to change a field 
+ * static default setter function used to change a field
  * of the data object.
  * @param {String} name Name of the property.
  * @param {Object} value New value of the property.

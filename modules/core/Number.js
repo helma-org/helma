@@ -17,12 +17,14 @@
 /**
  * @fileoverview Adds useful methods to the JavaScript Number type.
  * <br /><br />
- * To use this optional module, its repository needs to be added to the 
+ * To use this optional module, its repository needs to be added to the
  * application, for example by calling app.addRepository('modules/core/Number.js')
  */
 
 /**
  * format a Number to a String
+ * @external
+ * @memberof {Number}
  * @param String Format pattern
  * @param java.util.Locale An optional Locale instance
  * @return String Number formatted to a String
@@ -39,9 +41,11 @@ Number.prototype.format = function(fmt, locale) {
 };
 
 
-/** 
+/**
  * return the percentage of a Number
  * according to a given total Number
+ * @external
+ * @memberof {Number}
  * @param Int Total
  * @param String Format Pattern
  * @param java.util.Locale An optional Locale instance
@@ -57,6 +61,8 @@ Number.prototype.toPercent = function(total, fmt, locale) {
 
 /**
  * factory to create functions for sorting objects in an array
+ * @external
+ * @memberof {Number}
  * @param String name of the field each object is compared with
  * @param Number order (ascending or descending)
  * @return Function ready for use in Array.prototype.sort

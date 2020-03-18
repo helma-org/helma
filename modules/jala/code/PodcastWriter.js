@@ -36,7 +36,7 @@ if (!global.jala) {
 /**
  * Jala dependencies
  */
-app.addRepository(getProperty("jala.dir", "modules/jala") + 
+app.addRepository(getProperty("jala.dir", "modules/jala") +
                   "/code/Rss20Writer.js");
 
 /**
@@ -55,11 +55,11 @@ jala.PodcastWriter = function(header) {
          name: "text"
       }
    };
-   
+
    var OWNER = {
       name: "itunes:owner",
       value: [{
-         name: "itunes:name" 
+         name: "itunes:name"
       }, {
          name: "itunes:email"
       }]
@@ -103,7 +103,7 @@ jala.PodcastWriter = function(header) {
     * Add an iTunes Podcast category.
     * @param {String} name The category's name.
     * @param {String} subName The (optional) sub-category's name.
-    * @param {jala.XmlWriter.XmlElement} parent Optional parent 
+    * @param {jala.XmlWriter.XmlElement} parent Optional parent
     * element to add the category to.
     */
    this.addItunesCategory = function(name, subName, parent) {
@@ -125,5 +125,6 @@ jala.PodcastWriter = function(header) {
 
 
 /** A typical XML header as default.
-    @type String @final */
+    @type {String}
+    @final */
 jala.PodcastWriter.XMLHEADER = '<?xml version="1.0" encoding="UTF-8"?>';

@@ -17,7 +17,7 @@
 /**
  * @fileoverview Adds useful methods to Helma's built-in HopObject prototype.
  * <br /><br />
- * To use this optional module, its repository needs to be added to the 
+ * To use this optional module, its repository needs to be added to the
  * application, for example by calling app.addRepository('modules/core/HopObject.js')
  */
 
@@ -27,6 +27,8 @@ app.addRepository("modules/core/String.js");
 
 /**
  * Iterates over each child node of the HopObject.
+ * @external
+ * @memberof {HopObject}
  * @param {Function} callback The callback function to be
  * called for each child node. On every call the first
  * argument of this function is set to the current value
@@ -45,6 +47,8 @@ HopObject.prototype.forEach = function(callback) {
 
 /**
  * macro returns the id of a HopObject
+ * @external
+ * @memberof {HopObject}
  */
 HopObject.prototype.id_macro = function() {
     res.write(this._id);
@@ -54,6 +58,8 @@ HopObject.prototype.id_macro = function() {
 
 /**
  * macro returns the url for any hopobject
+ * @external
+ * @memberof {HopObject}
  */
 HopObject.prototype.href_macro = function(param, action) {
     res.write(this.href(action || param.action || String.NULLSTR));
@@ -64,6 +70,8 @@ HopObject.prototype.href_macro = function(param, action) {
 /**
  * macro rendering a skin or displaying
  * its source (param.as == "source")
+ * @external
+ * @memberof {HopObject}
  */
 HopObject.prototype.skin_macro = function(param, name) {
     var skinName = name || param.name;
@@ -85,6 +93,8 @@ HopObject.prototype.skin_macro = function(param, name) {
 /**
  * this macro renders a text depending on
  * the value of a given property
+ * @external
+ * @memberof {HopObject}
  */
 HopObject.prototype.switch_macro = function(param) {
     if (param.name) {
@@ -97,6 +107,8 @@ HopObject.prototype.switch_macro = function(param) {
 /**
  * generic macro that loops over the childobjects
  * and renders a specified skin for each of them
+ * @external
+ * @memberof {HopObject}
  * @param Object providing the following properties:
  *        skin: the skin to render for each item (required)
  *        collection: the collection containing the items
@@ -160,7 +172,7 @@ HopObject.prototype.loop_macro = function(param, collection) {
 
 
 /**
- * Render the number of child nodes of the HopObject. 
+ * Render the number of child nodes of the HopObject.
  * Three cases are distinguished which can be customized
  * by setting param.verbose to "true" and defining the
  * corresponding field of the <code>param</code>
@@ -170,6 +182,8 @@ HopObject.prototype.loop_macro = function(param, collection) {
  * <li>param.one - exactly one child node</li>
  * <li>param.many - more than one child node</li>
  * </ol>
+ * @external
+ * @memberof {HopObject}
  * @param {Object} param The default macro parameter
  * @param {String} name The default name for a child node
  */

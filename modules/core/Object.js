@@ -23,6 +23,8 @@
 
 /**
  * Copies the properties of this object into a clone.
+ * @external
+ * @memberof {Object}
  * @param {Object} clone The optional target object
  * @param {Boolean} recursive If true child objects are cloned as well, otherwise
  * the clone contains references to the child objects
@@ -73,6 +75,8 @@ Object.prototype.clone = function(clone, recursive) {
 /**
  * reduce an extended object (ie. a HopObject)
  * to a generic javascript object
+ * @external
+ * @memberof {Object}
  * @param HopObject the HopObject to be reduced
  * @return Object the resulting generic object
  */
@@ -90,6 +94,8 @@ Object.prototype.reduce = function(recursive) {
 
 /**
  * print the contents of an object for debugging
+ * @external
+ * @memberof {Object}
  * @param Object the object to dump
  * @param Boolean recursive flag (if true, dump child objects, too)
  */
