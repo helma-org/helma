@@ -46,7 +46,7 @@ configurations {
 }
 
 dependencies {
-  implementation 'commons-codec:commons-codec:1.10'
+  implementation 'commons-codec:commons-codec:1.14'
   implementation 'commons-fileupload:commons-fileupload:1.4'
   implementation 'commons-logging:commons-logging:1.2'
   implementation 'commons-net:commons-net:3.6'
