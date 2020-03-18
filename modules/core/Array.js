@@ -17,14 +17,14 @@
 /**
  * @fileoverview Adds useful methods to the JavaScript Array type.
  * <br /><br />
- * To use this optional module, its repository needs to be added to the 
+ * To use this optional module, its repository needs to be added to the
  * application, for example by calling app.addRepository('modules/core/Array.js')
- * 
- * @addon
  */
 
 /**
  * Check if this array contains a specific value.
+ * @external
+ * @memberof {Array}
  * @param {Object} val the value to check
  * @return {boolean} true if the value is contained
  */
@@ -34,6 +34,8 @@ Array.prototype.contains = function(val) {
 
 /**
  * Retrieve the union set of a bunch of arrays
+ * @external
+ * @memberof {Array}
  * @param {Array} array1,... the arrays to unify
  * @return {Array} the union set
  */
@@ -54,6 +56,8 @@ Array.union = function() {
 
 /**
  * Retrieve the intersection set of a bunch of arrays
+ * @external
+ * @memberof {Array}
  * @param {Array} array1,... the arrays to intersect
  * @return {Array} the intersection set
  */

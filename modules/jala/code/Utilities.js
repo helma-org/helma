@@ -50,7 +50,6 @@ jala.Utilities = function() {
  * Return a string representation of the utitility class.
  * @returns [jala.Utilities]
  * @type String
- * @ignore FIXME: JSDoc bug
  */
 jala.Utilities.toString = function() {
    return "[jala.Utilities]";
@@ -91,7 +90,7 @@ jala.Utilities.prototype.createPassword = function(len, level) {
    var LETTERSONLY  = 0;
    var WITHNUMBERS  = 1;
    var WITHSPECIALS = 2;
-   
+
    var vowels     = ['a', 'e', 'i', 'o', 'u'];
    var consonants = ['b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'x', 'y', 'z'];
    var specials   = ['.', '#', '!', '$', '%', '&', '?'];
@@ -153,14 +152,14 @@ jala.Utilities.VALUE_ADDED = 1;
 jala.Utilities.VALUE_MODIFIED = 2;
 
 /**
- * Returns an array containing the properties that are 
+ * Returns an array containing the properties that are
  * added, removed or modified in one object compared to another.
  * @param {Object} obj1 The first of two objects which should be compared
  * @param {Object} obj2 The second of two objects which should be compared
  * @returns An Object containing all properties that are added, removed
- * or modified in the second object compared to the first. 
- * Each property contains a status field with an integer value 
- * which can be checked against the static jala.Utility fields 
+ * or modified in the second object compared to the first.
+ * Each property contains a status field with an integer value
+ * which can be checked against the static jala.Utility fields
  * VALUE_ADDED, VALUE_MODIFIED and VALUE_REMOVED.
  * @type Object
  */
@@ -211,7 +210,7 @@ jala.Utilities.prototype.diffObjects = function(obj1, obj2) {
 };
 
 /**
- * Patches an object with a "diff" object created by the 
+ * Patches an object with a "diff" object created by the
  * {@link #diffObjects} method.
  * Please mind that this method is recursive, it descends
  * along the "diff" object structure.

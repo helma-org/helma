@@ -37,7 +37,7 @@ if (!global.jala) {
  * Construct a new XML writer.
  * @class This class defines a generic interface to write
  * arbitrary and validating XML source code. This is done
- * by first applying data objects onto template objects, 
+ * by first applying data objects onto template objects,
  * both in a specified format. Then, the resulting object
  * tree is transformed into XML. Moreover, template objects
  * can be extended with other template objects to provide
@@ -48,11 +48,10 @@ if (!global.jala) {
  */
 jala.XmlWriter = function(header) {
    var self = this;
-   var XMLHEADER = header || 
+   var XMLHEADER = header ||
                    '<?xml version="1.0" encoding="iso-8859-15"?>';
    var LOCALE = java.util.Locale.ENGLISH;
 
-   /** @ignore FIXME: JSDoc bug */
    var write = function(str) {
       return res.write(str);
    };
@@ -91,11 +90,11 @@ jala.XmlWriter = function(header) {
 
       var children = {};
       var properties = [
-         "name", 
-         "attributes", 
-         "type", 
-         "required", 
-         "format", 
+         "name",
+         "attributes",
+         "type",
+         "required",
+         "format",
          "readonly"
       ];
 
@@ -131,7 +130,7 @@ jala.XmlWriter = function(header) {
    XmlElement.toString = function() {
       return "[XmlElement constructor]";
    };
-   
+
    /** @ignore */
    XmlElement.prototype.setValue = function(element) {
       if (element.constructor != this.constructor)
@@ -179,15 +178,15 @@ jala.XmlWriter = function(header) {
             if (data && data.attributes)
                value = data.attributes[attr.name];
             if (data && (data.value || data.attributes) && !value && attr.required) {
-               throw Error('Missing required ' + (attr.type || Object).name + ' attribute "' + 
+               throw Error('Missing required ' + (attr.type || Object).name + ' attribute "' +
                            attr.name + '" in element &lt;' + this.name + '&gt; (' + value + ")");
             }
             if (value && attr.type && attr.type != value.constructor) {
-               throw Error('Type mismatch in attribute "' + 
+               throw Error('Type mismatch in attribute "' +
                            this.name + ":" + attr.name + '"');
             }
             if (value) {
-               app.debug("populating attribute " + attr.name + 
+               app.debug("populating attribute " + attr.name +
                          " with " + value.constructor.name + ": " + value.toSource());
             }
             if (!attr.readonly) {
@@ -211,7 +210,7 @@ jala.XmlWriter = function(header) {
             throw Error('Type mismatch in element "' + this.name + '"');
          }
          if (data) {
-            app.debug("populating element &lt;" + this.name +  "&gt; with " + 
+            app.debug("populating element &lt;" + this.name +  "&gt; with " +
                       (this.type || Object).name + ": " + data.toSource());
          }
          if (!this.readonly)
@@ -288,7 +287,7 @@ jala.XmlWriter = function(header) {
    };
 
    /**
-    * Extend a template object. 
+    * Extend a template object.
     * @param {Object} template The template object.
     * @param {Object} ext The extension object.
     * @returns The XML writer.
@@ -303,9 +302,9 @@ jala.XmlWriter = function(header) {
       }
       return this;
    };
-   
+
    /**
-    * Add a namespace to this writer. 
+    * Add a namespace to this writer.
     * @param {String} name The name of the namespace.
     * @param {String} url The URL string of the namespace.
     * @returns The XML root element.

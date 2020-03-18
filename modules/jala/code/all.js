@@ -29,6 +29,7 @@
 
 // Define the global namespace for Jala modules
 if (!global.jala) {
+   /** @namespace jala */
    global.jala = {};
 }
 
@@ -39,7 +40,7 @@ if (!global.jala) {
       "BitTorrent",
       "Date",
       "DnsClient",
-      "Captcha", 
+      "Captcha",
       "Form",
       "History",
       "HtmlDocument",

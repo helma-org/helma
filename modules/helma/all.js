@@ -14,8 +14,10 @@
  * $Date$
  */
 
-// convenience SingleFileRepository to load all the 
+// convenience SingleFileRepository to load all the
 // Javascript library files in ./modules/helma
+
+/** @namespace helma */
 
 app.addRepository('modules/helma/Aspects.js');
 app.addRepository('modules/helma/Chart.js');
