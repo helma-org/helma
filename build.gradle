@@ -182,9 +182,9 @@ task jsdoc(type: Exec) {
   ignoreExitValue true
 }
 
-task shell(type: JavaExec) {
-  def rhinoJar = configurations.library.files.find { f ->
-    f.name.startsWith('rhino')
+task rhinoShell(type: JavaExec) {
+  def rhinoJar = configurations.library.files.find { jar ->
+    jar.name.startsWith('rhino')
   }
 
   classpath = files(rhinoJar)
