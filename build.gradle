@@ -2,6 +2,10 @@ import org.apache.tools.ant.filters.FixCrLfFilter
 
 def jettyLogLevel = '-Dorg.eclipse.jetty.LEVEL=WARN'
 
+// Suppress menu bar and default icon being shown in macos dock (Radar #5754483)
+// See https://developer.apple.com/library/content/releasenotes/Java/JavaLeopardUpdate1RN/ResolvedIssues/ResolvedIssues.html
+def suppressMacosDockIcon = '-Dapple.awt.UIElement=true'
+
 // This list is used to determine which files need processing of line endings
 def textFiles = ['**/*.hac', '**/.html', '**/*.js', '**/*.md', '**/*.properties', '**/*.skin', '**/*.txt', '**/*.xml']
 
@@ -61,7 +65,8 @@ startScripts {
   applicationName = 'helma'
   classpath = files('../launcher.jar')
   mainClassName = 'helma.main.launcher.Main'
-  defaultJvmOpts = [jettyLogLevel]
+
+  defaultJvmOpts = [jettyLogLevel, suppressMacosDockIcon]
 
   doLast {
     // Work-around to make the classpath above work (launcher.jar is located outside of `lib` dir)
@@ -119,7 +124,7 @@ installDist {
 
 run {
   classpath = files('launcher.jar')
-  jvmArgs jettyLogLevel
+  jvmArgs jettyLogLevel, suppressMacosDockIcon
 }
 
 task processSource(type: Sync) {
