@@ -193,8 +193,10 @@ task rhinoShell(type: JavaExec) {
   standardInput = System.in
 }
 
+// Call this task with a function definition using the `-P` parameter, e.g.
+// `./gradlew commandLine -Pfunction=manage.getAllApplications`
 task commandLine(type: JavaExec) {
   classpath = files('launcher.jar')
   main = 'helma.main.launcher.Commandline'
-  args '-h', projectDir, 'manage.getAllApplications'
+  args '-h', projectDir, function
 }
