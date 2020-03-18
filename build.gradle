@@ -1,4 +1,9 @@
+import org.apache.tools.ant.filters.FixCrLfFilter
+
 def jettyLogLevel = '-Dorg.eclipse.jetty.LEVEL=WARN'
+
+// This list is used to determine which files need processing of line endings
+def textFiles = ['**/*.hac', '**/.html', '**/*.js', '**/*.md', '**/*.properties', '**/*.skin', '**/*.txt', '**/*.xml']
 
 allprojects {
   apply plugin: 'java'
@@ -95,6 +100,16 @@ applicationDistribution.from("${project.buildDir}/docs/jsdoc") {
 
 distTar {
   compression = Compression.GZIP
+
+  filesMatching(textFiles) {
+    filter(FixCrLfFilter.class, eol: FixCrLfFilter.CrLf.newInstance("lf"))
+  }
+}
+
+distZip {
+  filesMatching(textFiles) {
+    filter(FixCrLfFilter.class, eol: FixCrLfFilter.CrLf.newInstance("crlf"))
+  }
 }
 
 installDist {
