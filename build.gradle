@@ -187,6 +187,9 @@ task update {
 }
 
 task jsdoc(type: Exec) {
+  group 'Documentation'
+  description 'Generates JSDoc API documentation for the included JavaScript modules'
+
   def sources = ['modules/core', 'modules/helma', 'modules/jala/code']
   def destination = "${project.buildDir}/docs/jsdoc"
 
@@ -203,6 +206,9 @@ task jsdoc(type: Exec) {
 }
 
 task rhinoShell(type: JavaExec) {
+  group 'Application'
+  description 'Runs the interactive Rhino JavaScript shell'
+
   def rhinoJar = configurations.library.files.find { jar ->
     jar.name.startsWith('rhino')
   }
@@ -216,6 +222,9 @@ task rhinoShell(type: JavaExec) {
 // Call this task with a function definition using the `-P` parameter, e.g.
 // `./gradlew commandLine -Pfunction=manage.getAllApplications`
 task commandLine(type: JavaExec) {
+  group 'Application'
+  description 'Runs a function in a Helma application with `-Pfunction=app.functionName`'
+
   classpath = files('launcher.jar')
   main = 'helma.main.launcher.Commandline'
   args '-h', projectDir, function
