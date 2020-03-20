@@ -27,7 +27,7 @@ import java.util.Date;
 import java.util.Map;
 
 /**
- * 
+ *
  */
 public class ResponseBean implements Serializable {
     ResponseTrans res;
@@ -45,7 +45,7 @@ public class ResponseBean implements Serializable {
      * Write an object to the response buffer by converting it to a string
      * and then HTML-encoding it.
      *
-     * @param obj the object to write to the response buffer 
+     * @param obj the object to write to the response buffer
      */
     public void encode(Object obj) {
         res.encode(obj);
@@ -55,7 +55,7 @@ public class ResponseBean implements Serializable {
      * Write an object to the response buffer by converting it to a string
      * and then XML-encoding it.
      *
-     * @param obj the object to write to the response buffer 
+     * @param obj the object to write to the response buffer
      */
     public void encodeXml(Object obj) {
         res.encodeXml(obj);
@@ -75,7 +75,7 @@ public class ResponseBean implements Serializable {
      * Write an object to the response buffer by converting it to a string
      * and then HTML-formatting it.
      *
-     * @param obj the object to write to the response buffer 
+     * @param obj the object to write to the response buffer
      */
     public void format(Object obj) {
         res.format(obj);
@@ -134,7 +134,7 @@ public class ResponseBean implements Serializable {
     }
 
     /**
-     * Set a HTTP cookie with the name and value that is discarded when the 
+     * Set a HTTP cookie with the name and value that is discarded when the
      * HTTP client is closed
      *
      * @param key the cookie name
@@ -145,7 +145,7 @@ public class ResponseBean implements Serializable {
     }
 
     /**
-     * Set a HTTP cookie with the name and value that is stored by the 
+     * Set a HTTP cookie with the name and value that is stored by the
      * HTTP client for the given number of days. A days value of 0 means the
      * cookie should be immediately discarded.
      *
@@ -158,8 +158,8 @@ public class ResponseBean implements Serializable {
     }
 
     /**
-     * Set a HTTP cookie with the name and value that is only applied to 
-     * the URLs matching the given path and is stored by the 
+     * Set a HTTP cookie with the name and value that is only applied to
+     * the URLs matching the given path and is stored by the
      * HTTP client for the given number of days. A days value of 0 means the
      * cookie should be immediately discarded.
      *
@@ -173,8 +173,8 @@ public class ResponseBean implements Serializable {
     }
 
     /**
-     * Set a HTTP cookie with the name and value that is only applied to 
-     * the URLs matching the given path and is stored by the 
+     * Set a HTTP cookie with the name and value that is only applied to
+     * the URLs matching the given path and is stored by the
      * HTTP client for the given number of days. A days value of 0 means the
      * cookie should be immediately discarded.
      *
@@ -187,9 +187,9 @@ public class ResponseBean implements Serializable {
     public void setCookie(String key, String value, int days, String path, String domain) {
         res.setCookie(key, value, days, path, domain);
     }
-    
+
     /**
-     * Unset a previously set HTTP cookie, causing it to be discarded immedialtely by the 
+     * Unset a previously set HTTP cookie, causing it to be discarded immedialtely by the
      * HTTP client.
      *
      * @param key the name of the cookie to be discarded
@@ -207,7 +207,7 @@ public class ResponseBean implements Serializable {
         if (str == null) return;
 
         for (String s : str) {
-            res.write(s);
+            res.write(s + "");
         }
     }
 
@@ -220,7 +220,7 @@ public class ResponseBean implements Serializable {
         if (str == null) return;
 
         for (String s : str) {
-            res.writeln(s);
+            res.writeln(s + "");
         }
     }
 
@@ -251,7 +251,7 @@ public class ResponseBean implements Serializable {
         }
 
         for (String message : messages) {
-            res.debug(message);
+            res.debug(message + " ");
         }
     }
 
@@ -265,10 +265,10 @@ public class ResponseBean implements Serializable {
     }
 
     // property-related methods
-    
+
     /**
      * Return the current cachability setting for this response
-     * 
+     *
      * @return true if the response may be cached by the HTTP client, false otherwise
      */
     public boolean getCache() {
@@ -374,7 +374,7 @@ public class ResponseBean implements Serializable {
     public Map getHandlers() {
         return res.getMacroHandlers();
     }
-    
+
     /**
      * Get the meta map for the response
      *
@@ -546,7 +546,7 @@ public class ResponseBean implements Serializable {
     }
 
     /**
-     * Add an item to this response's dependencies. If no dependency has changed between 
+     * Add an item to this response's dependencies. If no dependency has changed between
      * requests, an HTTP not-modified response will be generated.
      *
      * @param what a string item this response depends on
