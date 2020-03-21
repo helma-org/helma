@@ -28,9 +28,7 @@
  * @param {Object} val the value to check
  * @return {boolean} true if the value is contained
  */
-Array.prototype.contains = function(val) {
-   return this.indexOf(val) > -1;
-};
+Array.prototype.contains = Array.prototype.includes
 
 /**
  * Retrieve the union set of a bunch of arrays
