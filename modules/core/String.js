@@ -399,21 +399,6 @@ String.prototype.md5 = function() {
 
 
 /**
- * function repeats a string the specified amount of times
- * @external
- * @memberof {String}
- * @param Int amount of repetitions
- * @return String resulting string
- */
-String.prototype.repeat = function(multiplier) {
-    res.push();
-    for (var i=0; i<multiplier; i++)
-        res.write(this);
-    return res.pop();
-};
-
-
-/**
  * function returns true if the string starts with
  * the string passed as argument
  * @external
