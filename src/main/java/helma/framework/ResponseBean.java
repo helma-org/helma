@@ -209,7 +209,7 @@ public class ResponseBean implements Serializable {
         if (str == null) return;
 
         for (String s : str) {
-            res.write(s + " ");
+            res.write(s + "");
         }
     }
 
@@ -222,7 +222,7 @@ public class ResponseBean implements Serializable {
         if (str == null) return;
 
         for (String s : str) {
-            res.write(s + " ");
+            res.write(s + "");
         }
 
         res.writeln();
