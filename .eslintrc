@@ -1,0 +1,15 @@
+{
+  "extends": "eslint:recommended",
+  "env": {
+    "es6": true,
+    "commonjs": true
+  },
+  "globals": {
+    "app": "readonly",
+    "HopObject": "readonly",
+    "java": "readonly",
+    "Packages": "readonly",
+    "req": "readonly",
+    "res": "readonly"
+  }
+}

@@ -97,7 +97,7 @@ function encode(text, encodeNewLine) {
 
   if (text === null || !text.length) return text;
   var buffer = [];
-  if (typeof encodeNewline === 'undefined') encodeNewline = true;
+  if (typeof encodeNewLine === 'undefined') encodeNewLine = true;
 
   for (var i = 0, len = text.length; i < len; i += 1) {
     var char = text.charAt(i);
@@ -120,7 +120,7 @@ function encode(text, encodeNewLine) {
       break;
 
       case '\n':
-      if (encodeNewline) {
+      if (encodeNewLine) {
         buffer.push("<br/>");
       }
       buffer.push('\n');
@@ -178,7 +178,7 @@ function encodeXml(text) {
       break;
 
       default:
-      var charCode = str.charCodeAt(i);
+      var charCode = text.charCodeAt(i);
       if (charCode < 0x20) {
         // sort out invalid XML characters below 0x20 - all but 0x9, 0xA and 0xD.
         // The trick is an adaption of java.lang.Character.isSpace().
