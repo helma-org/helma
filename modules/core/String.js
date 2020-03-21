@@ -399,23 +399,6 @@ String.prototype.md5 = function() {
 
 
 /**
- * function returns true if the string starts with
- * the string passed as argument
- * @external
- * @memberof {String}
- * @param String string pattern to search for
- * @return Boolean true in case it matches the beginning
- *            of the string, false otherwise
- */
-String.prototype.startsWith = function(str, offset) {
-    var javaObj = new java.lang.String(this);
-    if (offset != null)
-        return javaObj.startsWith(str, offset);
-    return javaObj.startsWith(str);
-};
-
-
-/**
  * function returns true if the string ends with
  * the string passed as argument
  * @external
