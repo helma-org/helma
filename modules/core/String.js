@@ -42,6 +42,8 @@ String.URLPATTERN     = /^(https?|ftp):\/\/(((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\
  * application, for example by calling app.addRepository('modules/core/String.js')
  */
 
+app.addRepository('modules/core/Global.js');
+
 /**
  * checks if a date format pattern is correct
  * @external
@@ -392,54 +394,7 @@ String.prototype.unwrap = function(removeTags, replacement) {
  * @return String md5 hash of the string
  */
 String.prototype.md5 = function() {
-    return Packages.helma.util.MD5Encoder.encode(this);
-};
-
-
-/**
- * function repeats a string the specified amount of times
- * @external
- * @memberof {String}
- * @param Int amount of repetitions
- * @return String resulting string
- */
-String.prototype.repeat = function(multiplier) {
-    res.push();
-    for (var i=0; i<multiplier; i++)
-        res.write(this);
-    return res.pop();
-};
-
-
-/**
- * function returns true if the string starts with
- * the string passed as argument
- * @external
- * @memberof {String}
- * @param String string pattern to search for
- * @return Boolean true in case it matches the beginning
- *            of the string, false otherwise
- */
-String.prototype.startsWith = function(str, offset) {
-    var javaObj = new java.lang.String(this);
-    if (offset != null)
-        return javaObj.startsWith(str, offset);
-    return javaObj.startsWith(str);
-};
-
-
-/**
- * function returns true if the string ends with
- * the string passed as argument
- * @external
- * @memberof {String}
- * @param String string pattern to search for
- * @return Boolean true in case it matches the end of
- *            the string, false otherwise
- */
-String.prototype.endsWith = function(str) {
-    var javaObj = new java.lang.String(this);
-    return javaObj.endsWith(str);
+    return Packages.org.apache.commons.codec.digest.DigestUtils.md5Hex(this);
 };
 
 
@@ -455,28 +410,21 @@ String.prototype.endsWith = function(str) {
  *                     String.BALANCE and String.RIGHT here as well.)
  * @return String the resulting string
  */
-String.prototype.pad = function(str, len, mode) {
-    if (str  == null || len == null)
-        return this;
-    var diff = len - this.length;
-    if (diff == 0)
-        return this;
-    var left, right = 0;
-    if (mode == null || mode == String.RIGHT)
-        right = diff;
-    else if (mode == String.LEFT)
-        left = diff;
-    else if (mode == String.BALANCE) {
-        right = Math.round(diff / 2);
-        left = diff - right;
+String.prototype.pad = function(str, length, mode) {
+    if (mode === null || mode === String.RIGHT) return this.padEnd(length, str);
+    if (mode === String.LEFT) return this.padStart(length, str);
+
+    if (mode === String.BALANCE && str && length) {
+      const pos = Math.ceil(this.length / 2);
+      const head = this.substr(0, pos);
+      const tail = this.substr(pos);
+      const additionalLength = (length - this.length) / 2;
+      const startLength = head.length + Math.floor(additionalLength);
+      const endLength = tail.length + Math.ceil(additionalLength);
+      return head.padStart(startLength, str) + tail.padEnd(endLength, str);
     }
-    res.push();
-    for (var i=0; i<left; i++)
-        res.write(str);
-    res.write(this);
-    for (var i=0; i<right; i++)
-        res.write(str);
-    return res.pop();
+
+    return this;
 };
 
 
@@ -490,9 +438,7 @@ String.prototype.pad = function(str, len, mode) {
  * @param Boolean
  */
 String.prototype.contains = function(str, fromIndex) {
-    if (this.indexOf(str, fromIndex ? fromIndex : 0) > -1)
-        return true;
-    return false;
+    return this.indexOf(str, fromIndex || 0) > -1;
 };
 
 
@@ -555,17 +501,6 @@ String.prototype.diff = function(mod, separator) {
         }
     }
     return result;
-};
-
-
-/**
- * remove leading and trailing whitespace
- * @external
- * @memberof {String}
- */
-String.prototype.trim = function () {
-    var s = new java.lang.String(this);
-    return String(s.trim());
 };
 
 

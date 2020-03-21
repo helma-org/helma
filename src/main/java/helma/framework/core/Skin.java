@@ -1190,6 +1190,8 @@ public final class Skin {
      * Exception type for unhandled, forbidden or failed macros
      */
     class MacroException extends Exception {
+        private static final long serialVersionUID = 396025641010781784L;
+
         MacroException(String message) {
             super(message);
         }

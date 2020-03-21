@@ -35,6 +35,8 @@ import java.lang.reflect.Method;
  * This uses the NetComponent classes from savarese.org (ex oroinc.com).
  */
 public class FtpObject extends ScriptableObject {
+    private static final long serialVersionUID = 3470670009973887555L;
+
     private FTPClient ftpclient;
     private String server;
     private Exception lastError = null;

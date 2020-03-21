@@ -28,9 +28,7 @@
  * @param {Object} val the value to check
  * @return {boolean} true if the value is contained
  */
-Array.prototype.contains = function(val) {
-   return this.indexOf(val) > -1;
-};
+Array.prototype.contains = Array.prototype.includes
 
 /**
  * Retrieve the union set of a bunch of arrays
@@ -40,18 +38,9 @@ Array.prototype.contains = function(val) {
  * @return {Array} the union set
  */
 Array.union = function() {
-   var result = [];
-   var map = {};
-   for (var i=0; i<arguments.length; i+=1) {
-      for (var n in arguments[i]) {
-         var item = arguments[i][n];
-         if (!map[item]) {
-            result.push(item);
-            map[item] = true;
-         }
-      }
-   }
-   return result;
+   return Array.from(arguments).reduce((result, array) => {
+      return result.concat(array.filter(element => !result.includes(element)));
+   }, []);
 };
 
 /**
@@ -62,21 +51,9 @@ Array.union = function() {
  * @return {Array} the intersection set
  */
 Array.intersection = function() {
-   var all = Array.union.apply(this, arguments);
-   var result = [];
-   for (var n in all) {
-      var chksum = 0;
-      var item = all[n];
-      for (var i=0; i<arguments.length; i+=1) {
-         if (arguments[i].contains(item))
-            chksum += 1;
-         else
-            break;
-      }
-      if (chksum == arguments.length)
-         result.push(item);
-   }
-   return result;
+   return Array.from(arguments).reduce((result, array) => {
+      return result.filter(element => array.includes(element));
+   });
 };
 
 // prevent any newly added properties from being enumerated

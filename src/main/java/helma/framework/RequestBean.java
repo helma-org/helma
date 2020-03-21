@@ -24,6 +24,8 @@ import java.util.Map;
  * 
  */
 public class RequestBean implements Serializable {
+    private static final long serialVersionUID = -6826881712426326687L;
+
     RequestTrans req;
 
     /**

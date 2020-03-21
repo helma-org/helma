@@ -415,6 +415,11 @@ public final class Prototype {
      *  @return an iterator of this prototype's code resources
      */
     public synchronized Iterator getCodeResources() {
+    	// if code has never been updated, do so now before returning an empty or incomplete list
+    	if (lastCodeUpdate == 0) {
+    		checkForUpdates();
+    	}
+    	
         // we copy over to a new list, because the underlying set may grow
         // during compilation through use of app.addRepository()
         return new ArrayList(code).iterator();
@@ -487,6 +492,8 @@ public final class Prototype {
      * A Map that dynamically expands to all skins in this prototype.
      */
     class SkinMap extends HashMap {
+        private static final long serialVersionUID = -8855785541204100909L;
+
         volatile long lastSkinmapLoad = -1;
         Object[] skinpath;
 

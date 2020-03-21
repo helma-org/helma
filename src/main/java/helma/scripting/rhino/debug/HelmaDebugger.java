@@ -123,6 +123,8 @@ public class HelmaDebugger extends Dim implements TreeSelectionListener {
 
     class DebuggerTreeNode extends DefaultMutableTreeNode {
 
+        private static final long serialVersionUID = -5881442554351749706L;
+
         public DebuggerTreeNode(Object obj) {
             super(obj);
         }
@@ -155,6 +157,8 @@ public class HelmaDebugger extends Dim implements TreeSelectionListener {
     }
 
     class DebugGui extends SwingGui {
+
+        private static final long serialVersionUID = 8930558796272502640L;
 
         String currentSourceUrl;
 

@@ -24,6 +24,8 @@ import javax.servlet.http.Cookie;
  *  of an HTTP cookie.
  */
 public final class CookieTrans implements Serializable {
+    private static final long serialVersionUID = 1811202114296536258L;
+
     String name;
     String value;
     String path;

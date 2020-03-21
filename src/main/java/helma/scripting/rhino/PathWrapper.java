@@ -29,6 +29,8 @@ import java.io.UnsupportedEncodingException;
  */
 public class PathWrapper extends ScriptableObject {
 
+    private static final long serialVersionUID = 514381479839863014L;
+
     RequestPath path;
     RhinoCore core;
 
@@ -44,7 +46,7 @@ public class PathWrapper extends ScriptableObject {
         setParentScope(core.getScope());
         setPrototype(null);
         defineProperty("length", PathWrapper.class, DONTENUM | READONLY | PERMANENT);
-        defineFunctionProperties(new String[] {"href", "contains"}, 
+        defineFunctionProperties(new String[] {"href", "contains"},
                                  PathWrapper.class, DONTENUM | PERMANENT);
     }
 
@@ -127,7 +129,7 @@ public class PathWrapper extends ScriptableObject {
 
         return path.href(null);
     }
-    
+
     /**
      * Checks if the given object is contained in the request path
      *
@@ -137,7 +139,7 @@ public class PathWrapper extends ScriptableObject {
     public int contains(Object obj) {
         if (obj instanceof Wrapper)
             obj = ((Wrapper) obj).unwrap();
-        return path.contains(obj);
+        return path.indexOf(obj);
     }
 
     public String getClassName() {
@@ -147,7 +149,7 @@ public class PathWrapper extends ScriptableObject {
     public String toString() {
         return "PathWrapper["+path.toString()+"]";
     }
-    
+
     /**
      * Return a primitive representation for this object.
      * FIXME: We always return a string representation.

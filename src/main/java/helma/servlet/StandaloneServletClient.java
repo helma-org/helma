@@ -39,6 +39,8 @@ import java.util.*;
  *     </ul>
  */
 public final class StandaloneServletClient extends AbstractServletClient {
+    private static final long serialVersionUID = 6515895361950250466L;
+
     private Application app = null;
     private String appName;
     private String appDir;

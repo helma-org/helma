@@ -29,6 +29,7 @@ import java.security.NoSuchAlgorithmException;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.*;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
@@ -39,6 +40,8 @@ import org.apache.commons.fileupload.servlet.ServletRequestContext;
  * via RMI. Subclasses are either one servlet per app, or one servlet that handles multiple apps
  */
 public abstract class AbstractServletClient extends HttpServlet {
+
+    private static final long serialVersionUID = -6096445259839663680L;
 
     // limit to HTTP uploads per file in kB
     int uploadLimit = 1024;
@@ -514,9 +517,9 @@ public abstract class AbstractServletClient extends HttpServlet {
             checksum[i] = (byte) (n);
             n >>>= 8;
         }
-        String etag = "\"" + new String(helma.util.Base64.encode(checksum)) + "\"";
-        res.setHeader("ETag", etag);
-        String etagHeader = req.getHeader("If-None-Match");
+        String etag = "\"" + new String(Base64.encodeBase64(checksum)) + "\"";  //$NON-NLS-1$//$NON-NLS-2$
+        res.setHeader("ETag", etag); //$NON-NLS-1$
+        String etagHeader = req.getHeader("If-None-Match"); //$NON-NLS-1$
         if (etagHeader != null) {
             StringTokenizer st = new StringTokenizer(etagHeader, ", \r\n");
             while (st.hasMoreTokens()) {

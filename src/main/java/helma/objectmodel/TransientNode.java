@@ -36,6 +36,8 @@ import java.util.Vector;
  * object, class helma.objectmodel.db.Node has to be used.
  */
 public class TransientNode implements INode, Serializable {
+    private static final long serialVersionUID = -4599844796152072979L;
+
     private static long idgen = 0;
     protected Hashtable propMap;
     protected Hashtable nodeMap;

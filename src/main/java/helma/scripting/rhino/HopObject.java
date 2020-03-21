@@ -33,6 +33,8 @@ import java.io.IOException;
  */
 public class HopObject extends ScriptableObject implements Wrapper, PropertyRecorder {
 
+    private static final long serialVersionUID = 1329862822101428427L;
+
     String className;
     final NodeProxy proxy;
     final RhinoCore core;
@@ -705,6 +707,7 @@ public class HopObject extends ScriptableObject implements Wrapper, PropertyReco
      * Return its index position if it is, and -1 otherwise.
      * @deprecated use indexOf(Object) instead.
      */
+    @Deprecated
     public int jsFunction_contains(Object obj) {
         return jsFunction_indexOf(obj);
     }

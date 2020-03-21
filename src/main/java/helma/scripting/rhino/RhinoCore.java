@@ -44,7 +44,7 @@ import org.mozilla.javascript.Undefined;
 import org.mozilla.javascript.WrapFactory;
 import org.mozilla.javascript.Wrapper;
 import org.mozilla.javascript.commonjs.module.RequireBuilder;
-import org.mozilla.javascript.commonjs.module.provider.*;
+import org.mozilla.javascript.commonjs.module.provider.StrongCachingModuleScriptProvider;
 import org.mozilla.javascript.tools.debugger.ScopeProvider;
 
 import java.io.*;
@@ -175,9 +175,11 @@ public final class RhinoCore implements ScopeProvider {
                 }
             }
 
+            // install the global require() function using our custom modules provider, so that
+            // CommonJS-style as well as NodeJS-style modules can be required
             new RequireBuilder()
-                .setModuleScriptProvider(new StrongCachingModuleScriptProvider(
-                    new UrlModuleSourceProvider(commonJsPaths, null)))
+                .setModuleScriptProvider(new CompiledOrInterpretedModuleScriptProvider(
+                        new NodeModulesProvider(commonJsPaths, null)))
                 .setSandboxed(true)
                 .createRequire(context, global)
                 .install(global);
@@ -1177,6 +1179,8 @@ public final class RhinoCore implements ScopeProvider {
     }
 
     class StringTrim extends BaseFunction {
+        private static final long serialVersionUID = -1515630068911501925L;
+
         public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
             String str = thisObj.toString();
             return str.trim();
@@ -1184,6 +1188,8 @@ public final class RhinoCore implements ScopeProvider {
     }
 
     class DateFormat extends BaseFunction {
+        private static final long serialVersionUID = 4694440247686532087L;
+
         public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
             Date date = new Date((long) ScriptRuntime.toNumber(thisObj));
             SimpleDateFormat df;
@@ -1208,6 +1214,8 @@ public final class RhinoCore implements ScopeProvider {
     }
 
     class NumberFormat extends BaseFunction {
+        private static final long serialVersionUID = -6999409297243210875L;
+
         public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
             DecimalFormat df;
             if (args.length > 0 && args[0] != Undefined.instance) {

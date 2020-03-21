@@ -32,6 +32,8 @@ import java.io.IOException;
  */
 public class JavaObject extends NativeJavaObject {
 
+    private static final long serialVersionUID = 6348440950512377606L;
+
     RhinoCore core;
     String protoName;
     NativeJavaObject unscriptedJavaObj;

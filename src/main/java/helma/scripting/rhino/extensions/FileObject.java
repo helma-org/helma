@@ -40,6 +40,8 @@ import java.lang.reflect.Method;
   * An EcmaScript FileIO 'File' object
   */
 public class FileObject extends ScriptableObject {
+    private static final long serialVersionUID = -9098307162306984764L;
+
     File file = null;
     Object readerWriter = null;
     boolean atEOF = false;

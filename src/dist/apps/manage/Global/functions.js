@@ -46,7 +46,7 @@ function createAddressFilter() {
 }
 
 
-/** 
+/**
   * updates the stats in app.data.stat every 5 minutes
   */
 function appStat() {
@@ -123,7 +123,7 @@ function checkAuth(appObj) {
     if (uname == null || uname == "" || pwd == null || pwd == "")
         return forceAuth();
 
-    var md5key = Packages.helma.util.MD5Encoder.encode(uname + "-" + pwd);
+    var md5key = Packages.org.apache.commons.codec.digest.DigestUtils.md5Hex(uname + "-" + pwd);
 
     if (md5key == adminAccess)
         return true;

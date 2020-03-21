@@ -66,9 +66,9 @@ public class HacHspConverter {
         f.append(" (");
         if (args != null)
             f.append(args);
-        f.append(") {\n");
+        f.append(") {");
         f.append(body);
-        f.append("\n}");
+        f.append("}");
 
         return f.toString();
     }

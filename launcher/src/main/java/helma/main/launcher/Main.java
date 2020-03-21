@@ -19,6 +19,7 @@ package helma.main.launcher;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -135,10 +136,10 @@ public class Main {
      * @throws MalformedURLException
      */
     public static ClassLoader createClassLoader(String installDir)
-            throws MalformedURLException {
+            throws MalformedURLException, UnsupportedEncodingException {
 
         // decode installDir in case it is URL-encoded
-        installDir = URLDecoder.decode(installDir);
+        installDir = URLDecoder.decode(installDir, System.getProperty("helma.urlEncoding", "UTF-8"));
 
         // set up the class path
         File libdir = new File(installDir, "lib");

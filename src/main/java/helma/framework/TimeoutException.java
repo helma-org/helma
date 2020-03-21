@@ -22,6 +22,8 @@ package helma.framework;
  * not be serviced within the timeout period specified for an application.
  */
 public class TimeoutException extends RuntimeException {
+    private static final long serialVersionUID = 3853135482278393735L;
+
     /**
      * Creates a new TimeoutException object.
      */

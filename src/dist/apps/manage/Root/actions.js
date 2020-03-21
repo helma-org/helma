@@ -75,7 +75,7 @@ function makekey_action() {
             res.data.body = renderSkinAsString("pwdform", obj);
         } else {
             // render the md5-string:
-            obj.propsString = "adminAccess=" + Packages.helma.util.MD5Encoder.encode(req.data.username + "-" + req.data.password) + "<br>\n";
+            obj.propsString = "adminAccess=" + Packages.org.apache.commons.codec.digest.DigestUtils.md5Hex(req.data.username + "-" + req.data.password) + "<br>\n";
             res.data.body = renderSkinAsString("pwdfeedback", obj);
         }
 

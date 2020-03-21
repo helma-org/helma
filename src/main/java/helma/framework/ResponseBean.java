@@ -30,6 +30,8 @@ import java.util.Map;
  *
  */
 public class ResponseBean implements Serializable {
+    private static final long serialVersionUID = -6807623667477109800L;
+
     ResponseTrans res;
 
     /**
@@ -584,6 +586,7 @@ public class ResponseBean implements Serializable {
      * Old version for push() kept for compatibility
      * @deprecated
      */
+    @Deprecated
     public void pushStringBuffer() {
         res.pushBuffer(null);
     }
@@ -593,6 +596,7 @@ public class ResponseBean implements Serializable {
      * @deprecated
      * @return ...
      */
+    @Deprecated
     public String popStringBuffer() {
         return res.popString();
     }

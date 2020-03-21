@@ -21,6 +21,8 @@
  * application, for example by calling app.addRepository('modules/core/Object.js')
  */
 
+app.addRepository('modules/core/Global.js');
+
 /**
  * Copies the properties of this object into a clone.
  * @external

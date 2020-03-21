@@ -145,11 +145,13 @@ public class Server implements Runnable {
     public static void checkJavaVersion() {
         String javaVersion = System.getProperty("java.version");
 
-        if ((javaVersion == null) || javaVersion.startsWith("1.3")
+        if ((javaVersion == null) || javaVersion.startsWith("1.5")
+                                  || javaVersion.startsWith("1.4")
+                                  || javaVersion.startsWith("1.3")
                                   || javaVersion.startsWith("1.2")
                                   || javaVersion.startsWith("1.1")
                                   || javaVersion.startsWith("1.0")) {
-            System.err.println("This version of Helma requires Java 1.4 or greater.");
+            System.err.println("This version of Helma requires Java 1.6 or greater.");
 
             if (javaVersion == null) { // don't think this will ever happen, but you never know
                 System.err.println("Your Java Runtime did not provide a version number. Please update to a more recent version.");

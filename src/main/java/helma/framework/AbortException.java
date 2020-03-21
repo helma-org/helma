@@ -24,4 +24,6 @@ package helma.framework;
  */
 public class AbortException extends Error {
 
+    private static final long serialVersionUID = -7536693051844908815L;
+
 }

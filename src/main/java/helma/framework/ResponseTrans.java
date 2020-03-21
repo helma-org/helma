@@ -26,6 +26,7 @@ import java.io.*;
 import java.security.*;
 import java.util.*;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.xmlrpc.XmlRpcResponseProcessor;
 
 /**
@@ -712,8 +713,8 @@ public final class ResponseTrans extends Writer implements Serializable {
                 digest = MessageDigest.getInstance("MD5");
                 // if (contentType != null)
                 //     digest.update (contentType.getBytes());
-                byte[] b = digest.digest(response);
-                etag = "\"" + new String(helma.util.Base64.encode(b)) + "\"";
+                byte[] b = this.digest.digest(this.response);
+                this.etag = "\"" + new String(Base64.encodeBase64(b)) + "\""; //$NON-NLS-1$ //$NON-NLS-2$
                 // only set response to 304 not modified if no cookies were set
                 if (reqtrans.hasETag(etag) && countCookies() == 0) {
                     response = new byte[0];
@@ -864,7 +865,7 @@ public final class ResponseTrans extends Writer implements Serializable {
         if (what == null) {
             digest.update(new byte[0]);
         } else if (what instanceof Date) {
-            digest.update(MD5Encoder.toBytes(((Date) what).getTime()));
+            digest.update(Long.toBinaryString(((Date) what).getTime()).getBytes());
         } else if (what instanceof byte[]) {
             digest.update((byte[]) what);
         } else {
@@ -888,9 +889,9 @@ public final class ResponseTrans extends Writer implements Serializable {
 
         // add the application checksum as dependency to make ETag
         // generation sensitive to changes in the app
-        byte[] b = digest.digest(MD5Encoder.toBytes(app.getChecksum()));
+        byte[] b = digest.digest(Long.toBinaryString((this.app.getChecksum())).getBytes());
 
-        setETag(new String(helma.util.Base64.encode(b)));
+        setETag(new String(Base64.encodeBase64(b)));
     }
 
     /**

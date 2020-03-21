@@ -49,7 +49,7 @@ helma.auth = function(realm) {
     var accessAllowed = true;
     if (req.data.username && req.data.password) {
         if (pw && hostIsAllowed()) {
-            if (pw == Packages.helma.util.MD5Encoder.encode(req.data.username + "-" + req.data.password)) {
+            if (pw == Packages.org.apache.commons.codec.digest.DigestUtils.md5Hex(req.data.username + "-" + req.data.password)) {
                 session.data[realm+'Authenticated'] = true;
                 res.redirect(res.data.href);
             } else {
@@ -61,7 +61,7 @@ helma.auth = function(realm) {
                 The adminAccess property is not set.<br />\
                 Before proceeding, add the following line to your app.properties or server.properties file:\
                 <br /><br />adminAccess='
-                + Packages.helma.util.MD5Encoder.encode(req.data.username + "-" + req.data.password);
+                + Packages.org.apache.commons.codec.digest.DigestUtils.md5Hex(req.data.username + "-" + req.data.password);
             else param.message += 'The '+ realm +'AccessAllowed property does not match your host.<br />\
                 Before proceeding, remove this property from your app.properties or server.properties file \
                 or include your host as follows:<br /><br />'
