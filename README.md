@@ -3,6 +3,7 @@
 ## TL;DR
 
 - Make sure you have Java 1.6 or higher installed
+- Download and unpack the [latest release](https://github.com/antville/helma/releases)
 - Invoke `./bin/helma`, resp. `./bin/helma.bat`, depending on your platform
 - Direct your web browser to <http://localhost:8080>
 
@@ -26,7 +27,7 @@ Please consult the documentation of your platform how to obtain and install Java
 
 You also can directly download a [Java runtime or development kit](https://www.oracle.com/java/technologies/javase-downloads.html#javasejdk) from Oracle.
 
-Helma is built with [Gradle](https://gradle.org).
+Helma is built with [Gradle](https://gradle.org), the build task depends on the binaries [rsync](https://rsync.samba.org) and [npx](https://www.npmjs.com/package/npx) being installed on your system.
 
 ## Development
 
@@ -34,13 +35,13 @@ Clone this repository to your machine and start the build process with `./gradle
 
 > ⚠️ Please be aware that this step is going to overwrite files in the installation directory – escpecially at a later time when there might be substantial changes. Should this happen by accident you find the previous installation in the `backups` directory.
 
-After compilation start Helma by invoking `./bin/helma.bat` or `./bin/helma`, depending on whether you are on Windows or Linux / Unix / OS X, respectively. If the `java` command is not found, try setting the `JAVA_HOME` variable in the start script to the location of your Java installation.
+After compilation start Helma by invoking `./bin/helma.bat` or `./bin/helma`, depending on whether you are on Windows or Linux / Unix / OS X, respectively. If the `java` command is not found, try setting the `JAVA_HOME` environment variable to the location of your Java installation.
 
 You can adjust server-wide settings in the `server.properties` file. For example, you could set the `smtp` property to the name of the SMTP server that Helma should use to send e-mail. Applications can be started or stopped by editing the `apps.properties` file through the web interface using the management application that is part of Helma.
 
 After startup you should be able to connect your browser to <http://localhost:8080> – port 8080 on the local machine, that is.
 
-Helma comes with a version of [Jetty](http://eclipse.org/jetty/), a lightweight yet industrial strenth web server.
+Helma comes with a version of [Jetty](http://eclipse.org/jetty/), a lightweight yet industrial strength web server.
 
 While Jetty works well for development and in fact deploying real web sites, you might want to run Helma with the web server you are already using. This is most easily done by proxying Helma. Please consult the documentation of your web server how to achieve this.
 
