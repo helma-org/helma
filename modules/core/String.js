@@ -399,21 +399,6 @@ String.prototype.md5 = function() {
 
 
 /**
- * function returns true if the string ends with
- * the string passed as argument
- * @external
- * @memberof {String}
- * @param String string pattern to search for
- * @return Boolean true in case it matches the end of
- *            the string, false otherwise
- */
-String.prototype.endsWith = function(str) {
-    var javaObj = new java.lang.String(this);
-    return javaObj.endsWith(str);
-};
-
-
-/**
  * fills a string with another string up to a desired length
  * @external
  * @memberof {String}
