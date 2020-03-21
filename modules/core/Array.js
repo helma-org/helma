@@ -38,18 +38,9 @@ Array.prototype.contains = Array.prototype.includes
  * @return {Array} the union set
  */
 Array.union = function() {
-   var result = [];
-   var map = {};
-   for (var i=0; i<arguments.length; i+=1) {
-      for (var n in arguments[i]) {
-         var item = arguments[i][n];
-         if (!map[item]) {
-            result.push(item);
-            map[item] = true;
-         }
-      }
-   }
-   return result;
+   return Array.from(arguments).reduce((result, array) => {
+      return result.concat(array.filter(element => !result.includes(element)));
+   }, []);
 };
 
 /**
