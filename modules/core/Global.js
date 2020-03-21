@@ -213,7 +213,7 @@ var encodeForm = function(text) {
 
   if (text === null || !text.length) return text;
 
-  return encode(str, false);
+  return encode(text, false);
 };
 
 /**
