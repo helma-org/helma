@@ -438,9 +438,7 @@ String.prototype.pad = function(str, length, mode) {
  * @param Boolean
  */
 String.prototype.contains = function(str, fromIndex) {
-    if (this.indexOf(str, fromIndex ? fromIndex : 0) > -1)
-        return true;
-    return false;
+    return this.indexOf(str, fromIndex || 0) > -1;
 };
 
 
