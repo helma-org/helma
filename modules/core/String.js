@@ -410,28 +410,21 @@ String.prototype.md5 = function() {
  *                     String.BALANCE and String.RIGHT here as well.)
  * @return String the resulting string
  */
-String.prototype.pad = function(str, len, mode) {
-    if (str  == null || len == null)
-        return this;
-    var diff = len - this.length;
-    if (diff == 0)
-        return this;
-    var left, right = 0;
-    if (mode == null || mode == String.RIGHT)
-        right = diff;
-    else if (mode == String.LEFT)
-        left = diff;
-    else if (mode == String.BALANCE) {
-        right = Math.round(diff / 2);
-        left = diff - right;
+String.prototype.pad = function(str, length, mode) {
+    if (mode === null || mode === String.RIGHT) return this.padEnd(length, str);
+    if (mode === String.LEFT) return this.padStart(length, str);
+
+    if (mode === String.BALANCE && str && length) {
+      const pos = Math.ceil(this.length / 2);
+      const head = this.substr(0, pos);
+      const tail = this.substr(pos);
+      const additionalLength = (length - this.length) / 2;
+      const startLength = head.length + Math.floor(additionalLength);
+      const endLength = tail.length + Math.ceil(additionalLength);
+      return head.padStart(startLength, str) + tail.padEnd(endLength, str);
     }
-    res.push();
-    for (var i=0; i<left; i++)
-        res.write(str);
-    res.write(this);
-    for (var i=0; i<right; i++)
-        res.write(str);
-    return res.pop();
+
+    return this;
 };
 
 
