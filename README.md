@@ -33,7 +33,7 @@ Helma is built with [Gradle](https://gradle.org), the build task depends on the 
 
 Clone this repository to your machine and start the build process with `./gradlew install`. The build script is going to ask you if you want to update the installation, enter `y`.
 
-> ⚠  
+> ⚠️    
 > Please be aware that this step is going to overwrite files in the installation directory – escpecially at a later time when there might be substantial changes. Should this happen by accident you find the previous installation in the `backups` directory.
 >
 > Alternatively, you could move or copy the desired files manually from the installation directory `build/install/helma`.
