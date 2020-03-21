@@ -546,17 +546,6 @@ String.prototype.diff = function(mod, separator) {
 
 
 /**
- * remove leading and trailing whitespace
- * @external
- * @memberof {String}
- */
-String.prototype.trim = function () {
-    var s = new java.lang.String(this);
-    return String(s.trim());
-};
-
-
-/**
  * returns true if the string looks like an e-mail
  * @external
  * @memberof {String}
