@@ -222,8 +222,10 @@ public class ResponseBean implements Serializable {
         if (str == null) return;
 
         for (String s : str) {
-            res.writeln(s + "");
+            res.write(s + "");
         }
+
+        res.writeln();
     }
 
     /**
