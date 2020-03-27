@@ -164,112 +164,6 @@ public final class HtmlEncoder {
         "&yuml;"    // 255
     };
 
-    static final HashSet allTags = new HashSet();
-
-    static {
-        allTags.add("a");
-        allTags.add("abbr");
-        allTags.add("acronym");
-        allTags.add("address");
-        allTags.add("applet");
-        allTags.add("area");
-        allTags.add("b");
-        allTags.add("base");
-        allTags.add("basefont");
-        allTags.add("bdo");
-        allTags.add("bgsound");
-        allTags.add("big");
-        allTags.add("blink");
-        allTags.add("blockquote");
-        allTags.add("bq");
-        allTags.add("body");
-        allTags.add("br");
-        allTags.add("button");
-        allTags.add("caption");
-        allTags.add("center");
-        allTags.add("cite");
-        allTags.add("code");
-        allTags.add("col");
-        allTags.add("colgroup");
-        allTags.add("del");
-        allTags.add("dfn");
-        allTags.add("dir");
-        allTags.add("div");
-        allTags.add("dl");
-        allTags.add("dt");
-        allTags.add("dd");
-        allTags.add("em");
-        allTags.add("embed");
-        allTags.add("fieldset");
-        allTags.add("font");
-        allTags.add("form");
-        allTags.add("frame");
-        allTags.add("frameset");
-        allTags.add("h1");
-        allTags.add("h2");
-        allTags.add("h3");
-        allTags.add("h4");
-        allTags.add("h5");
-        allTags.add("h6");
-        allTags.add("head");
-        allTags.add("html");
-        allTags.add("hr");
-        allTags.add("i");
-        allTags.add("iframe");
-        allTags.add("img");
-        allTags.add("input");
-        allTags.add("ins");
-        allTags.add("isindex");
-        allTags.add("kbd");
-        allTags.add("label");
-        allTags.add("legend");
-        allTags.add("li");
-        allTags.add("link");
-        allTags.add("listing");
-        allTags.add("map");
-        allTags.add("marquee");
-        allTags.add("menu");
-        allTags.add("meta");
-        allTags.add("nobr");
-        allTags.add("noframes");
-        allTags.add("noscript");
-        allTags.add("object");
-        allTags.add("ol");
-        allTags.add("option");
-        allTags.add("optgroup");
-        allTags.add("p");
-        allTags.add("param");
-        allTags.add("plaintext");
-        allTags.add("pre");
-        allTags.add("q");
-        allTags.add("s");
-        allTags.add("samp");
-        allTags.add("script");
-        allTags.add("select");
-        allTags.add("small");
-        allTags.add("span");
-        allTags.add("strike");
-        allTags.add("strong");
-        allTags.add("style");
-        allTags.add("sub");
-        allTags.add("sup");
-        allTags.add("table");
-        allTags.add("tbody");
-        allTags.add("td");
-        allTags.add("textarea");
-        allTags.add("tfoot");
-        allTags.add("th");
-        allTags.add("thead");
-        allTags.add("title");
-        allTags.add("tr");
-        allTags.add("tt");
-        allTags.add("u");
-        allTags.add("ul");
-        allTags.add("var");
-        allTags.add("wbr");
-        allTags.add("xmp");
-    }
-
     // HTML block tags need to suppress automatic newline to <br>
     // conversion around them to look good. However, they differ
     // in how many newlines around them should ignored. These sets
@@ -493,8 +387,7 @@ public final class HtmlEncoder {
                                 insideCodeTag = false;
                             }
 
-                            if (((allowedTags == null) || allowedTags.contains(tagName)) &&
-                                    allTags.contains(tagName) && !insideCodeTag) {
+                            if (((allowedTags == null) || allowedTags.contains(tagName)) && !insideCodeTag) {
                                 insideHtmlTag = insideTag = true;
                                 htmlQuoteChar = '\u0000';
                                 htmlTagMode = TAG_NAME;
