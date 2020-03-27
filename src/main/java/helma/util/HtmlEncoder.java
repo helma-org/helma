@@ -175,14 +175,19 @@ public final class HtmlEncoder {
     static {
         // actual block level elements
         semiBlockTags.add("address");
-        semiBlockTags.add("dir");
-        semiBlockTags.add("div");
-        semiBlockTags.add("table");
-
+        blockTags.add("article");
+        blockTags.add("aside");
         blockTags.add("blockquote");
-        blockTags.add("center");
+        blockTags.add("details");
+        blockTags.add("dialog");
+        blockTags.add("dd");
+        semiBlockTags.add("div");
         blockTags.add("dl");
+        blockTags.add("dt");
         blockTags.add("fieldset");
+        blockTags.add("figcaption");
+        blockTags.add("figure");
+        blockTags.add("footer");
         blockTags.add("form");
         blockTags.add("h1");
         blockTags.add("h2");
@@ -190,27 +195,31 @@ public final class HtmlEncoder {
         blockTags.add("h4");
         blockTags.add("h5");
         blockTags.add("h6");
+        blockTags.add("header");
+        blockTags.add("hgroup");
         blockTags.add("hr");
-        blockTags.add("isindex");
+        blockTags.add("li");
+        blockTags.add("main");
+        blockTags.add("nav");
         blockTags.add("ol");
         blockTags.add("p");
         blockTags.add("pre");
+        blockTags.add("section");
+        semiBlockTags.add("table");
         blockTags.add("ul");
+
+        // additional semi/block elements
+        blockTags.add("br");
+        blockTags.add("center");
+        semiBlockTags.add("dir");
+        blockTags.add("frameset");
+        blockTags.add("isindex");
+        blockTags.add("td");
+        semiBlockTags.add("th");
 
         internalTags.add("menu");
         internalTags.add("noframes");
         internalTags.add("noscript");
-
-        /// to be treated as block level elements
-        semiBlockTags.add("th");
-
-        blockTags.add("br");
-        blockTags.add("dd");
-        blockTags.add("dt");
-        blockTags.add("frameset");
-        blockTags.add("li");
-        blockTags.add("td");
-
         internalTags.add("tbody");
         internalTags.add("tfoot");
         internalTags.add("thead");
@@ -221,19 +230,27 @@ public final class HtmlEncoder {
     static final HashSet emptyTags = new HashSet();
 
     static {
+        // actual empty elements
         emptyTags.add("area");
         emptyTags.add("base");
-        emptyTags.add("basefont");
         emptyTags.add("br");
         emptyTags.add("col");
-        emptyTags.add("frame");
+        emptyTags.add("embed");
         emptyTags.add("hr");
         emptyTags.add("img");
         emptyTags.add("input");
-        emptyTags.add("isindex");
+        emptyTags.add("keygen");
         emptyTags.add("link");
         emptyTags.add("meta");
         emptyTags.add("param");
+        emptyTags.add("source");
+        emptyTags.add("track");
+        emptyTags.add("wbr");
+
+        // Obsolete or deprecated
+        emptyTags.add("basefont");
+        emptyTags.add("frame");
+        emptyTags.add("isindex");
     }
 
     static final byte TAG_NAME = 0;
@@ -470,7 +487,7 @@ public final class HtmlEncoder {
                     int _entering = entering == SEMIBLOCK ? TEXT : entering;
                     for (int k = linebreaks-1; k>=0; k--) {
                         if (k >= swallowBreaks && k >= _entering && k >= exiting) {
-                            ret.append("<br class='helma-format' />");
+                            ret.append("<br class='helma-format'/>");
                         }
                         ret.append(newLine);
                     }
