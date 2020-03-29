@@ -1,3 +1,8 @@
+plugins {
+  id 'application'
+  id 'com.github.jk1.dependency-license-report' version '1.13'
+}
+
 import org.apache.tools.ant.filters.FixCrLfFilter
 
 def jettyLogLevel = '-Dorg.eclipse.jetty.LEVEL=WARN'
@@ -18,11 +23,9 @@ allprojects {
   }
 }
 
-apply plugin: 'application'
-
 version = new Date().format("yyyyMMdd")
 
-tasks.build.dependsOn javadoc, 'jsdoc'
+tasks.build.dependsOn javadoc, 'jsdoc', 'generateLicenseReport'
 tasks.compileJava.dependsOn 'processSource'
 
 sourceSets {
@@ -104,6 +107,11 @@ applicationDistribution.from("${project.buildDir}/docs/jsdoc") {
   into 'docs/jsdoc'
 }
 
+applicationDistribution.from("${project.buildDir}/reports/dependency-license") {
+  include '**'
+  into 'licenses'
+}
+
 distTar {
   compression = Compression.GZIP
 
@@ -119,7 +127,7 @@ distZip {
 }
 
 installDist {
-  dependsOn javadoc, 'jsdoc'
+  dependsOn build
   finalizedBy 'update'
 }
 
