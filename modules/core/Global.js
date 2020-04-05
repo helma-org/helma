@@ -225,7 +225,7 @@ var encodeForm = function(text) {
  *  The text with the tags stripped out.
  */
 var stripTags = function (markup) {
-  if (markup === null) return markup;
+  if (!markup) return '';
 
   var chars = String(markup).split('');
   var charCounter = 0;
