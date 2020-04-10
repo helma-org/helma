@@ -159,8 +159,8 @@ helma.Http = function() {
      * @param {String} password The password
      */
     this.setCredentials = function(username, password) {
-        var str = new java.lang.String(username + ":" + password);
-        credentials = (new Packages.sun.misc.BASE64Encoder()).encode(str.getBytes());
+        var str = username + ":" + password;
+        credentials = str.enbase64();
         return;
     }
 

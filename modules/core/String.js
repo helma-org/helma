@@ -536,8 +536,8 @@ String.prototype.count = function(str) {
  * @memberof {String}
  */
 String.prototype.enbase64 = function() {
-    var bytes = new java.lang.String(this) . getBytes();
-    return new Packages.sun.misc.BASE64Encoder().encode(bytes);
+    var bytes = java.lang.String(this).getBytes('utf-8');
+    return String(java.lang.String(Packages.org.apache.commons.codec.binary.Base64.encodeBase64(bytes), 'utf-8'));
 };
 
 
@@ -547,8 +547,8 @@ String.prototype.enbase64 = function() {
  * @memberof {String}
  */
 String.prototype.debase64 = function() {
-    var bytes = new Packages.sun.misc.BASE64Decoder().decodeBuffer(this);
-    return String(new java.lang.String(bytes));
+    var bytes = Packages.org.apache.commons.codec.binary.Base64.decodeBase64(this);
+    return String(java.lang.String(bytes, 'utf-8'));
 };
 
 
