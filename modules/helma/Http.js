@@ -62,7 +62,11 @@ helma.Http = function() {
        var input;
        try {
           if (method !== 'DELETE') {
-             input = new java.io.BufferedInputStream(connection.getInputStream());
+              var stream = connection.getInputStream();
+              if (connection.getContentEncoding() === 'gzip') {
+                  stream = new java.util.zip.GZIPInputStream(stream);
+              }
+              input = new java.io.BufferedInputStream(stream);
           }
        } catch (error) {
           input = new java.io.BufferedInputStream(connection.getErrorStream());
