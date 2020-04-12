@@ -18,7 +18,7 @@
 /**
  * @fileoverview Fields and methods of the helma.Http class.
  * <br /><br />
- * To use this optional module, its repository needs to be added to the 
+ * To use this optional module, its repository needs to be added to the
  * application, for example by calling app.addRepository('modules/helma/Http.js')
  */
 
@@ -57,6 +57,8 @@ helma.Http = function() {
         "socket": 0
     };
     var maxResponseSize = null;
+    var maxTries = 5;
+    var currentTries = 0;
 
     var responseHandler = function(connection, result) {
        var input;
@@ -86,7 +88,7 @@ helma.Http = function() {
           try {
              input.close();
           } catch (error) {
-             // safe to ignore 
+             // safe to ignore
           }
           if (binaryMode && (result.code >= 200 && result.code < 300)) {
              // only honor binaryMode if the request succeeded
@@ -174,7 +176,7 @@ helma.Http = function() {
      * can be either a string or an object. In the latter case all properties
      * and their values are concatenated into a single string.
      * If a property is an array, then for each value the propertyname and value pair is added.
-     * If the name of an array property ends with "_array" then the _array part is removed.  
+     * If the name of an array property ends with "_array" then the _array part is removed.
      */
     this.setContent = function(stringOrObject) {
         if (stringOrObject != null) {
@@ -184,21 +186,21 @@ helma.Http = function() {
                 for (var key in stringOrObject) {
                     value = stringOrObject[key];
                     if (value instanceof Array) {
-                        if (key.substring(key.length - 6) == "_array") 
-                            key = key.substring(0,key.length - 6); 
+                        if (key.substring(key.length - 6) == "_array")
+                            key = key.substring(0,key.length - 6);
                         for (var i = 0; i < value.length; i++) {
                             res.write(encodeURIComponent(key));
                             res.write("=");
                             res.write(encodeURIComponent(value[i]));
                             res.write("&");
-                        }        
+                        }
                     } else {
                        res.write(encodeURIComponent(key));
                        res.write("=");
                        res.write(encodeURIComponent(value));
                        res.write("&");
                     }
-                }               
+                }
                 content = res.pop();
                 content = content.substring(0, content.length-1);
             } else {
@@ -209,7 +211,7 @@ helma.Http = function() {
         }
         return;
     };
-    
+
     /**
      * Sets the request method to use.
      * @param {String} m The method to use (<code>GET</code>, <code>POST</code> ...)
@@ -286,7 +288,7 @@ helma.Http = function() {
      * Adds the cookies passed as argument to the list of cookies to send
      * to the remote server.
      * @param {Array} cookies An array containing objects with the properties
-     * "name" (the name of the cookie) and "value" (the value of the cookie) set. 
+     * "name" (the name of the cookie) and "value" (the value of the cookie) set.
      */
     this.setCookies = function(cookies) {
         if (cookies != null) {
@@ -488,7 +490,7 @@ helma.Http = function() {
         } else if (!(url instanceof java.net.URL)) {
             throw new Error("'" + url + "' is not a valid URL.");
         }
-        
+
         var conn = proxy ? url.openConnection(proxy) : url.openConnection();
         // Note: we must call setInstanceFollowRedirects() instead of
         // static method setFollowRedirects(), as the latter will
@@ -554,6 +556,14 @@ helma.Http = function() {
             cookies: null,
             headers: conn.getHeaderFields(),
             content: null,
+        }
+
+        // java.net.URLConnection does not follow redirects from http to https
+        // See https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4620571
+        if (followRedirects && [301, 303].contains(result.code) && result.location) {
+          currentTries += 1;
+          if (currentTries >= maxTries) throw new Error('Too many redirects');
+          return this.getUrl(result.location, opt);
         }
 
         // parse all "Set-Cookie" header fields into an array of
@@ -654,7 +664,7 @@ helma.Http.setProxy = function(proxyString) {
         sys.put("http.prodyPort", "");
     }
     return;
-    
+
 };
 
 
@@ -686,7 +696,7 @@ helma.Http.getProxy = function() {
  * @type Boolean
  */
 helma.Http.isAuthorized = function(name, pwd) {
-    if (!req.username || !req.password || 
+    if (!req.username || !req.password ||
         req.username != name || req.password != pwd) {
         res.reset();
         res.status = 401;
