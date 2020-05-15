@@ -161,15 +161,36 @@ public class Logger implements Log {
             // make sure we have a valid writer
             ensureOpen();
 
+            String color;
             int l = entries.size();
+
             for (int i = 0; i < l; i++) {
                 Entry entry = (Entry) entries.remove(0);
+
+                if (entry.level == "[TRACE] " || entry.level == "[DEBUG] ") {
+                    color = "\u001B[0m";
+                } else if (entry.level == "[INFO] ") {
+                    color = "\u001B[0m";
+                } else if (entry.level == "[WARN] ") {
+                    color = "\u001B[0;33m";
+                } else if (entry.level == "[ERROR] ") {
+                    color = "\u001B[0;31m";
+                } else if (entry.level == "[FATAL] ") {
+                    color = "\033[1;31m";
+                } else {
+                    color = "\u001B[32m";
+                }
+
+                writer.print(color);
                 writer.print(entry.date);
                 writer.print(entry.level);
                 writer.print(entry.threadId);
                 writer.println(entry.message);
+
                 if (entry.exception != null)
                     entry.exception.printStackTrace(writer);
+
+                writer.print("\033[0m");
             }
             writer.flush();
 
