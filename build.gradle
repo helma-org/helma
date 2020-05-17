@@ -65,6 +65,11 @@ dependencies {
   implementation 'xmlrpc:xmlrpc:2.0.1'
 }
 
+def rhinoJar = configurations.library.files.find { jar ->
+  jar.name.startsWith('rhino')
+}
+
+
 startScripts {
   applicationName = 'helma'
   classpath = files('../launcher.jar')
@@ -196,8 +201,8 @@ task update {
 }
 
 task jsdoc(type: Exec) {
+  description 'Generates JSDoc API documentation for the included JavaScript modules.'
   group 'Documentation'
-  description 'Generates JSDoc API documentation for the included JavaScript modules'
 
   def sources = ['modules/core', 'modules/helma', 'modules/jala/code']
   def destination = "${project.buildDir}/docs/jsdoc"
@@ -214,13 +219,41 @@ task jsdoc(type: Exec) {
   ignoreExitValue true
 }
 
-task rhinoShell(type: JavaExec) {
-  group 'Application'
-  description 'Runs the interactive Rhino JavaScript shell'
+task xgettext(type: JavaExec) {
+  description 'Extracts translatable message strings from source code.'
+  group 'i18n'
 
-  def rhinoJar = configurations.library.files.find { jar ->
-    jar.name.startsWith('rhino')
-  }
+  classpath = files('launcher.jar')
+  main = 'helma.main.launcher.Commandline'
+
+  // TODO: Decouple from Antville app
+  args = [
+    // Root.extractMessages is currently located in antville/code/Global/i18n.js
+    'antville.extractMessages',
+    'modules/jala/util/HopKit/scripts/MessageParser.js',
+    'code compat',
+    'apps/antville/i18n/antville.pot'
+  ]
+}
+
+task po2js(type: JavaExec) {
+  description 'Converts translated message strings from PO format to JavaScript.'
+  group 'i18n'
+
+  classpath = files(rhinoJar)
+  main = 'org.mozilla.javascript.tools.shell.Main'
+
+  // TODO: Decouple from Antville app
+  args = [
+    'modules/jala/util/HopKit/scripts/PoParser.js',
+    'apps/antville/i18n',
+    'apps/antville/i18n'
+  ]
+}
+
+task rhinoShell(type: JavaExec) {
+  description 'Runs the interactive Rhino JavaScript shell.'
+  group 'Application'
 
   classpath = files(rhinoJar)
   main = 'org.mozilla.javascript.tools.shell.Main'
@@ -231,8 +264,8 @@ task rhinoShell(type: JavaExec) {
 // Call this task with a function definition using the `-P` parameter, e.g.
 // `./gradlew commandLine -Pfunction=manage.getAllApplications`
 task commandLine(type: JavaExec) {
+  description 'Runs a function in a Helma application with `-Pfunction=app.functionName`.'
   group 'Application'
-  description 'Runs a function in a Helma application with `-Pfunction=app.functionName`'
 
   classpath = files('launcher.jar')
   main = 'helma.main.launcher.Commandline'

@@ -3,5 +3,3 @@ jar {
     from 'src/main/java/helma/main/launcher/manifest.txt'
   }
 }
-
-//startScripts.enabled = false
