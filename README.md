@@ -55,7 +55,7 @@ Finally, Helma can be plugged into Servlet containers using Servlet classes that
 After installing and running Helma, you will be able to access introductions to the features of Helma and the various included development tools. Further information you will find on the helma.org website:
 
 > 😿  
-> Unfortunately, the Helma website disappeard in the meantime. However, with some archeological web digging and thanks to the great search engines and archive services out there it is still possible to find useful resources.
+> Unfortunately, the Helma website disappeard in the meantime. However, with some archaeological web digging and thanks to the great search engines and archive services out there it is still possible to find useful resources.
 
 - [helma.org at Internet Archive](http://web.archive.org/web/20180122132315/http://helma.org)
 - [Documentation](http://web.archive.org/web/20100530234322/http://helma.org/documentation/)
