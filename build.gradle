@@ -50,7 +50,6 @@ configurations {
 
 dependencies {
   implementation 'com.google.code.gson:gson:2.8.6'
-  implementation 'com.sun.activation:javax.activation:1.2.0'
   implementation 'commons-codec:commons-codec:1.14'
   implementation 'commons-fileupload:commons-fileupload:1.4'
   implementation 'commons-logging:commons-logging:1.2'
