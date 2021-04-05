@@ -21,6 +21,11 @@ allprojects {
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
   }
+
+  repositories {
+    mavenCentral()
+    jcenter()
+  }
 }
 
 version = new Date().format("yyyyMMdd")
@@ -35,11 +40,6 @@ sourceSets {
       srcDirs = ["$buildDir/src/main/java"]
     }
   }
-}
-
-repositories {
-  mavenCentral()
-  jcenter()
 }
 
 configurations {
@@ -67,7 +67,6 @@ dependencies {
 def rhinoJar = configurations.library.files.find { jar ->
   jar.name.startsWith('rhino')
 }
-
 
 startScripts {
   applicationName = 'helma'

@@ -7,3 +7,4 @@ org.apache.tools.ant.DirectoryScanner.removeDefaultExclude('**/.git/**')
 org.apache.tools.ant.DirectoryScanner.removeDefaultExclude('**/.gitignore')
 
 include 'launcher'
+include 'modules:helma'

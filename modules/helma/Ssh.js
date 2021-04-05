@@ -18,20 +18,20 @@
 /**
  * @fileoverview Fields and methods of the helma.Ssh class.
  * <br /><br />
- * To use this optional module, its repository needs to be added to the 
+ * To use this optional module, its repository needs to be added to the
  * application, for example by calling app.addRepository('modules/helma/Ssh.js')
  */
 
 // take care of any dependencies
 app.addRepository('modules/helma/File.js');
-app.addRepository('modules/helma/ganymed-ssh2.jar');
+app.addRepository('modules/helma/ganymed-ssh2-build208.jar');
 
 // define the helma namespace, if not existing
 if (!global.helma) {
     global.helma = {};
 }
 
-/** 
+/**
  * Creates a new instance of helma.Ssh
  * @class This class provides methods for connecting to a remote
  * server via secure shell (ssh) and copying files from/to a remote
@@ -43,7 +43,7 @@ if (!global.helma) {
  * file. This argument is optional.
  * @constructor
  * @returns A newly created instance of helma.Ssh
- * @author Robert Gaggl <robert@nomatic.org> 
+ * @author Robert Gaggl <robert@nomatic.org>
  */
 helma.Ssh = function(server, hosts) {
     var SSHPKG = Packages.ch.ethz.ssh2;
@@ -61,11 +61,11 @@ helma.Ssh = function(server, hosts) {
     } catch (e) {
         if (e instanceof TypeError == false)
             throw(e);
-        throw("helma.Ssh needs " + SSHPKGNAME + 
+        throw("helma.Ssh needs " + SSHPKGNAME +
               " in lib/ext or application directory " +
               "[" + SSHPKGURL + "]");
     }
-    
+
     /**
      * A simple verifier for verifying host keys
      * @private
@@ -96,7 +96,7 @@ helma.Ssh = function(server, hosts) {
             return;
         }
     };
-    
+
     /**
      * Converts the argument into an instance of java.io.File
      * @param {helma.File|java.io.File|String} file Either a file
@@ -131,7 +131,7 @@ helma.Ssh = function(server, hosts) {
         }
         return false;
     };
-    
+
     /**
      * Private helper method for debugging output using app.logger
      * @param {String} methodName The name of the method
@@ -175,7 +175,7 @@ helma.Ssh = function(server, hosts) {
         }
         return false;
     };
-    
+
     /**
      * Connects to a remote host using plain username/password authentication.
      * @param {String} username The username
@@ -217,7 +217,7 @@ helma.Ssh = function(server, hosts) {
         }
         return false;
     };
-    
+
     /**
      * Disconnects this client from the remote server.
      */
@@ -325,7 +325,7 @@ helma.Ssh = function(server, hosts) {
             }
         }
     };
-    
+
     /**
      * Toggles paranoid mode. If set to true this client tries to
      * verify the host key against the its list of known hosts
@@ -346,7 +346,7 @@ helma.Ssh = function(server, hosts) {
     this.isParanoid = function() {
         return paranoid;
     };
-    
+
     /**
      * main constructor body
      */
