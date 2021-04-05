@@ -1,0 +1,8 @@
+dependencies {
+	runtime 'dom4j:dom4j:1.6.1'
+}
+
+task deps(type: Copy) {
+	from sourceSets.main.runtimeClasspath
+	into 'lib'
+}

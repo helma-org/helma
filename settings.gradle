@@ -8,3 +8,4 @@ org.apache.tools.ant.DirectoryScanner.removeDefaultExclude('**/.gitignore')
 
 include 'launcher'
 include 'modules:helma'
+include 'modules:jala'
