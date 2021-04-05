@@ -1,5 +1,6 @@
 dependencies {
 	runtime 'ch.ethz.ganymed:ganymed-ssh2:build208'
+	runtime 'net.sourceforge.jexcelapi:jxl:2.5.7'
 }
 
 task deps(type: Copy) {
