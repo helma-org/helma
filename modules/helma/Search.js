@@ -26,13 +26,13 @@
 /**
  * @fileoverview Fields and methods of the helma.Search class
  * <br /><br />
- * To use this optional module, its repository needs to be added to the 
+ * To use this optional module, its repository needs to be added to the
  * application, for example by calling app.addRepository('modules/helma/Search.js')
  */
 
 // take care of any dependencies
-app.addRepository('modules/helma/lucene-core.jar');
-app.addRepository('modules/helma/lucene-analyzers.jar');
+app.addRepository('modules/helma/lucene-core-2.2.0.jar');
+app.addRepository('modules/helma/lucene-analyzers-2.2.0.jar');
 
 
 if (!global.helma) {
@@ -47,7 +47,7 @@ if (!global.helma) {
  * creating a fulltext search index based on Apache Lucene.
  * @returns A newly created instance of this prototype.
  * @constructor
- * @author Robert Gaggl <robert@nomatic.org> 
+ * @author Robert Gaggl <robert@nomatic.org>
  */
 helma.Search = function() {
     try {
@@ -309,7 +309,7 @@ helma.Search.Index = function(directory, analyzer) {
     this.getAnalyzer = function() {
         return analyzer;
     };
-    
+
     /**
      * Returns a searcher for querying this index.
      * @returns A searcher useable for querying the index.
@@ -318,7 +318,7 @@ helma.Search.Index = function(directory, analyzer) {
     this.getSearcher = function() {
         return new helma.Search.Searcher(this);
     };
-    
+
     /** @ignore */
     this.toString = function() {
         return ("[Lucene Index " + directory + "]");
@@ -773,7 +773,7 @@ helma.Search.HitCollection = function(hits) {
     this.length = function() {
         return this.size();
     };
-    
+
     /**
      * Executes a provided function once per hit.
      * @param {Function} fun Function to execute for each element
@@ -793,7 +793,7 @@ helma.Search.HitCollection = function(hits) {
         }
         return;
     };
-    
+
     return this;
 };
 
@@ -1308,7 +1308,7 @@ helma.Search.Document.Field = function(name, value, options) {
         var store = pkg.Store.YES;
         var index = pkg.Index.TOKENIZED;
         var termVector = pkg.TermVector.NO;
-    
+
         var opt;
         if (options != null) {
             if (options.store != null) {
