@@ -1,0 +1,9 @@
+dependencies {
+	runtime 'org.subethamail:subethasmtp-smtp:1.2'
+	runtime 'org.subethamail:subethasmtp-wiser:1.2'
+}
+
+task deps(type: Copy) {
+	from sourceSets.main.runtimeClasspath
+	into 'code'
+}
