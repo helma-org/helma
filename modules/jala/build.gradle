@@ -1,5 +1,8 @@
 dependencies {
 	runtime 'dom4j:dom4j:1.6.1'
+	//runtime 'id3:de.ueberdosis.mp3info:1.6.0d9'
+	//runtime 'javadns:org.wonderly:?'
+	runtime 'jaxen:jaxen:1.1-beta-8'
 }
 
 task deps(type: Copy) {
