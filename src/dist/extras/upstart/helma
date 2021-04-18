@@ -6,56 +6,67 @@
 # andreas bolka, 2003-11-30
 #
 
+### BEGIN INIT INFO
+# Provides: helma
+# Required-Start: postgresql apache2
+# Required-Stop:
+# Default-Start: 2 3 4 5
+# Default-STop: 0 1 6
+# Short-Description: Helma Application Server
+### END INIT INFO
+
 HELMA_CONFIG=/etc/helma.conf
 
 ###
 
 # Check for existence of needed config file and source it
 if [ -r $HELMA_CONFIG ]; then
-    source $HELMA_CONFIG
+  source $HELMA_CONFIG
 else
-    echo "Can't read config file $HELMA_CONFIG"
-    exit 6
+  echo "Can't read config file $HELMA_CONFIG"
+  exit 6
 fi
 
 # Check for missing files and directories
+
 if [ ! -x $JAVA_BIN ]; then
-    echo "Config error: JAVA_BIN $JAVA_BIN not found or not executable"
-    exit 5
-fi
-if [ ! -r $HELMA_INSTALL/launcher.jar ]; then 
-    echo "Config error: $HELMA_INSTALL/launcher.jar not found or not readable"
-    exit 5
-fi
-if [ ! -d $HELMA_HOME ]; then 
-    echo "Config error: HELMA_HOME $HELMA_HOME not found"
-    exit 5
+  echo "Config error: JAVA_BIN $JAVA_BIN not found or not executable"
+  exit 5
 fi
 
-# local settins
-RUN_CMD="sudo -u $HELMA_USER $JAVA_BIN"
-RUN_ARGS="$JAVA_OPTS -jar $HELMA_INSTALL/launcher.jar -h $HELMA_HOME $HELMA_ARGS"
+if [ ! -r $HELMA_INSTALL/launcher.jar ]; then
+  echo "Config error: $HELMA_INSTALL/launcher.jar not found or not readable"
+  exit 5
+fi
+
+if [ ! -d $HELMA_HOME ]; then
+  echo "Config error: HELMA_HOME $HELMA_HOME not found"
+  exit 5
+fi
+
+RUN_CMD="su - $HELMA_USER"
+RUN_ARGS="-c $JAVA_BIN $JAVA_OPTS -jar $HELMA_INSTALL/launcher.jar -h $HELMA_HOME $HELMA_ARGS"
 
 case "$1" in
-start)	
+  start)
     echo -n "Starting $HELMA_SERVICE: "
 
     if [ -f $HELMA_PID ]; then
-	echo "$HELMA_SERVICE (pid `cat $HELMA_PID`) already running"
-	exit 1
+      echo "$HELMA_SERVICE (pid `cat $HELMA_PID`) already running"
+      exit 1
     fi
 
     cd $HELMA_HOME
-    nohup $RUN_CMD $RUN_ARGS > $HELMA_LOG 2>&1 &
+    nohup $RUN_CMD "$RUN_ARGS" > $HELMA_LOG 2>&1 &
     echo $! > $HELMA_PID
     echo "$HELMA_SERVICE (pid `cat $HELMA_PID`) started."
     ;;
 
-stop)   
+  stop)
     echo -n "Shutting down $HELMA_SERVICE: "
     if [ ! -f $HELMA_PID ]; then
-	echo "$HELMA_SERVICE not running"
-	exit 1
+      echo "$HELMA_SERVICE not running"
+      exit 1
     fi
 
     PID=`cat $HELMA_PID 2>/dev/null`
@@ -65,20 +76,21 @@ stop)
     echo "stopped."
     ;;
 
-restart)
+  restart)
     $0 stop && $0 start
     ;;
 
-reload)
+  reload)
     echo -n "Reloading $HELMA_SERVICE: $HELMA_SERVICE"
     touch $HELMA_HOME/server.properties
     touch $HELMA_HOME/apps.properties
     echo "."
     ;;
 
-*)	
+  *)
     echo "Usage: /etc/init.d/helma start|stop|restart|reload"
-    exit 1 
+    exit 1
     ;;
 esac
+
 exit 0
