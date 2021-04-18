@@ -1,6 +1,6 @@
 dependencies {
 	// FIXME: Seems to be not used, anymore…?
-	runtime 'bsf:bsf:2.4.0'
+	runtimeOnly 'bsf:bsf:2.4.0'
 }
 
 task deps(type: Copy) {

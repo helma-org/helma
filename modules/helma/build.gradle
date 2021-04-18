@@ -1,8 +1,8 @@
 dependencies {
-	runtime 'ch.ethz.ganymed:ganymed-ssh2:build208'
-	runtime 'net.sourceforge.jexcelapi:jxl:2.5.7'
-	runtime 'org.apache.lucene:lucene-analyzers:2.2.0'
-	runtime 'org.apache.lucene:lucene-core:2.2.0'
+	runtimeOnly 'ch.ethz.ganymed:ganymed-ssh2:build209'
+	runtimeOnly 'net.sourceforge.jexcelapi:jxl:2.5.7'
+	runtimeOnly 'org.apache.lucene:lucene-analyzers:2.2.0'
+	runtimeOnly 'org.apache.lucene:lucene-core:2.2.0'
 }
 
 task deps(type: Copy) {

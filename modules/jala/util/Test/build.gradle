@@ -1,6 +1,6 @@
 dependencies {
-	runtime 'org.subethamail:subethasmtp-smtp:1.2'
-	runtime 'org.subethamail:subethasmtp-wiser:1.2'
+	runtimeOnly 'org.subethamail:subethasmtp-smtp:1.2'
+	runtimeOnly 'org.subethamail:subethasmtp-wiser:1.2'
 }
 
 task deps(type: Copy) {

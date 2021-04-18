@@ -1,7 +1,7 @@
 dependencies {
-	runtime 'dom4j:dom4j:1.6.1'
-	runtime 'jaxen:jaxen:1.1-beta-8'
-	runtime 'net.sf.javamusictag:jid3lib:0.5.4'
+	runtimeOnly 'dom4j:dom4j:1.6.1'
+	runtimeOnly 'jaxen:jaxen:1.1-beta-8'
+	runtimeOnly 'net.sf.javamusictag:jid3lib:0.5.4'
 
 	// FIXME: Did not find these two or appropriate replacements for them
 	//runtime 'id3:de.ueberdosis.mp3info:1.6.0d9'

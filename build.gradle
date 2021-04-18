@@ -24,7 +24,6 @@ allprojects {
 
   repositories {
     mavenCentral()
-    jcenter()
   }
 }
 
@@ -116,6 +115,7 @@ applicationDistribution.from("${project.buildDir}/reports/dependency-license") {
 }
 
 distTar {
+  dependsOn ':generateLicenseReport', ':javadoc', ':jsdoc'
   compression = Compression.GZIP
 
   filesMatching(textFiles) {
@@ -124,6 +124,8 @@ distTar {
 }
 
 distZip {
+  dependsOn ':generateLicenseReport', ':javadoc', ':jsdoc'
+
   filesMatching(textFiles) {
     filter(FixCrLfFilter.class, eol: FixCrLfFilter.CrLf.newInstance("crlf"))
   }
