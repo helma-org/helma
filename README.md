@@ -40,7 +40,7 @@ Clone this repository to your machine and start the build process with `./gradle
 
 After all files are put into place start Helma by invoking `./bin/helma.bat` or `./bin/helma`, depending on whether you are on Windows or Linux / Unix / OS X, respectively. If the `java` command is not found, try setting the `JAVA_HOME` environment variable to the location of your Java installation.
 
-You can adjust server-wide settings in the `server.properties` file. For example, you could set the `smtp` property to the name of the SMTP server that Helma should use to send e-mail. Applications can be started or stopped by editing the `apps.properties` file through the web interface using the management application that is part of Helma.
+You can adjust server-wide settings in the `server.properties` file. For example, you could set the `smtp` property to the name of the SMTP server that Helma should use to send e-mail. Applications can be started or stopped by editing the `apps.properties` file, or through the web interface using the management application that is part of Helma.
 
 If all goes well you should be able to connect your browser to <http://localhost:8080> – port 8080 on the local machine, that is.
 

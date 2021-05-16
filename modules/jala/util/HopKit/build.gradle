@@ -1,0 +1,9 @@
+dependencies {
+	// FIXME: Seems to be not used, anymore…?
+	runtimeOnly 'bsf:bsf:2.4.0'
+}
+
+task deps(type: Copy) {
+	from sourceSets.main.runtimeClasspath
+	into 'lib'
+}

@@ -21,6 +21,10 @@ allprojects {
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
   }
+
+  repositories {
+    mavenCentral()
+  }
 }
 
 version = new Date().format("yyyyMMdd")
@@ -37,11 +41,6 @@ sourceSets {
   }
 }
 
-repositories {
-  mavenCentral()
-  jcenter()
-}
-
 configurations {
   // Wrapping implementation because it does not allow access to its files
   // (i.e. cannot be resolved)
@@ -50,7 +49,7 @@ configurations {
 
 dependencies {
   implementation 'com.google.code.gson:gson:2.8.6'
-  implementation 'commons-codec:commons-codec:1.14'
+  implementation 'commons-codec:commons-codec:1.15'
   implementation 'commons-fileupload:commons-fileupload:1.4'
   implementation 'commons-logging:commons-logging:1.2'
   implementation 'commons-net:commons-net:3.8.0'
@@ -67,7 +66,6 @@ dependencies {
 def rhinoJar = configurations.library.files.find { jar ->
   jar.name.startsWith('rhino')
 }
-
 
 startScripts {
   applicationName = 'helma'
@@ -117,6 +115,7 @@ applicationDistribution.from("${project.buildDir}/reports/dependency-license") {
 }
 
 distTar {
+  dependsOn ':generateLicenseReport', ':javadoc', ':jsdoc'
   compression = Compression.GZIP
 
   filesMatching(textFiles) {
@@ -125,6 +124,8 @@ distTar {
 }
 
 distZip {
+  dependsOn ':generateLicenseReport', ':javadoc', ':jsdoc'
+
   filesMatching(textFiles) {
     filter(FixCrLfFilter.class, eol: FixCrLfFilter.CrLf.newInstance("crlf"))
   }

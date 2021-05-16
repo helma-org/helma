@@ -18,12 +18,12 @@
 /**
  * @fileoverview Fields and methods of the helma.Chart prototype
  * <br /><br />
- * To use this optional module, its repository needs to be added to the 
+ * To use this optional module, its repository needs to be added to the
  * application, for example by calling app.addRepository('modules/helma/Chart.js')
  */
 
 // take care of any dependencies
-app.addRepository('modules/helma/jxl.jar');
+app.addRepository('modules/helma/jxl-2.5.7.jar');
 
 /**
  * Define the global namespace if not existing
@@ -55,12 +55,12 @@ helma.Chart = function(fpath, prefix, sheetName) {
 
     var workbook, file;
     try {
-        file = new java.io.File(fpath); 
+        file = new java.io.File(fpath);
         workbook = JXLPKG.getWorkbook(file);
     } catch (e) {
         if (e instanceof TypeError == false)
             throw(e);
-        throw("helma.Chart needs " + JXLPKGNAME + 
+        throw("helma.Chart needs " + JXLPKGNAME +
               " in lib/ext or application directory " +
               "[" + JXLPKGURL + "]");
     }
@@ -98,9 +98,9 @@ helma.Chart = function(fpath, prefix, sheetName) {
      * Renders the Excel spreadsheet as XHTML table.
      */
     this.render = function() {
-        res.write('<table border="0" cellspacing="1" class="' + 
+        res.write('<table border="0" cellspacing="1" class="' +
                   prefix + 'table">\n');
-    
+
         var rowBuf = [];
         var rows = sheet.getRows();
         var max = 0;
@@ -110,7 +110,7 @@ helma.Chart = function(fpath, prefix, sheetName) {
                 max = row.length;
             rowBuf.push(row);
         }
-    
+
         for (var i in rowBuf) {
             res.write('<tr class="' + prefix + 'row">\n');
             for (var n=0; n<max; n+=1) {
@@ -145,7 +145,7 @@ helma.Chart = function(fpath, prefix, sheetName) {
             }
             res.write('</tr>\n');
         }
-    
+
         res.write('</table>\n');
         workbook.close();
     };
