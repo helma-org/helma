@@ -62,16 +62,17 @@ helma.Http = function() {
 
     var responseHandler = function(connection, result) {
        var input;
+       var stream;
        try {
-          if (method !== 'DELETE') {
-              var stream = connection.getInputStream();
-              if (connection.getContentEncoding() === 'gzip') {
-                  stream = new java.util.zip.GZIPInputStream(stream);
-              }
-              input = new java.io.BufferedInputStream(stream);
-          }
+          stream = connection.getInputStream();
        } catch (error) {
-          input = new java.io.BufferedInputStream(connection.getErrorStream());
+          stream = connection.getErrorStream();
+       }
+       if  (stream) {
+          if (connection.getContentEncoding() === 'gzip') {
+              stream = new java.util.zip.GZIPInputStream(stream);
+          }
+          input = new java.io.BufferedInputStream(stream);
        }
        if (input) {
           var body = new java.io.ByteArrayOutputStream();
@@ -90,8 +91,7 @@ helma.Http = function() {
           } catch (error) {
              // safe to ignore
           }
-          if (binaryMode && (result.code >= 200 && result.code < 300)) {
-             // only honor binaryMode if the request succeeded
+          if (binaryMode) {
              result.content = body.toByteArray();
           } else {
              result.content = result.charset ?
