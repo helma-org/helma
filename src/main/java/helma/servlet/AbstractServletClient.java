@@ -554,8 +554,13 @@ public abstract class AbstractServletClient extends HttpServlet {
             // If protected session cookies are enabled we also force a new session
             // if the existing session id doesn't match the client's ip address
             StringBuffer buffer = new StringBuffer();
-            addIPAddress(buffer, request.getRemoteAddr());
-            addIPAddress(buffer, request.getHeader("X-Forwarded-For"));
+            String ip = request.getHeader("X-Forwarded-For");
+            if (ip != null && ip.length() != 0) {
+                addIPAddress(buffer, ip);
+            } else {
+                addIPAddress(buffer, request.getRemoteAddr());
+            }
+            // Not sure, if this line can be removed
             addIPAddress(buffer, request.getHeader("Client-ip"));
             if (reqtrans.getSession() == null || !reqtrans.getSession().startsWith(buffer.toString())) {
                 createSession(response, buffer.toString(), reqtrans, domain);
