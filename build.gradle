@@ -48,7 +48,7 @@ configurations {
 }
 
 dependencies {
-  implementation 'com.google.code.gson:gson:2.8.6'
+  implementation 'com.google.code.gson:gson:2.8.9'
   implementation 'commons-codec:commons-codec:1.15'
   implementation 'commons-fileupload:commons-fileupload:1.4'
   implementation 'commons-logging:commons-logging:1.2'
