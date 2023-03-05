@@ -216,6 +216,23 @@ public class DatabaseObject {
         }
     }
 
+    public RowSet executePreparedRetrieval(PreparedStatement statement) {
+        ResultSet resultSet = null;
+
+        try {
+            resultSet = statement.executeQuery();
+            return new RowSet(statement.toString(), this, statement, resultSet);
+        } catch (SQLException e) {
+            lastError = e;
+            try {
+                if (statement != null) statement.close();
+            } catch (Exception ignored) {
+            }
+            statement = null;
+            return null;
+        }
+    }
+
     public int executeCommand(String sql) {
         int count = 0;
 
