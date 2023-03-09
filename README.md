@@ -31,6 +31,11 @@ Helma is built with [Gradle](https://gradle.org), the build task depends on the 
 
 ## Development
 
+### Additional Prerequisites
+
+* [Rsync](https://rsync.samba.org) version ≥ 3.1.0
+* [NodeJS](https://nodejs.org) LTS version
+
 Clone this repository to your machine and start the build process with `./gradlew install`. The build script is going to ask you if you want to update the installation, enter `y`.
 
 > ⚠️    
